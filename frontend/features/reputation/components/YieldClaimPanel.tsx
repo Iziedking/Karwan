@@ -1,4 +1,5 @@
 'use client';
+import { buttonClasses } from '@/shared/components/Button';
 import { useCallback, useId, useState } from 'react';
 import { useYieldMe } from '../hooks/useYield';
 import { useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
@@ -101,30 +102,30 @@ export function YieldClaimPanel() {
   }, [address, claimableNum, isCircleUser, walletClient, ownWallet, arcClient, chainId, switchChainAsync, refresh, chainCopy, t.error]);
 
   if (!address) {
-    return <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.signedOut}</p>;
+    return <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.signedOut}</p>;
   }
 
   const claimLabel = busy ? t.claiming : t.claimTemplate.replace('{amount}', amount);
 
   return (
-    <div className="divide-y divide-[var(--lp-border-light)]">
+    <div className="divide-y divide-[var(--line)]">
       <div className="flex min-h-[52px] items-center justify-between gap-3 pb-3">
-        <span className="inline-flex items-center gap-1 text-[15px] font-medium text-[var(--lp-dark)]">
+        <span className="inline-flex items-center gap-1 text-[15px] font-medium text-[var(--ink)]">
           {t.earned}
           <Hint side="bottom">{t.earnedHint}</Hint>
         </span>
-        <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{loading ? ' ' : `${fmt(lifetimeCredited)} USDC`}</span>
+        <span className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">{loading ? ' ' : `${fmt(lifetimeCredited)} USDC`}</span>
       </div>
       <div className="flex min-h-[52px] items-center justify-between gap-3 py-3">
-        <span className="text-[15px] font-medium text-[var(--lp-dark)]">{t.claimed}</span>
-        <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-text-sub)]">{loading ? ' ' : `${fmt(lifetimeClaimed)} USDC`}</span>
+        <span className="text-[15px] font-medium text-[var(--ink)]">{t.claimed}</span>
+        <span className="text-[15px] font-semibold tabular-nums text-[var(--ink-secondary)]">{loading ? ' ' : `${fmt(lifetimeClaimed)} USDC`}</span>
       </div>
       <div className="pt-4">
         {onWrongChain ? (
           <button
             type="button"
             onClick={() => switchChainAsync({ chainId: ARC_CHAIN_ID }).catch(() => {})}
-            className="min-h-12 w-full rounded-full border border-[var(--lp-outline-strong)] px-5 text-[15px] font-semibold text-[var(--lp-dark)]"
+            className="min-h-12 w-full rounded-full border border-[var(--line-strong)] px-5 text-[15px] font-semibold text-[var(--ink)]"
           >
             {t.switchToArc}
           </button>
@@ -133,15 +134,15 @@ export function YieldClaimPanel() {
             type="button"
             onClick={() => setSheetOpen(true)}
             disabled={!canClaim}
-            className="min-h-12 w-full rounded-full bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:bg-[var(--tint)] disabled:text-[var(--ink-secondary)]"
+            className={buttonClasses({ size: 'lg', className: 'w-full' })}
           >
             {claimableNum > 0 ? claimLabel : t.nothingYet}
           </button>
         )}
         {lastTx && !busy ? (
-          <p role="status" className="mt-3 text-[14px] font-medium text-[var(--lp-text-sub)]">
+          <p role="status" className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">
             {t.done}{' '}
-            <a href={ARC_EXPLORER_TX(lastTx)} target="_blank" rel="noreferrer" className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+            <a href={ARC_EXPLORER_TX(lastTx)} target="_blank" rel="noreferrer" className="font-semibold text-[var(--ink)] underline underline-offset-4">
               {t.proof}
             </a>
           </p>
@@ -149,8 +150,8 @@ export function YieldClaimPanel() {
       </div>
 
       <ConfirmSheetShell open={sheetOpen} labelledBy={titleId} busy={busy} onClose={() => setSheetOpen(false)}>
-        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.sheetTitleTemplate.replace('{amount}', amount)}</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.sheetBody}</p>
+        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--ink)]">{t.sheetTitleTemplate.replace('{amount}', amount)}</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-secondary)] font-medium">{t.sheetBody}</p>
         {error ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{error}</p> : null}
         <RecordDoneLine show={recordSetUp} />
         <div className="mt-5 grid gap-2">
@@ -159,7 +160,7 @@ export function YieldClaimPanel() {
             onClick={() => void submit()}
             disabled={busy}
             aria-busy={busy}
-            className="min-h-12 rounded-full bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50"
+            className={buttonClasses({ size: 'lg', loading: busy })}
           >
             {busy ? t.claiming : t.confirm}
           </button>
@@ -167,7 +168,7 @@ export function YieldClaimPanel() {
             type="button"
             onClick={() => setSheetOpen(false)}
             disabled={busy}
-            className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-40"
+            className={buttonClasses({ variant: 'secondary', size: 'lg' })}
           >
             {t.cancel}
           </button>

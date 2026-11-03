@@ -1,6 +1,7 @@
 /// Sharing the full passport (view 29): the owner's share panel and what the
 /// person who opens the link sees.
 export interface PassportShareCopy {
+  done: string;
   open: string;
   who: string;
   person: string;
@@ -46,6 +47,7 @@ const en: PassportShareCopy = {
   readyPerson: 'Only {tag} can open it, signed in, until {date}.',
   copy: 'Copy link',
   copied: 'Copied',
+  done: 'Done',
   send: 'Send',
   live: 'Shared now',
   anyoneRow: 'Anyone with the link',
@@ -77,6 +79,7 @@ const fr: PassportShareCopy = {
   readyPerson: 'Seul {tag} peut l’ouvrir, connecté, jusqu’au {date}.',
   copy: 'Copier le lien',
   copied: 'Copié',
+  done: 'Terminé',
   send: 'Envoyer',
   live: 'Partagé en ce moment',
   anyoneRow: 'Toute personne ayant le lien',
@@ -108,6 +111,7 @@ const ar: PassportShareCopy = {
   readyPerson: 'لا يفتحه إلا {tag} بعد تسجيل الدخول، حتى {date}.',
   copy: 'نسخ الرابط',
   copied: 'تم النسخ',
+  done: 'تم',
   send: 'إرسال',
   live: 'مُشارَك الآن',
   anyoneRow: 'أي شخص لديه الرابط',
@@ -139,6 +143,7 @@ const hi: PassportShareCopy = {
   readyPerson: '{date} तक केवल {tag} साइन इन करके इसे खोल सकते हैं।',
   copy: 'लिंक कॉपी करें',
   copied: 'कॉपी हो गया',
+  done: 'हो गया',
   send: 'भेजें',
   live: 'अभी साझा',
   anyoneRow: 'लिंक वाला कोई भी',
@@ -170,6 +175,7 @@ const sw: PassportShareCopy = {
   readyPerson: 'Ni {tag} pekee anayeweza kukifungua, akiwa ameingia, hadi {date}.',
   copy: 'Nakili kiungo',
   copied: 'Imenakiliwa',
+  done: 'Imekamilika',
   send: 'Tuma',
   live: 'Kinashirikiwa sasa',
   anyoneRow: 'Yeyote mwenye kiungo',

@@ -2,10 +2,7 @@
 import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useEffect, useState } from 'react';
 import { api, type Reputation, type UserProfile, profilePhotoOf } from '@/core/api';
-import {
-  TIER_HUE,
-  type CompositeTier,
-} from '@/features/reputation/tierColors';
+import { type CompositeTier } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
 import { skillDateLabel, skillLabel } from '../skillCredentials';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
@@ -18,6 +15,10 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { AttestedDeals } from './AttestedDeals';
 import { PassportSharePanel } from './PassportSharePanel';
 import { passportShareCopy } from '@/shared/i18n/messages/passportShare';
+import { yourAgentCopy } from '@/shared/i18n/messages/yourAgent';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { Icon } from '@/shared/components/Icon';
+import Link from 'next/link';
 
 const EXPLORER = 'https://testnet.arcscan.app';
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -111,11 +112,11 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
   if (!valid) {
     return (
       <Shell>
-        <p className="eyebrow">{cp.eyebrow}</p>
+        <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{cp.eyebrow}</p>
         <h1 className="mt-2 text-[28px] tracking-tight" style={{ fontFamily: 'var(--font-serif)' }}>
           {cp.invalid.headline}
         </h1>
-        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)] font-medium">{cp.invalid.body}</p>
+        <p className="mt-3 text-[14px] text-[var(--ink-secondary)] font-medium">{cp.invalid.body}</p>
       </Shell>
     );
   }
@@ -124,9 +125,9 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
     return (
       <Shell>
         <div className="space-y-4">
-          <div className="h-3 w-32 rounded bg-[var(--color-surface-2)] animate-pulse motion-reduce:animate-none" />
-          <div className="h-10 w-72 rounded bg-[var(--color-surface-2)] animate-pulse motion-reduce:animate-none" />
-          <div className="h-40 rounded bg-[var(--color-surface-2)] animate-pulse motion-reduce:animate-none" />
+          <div className="h-3 w-32 rounded bg-[var(--raised)] animate-pulse motion-reduce:animate-none" />
+          <div className="h-10 w-72 rounded bg-[var(--raised)] animate-pulse motion-reduce:animate-none" />
+          <div className="h-40 rounded bg-[var(--raised)] animate-pulse motion-reduce:animate-none" />
         </div>
       </Shell>
     );
@@ -135,11 +136,11 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
   if (fetchState === 'error' || !rep) {
     return (
       <Shell>
-        <p className="eyebrow">{cp.eyebrow}</p>
+        <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{cp.eyebrow}</p>
         <h1 className="mt-2 text-[28px] tracking-tight" style={{ fontFamily: 'var(--font-serif)' }}>
           {cp.error.headline}
         </h1>
-        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)] font-medium">
+        <p className="mt-3 text-[14px] text-[var(--ink-secondary)] font-medium">
           {cp.error.bodyTemplate.replace('{address}', shortAddress(address))}
         </p>
       </Shell>
@@ -149,7 +150,6 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
   const tier: CompositeTier = rep.tier ?? 'NEW';
   const score = Math.round(rep.score ?? 0);
   const total = rep.totalDeals;
-  const hue = TIER_HUE[tier];
 
   const terms = rep.terms ?? {};
   const termRows = TERM_KEYS.map((key) => ({
@@ -209,119 +209,137 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
     : null;
   const rung = TIER_LADDER.indexOf(tier);
 
+  const more = yourAgentCopy[locale as keyof typeof yourAgentCopy] ?? yourAgentCopy.en;
+  const ROW = 'flex min-h-12 items-center justify-between gap-4 py-3 text-[15px]';
+
   return (
     <Shell>
-      <p className="mb-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.record.meaning}</p>
-      {sharedLine ? <p className="mb-3 text-[14px] font-medium text-[var(--lp-text-sub)]">{sharedLine}</p> : null}
-      <section className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7">
-        <div className="flex flex-wrap items-center gap-4">
-          <PassportPhoto src={profilePhotoOf(profile)} address={address} />
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[22px] font-semibold text-[var(--lp-dark)] sm:text-[26px]">{profile?.displayName || cp.fallbackName}</h1>
-            <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)] font-medium">
-              {[profile?.handle ? `@${profile.handle}` : null, tenureDays != null && registeredAt ? pc.since.replace('{date}', dateLabel(registeredAt)) : null].filter(Boolean).join(' · ')}
-            </p>
-          </div>
-        </div>
-        {profile?.xHandle && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
-            <a href={`https://x.com/${profile.xHandle.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center hover:text-[var(--lp-dark)]">
+      {/* The record is its own page (owner, 3 Nov 2026); Profile keeps one line for it. */}
+      <p className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{pc.record}</p>
+      <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{t.record.meaning}</p>
+      {sharedLine ? <p className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{sharedLine}</p> : null}
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        <PassportPhoto src={profilePhotoOf(profile)} address={address} />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[19px] font-semibold text-[var(--ink)]">{profile?.displayName || cp.fallbackName}</h1>
+          <p className="mt-0.5 text-[14px] font-medium text-[var(--ink-secondary)]">
+            {[profile?.handle ? `@${profile.handle}` : null, tenureDays != null && registeredAt ? pc.since.replace('{date}', dateLabel(registeredAt)) : null].filter(Boolean).join(' · ')}
+          </p>
+          {profile?.xHandle ? (
+            <a href={`https://x.com/${profile.xHandle.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-[14px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)]">
               @{profile.xHandle.replace(/^@/, '')}
             </a>
-          </div>
-        )}
-
-        <div className="mt-6 border-t border-[var(--lp-border-light)] pt-5">
-          <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{pc.standing}</p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-[34px] font-semibold leading-none text-[var(--lp-dark)]">{tierName}</span>
-            <span className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{pc.scoreOf.replace('{score}', String(score))}</span>
-          </div>
-          {heldLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{heldLine}</p> : null}
-          {breadthLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{breadthLine}</p> : null}
-          <ol className="mt-4 grid grid-cols-5 gap-1" aria-label={pc.standing}>
-            {TIER_LADDER.map((band, index) => (
-              <li key={band} aria-current={index === rung ? 'step' : undefined} className="min-w-0">
-                <span aria-hidden className={`block h-[5px] rounded-full ${index < rung ? 'bg-[#6a8a1e]' : index === rung ? 'bg-[var(--lp-dark)]' : 'bg-[var(--lp-border-light)]'}`} />
-                {/* The heading names the level on phones; the full ladder stays available to screen readers. */}
-                <span className={`sr-only text-[14px] sm:not-sr-only sm:mt-1.5 sm:block ${index === 0 ? 'text-start' : index === TIER_LADDER.length - 1 ? 'text-end' : 'text-center'} ${index === rung ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{TIER_LABEL[band]}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="mt-6">
-          <h2 className="text-[14px] text-[var(--lp-text-sub)] font-medium">{pc.record}</h2>
-          <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <PassportFact label={pc.settled} value={String(settled)} />
-            <PassportFact label={pc.completed} value={pc.completedOf.replace('{done}', String(done)).replace('{total}', String(settled))} />
-            <PassportFact label={pc.disputes} value={String(rep.disputedCount)} />
-            <PassportFact label={pc.volume} value={`${walletAmount(String(volume)) ?? trimUsdc(String(volume))} USDC`} />
-          </dl>
-          <dl className="mt-3 divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)] text-[14px]">
-            {counterparties != null ? (
-              <div className="flex items-center justify-between gap-4 py-3">
-                <dt className="text-[var(--lp-text-sub)]">{pc.counterparties}</dt>
-                <dd className="tabular-nums text-[var(--lp-dark)]">{counterparties}</dd>
-              </div>
-            ) : null}
-            <div className="flex items-center justify-between gap-4 py-3">
-              <dt className="text-[var(--lp-text-sub)]">{pc.stake}</dt>
-              <dd className="tabular-nums text-[var(--lp-dark)]">{`${walletAmount(guaranteeUsdc) ?? trimUsdc(guaranteeUsdc)} USDC`}</dd>
-            </div>
-            {lastDealAt ? (
-              <div className="flex items-center justify-between gap-4 py-3">
-                <dt className="text-[var(--lp-text-sub)]">{pc.lastDeal}</dt>
-                <dd className="text-[var(--lp-dark)]">{dateLabel(lastDealAt)}</dd>
-              </div>
-            ) : null}
-          </dl>
-        </div>
-
-        {skillCredentials.length > 0 && (
-          <div className="mt-5">
-            <h2 className="text-[14px] text-[var(--lp-text-sub)] font-medium">{pc.skills}</h2>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {skillCredentials.map((credential) => (
-                <li key={credential.skillId} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[14px] text-[var(--lp-dark)]">
-                  <span aria-hidden className="text-[#6a8a1e]"><CheckGlyph /></span>
-                  {skillLabel(credential.skillId)}
-                  <span className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{skillDateLabel(credential, cp.skills)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="mt-6 flex flex-wrap items-start justify-between gap-x-6 border-t border-[var(--lp-border-light)] pt-1">
-          {termRows.length > 0 ? (
-            <details className="group min-w-[14rem] flex-1">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] [&::-webkit-details-marker]:hidden font-medium">
-                {pc.how}
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 transition-transform group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
-              </summary>
-              <div className="space-y-3 pb-4">
-                {termRows.map((r) => (
-                  <TermBar key={r.label} label={r.label} value={r.value} hue={hue} />
-                ))}
-                <p className="pt-1 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{cp.footer.disclaimer}</p>
-              </div>
-            </details>
           ) : null}
-          {/* The wallet address is proof, not identity: it sits with the link to Arc. */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
-            <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center hover:text-[var(--lp-dark)]">
-              {pc.proof}
-            </a>
-            <button type="button" onClick={copyAddress} className="inline-flex min-h-11 items-center gap-1.5 tabular-nums hover:text-[var(--lp-dark)]">
-              {shortAddress(address)}
-              <span>{copied ? cp.copyAddressDone : cp.copyAddressIdle}</span>
-            </button>
-          </div>
         </div>
+      </div>
+
+      <section className={`${CARD_CLASS} mt-5 p-5`}>
+        <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{pc.standing}</p>
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="text-[30px] font-semibold leading-none text-[var(--ink)]">{tierName}</span>
+          <span className="text-[15px] tabular-nums text-[var(--ink-secondary)]">{pc.scoreOf.replace('{score}', String(score))}</span>
+        </div>
+        {heldLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{heldLine}</p> : null}
+        {breadthLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{breadthLine}</p> : null}
+        <ol className="mt-4 grid grid-cols-5 gap-1" aria-label={pc.standing}>
+          {TIER_LADDER.map((band, index) => (
+            <li key={band} aria-current={index === rung ? 'step' : undefined} className="min-w-0">
+              <span aria-hidden className={`block h-[5px] rounded-full ${index < rung ? 'bg-[var(--ink-secondary)]' : index === rung ? 'bg-[var(--ink)]' : 'bg-[var(--line)]'}`} />
+              {/* The heading names the level on phones; the full ladder stays available to screen readers. */}
+              <span className={`sr-only text-[14px] sm:not-sr-only sm:mt-1.5 sm:block ${index === 0 ? 'text-start' : index === TIER_LADDER.length - 1 ? 'text-end' : 'text-center'} ${index === rung ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}>{TIER_LABEL[band]}</span>
+            </li>
+          ))}
+        </ol>
       </section>
 
-      {isOwner ? <PassportSharePanel /> : null}
+      <h2 className="mt-7 text-[17px] font-semibold text-[var(--ink)]">{pc.deals}</h2>
+      <dl className={`${CARD_CLASS} mt-3 grid grid-cols-3 divide-x divide-[var(--line)] py-4 rtl:divide-x-reverse`}>
+        <PassportFact label={pc.settled} value={String(settled)} />
+        <PassportFact label={pc.completed} value={pc.completedOf.replace('{done}', String(done)).replace('{total}', String(settled))} />
+        <PassportFact label={pc.disputes} value={String(rep.disputedCount)} />
+      </dl>
+      <div className={`${CARD_CLASS} mt-3 divide-y divide-[var(--line)] px-5`}>
+        <dl className="divide-y divide-[var(--line)]">
+          <div className={ROW}>
+            <dt className="text-[var(--ink-secondary)]">{pc.volume}</dt>
+            <dd className="font-semibold tabular-nums text-[var(--ink)]">{`${walletAmount(String(volume)) ?? trimUsdc(String(volume))} USDC`}</dd>
+          </div>
+          {counterparties != null ? (
+            <div className={ROW}>
+              <dt className="text-[var(--ink-secondary)]">{pc.counterparties}</dt>
+              <dd className="font-semibold tabular-nums text-[var(--ink)]">{counterparties}</dd>
+            </div>
+          ) : null}
+          <div className={ROW}>
+            <dt className="text-[var(--ink-secondary)]">{pc.stake}</dt>
+            <dd className="font-semibold tabular-nums text-[var(--ink)]">{`${walletAmount(guaranteeUsdc) ?? trimUsdc(guaranteeUsdc)} USDC`}</dd>
+          </div>
+          {lastDealAt ? (
+            <div className={ROW}>
+              <dt className="text-[var(--ink-secondary)]">{pc.lastDeal}</dt>
+              <dd className="font-semibold text-[var(--ink)]">{dateLabel(lastDealAt)}</dd>
+            </div>
+          ) : null}
+        </dl>
+        {termRows.length > 0 ? (
+          <details className="group">
+            <summary className={`${ROW} cursor-pointer list-none text-[var(--ink)] [&::-webkit-details-marker]:hidden`}>
+              {pc.how}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-[var(--ink-secondary)] transition-transform group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
+            </summary>
+            <div className="space-y-3 pb-4">
+              {termRows.map((r) => (
+                <TermBar key={r.label} label={r.label} value={r.value} />
+              ))}
+              <p className="pt-1 text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{cp.footer.disclaimer}</p>
+            </div>
+          </details>
+        ) : null}
+        {/* The wallet address is proof, not identity: it sits with the link to Arc. */}
+        <div className={ROW}>
+          <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-[var(--ink)] hover:underline">
+            {pc.proof}
+          </a>
+          <button type="button" onClick={copyAddress} className="inline-flex min-h-11 items-center gap-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)] hover:text-[var(--ink)]">
+            {shortAddress(address)}
+            <span>{copied ? cp.copyAddressDone : cp.copyAddressIdle}</span>
+          </button>
+        </div>
+      </div>
+
+      {skillCredentials.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-[14px] text-[var(--ink-secondary)] font-medium">{pc.skills}</h2>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {skillCredentials.map((credential) => (
+              <li key={credential.skillId} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--line)] px-3.5 text-[14px] text-[var(--ink)]">
+                <span aria-hidden className="text-[var(--ink)]"><CheckGlyph /></span>
+                {skillLabel(credential.skillId)}
+                <span className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">{skillDateLabel(credential, cp.skills)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {isOwner ? (
+        <>
+          <h2 className="mt-7 text-[17px] font-semibold text-[var(--ink)]">{pc.more}</h2>
+          <nav aria-label={pc.more} className={`${CARD_CLASS} mt-3 divide-y divide-[var(--line)] px-5`}>
+            {[
+              { label: t.profilePage.publicView, href: profile?.handle ? `/r/${profile.handle}` : '/profile/edit' },
+              { label: t.dealGuarantee.profile.legacyContracts, href: '/legacy' },
+              { label: more.recordSources, href: '/profile/sources' },
+            ].map((row) => (
+              <Link key={row.href} href={row.href} className={`${ROW} text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]`}>
+                {row.label}
+                <Icon name="chevron-right" size={16} directional className="shrink-0 text-[var(--ink-secondary)]" />
+              </Link>
+            ))}
+          </nav>
+          <PassportSharePanel />
+        </>
+      ) : null}
       <AttestedDeals address={address} downloadable={isOwner} />
       {SME_TRADES_ENABLED && <SmePassportBand sme={sme} />}
     </Shell>
@@ -346,23 +364,23 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function PassportFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[14px] bg-[var(--lp-light)] px-3.5 py-3">
-      <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</dt>
-      <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{value}</dd>
+    <div className="flex min-w-0 flex-col-reverse items-center gap-0.5 px-2 text-center">
+      <dt className="text-[14px] font-medium text-[var(--ink-secondary)]">{label}</dt>
+      <dd className="text-[19px] font-semibold tabular-nums text-[var(--ink)]">{value}</dd>
     </div>
   );
 }
 
-function TermBar({ label, value, hue }: { label: string; value: number; hue: string }) {
+function TermBar({ label, value }: { label: string; value: number }) {
   const pct = Math.max(0, Math.min(100, value * 100));
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[14px] text-[var(--color-ink-dim)] font-medium">{label}</span>
-        <span className="mono text-[14px] tabular-nums text-[var(--color-ink-faint)]">{Math.round(pct)}</span>
+        <span className="text-[14px] text-[var(--ink-secondary)] font-medium">{label}</span>
+        <span className="text-[14px] tabular-nums text-[var(--ink-muted)]">{Math.round(pct)}</span>
       </div>
-      <div className="mt-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-surface-2)' }}>
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: hue }} />
+      <div className="mt-1.5 h-1.5 rounded-full" style={{ background: 'var(--raised)' }}>
+        <div className="h-full rounded-full bg-[var(--ink)]" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -410,19 +428,19 @@ function SmePassportBand({
   return (
     <section
       className="mt-8 rounded-xl border overflow-hidden"
-      style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
+      style={{ borderColor: 'var(--line)', background: 'var(--surface)' }}
     >
-      <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--color-line)' }}>
-        <p className="eyebrow">Company</p>
+      <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--line)' }}>
+        <p className="text-[14px] font-medium text-[var(--ink-secondary)]">Company</p>
       </div>
       <div className="p-6 md:p-7 grid md:grid-cols-2 gap-6">
         {hasProfile ? (
           <div className="space-y-3.5">
             {p!.companyName ? (
-              <p className="text-[18px] font-extrabold leading-tight" style={{ color: 'var(--color-ink)' }}>
+              <p className="text-[18px] font-semibold leading-tight" style={{ color: 'var(--ink)' }}>
                 {p!.companyName}
                 {p!.verifiedAt ? (
-                  <span className="ms-2 mono text-[13px] uppercase tracking-[0.14em] font-bold px-1.5 py-0.5 align-middle" style={{ background: 'var(--color-accent)', color: 'var(--color-ink)' }}>
+                  <span className="ms-2 text-[14px] font-semibold px-1.5 py-0.5 align-middle" style={{ background: 'var(--ink)', color: 'var(--ink)' }}>
                     VERIFIED
                   </span>
                 ) : null}
@@ -445,7 +463,7 @@ function SmePassportBand({
                       href={p!.websiteUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: 'var(--color-accent)' }}
+                      style={{ color: 'var(--ink)' }}
                       className="hover:underline"
                     >
                       {p!.websiteUrl.replace(/^https?:\/\//, '')}
@@ -456,16 +474,16 @@ function SmePassportBand({
             </dl>
           </div>
         ) : (
-          <p className="text-[14px]" style={{ color: 'var(--color-ink-dim)' }}>
+          <p className="text-[14px]" style={{ color: 'var(--ink-secondary)' }}>
             No company profile published.
           </p>
         )}
         {hasRepay ? (
           <div className="space-y-3.5">
-            <p className="mono text-[13px] uppercase tracking-[0.18em]" style={{ color: 'var(--color-ink-faint)' }}>
+            <p className="text-[14px]" style={{ color: 'var(--ink-muted)' }}>
               {smeT.repayment.eyebrow}
             </p>
-            <p className="mono text-[13px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+            <p className="text-[14px]" style={{ color: 'var(--ink-muted)' }}>
               {smeT.repayment.windowTemplate.replace('{count}', String(r!.windowDealCount))}
             </p>
             <dl className="mt-2 space-y-3.5">
@@ -519,12 +537,12 @@ function PassportRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="mono text-[13px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+      <dt className="text-[14px]" style={{ color: 'var(--ink-muted)' }}>
         {label}
       </dt>
       <dd
         className={`text-[14px] text-end ${capitalize ? 'capitalize' : ''}`}
-        style={{ color: 'var(--color-ink)' }}
+        style={{ color: 'var(--ink)' }}
       >
         {value}
       </dd>
@@ -543,16 +561,16 @@ function PassportStat({
 }) {
   const color =
     tone === 'positive'
-      ? 'var(--color-accent)'
+      ? 'var(--ink)'
       : tone === 'critical'
         ? 'var(--color-danger, #b03d3a)'
-        : 'var(--color-ink)';
+        : 'var(--ink)';
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="mono text-[13px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+      <dt className="text-[14px]" style={{ color: 'var(--ink-muted)' }}>
         {label}
       </dt>
-      <dd className="text-[18px] tabular-nums font-extrabold" style={{ color }}>
+      <dd className="text-[18px] tabular-nums font-semibold" style={{ color }}>
         {value}
       </dd>
     </div>

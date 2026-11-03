@@ -71,12 +71,12 @@ export function ReservesWidget() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {tiles.map((t) => (
           <MoneyCard key={t.label}>
-            <p className="inline-flex items-center gap-1.5 mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="inline-flex items-center gap-1.5 text-[14px] text-[var(--ink-muted)]">
               {t.label}
               <LpHint>{t.hint}</LpHint>
             </p>
             {tilesLoading ? (
-              <div className="mt-1.5 h-[28px] w-3/4 rounded-md bg-[var(--lp-border-light)] animate-pulse" />
+              <div className="mt-1.5 h-[28px] w-3/4 rounded-md bg-[var(--line)] animate-pulse" />
             ) : (
               <div className="mt-1.5">
                 <MoneyValue value={t.value} />
@@ -131,18 +131,18 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
     return (
       <div
         ref={wrapperRef}
-        className="rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-3 sm:px-4 sm:py-4"
+        className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 sm:px-4 sm:py-4"
       >
         <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
-          <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          <p className="text-[14px] text-[var(--ink-muted)]">
             Cumulative distribution
           </p>
-          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
+          <p className="text-[14px] text-[var(--ink-secondary)]">
             USDC
           </p>
         </div>
         <div
-          className="rounded-md bg-[var(--lp-border-light)] animate-pulse"
+          className="rounded-md bg-[var(--line)] animate-pulse"
           style={{ height: 220 }}
         />
       </div>
@@ -153,7 +153,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
     return (
       <div
         ref={wrapperRef}
-        className="flex items-center justify-center text-[14px] text-[var(--lp-text-muted)] rounded-2xl border border-dashed border-[var(--lp-border-light)] bg-[var(--lp-card)]"
+        className="flex items-center justify-center text-[14px] text-[var(--ink-muted)] rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface)]"
         style={{ height: 220 }}
       >
         Distribution chart appears once the first cron tick lands.
@@ -194,13 +194,13 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
   return (
     <div
       ref={wrapperRef}
-      className="relative overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-3 sm:px-4 sm:py-4"
+      className="relative overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-3 py-3 sm:px-4 sm:py-4"
     >
       <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
-        <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <p className="text-[14px] text-[var(--ink-muted)]">
           Cumulative distribution
         </p>
-        <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
+        <p className="text-[14px] text-[var(--ink-secondary)]">
           USDC
         </p>
       </div>
@@ -221,7 +221,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
                 x2={width - padX}
                 y1={y}
                 y2={y}
-                stroke="var(--lp-border-light)"
+                stroke="var(--line)"
                 strokeWidth="1"
               />
               <text
@@ -229,7 +229,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
                 y={y + 3}
                 textAnchor="end"
                 fontSize="10"
-                fill="var(--lp-text-muted)"
+                fill="var(--ink-muted)"
                 fontFamily="var(--font-general-sans, sans-serif)"
               >
                 {fmt(t.toString())}
@@ -239,15 +239,15 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
         })}
 
         {/* Area fill */}
-        <path d={areaPath} fill="var(--lp-accent)" opacity="0.18" />
+        <path d={areaPath} fill="var(--ink)" opacity="0.08" />
         {/* Line */}
-        <path d={linePath} fill="none" stroke="var(--lp-accent)" strokeWidth="2" />
+        <path d={linePath} fill="none" stroke="var(--ink)" strokeWidth="2" />
         {/* Endpoint dot */}
         <circle
           cx={xs[xs.length - 1]}
           cy={ys[ys.length - 1]}
           r="4"
-          fill="var(--lp-accent)"
+          fill="var(--ink)"
         />
 
         {/* X labels */}
@@ -261,7 +261,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
               y={height - 6}
               textAnchor={i === 0 ? 'start' : i === padded.length - 1 ? 'end' : 'middle'}
               fontSize="10"
-              fill="var(--lp-text-muted)"
+              fill="var(--ink-muted)"
               fontFamily="var(--font-general-sans, sans-serif)"
             >
               {p.day.slice(5)}

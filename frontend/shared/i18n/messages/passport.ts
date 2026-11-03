@@ -7,6 +7,8 @@ export interface PassportCopy {
   heldDealsOne: string;
   heldDeals: string;
   record: string;
+  deals: string;
+  more: string;
   settled: string;
   completed: string;
   completedOf: string;
@@ -29,6 +31,8 @@ const en: PassportCopy = {
   heldDealsOne: 'Held at {tier} until 1 more settled deal.',
   heldDeals: 'Held at {tier} until {n} more settled deals.',
   record: 'Trade record',
+  deals: 'Deals',
+  more: 'More',
   settled: 'Deals settled',
   completed: 'Completed',
   completedOf: '{done} of {total}',
@@ -51,6 +55,8 @@ const fr: PassportCopy = {
   heldDealsOne: 'Maintenu à {tier} jusqu’à 1 transaction réglée de plus.',
   heldDeals: 'Maintenu à {tier} jusqu’à {n} transactions réglées de plus.',
   record: 'Historique',
+  deals: 'Accords',
+  more: 'Plus',
   settled: 'Transactions réglées',
   completed: 'Terminées',
   completedOf: '{done} sur {total}',
@@ -73,6 +79,8 @@ const ar: PassportCopy = {
   heldDealsOne: 'ثابت عند {tier} حتى صفقة مسوّاة واحدة أخرى.',
   heldDeals: 'ثابت عند {tier} حتى {n} صفقات مسوّاة أخرى.',
   record: 'سجل التداول',
+  deals: 'الصفقات',
+  more: 'المزيد',
   settled: 'الصفقات المسوّاة',
   completed: 'المكتملة',
   completedOf: '{done} من {total}',
@@ -95,6 +103,8 @@ const hi: PassportCopy = {
   heldDealsOne: '1 और पूरे सौदे तक {tier} पर रुका है।',
   heldDeals: '{n} और पूरे सौदों तक {tier} पर रुका है।',
   record: 'व्यापार रिकॉर्ड',
+  deals: 'सौदे',
+  more: 'और',
   settled: 'पूरे हुए सौदे',
   completed: 'सफल',
   completedOf: '{total} में से {done}',
@@ -117,6 +127,8 @@ const sw: PassportCopy = {
   heldDealsOne: 'Kimesimama kwenye {tier} hadi mkataba 1 zaidi ukamilike.',
   heldDeals: 'Kimesimama kwenye {tier} hadi mikataba {n} zaidi ikamilike.',
   record: 'Rekodi ya biashara',
+  deals: 'Mikataba',
+  more: 'Zaidi',
   settled: 'Mikataba iliyokamilika',
   completed: 'Iliyofanikiwa',
   completedOf: '{done} kati ya {total}',

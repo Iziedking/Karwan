@@ -82,3 +82,48 @@ test('an ended share shows the sealed passport and says so', async ({ page }) =>
   await expect(page.getByRole('heading', { name: 'Kingizie', level: 1 })).toBeVisible();
   await expect(page.getByText('Trade record')).toHaveCount(0);
 });
+
+/// Green controls on the whole page, header and nav included.
+const greenControls = (page: Page) =>
+  page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.color = getComputedStyle(document.documentElement).getPropertyValue('--action').trim();
+    document.body.appendChild(probe);
+    const green = getComputedStyle(probe).color;
+    probe.remove();
+    return [...document.querySelectorAll<HTMLElement>('a, button')]
+      .filter((el) => el.offsetParent !== null && getComputedStyle(el).backgroundColor === green)
+      .map((el) => el.textContent?.trim() ?? '');
+  });
+
+test('9e: the owner record page holds every line, with Share full record as its one green button', async ({ page }, info) => {
+  await serve(page, OWNER, full);
+  await page.goto(`/credit-passport/${OWNER}`);
+  await expect(page.getByText('Trade record')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Deals', exact: true })).toBeVisible();
+  const more = page.getByRole('navigation', { name: 'More' });
+  await expect(more.getByRole('link', { name: 'What others see' })).toHaveAttribute('href', '/r/kingizie');
+  await expect(more.getByRole('link', { name: 'Earlier deals' })).toHaveAttribute('href', '/legacy');
+  await expect(more.getByRole('link', { name: 'Where your record comes from' })).toHaveAttribute('href', '/profile/sources');
+  expect(await greenControls(page)).toEqual(['Share full record']);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('record.png'), fullPage: true });
+
+  await page.getByRole('button', { name: 'Share full record' }).click();
+  await expect(page.getByRole('button', { name: 'One person' })).toHaveAttribute('aria-pressed', 'true');
+  expect(await greenControls(page)).toEqual(['Create link']);
+  await page.getByLabel('Their Karwan tag').fill('@lawful');
+  await page.getByRole('button', { name: 'Create link' }).click();
+  await expect(page.getByText(/Only @lawful can open it, signed in, until/)).toBeVisible();
+  expect(await greenControls(page)).toEqual(['Copy link']);
+  await page.screenshot({ path: info.outputPath('shared.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByRole('button', { name: 'Share full record' })).toBeVisible();
+});
+
+test('9e: someone the record was shared with sees no owner rows', async ({ page }) => {
+  await serve(page, null, { ...full, shared: { by: '@kingizie', until: UNTIL } });
+  await page.goto(`/credit-passport/${OWNER}?share=tok123`);
+  await expect(page.getByText('Trade record')).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'More' })).toHaveCount(0);
+});

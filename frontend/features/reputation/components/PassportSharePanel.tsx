@@ -5,15 +5,19 @@ import { api, type PassportShare } from '@/core/api';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { passportShareCopy } from '@/shared/i18n/messages/passportShare';
 import { cn } from '@/shared/utils/cn';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 
 const SHARES_KEY = ['passport-shares'] as const;
 
-const chip = (active: boolean) =>
+/// Two choices on one track; the picked one sits on the surface (Figma, Batch 9 · Trade record).
+const TRACK = 'mt-2 flex gap-1 rounded-[12px] bg-[var(--ash)] p-1';
+const choice = (active: boolean) =>
   cn(
-    'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+    'min-h-11 flex-1 rounded-[9px] px-3 text-[15px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]',
     active
-      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]'
-      : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]',
+      ? 'bg-[var(--surface)] font-semibold text-[var(--ink)] shadow-[0_0_0_1px_var(--line)]'
+      : 'font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)]',
   );
 
 /// The owner shows their full passport to one person by tag, or to anyone with
@@ -74,77 +78,77 @@ export function PassportSharePanel() {
           type="button"
           id="share-full-record"
           onClick={() => setOpen(true)}
-          className="inline-flex min-h-12 items-center rounded-full border border-[var(--lp-outline-strong)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className={buttonClasses({ size: 'lg', className: 'w-full' })}
         >
           {t.open}
         </button>
       ) : (
-        <div className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6">
-          <h2 id="share-full-record" className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.open}</h2>
-
-          <p className="mt-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.who}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" aria-pressed={toPerson} onClick={() => setToPerson(true)} className={chip(toPerson)}>{t.person}</button>
-            <button type="button" aria-pressed={!toPerson} onClick={() => setToPerson(false)} className={chip(!toPerson)}>{t.anyone}</button>
-          </div>
-          {toPerson ? (
-            <input
-              value={tag}
-              onChange={(e) => setTag(e.target.value)}
-              placeholder={t.tag}
-              aria-label={t.tag}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              maxLength={40}
-              className="mt-3 min-h-12 w-full rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-bg,transparent)] px-4 text-[16px] text-[var(--lp-dark)] placeholder:text-[var(--lp-text-sub)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            />
-          ) : null}
-
-          <p className="mt-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.howLong}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" aria-pressed={hours === 24} onClick={() => setHours(24)} className={chip(hours === 24)}>{t.day}</button>
-            <button type="button" aria-pressed={hours === 168} onClick={() => setHours(168)} className={chip(hours === 168)}>{t.week}</button>
-          </div>
-
-          <button
-            type="button"
-            onClick={submit}
-            disabled={create.isPending}
-            className="mt-5 inline-flex min-h-12 items-center rounded-[10px] bg-[var(--accent)] px-6 text-[15px] font-semibold text-[var(--accent-ink)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
-          >
-            {create.isPending ? t.creating : t.create}
-          </button>
-          {error ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{error}</p> : null}
-
+        <div className={`${CARD_CLASS} p-5 sm:p-6`}>
+          <h2 id="share-full-record" className="text-[17px] font-semibold text-[var(--ink)]">{t.open}</h2>
           {made ? (
-            <div className="mt-5 border-t border-[var(--lp-border-light)] pt-4" aria-live="polite">
-              <p className="text-[14px] font-medium text-[var(--lp-dark)]">
+            <div className="mt-3" aria-live="polite">
+              <p className="text-[15px] text-[var(--ink-secondary)]">
                 {made.share.with
                   ? t.readyPerson.replace('{tag}', made.share.with).replace('{date}', date(made.share.until))
                   : t.ready.replace('{date}', date(made.share.until))}
               </p>
-              <p className="mt-2 break-all rounded-[12px] bg-[var(--lp-light)] px-3 py-2.5 text-[14px] text-[var(--lp-dark)]">{made.link}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={() => void copy(made.link)} className={chip(false)}>{copied ? t.copied : t.copy}</button>
+              <p className="mt-4 break-all rounded-[var(--radius-input)] border border-[var(--line)] px-4 py-3 text-[15px] text-[var(--ink)] select-all">{made.link}</p>
+              <div className="mt-4 flex flex-col gap-2">
+                <button type="button" onClick={() => void copy(made.link)} className={buttonClasses({ size: 'lg', className: 'w-full' })}>{copied ? t.copied : t.copy}</button>
                 {typeof navigator !== 'undefined' && 'share' in navigator ? (
-                  <button type="button" onClick={() => void navigator.share({ url: made.link }).catch(() => {})} className={chip(false)}>{t.send}</button>
+                  <button type="button" onClick={() => void navigator.share({ url: made.link }).catch(() => {})} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>{t.send}</button>
                 ) : null}
+                <button type="button" onClick={() => { setMade(null); setOpen(false); }} className={buttonClasses({ variant: 'ghost', size: 'lg', className: 'w-full' })}>{t.done}</button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <>
+              <p className="mt-4 text-[14px] font-medium text-[var(--ink-secondary)]">{t.who}</p>
+              <div className={TRACK}>
+                <button type="button" aria-pressed={toPerson} onClick={() => setToPerson(true)} className={choice(toPerson)}>{t.person}</button>
+                <button type="button" aria-pressed={!toPerson} onClick={() => setToPerson(false)} className={choice(!toPerson)}>{t.anyone}</button>
+              </div>
+              {toPerson ? (
+                <input
+                  value={tag}
+                  onChange={(e) => setTag(e.target.value)}
+                  placeholder={t.tag}
+                  aria-label={t.tag}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={40}
+                  className="mt-3 min-h-12 w-full rounded-[var(--radius-input)] border border-[var(--line)] bg-[var(--surface)] px-4 text-[16px] text-[var(--ink)] placeholder:text-[var(--ink-muted)] focus:border-[var(--ink)] focus-visible:outline-none"
+                />
+              ) : null}
+              <p className="mt-4 text-[14px] font-medium text-[var(--ink-secondary)]">{t.howLong}</p>
+              <div className={TRACK}>
+                <button type="button" aria-pressed={hours === 24} onClick={() => setHours(24)} className={choice(hours === 24)}>{t.day}</button>
+                <button type="button" aria-pressed={hours === 168} onClick={() => setHours(168)} className={choice(hours === 168)}>{t.week}</button>
+              </div>
+              {error ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{error}</p> : null}
+              <button
+                type="button"
+                onClick={submit}
+                disabled={create.isPending}
+                aria-busy={create.isPending || undefined}
+                className={buttonClasses({ size: 'lg', className: 'mt-5 w-full', loading: create.isPending })}
+              >
+                {create.isPending ? t.creating : t.create}
+              </button>
+            </>
+          )}
         </div>
       )}
-
       {live.length > 0 ? (
         <div className="mt-5">
-          <h3 className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.live}</h3>
-          <ul className="mt-2 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+          <h3 className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.live}</h3>
+          <ul className={`${CARD_CLASS} mt-2 divide-y divide-[var(--line)] px-5`}>
             {live.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{s.with ?? t.anyoneRow}</p>
-                  <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">
+                  <p className="truncate text-[15px] font-semibold text-[var(--ink)]">{s.with ?? t.anyoneRow}</p>
+                  <p className="text-[14px] font-medium text-[var(--ink-secondary)]">
                     {t.until.replace('{date}', date(s.until))} · {s.views === 0 ? t.openedNone : s.views === 1 ? t.openedOne : t.opened.replace('{n}', String(s.views))}
                   </p>
                 </div>
@@ -152,7 +156,7 @@ export function PassportSharePanel() {
                   type="button"
                   onClick={() => stop.mutate(s.id)}
                   disabled={stop.isPending && stop.variables === s.id}
-                  className="inline-flex min-h-11 items-center rounded-full px-3 text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 hover:bg-[var(--lp-light)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  className="inline-flex min-h-11 items-center px-1 text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]"
                 >
                   {t.stop}
                 </button>

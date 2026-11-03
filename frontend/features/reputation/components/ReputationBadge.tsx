@@ -8,14 +8,7 @@ import type { Messages } from '@/shared/i18n/messages/en';
 import { useReputation } from '../hooks/useReputation';
 import { reasonLine } from '../sealed';
 import { badgeAccessibleLabel, dealCountLine } from '../badgeLabel';
-import {
-  TIER_HUE,
-  TIER_LABEL,
-  tierBg,
-  tierBorder,
-  tierInk,
-  type CompositeTier,
-} from '../tierColors';
+import { TIER_LABEL, type CompositeTier } from '../tierColors';
 
 type Tier = {
   label: string;
@@ -30,7 +23,7 @@ type Tier = {
 // MatchBanner, profile, deal detail, peek modal) AND the /stake ladder via the
 // tierColors module. NEW < COLD < ESTABLISHED < STRONG < ELITE.
 function tierStyle(t: CompositeTier): Tier {
-  return { label: TIER_LABEL[t], color: TIER_HUE[t], ink: tierInk(t), bg: tierBg(t), border: tierBorder(t) };
+  return { label: TIER_LABEL[t], color: 'var(--ink)', ink: 'var(--ink)', bg: 'var(--ash)', border: 'var(--line)' };
 }
 const TIER_STYLES: Record<CompositeTier, Tier> = {
   NEW: tierStyle('NEW'),
@@ -53,37 +46,37 @@ function tierFor(
   if (totalDeals === 0) {
     return {
       label: legacy.unrated,
-      color: 'var(--color-ink-faint)',
-      bg: 'var(--color-surface-2)',
-      border: 'var(--color-line)',
+      color: 'var(--ink-muted)',
+      bg: 'var(--raised)',
+      border: 'var(--line)',
     };
   }
   const score = scoreBps / 100;
   if (score >= 90) {
     return {
       label: legacy.topTier,
-      color: 'var(--lp-accent)',
-      ink: 'color-mix(in oklab, var(--lp-accent) 55%, var(--lp-dark))',
-      bg: 'color-mix(in oklab, var(--lp-accent) 8%, transparent)',
-      border: 'color-mix(in oklab, var(--lp-accent) 30%, transparent)',
+      color: 'var(--ink)',
+      ink: 'var(--ink)',
+      bg: 'var(--ash)',
+      border: 'var(--line)',
     };
   }
   if (score >= 70) {
     return {
       label: legacy.veteran,
-      color: 'var(--lp-accent)',
-      ink: 'color-mix(in oklab, var(--lp-accent) 55%, var(--lp-dark))',
-      bg: 'color-mix(in oklab, var(--lp-accent) 12%, transparent)',
-      border: 'color-mix(in oklab, var(--lp-accent) 28%, transparent)',
+      color: 'var(--ink)',
+      ink: 'var(--ink)',
+      bg: 'var(--ash)',
+      border: 'var(--line)',
     };
   }
   if (score >= 50) {
     return {
       label: legacy.trusted,
-      color: 'var(--color-accent)',
-      ink: 'color-mix(in oklab, var(--color-accent) 55%, var(--lp-dark))',
-      bg: 'var(--color-accent-soft)',
-      border: 'color-mix(in oklab, var(--color-accent) 28%, transparent)',
+      color: 'var(--ink)',
+      ink: 'var(--ink)',
+      bg: 'var(--ash)',
+      border: 'var(--line)',
     };
   }
   if (score >= 30) {
@@ -203,7 +196,7 @@ export function ReputationBadge({
   }
 
   const cellPad = size === 'sm' ? 'px-1.5 py-[3px]' : 'px-2 py-1';
-  const labelSize = size === 'sm' ? 'text-[13px]' : 'text-[13px]';
+  const labelSize = size === 'sm' ? 'text-[14px]' : 'text-[14px]';
   const quiet = appearance === 'quiet';
 
   // Plain words for a row that is itself a link, so no link or button nests
@@ -222,11 +215,11 @@ export function ReputationBadge({
       <Link
         href={`/credit-passport/${address}`} target="_blank" rel="noopener noreferrer"
         aria-label={label}
-        className="inline-flex min-h-6 items-stretch border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="inline-flex min-h-6 items-stretch border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         style={{ borderRadius: 2, borderColor: quiet ? 'transparent' : style.border, background: quiet ? 'transparent' : style.bg }}
       >
         <span aria-hidden className="w-[3px]" style={{ background: style.color }} />
-        <span className={`uppercase tracking-[0.18em] ${cellPad} ${labelSize}`} style={{ color: style.ink ?? style.color }}>
+        <span className={` ${cellPad} ${labelSize}`} style={{ color: style.ink ?? style.color }}>
           {tierWords[sealed.tier]}
         </span>
       </Link>
@@ -239,16 +232,16 @@ export function ReputationBadge({
     }
     return (
       <span
-        className="inline-flex items-stretch border border-[var(--color-line)] bg-[var(--color-surface)]"
+        className="inline-flex items-stretch border border-[var(--line)] bg-[var(--surface)]"
         style={{ borderRadius: 2 }}
       >
         <span
           aria-hidden
           className="w-[3px]"
-          style={{ background: 'var(--color-line-strong)' }}
+          style={{ background: 'var(--line-strong)' }}
         />
         <span
-          className={`mono uppercase tracking-[0.18em] text-[var(--color-ink-faint)] ${cellPad} ${labelSize}`}
+          className={`text-[var(--ink-muted)] ${cellPad} ${labelSize}`}
         >
           ·
         </span>
@@ -280,7 +273,7 @@ export function ReputationBadge({
     <>
       <span aria-hidden className="w-[3px]" style={{ background: tier.color }} />
       <span
-        className={`flex items-center ${cellPad} mono uppercase tracking-[0.18em] font-semibold ${labelSize}`}
+        className={`flex items-center ${cellPad} font-semibold ${labelSize}`}
         style={{ color: tier.ink ?? tier.color }}
       >
         {tierWord}
@@ -305,7 +298,7 @@ export function ReputationBadge({
         className="inline-flex cursor-default items-stretch border"
         style={{
           borderColor: tier.border,
-          background: 'var(--color-surface)',
+          background: 'var(--surface)',
           borderRadius: 2,
         }}
       >
@@ -324,11 +317,11 @@ export function ReputationBadge({
         aria-expanded={open}
         aria-label={accessibleLabel}
         className={quiet
-          ? 'group inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
+          ? 'group inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[var(--ash)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
           : 'group inline-flex min-h-11 items-stretch border transition-colors hover:brightness-95'}
         style={quiet ? undefined : {
           borderColor: tier.border,
-          background: 'var(--color-surface)',
+          background: 'var(--surface)',
           borderRadius: 2,
         }}
       >
@@ -341,12 +334,12 @@ export function ReputationBadge({
             ref={popoverRef}
             role="dialog"
             aria-label={rb.popoverAriaLabel}
-            className="fixed z-50 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card-hover)] p-3 fade-up"
+            className="fixed z-50 rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-card-hover)] p-3 fade-up"
             style={{ top: pos.top, left: pos.left, width: pos.width }}
           >
-            <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-[var(--color-line)]">
-              <span className="eyebrow">{rb.eyebrow}</span>
-              {dealCount && <span className="text-[13px] mono text-[var(--color-ink-faint)]">{dealCount}</span>}
+            <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-[var(--line)]">
+              <span className="text-[14px] font-medium text-[var(--ink-secondary)]">{rb.eyebrow}</span>
+              {dealCount && <span className="text-[14px] text-[var(--ink-muted)]">{dealCount}</span>}
             </div>
             <div className="pt-3 pb-2 flex items-baseline gap-3">
               <span
@@ -355,7 +348,7 @@ export function ReputationBadge({
               >
                 {showScore ? score : '-'}
               </span>
-              <span className="text-[13px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
+              <span className="text-[14px] text-[var(--ink-muted)]">
                 {showScore ? rb.scoreMaxTemplate.replace('{max}', String(scoreMax)) : rb.unratedLabel}
               </span>
             </div>
@@ -364,13 +357,13 @@ export function ReputationBadge({
               <StatRow label={rb.stats.disputed} value={data.disputedCount} tone="warning" />
               <StatRow label={rb.stats.failed} value={data.failedCount} tone="critical" />
             </div>
-            <p className="mt-3 pt-2 border-t border-[var(--color-line)] text-[13px] text-[var(--color-ink-faint)] leading-snug">
+            <p className="mt-3 pt-2 border-t border-[var(--line)] text-[14px] text-[var(--ink-muted)] leading-snug">
               {rb.compositeFootnote}
             </p>
             {address && (
               <Link
                 href={`/credit-passport/${address}`} target="_blank" rel="noopener noreferrer"
-                className="mt-2 inline-flex items-center gap-1 text-[13px] mono uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-[14px] text-[var(--ink)] hover:underline"
               >
                 {rb.creditPassportLink}
               </Link>
@@ -394,17 +387,17 @@ function StatRow({
 }) {
   const color =
     tone === 'positive'
-      ? 'var(--lp-accent)'
+      ? 'var(--ink)'
       : tone === 'warning'
       ? 'var(--color-warning)'
       : 'var(--color-critical)';
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <span className="inline-flex items-center gap-1.5 text-[14px] text-[var(--color-ink-dim)] font-medium">
+      <span className="inline-flex items-center gap-1.5 text-[14px] text-[var(--ink-secondary)] font-medium">
         <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: color }} />
         {label}
       </span>
-      <span className="text-[14px] mono font-semibold tabular-nums">{value}</span>
+      <span className="text-[14px] font-semibold tabular-nums">{value}</span>
     </div>
   );
 }

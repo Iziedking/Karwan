@@ -22,3 +22,16 @@ export function ownRecord(data: RecordRead | undefined): OwnRecord | null {
     rating: data.rating ?? null,
   };
 }
+
+/// Your record on Profile in one line: the level and the deals done (view 48,
+/// batch 9e). The full record has its own page.
+export function recordSummary(
+  data: RecordRead | undefined,
+  words: { tier: (tier: string) => string; newHere: string; completed: string; completedOne: string },
+): string | null {
+  const mine = ownRecord(data);
+  if (!mine || !data) return null;
+  if (mine.kind === 'new') return words.newHere;
+  const deals = mine.completed === 1 ? words.completedOne : words.completed.replace('{n}', String(mine.completed));
+  return data.tier && data.tier !== 'NEW' ? `${words.tier(data.tier)} · ${deals}` : deals;
+}

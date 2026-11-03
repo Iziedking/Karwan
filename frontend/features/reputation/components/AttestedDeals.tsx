@@ -7,6 +7,8 @@ import { api } from '@/core/api';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { attestedDealsCopy } from '@/shared/i18n/messages/attestedDeals';
 import { attestedPage, attestedRows } from '../attestedDeals';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 
 /// The deals Karwan has signed a public statement about, each checkable as a
 /// W3C credential. The owner can download all of theirs.
@@ -21,24 +23,24 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
   });
   // A failed lookup shows nothing rather than a wrong "none".
   if (query.isError) return null;
-  if (!query.data) return <div aria-hidden className="mt-8 h-[96px] border-t border-[var(--lp-border-light)]" />;
+  if (!query.data) return <div aria-hidden className="mt-8 h-[96px]" />;
   const rows = attestedRows(query.data.attestations, copy, locale);
   const shown = attestedPage(rows, page);
 
   return (
-    <section aria-labelledby="attested-deals" className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
-      <h2 id="attested-deals" className="text-[17px] font-semibold text-[var(--lp-dark)]">{copy.title}</h2>
+    <section aria-labelledby="attested-deals" className="mt-8">
+      <h2 id="attested-deals" className="text-[17px] font-semibold text-[var(--ink)]">{copy.title}</h2>
       {rows.length === 0 ? (
-        <p className="mt-3 text-[15px] text-[var(--lp-text-sub)]">{copy.none}</p>
+        <p className="mt-3 text-[15px] text-[var(--ink-secondary)]">{copy.none}</p>
       ) : (
-        <ul className="mt-3 divide-y divide-[var(--lp-border-light)]">
+        <ul className={`${CARD_CLASS} mt-3 divide-y divide-[var(--line)] px-5`}>
           {shown.rows.map((r) => (
             <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
-              <span className="min-w-0 text-[15px] tabular-nums text-[var(--lp-dark)]">{r.line}</span>
+              <span className="min-w-0 text-[15px] tabular-nums text-[var(--ink)]">{r.line}</span>
               {r.removed ? (
-                <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.removed}</span>
+                <span className="text-[14px] font-medium text-[var(--ink-secondary)]">{copy.removed}</span>
               ) : (
-                <Link href={r.href} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+                <Link href={r.href} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
                   {copy.check}
                 </Link>
               )}
@@ -47,8 +49,8 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
         </ul>
       )}
       {shown.pages > 1 ? (
-        <nav aria-label={copy.title} className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-3">
-          <span aria-live="polite" className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+        <nav aria-label={copy.title} className="mt-3 flex items-center justify-between gap-3">
+          <span aria-live="polite" className="text-[14px] tabular-nums text-[var(--ink-secondary)]">
             {copy.range.replace('{from}', String(shown.from)).replace('{to}', String(shown.to)).replace('{total}', String(rows.length))}
           </span>
           <span className="flex gap-2">
@@ -56,7 +58,7 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
               type="button"
               disabled={shown.page === 0}
               onClick={() => setPage(shown.page - 1)}
-              className="min-h-11 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-opacity disabled:opacity-40"
+              className={buttonClasses({ variant: 'secondary', size: 'md' })}
             >
               {copy.newer}
             </button>
@@ -64,7 +66,7 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
               type="button"
               disabled={shown.page >= shown.pages - 1}
               onClick={() => setPage(shown.page + 1)}
-              className="min-h-11 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-opacity disabled:opacity-40"
+              className={buttonClasses({ variant: 'secondary', size: 'md' })}
             >
               {copy.older}
             </button>
@@ -75,7 +77,7 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
         <a
           href={`/attestations/by-subject/${address.toLowerCase()}.json`}
           download={`karwan-attested-deals-${address.slice(2, 8).toLowerCase()}.json`}
-          className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-5 text-[14px] font-semibold text-[var(--lp-dark)]"
+          className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'mt-4 w-full' })}
         >
           {copy.download}
         </a>

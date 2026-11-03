@@ -25,8 +25,8 @@ import { useAddPasskey } from '@/features/settings/components/SettingsBand';
 import { accountRows } from '../accountRows';
 import { useQuery } from '@tanstack/react-query';
 import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
-import { ownRecord, type OwnRecord } from '../ownRecord';
-import { yourAgentCopy } from '@/shared/i18n/messages/yourAgent';
+import { recordSummary } from '../ownRecord';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { LOCALE_NAMES } from '@/shared/i18n/locales';
 import { routeTitlesCopy } from '@/shared/i18n/messages/routeTitles';
@@ -54,9 +54,15 @@ export function ProfileAccountHub({
   const businessCopy = messages.businessProfilePage;
   const hub = messages.profile.hub;
   const pp = messages.profilePage;
-  // Your own record, with your own counts (view 44, P9); others only see words.
+  // Your own record in one line (view 44, P9); the page behind it holds the rest.
   const record = useQuery({ queryKey: ['karwan-record', profile.handle], queryFn: () => api.record(profile.handle!), enabled: !!profile.handle, retry: false });
-  const mine = ownRecord(record.data);
+  const tierLabels = useTierLabels();
+  const summary = recordSummary(record.data, {
+    tier: (tier) => tierLabels[tier as keyof typeof tierLabels] ?? tier,
+    newHere: pp.newHere,
+    completed: pp.completed,
+    completedOne: pp.completedOne,
+  });
   useEffect(() => {
     setSavedPhoto(profile.profileImageDataUrl);
     setImageFailed(false);
@@ -110,7 +116,6 @@ export function ProfileAccountHub({
   const { locale } = useLocale();
   const { preference, mounted } = useTheme();
   const themeNow = mounted ? preference : 'dark';
-  const agentCopy = yourAgentCopy[locale as keyof typeof yourAgentCopy] ?? yourAgentCopy.en;
   const simple = messages.profile.simple;
   const balanceFacts = { balance: money.balance, pool: money.pool, loading: money.loading, error: money.error };
   const me = address.toLowerCase();
@@ -200,13 +205,9 @@ export function ProfileAccountHub({
         </RowGroup>
       ) : null}
 
-      {/* One Record card: the numbers, then what others see, earlier deals and sharing (view 44). */}
-      <RowGroup title={pp.record}>
-        {mine?.kind === 'record' ? <RecordStats record={mine} /> : mine?.kind === 'new' ? <Row label={pp.newHere} /> : null}
-        <Row label={pp.publicView} href={profile.handle ? `/r/${profile.handle}` : '/profile/edit'} />
-        <Row label={messages.dealGuarantee.profile.legacyContracts} href="/legacy" />
-        <Row label={pp.share} href={`/credit-passport/${address}#share`} />
-        <Row label={agentCopy.recordSources} href="/profile/sources" />
+      {/* The record in one line; every other line is on its own page (view 48, batch 9e). */}
+      <RowGroup>
+        <Row label={pp.yourRecord} value={summary ?? undefined} href={`/credit-passport/${address}`} />
       </RowGroup>
 
       {/* Buying, selling and the money in one group, so the app reads at a
@@ -266,34 +267,6 @@ export function ProfileAccountHub({
         </p>
       </footer>
     </ProfileFrame>
-  );
-}
-
-/// The record's four numbers, each with its plain label under it.
-function RecordStats({ record }: { record: Extract<OwnRecord, { kind: 'record' }> }) {
-  const pp = useTranslations().profilePage;
-  const { locale } = useLocale();
-  const n = (value: number) => value.toLocaleString(locale);
-  const stats: Array<[string, string]> = [
-    [n(record.completed), record.completed === 1 ? pp.statCompletedOne : pp.statCompleted],
-  ];
-  if (record.onTimePct !== null) stats.push([(record.onTimePct / 100).toLocaleString(locale, { style: 'percent' }), pp.statOnTime]);
-  if (record.rating?.kind === 'rated') {
-    stats.push([
-      record.rating.value.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-      pp.statRatings.replace('{n}', n(record.rating.count)),
-    ]);
-  }
-  stats.push([n(record.problemsLost), record.problemsLost === 1 ? pp.statProblemsOne : pp.statProblems]);
-  return (
-    <dl data-record-stats className="grid grid-cols-2 gap-px bg-[var(--line)] sm:grid-cols-4">
-      {stats.map(([value, label]) => (
-        <div key={label} className="flex flex-col-reverse gap-0.5 bg-[var(--surface)] px-4 py-3">
-          <dt className="text-[13px] font-medium text-[var(--ink-secondary)]">{label}</dt>
-          <dd className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">{value}</dd>
-        </div>
-      ))}
-    </dl>
   );
 }
 

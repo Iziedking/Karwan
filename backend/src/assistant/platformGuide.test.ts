@@ -259,6 +259,13 @@ test('the guide walks Add money and Withdraw as the new look shows them (view 48
   assert.match(said('withdraw'), /Nothing moves before that/);
 });
 
+test('the guide sends the record to its own page, with one line on Profile (view 48, batch 9e)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('reputation'), /record in one line/);
+  assert.match(said('reputation'), /Trade record page/);
+  assert.doesNotMatch(said('reputation'), /Record card/);
+});
+
 test('the guide walks a payment link as the new look shows it (view 48, batch 9d)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('paylink'), /Copy link is the main button/);
@@ -286,7 +293,7 @@ test('the guide walks Post an offer and Start a deal as one screen (view 48, bat
 
 test('the guide describes Profile, the public record and Something is wrong (view 44, Batch 8)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
-  assert.match(said('reputation'), /Share your record/);
+  assert.match(said('reputation'), /Share full record/);
   assert.match(said('reputation'), /\/r\/<tag>/);
   assert.match(said('reputation'), /never the score, an exact amount or who the deals were with/);
   assert.match(said('reputation'), /Other people see your tier, reasons and deal counts, never your score or your amounts, unless you share your full passport/);
@@ -327,10 +334,10 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /listed beside the balance with Total held/);
 });
 
-test('the guide gives one Record card on Profile and one balance on Arc (1 Nov)', () => {
+test('the guide gives the record one line on Profile and one balance on Arc (1 Nov, batch 9e)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
-  assert.match(said('reputation'), /one Record card/);
-  assert.match(said('reputation'), /What others see, Earlier deals and Share your record/);
+  assert.match(said('reputation'), /record in one line/);
+  assert.match(said('reputation'), /What others see, Earlier deals and Where your record comes from/);
   assert.match(said('account'), /one balance on Arc/);
   assert.match(said('account'), /Gateway balance/);
   assert.doesNotMatch(said('account'), /on other networks when there is some/);

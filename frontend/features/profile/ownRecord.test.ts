@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ownRecord, type RecordRead } from './ownRecord';
+import { ownRecord, recordSummary, type RecordRead } from './ownRecord';
 
 /// Your record on Profile, in plain words (view 44, P9).
 ///
@@ -27,4 +27,12 @@ test('your record says what you have done, or that you are new', () => {
     ownRecord(read({ counts: { completed: 2, onTimeRate: null, disputesLost: 0 } })),
     { kind: 'record', completed: 2, onTimePct: null, problemsLost: 0, rating: null },
   );
+});
+
+test('Profile sums the record up in one line: the level and the deals done (view 48, batch 9e)', () => {
+  const words = { tier: (t: string) => (t === 'ESTABLISHED' ? 'Established' : t), newHere: 'New on Karwan', completed: '{n} deals completed', completedOne: '1 deal completed' };
+  assert.equal(recordSummary(undefined, words), null);
+  assert.equal(recordSummary(read(), words), 'New on Karwan');
+  assert.equal(recordSummary(read({ counts: { completed: 23, onTimeRate: 96, disputesLost: 0 } }), words), 'Established · 23 deals completed');
+  assert.equal(recordSummary(read({ counts: { completed: 1, onTimeRate: null, disputesLost: 0 } }), words), 'Established · 1 deal completed');
 });

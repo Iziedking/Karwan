@@ -47,13 +47,13 @@ async function serveGuarantee(page: Page, steps: unknown[] = []) {
   });
 }
 
-test('Profile shows the deal guarantee with its amount, and Earlier deals in the Record card', async ({ page }) => {
+test('Profile shows the deal guarantee with its amount; Earlier deals moved to the record page', async ({ page }) => {
   await serveGuarantee(page);
   await page.goto('/profile');
   const row = page.getByRole('link', { name: new RegExp(g.profile.dealGuarantee) });
   await expect(row).toHaveAttribute('href', '/guarantee');
   await expect(row).toContainText('125 USDC');
-  await expect(page.getByRole('link', { name: g.profile.legacyContracts })).toHaveAttribute('href', '/legacy');
+  await expect(page.getByRole('link', { name: g.profile.legacyContracts })).toHaveCount(0);
 });
 
 test('the old staking address opens the deal guarantee, with a quiet way to the previous contract', async ({ page }) => {
@@ -121,7 +121,7 @@ test('both pages fit the screen in the dark theme', async ({ page }) => {
   }
 });
 
-test('Profile shows your record in words with your own counts, and what others see by tag (view 44, P9)', async ({ page }) => {
+test('Profile sums your record up in one row that opens its own page (view 48, batch 9e)', async ({ page }) => {
   await serveGuarantee(page);
   await page.route(`${API}/api/r/ada`, (route) => route.fulfill({ json: {
     displayName: 'Ada', tag: 'ada', level: 'person_verified', tier: 'ESTABLISHED', reasons: [], facts: [],
@@ -129,18 +129,14 @@ test('Profile shows your record in words with your own counts, and what others s
   } }));
   await page.goto('/profile');
   const p = en.profilePage;
-  // One Record card: the numbers, then what others see, earlier deals and sharing.
-  const card = page.locator('section', { has: page.getByRole('heading', { name: p.record, exact: true }) });
-  const stats = card.locator('[data-record-stats]');
-  await expect(stats).toContainText('23');
-  await expect(stats).toContainText(p.statCompleted);
-  await expect(stats).toContainText('96%');
-  await expect(stats).not.toContainText('9600');
-  await expect(stats).toContainText('4.8');
-  await expect(stats).toContainText(p.statProblems);
-  await expect(card.getByRole('link', { name: new RegExp(p.share) })).toHaveAttribute('href', `/credit-passport/${ME}#share`);
-  await expect(card.getByRole('link', { name: new RegExp(p.publicView) })).toHaveAttribute('href', '/r/ada');
-  await expect(card.getByRole('link', { name: en.dealGuarantee.profile.legacyContracts })).toHaveAttribute('href', '/legacy');
+  const record = page.getByRole('link', { name: new RegExp(`^${p.yourRecord}`) });
+  await expect(record).toHaveAttribute('href', `/credit-passport/${ME}`);
+  await expect(record).toContainText(`Established · ${p.completed.replace('{n}', '23')}`);
+  // Every other record line lives on the record page now.
+  await expect(page.locator('[data-record-stats]')).toHaveCount(0);
+  for (const moved of [p.share, p.publicView, 'Where your record comes from']) {
+    await expect(page.getByRole('link', { name: new RegExp(`^${moved}`) })).toHaveCount(0);
+  }
   // One Your agent row sits with trade and money (owner, 3 Nov 2026), and Where your record comes from has its own page.
   const trade = page.locator('section').filter({ has: page.getByRole('heading', { name: p.tradeAndMoney, exact: true }) });
   await expect(page.getByRole('link', { name: new RegExp(`^${en.profile.simple.agentsTitle}`) })).toHaveCount(1);
@@ -148,7 +144,6 @@ test('Profile shows your record in words with your own counts, and what others s
   // Buying and selling sit with the money in one Trade and money group (owner notes, 3 Nov 2026).
   await expect(trade.getByRole('link', { name: new RegExp(`^${p.buying}`) })).toHaveAttribute('href', '/market?view=yours&list=requests');
   await expect(trade.getByRole('link', { name: new RegExp(`^${p.selling}`) })).toHaveAttribute('href', '/market?view=yours&list=offers');
-  await expect(card.getByRole('link', { name: 'Where your record comes from' })).toHaveAttribute('href', '/profile/sources');
   await expect(page.getByRole('link', { name: en.profile.hub.editProfile })).toHaveAttribute('href', '/profile/edit');
   // Said elsewhere already, so not here.
   await expect(page.getByRole('link', { name: en.payLink.create.title })).toHaveCount(0);

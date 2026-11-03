@@ -482,16 +482,14 @@ test('profile is tidy: one way to change the photo, rows say what they open, no 
   assert.doesNotMatch(hub, /hub\.accountLabel|shortAddress\(address\)\}/);
 });
 
-test('profile says each thing once: one Record card, Edit profile in the header, no payment request or open deals rows', () => {
+test('profile says each thing once: one Your record row, Edit profile in the header, no payment request or open deals rows', () => {
   const hub = source('../../features/profile/components/ProfileAccountHub.tsx');
   // Edit profile is the header's one button, not a row further down.
   assert.match(hub, /href="\/profile\/edit"[^>]*>\{hub\.editProfile\}<\/Link>/);
   assert.doesNotMatch(hub, /label=\{hub\.editProfile\}/);
-  // The record's numbers, what others see, earlier deals and sharing all sit in one Record card.
-  const record = hub.slice(hub.indexOf('<RowGroup title={pp.record}>'));
-  assert.ok(record.length > 0 && hub.includes('<RowGroup title={pp.record}>'));
-  const card = record.slice(0, record.indexOf('</RowGroup>'));
-  for (const piece of ['<RecordStats', 'pp.publicView', 'legacyContracts', 'pp.share']) assert.ok(card.includes(piece), piece);
+  // The record is one line that opens its own page; the numbers and the rest live there (view 48, batch 9e).
+  assert.match(hub, /<Row label=\{pp\.yourRecord\} value=\{summary \?\? undefined\} href=\{`\/credit-passport\/\$\{address\}`\} \/>/);
+  for (const piece of ['<RecordStats', 'pp.publicView', 'legacyContracts', 'pp.share']) assert.ok(!hub.includes(piece), piece);
   // Said elsewhere already: Deals has open deals, Home and Money ask for a payment.
   assert.doesNotMatch(hub, /hub\.openDeals|payLink\.create\.title/);
   assert.doesNotMatch(hub, /<RowGroup title=\{pp\.yourOffers\}>/);
