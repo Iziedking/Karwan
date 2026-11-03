@@ -18,7 +18,6 @@ export interface ProfilePageCopy {
   openRequestsOne: string;
   liveOffers: string;
   liveOffersOne: string;
-  howAgentTrades: string;
   accountAndSecurity: string;
   balance: string;
   withAgents: string;
@@ -67,7 +66,6 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     openRequestsOne: '1 open',
     liveOffers: '{n} live',
     liveOffersOne: '1 live',
-    howAgentTrades: 'How your agent trades',
     accountAndSecurity: 'Account and security',
     balance: 'Balance',
     withAgents: 'With your agents',
@@ -114,7 +112,6 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     openRequestsOne: '1 ouverte',
     liveOffers: '{n} en ligne',
     liveOffersOne: '1 en ligne',
-    howAgentTrades: 'Comment votre agent négocie',
     accountAndSecurity: 'Compte et sécurité',
     balance: 'Solde',
     withAgents: 'Chez vos agents',
@@ -161,7 +158,6 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     openRequestsOne: 'واحد مفتوح',
     liveOffers: '{n} معروضة',
     liveOffersOne: 'واحد معروض',
-    howAgentTrades: 'كيف يتاجر وكيلك',
     accountAndSecurity: 'الحساب والأمان',
     balance: 'الرصيد',
     withAgents: 'لدى وكلائك',
@@ -208,7 +204,6 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     openRequestsOne: '1 खुला',
     liveOffers: '{n} चालू',
     liveOffersOne: '1 चालू',
-    howAgentTrades: 'आपका एजेंट कैसे व्यापार करता है',
     accountAndSecurity: 'खाता और सुरक्षा',
     balance: 'बैलेंस',
     withAgents: 'आपके एजेंटों के पास',
@@ -255,7 +250,6 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     openRequestsOne: '1 wazi',
     liveOffers: '{n} hai',
     liveOffersOne: '1 hai',
-    howAgentTrades: 'Jinsi wakala wako anavyofanya biashara',
     accountAndSecurity: 'Akaunti na usalama',
     balance: 'Salio',
     withAgents: 'Kwa mawakala wako',

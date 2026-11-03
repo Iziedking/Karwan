@@ -212,12 +212,11 @@ export function ProfileAccountHub({
         {DEALS_AVAILABLE ? <Row label={messages.dealGuarantee.profile.dealGuarantee} value={guaranteeInPlace} href="/guarantee" /> : null}
         {DEALS_AVAILABLE ? <Row label={pp.buying} value={trade.requests} href={marketViewHref('yours', 'requests')} /> : null}
         {DEALS_AVAILABLE ? <Row label={pp.selling} value={trade.offers} href={marketViewHref('yours', 'offers')} /> : null}
-        {DEALS_AVAILABLE ? <Row label={pp.howAgentTrades} href="/profile/setup" /> : null}
+        {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} /> : null}
         <Row label={hub.activityReceipts} href="/activity" />
       </RowGroup>
 
       <RowGroup title={pp.accountAndSecurity}>
-        {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} /> : null}
         <Row label={simple.contactTitle} value={rows.contact} href="/profile/contact" />
         <Row label={simple.walletsTitle} href="/profile/wallets" />
         {DEALS_AVAILABLE ? (

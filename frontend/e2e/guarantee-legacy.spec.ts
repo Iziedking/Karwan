@@ -141,10 +141,11 @@ test('Profile shows your record in words with your own counts, and what others s
   await expect(card.getByRole('link', { name: new RegExp(p.share) })).toHaveAttribute('href', `/credit-passport/${ME}#share`);
   await expect(card.getByRole('link', { name: new RegExp(p.publicView) })).toHaveAttribute('href', '/r/ada');
   await expect(card.getByRole('link', { name: en.dealGuarantee.profile.legacyContracts })).toHaveAttribute('href', '/legacy');
-  // How your agent trades opens Your agent (view 45), and Where your record comes from has its own page.
-  await expect(page.getByRole('link', { name: new RegExp(p.howAgentTrades) })).toHaveAttribute('href', '/profile/setup');
-  // Buying and selling sit with the money in one Trade and money group (owner notes, 3 Nov 2026).
+  // One Your agent row sits with trade and money (owner, 3 Nov 2026), and Where your record comes from has its own page.
   const trade = page.locator('section').filter({ has: page.getByRole('heading', { name: p.tradeAndMoney, exact: true }) });
+  await expect(page.getByRole('link', { name: new RegExp(`^${en.profile.simple.agentsTitle}`) })).toHaveCount(1);
+  await expect(trade.getByRole('link', { name: new RegExp(`^${en.profile.simple.agentsTitle}`) })).toHaveCount(1);
+  // Buying and selling sit with the money in one Trade and money group (owner notes, 3 Nov 2026).
   await expect(trade.getByRole('link', { name: new RegExp(`^${p.buying}`) })).toHaveAttribute('href', '/market?view=yours&list=requests');
   await expect(trade.getByRole('link', { name: new RegExp(`^${p.selling}`) })).toHaveAttribute('href', '/market?view=yours&list=offers');
   await expect(card.getByRole('link', { name: 'Where your record comes from' })).toHaveAttribute('href', '/profile/sources');

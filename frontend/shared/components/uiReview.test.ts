@@ -499,8 +499,11 @@ test('profile says each thing once: one Record card, Edit profile in the header,
   const trade = hub.slice(hub.indexOf('<RowGroup title={pp.tradeAndMoney}>'));
   assert.ok(hub.includes('<RowGroup title={pp.tradeAndMoney}>'));
   const group = trade.slice(0, trade.indexOf('</RowGroup>'));
-  for (const piece of ['pp.balance', 'pp.withAgents', 'dealGuarantee', 'pp.buying', 'pp.selling', 'pp.howAgentTrades', 'hub.activityReceipts']) assert.ok(group.includes(piece), piece);
+  for (const piece of ['pp.balance', 'pp.withAgents', 'dealGuarantee', 'pp.buying', 'pp.selling', 'simple.agentsTitle', 'hub.activityReceipts']) assert.ok(group.includes(piece), piece);
   assert.doesNotMatch(hub, /<RowGroup title=\{pp\.selling\}>|<RowGroup title=\{hub\.money\}>/);
+  // One agent row, not two that open the same page (owner, 3 Nov 2026).
+  assert.equal(hub.split('simple.agentsTitle').length - 1, 1);
+  assert.doesNotMatch(hub, /howAgentTrades/);
 });
 
 test('money is one balance on Arc: a transfer balance line, no list of other networks, local currency marked soon', () => {
