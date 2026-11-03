@@ -9,12 +9,11 @@ import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
 import { isMarketRoute } from './marketNav';
 import { DEALS_HREF, navHref, workspaceNavItems, type NavItemId } from './workspaceNav';
-import { PersonAvatar } from './PersonAvatar';
 import { cn } from '@/shared/utils/cn';
 import { getShellSurface, WALLET_HOME } from '@/shared/utils/routes';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 
-type IconName = 'home' | 'trade' | 'discover' | 'activity' | 'account';
+type IconName = 'home' | 'market' | 'deals' | 'profile';
 
 interface BottomNavItem {
   href: string;
@@ -24,15 +23,17 @@ interface BottomNavItem {
   signal?: boolean;
 }
 
+/// The Figma tab icons (public/icons/nav), drawn as masks so they take the
+/// tab's text colour in either theme.
 const ICON: Record<NavItemId, IconName> = {
   home: 'home',
-  market: 'discover',
-  deals: 'trade',
-  money: 'activity',
-  messages: 'activity',
-  finance: 'activity',
-  activity: 'activity',
-  profile: 'account',
+  market: 'market',
+  deals: 'deals',
+  money: 'home',
+  messages: 'home',
+  finance: 'home',
+  activity: 'home',
+  profile: 'profile',
 };
 
 /**
@@ -69,60 +70,29 @@ export function WorkspaceBottomNav() {
     };
   });
 
-  const activeIndex = items.findIndex((item) => item.active);
-
   return (
     <nav
       data-workspace-bottom-nav
-      className="fixed inset-x-3 bottom-0 z-40 rounded-[22px] border border-[var(--color-line)] bg-[var(--nav-float)] px-2 py-1 text-[var(--color-ink)] shadow-[var(--hero-shadow)] transform-gpu lg:hidden"
-      style={{ marginBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--line)] bg-[var(--surface)] px-2 pt-2 lg:hidden"
+      style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
     >
-      <div
-        className="relative mx-auto grid max-w-lg"
-        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
-      >
-        {/* One pill glides to the open tab, so the move itself shows where you went. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-1 start-0 flex justify-center transition-[transform,opacity] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-          style={{
-            width: `${100 / items.length}%`,
-            transform: `translateX(calc(${Math.max(activeIndex, 0)} * 100% * var(--nav-dir, 1)))`,
-            opacity: activeIndex < 0 ? 0 : 1,
-          }}
-        >
-          <span className="h-9 w-[min(64px,80%)] rounded-full bg-[var(--lp-accent)]/25" />
-        </span>
+      <div className="mx-auto flex max-w-lg">
         {items.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             aria-current={item.active ? 'page' : undefined}
             className={cn(
-              'relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5',
-              'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--lp-accent)]',
-              item.active ? 'text-[var(--lp-accent-on-light)]' : 'text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]',
+              'relative flex h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1',
+              'transition-colors duration-[var(--dur-fade)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--ink)]',
+              item.active ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)] hover:text-[var(--ink-secondary)]',
             )}
           >
-            <span
-              className={cn(
-                'grid h-9 place-items-center transition-transform duration-[320ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none',
-                item.active && '-translate-y-px scale-[1.08]',
-              )}
-            >
-              {item.icon === 'account' && auth.address ? (
-                // Your own photo marks Profile; the accent ring marks it open.
-                <span className={cn('block rounded-full', item.active && 'ring-2 ring-[var(--lp-accent-on-light)] ring-offset-1 ring-offset-[var(--surface)]')}>
-                  <PersonAvatar address={auth.address} name={t.profile} size={22} />
-                </span>
-              ) : (
-                <NavIcon name={item.icon} active={item.active} />
-              )}
+            <span aria-hidden className="relative">
+              <NavIcon name={item.icon} />
+              {item.signal ? <ActionBeacon className="absolute -top-1 -end-1.5" /> : null}
             </span>
-            <span className={cn('inline-flex max-w-full items-center gap-1 truncate text-[13px] transition-[font-weight] duration-200', item.active ? 'font-bold' : 'font-semibold')}>
-              <span className="truncate">{item.label}</span>
-              {item.signal ? <ActionBeacon /> : null}
-            </span>
+            <span className="max-w-full truncate text-[13px] font-medium leading-[1.3]">{item.label}</span>
           </Link>
         ))}
       </div>
@@ -130,48 +100,13 @@ export function WorkspaceBottomNav() {
   );
 }
 
-/// Rounded 24px icons. The open tab's icon fills in; the rest stay outlined.
-function NavIcon({ name, active }: { name: IconName; active: boolean }) {
-  const common = { width: 22, height: 22, viewBox: '0 0 24 24', 'aria-hidden': true } as const;
-  const line = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  const solid = active ? 'currentColor' : 'none';
-
-  if (name === 'home') {
-    return (
-      <svg {...common}>
-        <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" {...line} fill={solid} />
-        {active ? <path d="M9.5 20v-5.5h5V20" fill="none" stroke="var(--lp-workspace-band)" strokeWidth={1.6} strokeLinejoin="round" /> : null}
-      </svg>
-    );
-  }
-  if (name === 'trade') {
-    return (
-      <svg {...common}>
-        <path d="M16 4l4 4-4 4M20 8H9M8 20l-4-4 4-4M4 16h11" {...line} strokeWidth={active ? 2 : 1.6} />
-      </svg>
-    );
-  }
-  if (name === 'discover') {
-    return (
-      <svg {...common}>
-        <circle cx="12" cy="12" r="9" {...line} />
-        <path d="m15.5 8.5-2 5-5 2 2-5z" {...line} fill={solid} />
-      </svg>
-    );
-  }
-  if (name === 'activity') {
-    return (
-      <svg {...common}>
-        <rect x="4" y="13" width="3.5" height="7" rx="1.2" {...line} fill={solid} />
-        <rect x="10.25" y="8" width="3.5" height="12" rx="1.2" {...line} fill={solid} />
-        <rect x="16.5" y="4" width="3.5" height="16" rx="1.2" {...line} fill={solid} />
-      </svg>
-    );
-  }
+function NavIcon({ name }: { name: IconName }) {
+  const url = `url(/icons/nav/${name}.svg)`;
   return (
-    <svg {...common}>
-      <circle cx="12" cy="8.5" r="3.75" {...line} fill={solid} />
-      <path d="M4.5 20c.9-3.6 3.5-5.5 7.5-5.5s6.6 1.9 7.5 5.5" {...line} />
-    </svg>
+    <span
+      data-nav-icon={name}
+      className="block size-6 bg-current"
+      style={{ maskImage: url, WebkitMaskImage: url, maskSize: '24px 24px', WebkitMaskSize: '24px 24px', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' }}
+    />
   );
 }

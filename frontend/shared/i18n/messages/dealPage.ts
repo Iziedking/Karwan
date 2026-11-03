@@ -19,6 +19,7 @@ export interface DealPageCopy {
   };
   stageLine: { delivered: string; paidOut: string };
   stepsLabel: string;
+  routeStatus: { disputed: string; cancelled: string; refunding: string; refunded: string; paidToSeller: string; split: string };
   split: string;
   yourMove: string;
   waitingOn: string;
@@ -83,6 +84,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     },
     stageLine: { delivered: 'Delivered', paidOut: 'Paid out' },
     stepsLabel: 'Steps of this deal',
+    routeStatus: { disputed: 'Problem open, money held', cancelled: 'Cancelled', refunding: 'Refund on the way', refunded: 'Refunded', paidToSeller: 'Paid to the seller', split: 'Money split' },
     split: '{paid} USDC paid to {name} · {held} USDC held by Karwan',
     yourMove: 'Your move',
     waitingOn: 'Waiting on {name}',
@@ -149,6 +151,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     },
     stageLine: { delivered: 'Livré', paidOut: 'Versé' },
     stepsLabel: 'Étapes de cette transaction',
+    routeStatus: { disputed: 'Problème ouvert, argent bloqué', cancelled: 'Annulée', refunding: 'Remboursement en cours', refunded: 'Remboursée', paidToSeller: 'Payée au vendeur', split: 'Argent partagé' },
     split: '{paid} USDC versés à {name} · {held} USDC gardés par Karwan',
     yourMove: 'À vous',
     waitingOn: 'En attente de {name}',
@@ -215,6 +218,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     },
     stageLine: { delivered: 'تم التسليم', paidOut: 'تم الصرف' },
     stepsLabel: 'خطوات هذه الصفقة',
+    routeStatus: { disputed: 'مشكلة مفتوحة، المال محجوز', cancelled: 'أُلغيت', refunding: 'الاسترداد في الطريق', refunded: 'تم الاسترداد', paidToSeller: 'دُفع للبائع', split: 'قُسّم المال' },
     split: 'صُرف {paid} USDC إلى {name} · تحتفظ كاروان بـ {held} USDC',
     yourMove: 'دورك',
     waitingOn: 'بانتظار {name}',
@@ -281,6 +285,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     },
     stageLine: { delivered: 'डिलीवर हुआ', paidOut: 'भुगतान जारी' },
     stepsLabel: 'इस डील के चरण',
+    routeStatus: { disputed: 'समस्या खुली है, पैसा रुका है', cancelled: 'रद्द', refunding: 'रिफ़ंड आ रहा है', refunded: 'रिफ़ंड हो गया', paidToSeller: 'विक्रेता को भुगतान हुआ', split: 'पैसा बँटा' },
     split: '{paid} USDC {name} को दिए गए · {held} USDC Karwan के पास',
     yourMove: 'आपकी बारी',
     waitingOn: '{name} का इंतज़ार',
@@ -347,6 +352,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     },
     stageLine: { delivered: 'Imewasilishwa', paidOut: 'Imelipwa kwa muuzaji' },
     stepsLabel: 'Hatua za mpango huu',
+    routeStatus: { disputed: 'Tatizo liko wazi, pesa imeshikiliwa', cancelled: 'Umeghairiwa', refunding: 'Pesa inarudishwa', refunded: 'Pesa imerudishwa', paidToSeller: 'Muuzaji amelipwa', split: 'Pesa imegawanywa' },
     split: 'USDC {paid} zimelipwa kwa {name} · USDC {held} zinashikiliwa na Karwan',
     yourMove: 'Zamu yako',
     waitingOn: 'Inasubiri {name}',

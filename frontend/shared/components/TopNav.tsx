@@ -289,7 +289,7 @@ function WorkspaceRail({
             aria-expanded={!collapsed}
             aria-label={collapsed ? t.railExpandAria : t.railCollapseAria}
             onClick={toggleRail}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[12px] text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[12px] text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             aria-controls="workspace-navigation"
           >
             <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" className="rtl:-scale-x-100">
@@ -351,7 +351,7 @@ function RailLink({
   children: React.ReactNode;
   ariaLabel?: string;
   collapsed?: boolean;
-  /// How many need you here, in the accent; a dot when the rail is collapsed.
+  /// How many need you here, in muted text; a dot when the rail is collapsed.
   count?: number;
 }) {
   const link = (
@@ -360,25 +360,21 @@ function RailLink({
       aria-label={ariaLabel}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group relative flex min-h-12 w-full items-center rounded-full text-[15px] font-medium transition-colors duration-200',
+        'group relative flex min-h-12 w-full items-center rounded-[var(--radius-input)] text-[15px] font-medium transition-colors duration-[var(--dur-fade)]',
         collapsed ? 'justify-center px-0' : 'gap-3 px-4',
         active
-          ? 'text-[var(--color-ink)]'
-          : 'text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
+          ? 'bg-[var(--surface)] text-[var(--ink)]'
+          : 'text-[var(--ink-secondary)] hover:bg-[var(--surface)] hover:text-[var(--ink)]',
       )}
-      style={active ? { background: 'var(--color-surface-2)' } : undefined}
     >
       <RailIcon name={icon} active={active} />
       <span className={cn('min-w-0 flex-1 truncate', collapsed && 'sr-only')}>{children}</span>
       {count && !collapsed ? (
-        <span
-          aria-hidden
-          className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--lp-accent)] px-2 text-[13px] font-semibold tabular-nums text-[var(--lp-band-dark)]"
-        >
+        <span aria-hidden className="text-[13px] tabular-nums text-[var(--ink-muted)]">
           {count}
         </span>
       ) : count ? (
-        <span aria-hidden className="absolute end-2 top-2 size-2 rounded-full bg-[var(--lp-accent)]" />
+        <span aria-hidden className="absolute end-2 top-2 size-2 rounded-full bg-[var(--ink-muted)]" />
       ) : null}
     </Link>
   );
@@ -408,7 +404,7 @@ function RailProfile({
       aria-current={active ? 'page' : undefined}
       data-rail-profile
       className={cn(
-        'flex min-h-14 w-full items-center rounded-[16px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+        'flex min-h-14 w-full items-center rounded-[16px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]',
         collapsed ? 'justify-center px-0' : 'gap-3 px-3',
         active ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-surface-2)]',
       )}
@@ -448,7 +444,7 @@ function RailAction({
       aria-haspopup="dialog"
       aria-label={collapsed ? children : undefined}
       className={cn(
-        'group relative flex min-h-12 w-full items-center rounded-full text-[15px] font-medium text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-wait disabled:opacity-60',
+        'group relative flex min-h-12 w-full items-center rounded-full text-[15px] font-medium text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-wait disabled:opacity-60',
         collapsed ? 'justify-center px-0' : 'gap-3 px-4',
       )}
     >
@@ -467,7 +463,7 @@ function RailIcon({ name, active }: { name: RailIconName; active: boolean }) {
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden
-      className={cn('shrink-0 transition-colors', active ? 'text-[var(--lp-accent)]' : 'text-[var(--color-ink-dim)]')}
+      className={cn('shrink-0 transition-colors', active ? 'text-[var(--ink)]' : 'text-[var(--ink-secondary)]')}
     >
       {name === 'home' ? (
         <path d="m4 10 8-6 8 6v9H4v-9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
@@ -529,7 +525,7 @@ function NavLink({
         <m.span
           layoutId="topnav-active"
           aria-hidden
-          className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--lp-accent)]"
+          className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--ink)]"
           transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
         />
       )}
@@ -538,7 +534,7 @@ function NavLink({
         {signal ? (
           <span
             aria-hidden
-            className="inline-block size-1.5 rounded-full bg-[var(--lp-accent)]"
+            className="inline-block size-1.5 rounded-full bg-[var(--ink)]"
           />
         ) : null}
       </span>
@@ -580,7 +576,7 @@ function NavLinkSoon({
         <m.span
           layoutId="topnav-active"
           aria-hidden
-          className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--lp-accent)]"
+          className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--ink)]"
           transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
         />
       )}
@@ -588,8 +584,8 @@ function NavLinkSoon({
       <span
         className="mono whitespace-nowrap px-1.5 py-[2px] text-[13px] font-bold uppercase tracking-[0.12em]"
         style={{
-          background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
-          color: 'var(--lp-accent)',
+          background: 'var(--tint)',
+          color: 'var(--ink-secondary)',
           borderRadius: 3,
         }}
       >
@@ -632,7 +628,7 @@ function ProfileLink({
     <Link
       href="/profile"
       aria-label={label}
-      className={`relative ${hideBelowLg ? 'hidden lg:grid' : 'grid'} size-10 shrink-0 place-items-center rounded-full border border-[var(--color-line-strong)] bg-[var(--color-surface)] text-[14px] font-semibold tracking-[0.04em] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]`}
+      className={`relative ${hideBelowLg ? 'hidden lg:grid' : 'grid'} size-10 shrink-0 place-items-center rounded-full border border-[var(--color-line-strong)] bg-[var(--color-surface)] text-[14px] font-semibold tracking-[0.04em] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]`}
     >
       <span className="grid size-full place-items-center overflow-hidden rounded-full">
         {photo ? (
@@ -644,7 +640,7 @@ function ProfileLink({
       </span>
       {/* The dot rests on the whole photo: no backing disc cutting into it. */}
       {profileActionCount > 0 ? (
-        <span aria-hidden className="pointer-events-none absolute -end-0.5 -top-0.5 z-10 size-2.5 rounded-full bg-[var(--lp-accent)] shadow-[0_0_0_1.5px_var(--color-surface)]" />
+        <span aria-hidden className="pointer-events-none absolute -end-0.5 -top-0.5 z-10 size-2.5 rounded-full bg-[var(--ink)] shadow-[0_0_0_1.5px_var(--color-surface)]" />
       ) : null}
     </Link>
   );
@@ -684,7 +680,7 @@ function LaunchAppCTA() {
   return (
     <TaskEntryLink
       href={href}
-      className="hidden min-h-12 items-center gap-2 rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] md:inline-flex"
+      className="hidden min-h-12 items-center gap-2 rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] md:inline-flex"
     >
       {href === START_ROUTE ? messages.common.signIn : messages.nav.openApp}
       <Icon name="arrow-right" size={16} directional />

@@ -1,6 +1,11 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { stripMechanicalTags } from '@/shared/i18n/uiCopy';
+
+/// The one card (view 48): surface, a hairline, radius 16, 20px padding on
+/// phones and 24px on desktop, no shadow.
+export const CARD_CLASS = 'rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)]';
+export const CARD_PADDING = 'p-5 lg:p-6';
 
 export function Card({
   title,
@@ -21,32 +26,26 @@ export function Card({
   noPadding?: boolean;
   interactive?: boolean;
 }) {
-  const baseStyle =
-    'overflow-hidden rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-line)] transition-[transform,border-color,box-shadow] duration-[var(--dur-fast)]';
-  const interactiveStyle = interactive
-    ? 'hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)]'
-    : '';
   return (
-    <section className={cn(baseStyle, interactiveStyle, className)}>
+    <section
+      className={cn(
+        CARD_CLASS,
+        'overflow-hidden',
+        interactive && 'transition-colors duration-[var(--dur-press)] hover:border-[var(--line-strong)]',
+        className,
+      )}
+    >
       {(title || eyebrow || action) && (
-        <header className="px-5 pt-4 pb-3 flex items-start justify-between gap-4 border-b border-[var(--color-line)]">
+        <header className="flex items-start justify-between gap-4 px-5 pt-5 lg:px-6 lg:pt-6">
           <div className="min-w-0">
-            {eyebrow && (
-              <p className="font-mono text-[13px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] mb-1">
-                {stripMechanicalTags(eyebrow)}
-              </p>
-            )}
-            {title && <h2 className="text-[15px] font-medium text-[var(--color-ink)] tracking-tight truncate">{title}</h2>}
+            {eyebrow && <p className="mb-1 text-[13px] text-[var(--ink-secondary)]">{stripMechanicalTags(eyebrow)}</p>}
+            {title && <h2 className="truncate text-[17px] font-semibold tracking-[-0.01em] text-[var(--ink)]">{title}</h2>}
           </div>
           {action && <div className="shrink-0">{action}</div>}
         </header>
       )}
-      <div className={noPadding ? '' : 'px-5 py-4'}>{children}</div>
-      {footer && (
-        <footer className="px-5 py-3 border-t border-[var(--color-line)] text-[14px] text-[var(--color-ink-faint)]">
-          {footer}
-        </footer>
-      )}
+      <div className={noPadding ? '' : CARD_PADDING}>{children}</div>
+      {footer && <footer className="border-t border-[var(--line)] px-5 py-3 text-[14px] text-[var(--ink-secondary)] lg:px-6">{footer}</footer>}
     </section>
   );
 }

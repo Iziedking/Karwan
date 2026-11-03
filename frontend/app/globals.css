@@ -63,6 +63,41 @@
   }
 }
 
+/* How a new page arrives (RouteStage, view 48): forward comes in from the end
+   side, back from the start side, a tab fades. Reduced motion fades. */
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translate3d(calc(32px * var(--route-from)), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes route-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.route-stage { --route-side: 1; }
+[dir='rtl'] .route-stage { --route-side: -1; }
+.route-stage[data-route-motion='forward'] {
+  --route-from: var(--route-side);
+  animation: route-in var(--dur-push) var(--ease-ui) both;
+}
+.route-stage[data-route-motion='back'] {
+  --route-from: calc(-1 * var(--route-side));
+  animation: route-in var(--dur-push) var(--ease-ui) both;
+}
+.route-stage[data-route-motion='fade'] {
+  animation: route-fade var(--dur-fade) var(--ease-ui) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-stage[data-route-motion] {
+    animation: route-fade 120ms var(--ease-ui) both;
+  }
+}
+
 /* Element-level resets live in @layer base so Tailwind utilities (which sit in
    @layer utilities) can override them. Unlayered rules beat every layer, so
    `button { color: inherit }` would otherwise win over `text-[...]` utilities. */
