@@ -73,6 +73,12 @@ export function summaryFor(
       return str('reason') === 'deal' ? c.recordNeededDeal : c.recordNeededOffers;
     case 'trend.match':
       return pick(c.trendKeyword, c.trend, { keyword: str('keyword') });
+    case 'market.watch': {
+      const id = str('category') as keyof NotifyCopy['categories'];
+      const values = { category: c.categories[id] ?? str('categoryName'), count: str('count'), from: str('fromUsdc'), to: str('toUsdc') };
+      const kind = str('kind');
+      return fill(kind === 'requests' ? c.watchRequests : kind === 'price' ? c.watchPrice : c.watchRising, values);
+    }
     case 'agent.declined':
       return pick(c.agentDeclinedReason, c.agentDeclined, { reason });
     case 'negotiation.near-miss': {

@@ -256,6 +256,13 @@ export async function ensureSchema(): Promise<void> {
       data JSONB NOT NULL
     );
     CREATE INDEX IF NOT EXISTS market_reads_v1_at_idx ON market_reads_v1 (researched_at);
+    CREATE TABLE IF NOT EXISTS market_watches_v1 (
+      id TEXT PRIMARY KEY,
+      owner TEXT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS market_watches_v1_owner_idx ON market_watches_v1 (owner);
     CREATE TABLE IF NOT EXISTS research_payments (
       idempotency_key TEXT PRIMARY KEY,
       run_id TEXT NOT NULL,

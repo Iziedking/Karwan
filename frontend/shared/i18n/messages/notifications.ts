@@ -1,13 +1,15 @@
 /// The bell's one-line summaries. Every event a person can be notified about,
 /// in every language, so the bell says the same thing as the deal page, the
 /// email and the deal chat. Placeholders in {braces} are filled at render.
+import { marketShopCopy, type MarketShopCopy } from './marketShop';
+
 type TradeLines = { service: string; goods: string; mixed: string };
 
 export interface NotifyCopy {
   matchedSellerPrice: string; matchedSeller: string; matchedBuyerPrice: string; matchedBuyer: string;
   approvedSellerPrice: string; approvedSeller: string; approvedBuyerPrice: string; approvedBuyer: string;
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
-  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
+  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
   recordNeededOffers: string; recordNeededDeal: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
@@ -42,6 +44,10 @@ export interface NotifyCopy {
 }
 
 const en: NotifyCopy = {
+  watchRequests: '{count} new requests for {category}, as you asked your agent to watch.',
+  watchPrice: '{category} deals now settle around {to} USDC (was {from}).',
+  watchRising: 'Requests for {category} are rising this week.',
+  categories: marketShopCopy.en.categories,
   matchedSellerPrice: 'A buyer matched your offer at {price} USDC. Accept to fund escrow.',
   matchedSeller: 'A buyer matched your offer. Accept to fund escrow.',
   matchedBuyerPrice: 'Your agent found a match at {price} USDC. Tap to review.',
@@ -184,6 +190,10 @@ const en: NotifyCopy = {
 };
 
 const fr: NotifyCopy = {
+  watchRequests: '{count} nouvelles demandes pour {category}, comme vous l’avez demandé à votre agent.',
+  watchPrice: 'Les accords en {category} se concluent maintenant autour de {to} USDC (contre {from}).',
+  watchRising: 'Les demandes pour {category} augmentent cette semaine.',
+  categories: marketShopCopy.fr.categories,
   matchedSellerPrice: 'Un acheteur a retenu votre offre à {price} USDC. Acceptez pour financer le séquestre.',
   matchedSeller: 'Un acheteur a retenu votre offre. Acceptez pour financer le séquestre.',
   matchedBuyerPrice: 'Votre agent a trouvé une correspondance à {price} USDC. Touchez pour voir.',
@@ -326,6 +336,10 @@ const fr: NotifyCopy = {
 };
 
 const ar: NotifyCopy = {
+  watchRequests: '{count} طلبات جديدة في {category}، كما طلبت من وكيلك أن يراقب.',
+  watchPrice: 'صفقات {category} تُبرم الآن بنحو {to} USDC (كانت {from}).',
+  watchRising: 'الطلبات على {category} في ازدياد هذا الأسبوع.',
+  categories: marketShopCopy.ar.categories,
   matchedSellerPrice: 'اختار مشترٍ عرضك بسعر {price} USDC. اقبل لتمويل الضمان.',
   matchedSeller: 'اختار مشترٍ عرضك. اقبل لتمويل الضمان.',
   matchedBuyerPrice: 'وجد وكيلك تطابقًا بسعر {price} USDC. اضغط للمراجعة.',
@@ -468,6 +482,10 @@ const ar: NotifyCopy = {
 };
 
 const hi: NotifyCopy = {
+  watchRequests: '{category} के {count} नए अनुरोध, जैसा आपने अपने एजेंट से देखने को कहा था।',
+  watchPrice: '{category} के सौदे अब लगभग {to} USDC पर तय हो रहे हैं (पहले {from})।',
+  watchRising: 'इस हफ़्ते {category} के अनुरोध बढ़ रहे हैं।',
+  categories: marketShopCopy.hi.categories,
   matchedSellerPrice: 'एक ख़रीदार ने आपका ऑफ़र {price} USDC पर चुना। एस्क्रो फ़ंड करने के लिए स्वीकार करें।',
   matchedSeller: 'एक ख़रीदार ने आपका ऑफ़र चुना। एस्क्रो फ़ंड करने के लिए स्वीकार करें।',
   matchedBuyerPrice: 'आपके एजेंट को {price} USDC पर मैच मिला। देखने के लिए टैप करें।',
@@ -610,6 +628,10 @@ const hi: NotifyCopy = {
 };
 
 const sw: NotifyCopy = {
+  watchRequests: 'Maombi mapya {count} ya {category}, kama ulivyomwomba wakala wako aangalie.',
+  watchPrice: 'Mikataba ya {category} sasa inafungwa karibu USDC {to} (ilikuwa {from}).',
+  watchRising: 'Maombi ya {category} yanaongezeka wiki hii.',
+  categories: marketShopCopy.sw.categories,
   matchedSellerPrice: 'Mnunuzi amechagua ofa yako kwa {price} USDC. Kubali ili kufadhili escrow.',
   matchedSeller: 'Mnunuzi amechagua ofa yako. Kubali ili kufadhili escrow.',
   matchedBuyerPrice: 'Wakala wako amepata mechi kwa {price} USDC. Gusa ili kukagua.',

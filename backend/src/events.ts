@@ -107,6 +107,9 @@ export type KarwanEventType =
   /// Daily trend scout: a keyword the seller serves is rising in demand. A
   /// personal nudge (not on the public feed), routed to the seller by userAddress.
   | 'trend.match'
+  /// A market watch the person set on their agent saw a change (view 48, step 5).
+  /// Personal, addressed to its owner by payload user.
+  | 'market.watch'
   | 'listing.matched'
   | 'listing.cancelled'
   | 'listing.expired'

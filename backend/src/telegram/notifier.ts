@@ -151,6 +151,7 @@ export const RELEVANT = new Set([
   'listing.matched',
   'listing.match.proactive',
   'trend.match',
+  'market.watch',
   'chat.message',
   'bridge.minted',
   'bridge.error',
@@ -343,6 +344,11 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return seller ? [{ address: seller, role: 'self' }] : [];
   }
+  // A watch the person set on their agent saw a change (view 48, step 5).
+  if (e.type === 'market.watch') {
+    const owner = (e.payload?.user as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'self' }] : [];
+  }
   if (e.type === 'chat.message') {
     if (e.payload?.channel === 'financing') {
       const sender = (e.payload?.sender as string | undefined)?.toLowerCase();
@@ -519,6 +525,17 @@ Nothing is sent until you answer.`, jobUrl(e.payload?.jobId as string | undefine
         `Requests for ${kw} are up this week on Karwan. Your offer matches. Tap to see what buyers are asking for.`,
         marketUrl(),
       );
+    }
+    case 'market.watch': {
+      const name = (e.payload?.categoryName as string | undefined) ?? 'a category you watch';
+      const kind = e.payload?.kind;
+      const text =
+        kind === 'requests'
+          ? `*${Number(e.payload?.count ?? 0)} new request${Number(e.payload?.count ?? 0) === 1 ? '' : 's'} for ${name}* on Karwan, as you asked your agent to watch.`
+          : kind === 'price'
+            ? `*${name} deals now settle around ${e.payload?.toUsdc} USDC* (was ${e.payload?.fromUsdc}), as you asked your agent to watch.`
+            : `*Requests for ${name} are rising this week* on Karwan, as you asked your agent to watch.`;
+      return withLink(text, marketUrl());
     }
     case 'deal.matched': {
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';

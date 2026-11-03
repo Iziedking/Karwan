@@ -192,6 +192,7 @@ import { startSuiteEarnings } from './deals/suiteEarningsLive.js';
 import { startCreEvidenceReconciler } from './evidence/creEvidenceReconciler.js';
 import { startCreAutoPublisher } from './evidence/creAutoPublication.js';
 import { startTrendScout } from './agents/trendScout.js';
+import { startMarketWatcher } from './agents/marketWatcher.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startDepositWatcher } from './circle/depositWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
@@ -822,6 +823,8 @@ function bootAgents() {
   try {
     if (config.TREND_NUDGES_ENABLED) {
       stopFns.push(startTrendScout());
+      // Watches people set on their agents ride the same switch (view 48, step 5).
+      stopFns.push(startMarketWatcher());
     } else {
       appLogger.info('trend scout disabled via TREND_NUDGES_ENABLED');
     }

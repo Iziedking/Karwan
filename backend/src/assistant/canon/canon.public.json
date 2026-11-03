@@ -403,13 +403,13 @@
           "date": "2026-11-03"
         }
       ],
-      "body": "Karwan reads demand and prices by the market's ten categories: Design, Tech,\nPhones, Fashion, Food, Farm produce, Home, Lessons, Repairs and Rentals. Each\nrequest and offer belongs to the category its words name.\n\nFor each category Karwan counts the requests posted this week and last week,\nand the offers open now. A category is rising when it has at least two\nrequests this week, more than last week, and a gain of at least a tenth of all\nrequests this week, or one in a quiet week. The Trending on Karwan card on\nHome, the assistant and the daily note to sellers all use the same numbers.\nSellers who serve a rising category hear of it at most once every three days.\n\nPrices come from Karwan's own deals first: the lowest, middle and highest\nprice deals in a category settled at over the last 30 days, shown from three\ndeals. A price range from web research the agents already paid for may follow,\nalways marked as from the web, and it never replaces Karwan's own range.\n\nWeb research an agent paid for is kept, so it is not lost or paid for again\nwhen Karwan restarts."
+      "body": "Karwan reads demand and prices by the market's ten categories: Design, Tech,\nPhones, Fashion, Food, Farm produce, Home, Lessons, Repairs and Rentals. Each\nrequest and offer belongs to the category its words name.\n\nFor each category Karwan counts the requests posted this week and last week,\nand the offers open now. A category is rising when it has at least two\nrequests this week, more than last week, and a gain of at least a tenth of all\nrequests this week, or one in a quiet week. The Trending on Karwan card on\nHome, the assistant and the daily note to sellers all use the same numbers.\nSellers who serve a rising category hear of it at most once every three days.\n\nPrices come from Karwan's own deals first: the lowest, middle and highest\nprice deals in a category settled at over the last 30 days, shown from three\ndeals. A price range from web research the agents already paid for may follow,\nalways marked as from the web, and it never replaces Karwan's own range.\n\nWeb research an agent paid for is kept, so it is not lost or paid for again\nwhen Karwan restarts.\n\nA seller can ask their assistant to find customers: open requests whose\nshortlist already names them, open requests in the categories they serve that\nthey have not offered on, and the categories they serve that are rising. It\nnever shows who the buyer is.\n\nAnyone can ask their agent to watch a category: new requests in it, a move of\na tenth or more in what Karwan deals there settle at, or it starting to rise.\nThey hear once per change, in the app and on Telegram. Up to five watches run\nat once, each for 30 days, and a watch never moves money."
     },
     {
       "id": "messages-by-tag",
       "title": "Message anyone by their Karwan tag",
       "status": "roadmap",
-      "updated": "2026-10-30",
+      "updated": "2026-11-03",
       "tags": [
         "agents",
         "chat",
@@ -422,7 +422,7 @@
           "date": "2026-10-17"
         }
       ],
-      "body": "A person can ask their agent to message someone by Karwan tag before any\ndeal, for example \"send @ada a message: do you make agbada?\". Ada gets it in\nher Karwan chat, with an alert on Telegram and by email, and sees the sender's\ntag, country and tier. She answers with her agent's help.\n\nA market listing, a request a seller is looking at, and a person's public\nrecord page have a Message button, so a buyer can ask before agreeing. The\nfirst message names the ad it is about, and the conversation links back to it.\n\nWhen they agree, either agent starts the protected deal. Money never moves\nfrom a message. A message with a phone number, an email or a link, sent\nbefore any deal between the two, carries a warning to keep payment in Karwan\nescrow. So does any message, before a deal or in a deal's chat, that asks to\nbe paid outside Karwan, such as \"send it to my account\" or a bank account\nnumber. It still goes through, both sides see the warning, and the Karwan team\nis told. Someone whose first messages to five people in a day all go\nunanswered is paused from writing to anyone new for a day, and three messages\nin a row with no answer wait for a reply. Only someone with a Karwan tag can\nmessage, and a message with a link Karwan flags is not sent. Messages are kept\n14 days.\n\nThis is built for testnet and not live."
+      "body": "A person can ask their agent to message someone by Karwan tag before any\ndeal, for example \"send @ada a message: do you make agbada?\". Ada gets it in\nher Karwan chat, with an alert on Telegram and by email, and sees the sender's\ntag, country and tier. She answers with her agent's help.\n\nA market listing, a request a seller is looking at, and a person's public\nrecord page have a Message button, so a buyer can ask before agreeing. The\nfirst message names the ad it is about, and the conversation links back to it.\nA public record also has Ask them for an offer, which starts a protected\ndeal with that person.\n\nWhen they agree, either agent starts the protected deal. Money never moves\nfrom a message. A message with a phone number, an email or a link, sent\nbefore any deal between the two, carries a warning to keep payment in Karwan\nescrow. So does any message, before a deal or in a deal's chat, that asks to\nbe paid outside Karwan, such as \"send it to my account\" or a bank account\nnumber. It still goes through, both sides see the warning, and the Karwan team\nis told. Someone whose first messages to five people in a day all go\nunanswered is paused from writing to anyone new for a day, and three messages\nin a row with no answer wait for a reply. Only someone with a Karwan tag can\nmessage, and a message with a link Karwan flags is not sent. Messages are kept\n14 days.\n\nThis is built for testnet and not live."
     },
     {
       "id": "milestone-escrow",
@@ -1417,7 +1417,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-30",
+      "updated": "2026-11-03",
       "path": "public/product/messages-by-tag.md"
     },
     {

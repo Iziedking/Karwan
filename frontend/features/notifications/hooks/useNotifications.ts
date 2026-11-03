@@ -78,7 +78,7 @@ function hrefForType(type: string, jobId: string): string {
   // surface. Once a proposal exists, deal.matched routes them to /jobs/[id].
   if (type === 'listing.matched') return '/seller';
   // Trend nudge points the seller at the live requests driving the rising demand.
-  if (type === 'trend.match') return '/market';
+  if (type === 'trend.match' || type === 'market.watch') return '/market';
   if (BRIDGE_TYPES.has(type) || WALLET_TYPES.has(type)) return '/activity';
   if (type.startsWith('vault.') || type.startsWith('guarantee.')) return '/guarantee';
   if (type.startsWith('agent.')) return '/profile';
