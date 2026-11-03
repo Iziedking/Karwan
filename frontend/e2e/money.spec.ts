@@ -363,6 +363,12 @@ test('withdraw starts with how much and where it goes (view 44, P8)', async ({ p
   await expect(start).toContainText('That is more than you have.');
   await expect(start.getByRole('button', { name: 'Continue' })).toBeDisabled();
   await amount.fill('50');
+  for (const name of [/A bank account/, /A card/]) {
+    const soon = start.getByRole('radio', { name });
+    await expect(soon).toBeDisabled();
+    await expect(soon).toContainText('Coming soon');
+    await expect(soon).toHaveAttribute('aria-checked', 'false');
+  }
   await start.getByRole('radio', { name: /Someone on Karwan/ }).click();
   await start.getByRole('button', { name: 'Continue' }).click();
   await expect(page).toHaveURL(/\/send\?amount=50$/);

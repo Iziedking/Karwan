@@ -15,6 +15,10 @@ export interface MoneyPageCopy {
   whereTitle: string;
   toWallet: string;
   toKarwan: string;
+  /// Withdraw routes that are not open yet, shown and never picked.
+  toBank: string;
+  toCard: string;
+  comingSoon: string;
   pasteAddress: string;
   withdrawCta: string;
   continueCta: string;
@@ -58,6 +62,9 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     whereTitle: 'Where should it go?',
     toWallet: 'A wallet or exchange',
     toKarwan: 'Someone on Karwan',
+    toBank: 'A bank account',
+    toCard: 'A card',
+    comingSoon: 'Coming soon',
     pasteAddress: 'Paste the address',
     withdrawCta: 'Withdraw {amount} USDC',
     continueCta: 'Continue',
@@ -97,6 +104,9 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     whereTitle: 'Où doit-il aller ?',
     toWallet: 'Un portefeuille ou une plateforme',
     toKarwan: 'Quelqu’un sur Karwan',
+    toBank: 'Un compte bancaire',
+    toCard: 'Une carte',
+    comingSoon: 'Bientôt',
     pasteAddress: 'Collez l’adresse',
     withdrawCta: 'Retirer {amount} USDC',
     continueCta: 'Continuer',
@@ -136,6 +146,9 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     whereTitle: 'إلى أين يذهب؟',
     toWallet: 'محفظة أو منصة تداول',
     toKarwan: 'شخص على كاروان',
+    toBank: 'حساب بنكي',
+    toCard: 'بطاقة',
+    comingSoon: 'قريبًا',
     pasteAddress: 'الصق العنوان',
     withdrawCta: 'اسحب {amount} USDC',
     continueCta: 'متابعة',
@@ -175,6 +188,9 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     whereTitle: 'यह कहाँ जाए?',
     toWallet: 'वॉलेट या एक्सचेंज',
     toKarwan: 'Karwan पर कोई',
+    toBank: 'बैंक खाता',
+    toCard: 'कार्ड',
+    comingSoon: 'जल्द आ रहा है',
     pasteAddress: 'पता पेस्ट करें',
     withdrawCta: '{amount} USDC निकालें',
     continueCta: 'आगे बढ़ें',
@@ -214,6 +230,9 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     whereTitle: 'Ziende wapi?',
     toWallet: 'Pochi au soko la kubadilisha',
     toKarwan: 'Mtu aliye kwenye Karwan',
+    toBank: 'Akaunti ya benki',
+    toCard: 'Kadi',
+    comingSoon: 'Inakuja hivi karibuni',
     pasteAddress: 'Bandika anwani',
     withdrawCta: 'Toa USDC {amount}',
     continueCta: 'Endelea',

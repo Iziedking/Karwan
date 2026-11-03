@@ -48,6 +48,22 @@ export function WithdrawStart({ onWallet }: { onWallet: (amount: number, address
     </button>
   );
 
+  // A route that is not open yet is listed so people know it is coming, and can never be picked.
+  const soon = (title: string) => (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={false}
+      aria-disabled
+      disabled
+      className="flex min-h-[52px] w-full cursor-not-allowed items-center gap-3 py-3.5 text-start"
+    >
+      <span aria-hidden className="size-5 shrink-0 rounded-full border-[1.5px] border-[var(--line)]" />
+      <span className="flex-1 text-[15px] font-medium text-[var(--ink-muted)]">{title}</span>
+      <span className="text-[14px] text-[var(--ink-muted)]">{t.comingSoon}</span>
+    </button>
+  );
+
   return (
     <div data-withdraw-start className="space-y-6">
       <label className="block">
@@ -72,6 +88,8 @@ export function WithdrawStart({ onWallet }: { onWallet: (amount: number, address
         <div role="radiogroup" aria-label={t.whereTitle} className={`${CARD_CLASS} mt-2 divide-y divide-[var(--line)] px-5`}>
           {choice('wallet', t.toWallet)}
           {choice('karwan', t.toKarwan)}
+          {soon(t.toBank)}
+          {soon(t.toCard)}
         </div>
       </fieldset>
       {destination === 'wallet' ? (

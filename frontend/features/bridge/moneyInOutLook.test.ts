@@ -71,3 +71,16 @@ test('the review words exist in every language, with no em dash', () => {
     assert.match(t.withdrawing, /\{amount\}/, locale);
   }
 });
+
+test('Withdraw lists a bank account and a card as coming soon, never as a pick', () => {
+  const start = source('../money/components/WithdrawStart.tsx');
+  assert.match(start, /soon\(t\.toBank\)/);
+  assert.match(start, /soon\(t\.toCard\)/);
+  assert.match(start, /aria-disabled/);
+  for (const [locale, t] of Object.entries(moneyPageCopy)) {
+    for (const key of ['toBank', 'toCard', 'comingSoon'] as const) {
+      assert.ok(t[key], `${locale}.${key}`);
+      assert.doesNotMatch(t[key], /—/, `${locale}.${key}`);
+    }
+  }
+});
