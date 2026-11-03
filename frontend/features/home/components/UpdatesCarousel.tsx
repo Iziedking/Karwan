@@ -150,7 +150,9 @@ function clock(seconds: number): string {
 }
 
 export function UpdateTile({ card: raw, trending, index, total }: { card: UpdateCard; trending: TrendingCategory[]; index: number; total: number }) {
-  const t = useTranslations().accountHome;
+  const messages = useTranslations();
+  const t = messages.accountHome;
+  const categoryName = (item: TrendingCategory) => (item.id ? messages.marketShop.categories[item.id] : item.name);
   const { locale } = useLocale();
   const card = localizeSeedCard(raw, locale);
   const external = card.href.startsWith('https://');
@@ -179,7 +181,7 @@ export function UpdateTile({ card: raw, trending, index, total }: { card: Update
       <ul className="flex size-full flex-col justify-center gap-3 px-5" aria-label={card.title}>
         {trending.map((item) => (
           <li key={item.name} className="grid grid-cols-[minmax(0,5rem)_minmax(0,1fr)_auto] items-center gap-3">
-            <span className="truncate text-[14px] font-semibold text-[var(--lp-dark)]">{item.name}</span>
+            <span className="truncate text-[14px] font-semibold text-[var(--lp-dark)]">{categoryName(item)}</span>
             <span aria-hidden className="h-2 rounded-full bg-[var(--g-deep)]">
               <span className="block h-full rounded-full bg-[var(--lp-dark)]" style={{ width: `${Math.round((item.requests / top) * 100)}%` }} />
             </span>

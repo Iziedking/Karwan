@@ -413,6 +413,20 @@ export const trendSnapshots = pgTable(
 /// User-triggered market scout reads (routes/research.ts POST /scout). Each row
 /// is one paid market read a user requested for their own keywords, kept so the
 /// UI can show recent scouts and prefill a future request from the latest one.
+/// Paid web research reads, kept so a restart does not lose them (view 48,
+/// step 4). Keyed by the normalised keyword set.
+export const marketReads = pgTable(
+  'market_reads_v1',
+  {
+    key: text('key').primaryKey(),
+    researchedAt: bigint('researched_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').notNull(),
+  },
+  (t) => ({
+    atIdx: index('market_reads_v1_at_idx').on(t.researchedAt),
+  }),
+);
+
 /// The full MarketRead lives in the JSONB `data` column.
 export const scoutReads = pgTable(
   'scout_reads',

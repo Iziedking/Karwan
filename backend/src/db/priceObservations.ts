@@ -2,6 +2,8 @@ import { db, pgEnabled } from './client.js';
 import { priceObservations } from './schema.js';
 import { sql } from 'drizzle-orm';
 import { logger } from '../logger.js';
+import { inferCategory, type CategoryId } from '../listings/categories.js';
+import type { DealPrice } from '../intelligence/marketStore.js';
 
 /// Category-bucketed price history of REAL Karwan deals — the durable, keyword-
 /// scoped replacement for the old single global in-memory ring (signals.ts),
@@ -46,10 +48,29 @@ interface BucketStats {
   sampleCount: number;
 }
 
-/// Normalize a keyword set into a stable bucket key (dedupe, lowercase, sort).
-/// Same idea as the research cache key so a deal and its research share a bucket.
+/// The bucket a deal's price goes in: its market category when its words name
+/// one (view 48, step 4), else the normalised keyword set as before. Keyword
+/// sets alone gave almost every deal its own bucket, so no median ever formed.
 export function priceBucket(keywords: string[]): string {
-  return [...new Set(keywords.map((k) => k.trim().toLowerCase()).filter(Boolean))].sort().join('|');
+  const words = [...new Set(keywords.map((k) => k.trim().toLowerCase()).filter(Boolean))].sort();
+  const category = inferCategory(words.join(' '));
+  return category ? `cat:${category}` : words.join('|');
+}
+
+/// A bucket stored before categories, read back into its category.
+export function rebucket(stored: string): string {
+  return stored.startsWith('cat:') ? stored : priceBucket(stored.split('|'));
+}
+
+/// Every recent deal price that has a category, for the market store's bands.
+export function allDealPrices(): DealPrice[] {
+  const out: DealPrice[] = [];
+  for (const [bucket, ring] of rings) {
+    if (!bucket.startsWith('cat:')) continue;
+    const category = bucket.slice(4) as CategoryId;
+    for (const o of ring) out.push({ category, priceUsdc: o.priceUsdc, ts: o.ts });
+  }
+  return out;
 }
 
 function sizeBandFor(priceUsdc: number): 'small' | 'medium' | 'large' {
@@ -164,7 +185,7 @@ export async function initPriceObservationsStore(): Promise<void> {
       .from(priceObservations)
       .where(sql`${priceObservations.ts} >= ${cutoff}`);
     for (const r of rows) {
-      pushToRing(r.bucket, r.priceMicros / 1e6, r.ts);
+      pushToRing(rebucket(r.bucket), r.priceMicros / 1e6, r.ts);
     }
     logger.info({ buckets: rings.size, rows: rows.length }, 'price observations hydrated from Postgres');
   } catch (err) {

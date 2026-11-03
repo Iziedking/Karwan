@@ -3,8 +3,8 @@
 /// only provider allowed to receive private tool results or chat history.
 
 import { locationOf, withBuyerLocations, withSellerLocations } from '../location/live.js';
-import { getBrief, listAllBriefs } from '../db/briefs.js';
-import { trendingCategories } from '../updates/model.js';
+import { getBrief } from '../db/briefs.js';
+import { currentMarket } from '../intelligence/marketStoreLive.js';
 import { onPreviousEscrow } from '../deals/previousEscrow.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { prohibitedReason } from '../policy/prohibited.js';
@@ -1957,22 +1957,31 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     get_market_trends: tool({
       description:
-        "What is in demand on Karwan's market this week: the kinds of work requested most in the last 7 days, each with how many requests named it, plus how many offers and requests are open now. The same numbers as the Trending on Karwan card on Home. Use it when the user asks what is trending, popular, most requested or in demand. Never invent trends; if the list is empty, say there is not enough activity this week and offer search_market.",
+        "What is in demand on Karwan's market, by market category: requests this week and last week, whether it is rising, open offers, and the price range Karwan deals settled at over the last 30 days. A web price range from research the agents already paid for may follow, marked fromTheWeb; Karwan's own range always comes first. The same numbers as the Trending on Karwan card on Home. Use it when the user asks what is trending, popular, most requested, in demand or what something usually costs. Never invent trends or prices; if the list is empty, say there is not enough activity this week and offer search_market or research_market.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
           const now = Date.now();
-          const trending = trendingCategories(listAllBriefs(), now, 5);
+          const picture = currentMarket(now);
+          const categories = picture.demand.slice(0, 6).map((r) => ({
+            category: r.name,
+            requestsThisWeek: r.thisWeek,
+            requestsLastWeek: r.lastWeek,
+            rising: r.rising,
+            openOffers: r.openOffers,
+            ...(picture.karwanPrices[r.id] ? { karwanDealsUsdc: picture.karwanPrices[r.id] } : {}),
+            ...(picture.webPrices[r.id] ? { fromTheWeb: { low: picture.webPrices[r.id]!.low, mid: picture.webPrices[r.id]!.mid, high: picture.webPrices[r.id]!.high } } : {}),
+          }));
           return {
-            window: 'last 7 days',
-            mostRequested: trending,
+            window: 'this week against last week',
+            categories,
             openNow: {
               offers: listOpenListings().filter((l) => l.expiresAt > now).length,
               requests: getMarketplaceBriefs().length,
             },
-            next: trending.length
-              ? 'Name each kind of work with its number of requests. Offer to search the market for one of them or to post an offer for it.'
-              : 'Say there is not enough activity this week to show a trend, and offer to search what is open now.',
+            next: categories.length
+              ? 'Name each category with its requests this week, say which are rising, and give Karwan deal prices where shown, then any web range as from the web. Offer to search the market or post an offer in one of them.'
+              : 'Say there is not enough activity this week to show a trend, and offer to search what is open now or to research it on the web (research_market).',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_market_trends failed');

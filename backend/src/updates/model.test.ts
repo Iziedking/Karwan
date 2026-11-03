@@ -28,20 +28,20 @@ test('links are Karwan paths or https only', () => {
   }
 });
 
-test('trending counts real requests from the last week, once each', () => {
-  const now = 10 * 86_400_000;
+test('trending counts real requests from the last week by market category, once each', () => {
+  const now = 20 * 86_400_000;
   const day = 86_400_000;
   const trending = trendingCategories([
     { keywords: ['Logo', 'design', 'logo'], createdAt: now - day },
-    { keywords: ['logo', 'branding'], createdAt: now - 2 * day },
+    { keywords: ['branding'], createdAt: now - 2 * day },
+    { briefText: 'Build my website', keywords: [], createdAt: now - 3 * day },
     { keywords: ['translation'], createdAt: now - 3 * day },
     { keywords: ['logo'], createdAt: now - 9 * day },
     { keywords: ['logo'], createdAt: now - day, seedKey: 'seed-1' },
   ], now);
   assert.deepEqual(trending, [
-    { name: 'logo', requests: 2 },
-    { name: 'branding', requests: 1 },
-    { name: 'design', requests: 1 },
+    { id: 'design', name: 'Design', requests: 2, rising: true },
+    { id: 'tech', name: 'Tech', requests: 1, rising: false },
   ]);
 });
 

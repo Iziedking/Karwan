@@ -1,6 +1,8 @@
 import { privateKeyToAccount } from 'viem/accounts';
 import { randomUUID } from 'node:crypto';
 import { recordExternalResearchPayment } from './researchAccounting.js';
+import { marketReadsSince, saveMarketRead } from '../db/marketReads.js';
+import { inferCategory, type CategoryId } from '../listings/categories.js';
 import { createPublicClient, http, erc20Abi } from 'viem';
 import { base } from 'viem/chains';
 import { x402Client, x402HTTPClient } from '@x402/core/client';
@@ -554,6 +556,31 @@ function covers(read: MarketRead, angles: readonly string[] | undefined): boolea
   return angles.every((a) => ran.has(a));
 }
 
+/// Load the research still fresh from the database at boot, so a restart does
+/// not throw away what the agents already paid for (view 48, step 4).
+export async function hydrateResearchCache(now = Date.now()): Promise<number> {
+  const rows = await marketReadsSince(now - RESEARCH_CACHE_TTL_MS);
+  for (const [key, read] of rows) {
+    const kept = researchCache.get(key);
+    if (!kept || kept.researchedAt < read.researchedAt) researchCache.set(key, { ...read, cached: true });
+  }
+  return rows.length;
+}
+
+/// The web price band per market category, from fresh research whose price is
+/// grounded in at least two checked sources; the newest wins. A second signal
+/// only (view 48, decision 3): always shown as from the web.
+export function webPriceBands(now = Date.now()): Partial<Record<CategoryId, { low: number; mid: number; high: number; researchedAt: number }>> {
+  const out: Partial<Record<CategoryId, { low: number; mid: number; high: number; researchedAt: number }>> = {};
+  for (const read of researchCache.values()) {
+    if (now - read.researchedAt >= RESEARCH_CACHE_TTL_MS || read.priceConfidence !== 'grounded' || !read.priceBandUsdc) continue;
+    const id = inferCategory(read.keywords.join(' '));
+    if (!id) continue;
+    if ((out[id]?.researchedAt ?? 0) < read.researchedAt) out[id] = { ...read.priceBandUsdc, researchedAt: read.researchedAt };
+  }
+  return out;
+}
+
 /// The angles already researched for these keywords and still fresh, so a
 /// quote can price them at the cached rate.
 export function cachedAnglesFor(keywords: string[]): Set<string> {
@@ -766,7 +793,10 @@ async function doResearchMarket(
   // A narrower read never replaces a fuller one that is still fresh.
   const kept = researchCache.get(key);
   const keptFresh = kept && Date.now() - kept.researchedAt < RESEARCH_CACHE_TTL_MS;
-  if (!keptFresh || (kept.anglesRun?.length ?? 0) <= anglesRun.length) researchCache.set(key, read);
+  if (!keptFresh || (kept.anglesRun?.length ?? 0) <= anglesRun.length) {
+    researchCache.set(key, read);
+    void saveMarketRead(key, read);
+  }
   logger.info(
     {
       keywords: cleaned,

@@ -298,6 +298,7 @@ import { PostgresNegotiationAttemptStore } from './negotiation/attempts.js';
 import { PostgresMatchProposalRevisionStore } from './negotiation/proposalRevision.js';
 import { initUsersStore } from './db/users.js';
 import { initPriceObservationsStore } from './db/priceObservations.js';
+import { hydrateResearchCache } from './x402/externalClient.js';
 import { initEphemeralStores } from './db/ephemeral.js';
 import { createCorrelationMiddleware } from './observability/correlationMiddleware.js';
 import { requireAdmin } from './middleware/adminAuth.js';
@@ -1016,6 +1017,9 @@ async function boot() {
   // instead of rebuilding from zero. Non-fatal; agents fall back to the global
   // ring when a category is thin.
   await initPriceObservationsStore();
+  // Paid web research still fresh comes back too, so a restart never pays for
+  // it again (view 48, step 4). Non-fatal.
+  await hydrateResearchCache().catch((err: Error) => appLogger.warn({ err: err.message }, 'research cache hydrate failed'));
   // In-flight seller bids restore BEFORE agents start, so a deploy mid-auction
   // resumes negotiations instead of stalling on a lost activeBids map.
   await hydrateActiveBids();

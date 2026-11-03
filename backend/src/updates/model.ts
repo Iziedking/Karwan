@@ -2,6 +2,8 @@
 /// live "Trending on Karwan" figures. Pure, so it is tested without storage.
 
 import { z } from 'zod';
+import { weeklyDemand, type DemandRequest } from '../intelligence/marketStore.js';
+import type { CategoryId } from '../listings/categories.js';
 
 export const GROUNDS = ['mist', 'sage', 'blush', 'lilac', 'paper'] as const;
 export const KINDS = ['post', 'video', 'trending'] as const;
@@ -48,25 +50,18 @@ export function liveUpdates(cards: UpdateCard[], now: number): UpdateCard[] {
     .sort((a, b) => a.order - b.order);
 }
 
-export interface TrendingBrief {
-  keywords?: string[];
-  createdAt: number;
-  seedKey?: string;
-}
+export type TrendingBrief = DemandRequest;
 
-export const TRENDING_WINDOW_MS = 7 * 86_400_000;
-
-/// The most requested kinds of work this week, counted once per request. Seeded
-/// demo requests are left out so the card only reflects real people.
-export function trendingCategories(briefs: TrendingBrief[], now: number, limit = 3): Array<{ name: string; requests: number }> {
-  const counts = new Map<string, number>();
-  for (const b of briefs) {
-    if (b.seedKey || now - b.createdAt > TRENDING_WINDOW_MS || b.createdAt > now) continue;
-    const seen = new Set((b.keywords ?? []).map((k) => k.trim().toLowerCase()).filter((k) => k.length > 1));
-    for (const k of seen) counts.set(k, (counts.get(k) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+/// The market categories requested most this week, counted once per request,
+/// from the one market store (view 48, step 4). Seeded demo requests are left
+/// out so the card only reflects real people.
+export function trendingCategories(
+  briefs: readonly TrendingBrief[],
+  now: number,
+  limit = 3,
+): Array<{ id: CategoryId; name: string; requests: number; rising: boolean }> {
+  return weeklyDemand(briefs, [], now)
+    .filter((r) => r.thisWeek > 0)
     .slice(0, limit)
-    .map(([name, requests]) => ({ name, requests }));
+    .map((r) => ({ id: r.id, name: r.name, requests: r.thisWeek, rising: r.rising }));
 }

@@ -2772,9 +2772,13 @@ export interface AdminUpdateCard extends UpdateInput {
   createdAt: number;
   updatedAt: number;
 }
+/// A market category requested this week (view 48, step 4). `id` is one of
+/// the market's category ids, shown in the person's language.
 export interface TrendingCategory {
+  id?: 'design' | 'tech' | 'phones' | 'fashion' | 'food' | 'farm' | 'home' | 'lessons' | 'repairs' | 'rentals';
   name: string;
   requests: number;
+  rising?: boolean;
 }
 
 /// A contest on the job escrow (view 40): the prize is held from the start and
