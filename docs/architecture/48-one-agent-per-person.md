@@ -1,6 +1,6 @@
 # 48 · One agent per person
 
-T1 (find and agree), with T3 (paid record reads) and T6 (one assistant everywhere). It builds on [view 41](41-agents-that-always-answer.md) (agents that always answer), [view 45](45-your-agent.md) (your agent, set up on one page) and [view 13](13-portable-reputation.md) (paid record reads). Raised by the owner on 3 Nov 2026 after a seller was shortlisted twice: "this is where the product stands out and it must be accurate and unique. We have to fix the loop and re-arrange the architecture to fit proper agentic engineering." Decisions 1 to 4 and 6 approved by the owner the same day.
+T1 (find and agree), with T3 (paid record reads) and T6 (one assistant everywhere). It builds on [view 41](41-agents-that-always-answer.md) (agents that always answer), [view 45](45-your-agent.md) (your agent, set up on one page) and [view 13](13-portable-reputation.md) (paid record reads). Raised by the owner on 3 Nov 2026 after a seller was shortlisted twice: "this is where the product stands out and it must be accurate and unique. We have to fix the loop and re-arrange the architecture to fit proper agentic engineering." Decisions 1 to 4, 6 and 7 approved by the owner the same day.
 
 ## What is hard today
 
@@ -14,7 +14,7 @@ T1 (find and agree), with T3 (paid record reads) and T6 (one assistant everywher
 
 ## The idea
 
-Each person has one agent per workspace. It holds their goals, limits and a small budget for data, remembers what it has already checked, and does its work as durable tasks. Every paid read goes through one gate. One market store answers demand, prices and trends. One reporter tells the person what matters, in every channel. Every capability is an assistant tool.
+Each person has one agent per workspace, which both buys and sells, and the assistant is its voice. It holds their goals, limits and a small budget for data, remembers what it has already checked, and does its work as durable tasks. Every paid read goes through one gate. One market store answers demand, prices and trends. One reporter tells the person what matters, in every channel. Every capability is an assistant tool.
 
 ```mermaid
 flowchart TB
@@ -46,6 +46,17 @@ flowchart TB
 4. **Agents are linked at setup.** Turning on an agent links it to its owner in the same step. Agents already unlinked are linked by a one-time backfill the owner runs.
 5. **The durable runtime becomes the runtime.** Recommended: promote the task runner that runs beside the loop today, one step at a time, starting with the shortlist, which it already checks. *Waiting for the owner.*
 6. **One gate for paid reads.** A read for the same reader, subject and request is paid once in that request's life, unless the subject's record changed since. Every read (record, passport, research) writes one receipt and one "your agent paid" event.
+7. **One agent, three roles.** Buying and selling are two modes of the same agent, sharing one memory, one set of goals and one data budget. The assistant is how that agent talks to the person, on the website, in Telegram or through MCP; it is not a separate brain. What the person asks for in a conversation ("find me customers", "watch tomato prices") becomes a goal on their agent. What stays separate: the buying and selling wallets behind the one balance; each request as its own task, so many deals run at once and one failing never stalls the others; the selling mode never offers on a request the buying mode posted; and no money moves until the person confirms.
+
+```mermaid
+flowchart TB
+  P[The person: website, Telegram, MCP] --> AS[The assistant: how the agent talks]
+  AS --> AG[The person's agent, one per workspace]
+  AG --> BUY[Buying mode]
+  AG --> SELL[Selling mode]
+  BUY --> BT[One task per request it posted]
+  SELL --> ST[One task per request it fits]
+```
 
 ## The parts
 
@@ -96,5 +107,5 @@ flowchart TB
 | Part | State |
 |---|---|
 | Duplicate seller on the shortlist | Fixed 3 Nov 2026 at the market board, not deployed |
-| This view | Proposed 3 Nov 2026; decisions 1 to 4 and 6 approved, decision 5 waiting |
+| This view | Proposed 3 Nov 2026; decisions 1 to 4, 6 and 7 approved, decision 5 waiting |
 | Steps 1 to 7 | Not built |
