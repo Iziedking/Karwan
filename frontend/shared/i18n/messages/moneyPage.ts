@@ -1,6 +1,9 @@
 /// Money, withdrawing, the deal guarantee and earlier deals (view 44, Batch 7).
 export interface MoneyPageCopy {
   heldInDeals: string;
+  /// The Held in your deals row and side card, and its total (view 48).
+  heldLabel: string;
+  totalHeld: string;
   addMoney: string;
   send: string;
   withdraw: string;
@@ -33,6 +36,8 @@ export interface MoneyPageCopy {
 export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCopy> = {
   en: {
     heldInDeals: '{amount} USDC held in your deals',
+    heldLabel: 'Held in your deals',
+    totalHeld: 'Total held',
     addMoney: 'Add money',
     send: 'Send',
     withdraw: 'Withdraw',
@@ -63,6 +68,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
   },
   fr: {
     heldInDeals: '{amount} USDC gardés dans vos transactions',
+    heldLabel: 'Gardé dans vos transactions',
+    totalHeld: 'Total gardé',
     addMoney: 'Ajouter de l’argent',
     send: 'Envoyer',
     withdraw: 'Retirer',
@@ -93,6 +100,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
   },
   ar: {
     heldInDeals: '{amount} USDC محفوظة في صفقاتك',
+    heldLabel: 'محفوظ في صفقاتك',
+    totalHeld: 'إجمالي المحفوظ',
     addMoney: 'إضافة مال',
     send: 'إرسال',
     withdraw: 'سحب',
@@ -123,6 +132,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
   },
   hi: {
     heldInDeals: '{amount} USDC आपकी डील में सुरक्षित',
+    heldLabel: 'आपके सौदों में रखा',
+    totalHeld: 'कुल रखा गया',
     addMoney: 'पैसे जोड़ें',
     send: 'भेजें',
     withdraw: 'निकालें',
@@ -153,6 +164,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
   },
   sw: {
     heldInDeals: 'USDC {amount} zinashikiliwa kwenye mipango yako',
+    heldLabel: 'Kinachoshikiliwa kwenye mikataba yako',
+    totalHeld: 'Jumla kinachoshikiliwa',
     addMoney: 'Ongeza pesa',
     send: 'Tuma',
     withdraw: 'Toa',

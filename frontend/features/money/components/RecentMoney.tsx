@@ -4,18 +4,19 @@ import Link from 'next/link';
 import { api } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
-import { ledgerAmountLabel, ledgerDirection, ledgerLine, ledgerReferenceLabel } from '@/features/activity/ledgerPresentation';
+import { ledgerAmountLabel, ledgerLine, ledgerReferenceLabel } from '@/features/activity/ledgerPresentation';
 import { NOTIFY_TYPES } from '@/features/notifications/notificationTypes';
 import { dealReference } from '@/features/deals/dealReference';
+import { CARD_CLASS } from '@/shared/components/Card';
 
 type Item = Awaited<ReturnType<typeof api.myActivity>>['items'][number];
 
-const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
+const SOFT = 'bg-[var(--raised)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 const RECENT = 5;
 
 /// The last five movements on the account, in the ledger's own words: the
-/// sentence left, the signed amount right, the Karwan reference under it, and
-/// a word beside every colour.
+/// sentence left, the signed amount right, the Karwan reference under it. The
+/// sign says which way money went; no colour stands in for it (view 48).
 export function RecentMoney() {
   const messages = useTranslations();
   const copy = messages.money.home;
@@ -56,11 +57,11 @@ export function RecentMoney() {
 
   return (
     <section aria-labelledby="money-recent" className="space-y-4">
-      <h2 id="money-recent" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.recentTitle}</h2>
-      {failed && items !== null ? <p role="status" className="text-[15px] text-[var(--lp-text-sub)]">{copy.recentError}</p> : null}
+      <h2 id="money-recent" className="text-[17px] font-semibold text-[var(--ink)]">{copy.recentTitle}</h2>
+      {failed && items !== null ? <p role="status" className="text-[15px] text-[var(--ink-secondary)]">{copy.recentError}</p> : null}
       {items === null ? (
         failed ? (
-          <p className="text-[15px] text-[var(--lp-dark)]">{copy.recentError}</p>
+          <p className="text-[15px] text-[var(--ink)]">{copy.recentError}</p>
         ) : (
           <div aria-busy="true" className="space-y-3">
             <div className={`h-12 ${SOFT}`} />
@@ -69,22 +70,22 @@ export function RecentMoney() {
           </div>
         )
       ) : items.length === 0 ? (
-        <p className="text-[15px] text-[var(--lp-text-sub)]">{copy.recentEmpty}</p>
+        <p className="text-[15px] text-[var(--ink-secondary)]">{copy.recentEmpty}</p>
       ) : (
-        <ul className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+        <ul className={`${CARD_CLASS} divide-y divide-[var(--line)] px-5 lg:px-6`}>
           {items.map((item) => {
             const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
             const reference = ledgerReferenceLabel(item.refId);
             const dealRef = item.jobId ? dealReference(item.jobId) : null;
             return (
-              <li key={item.id} className="flex items-start justify-between gap-4 py-3">
+              <li key={item.id} className="flex min-h-16 items-center justify-between gap-4 py-3.5">
                 <span className="min-w-0">
-                  <span className="block text-[15px] leading-snug text-[var(--lp-dark)]">{ledgerLine(item, texts)}</span>
-                  <span className="mt-1 flex flex-wrap gap-x-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
+                  <span className="block text-[15px] leading-snug text-[var(--ink)]">{ledgerLine(item, texts)}</span>
+                  <span className="mt-1 flex flex-wrap gap-x-3 text-[14px] text-[var(--ink-secondary)] font-medium">
                     {item.status === 'pending' ? <span>{copy.statusPending}</span> : null}
                     {item.status === 'failed' ? <span className="text-[var(--color-critical)]">{copy.statusFailed}</span> : null}
                     {dealRef ? (
-                      <Link href={`/deals/${item.jobId}`} className="font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline">{dealLabel.replace('{reference}', dealRef)}</Link>
+                      <Link href={`/deals/${item.jobId}`} className="font-semibold text-[var(--ink)] underline-offset-4 hover:underline">{dealLabel.replace('{reference}', dealRef)}</Link>
                     ) : null}
                     {reference ? <span className="mono break-all tabular-nums">{reference}</span> : null}
                   </span>
@@ -92,7 +93,7 @@ export function RecentMoney() {
                 {amount ? (
                   <span
                     dir="ltr"
-                    className={`shrink-0 text-[15px] font-semibold tabular-nums ${ledgerDirection(item.kind) === 'in' ? 'text-[var(--color-positive)]' : 'text-[var(--lp-dark)]'}`}
+                    className={`shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]`}
                   >
                     {amount}
                   </span>
@@ -104,7 +105,7 @@ export function RecentMoney() {
       )}
       <Link
         href="/activity"
-        className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
       >
         {copy.allActivity}
       </Link>

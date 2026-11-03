@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DirectDeal } from '@/core/api';
-import { heldInDeals } from './heldInDeals';
+import { heldDeals, heldInDeals } from './heldInDeals';
 
 /// What Karwan holds in the person's own deals as the buyer (view 44, P7).
 ///
@@ -26,4 +26,18 @@ test("only money in the person's own deals as the buyer counts, exactly", () => 
   assert.equal(heldInDeals([deal({ settledAt: 1 })], ME), '0');
   assert.equal(heldInDeals([deal({ acceptedAt: undefined })], ME), '0');
   assert.equal(heldInDeals([deal({ dealAmountUsdc: '0.1' }), deal({ dealAmountUsdc: '0.2' })], ME.toUpperCase().replace('0X', '0x')), '0.3');
+});
+
+/// The deals the total is made of, for the side card on a wide screen (view 48):
+/// each deal still holding money, the most held first, and none at zero.
+test('the held total lists its deals, most held first, none at zero', () => {
+  const id = (n: number) => `0x${String(n).repeat(64)}`;
+  const deals = [
+    deal({ jobId: id(1), dealAmountUsdc: '250' }),
+    deal({ jobId: id(2), dealAmountUsdc: '600' }),
+    deal({ jobId: id(3), dealAmountUsdc: '90', settledAt: 1 }),
+    deal({ jobId: id(4), dealAmountUsdc: '40', buyer: '0x3333333333333333333333333333333333333333', seller: ME }),
+  ];
+  assert.deepEqual(heldDeals(deals, ME).map((d) => [d.deal.jobId, d.held]), [[id(2), '600'], [id(1), '250']]);
+  assert.deepEqual(heldDeals(undefined, ME), []);
 });

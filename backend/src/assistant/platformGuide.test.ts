@@ -268,6 +268,9 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /Karwan checks both sides, the delivery and the deal chat/);
   assert.match(all, /Karwan support will never message you outside Karwan or ask you to send money/);
   assert.doesNotMatch(all, /The judge reads both accounts/);
+  // The money page in the new look (view 48, batch 4).
+  assert.match(all, /Add money \(the one green button\), Send and Withdraw/);
+  assert.match(all, /listed beside the balance with Total held/);
 });
 
 test('the guide gives one Record card on Profile and one balance on Arc (1 Nov)', () => {

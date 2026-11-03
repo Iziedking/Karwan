@@ -236,16 +236,16 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
     <Frame layout={layout} open={open} labelledBy={titleId} busy={busy} onClose={onClose} initialFocus={amountRef}>
       <div className="flex items-start justify-between gap-4">
         {layout === 'page' ? (
-          <h1 id={titleId} className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{title}</h1>
+          <h1 id={titleId} className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{title}</h1>
         ) : (
-          <h2 id={titleId} className="text-[20px] font-semibold text-[var(--lp-dark)]">{title}</h2>
+          <h2 id={titleId} className="text-[20px] font-semibold text-[var(--ink)]">{title}</h2>
         )}
         {layout === 'page' ? null : <button
           type="button"
           onClick={onClose}
           disabled={busy}
           aria-label={t.sheet.close}
-          className="-me-2 -mt-2 inline-grid size-11 shrink-0 place-items-center rounded-full text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="-me-2 -mt-2 inline-grid size-11 shrink-0 place-items-center rounded-full text-[var(--ink-secondary)] hover:text-[var(--ink)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           <span aria-hidden className="text-[22px] leading-none">×</span>
         </button>}
@@ -256,7 +256,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       {state.kind === 'confirmed' ? null : (<>
       {move === 'send' ? (
         <div className="mt-6">
-          <label htmlFor={recipientId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.sheet.recipientLabel}</label>
+          <label htmlFor={recipientId} className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.sheet.recipientLabel}</label>
           <input
             id={recipientId}
             value={recipient}
@@ -266,7 +266,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             spellCheck={false}
             autoComplete="off"
             dir="ltr"
-            className="mt-2 min-h-[50px] w-full rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--tint)] px-4 text-[15px] font-medium text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="mt-2 min-h-[50px] w-full rounded-[14px] border border-[var(--line)] bg-[var(--tint)] px-4 text-[15px] font-medium text-[var(--ink)] placeholder:text-[var(--ink-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
           />
           {tagLookup ? (
             <TagLine lookup={tagLookup} copy={t.sheet} />
@@ -284,18 +284,18 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           {walletSigned ? (
             <Link
               href={fromOtherNetworkHref(paidTag?.address ?? (recipientCheck.normalized && recipientStatus === 'ok' ? recipientCheck.normalized : null), amount)}
-              className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             >
               {t.sheet.otherNetwork}
             </Link>
           ) : null}
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-y border-[var(--lp-border-light)] py-4">
+        <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-y border-[var(--line)] py-4">
           <Place label={t.sheet.from} name={fromName} amount={fromAmount} locale={locale} />
           {/* Which way the money goes is fixed by the button that opened the
               sheet; Top up and Withdraw are separate ways in. */}
-          <span aria-hidden className="inline-grid size-11 place-items-center text-[var(--lp-text-sub)]">
+          <span aria-hidden className="inline-grid size-11 place-items-center text-[var(--ink-secondary)]">
             <Icon name="arrow-right" size={20} directional />
           </span>
           <Place label={t.sheet.to} name={toName} amount={toAmount} locale={locale} end />
@@ -304,7 +304,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               type="button"
               onClick={() => setToOtherAgent((value) => !value)}
               disabled={state.kind !== 'editing'}
-              className="col-start-3 justify-self-end min-h-11 text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="col-start-3 justify-self-end min-h-11 text-[14px] font-semibold text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             >
               {fill(t.sheet.switchTo, { name: withdrawToAgent ? t.sheet.yourBalance.toLowerCase() : otherAgentName.toLowerCase() })}
             </button>
@@ -313,8 +313,8 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       )}
 
       <div className="mt-6">
-        <label htmlFor={amountId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.sheet.amountLabel}</label>
-        <div className="mt-2 flex items-baseline gap-2 border-b-2 border-[var(--lp-accent)] pb-2 focus-within:border-[var(--lp-accent-on-light)]">
+        <label htmlFor={amountId} className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.sheet.amountLabel}</label>
+        <div className="mt-2 flex items-baseline gap-2 border-b-2 border-[var(--line-strong)] pb-2 focus-within:border-[var(--ink)]">
           <input
             id={amountId}
             ref={amountRef}
@@ -325,12 +325,12 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             autoComplete="off"
             placeholder="0"
             dir="ltr"
-            className="amount-input min-w-0 flex-1 bg-transparent text-[36px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
+            className="amount-input min-w-0 flex-1 bg-transparent text-[36px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
           />
-          {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+          {' '}<span className="text-[15px] font-semibold text-[var(--ink-secondary)]">USDC</span>
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="inline-flex items-center gap-1.5 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
+          <p className="inline-flex items-center gap-1.5 text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
             {available === null ? ' ' : fill(t.sheet.available, { amount: formatBalance(available, locale) })}
             {available !== null && move === 'send' ? <Hint side="bottom">{t.sheet.availableHint}</Hint> : null}
           </p>
@@ -352,20 +352,20 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         </div>
       </div>
 
-      <p className="mt-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.sheet.timeSeconds}</p>
+      <p className="mt-4 text-[14px] text-[var(--ink-secondary)] font-medium">{t.sheet.timeSeconds}</p>
       </>)}
 
       <AnimatePresence mode="wait" initial={false}>
         {state.kind === 'editing' ? (
           <m.div key="editing" {...fade} className="mt-6">
-            <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">
+            <p className="text-[15px] leading-relaxed text-[var(--ink)]">
               {fill(consequence, { amount: formatAmount(amount ?? 0, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
             </p>
             {move === 'send' ? (
               <p className="mt-2 text-[14px] font-medium text-[var(--color-warning)]">{t.sheet.sendIrreversible}</p>
             ) : null}
             {blocker === 'short' && amount !== null && max !== null ? (
-              <p className="mt-3 flex flex-wrap items-center gap-x-3 text-[14px] text-[var(--lp-dark)]">
+              <p className="mt-3 flex flex-wrap items-center gap-x-3 text-[14px] text-[var(--ink)]">
                 <span>{fill(t.sheet.short, { amount: formatAmount(shortfall(amount, max), locale) })}</span>
                 {move !== 'withdraw' ? (
                   <Link href="/bridge?intent=add" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
@@ -387,25 +387,25 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                   <m.path d="M5 12.5 10 17.5 19 7" initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.1 }} />
                 </svg>
               </span>
-              <p className="text-[20px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
+              <p className="text-[20px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
                 {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
               </p>
             </div>
-            <dl className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 text-[15px] tabular-nums">
-              <div className="flex justify-between gap-3 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
-                <dt className="text-[var(--lp-text-sub)]">{t.sheet.yourBalance}</dt>
-                <dd className="font-medium text-[var(--lp-dark)]">{balanceAfter === null ? '' : `${formatBalance(balanceAfter, locale)} USDC`}</dd>
+            <dl className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] px-5 text-[15px] tabular-nums">
+              <div className="flex justify-between gap-3 border-b border-[var(--line)] py-3.5 last:border-b-0">
+                <dt className="text-[var(--ink-secondary)]">{t.sheet.yourBalance}</dt>
+                <dd className="font-medium text-[var(--ink)]">{balanceAfter === null ? '' : `${formatBalance(balanceAfter, locale)} USDC`}</dd>
               </div>
               {move !== 'send' ? (
-                <div className="flex justify-between gap-3 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
-                  <dt className="text-[var(--lp-text-sub)]">{agentName}</dt>
-                  <dd className="font-medium text-[var(--lp-dark)]">{agentBalance === null ? '' : `${formatBalance(agentBalance, locale)} USDC`}</dd>
+                <div className="flex justify-between gap-3 border-b border-[var(--line)] py-3.5 last:border-b-0">
+                  <dt className="text-[var(--ink-secondary)]">{agentName}</dt>
+                  <dd className="font-medium text-[var(--ink)]">{agentBalance === null ? '' : `${formatBalance(agentBalance, locale)} USDC`}</dd>
                 </div>
               ) : null}
               {state.reference ? (
                 <div className="flex justify-between gap-3 py-3.5">
-                  <dt className="text-[var(--lp-text-sub)]">{t.sheet.reference}</dt>
-                  <dd className="mono text-[13px] tracking-[0.04em] text-[var(--lp-dark)]">{state.reference}</dd>
+                  <dt className="text-[var(--ink-secondary)]">{t.sheet.reference}</dt>
+                  <dd className="mono text-[13px] tracking-[0.04em] text-[var(--ink)]">{state.reference}</dd>
                 </div>
               ) : null}
             </dl>
@@ -427,8 +427,8 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                   <li
                     key={step}
                     aria-current={current ? 'step' : undefined}
-                    className={`border-t-2 pt-2 text-[14px] ${done || current ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}
-                    style={{ borderColor: done ? 'var(--lp-dark)' : current ? 'var(--accent)' : 'var(--lp-border-light)' }}
+                    className={`border-t-2 pt-2 text-[14px] ${done || current ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}
+                    style={{ borderColor: done ? 'var(--ink)' : current ? 'var(--accent)' : 'var(--line)' }}
                   >
                     {stepLabel[step]}
                   </li>
@@ -437,7 +437,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             </ol>
             {state.kind === 'slow' ? (
               <>
-                <p role="status" className="text-[15px] leading-relaxed text-[var(--lp-dark)]">{t.sheet.slow}</p>
+                <p role="status" className="text-[15px] leading-relaxed text-[var(--ink)]">{t.sheet.slow}</p>
                 <div className="flex flex-wrap gap-3">
                   <button type="button" onClick={() => void checkAgain()} className={PRIMARY}>{t.sheet.checkAgain}</button>
                   <button type="button" onClick={onClose} className={SECONDARY}>{t.sheet.close}</button>
@@ -447,7 +447,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           </m.div>
         ) : (
           <m.div key="stopped" {...fade} className="mt-6 space-y-4">
-            <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[15px] leading-relaxed text-[var(--lp-dark)]">
+            <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[15px] leading-relaxed text-[var(--ink)]">
               {state.kind === 'reverted' ? t.sheet.reverted : state.kind === 'failed' && state.declined ? t.sheet.declined : t.sheet.failed}
             </p>
             <div className="flex flex-wrap gap-3">
@@ -487,7 +487,7 @@ function Frame({ layout, children, initialFocus, ...sheet }: {
         <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} />
       </div>
       {/* The form sits on one card, as in the drawer. */}
-      <div className="rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 shadow-[var(--hero-shadow)] sm:p-7">{children}</div>
+      <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6">{children}</div>
     </section>
   );
 }
@@ -501,9 +501,9 @@ function Place({ label, name, amount, locale, end = false }: {
 }) {
   return (
     <div className={end ? 'min-w-0 text-end' : 'min-w-0'}>
-      <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</p>
-      <p className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{name}</p>
-      <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}</p>
+      <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{label}</p>
+      <p className="truncate text-[15px] font-semibold text-[var(--ink)]">{name}</p>
+      <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">{amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}</p>
     </div>
   );
 }
@@ -511,7 +511,7 @@ function Place({ label, name, amount, locale, end = false }: {
 /// Who a tag pays: their name and Karwan tag. People are known by their tag,
 /// never by a wallet address (owner, 23 Oct).
 function TagLine({ lookup, copy }: { lookup: TagLookup; copy: MoneyCopy['sheet'] }) {
-  if (lookup.state === 'checking') return <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.recipientChecking}</p>;
+  if (lookup.state === 'checking') return <p className="mt-2 text-[14px] text-[var(--ink-secondary)] font-medium">{copy.recipientChecking}</p>;
   if (lookup.state === 'error') return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{copy.tagError}</p>;
   const result = lookup.result;
   if (!result.found) return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{fill(copy.tagNotFound, { tag: result.tag })}</p>;
@@ -519,8 +519,8 @@ function TagLine({ lookup, copy }: { lookup: TagLookup; copy: MoneyCopy['sheet']
   return (
     <p className="mt-3 flex items-center gap-3 rounded-[16px] bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] p-3 text-[14px]">
       <PersonAvatar address={result.address} name={result.displayName} size={40} />
-      <span className="min-w-0 flex-1 font-semibold text-[var(--lp-dark)]">{fill(copy.tagFound, { name: result.displayName, tag: result.tag })}</span>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--lp-accent-on-light)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M5 12l5 5L19 7" /></svg>
+      <span className="min-w-0 flex-1 font-semibold text-[var(--ink)]">{fill(copy.tagFound, { name: result.displayName, tag: result.tag })}</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M5 12l5 5L19 7" /></svg>
     </p>
   );
 }
@@ -533,11 +533,11 @@ function RecipientLine({ status, kind, grouped, copy }: {
 }) {
   if (status === 'missing') return null;
   if (status === 'invalid') return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{copy.recipientInvalid}</p>;
-  if (status === 'checking') return <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.recipientChecking}</p>;
+  if (status === 'checking') return <p className="mt-2 text-[14px] text-[var(--ink-secondary)] font-medium">{copy.recipientChecking}</p>;
   return (
     <div className="mt-2 space-y-1 text-[14px]">
       {grouped ? (
-        <p className="text-[var(--lp-dark)]">
+        <p className="text-[var(--ink)]">
           <AddressText template={copy.recipientCheck} address={grouped} />
         </p>
       ) : null}

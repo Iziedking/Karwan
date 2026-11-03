@@ -66,6 +66,17 @@ test('the tab bar and rail carry no green, and every signal is Karwan green (own
   assert.doesNotMatch(nav, /rounded-full bg-\[var\(--ink(-muted)?\)\]( shadow|")/);
 });
 
+test('Money has one green button, Add money, and no other green (view 48)', () => {
+  const money = source('../../features/money/components/MoneyHome.tsx');
+  assert.equal(money.match(/variant: 'primary'/g)?.length, 1);
+  assert.match(money, /buttonClasses\(\{ variant: 'primary', size: 'lg' \}\)\}>\{mp\.addMoney\}/);
+  for (const file of ['../../features/money/components/MoneyHome.tsx', '../../features/money/components/RecentMoney.tsx', '../../features/money/components/MoneySheet.tsx']) {
+    assert.doesNotMatch(source(file), /--lp-accent|--lp-accent-on-light|--hero-from|--hero-to/, file);
+  }
+  // Activity says which way money went with its sign, never a colour.
+  assert.doesNotMatch(source('../../features/money/components/RecentMoney.tsx'), /--color-positive/);
+});
+
 test('Home cards carry no green: the one green button on Home is a deal move', () => {
   for (const file of ['../../features/home/components/HomeBlock.tsx', '../../features/home/components/FirstTrade.tsx', '../../features/home/components/FaucetDrop.tsx', '../../features/home/components/RecordHomeNudge.tsx', '../../features/deals/DealStatePill.tsx', '../../features/market/components/SellCards.tsx']) {
     assert.doesNotMatch(source(file), /--lp-accent\b|className=\{PRIMARY\}/, file);

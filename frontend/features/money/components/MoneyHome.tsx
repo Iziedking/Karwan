@@ -22,15 +22,16 @@ import { MoneySheet } from './MoneySheet';
 import { RecentMoney } from './RecentMoney';
 import { SavedAddresses } from '@/features/moneyOut/SavedAddresses';
 import { RecoveryRow } from '@/features/recovery/components/RecoveryRow';
-import { useHeldInDeals } from '../useHeldInDeals';
+import { useHeldDeals, useHeldInDeals } from '../useHeldInDeals';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { whatItIs } from '@/features/deals/workspace/titleLine';
+import { dealReference } from '@/features/deals/dealReference';
 
-const PRIMARY =
-  'inline-flex min-h-12 items-center justify-center rounded-[10px] bg-[var(--accent)] px-6 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors duration-200 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2';
-const SECONDARY =
-  'inline-flex min-h-12 items-center justify-center rounded-[10px] border border-[var(--lp-outline-strong)] px-5 text-[15px] font-medium text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+const SECONDARY = buttonClasses({ variant: 'secondary' });
 const QUIET =
-  'inline-flex min-h-11 items-center rounded-[10px] px-3 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
-const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
+  'inline-flex min-h-11 items-center rounded-[10px] px-3 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
+const SOFT = 'bg-[var(--raised)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
 export function MoneyHome() {
   const gate = useTranslations().profile.signInGate;
@@ -70,8 +71,8 @@ function MoneyHomeInner() {
     : null;
 
   return (
-    <div className="product-surface mx-auto max-w-[720px] px-4 pb-24 pt-6 sm:px-6">
-      <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
+    <div className="product-surface mx-auto max-w-[1120px] px-4 pb-24 pt-6 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-10">
+      <div className="min-w-0 max-w-[720px] divide-y divide-[var(--line)] [&>*]:py-8">
         <section aria-labelledby="money-balance" className="space-y-4">
           {state === 'loading' ? (
             <div aria-busy="true" className="space-y-4">
@@ -81,54 +82,64 @@ function MoneyHomeInner() {
             </div>
           ) : state === 'error' ? (
             <div className="space-y-4">
-              <h1 id="money-balance" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</h1>
-              <p role="alert" className="text-[15px] leading-relaxed text-[var(--lp-dark)]">{t.home.loadError}</p>
+              <h1 id="money-balance" className="text-[14px] font-semibold text-[var(--ink-secondary)]">{t.home.balanceLabel}</h1>
+              <p role="alert" className="text-[15px] leading-relaxed text-[var(--ink)]">{t.home.loadError}</p>
               <button type="button" onClick={balances.refetch} className={SECONDARY}>{t.home.tryAgain}</button>
             </div>
           ) : (
-            <div className="space-y-4 rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-5 shadow-[var(--hero-shadow)] sm:p-6">
-              <div className="-mb-2 flex justify-end"><NetworkHint /></div>
-              <h1 id="money-balance" className="space-y-2">
-                <span className="block text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</span>
-                <span className="flex items-baseline gap-2 tabular-nums">
-                  {/* Counts to a new value; under reduced motion it fades instead. */}
-                  <m.span
-                    key={reduce ? hero : 'count'}
-                    initial={{ opacity: reduce ? 0 : 1 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: dur.fast }}
-                    className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px]"
-                  >
-                    <AnimatedNumber value={hero} format={(value) => formatBalance(value, locale)} />
-                  </m.span>
-                  {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
-                </span>
-              </h1>
-              <p role="status" aria-live="polite" className="flex items-start gap-2 text-[15px] leading-relaxed text-[var(--lp-dark)]">
+            <div className="space-y-5">
+              <div className="flex items-start justify-between gap-3">
+                <h1 id="money-balance" className="space-y-1.5">
+                  <span className="block text-[13px] text-[var(--ink-secondary)]">{t.home.balanceLabel}</span>
+                  <span className="flex items-baseline gap-2 tabular-nums">
+                    {/* Counts to a new value; under reduced motion it fades instead. */}
+                    <m.span
+                      key={reduce ? hero : 'count'}
+                      initial={{ opacity: reduce ? 0 : 1 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: dur.fast }}
+                      className="text-[34px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[40px]"
+                    >
+                      <AnimatedNumber value={hero} format={(value) => formatBalance(value, locale)} />
+                    </m.span>
+                    {' '}<span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
+                  </span>
+                </h1>
+                <NetworkHint />
+              </div>
+              <p role="status" aria-live="polite" className="flex items-start gap-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
                 <span
                   aria-hidden
                   className="mt-[7px] size-2 shrink-0 rounded-full"
-                  style={{ background: balances.error || movingText || state === 'empty' ? 'var(--lp-text-sub)' : 'var(--color-positive)' }}
+                  style={{ background: balances.error || movingText || state === 'empty' ? 'var(--ink-muted)' : 'var(--color-positive)' }}
                 />
                 {balances.error ? t.home.staleBalance : state === 'empty' ? t.home.empty : movingText ?? t.home.readyOnArc}
               </p>
-              {balances.error ? <button type="button" onClick={balances.refetch} className={SECONDARY}>{t.home.tryAgain}</button> : null}
-              {held && held !== '0' ? (
-                <p data-held-in-deals className="text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">
-                  {fill(mp.heldInDeals, { amount: formatAmount(Number(held), locale) })}
-                </p>
-              ) : null}
-              {balances.pool > 0 ? (
-                <p data-gateway-balance className="flex items-center justify-between gap-3 text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">
-                  <span>{t.home.gatewayBalance}</span>
-                  <span>{formatBalance(balances.pool, locale)} USDC</span>
-                </p>
-              ) : null}
-              <div className="flex flex-wrap gap-3">
-                <Link href="/bridge?intent=add" className={PRIMARY}>{mp.addMoney}</Link>
-                <Link href="/send" className={SECONDARY}>{mp.send}</Link>
-                <Link href="/bridge?direction=out" className={SECONDARY}>{mp.withdraw}</Link>
+              {balances.error ? <button type="button" onClick={balances.refetch} className={buttonClasses({ variant: 'secondary' })}>{t.home.tryAgain}</button> : null}
+              {/* Add money is the one green button on the page (view 48). */}
+              <div className="grid grid-cols-3 gap-2 sm:max-w-[480px] sm:gap-3 [&>a]:px-2 [&>a]:text-center [&>a]:leading-tight">
+                <Link href="/bridge?intent=add" className={buttonClasses({ variant: 'primary', size: 'lg' })}>{mp.addMoney}</Link>
+                <Link href="/send" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.send}</Link>
+                <Link href="/bridge?direction=out" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.withdraw}</Link>
               </div>
+              {(held && held !== '0') || balances.pool > 0 ? (
+                <div className={`${CARD_CLASS} px-5 lg:px-6`}>
+                  <dl className="divide-y divide-[var(--line)]">
+                    {held && held !== '0' ? (
+                      <div data-held-in-deals className="flex min-h-[52px] items-center justify-between gap-3 py-3 text-[15px] tabular-nums">
+                        <dt className="text-[var(--ink-secondary)]">{mp.heldLabel}</dt>
+                        <dd className="font-medium text-[var(--ink)]">{formatAmount(Number(held), locale)} USDC</dd>
+                      </div>
+                    ) : null}
+                    {balances.pool > 0 ? (
+                      <div data-gateway-balance className="flex min-h-[52px] items-center justify-between gap-3 py-3 text-[15px] tabular-nums">
+                        <dt className="text-[var(--ink-secondary)]">{t.home.gatewayBalance}</dt>
+                        <dd className="font-medium text-[var(--ink)]">{formatBalance(balances.pool, locale)} USDC</dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                </div>
+              ) : null}
               <Link href="/request" className={QUIET}>{mp.askForMoney}</Link>
             </div>
           )}
@@ -137,19 +148,19 @@ function MoneyHomeInner() {
         {/* One balance leads; the agents fold under one row (one wallet doctrine, view 44). */}
         <Disclosure id="agents" title={mp.agentsRow} open={agentsOpen} onToggle={() => setAgentsOpen((value) => !value)}>
         <div className="scroll-mt-24 space-y-4">
-          <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.home.agentsLine}</p>
+          <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{t.home.agentsLine}</p>
           {balances.activationLoading ? (
             <div aria-busy="true" className="space-y-3">
               <div className={`h-14 ${SOFT}`} />
               <div className={`h-14 ${SOFT}`} />
             </div>
           ) : !balances.activated ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--lp-border-light)] py-4">
-              <p className="text-[15px] text-[var(--lp-dark)]">{t.home.agentsNotSetUp}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--line)] py-4">
+              <p className="text-[15px] text-[var(--ink)]">{t.home.agentsNotSetUp}</p>
               <button type="button" onClick={() => setSetupOpen(true)} className={SECONDARY}>{t.home.setUpAgents}</button>
             </div>
           ) : (
-            <ul className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+            <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
               {(['buyer', 'seller'] as const).map((agent) => {
                 const amount = agent === 'buyer' ? balances.buyer : balances.seller;
                 const custom = agent === 'buyer' ? activation.agents?.buyerName : activation.agents?.sellerName;
@@ -158,8 +169,8 @@ function MoneyHomeInner() {
                 return (
                   <li key={agent} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-3">
                     <span className="min-w-0 flex-1">
-                      <span id={nameId} className="block text-[15px] font-semibold text-[var(--lp-dark)]">{name}</span>
-                      <span className="block text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
+                      <span id={nameId} className="block text-[15px] font-semibold text-[var(--ink)]">{name}</span>
+                      <span className="block text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
                         {amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}
                       </span>
                     </span>
@@ -185,15 +196,17 @@ function MoneyHomeInner() {
 
         {/* Amounts stay in USDC until local currencies are supported (shown, not clickable). */}
         <div data-amounts-in className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-[15px] font-medium text-[var(--lp-dark)]">{t.home.showAmountsIn}</span>
+          <span className="text-[15px] font-medium text-[var(--ink)]">{t.home.showAmountsIn}</span>
           <span className="flex items-center gap-2">
-            <span className="text-[15px] font-medium text-[var(--lp-dark)]">USDC</span>
-            <span className="rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.home.localCurrencySoon}</span>
+            <span className="text-[15px] font-medium text-[var(--ink)]">USDC</span>
+            <span className="rounded-full bg-[var(--raised)] px-2.5 py-1 text-[14px] font-semibold text-[var(--ink-secondary)]">{t.home.localCurrencySoon}</span>
           </span>
         </div>
 
         <ProofOnArc address={auth.address} agents={balances.activated ? balances.agents : null} />
       </div>
+
+      <HeldDealsCard />
 
       <MoneySheet
         open={sheet !== null}
@@ -230,10 +243,10 @@ function Disclosure({ id, title, open, onToggle, children }: {
           aria-expanded={open}
           aria-controls={`${id}-body`}
           onClick={onToggle}
-          className="flex min-h-11 w-full items-center justify-between gap-3 text-start text-[17px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex min-h-11 w-full items-center justify-between gap-3 text-start text-[17px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           {title}
-          <span aria-hidden className={`text-[16px] text-[var(--lp-text-sub)] transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}>⌄</span>
+          <span aria-hidden className={`text-[16px] text-[var(--ink-secondary)] transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}>⌄</span>
         </button>
       </h2>
       {open ? <div id={`${id}-body`} className="mt-4">{children}</div> : null}
@@ -251,8 +264,8 @@ function ProofOnArc({ address, agents }: {
   const [open, setOpen] = useState(false);
   const item = (label: string, value: ReactNode) => (
     <div key={label}>
-      <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</dt>
-      <dd className="mt-1 text-[14px] text-[var(--lp-dark)]">{value}</dd>
+      <dt className="text-[14px] text-[var(--ink-secondary)] font-medium">{label}</dt>
+      <dd className="mt-1 text-[14px] text-[var(--ink)]">{value}</dd>
     </div>
   );
   return (
@@ -264,5 +277,37 @@ function ProofOnArc({ address, agents }: {
         {agents ? item(t.sellingAgentAddress, <CopyAddress value={agents.seller} />) : null}
       </dl>
     </Disclosure>
+  );
+}
+
+/// On a wide screen, the deals holding your money beside the balance, the
+/// most held first, with the total under them (view 48).
+function HeldDealsCard() {
+  const mp = useTranslations().moneyPage;
+  const { locale } = useLocale();
+  const deals = useHeldDeals();
+  if (deals.length === 0) return null;
+  const total = deals.reduce((sum, d) => sum + Number(d.held), 0);
+  return (
+    <aside aria-labelledby="money-held" data-held-deals className="hidden pt-8 lg:block">
+      <h2 id="money-held" className="text-[17px] font-semibold text-[var(--ink)]">{mp.heldLabel}</h2>
+      <ul className={`${CARD_CLASS} mt-3 divide-y divide-[var(--line)] px-5`}>
+        {deals.map(({ deal, held }) => (
+          <li key={deal.jobId}>
+            <Link href={`/deals/${deal.jobId}`} className="flex min-h-16 items-center justify-between gap-3 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]">
+              <span className="min-w-0">
+                <span dir="auto" className="block truncate text-[15px] font-medium text-[var(--ink)]">{whatItIs(deal) || dealReference(deal.jobId)}</span>
+                <span dir="ltr" className="block text-[13px] tabular-nums text-[var(--ink-secondary)]">{dealReference(deal.jobId)}</span>
+              </span>
+              <span className="shrink-0 text-[15px] font-medium tabular-nums text-[var(--ink)]">{formatAmount(Number(held), locale)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 flex items-center justify-between gap-3 px-5 text-[15px] tabular-nums">
+        <span className="text-[var(--ink-secondary)]">{mp.totalHeld}</span>
+        <span className="font-semibold text-[var(--ink)]">{formatAmount(total, locale)} USDC</span>
+      </p>
+    </aside>
   );
 }
