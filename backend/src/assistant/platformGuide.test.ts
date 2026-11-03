@@ -263,6 +263,7 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /What buyers need as picture cards like Buy/);
   assert.match(all, /One Trade and money group/);
   assert.doesNotMatch(all, /sit under Selling/);
+  assert.match(all, /starts folded under how many sellers offered, and Show your shortlist opens the order/);
 });
 
 test('the guide gives one Record card on Profile and one balance on Arc (1 Nov)', () => {

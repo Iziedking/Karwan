@@ -46,7 +46,15 @@ test('offers are one line each in the agent order, the pick marked, and a tap sh
   await page.goto(`/jobs/${JOB}`);
   await expect(page.getByText(/^Request REQ-/)).toBeVisible();
   const rows = page.locator('[data-guide="job-shortlist"] li > button');
+  // The ranking starts folded: the count shows, the order waits behind Show (owner, 3 Nov 2026).
+  const toggle = page.locator('[data-guide="job-shortlist"]').getByRole('button', { name: 'Show your shortlist' });
+  await expect(rows).toHaveCount(0);
+  await expect(page.locator('[data-guide="job-shortlist"]')).toContainText('3 sellers offered');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await toggle.click();
   await expect(rows).toHaveCount(3);
+  const hide = page.locator('[data-guide="job-shortlist"]').getByRole('button', { name: 'Hide' });
+  await expect(hide).toHaveAttribute('aria-expanded', 'true');
   await expect(rows.nth(0)).toContainText('Realnica');
   await expect(rows.nth(0)).toContainText('#1 · Agent’s pick');
   await expect(rows.nth(0)).toContainText('96 USDC');
@@ -179,6 +187,7 @@ for (const [lang, messages] of batch3Locales) test('Batch 3 shortlist funding wa
  await page.addInitScript(() => {localStorage.setItem('karwan:guide:disabled','1');localStorage.setItem('karwan-theme','light');});
  await serveSearch(page,{balances:funded,job:makeJob({budgetUsdc:'100',bids:[{seller:'0x'+'1'.repeat(40),priceUsdc:'96',deadlineUnix:Math.floor(Date.now()/1000)+6*86400,score:70,suggestedCounterPrice:null,suggestedCounterDeadlineDays:null,sellerTier:'new',sellerUserAddress:null,sellerDisplayName:'Realnica',topicalMatch:80}]}),shortlist:{entries:[entry(1,'Realnica',96)],closed:false}});
  await page.goto('/jobs/'+JOB);
+ await page.locator('[data-guide="job-shortlist"]').getByRole('button', { name: messages.shortlist.show }).click();
  await page.locator('[data-guide="job-shortlist"] li > button').first().click();
  await page.getByRole('button',{name:messages.requestFlow.reviewOffer+' Realnica',exact:true}).click();
  const sheet=page.getByRole('dialog');

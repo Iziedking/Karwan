@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError, type AgentWorldCheckView, type ShortlistEntry, type WorldCheckReason } from '@/core/api';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
+import { buttonClasses } from '@/shared/components/Button';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ratingText } from '@/features/ratings/ratingText';
 import { formatUsdc } from '@/shared/utils/format';
@@ -66,6 +67,8 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const roster = t.offerRoster;
   const rf = t.requestFlow;
   const ranked = rankedOffers(entries);
+  // The ranking starts folded: the count first, the order one tap away (owner, 3 Nov 2026).
+  const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<RankedOffer | null>(null);
   const [choosing, setChoosing] = useState<ShortlistEntry | null>(null);
   const [busy, setBusy] = useState(false);
@@ -106,11 +109,26 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
     <section data-guide="job-shortlist" className="mt-6 rounded-[18px] bg-[var(--lp-card)] px-4">
       <div className="py-4">
         <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{copy.title}</h2>
-        {entries.length ? <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.note}</p> : null}
+        {ranked.length ? (
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p className="text-[14px] font-medium text-[var(--ink-secondary)]">
+              {open ? copy.note : ranked.length === 1 ? copy.countOne : fill(copy.countMany, { n: ranked.length })}
+            </p>
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls={`shortlist-${jobId}`}
+              onClick={() => setOpen((now) => !now)}
+              className={buttonClasses({ variant: 'outline', size: 'sm' })}
+            >
+              {open ? copy.hide : copy.show}
+            </button>
+          </div>
+        ) : null}
         {notice ? <p className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{notice}</p> : null}
         {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
       </div>
-      {ranked.length ? (
+      {ranked.length && open ? (
         <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
           {ranked.map((e, i) => (
             <li key={e.seller}>

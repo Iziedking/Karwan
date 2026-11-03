@@ -4,6 +4,11 @@
 export interface ShortlistCopy {
   title: string;
   note: string;
+  /// The ranking starts folded under the count (owner, 3 Nov 2026).
+  show: string;
+  hide: string;
+  countOne: string;
+  countMany: string;
   /// The agent's order: {n} is the place, the first choosable offer inside the request is its pick.
   pick: string;
   rank: string;
@@ -44,6 +49,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   en: {
     title: 'Your shortlist',
     note: 'Ranked by your agent. Tap one to see more.',
+    show: 'Show your shortlist',
+    hide: 'Hide',
+    countOne: '1 seller offered',
+    countMany: '{n} sellers offered',
     pick: 'Agent’s pick',
     rank: '#{n}',
     close: 'Close',
@@ -88,6 +97,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   fr: {
     title: 'Votre sélection',
     note: 'Classées par votre agent. Touchez-en une pour en voir plus.',
+    show: 'Voir votre sélection',
+    hide: 'Masquer',
+    countOne: '1 vendeur a fait une offre',
+    countMany: '{n} vendeurs ont fait une offre',
     pick: 'Choix de votre agent',
     rank: '#{n}',
     close: 'Fermer',
@@ -132,6 +145,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   ar: {
     title: 'قائمتك المختصرة',
     note: 'رتّبها وكيلك. اضغط على أي عرض لترى المزيد.',
+    show: 'اعرض قائمتك المختصرة',
+    hide: 'إخفاء',
+    countOne: 'بائع واحد قدّم عرضًا',
+    countMany: '{n} بائعين قدّموا عروضًا',
     pick: 'اختيار وكيلك',
     rank: '#{n}',
     close: 'إغلاق',
@@ -176,6 +193,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   hi: {
     title: 'आपकी शॉर्टलिस्ट',
     note: 'आपके एजेंट ने इन्हें क्रम में रखा है। ज़्यादा देखने के लिए किसी पर टैप करें।',
+    show: 'अपनी शॉर्टलिस्ट देखें',
+    hide: 'छिपाएँ',
+    countOne: '1 विक्रेता ने ऑफ़र दिया',
+    countMany: '{n} विक्रेताओं ने ऑफ़र दिया',
     pick: 'एजेंट की पसंद',
     rank: '#{n}',
     close: 'बंद करें',
@@ -220,6 +241,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   sw: {
     title: 'Orodha yako fupi',
     note: 'Zimepangwa na wakala wako. Gusa moja kuona zaidi.',
+    show: 'Onyesha orodha yako fupi',
+    hide: 'Ficha',
+    countOne: 'Muuzaji 1 ametoa ofa',
+    countMany: 'Wauzaji {n} wametoa ofa',
     pick: 'Chaguo la wakala wako',
     rank: '#{n}',
     close: 'Funga',
