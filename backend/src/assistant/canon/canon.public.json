@@ -238,7 +238,7 @@
       "id": "deposit-and-withdraw",
       "title": "Deposit and withdraw",
       "status": "live",
-      "updated": "2026-10-24",
+      "updated": "2026-11-03",
       "tags": [
         "money",
         "deposit"
@@ -250,7 +250,7 @@
           "date": "2026-08-05"
         }
       ],
-      "body": "Money moves in and out of Arc on one screen. What that screen asks for depends on\nwho holds the funds, and the difference is the point rather than an inconsistency.\n\nAn account that signs in with email or a passkey gets one address. Copy it, send\nUSDC from Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche or Unichain,\nand the balance updates itself.\nThere is no chain to choose, no amount to declare and no wallet to connect,\nbecause Circle derives every deposit wallet from that user's identity anchor, so\nthe same address serves all seven. Solana has its own address on the same screen: a\ndifferent signature curve cannot share one.\n\nAn account that connects its own wallet keeps the explicit flow. It holds the\nfunds, so it picks the chain the USDC is on and signs the transfer.\n\nWithdrawals reach Ethereum, Base, Arbitrum, Optimism, Polygon and Solana, and\nnever require that chain's gas token to receive.\n\nThe word for this is Deposit and Withdraw. Not top up, not add money, not cash\nout, and never the name of the transfer protocol underneath: which rail carries a\nmove is not something a person sending money needs to hold in their head."
+      "body": "Money moves in and out of Arc on one screen. What that screen asks for depends on\nwho holds the funds, and the difference is the point rather than an inconsistency.\n\nAn account that signs in with email or a passkey gets one address. Copy it, send\nUSDC from Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche or Unichain,\nand the balance updates itself.\nThere is no chain to choose, no amount to declare and no wallet to connect,\nbecause Circle derives every deposit wallet from that user's identity anchor, so\nthe same address serves all seven. Solana has its own address on the same screen: a\ndifferent signature curve cannot share one.\n\nAn account that connects its own wallet keeps the explicit flow. It holds the\nfunds, so it picks the chain the USDC is on and signs the transfer.\n\nWithdrawals reach Ethereum, Base, Arbitrum, Optimism, Polygon and Solana, and\nnever require that chain's gas token to receive.\nBefore a withdrawal moves, Karwan shows it once more: where it goes, on which\nnetwork, and that it cannot be undone. Nothing leaves until you confirm.\n\nEvery move lands in Activity under its day with a plus or minus sign, not a\ncolour, and opens a receipt you can save as an image or a PDF.\n\nThe word for this is Deposit and Withdraw. Not top up, not add money, not cash\nout, and never the name of the transfer protocol underneath: which rail carries a\nmove is not something a person sending money needs to hold in their head."
     },
     {
       "id": "escrow-families-roadmap",

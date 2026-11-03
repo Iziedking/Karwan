@@ -259,6 +259,13 @@ test('the guide walks Add money and Withdraw as the new look shows them (view 48
   assert.match(said('withdraw'), /Nothing moves before that/);
 });
 
+test('the guide reads Activity and its receipt as the new look shows them (view 48, batch 9c)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('records'), /one card for each day/);
+  assert.match(said('records'), /in the same colour/);
+  assert.match(said('records'), /Download image is the main button/);
+});
+
 test('the guide walks Post an offer and Start a deal as one screen (view 48, batch 9b)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('sell'), /The form is one screen/);

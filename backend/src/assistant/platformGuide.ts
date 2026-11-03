@@ -300,7 +300,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     tools: ['recall_activity', 'find_transaction', 'propose_remove_published_deals'],
     keywords: 'activity history receipt reference transaction payment settled records pending where did my money go',
     summary: 'Transaction history records requested, pending and completed money movements. On a deal paid early by a financier, the seller sees the advance as money in, each deal payment as what actually reached them, and the part the escrow paid the financier as Repaid to your financier, without a sign, so the list adds up to what reached the wallet. A submitted request is not settlement. Missing data is not zero money or proof nothing happened. Account reads are snapshots; explain when chain reconciliation or support is needed. Settled deals published under a person\'s name can be withdrawn by asking the assistant (propose_remove_published_deals); their record on Karwan stays.',
-    steps: ['Open /activity; movements sit under their day, newest first. Filter Money in or Money out to narrow it.', 'Open the row for the full sentence, reference and status.'],
+    steps: ['Open /activity; movements sit under their day, newest first, one card for each day. Every amount carries its sign, + for money in and − for money out, in the same colour; a move still on its way says Pending. Filter All, Money in or Money out to narrow it.', 'Open the row for the receipt: the full sentence, status, date, network, Karwan reference and a code to check it on Arc. Download image is the main button; Print / save PDF sits beside it.'],
     sources: ['backend/src/db/activityLog.ts', 'backend/src/assistant/bridgeStanding.ts'],
   },
   {

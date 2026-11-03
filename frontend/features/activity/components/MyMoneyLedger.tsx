@@ -18,6 +18,7 @@ import {
 } from '../ledgerPresentation';
 import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
 import { Icon } from '@/shared/components/Icon';
+import { CARD_CLASS } from '@/shared/components/Card';
 
 /// The user's own money, as a statement: one list, grouped by day, each
 /// movement said once with its amount in its own column.
@@ -30,8 +31,8 @@ import { Icon } from '@/shared/components/Icon';
 type Item = Awaited<ReturnType<typeof api.myActivity>>['items'][number];
 
 const TONE = {
-  pending: 'var(--lp-accent-on-light)',
-  failed: '#b03d3a',
+  pending: 'var(--ink-secondary)',
+  failed: 'var(--color-critical)',
 } as const;
 
 /// A cross-chain move settles on its own chain, so the receipt has to point at
@@ -83,7 +84,7 @@ function ReceiptParam({ onChange }: { onChange: (key: string | null) => void }) 
 
 function DirectionMark({ direction }: { direction: 'in' | 'out' | 'flat' }) {
   return (
-    <span aria-hidden className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--tint)] text-[var(--lp-dark)]">
+    <span aria-hidden className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--tint)] text-[var(--ink)]">
       {direction === 'flat' ? null : (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           {direction === 'in' ? <path d="M12 5v14m-6-6 6 6 6-6" /> : <path d="M12 19V5m-6 6 6-6 6 6" />}
@@ -196,7 +197,7 @@ export function MyMoneyLedger({
           aria-label={t.loading}
           className="h-1 w-full overflow-hidden bg-[var(--lp-border-light)]"
         >
-          <span className="block h-full w-1/3 bg-[var(--lp-accent)] motion-safe:animate-pulse" />
+          <span className="block h-full w-1/3 bg-[var(--ink)] motion-safe:animate-pulse" />
         </div>
       ) : items.length === 0 ? (
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch] font-medium">
@@ -213,9 +214,9 @@ export function MyMoneyLedger({
                   type="button"
                   aria-pressed={filter === option}
                   onClick={() => setFilter(option)}
-                  className={`inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-4 text-[14px] font-semibold transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] ${
+                  className={`inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-4 text-[14px] font-semibold transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
                     filter === option
-                      ? 'bg-[var(--lp-card)] text-[var(--ink)] shadow-[0_0_0_1px_var(--lp-border-light)]'
+                      ? 'bg-[var(--surface)] text-[var(--ink)] shadow-[0_0_0_1px_var(--line)]'
                       : 'text-[var(--ink-secondary)] hover:text-[var(--ink)]'
                   }`}
                 >
@@ -233,10 +234,10 @@ export function MyMoneyLedger({
             <div className="space-y-5">
               {days.map((day) => (
                 <section key={day.start} aria-label={dayLabel(day)} data-ledger-day>
-                  <h3 className="pb-1 text-[13px] font-semibold text-[var(--ink-secondary)]">
+                  <h3 className="pb-1 text-[14px] font-semibold text-[var(--ink-secondary)]">
                     {dayLabel(day)}
                   </h3>
-                  <ul className="divide-y divide-[var(--lp-border-light)]">
+                  <ul className={`${CARD_CLASS} divide-y divide-[var(--line)] px-2`}>
                     {day.rows.map(({ item, repeat }) => {
                       const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
                       const direction = ledgerDirection(item.kind);
@@ -256,7 +257,7 @@ export function MyMoneyLedger({
                             type="button"
                             onClick={() => setSelectedReceipt(item)}
                             aria-label={[title, amount, t.viewReceipt].filter(Boolean).join('. ')}
-                            className="grid min-h-16 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3.5 rounded-[14px] px-2 py-3 text-start transition-colors hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:gap-x-4"
+                            className="grid min-h-16 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3.5 rounded-[14px] px-2 py-3 text-start transition-colors hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)] sm:gap-x-4"
                           >
                             <DirectionMark direction={direction} />
                             <span className="min-w-0">
@@ -294,8 +295,8 @@ export function MyMoneyLedger({
                             </span>
                             {amount ? (
                               <span
-                                className="whitespace-nowrap text-end text-[15px] font-semibold tabular-nums"
-                                style={{ color: direction === 'in' ? 'var(--lp-accent-on-light)' : 'var(--lp-dark)' }}
+                                data-ledger-amount
+                                className="whitespace-nowrap text-end text-[15px] font-semibold tabular-nums text-[var(--ink)]"
                               >
                                 {amount}
                               </span>
@@ -316,7 +317,7 @@ export function MyMoneyLedger({
 
       {rows.length > PAGE_SIZE && (
         <nav data-floating-avoid className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-3" aria-label={translations.activity.view.pagerAria}>
-          <span className="text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">
+          <span className="text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
             {translations.activity.view.countRange
               .replace('{start}', String(pageStart + 1))
               .replace('{end}', String(Math.min(pageStart + PAGE_SIZE, rows.length)))
@@ -328,11 +329,11 @@ export function MyMoneyLedger({
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={safePage <= 1}
               aria-label={translations.activity.view.prevAria}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] font-medium"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] font-medium"
             >
               <Icon name="arrow-left" size={16} directional />
             </button>
-            <span className="min-w-16 text-center text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">
+            <span className="min-w-16 text-center text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
               {safePage} / {totalPages}
             </span>
             <button
@@ -340,7 +341,7 @@ export function MyMoneyLedger({
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={safePage >= totalPages}
               aria-label={translations.activity.view.nextAria}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] font-medium"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] font-medium"
             >
               <Icon name="arrow-right" size={16} directional />
             </button>

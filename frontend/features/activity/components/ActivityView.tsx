@@ -101,7 +101,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
   if (!isAuthed || !address) {
     return (
       <div className="py-12 text-center space-y-2.5 max-w-[48ch] mx-auto">
-        <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <p className="text-[14px] text-[var(--lp-text-muted)]">
           {t.notSignedInEyebrow}
         </p>
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
@@ -128,10 +128,10 @@ export function ActivityView({ explorer }: { explorer: string }) {
 
   return (
     <div className="space-y-5">
-      <section className="activity-ledger overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]" data-guide="activity-register">
+      <section data-guide="activity-register">
         {/* Transaction history is what people come for. The public pulse is one
             deliberate press away, from the header's right. */}
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
+        <div className="flex items-center justify-between gap-3 pb-3">
           <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">
             {activePanel === 'money' ? t.moneyTitle : t.streamEyebrow}
           </h2>
@@ -139,7 +139,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
             type="button"
             onClick={() => setActivePanel(activePanel === 'money' ? 'events' : 'money')}
             aria-controls={activePanel === 'money' ? 'activity-events-panel' : 'activity-money-panel'}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
           >
             {activePanel === 'money' ? t.streamEyebrow : t.moneyTitle}
             <Icon name="chevron-right" size={16} directional />
@@ -147,13 +147,13 @@ export function ActivityView({ explorer }: { explorer: string }) {
         </div>
 
         {activePanel === 'money' ? (
-          <div id="activity-money-panel" className="p-3 sm:p-4" data-guide="activity-money">
+          <div id="activity-money-panel" data-guide="activity-money">
             <MyMoneyLedger nested />
           </div>
         ) : (
-          <div id="activity-events-panel" className="min-w-0 space-y-4 p-3 sm:p-4" data-guide="activity-stream">
+          <div id="activity-events-panel" className="min-w-0 space-y-4" data-guide="activity-stream">
         <div ref={streamTopRef} className="flex items-baseline justify-end gap-3 scroll-mt-24">
-          <p className="text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">
+          <p className="text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
             {filtered.length === 0
               ? t.countZero
               : t.countRange
@@ -184,9 +184,9 @@ export function ActivityView({ explorer }: { explorer: string }) {
               type="button"
               onClick={() => setOnlyMine(v)}
               aria-pressed={onlyMine === v}
-              className={`inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
+              className={`inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${
                 onlyMine === v
-                  ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] font-bold text-[var(--lp-light)]'
+                  ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] font-semibold text-[var(--lp-light)]'
                   : 'border-[var(--lp-border-light)] bg-[var(--tint)] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]'
               }`}
             >
@@ -264,7 +264,7 @@ function StreamError({ body, retryLabel, onRetry }: { body: string; retryLabel: 
       <button
         type="button"
         onClick={onRetry}
-        className="inline-flex min-h-11 items-center justify-center px-4 rounded-md border border-[var(--lp-border-light)] mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 items-center justify-center px-4 rounded-md border border-[var(--lp-border-light)] text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
       >
         {retryLabel}
       </button>
@@ -279,7 +279,7 @@ function StreamRefreshNotice({ body, retryLabel, onRetry }: { body: string; retr
       <button
         type="button"
         onClick={onRetry}
-        className="inline-flex min-h-11 items-center px-3 mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 items-center px-3 text-[14px] font-semibold text-[var(--lp-dark)] hover:text-[var(--ink-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
       >
         {retryLabel}
       </button>
@@ -326,7 +326,7 @@ function Pager({
         onClick={() => onPage(page - 1)}
         disabled={page <= 1}
         aria-label={t.prevAria}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
         ←
@@ -347,10 +347,10 @@ function Pager({
             type="button"
             onClick={() => onPage(it)}
             aria-current={it === page ? 'page' : undefined}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold tabular-nums px-3 py-1.5 border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold tabular-nums px-3 py-1.5 border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             style={
               it === page
-                ? { background: 'var(--lp-accent)', borderColor: 'var(--lp-accent)', color: 'var(--accent-ink)', ...radius }
+                ? { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--canvas)', ...radius }
                 : { borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }
             }
           >
@@ -364,7 +364,7 @@ function Pager({
         onClick={() => onPage(page + 1)}
         disabled={page >= totalPages}
         aria-label={t.nextAria}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
         →

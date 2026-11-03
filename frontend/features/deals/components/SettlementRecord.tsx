@@ -172,7 +172,7 @@ export function SettlementRecord({
           <button
             type="button"
             onClick={onRetry}
-            className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-workspace-ink)] underline underline-offset-4 transition-colors hover:text-[var(--lp-accent)]"
+            className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-workspace-ink)] underline underline-offset-4 transition-colors hover:text-[var(--ink-secondary)]"
           >
             {copy.retry}
           </button>
@@ -224,7 +224,7 @@ export function SettlementRecord({
                   </span>
                 </div>
                 <p className="mt-3 flex items-baseline gap-2 tabular-nums">
-                  <span className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-workspace-ink)]">{movement.amountUsdc}</span>
+                  <span className="text-[34px] font-semibold leading-none tracking-[-0.03em] text-[var(--lp-workspace-ink)]">{movement.amountUsdc}</span>
                   {' '}<span className="text-[16px] font-semibold text-[var(--lp-workspace-muted)]">USDC</span>
                 </p>
                 {breakdown ? (
@@ -248,7 +248,7 @@ export function SettlementRecord({
                         type="button"
                         onClick={() => copyReference(movement.reference)}
                         aria-label={copy.copyReference.replace('{reference}', movement.reference)}
-                        className="-me-2 inline-flex min-h-11 max-w-full items-center gap-2 rounded-[10px] px-2 mono text-[13px] tracking-[0.04em] text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                        className="-me-2 inline-flex min-h-11 max-w-full items-center gap-2 rounded-[10px] px-2 mono text-[14px] tracking-[0.04em] text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                       >
                         <span className="truncate">{movement.reference}</span>
                         <Icon name={copiedReference === movement.reference ? 'check' : 'copy'} size={16} className="shrink-0 text-[var(--lp-workspace-muted)]" />
@@ -267,7 +267,7 @@ export function SettlementRecord({
                   <button
                     type="button"
                     onClick={() => setSelectedReceipt(receiptItem)}
-                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--lp-workspace-ink)] px-5 text-[15px] font-semibold text-[var(--lp-workspace-raised)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--lp-workspace-ink)] px-5 text-[15px] font-semibold text-[var(--lp-workspace-raised)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2"
                   >
                     {receiptCopy.viewReceipt}
                   </button>
@@ -281,7 +281,7 @@ export function SettlementRecord({
                           current === movement.reference ? null : movement.reference,
                         )
                       }
-                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--lp-workspace-border)] px-5 text-[15px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--lp-workspace-border)] px-5 text-[15px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                     >
                       {expanded ? copy.hideProof : copy.showProof}
                       <Icon name="chevron-right" size={16} directional className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`} />
@@ -297,7 +297,7 @@ export function SettlementRecord({
                           <p className="text-[14px] text-[var(--lp-workspace-ink)]">{leg.label}</p>
                           <p className="text-[14px] text-[var(--lp-workspace-muted)]">{copy.legStates[leg.state]}</p>
                           {leg.providerId && (
-                            <p className="mt-0.5 break-all mono text-[13px] tabular-nums text-[var(--lp-workspace-faint)]">
+                            <p className="mt-0.5 break-all mono text-[14px] tabular-nums text-[var(--lp-workspace-faint)]">
                               {copy.providerReference}: {shortProof(leg.providerId)}
                             </p>
                           )}
@@ -307,7 +307,7 @@ export function SettlementRecord({
                             href={leg.explorerUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                           >
                             {copy.openProof}
                             <Icon name="arrow-up-right" size={16} directional />
@@ -334,10 +334,10 @@ export function SettlementRecord({
                 href={`${settlementExplorer}/tx/${receipt.txHash}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:text-[var(--lp-accent)]"
+                className="inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:text-[var(--ink-secondary)]"
               >
                 {receipt.key === 'funding' ? copy.legacyFunding : copy.legacyRefund}
-                <span className="mono text-[13px] font-normal tabular-nums text-[var(--lp-workspace-muted)]">{shortProof(receipt.txHash)}</span>
+                <span className="mono text-[14px] font-normal tabular-nums text-[var(--lp-workspace-muted)]">{shortProof(receipt.txHash)}</span>
                 <Icon name="arrow-up-right" size={16} directional />
               </a>
             ))}

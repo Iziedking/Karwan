@@ -41,7 +41,7 @@ export function ActivityFilters({
               type="button"
               onClick={() => onToggleActor(a)}
               aria-pressed={active}
-              className="relative inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="relative inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
               style={{
                 background: active ? 'var(--lp-card)' : 'transparent',
                 color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
@@ -54,7 +54,7 @@ export function ActivityFilters({
                 <span
                   aria-hidden
                   className="inline-block w-[6px] h-[6px]"
-                  style={{ background: 'var(--lp-accent)' }}
+                  style={{ background: 'var(--ink)' }}
                 />
               )}
               {t.actors[a]}
@@ -91,7 +91,7 @@ export function ActivityFilters({
           <button
             type="button"
             onClick={() => onJobIdSearch('')}
-            className="absolute end-1 top-1/2 -translate-y-1/2 inline-flex min-h-11 min-w-11 items-center justify-center text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="absolute end-1 top-1/2 -translate-y-1/2 inline-flex min-h-11 min-w-11 items-center justify-center text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             aria-label={t.clearSearchAria}
           >
             <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
@@ -107,7 +107,7 @@ export function ActivityFilters({
         <style jsx>{`
           .activity-search:focus {
             border-color: var(--lp-dark);
-            box-shadow: 0 0 0 3px rgba(175, 201, 91, 0.25);
+            box-shadow: 0 0 0 3px var(--line-strong);
           }
         `}</style>
       </div>
@@ -117,7 +117,7 @@ export function ActivityFilters({
         <button
           type="button"
           onClick={onClear}
-          className="inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          className="inline-flex min-h-11 items-center text-[14px] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           {t.clearFilters}
         </button>

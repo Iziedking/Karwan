@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { ReceiptCard } from '@/features/receipt/ReceiptCard';
+import { buttonClasses } from '@/shared/components/Button';
 import {
   downloadReceiptImage,
   readableMovementText,
@@ -129,8 +130,7 @@ export function PortableReceipt({
       >
         <div className="karwan-receipt-chrome flex items-start justify-between gap-4">
           <div>
-            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">Receipt</p>
-            <h2 id="karwan-receipt-title" className="mt-2 text-[22px] font-bold tracking-[-0.03em] text-[var(--lp-dark)]">
+            <h2 id="karwan-receipt-title" className="text-[22px] font-semibold text-[var(--ink)]">
               {copy.receiptTitle}
             </h2>
           </div>
@@ -138,7 +138,7 @@ export function PortableReceipt({
             type="button"
             onClick={onClose}
             aria-label={closeLabel}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
           >
             ×
           </button>
@@ -166,7 +166,25 @@ export function PortableReceipt({
           </p>
         )}
         {canShare && (
-        <div className="karwan-receipt-actions mt-4 flex flex-wrap gap-2">
+        <div className="karwan-receipt-actions mt-4 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => {
+              // Same reason: building the SVG and rasterising it is work, and
+              // it does not belong inside the interaction.
+              setBusy('image');
+              requestAnimationFrame(() => {
+                window.setTimeout(() => {
+                  downloadReceiptImage(data, `${reference ?? 'karwan-receipt'}.png`);
+                  setBusy(null);
+                }, 0);
+              });
+            }}
+            disabled={busy !== null}
+            className={buttonClasses({ size: 'lg', className: 'w-full sm:w-auto' })}
+          >
+            {copy.receiptExportImage}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -185,27 +203,9 @@ export function PortableReceipt({
               });
             }}
             disabled={busy !== null}
-            className="inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--lp-accent)] px-4 mono text-[13px] uppercase tracking-[0.13em] font-bold text-[var(--lp-band-dark)] transition-opacity hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full sm:w-auto' })}
           >
             {copy.receiptExportPdf}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              // Same reason: building the SVG and rasterising it is work, and
-              // it does not belong inside the interaction.
-              setBusy('image');
-              requestAnimationFrame(() => {
-                window.setTimeout(() => {
-                  downloadReceiptImage(data, `${reference ?? 'karwan-receipt'}.png`);
-                  setBusy(null);
-                }, 0);
-              });
-            }}
-            disabled={busy !== null}
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--lp-border-light)] px-4 mono text-[13px] uppercase tracking-[0.13em] font-bold text-[var(--lp-dark)] transition-opacity hover:bg-[var(--lp-light)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-          >
-            {copy.receiptExportImage}
           </button>
         </div>
         )}

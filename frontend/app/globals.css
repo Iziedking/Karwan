@@ -1357,10 +1357,6 @@ html[data-theme="dark"] .global-trade-sketch {
   --ink-secondary: color-mix(in srgb, var(--ink) 74%, transparent);
 }
 
-.activity-ledger {
-  box-shadow: var(--product-panel-shadow);
-}
-
 .deal-command-panel {
   position: relative;
   overflow: hidden;
