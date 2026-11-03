@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Address, Hex, Log } from 'viem';
 import { jobBoardV2Abi } from '../chain/abis/jobBoardV2.js';
-import { boardJobId, createKarwanBoard, BoardError, type BoardRequest, type ChainBoardReads } from './board.js';
+import { boardJobId, boardLog, createKarwanBoard, BoardError, type BoardRequest, type ChainBoardReads } from './board.js';
 import { memoryBoardStore } from '../db/marketBoard.js';
 
 /// Requests, offers and counters kept in Karwan (view 40, part A): the old
@@ -73,6 +73,27 @@ test('offers, counters and replies follow the old board rules', async () => {
   assert.equal(r.acceptedSeller, SELLER);
   assert.equal(r.acceptedPrice, 80_000_000n, 'an accepted counter becomes the offer');
   await refused(board.placeOffer({ walletId: 's', seller: OTHER, jobId, price: 1n, deadline: later }), 'JobNotOpen');
+});
+
+test('events carry checksummed addresses whatever casing the caller used, as the old board did', async () => {
+  // Cotton Co's agent bid once in lowercase and once checksummed; the buyer read two sellers.
+  const agent: Address = '0x60d921870BEC83E8Ce4A824C8E7d05c74A1f88a8';
+  const { board, store } = setup();
+  const { jobId } = await post(board);
+  const later = BigInt(NOW) + DAY;
+  await board.placeOffer({ walletId: 's', seller: agent.toLowerCase() as Address, jobId, price: 90_000_000n, deadline: later });
+  await board.placeOffer({ walletId: 's', seller: agent, jobId, price: 85_000_000n, deadline: later });
+  await board.counter({ walletId: 'b', buyer: BUYER.toLowerCase() as Address, jobId, seller: agent.toLowerCase() as Address, price: 80_000_000n, deadline: later });
+  const logs = (await store.eventsAfter(0, 50)).map(boardLog) as unknown as { eventName: string; args: { seller?: string; buyer?: string } }[];
+  const sellers = logs.filter((l) => l.args.seller).map((l) => l.args.seller);
+  assert.deepEqual(sellers, [agent, agent, agent]);
+  assert.ok(logs.filter((l) => l.args.buyer).every((l) => l.args.buyer === BUYER));
+});
+
+test('a stored lowercase event is read back checksummed', () => {
+  const log = boardLog({ id: 7, jobId: '0x01', kind: 'BidSubmitted', args: { jobId: '0x01', seller: '0x60d921870bec83e8ce4a824c8e7d05c74a1f88a8', price: '1', deadline: '2' } } as never) as unknown as { args: { seller: string; price: bigint } };
+  assert.equal(log.args.seller, '0x60d921870BEC83E8Ce4A824C8E7d05c74A1f88a8');
+  assert.equal(log.args.price, 1n);
 });
 
 test('a second offer from the same seller replaces the first', async () => {

@@ -1,4 +1,4 @@
-import { encodeAbiParameters, keccak256, toHex, type Address, type Hex, type Log } from 'viem';
+import { encodeAbiParameters, getAddress, isAddress, keccak256, toHex, type Address, type Hex, type Log } from 'viem';
 import type { BoardChange, BoardEvent, BoardRow, BoardStore, StoredBoardEvent } from '../db/marketBoard.js';
 
 export type { BoardEvent } from '../db/marketBoard.js';
@@ -53,6 +53,7 @@ export interface ChainBoardReads {
 
 const ZERO: Address = '0x0000000000000000000000000000000000000000';
 const AMOUNTS = new Set(['budget', 'deadline', 'price', 'newPrice', 'newDeadline']);
+const ADDRESSES = new Set(['buyer', 'seller']);
 const lower = (a: string) => a.toLowerCase();
 
 export const boardRef = (eventId: number): Hex => keccak256(toHex(`board:${eventId}`));
@@ -89,9 +90,15 @@ function fromChain(jobId: Hex, r: BoardRequest): BoardRow {
 
 /// The event as the old board's watcher delivered it: same fields and types,
 /// a transaction hash and log index that never repeat.
+/// Addresses leave checksummed, as viem decodes them from the old board. The
+/// agents key offers by the address they are given, so one seller sent once in
+/// lowercase and once checksummed was two sellers on the buyer's shortlist.
 export function boardLog(e: StoredBoardEvent): Log {
   const args = Object.fromEntries(
-    Object.entries(e.args).map(([k, v]) => [k, AMOUNTS.has(k) ? BigInt(v as string) : v]),
+    Object.entries(e.args).map(([k, v]) => [
+      k,
+      AMOUNTS.has(k) ? BigInt(v as string) : ADDRESSES.has(k) && typeof v === 'string' && isAddress(v, { strict: false }) ? getAddress(v) : v,
+    ]),
   );
   return {
     address: ZERO,
