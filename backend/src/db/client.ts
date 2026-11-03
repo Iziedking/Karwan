@@ -267,6 +267,12 @@ export async function ensureSchema(): Promise<void> {
       owner TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS request_notes_v1 (
+      job_id TEXT PRIMARY KEY,
+      version BIGINT NOT NULL CHECK (version > 0),
+      updated_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS research_payments (
       idempotency_key TEXT PRIMARY KEY,
       run_id TEXT NOT NULL,

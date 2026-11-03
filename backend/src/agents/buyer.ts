@@ -88,6 +88,9 @@ import { countCleanDealsBetween } from './workRecord.js';
 import { pendingEvaluations } from './evaluationTracker.js';
 import { type CollectionClose, type LiveCollection, armClose } from './collectionClose.js';
 import { type CounterWait, type LiveCounter, armCounterWait } from './counterTimeout.js';
+import { type NotesFields, fromNotes, resumeAt, toNotes, withTerminalFacts } from './requestNotes.js';
+import { NotesWriter } from './notesWriter.js';
+import { requestNotesStore } from '../db/requestNotes.js';
 
 /// Hard cap on how many seller candidates the buyer agent will attempt
 /// sequentially on a single brief. Without this, a 10-bid auction could
@@ -408,6 +411,8 @@ interface JobState {
   } | null;
   latePreemptAttempted?: boolean;
   shadowRevision: number;
+  /// The version of this request's notes row the agent last wrote or read (view 48, decision 8).
+  notesVersion: number;
   negotiationShadowRevision: number;
 }
 
@@ -428,6 +433,19 @@ const COUNTER_RESPONSE_TIMEOUT_MS =
   Number.isFinite(envCounterTimeout) && envCounterTimeout > 0 ? envCounterTimeout : 180_000;
 
 const jobs = new Map<`0x${string}`, JobState>();
+
+/// The agent's notes on each request live in Postgres; JobState is the copy
+/// (view 48, decision 8). Changes are written in order; a step that acts
+/// outside the agent waits for the write first.
+const notesWriter = new NotesWriter<JobState>(requestNotesStore, (state) => toNotes(state as unknown as NotesFields));
+
+function notesChanged(state: JobState): void {
+  if (jobs.get(state.jobId) === state) notesWriter.changed(state);
+}
+
+async function notesConfirmed(state: JobState): Promise<void> {
+  if (jobs.get(state.jobId) === state) await notesWriter.confirmed(state);
+}
 
 /// The cheapest live offer on a request at or under the buyer's ceiling, from a
 /// seller other than `excludeSeller`. A seller already tried and dropped is not
@@ -740,6 +758,7 @@ function publishBuyerTimerShadow(
   state: JobState,
   schedule?: BuyerTimerShadowObservation['schedule'],
 ): void {
+  notesChanged(state);
   const observer = buyerTimerShadowObserver;
   if (!observer) return;
   state.shadowRevision = nextBuyerShadowGeneration(state.shadowRevision);
@@ -1270,9 +1289,11 @@ function safe(label: string, fn: () => Promise<unknown>) {
 /// marker is what keeps a restart from re-seeding an exhausted auction.
 function markNegotiationEnded(state: JobState, reason: string): void {
   state.finalized = true;
+  notesChanged(state);
   if (state.negotiationEndedAt) return;
   state.negotiationEndedAt = Date.now();
   state.negotiationEndReason = reason;
+  notesChanged(state);
   patchBrief(state.jobId, {
     negotiationEndedAt: state.negotiationEndedAt,
     negotiationEndReason: reason,
@@ -1378,17 +1399,25 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     ...(brief?.shortlist?.length ? { shortlist: brief.shortlist } : {}),
     counterScheduleVersion: 0,
     shadowRevision: 0,
+    notesVersion: 0,
     negotiationShadowRevision: 0,
   };
+  const resumed = await loadNotes(state);
   jobs.set(args.jobId, state);
   logger.info(
-    { jobId: args.jobId, budget: state.context.budgetUsdc, buyer: buyer.displayName, silent: opts?.silent ?? false },
+    { jobId: args.jobId, budget: state.context.budgetUsdc, buyer: buyer.displayName, silent: opts?.silent ?? false, resumed },
     'tracking job',
   );
-  // Offers live in memory; bring back the ones already made before a restart.
-  await restoreBidsFromHistory(state).catch((err) =>
-    logger.warn({ jobId: args.jobId, err: (err as Error).message }, 'could not restore offers from history'),
-  );
+  if (resumed) {
+    resumeOpenWaits(state);
+  } else {
+    // No saved notes (a request from before the notes were kept): bring back
+    // the offers already made from the event history, then save them.
+    await restoreBidsFromHistory(state).catch((err) =>
+      logger.warn({ jobId: args.jobId, err: (err as Error).message }, 'could not restore offers from history'),
+    );
+    notesChanged(state);
+  }
   // Inherit cancelledAt from the persisted deal so a restart doesn't undo the
   // grace-period filter (otherwise a cancelled deal would re-surface as "Open"
   // on the Managed Deals table until the bus next fires).
@@ -1414,6 +1443,48 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   // sits on the bid critical path. Buyer/seller research then reads from cache.
   // Operator-seeded requests skip it: no seller agent evaluates them.
   if (!brief?.seedKey) safe('securityResearch', () => securityResearchOrder(args.jobId, state.context.keywords));
+}
+
+/// Applies the saved notes to a request the agent picks up. The stored request
+/// and the deal decide whether it has ended; the notes decide everything else.
+/// Returns false when there are no usable notes, so the caller rebuilds.
+async function loadNotes(state: JobState): Promise<boolean> {
+  let saved;
+  try {
+    saved = await requestNotesStore().get(state.jobId);
+  } catch (err) {
+    logger.warn({ jobId: state.jobId, err: (err as Error).message }, 'request notes could not be read, rebuilding from history');
+    return false;
+  }
+  if (!saved) return false;
+  state.notesVersion = saved.version;
+  let fields: NotesFields;
+  try {
+    fields = fromNotes(saved.notes);
+  } catch (err) {
+    logger.error({ jobId: state.jobId, err: (err as Error).message }, 'request notes unreadable, rebuilding from history');
+    return false;
+  }
+  Object.assign(state, withTerminalFacts(fields, {
+    ended: state.finalized,
+    ...(state.negotiationEndedAt !== undefined ? { negotiationEndedAt: state.negotiationEndedAt } : {}),
+    ...(state.negotiationEndReason !== undefined ? { negotiationEndReason: state.negotiationEndReason } : {}),
+    escrowFunded: state.escrowFunded,
+  }));
+  return true;
+}
+
+/// A window or a counter wait the notes left open is armed again at its own
+/// time, or now if that time has passed, so the agent resumes in the same round.
+function resumeOpenWaits(state: JobState): void {
+  if (state.finalized || state.expired || state.escrowFunded) return;
+  const now = Date.now();
+  const closeAt = state.collectionFired ? null : resumeAt(state.collectionCloseAt, now);
+  if (closeAt !== null) armCollectionClose(state, closeAt);
+  const dueAt = resumeAt(state.counterWatchdogDueAt, now);
+  if (state.counterWatchdogSeller && dueAt !== null) {
+    armCounterWatchdog(state, state.counterWatchdogSeller, state.counterWatchdogRound ?? 1, dueAt);
+  }
 }
 
 type DirectOfferLookup = (jobId: string, sellerAgent: string) => Promise<{ id: string } | null>;
@@ -1502,6 +1573,7 @@ async function handleBidSubmitted(log: Log) {
   if (step === 'ignore') return;
   if (step === 'lower-after-counter') {
     (state.pendingRevisions ??= new Map()).set(args.seller.toLowerCase(), next);
+    notesChanged(state);
     return;
   }
   if (step === 'lower-now') {
@@ -1511,6 +1583,7 @@ async function handleBidSubmitted(log: Log) {
   if (await isDirectOfferBid(args.jobId, args.seller)) {
     state.directOffers ??= new Set();
     state.directOffers.add(args.seller.toLowerCase());
+    notesChanged(state);
     bus.emitEvent({ type: 'offer.bid.seen', jobId: args.jobId, actor: 'buyer', payload: { seller: args.seller } });
     return;
   }
@@ -1787,6 +1860,7 @@ async function handleBidSubmitted(log: Log) {
   }
 
   state.bids.set(args.seller, bid);
+  notesChanged(state);
 
   // Bid landed during a pending near-miss: decide whether it beats the price the
   // buyer is being asked to stretch to, and if so re-rank so the better seller
@@ -1806,6 +1880,7 @@ async function handleBidSubmitted(log: Log) {
   if (!state.collectionFired) {
     if (state.collectionStartedAt == null) {
       state.collectionStartedAt = Date.now();
+      notesChanged(state);
       logger.info(
         { jobId: state.jobId, floorSec: BID_COLLECTION_FLOOR_MS / 1000 },
         'first bid received, collection window open',
@@ -1872,6 +1947,7 @@ async function maybeSupersedeNearMiss(
   state.finalized = false;
   state.negotiationEndedAt = undefined;
   state.negotiationEndReason = undefined;
+  notesChanged(state);
   patchBrief(state.jobId, {
     negotiationEndedAt: undefined,
     negotiationEndReason: undefined,
@@ -2177,6 +2253,7 @@ async function publishShortlist(
   const recommended = pickRecommended(ranked, limits.recommendUpTo, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS);
   state.shortlistCandidates = ranked;
   state.shortlist = toEntries(ranked, recommended, budget, null, state.shortlist ?? []);
+  notesChanged(state);
   const changed = before?.toLowerCase() !== (recommended?.seller.toLowerCase() ?? null);
   bus.emitEvent({
     type: 'request.shortlist',
@@ -2197,6 +2274,7 @@ async function publishShortlist(
   const mayCounter = opts.counter || (changed && !counterInFlight(state) && !state.finalized && !state.escrowFunded);
   if (!head || !mayCounter || state.triedSellers.has(head.seller)) return;
   state.candidateQueue = [head];
+  notesChanged(state);
   await issueCounter(state, head);
 }
 
@@ -2216,6 +2294,7 @@ async function lowerHeldOffer(state: JobState, seller: `0x${string}`, next: Stan
   bid.priceUsdc = next.priceUsdc;
   bid.priceWei = parseUnits(next.priceUsdc, USDC_DECIMALS);
   bid.deadlineUnix = next.deadlineUnix;
+  notesChanged(state);
   bus.emitEvent({ type: 'bid.revised', jobId: state.jobId, actor: 'seller', payload: { seller, fromUsdc, toUsdc: next.priceUsdc } });
   logger.info({ jobId: state.jobId, seller, fromUsdc, toUsdc: next.priceUsdc }, 'seller lowered their offer');
   if (shortlistLive(state)) await publishShortlist(state, rankBidEntries(state), Number(state.context.budgetUsdc), { counter: false });
@@ -2311,6 +2390,7 @@ export async function dropWithdrawnSeller(jobId: string, sellerAgent: string): P
   if (!state) return;
   const key = sellerKey(state.bids, sellerAgent) as `0x${string}` | null;
   (state.withdrawnSellers ??= new Set()).add(sellerAgent.toLowerCase());
+  notesChanged(state);
   state.pendingRevisions?.delete(sellerAgent.toLowerCase());
   if (!key) return;
   const fromUsdc = state.bids.get(key)?.priceUsdc ?? null;
@@ -2318,6 +2398,7 @@ export async function dropWithdrawnSeller(jobId: string, sellerAgent: string): P
   state.triedSellers.add(key);
   state.candidateQueue = state.candidateQueue.filter((b) => b.seller.toLowerCase() !== sellerAgent.toLowerCase());
   if (state.shortlist) state.shortlist = markUnavailable(state.shortlist, sellerAgent);
+  notesChanged(state);
   if (state.counterWatchdogSeller?.toLowerCase() === sellerAgent.toLowerCase()) clearCounterWatchdog(state);
   bus.emitEvent({ type: 'bid.revised', jobId: state.jobId, actor: 'seller', payload: { seller: key, fromUsdc, toUsdc: null } });
   if (shortlistLive(state)) await publishShortlist(state, rankBidEntries(state), Number(state.context.budgetUsdc), { counter: false });
@@ -2884,12 +2965,14 @@ async function tryNextCandidate(
   // it can't double-fire after we've already moved on.
   clearCounterWatchdog(state);
   state.triedSellers.add(failedSeller);
+  notesChanged(state);
   // Shortlist mode never cascades: the recommended seller's row stays at their
   // own asking price and the buyer chooses from the list.
   if (config.SHORTLIST_MODE && state.shortlist) {
     state.shortlist = state.shortlist.map((e) =>
       e.seller.toLowerCase() === failedSeller.toLowerCase() && e.state === 'negotiating' ? { ...e, state: 'ready' as const } : e,
     );
+    notesChanged(state);
     bus.emitEvent({ type: 'request.shortlist', jobId: state.jobId, actor: 'buyer', payload: shortlistPayload(state, false) });
     return;
   }
@@ -2922,6 +3005,7 @@ async function tryNextCandidate(
       );
     }
     state.parkedAgreement = null;
+    notesChanged(state);
     logger.info(
       { jobId: state.jobId, probedSeller: failedSeller, parkedSeller: parked.seller },
       'probe ended without acceptance, proposing the parked agreement',
@@ -2982,6 +3066,7 @@ async function tryNextCandidate(
         });
         if (raised) {
           state.finalized = true;
+          notesChanged(state);
           bus.emitEvent({
             type: 'negotiation.exhausted',
             jobId: state.jobId,
@@ -3146,6 +3231,7 @@ async function tryNextCandidate(
     });
     if (raised) {
       state.finalized = true;
+      notesChanged(state);
       logger.info(
         { jobId: state.jobId, seller: next.seller, bidPrice: nextPrice, effectiveCap },
         'next candidate priced above cap; near-miss raised, awaiting human',
@@ -3270,6 +3356,7 @@ async function issueCounter(state: JobState, bid: Bid) {
     (state.counterRoundsBySeller.get(bid.seller) ?? 0) + 1,
   );
 
+  await notesConfirmed(state);
   const { ref } = await marketBoard().counter({
     walletId: buyer.walletId,
     buyer: buyer.address as `0x${string}`,
@@ -3298,9 +3385,22 @@ async function issueCounter(state: JobState, bid: Bid) {
   // dropped, or the seller crashed mid-round) we cascade to the next candidate
   // instead of waiting forever. handleCounterResponse clears this on a reply.
   clearCounterWatchdog(state);
-  const watchedSeller = bid.seller;
-  const watchdogDueAt = Date.now() + COUNTER_RESPONSE_TIMEOUT_MS;
-  const watchdogRound = state.counterRoundsBySeller.get(watchedSeller) ?? 1;
+  armCounterWatchdog(
+    state,
+    bid.seller,
+    state.counterRoundsBySeller.get(bid.seller) ?? 1,
+    Date.now() + COUNTER_RESPONSE_TIMEOUT_MS,
+  );
+}
+
+/// Waits for the seller's reply to a counter. Also re-armed from the notes when
+/// the agent picks a request back up after a restart.
+function armCounterWatchdog(
+  state: JobState,
+  watchedSeller: `0x${string}`,
+  watchdogRound: number,
+  watchdogDueAt: number,
+): void {
   state.counterScheduleVersion = nextBuyerShadowGeneration(state.counterScheduleVersion);
   state.counterWatchdogSeller = watchedSeller;
   state.counterWatchdogDueAt = watchdogDueAt;
@@ -3436,6 +3536,7 @@ async function handleCounterResponse(log: Log) {
     const parked = state.parkedAgreement;
     state.parkedAgreement = null;
     state.triedSellers.add(args.seller);
+    notesChanged(state);
     bus.emitEvent({
       type: 'negotiation.attempt-ended',
       jobId: state.jobId,
@@ -3454,6 +3555,7 @@ async function handleCounterResponse(log: Log) {
   // can surface the best last price across all tried candidates when the
   // negotiation exhausts without convergence.
   state.lastSellerCounterBySeller.set(args.seller, sellerCounterPrice);
+  notesChanged(state);
   // The seller's counter can carry a later delivery date too; keep the working
   // deadline aligned so the expiry watcher doesn't cut the round short.
   extendWorkingDeadline(state, sellerCounterDeadlineUnix);
@@ -3611,6 +3713,7 @@ async function handleCounterResponse(log: Log) {
         });
         if (raised) {
           state.finalized = true;
+          notesChanged(state);
           logger.info(
             { jobId: state.jobId, seller: args.seller, sellerOffer: sellerOfferLowConf, ceiling: effectiveMaxAcceptable },
             'ask-mode: low LLM confidence + above-ceiling seller, near-miss raised',
@@ -3673,6 +3776,7 @@ async function handleCounterResponse(log: Log) {
       });
       if (raised) {
         state.finalized = true;
+        notesChanged(state);
         logger.info(
           { jobId: state.jobId, seller: args.seller, sellerOffer: sellerOfferN, ceiling: effectiveMaxAcceptable },
           'LLM declined and seller offer above ceiling; near-miss raised, awaiting human',
@@ -3963,6 +4067,7 @@ async function proposeMatch(
       { seller, priceUsdc: Number(agreedPriceUsdc) },
       state.shortlist ?? [],
     );
+    notesChanged(state);
     bus.emitEvent({ type: 'request.shortlist', jobId: state.jobId, actor: 'buyer', payload: shortlistPayload(state, true) });
   }
   // Re-rank the full pool before committing. A stronger bid that landed after
@@ -4008,6 +4113,7 @@ async function proposeMatch(
         // so the handshake in hand is never lost, only briefly delayed.
         state.latePreemptAttempted = true;
         state.parkedAgreement = { seller, priceUsdc: agreedPriceUsdc, pattern };
+        notesChanged(state);
         const cap = computeBuyerEffectiveCap(state.context, state.buyer);
         logger.info(
           {
@@ -4056,6 +4162,7 @@ async function proposeMatch(
             'late-preempt probe failed to launch, proposing the parked agreement',
           );
           state.parkedAgreement = null;
+          notesChanged(state);
         }
       }
     }
@@ -4063,6 +4170,7 @@ async function proposeMatch(
 
   state.finalized = true;
   state.parkedAgreement = null;
+  notesChanged(state);
   clearCounterWatchdog(state);
   try {
     const buyerWallets = await findAgentWalletByAgentAddress(state.buyer.address);
@@ -4250,6 +4358,7 @@ async function proposeMatch(
     const prior = await dbGetMatchProposal(state.jobId);
     Object.assign(proposal, carriedGate(prior, proposal.sellerAgent, { humanChosen: opts?.allowSupersede === false }));
 
+    await notesConfirmed(state);
     await dbUpsertMatchProposal(proposal);
 
     logger.info(
@@ -4404,6 +4513,7 @@ export async function approveAgentMatch(
     return { ok: false, code: refused.code, message: refused.error };
   }
 
+  await notesConfirmed(state);
   let acceptResult;
   try {
     const { ref } = await marketBoard().accept({
@@ -4434,6 +4544,7 @@ export async function approveAgentMatch(
   });
 
   const priceWei = parseUnits(proposal.agreedPriceUsdc, USDC_DECIMALS);
+  await notesConfirmed(state);
   const fundRes = await fundEscrow(state, seller, priceWei, proposal.deadlineUnix, { buyerUser: proposal.buyerUser, sellerUser: proposal.sellerUser });
   if (!fundRes.ok) {
     // Funding did not confirm on chain. Do NOT persist the deal or mark the
@@ -4509,6 +4620,7 @@ export async function proceedAgentNearMiss(
   // match we are about to propose. clearCounterWatchdog stops any pending stall
   // timer from cascading us elsewhere mid-resume.
   state.finalized = true;
+  notesChanged(state);
   clearCounterWatchdog(state);
 
   // Place a standing bid at the agreed price from the seller wallet so the buyer
@@ -4576,6 +4688,7 @@ export async function chooseAgentOffer(
   if (!choice.ok) {
     if (choice.code === 'NO_OFFER' && state.shortlist) {
       state.shortlist = markUnavailable(state.shortlist, sellerAgentAddress);
+      notesChanged(state);
       bus.emitEvent({ type: 'request.shortlist', jobId: state.jobId, actor: 'buyer', payload: shortlistPayload(state, false) });
     }
     return choice;
@@ -4966,6 +5079,7 @@ async function fundEscrow(
     }
     state.escrowV3 = { ...result.record, deadlineUnix };
     state.escrowFunded = true;
+    notesChanged(state);
     logger.info({ jobId: state.jobId, escrowDealId: result.record.escrowDealId, accepted: result.accepted, fundTxHash: result.fundTxHash }, 'escrow funded on the escrow family');
     return { ok: true };
   }
@@ -4993,6 +5107,7 @@ async function fundEscrow(
     }
     state.escrowV3 = { ...result.record, deadlineUnix };
     state.escrowFunded = true;
+    notesChanged(state);
     logger.info(
       { jobId: state.jobId, escrowDealId: result.record.escrowDealId, accepted: result.accepted, fundTxHash: result.fundTxHash },
       'escrow funded on v3',
@@ -5078,6 +5193,7 @@ async function fundEscrow(
   }
 
   state.escrowFunded = true;
+  notesChanged(state);
   logger.info(
     {
       jobId: state.jobId,
@@ -5276,6 +5392,7 @@ export function reopenForNewBids(jobId: string): boolean {
   // genuinely new bidders, and clear the resolved near-miss so a fresh one is
   // not blocked as "already-resolved".
   state.sellersAtLastPass = new Set(state.triedSellers);
+  notesChanged(state);
   clearNearMiss(state.jobId);
   state.finalized = false;
   state.collectionFired = false;
@@ -5305,6 +5422,7 @@ export async function reopenAfterEdit(jobId: string): Promise<boolean> {
   state.finalized = false;
   state.negotiationEndedAt = undefined;
   state.negotiationEndReason = undefined;
+  notesChanged(state);
   patchBrief(state.jobId, { negotiationEndedAt: undefined, negotiationEndReason: undefined });
   state.collectionFired = false;
   state.collectionStartedAt = Date.now();

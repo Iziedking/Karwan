@@ -58,16 +58,18 @@ flowchart TB
   SELL --> ST[One task per request it fits]
 ```
 
-8. **The agent's notes on a request are kept.** Everything the buying mode knows about a request it is working is written to the database as it changes and read back when Karwan restarts: the offers in, each seller's counter rounds and last prices, the sellers it already tried, the order it will try the rest, sellers who withdrew, lower offers waiting on a counter, and a near match waiting on the person. The event history stays the record of what happened; the saved notes are where the agent picks up, so a restart never sends a seller a second first round or forgets a price. One server works a request at a time; a lease per request comes before a second server shares the work.
+8. **The agent's notes on a request live in the database.** Everything the buying mode knows about a request it is working (the offers in, each seller's counter rounds and last prices, the sellers it already tried, the order it will try the rest, sellers who withdrew, lower offers waiting on a counter, and a near match waiting on the person) is one row per request in Postgres, and that row is the truth. Each change is written and confirmed before the agent goes on, and only if nobody changed the row since it was read. The agent's memory is a copy of the row, loaded when it picks a request up. Before the agent counters, proposes a match or passes on a seller, it writes down what it is about to do, keyed by the request, the seller and the round; it then acts and marks the step done. After a restart a step left unfinished is checked against the market board's own records and either marked done or sent once, so no seller ever gets a second first round and no counter goes out twice. The event history stays the record of what happened, not the source of the notes. The version check guards one server today; a lease per request comes before a second server shares the work (owner, 3 Nov 2026).
 
 ```mermaid
 flowchart LR
-  CH[An offer, a counter, a reply, a pass] --> SV[Save the request's notes, newer version only]
-  SV --> DB[(Saved notes, one per request)]
-  RS[Karwan restarts] --> LD[Load the request's notes]
-  DB --> LD
-  LD --> GO[The agent resumes: same round, same price, same queue]
-  LD -. no notes saved .-> EH[Rebuild the offers from the event history]
+  RQ[A request the agent works] --> RW[(One row per request: version, state, notes)]
+  RW --> MEM[The agent's copy in memory]
+  MEM --> IN[Write down the next step: counter, propose or pass]
+  IN --> ACT[Act on the market board]
+  ACT --> DONE[Mark the step done and save the notes, if the version still matches]
+  DONE --> RW
+  RS[Karwan restarts] --> CHK[Unfinished steps checked against the board]
+  CHK --> RW
 ```
 
 ## The parts
@@ -77,7 +79,7 @@ flowchart LR
 | Identity | One checksummed address type for agents and accounts; every map keys on it | `backend/src/identity/agentId.ts` (new), used by the market board, buyer, seller and shortlist |
 | The person's agent | Goals ("find buyers for X", "tell me when Y is cheaper"), limits from view 45, the data budget, what it checked | `backend/src/agents/personAgent.ts` (new), stored per workspace |
 | Durable tasks | Judge a request, read a record, research, counter, report; each with a key, a lease and retries | `backend/src/agents/durableTaskRunner.ts`, promoted from beside the loop |
-| Saved notes | One versioned record per request with everything the buying mode knows about it; written on each change, read on restart | `buyer_runtime_snapshots_v2`, promoted from the shadow that writes it today; near matches move from a file to the same database |
+| Request notes | One row per request in Postgres, the truth for what the buying mode knows; written and confirmed on each change with a version check; steps that act are written down first | `backend/src/db/requestNotes.ts` (new); replaces the shadow snapshot and parity tables; near matches move from a file into it |
 | Data gate | `acquire(subject, kind, purpose, ref, payer)`: consent, reuse, budget, pay, verify, receipt | `backend/src/x402/dataGate.ts` (new); `paidRecordRead`, `paidCreditPassport` and `researchMarket` move behind it |
 | Market store | Demand by category and place, price bands from settled deals and verified web quotes, week-on-week change scaled to volume | `backend/src/intelligence/` (new); `trendScout` and the Home trending card read it |
 | Reporter | Turns events into the few messages a person needs; the same words in every channel | `backend/src/agents/reporter.ts` (new), on the existing in-app, email and Telegram rails |
@@ -114,4 +116,7 @@ flowchart LR
 | 5 | Tools: `research_market`, `watch_market`, `find_customers` | steps 1 and 4 |
 | 6 | The person's agent record and the reporter | steps 1 to 5 |
 | 7 | Durable tasks drive the loop, step by step | decision 5 |
-| 8 | The agent's notes on a request are saved and read back on restart | step 7, decision 8 |
+| 8a | Request notes in Postgres: written before the agent goes on, loaded when it picks a request up | step 7, decision 8 |
+| 8b | Counter, propose and pass are written down first and checked against the board after a restart | 8a |
+| 8c | Near matches into the same store; the shadow snapshot and parity code removed | 8a |
+| 8d | A lease per request, before a second server | 8b |

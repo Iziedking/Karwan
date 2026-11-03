@@ -419,6 +419,15 @@ export const agentRecords = pgTable('agent_records_v1', {
   data: jsonb('data').notNull(),
 });
 
+/// The buying mode's notes on a request, one row per request; the row is the
+/// truth and the agent's memory is a copy (view 48, decision 8).
+export const requestNotes = pgTable('request_notes_v1', {
+  jobId: text('job_id').primaryKey(),
+  version: bigint('version', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+  data: jsonb('data').notNull(),
+});
+
 /// What a person asked their agent to watch on the market (view 48, step 5).
 export const marketWatches = pgTable(
   'market_watches_v1',
