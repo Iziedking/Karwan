@@ -52,13 +52,18 @@ test('on phones the confirm sheet has a handle to drag it down, and a busy sheet
   assert.match(shell, /if \(event\.key === 'Escape' && !busyRef\.current\) onCloseRef\.current\(\)/);
 });
 
-test('the tab bar and rail carry no green', () => {
+test('the tab bar and rail carry no green, and every signal is Karwan green (owner, 3 Nov 2026)', () => {
   for (const file of ['./WorkspaceBottomNav.tsx', './ActionBeacon.tsx']) {
-    assert.doesNotMatch(source(file), /--lp-accent|--action\b|--accent\b/, file);
+    assert.doesNotMatch(source(file), /--lp-accent|--action|--accent/, file);
   }
   const nav = source('./TopNav.tsx');
   const rail = nav.slice(nav.indexOf('function RailLink('), nav.indexOf('function RailProfile('));
   assert.doesNotMatch(rail, /--lp-accent/);
+  // A signal (a dot or a count waiting on you) is the one other place green shows.
+  assert.equal(source('./ActionBeacon.tsx').match(/rounded-full bg-\[var\(--karwan-green\)\]/g)?.length, 2);
+  assert.match(rail, /size-2 rounded-full bg-\[var\(--karwan-green\)\]/);
+  assert.match(rail, /rounded-full bg-\[var\(--karwan-green\)\] px-1\.5/);
+  assert.doesNotMatch(nav, /rounded-full bg-\[var\(--ink(-muted)?\)\]( shadow|")/);
 });
 
 test('Home cards carry no green: the one green button on Home is a deal move', () => {

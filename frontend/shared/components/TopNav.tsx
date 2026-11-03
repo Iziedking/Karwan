@@ -370,11 +370,11 @@ function RailLink({
       <RailIcon name={icon} active={active} />
       <span className={cn('min-w-0 flex-1 truncate', collapsed && 'sr-only')}>{children}</span>
       {count && !collapsed ? (
-        <span aria-hidden className="text-[13px] tabular-nums text-[var(--ink-muted)]">
+        <span aria-hidden className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--karwan-green)] px-1.5 text-[13px] font-semibold tabular-nums leading-none text-[var(--accent-ink)]">
           {count}
         </span>
       ) : count ? (
-        <span aria-hidden className="absolute end-2 top-2 size-2 rounded-full bg-[var(--ink-muted)]" />
+        <span aria-hidden className="absolute end-2 top-2 size-2 rounded-full bg-[var(--karwan-green)]" />
       ) : null}
     </Link>
   );
@@ -534,7 +534,7 @@ function NavLink({
         {signal ? (
           <span
             aria-hidden
-            className="inline-block size-1.5 rounded-full bg-[var(--ink)]"
+            className="inline-block size-1.5 rounded-full bg-[var(--karwan-green)]"
           />
         ) : null}
       </span>
@@ -640,7 +640,7 @@ function ProfileLink({
       </span>
       {/* The dot rests on the whole photo: no backing disc cutting into it. */}
       {profileActionCount > 0 ? (
-        <span aria-hidden className="pointer-events-none absolute -end-0.5 -top-0.5 z-10 size-2.5 rounded-full bg-[var(--ink)] shadow-[0_0_0_1.5px_var(--color-surface)]" />
+        <span aria-hidden className="pointer-events-none absolute -end-0.5 -top-0.5 z-10 size-2.5 rounded-full bg-[var(--karwan-green)] shadow-[0_0_0_1.5px_var(--color-surface)]" />
       ) : null}
     </Link>
   );
