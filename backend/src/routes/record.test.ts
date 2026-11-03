@@ -64,22 +64,21 @@ test('tags are matched without the @ and case', async () => {
   assert.equal((await setup().request('/@ADA')).status, 200);
 });
 
-test('with sealed records on, a visitor sees who and how verified, never the score or the counts', async () => {
-  let summarised = false;
-  const app = setup({ sealed: () => true, viewer: () => '0xsomeoneelse', summary: async () => { summarised = true; return { score: 82, counts: { completed: 12, onTimeRate: 92, disputesLost: 0 } }; } });
+test('with sealed records on, a visitor sees the deal counts but never the score (owner, 3 Nov 2026)', async () => {
+  const app = setup({ sealed: () => true, viewer: () => '0xsomeoneelse' });
   const res = await app.request('/ada');
   const body = (await res.json()) as Record<string, unknown>;
   assert.equal(body.sealed, true);
   assert.equal(body.level, 'work_verified');
   assert.equal(body.tier, 'Established');
   assert.ok(!('score' in body));
-  assert.ok(!('counts' in body));
-  assert.equal(summarised, false, 'the numbers are not even computed for a visitor');
+  assert.deepEqual(body.counts, { completed: 12, onTimeRate: 92, disputesLost: 0 });
 });
 
-test('a signed-out visitor gets the sealed record too', async () => {
+test('a signed-out visitor gets the counts too, and still no score', async () => {
   const body = (await (await setup({ sealed: () => true, viewer: () => null }).request('/ada')).json()) as Record<string, unknown>;
   assert.ok(!('score' in body));
+  assert.equal((body.counts as { completed: number }).completed, 12);
 });
 
 test('the owner still sees their own score and counts, and that answer is never cached for others', async () => {

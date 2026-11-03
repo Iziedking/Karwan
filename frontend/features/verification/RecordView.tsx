@@ -20,14 +20,16 @@ import { ratingText } from '@/features/ratings/ratingText';
 import type { RecordFactKind } from '@/shared/i18n/messages/record';
 import { publicRecord } from './publicRecord';
 import { useTierLabels } from '@/features/reputation/useTierLabels';
+import { attestedRows } from '@/features/reputation/attestedDeals';
+import { attestedDealsCopy } from '@/shared/i18n/messages/attestedDeals';
 import type { CompositeTier } from '@/features/reputation/tierColors';
 
 type RecordData = Awaited<ReturnType<typeof api.record>>;
 
 /// karwan.site/r/<tag>: a person's portable record (view 48). Who they are,
-/// three facts in one card, what they sell, the proof on Arc for each fact,
-/// and one primary: ask them for an offer. Never an amount or who the deals
-/// were with.
+/// three facts in one card, what they sell, their recent deals, the proof on
+/// Arc for each fact, and one primary: ask them for an offer. Never an exact
+/// amount or who the deals were with.
 export function RecordView({ tag }: { tag: string }) {
   const t = useTranslations().record;
   const sealed = useTranslations().sealedRecord;
@@ -44,6 +46,8 @@ export function RecordView({ tag }: { tag: string }) {
   const { isAuthenticated } = useAuth();
   // What they sell: their open offers on the market (view 44, P10).
   const offers = useQuery({ queryKey: ['market-listings'], queryFn: () => api.listings(), enabled: !!sellerAddress, staleTime: 60_000 });
+  // Recent deals: Karwan's signed statements, a value range and a date each.
+  const attested = useQuery({ queryKey: ['attested-deals', sellerAddress], queryFn: () => api.attestationsFor(sellerAddress!), enabled: !!sellerAddress, staleTime: 60_000 });
   const selling = (offers.data?.listings ?? []).filter((l) => l.sellerUser.toLowerCase() === sellerAddress && !l.cancelledAt && l.expiresAt > Date.now()).slice(0, 4);
 
   useEffect(() => {
@@ -90,17 +94,24 @@ export function RecordView({ tag }: { tag: string }) {
   const firstName = record.displayName?.trim().split(/\s+/)[0] || (record.tag ? `@${record.tag}` : name);
   const country = countryName(record.country, locale);
   const rated = view.rating.kind === 'rated' ? view.rating : null;
-  // Three facts others may see (view 48): the rating, how many rated it, and the level. Never a count of deals or an amount.
-  const facts: Array<[string, string]> = [
-    [rated ? rated.value.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : t.newRating, t.averageRating],
-    [view.rating.count.toLocaleString(locale), view.rating.count === 1 ? t.ratingsOne : t.ratingsMany],
-    [tierNames[view.tier as CompositeTier] ?? view.tier, t.tier],
-  ];
+  // Three facts in one card (view 48). With deals done: deals, rating, on time.
+  // Before the first deal: rating, how many rated it, and the level. Never an amount.
+  const ratingFact: [string, string] = [rated ? rated.value.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : t.newRating, t.averageRating];
+  const tierFact: [string, string] = [tierNames[view.tier as CompositeTier] ?? view.tier, t.tier];
+  const facts: Array<[string, string]> = view.deals
+    ? [
+        [view.deals.done.toLocaleString(locale), view.deals.done === 1 ? t.dealsDoneOne : t.dealsDoneMany],
+        ratingFact,
+        view.deals.onTimePct === null ? tierFact : [`${view.deals.onTimePct.toLocaleString(locale)}%`, t.onTimeFact],
+      ]
+    : [ratingFact, [view.rating.count.toLocaleString(locale), view.rating.count === 1 ? t.ratingsOne : t.ratingsMany], tierFact];
+  const ac = attestedDealsCopy[locale];
+  const recent = attestedRows((attested.data?.attestations ?? []).filter((d) => !d.revokedAt), ac, locale).slice(0, 3);
   const askHref = sellerAddress && !own ? `/buyer?seller=${sellerAddress}` : null;
 
   return (
     <main className="product-surface mx-auto w-full max-w-[720px] px-4 pb-10 pt-6 sm:py-10">
-      <div className="-ms-2 mb-4">
+      <div data-own-back className="-ms-2 mb-4">
         <BackButton tone="adaptive" showOnPublic fallbackHref="/market" />
       </div>
       <header className="flex items-center gap-4">
@@ -108,7 +119,11 @@ export function RecordView({ tag }: { tag: string }) {
         <div className="min-w-0">
           <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{name}</h1>
           <p className="mt-0.5 truncate text-[14px] text-[var(--ink-secondary)]">{[record.tag ? `@${record.tag}` : null, country].filter(Boolean).join(' · ')}</p>
-          <p className="mt-0.5 text-[14px] text-[var(--ink-muted)]">{t.levels[record.level]}</p>
+          {/* The level, and the tier when the facts card has no room for it. */}
+          <p className="mt-0.5 text-[14px] text-[var(--ink-muted)]">
+            <span>{t.levels[record.level]}</span>
+            {view.deals ? <><span aria-hidden> · </span><span>{tierFact[0]}</span></> : null}
+          </p>
         </div>
       </header>
 
@@ -135,6 +150,22 @@ export function RecordView({ tag }: { tag: string }) {
                     <span dir="auto" className="block truncate text-[15px] font-medium text-[var(--ink)]">{l.title}</span>
                     <span className="block text-[14px] tabular-nums text-[var(--ink-secondary)]">{l.askingPriceUsdc} USDC</span>
                   </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {recent.length ? (
+        <section className="mt-8" aria-labelledby="record-recent">
+          <h2 id="record-recent" className="text-[17px] font-semibold text-[var(--ink)]">{t.recentDeals}</h2>
+          <ul data-record-recent className={`${CARD_CLASS} mt-3 divide-y divide-[var(--line)] px-4`}>
+            {recent.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3">
+                <span className="min-w-0 text-[15px] tabular-nums text-[var(--ink)]">{r.line}</span>
+                <Link href={r.href} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
+                  {ac.check}
                 </Link>
               </li>
             ))}

@@ -16,12 +16,6 @@ export interface MarketShopCopy {
   protected: string;
   samplePhoto: string;
   usdc: string;
-  deliversIn: string;
-  deliversInOne: string;
-  shipsIn: string;
-  shipsInOne: string;
-  readyIn: string;
-  readyInOne: string;
   someone: string;
   verified: string;
   example: string;
@@ -90,12 +84,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Protected',
     samplePhoto: 'Sample photo',
     usdc: 'USDC',
-    deliversIn: 'Delivers in {n} days',
-    deliversInOne: 'Delivers in 1 day',
-    shipsIn: 'Ships in {n} days',
-    shipsInOne: 'Ships in 1 day',
-    readyIn: 'Ready in {n} days',
-    readyInOne: 'Ready in 1 day',
     someone: 'A Karwan seller',
     verified: 'Verified',
     example: 'Example',
@@ -160,12 +148,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Protégé',
     samplePhoto: 'Photo d’exemple',
     usdc: 'USDC',
-    deliversIn: 'Livré en {n} jours',
-    deliversInOne: 'Livré en 1 jour',
-    shipsIn: 'Expédié en {n} jours',
-    shipsInOne: 'Expédié en 1 jour',
-    readyIn: 'Prêt en {n} jours',
-    readyInOne: 'Prêt en 1 jour',
     someone: 'Un vendeur Karwan',
     verified: 'Vérifié',
     example: 'Exemple',
@@ -230,12 +212,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'محمي',
     samplePhoto: 'صورة توضيحية',
     usdc: 'USDC',
-    deliversIn: 'يُسلَّم خلال {n} أيام',
-    deliversInOne: 'يُسلَّم خلال يوم واحد',
-    shipsIn: 'يُشحن خلال {n} أيام',
-    shipsInOne: 'يُشحن خلال يوم واحد',
-    readyIn: 'جاهز خلال {n} أيام',
-    readyInOne: 'جاهز خلال يوم واحد',
     someone: 'بائع على Karwan',
     verified: 'موثَّق',
     example: 'مثال',
@@ -300,12 +276,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'सुरक्षित',
     samplePhoto: 'नमूना फ़ोटो',
     usdc: 'USDC',
-    deliversIn: '{n} दिन में डिलीवरी',
-    deliversInOne: '1 दिन में डिलीवरी',
-    shipsIn: '{n} दिन में भेजा जाएगा',
-    shipsInOne: '1 दिन में भेजा जाएगा',
-    readyIn: '{n} दिन में तैयार',
-    readyInOne: '1 दिन में तैयार',
     someone: 'Karwan का एक विक्रेता',
     verified: 'सत्यापित',
     example: 'उदाहरण',
@@ -370,12 +340,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Imelindwa',
     samplePhoto: 'Picha ya mfano',
     usdc: 'USDC',
-    deliversIn: 'Inafika ndani ya siku {n}',
-    deliversInOne: 'Inafika ndani ya siku 1',
-    shipsIn: 'Inatumwa ndani ya siku {n}',
-    shipsInOne: 'Inatumwa ndani ya siku 1',
-    readyIn: 'Tayari ndani ya siku {n}',
-    readyInOne: 'Tayari ndani ya siku 1',
     someone: 'Muuzaji wa Karwan',
     verified: 'Amethibitishwa',
     example: 'Mfano',

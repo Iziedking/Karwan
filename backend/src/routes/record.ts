@@ -19,15 +19,16 @@ export interface RecordDeps {
   facts: (address: string) => Promise<RecordFact[]>;
   credential: (address: string) => Promise<unknown | null>;
   summary: (address: string) => Promise<{ score: number; counts: { completed: number; onTimeRate: number | null; disputesLost: number } }>;
-  /// SEALED_RECORDS: anyone but the owner sees who and how verified, never the numbers.
+  /// SEALED_RECORDS: anyone but the owner sees the counts, never the score.
   sealed: () => boolean;
   viewer: (c: Context) => string | null;
 }
 
 /// The public record behind karwan.site/r/<tag>: who, how verified, and the
-/// proof on Arc for each fact. The 0-100 score and the counts go to the owner
-/// only once records are sealed. Never an amount, a counterparty, a phone, a
-/// document or an evidence fingerprint.
+/// proof on Arc for each fact, and how many deals were done and on time. The
+/// record is unsealed for people (owner, 3 Nov 2026): the counts go to anyone,
+/// the 0-100 score only to the owner once records are sealed. Never an amount,
+/// a counterparty, a phone, a document or an evidence fingerprint.
 export function createRecordRoutes(deps: RecordDeps): Hono {
   const app = new Hono();
 
@@ -39,12 +40,12 @@ export function createRecordRoutes(deps: RecordDeps): Hono {
     const now = deps.now();
     const sealed = deps.sealed();
     const owner = isOwnerView(deps.viewer(c), address);
-    const showNumbers = !sealed || owner;
+    const showScore = !sealed || owner;
     const [passport, level, facts, summary] = await Promise.all([
       deps.passport(address),
       deps.level(address),
       deps.facts(address),
-      showNumbers ? deps.summary(address) : null,
+      deps.summary(address),
     ]);
     const valid = facts.filter((f) => f.expiresAt > now);
     if (sealed) {
@@ -61,7 +62,8 @@ export function createRecordRoutes(deps: RecordDeps): Hono {
       reasons: passport.reasons,
       country: passport.country ?? null,
       rating: passport.rating ?? { kind: 'new', count: 0 },
-      ...(summary ? { score: summary.score, counts: summary.counts } : { sealed: true }),
+      counts: summary.counts,
+      ...(showScore ? { score: summary.score } : { sealed: true }),
       checks: valid.map((f) => ({ kind: f.kind, at: f.issuedAt })),
       sources: [{ id: 'karwan', status: 'connected' }],
       facts: valid

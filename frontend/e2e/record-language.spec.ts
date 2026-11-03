@@ -18,7 +18,7 @@ async function world(page:Page,locale:string){
   const p=new URL(r.request().url()).pathname;
   if(!['GET','OPTIONS'].includes(r.request().method()))mutations.push(p);
   if(p==='/api/auth/bootstrap')return r.fulfill({json:{user:{address:ME,method:'circle',hasPasskey:true},profile:PROFILE}});
-  if(p==='/api/r/ada')return r.fulfill({json:{displayName:'Ada Builds',tag:'ada',level:'registered',tier:'COLD',rating:{kind:'rated',value:4.8,count:23},reasons:['HAS_COMPLETED_DEALS'],facts:[],score:512,counts:{completed:23,onTimeRate:0.95,disputesLost:0}}});
+  if(p==='/api/r/ada')return r.fulfill({json:{displayName:'Ada Builds',tag:'ada',level:'registered',tier:'COLD',rating:{kind:'rated',value:4.8,count:23},reasons:['HAS_COMPLETED_DEALS'],facts:[],score:512,counts:{completed:23,onTimeRate:95,disputesLost:0}}});
   if(p==='/api/tags/ada')return r.fulfill({json:{found:true,self:false,address:A,tag:'ada'}});
   if(p==='/api/reputation')return r.fulfill({json:{sealed:true,address:A,displayName:'Ada Builds',tag:'ada',tier:'COLD',reasons:['HAS_COMPLETED_DEALS'],memberSince:null}});
   if(p==='/api/me/reputation-sources'){if(r.request().method()==='PUT'){Object.assign(sourceState,r.request().postDataJSON());return r.fulfill({json:{sources:sourceState}});}return r.fulfill({json:{sources:sourceState,connected:['karwan'],readers:[],readsBalanceUsdc:null}});}

@@ -4694,7 +4694,7 @@ export const api = {
       score?: number;
       counts?: { completed: number; onTimeRate: number | null; disputesLost: number };
       sources?: { id: string; status: 'connected' }[];
-      /// Records are sealed and this is not your own: no score or counts.
+      /// Records are sealed and this is not your own: no score. Counts are public.
       sealed?: true;
       country?: string | null;
       rating?: { kind: 'new'; count: number } | { kind: 'rated'; value: number; count: number; disputed?: number };

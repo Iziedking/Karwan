@@ -9,11 +9,14 @@ export interface PublicRecord {
   tier: string;
   rating: Rating;
   reasons: RecordRead['reasons'];
+  /// How many deals were done and the share on time, once there is one.
+  deals: { done: number; onTimePct: number | null } | null;
 }
 
 /// What others see on /r/<tag> (view 44, P10): the name, the tag, the
-/// verified mark, the tier, the rating in words and up to three reasons.
-/// Never a score or a count, even on the owner's own preview (UI law principle 3).
+/// verified mark, the tier, the rating, up to three reasons and the deal
+/// counts (unsealed, owner 3 Nov 2026). Never the score, even on the owner's
+/// own preview.
 export function publicRecord(data: RecordRead): PublicRecord {
   return {
     name: data.displayName,
@@ -22,5 +25,8 @@ export function publicRecord(data: RecordRead): PublicRecord {
     tier: data.tier,
     rating: data.rating ?? { kind: 'new', count: 0 },
     reasons: data.reasons.slice(0, 3),
+    deals: data.counts && data.counts.completed > 0
+      ? { done: data.counts.completed, onTimePct: data.counts.onTimeRate === null ? null : Math.round(data.counts.onTimeRate) }
+      : null,
   };
 }

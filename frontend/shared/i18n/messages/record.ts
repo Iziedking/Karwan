@@ -42,11 +42,15 @@ export interface RecordCopy {
   ratingsOne: string;
   ratingsMany: string;
   askForOffer: string;
+  dealsDoneOne: string;
+  dealsDoneMany: string;
+  onTimeFact: string;
+  recentDeals: string;
 }
 
 const en: RecordCopy = {
   meaning: "Reputation level reflects trade history and guarantee activity. Ratings come from customers. Checks cover only the stated evidence and do not guarantee future performance.",
-  privacy: "This public record shows profile details, reputation level, ratings and checked facts. Ratings include a count. It does not list private messages or identity documents. Blockchain transactions and published deal attestations may reveal addresses and payment details.",
+  privacy: "This public record shows profile details, reputation level, how many deals were done and how many on time, ratings and checked facts. It never shows exact amounts, who the deals were with, private messages or identity documents. Blockchain transactions and published deal attestations may reveal addresses and payment details.",
   levels: {
     registered: "Account created",
     person_verified: 'Person verified',
@@ -90,11 +94,15 @@ const en: RecordCopy = {
   ratingsOne: 'rating',
   ratingsMany: 'ratings',
   askForOffer: 'Ask {name} for an offer',
+  dealsDoneOne: 'deal done',
+  dealsDoneMany: 'deals done',
+  onTimeFact: 'on time',
+  recentDeals: 'Recent deals',
 };
 
 const ar: RecordCopy = {
   meaning: "يعكس مستوى السمعة سجل التعاملات ونشاط الضمان. التقييمات من العملاء. تقتصر الفحوص على الأدلة المحددة ولا تضمن الأداء المستقبلي.",
-  privacy: "يعرض هذا السجل العام بيانات الملف ومستوى السمعة والتقييمات والحقائق المفحوصة. يشمل التقييم عدد المشاركين. لا يعرض الرسائل الخاصة أو وثائق الهوية. قد تكشف معاملات البلوكشين وإثباتات الصفقات المنشورة عن العناوين وتفاصيل الدفع.",
+  privacy: "يعرض هذا السجل العام بيانات الملف ومستوى السمعة وعدد الصفقات المنجزة وعدد ما تم منها في الموعد والتقييمات والحقائق المفحوصة. لا يعرض أبدًا المبالغ الدقيقة أو أطراف الصفقات أو الرسائل الخاصة أو وثائق الهوية. قد تكشف معاملات البلوكشين وإثباتات الصفقات المنشورة عن العناوين وتفاصيل الدفع.",
   levels: {
     registered: "تم إنشاء الحساب",
     person_verified: 'شخص موثّق',
@@ -138,11 +146,15 @@ const ar: RecordCopy = {
   ratingsOne: 'تقييم',
   ratingsMany: 'تقييمات',
   askForOffer: 'اطلب عرضًا من {name}',
+  dealsDoneOne: 'صفقة منجزة',
+  dealsDoneMany: 'صفقات منجزة',
+  onTimeFact: 'في الموعد',
+  recentDeals: 'صفقات حديثة',
 };
 
 const fr: RecordCopy = {
   meaning: "Le niveau de réputation reflète les échanges et la garantie. Les évaluations viennent des clients. Les contrôles portent sur les éléments indiqués et ne garantissent pas les résultats futurs.",
-  privacy: "Ce dossier public présente le profil, le niveau de réputation, les évaluations et les faits contrôlés. Le nombre d’évaluations est public. Les messages privés et pièces d’identité ne sont pas affichés. Les transactions sur la blockchain et les attestations publiées peuvent révéler des adresses et des informations de paiement.",
+  privacy: "Ce dossier public présente le profil, le niveau de réputation, le nombre de transactions réalisées et livrées à temps, les évaluations et les faits contrôlés. Il n’affiche jamais les montants exacts, les autres parties, les messages privés ni les pièces d’identité. Les transactions sur la blockchain et les attestations publiées peuvent révéler des adresses et des informations de paiement.",
   levels: {
     registered: "Compte créé",
     person_verified: 'Personne vérifiée',
@@ -186,11 +198,15 @@ const fr: RecordCopy = {
   ratingsOne: 'avis',
   ratingsMany: 'avis',
   askForOffer: 'Demander une offre à {name}',
+  dealsDoneOne: 'transaction réalisée',
+  dealsDoneMany: 'transactions réalisées',
+  onTimeFact: 'à temps',
+  recentDeals: 'Transactions récentes',
 };
 
 const hi: RecordCopy = {
   meaning: "प्रतिष्ठा स्तर व्यापार इतिहास और गारंटी गतिविधि पर आधारित है। रेटिंग ग्राहकों से मिलती है। जाँच केवल बताए गए प्रमाणों पर लागू होती है और भविष्य के प्रदर्शन की गारंटी नहीं देती।",
-  privacy: "इस सार्वजनिक रिकॉर्ड में प्रोफ़ाइल, प्रतिष्ठा स्तर, रेटिंग और जाँचे गए तथ्य दिखते हैं। रेटिंग की संख्या भी सार्वजनिक है। निजी संदेश या पहचान दस्तावेज़ नहीं दिखते। ब्लॉकचेन लेनदेन और प्रकाशित सौदा प्रमाणों से पते और भुगतान विवरण दिख सकते हैं।",
+  privacy: "इस सार्वजनिक रिकॉर्ड में प्रोफ़ाइल, प्रतिष्ठा स्तर, कितने सौदे पूरे हुए और कितने समय पर, रेटिंग और जाँचे गए तथ्य दिखते हैं। सही रकम, सौदे किसके साथ हुए, निजी संदेश या पहचान दस्तावेज़ कभी नहीं दिखते। ब्लॉकचेन लेनदेन और प्रकाशित सौदा प्रमाणों से पते और भुगतान विवरण दिख सकते हैं।",
   levels: {
     registered: "खाता बनाया गया",
     person_verified: 'व्यक्ति सत्यापित',
@@ -234,11 +250,15 @@ const hi: RecordCopy = {
   ratingsOne: 'रेटिंग',
   ratingsMany: 'रेटिंग',
   askForOffer: '{name} से ऑफ़र माँगें',
+  dealsDoneOne: 'सौदा पूरा',
+  dealsDoneMany: 'सौदे पूरे',
+  onTimeFact: 'समय पर',
+  recentDeals: 'हाल के सौदे',
 };
 
 const sw: RecordCopy = {
   meaning: "Kiwango cha sifa kinatokana na historia ya biashara na shughuli za dhamana. Tathmini zinatoka kwa wateja. Ukaguzi unahusu ushahidi uliotajwa tu na hauhakikishi utendaji wa baadaye.",
-  privacy: "Rekodi hii ya umma inaonyesha wasifu, kiwango cha sifa, tathmini na mambo yaliyokaguliwa. Idadi ya tathmini pia ni ya umma. Haionyeshi ujumbe binafsi au hati za utambulisho. Miamala ya blockchain na uthibitisho wa mikataba uliochapishwa unaweza kuonyesha anwani na maelezo ya malipo.",
+  privacy: "Rekodi hii ya umma inaonyesha wasifu, kiwango cha sifa, idadi ya mikataba iliyokamilika na mingapi kwa wakati, tathmini na mambo yaliyokaguliwa. Haionyeshi kamwe kiasi kamili, mikataba ilikuwa na nani, ujumbe binafsi au hati za utambulisho. Miamala ya blockchain na uthibitisho wa mikataba uliochapishwa unaweza kuonyesha anwani na maelezo ya malipo.",
   levels: {
     registered: "Akaunti imeundwa",
     person_verified: 'Mtu amethibitishwa',
@@ -282,6 +302,10 @@ const sw: RecordCopy = {
   ratingsOne: 'ukadiriaji',
   ratingsMany: 'ukadiriaji',
   askForOffer: 'Muombe {name} ofa',
+  dealsDoneOne: 'mkataba uliokamilika',
+  dealsDoneMany: 'mikataba iliyokamilika',
+  onTimeFact: 'kwa wakati',
+  recentDeals: 'Mikataba ya karibuni',
 };
 
 export const recordCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', RecordCopy> = { en, ar, fr, hi, sw };

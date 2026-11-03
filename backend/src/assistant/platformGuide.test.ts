@@ -207,8 +207,12 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   assert.doesNotMatch(steps, /in three steps/);
   // View 48 batch 7: the record's three facts and one ask, and the Theme screen from Profile.
   const all = PLATFORM_GUIDE.map((entry) => entry.summary).join(' ');
-  assert.match(all, /three facts in one card \(the average rating, how many rated them and the tier name\)/);
-  assert.match(all, /one button to ask them for an offer, never a score, a count of deals or an amount/);
+  // Unsealed (owner, 3 Nov 2026): deals done and on time are public, the score is not.
+  assert.match(all, /three facts in one card \(deals done, the average rating and the share on time/);
+  assert.match(all, /their recent deals \(date, side and value range/);
+  assert.match(all, /one button to ask them for an offer, never the score, an exact amount or who the deals were with/);
+  assert.match(all, /how many deals were done and how many on time; the private 0-100 score stays owner-only/);
+  assert.doesNotMatch(all, /deal-summary counts remain owner-only/);
   assert.match(all, /the Theme screen \(\/profile\/theme\), opened from the Theme row on Profile/);
   assert.ok(market.tools.includes('order_listing'));
   assert.ok(market.pages.includes('/order/[listingId]'));
@@ -250,7 +254,8 @@ test('the guide describes Profile, the public record and Something is wrong (vie
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('reputation'), /Share your record/);
   assert.match(said('reputation'), /\/r\/<tag>/);
-  assert.match(said('reputation'), /never a score, a count of deals or an amount/);
+  assert.match(said('reputation'), /never the score, an exact amount or who the deals were with/);
+  assert.match(said('reputation'), /Other people see your tier, reasons and deal counts, never your score or your amounts, unless you share your full passport/);
   assert.match(said('delivery'), /It needs changes/);
   assert.match(said('delivery'), /It is not what we agreed/);
   assert.match(said('delivery'), /Nothing arrived/);

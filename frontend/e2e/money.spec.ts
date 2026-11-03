@@ -30,6 +30,22 @@ test('the balance is the loudest thing on the page, with one primary action', as
   expect(await accentControls(page)).toBe(1);
 });
 
+test('the ready dot is ink, not green, and Add money stays on one line on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await serveMoney(page, { balances: funded });
+  await page.goto('/account');
+  await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
+  const dot = await page.locator('[data-balance-dot]').evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(dot).not.toBe('rgb(175, 201, 91)');
+  const add = await page.locator('[data-money-actions]').getByRole('link', { name: 'Add money', exact: true }).evaluate((el) => {
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    // One rect per line of text.
+    return new Set([...r.getClientRects()].map((rect) => Math.round(rect.top))).size;
+  });
+  expect(add).toBe(1);
+});
+
 test('money is one balance on Arc: no list of other networks, amounts in USDC with local currency soon', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');

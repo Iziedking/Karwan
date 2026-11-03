@@ -69,7 +69,9 @@ test('the tab bar and rail carry no green, and every signal is Karwan green (own
 test('Money has one green button, Add money, and no other green (view 48)', () => {
   const money = source('../../features/money/components/MoneyHome.tsx');
   assert.equal(money.match(/variant: 'primary'/g)?.length, 1);
-  assert.match(money, /buttonClasses\(\{ variant: 'primary', size: 'lg' \}\)\}>\{mp\.addMoney\}/);
+  assert.match(money, /buttonClasses\(\{ variant: 'primary', size: 'lg' \}\)\}`\}>\{mp\.addMoney\}/);
+  // The ready dot beside the balance is ink, not green (3 Nov 2026).
+  assert.doesNotMatch(money, /--color-positive/);
   for (const file of ['../../features/money/components/MoneyHome.tsx', '../../features/money/components/RecentMoney.tsx', '../../features/money/components/MoneySheet.tsx']) {
     assert.doesNotMatch(source(file), /--lp-accent|--lp-accent-on-light|--hero-from|--hero-to/, file);
   }

@@ -111,14 +111,16 @@ function MoneyHomeInner() {
                 <span
                   aria-hidden
                   className="mt-[7px] size-2 shrink-0 rounded-full"
-                  style={{ background: balances.error || movingText || state === 'empty' ? 'var(--ink-muted)' : 'var(--color-positive)' }}
+                  data-balance-dot
+                  style={{ background: balances.error || movingText || state === 'empty' ? 'var(--ink-muted)' : 'var(--ink)' }}
                 />
                 {balances.error ? t.home.staleBalance : state === 'empty' ? t.home.empty : movingText ?? t.home.readyOnArc}
               </p>
               {balances.error ? <button type="button" onClick={balances.refetch} className={buttonClasses({ variant: 'secondary' })}>{t.home.tryAgain}</button> : null}
               {/* Add money is the one green button on the page (view 48). */}
-              <div className="grid grid-cols-3 gap-2 sm:max-w-[480px] sm:gap-3 [&>a]:px-2 [&>a]:text-center [&>a]:leading-tight">
-                <Link href="/bridge?intent=add" className={buttonClasses({ variant: 'primary', size: 'lg' })}>{mp.addMoney}</Link>
+              {/* On a phone Add money takes the full row, so no label wraps. */}
+              <div data-money-actions className="grid grid-cols-2 gap-2 sm:max-w-[480px] sm:grid-cols-3 sm:gap-3 [&>a]:px-3 [&>a]:text-center [&>a]:leading-tight">
+                <Link href="/bridge?intent=add" className={`col-span-2 sm:col-span-1 ${buttonClasses({ variant: 'primary', size: 'lg' })}`}>{mp.addMoney}</Link>
                 <Link href="/send" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.send}</Link>
                 <Link href="/bridge?direction=out" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.withdraw}</Link>
               </div>
