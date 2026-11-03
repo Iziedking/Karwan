@@ -21,7 +21,7 @@ function toneOf(phase: BridgePhase): Tone {
 }
 
 function railColor(tone: Tone): string {
-  return tone === 'positive' ? 'var(--lp-accent)' : tone === 'critical' ? '#b03d3a' : 'var(--lp-accent)';
+  return tone === 'positive' ? 'var(--ink)' : tone === 'critical' ? '#b03d3a' : 'var(--ink)';
 }
 
 /// Direction-aware status label, reusing the existing phase copy so the strip
@@ -196,7 +196,7 @@ export function BridgeActivityStrip({
                 <RouteGlyph bridge={b} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="font-sans text-[16px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
+                    <span className="font-sans text-[16px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
                       {formatUsdc(b.amountUsdc, { withSuffix: false })}
                     </span>
                     <span className="text-[14px] text-[var(--ink-secondary)] leading-none font-medium">

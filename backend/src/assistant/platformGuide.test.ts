@@ -250,6 +250,15 @@ test('the guide describes money, withdrawing and the guarantee as money pages (v
   assert.match(said('reputation'), /It shows no score/);
 });
 
+test('the guide walks Add money and Withdraw as the new look shows them (view 48, batch 9a)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('deposit'), /pick Send from an app or exchange/);
+  assert.match(said('deposit'), /says USDC only/);
+  assert.match(said('withdraw'), /the amount and address carry over/);
+  assert.match(said('withdraw'), /Review opens the move once more/);
+  assert.match(said('withdraw'), /Nothing moves before that/);
+});
+
 test('the guide describes Profile, the public record and Something is wrong (view 44, Batch 8)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('reputation'), /Share your record/);

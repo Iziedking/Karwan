@@ -4944,15 +4944,8 @@ interface MessagesShape {
     };
   };
   bridgeOut: {
-    header: {
-      eyebrow: string;
-      title: string;
-      subtitle: string;
-    };
-    reassurance: string;
     web3Fallback: string;
     form: {
-      destinationEyebrow: string;
       amountEyebrow: string;
       fromArcCaption: string;
       faucetCta: string;
@@ -4962,7 +4955,6 @@ interface MessagesShape {
       recipientPlaceholder: string;
       yourWallet: string;
       addressInvalid: string;
-      submitTemplate: string;
       sending: string;
     };
     activityEyebrow: string;
@@ -10795,15 +10787,8 @@ export const en: MessagesShape = {
     },
   },
   bridgeOut: {
-    header: {
-      eyebrow: 'Cash out',
-      title: 'Cash out',
-      subtitle: 'To any supported network',
-    },
-    reassurance: 'Your money lands on the chain you choose.',
     web3Fallback: 'Bridging out from a web3 wallet signs the Arc burn yourself, which is coming soon. Use a Karwan email account to send out now.',
     form: {
-      destinationEyebrow: 'Destination',
       amountEyebrow: 'Amount',
       fromArcCaption: 'From Arc',
       faucetCta: 'Need Arc USDC? Faucet',
@@ -10813,7 +10798,6 @@ export const en: MessagesShape = {
       recipientPlaceholder: '0x your address on the destination chain',
       yourWallet: 'Your wallet',
       addressInvalid: '• Error: not a valid address',
-      submitTemplate: 'Cash out to {dest}',
       sending: 'Sending…',
     },
     activityEyebrow: 'Activity',

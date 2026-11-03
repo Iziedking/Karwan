@@ -6,7 +6,7 @@ import type { AddOptionId, WithdrawOptionId } from '@/features/deposit/plainStep
 export interface PlainMoneyCopy {
   addQuestion: string;
   withdrawQuestion: string;
-  add: Record<AddOptionId, { label: string; note: string }>;
+  add: Record<AddOptionId, { label: string }>;
   /// The withdraw choice to your own wallet differs by account.
   withdraw: Record<Exclude<WithdrawOptionId, 'ownWallet'>, { label: string; note: string }> & {
     ownWalletEmail: { label: string; note: string };
@@ -24,11 +24,11 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     addQuestion: 'How do you want to add money?',
     withdrawQuestion: 'Where should the money go?',
     add: {
-      faucet: { label: 'Get free test USDC', note: 'Try a whole deal without real money. Testnet only.' },
-      address: { label: 'Send from an app or exchange', note: "Use the address and network shown on the deposit screen." },
-      card: { label: 'Pay with card or bank', note: 'Not available yet.' },
-      fromWallet: { label: 'Move USDC from your wallet', note: 'We show the USDC your wallet holds on each network. You confirm in your wallet.' },
-      fromExchange: { label: 'From an exchange', note: 'Send USDC on Arc to your wallet address.' },
+      faucet: { label: 'Get free test USDC' },
+      address: { label: 'Send from an app or exchange' },
+      card: { label: 'Pay with card or bank' },
+      fromWallet: { label: 'Move USDC from your wallet' },
+      fromExchange: { label: 'From an exchange' },
     },
     withdraw: {
       ownWalletEmail: { label: 'To a wallet you own', note: 'Paste its address, then pick the network.' },
@@ -46,11 +46,11 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     addQuestion: 'Comment voulez-vous ajouter de l’argent ?',
     withdrawQuestion: 'Où doit aller l’argent ?',
     add: {
-      faucet: { label: 'Obtenir des USDC de test gratuits', note: 'Essayez une transaction entière sans argent réel. Testnet uniquement.' },
-      address: { label: 'Envoyer depuis une app ou une plateforme', note: "Utilisez l’adresse et le réseau indiqués sur l’écran de dépôt." },
-      card: { label: 'Payer par carte ou banque', note: 'Pas encore disponible.' },
-      fromWallet: { label: 'Déplacer des USDC depuis votre wallet', note: 'Nous montrons les USDC de votre wallet sur chaque réseau. Vous confirmez dans votre wallet.' },
-      fromExchange: { label: 'Depuis une plateforme d’échange', note: 'Envoyez des USDC sur Arc à l’adresse de votre wallet.' },
+      faucet: { label: 'Obtenir des USDC de test gratuits' },
+      address: { label: 'Envoyer depuis une app ou une plateforme' },
+      card: { label: 'Payer par carte ou banque' },
+      fromWallet: { label: 'Déplacer des USDC depuis votre wallet' },
+      fromExchange: { label: 'Depuis une plateforme d’échange' },
     },
     withdraw: {
       ownWalletEmail: { label: 'Vers un wallet à vous', note: 'Collez son adresse, puis choisissez le réseau.' },
@@ -68,11 +68,11 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     addQuestion: 'كيف تريد إضافة المال؟',
     withdrawQuestion: 'إلى أين يذهب المال؟',
     add: {
-      faucet: { label: 'احصل على USDC تجريبي مجاني', note: 'جرّب صفقة كاملة بلا مال حقيقي. على الشبكة التجريبية فقط.' },
-      address: { label: 'أرسل من تطبيق أو منصة تداول', note: "استخدم العنوان والشبكة المعروضين في شاشة الإيداع." },
-      card: { label: 'ادفع بالبطاقة أو البنك', note: 'غير متاح بعد.' },
-      fromWallet: { label: 'انقل USDC من محفظتك', note: 'نعرض USDC الموجود في محفظتك على كل شبكة. تؤكد في محفظتك.' },
-      fromExchange: { label: 'من منصة تداول', note: 'أرسل USDC على شبكة Arc إلى عنوان محفظتك.' },
+      faucet: { label: 'احصل على USDC تجريبي مجاني' },
+      address: { label: 'أرسل من تطبيق أو منصة تداول' },
+      card: { label: 'ادفع بالبطاقة أو البنك' },
+      fromWallet: { label: 'انقل USDC من محفظتك' },
+      fromExchange: { label: 'من منصة تداول' },
     },
     withdraw: {
       ownWalletEmail: { label: 'إلى محفظة تملكها', note: 'الصق عنوانها ثم اختر الشبكة.' },
@@ -90,11 +90,11 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     addQuestion: 'आप पैसे कैसे जोड़ना चाहते हैं?',
     withdrawQuestion: 'पैसा कहाँ जाना चाहिए?',
     add: {
-      faucet: { label: 'मुफ़्त टेस्ट USDC पाएँ', note: 'असली पैसे के बिना पूरा सौदा आज़माएँ। केवल टेस्टनेट पर।' },
-      address: { label: 'किसी ऐप या एक्सचेंज से भेजें', note: "जमा स्क्रीन पर दिखाए गए पते और नेटवर्क का उपयोग करें।" },
-      card: { label: 'कार्ड या बैंक से भुगतान करें', note: 'अभी उपलब्ध नहीं।' },
-      fromWallet: { label: 'अपने वॉलेट से USDC लाएँ', note: 'हम हर नेटवर्क पर आपके वॉलेट का USDC दिखाते हैं। आप अपने वॉलेट में पुष्टि करते हैं।' },
-      fromExchange: { label: 'किसी एक्सचेंज से', note: 'Arc नेटवर्क पर USDC अपने वॉलेट पते पर भेजें।' },
+      faucet: { label: 'मुफ़्त टेस्ट USDC पाएँ' },
+      address: { label: 'किसी ऐप या एक्सचेंज से भेजें' },
+      card: { label: 'कार्ड या बैंक से भुगतान करें' },
+      fromWallet: { label: 'अपने वॉलेट से USDC लाएँ' },
+      fromExchange: { label: 'किसी एक्सचेंज से' },
     },
     withdraw: {
       ownWalletEmail: { label: 'अपने किसी वॉलेट में', note: 'उसका पता चिपकाएँ, फिर नेटवर्क चुनें।' },
@@ -112,11 +112,11 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     addQuestion: 'Unataka kuongeza pesa vipi?',
     withdrawQuestion: 'Pesa ziende wapi?',
     add: {
-      faucet: { label: 'Pata USDC za majaribio bure', note: 'Jaribu mkataba mzima bila pesa halisi. Kwenye testnet tu.' },
-      address: { label: 'Tuma kutoka programu au soko la kubadilisha', note: "Tumia anwani na mtandao ulioonyeshwa kwenye ukurasa wa kuweka pesa." },
-      card: { label: 'Lipa kwa kadi au benki', note: 'Bado haipatikani.' },
-      fromWallet: { label: 'Hamisha USDC kutoka pochi yako', note: 'Tunaonyesha USDC za pochi yako kwenye kila mtandao. Unathibitisha kwenye pochi yako.' },
-      fromExchange: { label: 'Kutoka soko la kubadilisha', note: 'Tuma USDC kwenye Arc kwenda anwani ya pochi yako.' },
+      faucet: { label: 'Pata USDC za majaribio bure' },
+      address: { label: 'Tuma kutoka programu au soko la kubadilisha' },
+      card: { label: 'Lipa kwa kadi au benki' },
+      fromWallet: { label: 'Hamisha USDC kutoka pochi yako' },
+      fromExchange: { label: 'Kutoka soko la kubadilisha' },
     },
     withdraw: {
       ownWalletEmail: { label: 'Kwenye pochi unayomiliki', note: 'Bandika anwani yake, kisha chagua mtandao.' },

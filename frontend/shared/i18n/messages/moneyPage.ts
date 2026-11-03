@@ -14,14 +14,23 @@ export interface MoneyPageCopy {
   amount: string;
   whereTitle: string;
   toWallet: string;
-  toWalletLine: string;
   toKarwan: string;
-  toKarwanLine: string;
   pasteAddress: string;
   withdrawCta: string;
   continueCta: string;
   over: string;
   badAddress: string;
+  /// Withdraw, its review (Figma, Batch 9 · Review withdraw).
+  review: string;
+  reviewTitle: string;
+  cannotUndo: string;
+  toLabel: string;
+  networkLabel: string;
+  withdrawing: string;
+  notNow: string;
+  /// The deposit address takes USDC and nothing else.
+  moneyLabel: string;
+  usdcOnly: string;
   guaranteeTitle: string;
   guaranteed: string;
   heldRow: string;
@@ -48,14 +57,21 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     amount: 'Amount',
     whereTitle: 'Where should it go?',
     toWallet: 'A wallet or exchange',
-    toWalletLine: 'Binance, Bybit or any wallet',
     toKarwan: 'Someone on Karwan',
-    toKarwanLine: 'Send it to their Karwan tag',
     pasteAddress: 'Paste the address',
     withdrawCta: 'Withdraw {amount} USDC',
     continueCta: 'Continue',
     over: 'That is more than you have.',
     badAddress: 'Check the address. It starts with 0x and has 42 characters.',
+    review: 'Review',
+    reviewTitle: 'Withdraw {amount} USDC?',
+    cannotUndo: "This can't be undone.",
+    toLabel: 'To',
+    networkLabel: 'Network',
+    withdrawing: 'Withdrawing {amount} USDC',
+    notNow: 'Not now',
+    moneyLabel: 'Money',
+    usdcOnly: 'USDC only',
     guaranteeTitle: 'Deal guarantee',
     guaranteed: "in place",
     heldRow: 'Held in your deals',
@@ -80,14 +96,21 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     amount: 'Montant',
     whereTitle: 'Où doit-il aller ?',
     toWallet: 'Un portefeuille ou une plateforme',
-    toWalletLine: 'Binance, Bybit ou tout portefeuille',
     toKarwan: 'Quelqu’un sur Karwan',
-    toKarwanLine: 'Envoyez-le à son identifiant Karwan',
     pasteAddress: 'Collez l’adresse',
     withdrawCta: 'Retirer {amount} USDC',
     continueCta: 'Continuer',
     over: 'C’est plus que ce que vous avez.',
     badAddress: 'Vérifiez l’adresse. Elle commence par 0x et compte 42 caractères.',
+    review: 'Vérifier',
+    reviewTitle: 'Retirer {amount} USDC ?',
+    cannotUndo: 'Cette action est définitive.',
+    toLabel: 'Vers',
+    networkLabel: 'Réseau',
+    withdrawing: 'Retrait de {amount} USDC',
+    notNow: 'Pas maintenant',
+    moneyLabel: 'Argent',
+    usdcOnly: 'USDC uniquement',
     guaranteeTitle: 'Garantie de transaction',
     guaranteed: "en place",
     heldRow: 'Gardé dans vos transactions',
@@ -112,14 +135,21 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     amount: 'المبلغ',
     whereTitle: 'إلى أين يذهب؟',
     toWallet: 'محفظة أو منصة تداول',
-    toWalletLine: 'Binance أو Bybit أو أي محفظة',
     toKarwan: 'شخص على كاروان',
-    toKarwanLine: 'أرسله إلى معرّفه في كاروان',
     pasteAddress: 'الصق العنوان',
     withdrawCta: 'اسحب {amount} USDC',
     continueCta: 'متابعة',
     over: 'هذا أكثر مما لديك.',
     badAddress: 'تحقق من العنوان. يبدأ بـ 0x ويتكون من 42 حرفًا.',
+    review: 'مراجعة',
+    reviewTitle: 'سحب {amount} USDC؟',
+    cannotUndo: 'لا يمكن التراجع عن هذا.',
+    toLabel: 'إلى',
+    networkLabel: 'الشبكة',
+    withdrawing: 'جارٍ سحب {amount} USDC',
+    notNow: 'ليس الآن',
+    moneyLabel: 'المال',
+    usdcOnly: 'USDC فقط',
     guaranteeTitle: 'ضمان الصفقات',
     guaranteed: "مودعة",
     heldRow: 'محفوظ في صفقاتك',
@@ -144,14 +174,21 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     amount: 'राशि',
     whereTitle: 'यह कहाँ जाए?',
     toWallet: 'वॉलेट या एक्सचेंज',
-    toWalletLine: 'Binance, Bybit या कोई भी वॉलेट',
     toKarwan: 'Karwan पर कोई',
-    toKarwanLine: 'इसे उनके Karwan टैग पर भेजें',
     pasteAddress: 'पता पेस्ट करें',
     withdrawCta: '{amount} USDC निकालें',
     continueCta: 'आगे बढ़ें',
     over: 'यह आपके पास मौजूद राशि से ज़्यादा है।',
     badAddress: 'पता जाँचें। यह 0x से शुरू होता है और इसमें 42 अक्षर होते हैं।',
+    review: 'जाँचें',
+    reviewTitle: '{amount} USDC निकालें?',
+    cannotUndo: 'इसे वापस नहीं किया जा सकता।',
+    toLabel: 'किसे',
+    networkLabel: 'नेटवर्क',
+    withdrawing: '{amount} USDC निकाले जा रहे हैं',
+    notNow: 'अभी नहीं',
+    moneyLabel: 'पैसा',
+    usdcOnly: 'केवल USDC',
     guaranteeTitle: 'डील गारंटी',
     guaranteed: "जमा है",
     heldRow: 'आपकी डील में सुरक्षित',
@@ -176,14 +213,21 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     amount: 'Kiasi',
     whereTitle: 'Ziende wapi?',
     toWallet: 'Pochi au soko la kubadilisha',
-    toWalletLine: 'Binance, Bybit au pochi yoyote',
     toKarwan: 'Mtu aliye kwenye Karwan',
-    toKarwanLine: 'Mtumie kwa lebo yake ya Karwan',
     pasteAddress: 'Bandika anwani',
     withdrawCta: 'Toa USDC {amount}',
     continueCta: 'Endelea',
     over: 'Hiyo ni zaidi ya ulichonacho.',
     badAddress: 'Kagua anwani. Inaanza na 0x na ina herufi 42.',
+    review: 'Kagua',
+    reviewTitle: 'Toa {amount} USDC?',
+    cannotUndo: 'Hili haliwezi kutenduliwa.',
+    toLabel: 'Kwa',
+    networkLabel: 'Mtandao',
+    withdrawing: 'Inatoa {amount} USDC',
+    notNow: 'Si sasa',
+    moneyLabel: 'Pesa',
+    usdcOnly: 'USDC pekee',
     guaranteeTitle: 'Dhamana ya mpango',
     guaranteed: "imewekwa",
     heldRow: 'Inashikiliwa kwenye mipango yako',

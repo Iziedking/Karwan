@@ -28,7 +28,9 @@ export function FitLine({ text, className }: { text: string; className?: string 
       el.style.whiteSpace = 'nowrap';
       const room = el.clientWidth;
       const need = el.scrollWidth;
-      const next = need <= room ? MAX : Math.floor((MAX * room) / need * 10) / 10;
+      // Glyph widths do not scale exactly with the size, so the shrink aims a
+      // little short of the edge rather than landing a pixel past it.
+      const next = need <= room ? MAX : Math.floor((MAX * (room - 4)) / need * 10) / 10;
       el.style.fontSize = before.size;
       el.style.whiteSpace = before.space;
       setSize(Math.max(MIN, Math.min(MAX, next)));

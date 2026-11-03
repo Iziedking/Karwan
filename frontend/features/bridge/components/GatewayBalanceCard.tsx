@@ -1,4 +1,6 @@
 'use client';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { useCallback, useEffect, useState } from 'react';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useAccount, useBalance, useSwitchChain } from 'wagmi';
@@ -26,11 +28,6 @@ import { chainErrorMessage } from '@/shared/utils/chainError';
 /// Gateway earns its place when USDC is stranded across several chains and the
 /// user wants it spendable as one balance.
 
-const CARD_STYLE = {
-  background: 'var(--surface)',
-  color: 'var(--ink)',
-  borderRadius: 20,
-} as const;
 
 type DepositChain = GatewayChainConfig;
 
@@ -194,7 +191,7 @@ function StatusLine({
 }) {
   return (
     <div className="mt-3 flex items-start justify-between gap-2">
-      <p className="text-[14px]" style={{ color: tone === 'ok' ? 'var(--color-positive)' : 'var(--color-critical)' }}>
+      <p className="text-[14px]" style={{ color: tone === 'ok' ? 'var(--ink)' : 'var(--color-critical)' }}>
         {children}
       </p>
       <button
@@ -486,7 +483,7 @@ export function GatewayBalanceCard({
   // beside this tab moves USDC for them today.
   if (isCircleUser) {
     return (
-      <div data-guide="bridge-gateway" className="h-full p-5 sm:p-6" style={CARD_STYLE}>
+      <div data-guide="bridge-gateway" className={`${CARD_CLASS} p-5 sm:p-6`}>
         <div>
           <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch] font-medium">
             {t.soonBody}
@@ -513,12 +510,7 @@ export function GatewayBalanceCard({
             onClick={() => void poolCircle()}
             disabled={busy || !amountValid}
             aria-busy={busy}
-            className="mt-4 min-h-12 w-full rounded-full px-5 py-3 text-[15px] font-medium transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
-            style={{
-              background: 'var(--action)',
-              color: 'var(--on-action)',
-              borderRadius: 999,
-            }}
+            className={buttonClasses({ size: 'lg', className: 'mt-4 w-full' })}
           >
             {phase === 'depositing' ? t.depositing : t.cta}
           </button>
@@ -543,7 +535,7 @@ export function GatewayBalanceCard({
   // No top margin and full height: the page owns the column spacing and stretches
   // this card to match the CCTP one beside it.
   return (
-    <div data-guide="bridge-gateway" className="p-6 h-full" style={CARD_STYLE}>
+    <div data-guide="bridge-gateway" className={`${CARD_CLASS} p-6`}>
 
       {hasPending && (
         <p className="text-[14px] tabular-nums text-[var(--color-warning)]">
@@ -592,7 +584,7 @@ export function GatewayBalanceCard({
               type="button"
               onClick={() => openConnectModal?.()}
               disabled={!openConnectModal}
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 py-3 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--ash)] px-5 py-3 text-[15px] font-medium text-[var(--ink)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
             >
               {t.connectCta}
             </button>
@@ -642,12 +634,7 @@ export function GatewayBalanceCard({
               onClick={() => void pool()}
               disabled={busy || (!onWrongChain && !amountValid)}
               aria-busy={busy}
-              className="mt-4 min-h-12 w-full rounded-full px-5 py-3 text-[15px] font-medium transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
-              style={{
-                background: 'var(--action)',
-              color: 'var(--on-action)',
-              borderRadius: 999,
-              }}
+              className={buttonClasses({ size: 'lg', className: 'mt-4 w-full' })}
             >
               {phase === 'switching'
                 ? t.switching
@@ -794,12 +781,7 @@ export function GatewayBalanceCard({
                 Number(moveAmount) > Number(confirmed)
               }
               aria-busy={movePhase === 'moving'}
-              className="mt-4 min-h-12 w-full rounded-full px-5 py-3 text-[15px] font-medium transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
-              style={{
-                background: 'var(--action)',
-                color: 'var(--on-action)',
-                borderRadius: 999,
-              }}
+              className={buttonClasses({ size: 'lg', className: 'mt-4 w-full' })}
             >
               {movePhase === 'moving'
                 ? t.moving

@@ -10,11 +10,9 @@ import {
   type Speed,
   type TransferStep,
 } from '../routePlan';
-
-const PRIMARY =
-  'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
-const SECONDARY =
-  'inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { cn } from '@/shared/utils/cn';
 
 export interface TransferProgressProps {
   direction: 'in' | 'out';
@@ -73,25 +71,28 @@ export function TransferProgress(props: TransferProgressProps) {
   const slow = view.kind === 'moving' && isTakingLong(props.startedAt, now, props.speed);
   const usually = props.speed === 'seconds' ? t.usuallySeconds : t.usuallyUnderMinute;
 
+  const PRIMARY = buttonClasses({ size: 'lg', className: 'w-full sm:w-auto' });
+  const SECONDARY = buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full sm:w-auto' });
+
+  // The stops as one card (Figma, Batch 9 · On its way): passed stops filled,
+  // the current one a ring, the ones ahead dashed.
   return (
     <section className="space-y-5">
-      <ol className="space-y-3">
+      <ol className={`${CARD_CLASS} px-5 py-1`}>
         {TRANSFER_STEPS.map((step, index) => {
           const done = index < reached;
           const current = index === reached;
           return (
-            <li key={step} aria-current={current ? 'step' : undefined} className="flex items-center gap-3">
+            <li key={step} aria-current={current ? 'step' : undefined} className="flex min-h-12 items-center gap-3 py-3">
               <span
                 aria-hidden
-                className="grid size-6 shrink-0 place-items-center rounded-full text-[14px] font-medium tabular-nums"
-                style={{
-                  background: done || current ? 'var(--ink)' : 'var(--tint)',
-                  color: done || current ? 'var(--canvas)' : 'var(--ink-secondary)',
-                }}
-              >
-                {index + 1}
-              </span>
-              <span className={done || current ? 'text-[15px] font-medium text-[var(--ink)]' : 'text-[15px] text-[var(--ink-secondary)]'}>
+                data-stop={done ? 'done' : current ? 'now' : 'next'}
+                className={cn(
+                  'size-3 shrink-0 rounded-full',
+                  done ? 'bg-[var(--ink)]' : current ? 'border-2 border-[var(--ink)]' : 'border-2 border-dashed border-[var(--line-strong)]',
+                )}
+              />
+              <span className={done || current ? 'text-[15px] font-medium text-[var(--ink)]' : 'text-[15px] text-[var(--ink-muted)]'}>
                 {labels[step]}
               </span>
             </li>
@@ -100,7 +101,7 @@ export function TransferProgress(props: TransferProgressProps) {
       </ol>
 
       <div role="status" aria-live="polite" className="space-y-2 text-[15px] leading-relaxed text-[var(--ink)]">
-        {view.kind === 'arrived' ? <p className="font-medium text-[var(--color-positive)]">{labels.arrived}</p> : null}
+        {view.kind === 'arrived' ? <p className="text-[17px] font-semibold">{labels.arrived}</p> : null}
         {view.kind === 'stuck' ? (
           <p>{fill(t.stillMoving, { chain: props.direction === 'in' ? props.chainName : arc })}</p>
         ) : null}
@@ -112,12 +113,12 @@ export function TransferProgress(props: TransferProgressProps) {
       </div>
 
       {!settled ? (
-        <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
+        <p className="text-[14px] tabular-nums text-[var(--ink-secondary)]">
           {`${elapsed} · ${usually}${props.notifies === false ? '' : ` ${t.leaveNote}`}`}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {view.kind === 'arrived' ? (
           <>
             <button type="button" onClick={props.onDone} className={PRIMARY}>{t.done}</button>

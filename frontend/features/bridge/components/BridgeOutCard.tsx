@@ -14,16 +14,11 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
 import { isTrustedRecipient } from './recipientSafety';
 import { ARC_NETWORK } from '@/core/arcNetwork';
-
-const CARD_STYLE = {
-  background: 'var(--lp-card)',
-  color: 'var(--lp-dark)',
-  border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 22,
-  borderTopRightRadius: 22,
-  borderBottomLeftRadius: 22,
-  borderBottomRightRadius: 5,
-} as const;
+import { Button } from '@/shared/components/Button';
+import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
+import { fill } from '@/features/deals/workspace/presentation';
+import { routeSpeed, stepForPhase } from '../routePlan';
+import { TransferProgress } from './TransferProgress';
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
@@ -38,15 +33,16 @@ const DEST_KEYS: DestKey[] = ['arc', ...WITHDRAW_DEST_KEYS];
 /// CCTP: backend burns from the identity DCW on Arc, relays the mint on the
 /// destination (gas sponsored). Circle accounts only for now; web3 users sign
 /// the Arc burn themselves, which is a follow-up.
-export function BridgeOutCard() {
+export function BridgeOutCard({ prefillAmount, prefillRecipient }: { prefillAmount?: number; prefillRecipient?: string } = {}) {
   const msgs = useTranslations();
   const t = msgs.bridgeOut;
+  const mp = msgs.moneyPage;
   const amountCopy = msgs.bridgeCard.amount;
   const verifyCopy = msgs.bridgeCard.recipient.verify;
   const auth = useAuth();
   const isCircle = auth.method === 'circle';
   const { connector } = useAccount();
-  const { bridges, startCircleOut, startWeb3Out, startArcSend, startWeb3ArcSend, isActive } =
+  const { bridges, startCircleOut, startWeb3Out, startArcSend, startWeb3ArcSend, isActive, recheck } =
     useBridges();
   /// Activity is a temporary, per-device view: dismissing a row hides it from
   /// this panel only (a localStorage set), it never deletes the record from the
@@ -64,11 +60,16 @@ export function BridgeOutCard() {
 
   const [destKey, setDestKey] = useState<DestKey>(WITHDRAW_DEST_KEYS[0]);
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState<number | ''>('');
+  // Withdraw's first screen hands over what was typed there (view 44, P8).
+  const [amount, setAmount] = useState<number | ''>(prefillAmount ?? '');
   // A withdrawal must name its destination. Keep the owner wallet as an
   // explicit shortcut, never as the default, so Send cannot look like an
   // internal move back to the same account.
-  const [recipient, setRecipient] = useState<string>('');
+  const [recipient, setRecipient] = useState<string>(prefillRecipient?.trim() ?? '');
+  // Every withdrawal asks once more before money moves, then follows its stops.
+  const [reviewing, setReviewing] = useState(false);
+  const [followFrom, setFollowFrom] = useState<number | null>(null);
+  const followed = followFrom === null ? null : outBridges.find((b) => b.startedAt >= followFrom) ?? null;
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetNote, setFaucetNote] = useState<string | null>(null);
   /// The user's spendable Arc USDC (the identity wallet cash out draws from).
@@ -147,7 +148,13 @@ export function BridgeOutCard() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (canSubmit) setReviewing(true);
+  }
+
+  function send() {
     if (!canSubmit || !auth.address) return;
+    setReviewing(false);
+    setFollowFrom(Date.now());
     const trimmed = recipient.trim() as `0x${string}`;
     // Arc destination is a same-chain send, not a bridge. Circle accounts move
     // it custodially from their DCW; web3 users sign the transfer from their own
@@ -179,252 +186,175 @@ export function BridgeOutCard() {
     setAmount('');
   }
 
-  return (
-    <div data-guide="bridge-out" style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-6 pb-4">
-        <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
-          {t.header.eyebrow}
-        </span>
-        <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-          {t.header.title}
-        </h2>
-        <p className="mt-2 inline-flex items-center gap-2 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          <span>{t.header.subtitle}</span>
-        </p>
-      </div>
+  const shown = typeof amount === 'number' ? formatUsdc(amount, { withSuffix: false }) : '';
+  const label = 'text-[14px] font-medium text-[var(--ink-secondary)]';
 
-      <div className="px-6 pb-6">
-        <form onSubmit={submit} className="space-y-5">
-            {/* DESTINATION DROPDOWN */}
-            <div className="relative">
-              <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
-                {t.form.destinationEyebrow}
-              </span>
+  return (
+    <div data-guide="bridge-out" className="flex flex-col">
+      {followed ? (
+        <TransferProgress
+          direction="out"
+          chainName={destName}
+          signer={isCircle ? 'account' : 'wallet'}
+          step={stepForPhase(followed.phase)}
+          leftSource={!!followed.burnTxHash}
+          startedAt={followed.startedAt}
+          speed={routeSpeed(isArcDest ? 'arc' : 'cctpOut')}
+          onCheckAgain={() => void recheck(followed.id)}
+          onTryAgain={() => setFollowFrom(null)}
+          onAnother={() => setFollowFrom(null)}
+          onDone={() => setFollowFrom(null)}
+        />
+      ) : null}
+      <form onSubmit={submit} hidden={!!followed} className="space-y-5">
+        {/* AMOUNT */}
+        <div className="rounded-[var(--radius-input)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className={label}>{t.form.amountEyebrow}</span>
+            {arcBalance != null && Number(arcBalance) > 0 ? (
               <button
                 type="button"
-                onClick={() => setOpen((v) => !v)}
-                aria-expanded={open}
-                className="mt-2.5 w-full flex items-center justify-between gap-3 px-4 py-3 text-start transition-colors"
-                style={{
-                  background: 'var(--lp-card)',
-                  border: '1px solid var(--lp-border-light)',
-                  borderRadius: 12,
-                }}
+                onClick={() => setAmount(Number(arcBalance))}
+                className="-my-2 inline-flex min-h-11 items-center text-[14px] text-[var(--ink-secondary)] hover:text-[var(--ink)]"
+                title={amountCopy.maxTitle}
               >
-                <span className="flex items-center gap-2.5 min-w-0">
-                  <ChainLogo chain={destKey} size={26} />
-                  <span className="font-sans text-[14px] font-semibold tracking-tight text-[var(--lp-dark)]">
-                    {destName}
-                  </span>
-                </span>
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden
-                  className={`text-[var(--lp-text-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
-                >
-                  <path d="M3 6l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                {amountCopy.balanceMaxTemplate.replace('{amount}', formatUsdc(arcBalance, { withSuffix: false }))}
               </button>
-              {open && (
-                <ul
-                  className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up max-h-[300px] overflow-y-auto"
-                  style={{
-                    background: 'var(--lp-card)',
-                    border: '1px solid var(--lp-border-light)',
-                    borderRadius: 12,
-                    boxShadow: '0 18px 50px -18px rgba(0,0,0,0.28)',
-                  }}
-                >
-                  {DEST_KEYS.map((k) => (
-                    <li key={k}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDestKey(k);
-                          setOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[var(--lp-light)] transition-colors text-start"
-                      >
-                        <ChainLogo chain={k} size={22} />
-                        <span className="font-sans text-[14px] font-semibold text-[var(--lp-dark)]">
-                          {k === 'arc' ? 'Arc' : SOURCE_CHAINS[k].name}
-                        </span>
-                        {k === destKey && (
-                          <span
-                            aria-hidden
-                            className="ms-auto inline-block w-[6px] h-[6px]"
-                            style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
-                          />
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* AMOUNT */}
-            <div
-              style={{
-                background: 'var(--lp-card)',
-                border: '1px solid var(--lp-border-light)',
-                borderRadius: 12,
-              }}
-            >
-              <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
-                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
-                  {t.form.amountEyebrow}
-                </span>
-                {arcBalance != null && Number(arcBalance) > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setAmount(Number(arcBalance))}
-                    className="-my-2 inline-flex min-h-11 items-center text-[14px] text-[var(--ink-secondary)] hover:text-[var(--lp-dark)] transition-colors font-medium"
-                    title={amountCopy.maxTitle}
-                  >
-                    {amountCopy.balanceMaxTemplate.replace('{amount}', formatUsdc(arcBalance, { withSuffix: false }))}
-                  </button>
-                ) : (
-                  <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
-                    {amountCopy.balanceTemplate.replace(
-                      '{amount}',
-                      arcBalance != null ? formatUsdc(arcBalance, { withSuffix: false }) : '0',
-                    )}
-                  </span>
-                )}
-              </div>
-              <div className="px-4 pb-3 flex items-baseline gap-3">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="any"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="no-spinner flex-1 bg-transparent font-sans text-[32px] font-extrabold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] min-w-0 text-[var(--lp-dark)]"
-                  placeholder="0"
-                />
-                <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] font-semibold">
-                  USDC
-                </span>
-              </div>
-            </div>
-
-            {/* TOP UP ARC USDC: Circle accounts burn from their identity DCW, so
-                offer a one-tap top-up of that wallet. A web3 user burns from their
-                own wallet, which they fund themselves, so this does not apply. */}
-            {isCircle && ARC_NETWORK === 'testnet' && (
-              <div className="flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={runFaucet}
-                  disabled={faucetBusy}
-                  className="text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline disabled:opacity-50 font-medium"
-                >
-                  {faucetBusy ? t.form.faucetBusy : t.form.faucetCta}
-                </button>
-              </div>
+            ) : (
+              <span className="text-[14px] text-[var(--ink-secondary)]">
+                {amountCopy.balanceTemplate.replace('{amount}', arcBalance != null ? formatUsdc(arcBalance, { withSuffix: false }) : '0')}
+              </span>
             )}
-            {isCircle && faucetNote && (
-              <p
-                className="px-3 py-2 text-[14px] leading-snug"
-                style={{
-                  background: 'rgba(175, 201, 91,0.10)',
-                  color: 'var(--lp-dark)',
-                  border: '1px solid rgba(175, 201, 91,0.30)',
-                  borderRadius: 10,
-                }}
-              >
-                {faucetNote}
-              </p>
-            )}
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              aria-label={t.form.amountEyebrow}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              className="amount-input no-spinner min-w-0 flex-1 bg-transparent text-[28px] font-semibold tracking-[-0.02em] tabular-nums text-[var(--ink)] placeholder:text-[var(--ink-muted)] focus:outline-none"
+              placeholder="0"
+            />
+            <span className="text-[15px] font-semibold text-[var(--ink-secondary)]">USDC</span>
+          </div>
+        </div>
 
-            {/* RECIPIENT */}
-            <div
-              className="px-4 py-3"
-              style={{
-                background: 'var(--lp-light)',
-                border: '1px dashed rgba(0,0,0,0.18)',
-                borderRadius: 12,
-              }}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
-                  {t.form.landsAtPrefix} {destShort.toUpperCase()}
-                </span>
-                {auth.address && (
-                  <button
-                    type="button"
-                    onClick={() => setRecipient(auth.address as string)}
-                    className="text-[14px] text-[var(--ink-secondary)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline transition-colors font-medium"
-                  >
-                    {t.form.yourWallet}
-                  </button>
-                )}
-              </div>
-              <input
-                type="text"
-                value={recipient}
-                onChange={(e) => setRecipient(e.target.value)}
-                placeholder={t.form.recipientPlaceholder}
-                spellCheck={false}
-                className="mt-1.5 w-full bg-transparent text-[14px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
-              />
-              {recipient.trim() !== '' && !recipientValid && (
-                <p className="mt-1 text-[14px] text-[#b03d3a] font-medium">
-                  {t.form.addressInvalid}
-                </p>
-              )}
-              {isArcDest && recipientValid && displayRecipientKind !== 'idle' && (
-                <div className="mt-2">
-                  <RecipientVerifyPill kind={displayRecipientKind} copy={verifyCopy} />
-                </div>
-              )}
-            </div>
-
+        {/* A Circle account withdraws from its own Arc wallet; testnet can fill it here. */}
+        {isCircle && ARC_NETWORK === 'testnet' && (
+          <div className="flex items-center justify-end">
             <button
-              type="submit"
-              disabled={!canSubmit || sending}
-              aria-busy={sending}
-              className="group relative w-full px-4 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              style={{
-                background: 'var(--lp-accent)',
-                color: 'var(--accent-ink)',
-                borderRadius: 14,
-                boxShadow: canSubmit && !sending ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
-                opacity: sending ? 0.75 : undefined,
-              }}
+              type="button"
+              onClick={runFaucet}
+              disabled={faucetBusy}
+              className="inline-flex min-h-11 items-center text-[14px] text-[var(--ink-secondary)] underline-offset-2 hover:text-[var(--ink)] hover:underline disabled:opacity-50"
             >
-              <span>
-                {sending ? t.form.sending : t.form.submitTemplate.replace('{dest}', destShort)}
-              </span>
-              <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
-                {sending ? (
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="animate-spin">
-                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.8" strokeOpacity="0.25" />
-                    <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </span>
+              {faucetBusy ? t.form.faucetBusy : t.form.faucetCta}
             </button>
+          </div>
+        )}
+        {isCircle && faucetNote && (
+          <p role="status" className="border-s-2 border-[var(--line-strong)] ps-3 text-[14px] text-[var(--ink)]">{faucetNote}</p>
+        )}
 
-            <p className="text-[14px] leading-snug text-[var(--lp-text-muted)]">
-              {t.reassurance}
-            </p>
-          </form>
+        {/* WHERE IT GOES */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="bridge-out-recipient" className={label}>{t.form.landsAtPrefix} {destShort}</label>
+            {auth.address && (
+              <button
+                type="button"
+                onClick={() => setRecipient(auth.address as string)}
+                className="inline-flex min-h-11 items-center text-[14px] text-[var(--ink-secondary)] underline-offset-2 hover:text-[var(--ink)] hover:underline"
+              >
+                {t.form.yourWallet}
+              </button>
+            )}
+          </div>
+          <input
+            id="bridge-out-recipient"
+            type="text"
+            dir="ltr"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            placeholder={t.form.recipientPlaceholder}
+            spellCheck={false}
+            className="form-input block w-full font-mono text-[15px]"
+          />
+          {recipient.trim() !== '' && !recipientValid && (
+            <p role="alert" className="text-[14px] text-[var(--color-critical)]">{t.form.addressInvalid}</p>
+          )}
+          {isArcDest && recipientValid && displayRecipientKind !== 'idle' && (
+            <RecipientVerifyPill kind={displayRecipientKind} copy={verifyCopy} />
+          )}
+        </div>
 
-        {/* Temporary activity strip: in-flight + recently completed cash-outs,
-            each with a tx link. Auto-clears finished rows; permanent record is
-            in the page's Transfer history modal and the /activity feed. */}
-        <BridgeActivityStrip records={outBridges} hidden={hidden} isActive={isActive} />
-      </div>
+        {/* NETWORK */}
+        <div className="relative space-y-2">
+          <span className={label}>{mp.networkLabel}</span>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="rounded-[var(--radius-input)] border border-[var(--line)] bg-[var(--surface)] flex min-h-[52px] w-full items-center justify-between gap-3 px-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
+          >
+            <span className="flex min-w-0 items-center gap-2.5">
+              <ChainLogo chain={destKey} size={22} />
+              <span className="text-[15px] text-[var(--ink)]">{destName}</span>
+            </span>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden className={`text-[var(--ink-secondary)] transition-transform ${open ? 'rotate-180' : ''}`}>
+              <path d="M3 6l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {open && (
+            <ul className="absolute z-20 start-0 end-0 mt-1 max-h-[300px] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-1.5">
+              {DEST_KEYS.map((k) => (
+                <li key={k}>
+                  <button
+                    type="button"
+                    aria-pressed={k === destKey}
+                    onClick={() => {
+                      setDestKey(k);
+                      setOpen(false);
+                    }}
+                    className="flex min-h-11 w-full items-center gap-2.5 rounded-[10px] px-3 text-start hover:bg-[var(--raised)]"
+                  >
+                    <ChainLogo chain={k} size={20} />
+                    <span className={`text-[15px] text-[var(--ink)] ${k === destKey ? 'font-semibold' : ''}`}>{k === 'arc' ? 'Arc' : SOURCE_CHAINS[k].name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <Button type="submit" size="lg" disabled={!canSubmit} loading={sending} loadingLabel={t.form.sending} className="w-full">
+          {mp.review}
+        </Button>
+      </form>
+
+      <FactsConfirmSheet
+        open={reviewing}
+        title={fill(mp.reviewTitle, { amount: shown })}
+        note={mp.cannotUndo}
+        rows={[
+          [mp.toLabel, recipient.trim()],
+          [mp.networkLabel, destName],
+        ]}
+        primaryLabel={fill(mp.withdrawCta, { amount: shown })}
+        busyLabel={fill(mp.withdrawing, { amount: shown })}
+        quietLabel={mp.notNow}
+        busy={sending}
+        onConfirm={send}
+        onClose={() => setReviewing(false)}
+      />
+
+      {/* Temporary activity strip: in-flight + recently completed cash-outs,
+          each with a tx link. Auto-clears finished rows; permanent record is
+          in the page's Transfer history modal and the /activity feed. */}
+      <BridgeActivityStrip records={outBridges} hidden={hidden} isActive={isActive} />
     </div>
   );
 }
@@ -441,10 +371,10 @@ function RecipientVerifyPill({
   if (kind === 'idle') return null;
   const tone =
     kind === 'eoa'
-      ? { bg: 'rgba(175, 201, 91, 0.12)', text: 'var(--lp-accent)', border: 'rgba(175, 201, 91, 0.38)' }
+      ? { bg: 'var(--surface)', text: 'var(--ink)', border: 'var(--line-strong)' }
       : kind === 'contract' || kind === 'invalid'
         ? { bg: 'rgba(176, 61, 58, 0.10)', text: '#b03d3a', border: 'rgba(176, 61, 58, 0.30)' }
-        : { bg: 'var(--lp-card)', text: 'var(--lp-text-sub)', border: 'var(--lp-border-light)' };
+        : { bg: 'var(--surface)', text: 'var(--ink-secondary)', border: 'var(--line)' };
   const label =
     kind === 'checking'
       ? copy.checking
@@ -455,7 +385,7 @@ function RecipientVerifyPill({
           : copy.invalid;
   return (
     <div
-      className="inline-flex items-center gap-2 px-3 py-2 text-[14px] mono"
+      className="inline-flex items-center gap-2 px-3 py-2 text-[14px]"
       style={{
         background: tone.bg,
         color: tone.text,

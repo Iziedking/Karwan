@@ -5382,15 +5382,8 @@ export const hi: Messages = {
     },
   },
   bridgeOut: {
-    header: {
-      eyebrow: 'भेजें बाहर',
-      title: 'Arc से निकासी',
-      subtitle: 'किसी भी समर्थित नेटवर्क पर',
-    },
-    reassurance: 'आपका पैसा आपकी चुनी हुई चेन पर आता है।',
     web3Fallback: 'web3 वॉलेट से बाहर भेजने में Arc burn आप खुद साइन करेंगे, यह जल्द आ रहा है। अभी बाहर भेजने के लिए Karwan ईमेल खाते का उपयोग करें।',
     form: {
-      destinationEyebrow: 'गंतव्य',
       amountEyebrow: 'राशि',
       fromArcCaption: 'ARC से',
       faucetCta: 'Arc USDC चाहिए? फॉसेट',
@@ -5400,7 +5393,6 @@ export const hi: Messages = {
       recipientPlaceholder: '0x गंतव्य चेन पर आपका पता',
       yourWallet: 'आपका वॉलेट',
       addressInvalid: '• त्रुटि: पता मान्य नहीं',
-      submitTemplate: '{dest} पर भेजें',
       sending: 'भेजा जा रहा है…',
     },
     activityEyebrow: 'गतिविधि',

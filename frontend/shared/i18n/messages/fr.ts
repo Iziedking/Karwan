@@ -5384,15 +5384,8 @@ export const fr: Messages = {
     },
   },
   bridgeOut: {
-    header: {
-      eyebrow: 'Envoi sortant',
-      title: 'Retrait depuis Arc',
-      subtitle: 'Vers tout réseau pris en charge',
-    },
-    reassurance: 'Votre argent arrive sur la chaîne que vous choisissez.',
     web3Fallback: 'Sortir depuis un wallet web3 signe le burn Arc vous-même, c’est en cours. Utilisez un compte Karwan email pour sortir maintenant.',
     form: {
-      destinationEyebrow: 'Destination',
       amountEyebrow: 'Montant',
       fromArcCaption: 'Depuis Arc',
       faucetCta: 'Besoin d’USDC Arc ? Faucet',
@@ -5402,7 +5395,6 @@ export const fr: Messages = {
       recipientPlaceholder: '0x votre adresse sur la chaîne de destination',
       yourWallet: 'Votre portefeuille',
       addressInvalid: '• Erreur : adresse invalide',
-      submitTemplate: 'Envoyer vers {dest}',
       sending: 'Envoi…',
     },
     activityEyebrow: 'Activité',

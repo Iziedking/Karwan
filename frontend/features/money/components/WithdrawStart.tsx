@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
+import { Button } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { fill } from '@/features/deals/workspace/presentation';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { formatAmount } from '../balanceModel';
 import { withdrawReady, type WithdrawDestination } from '../withdrawStart';
-
-const PRIMARY =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2';
 
 /// Withdraw, first screen (view 44, P8): how much, and where it goes. A wallet
 /// or exchange carries the amount and address into the existing out rail;
@@ -32,26 +31,27 @@ export function WithdrawStart({ onWallet }: { onWallet: (amount: number, address
     else onWallet(Number(amount.trim()), address.trim());
   }
 
-  const choice = (id: WithdrawDestination, title: string, line: string) => (
+  // One card of choices (Figma, Batch 9 · Withdraw): a ring for the pick, no sublines.
+  const choice = (id: WithdrawDestination, title: string) => (
     <button
       type="button"
       role="radio"
       aria-checked={destination === id}
       onClick={() => setDestination(id)}
-      className={cn(
-        'flex w-full flex-col items-start rounded-[16px] border p-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
-        destination === id ? 'border-[var(--lp-dark)] bg-[var(--lp-card)]' : 'border-[var(--lp-border-light)] bg-[var(--lp-card)]',
-      )}
+      className="flex min-h-[52px] w-full items-center gap-3 py-3.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
     >
-      <span className="text-[16px] font-semibold text-[var(--lp-dark)]">{title}</span>
-      <span className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{line}</span>
+      <span
+        aria-hidden
+        className={cn('size-5 shrink-0 rounded-full border', destination === id ? 'border-[6px] border-[var(--ink)]' : 'border-[1.5px] border-[var(--line-strong)]')}
+      />
+      <span className="text-[15px] font-medium text-[var(--ink)]">{title}</span>
     </button>
   );
 
   return (
     <div data-withdraw-start className="space-y-6">
       <label className="block">
-        <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.amount}</span>
+        <span className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.amount}</span>
         <span className="mt-1.5 flex items-baseline gap-2">
           <input
             inputMode="decimal"
@@ -59,24 +59,24 @@ export function WithdrawStart({ onWallet }: { onWallet: (amount: number, address
             onChange={(e) => setAmount(e.target.value.replace(',', '.'))}
             placeholder="0.00"
             aria-describedby="withdraw-available"
-            className="form-input block w-full text-[28px] font-semibold tabular-nums"
+            className="amount-input block w-full min-w-0 bg-transparent text-[34px] font-semibold leading-[1.1] tracking-[-0.03em] tabular-nums text-[var(--ink)] placeholder:text-[var(--ink-muted)] focus:outline-none"
           />
-          <span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+          <span className="text-[19px] font-semibold text-[var(--ink-secondary)]">USDC</span>
         </span>
-        <span id="withdraw-available" className={cn('mt-1.5 block text-[14px]', over ? 'font-semibold text-[var(--color-critical)]' : 'text-[var(--lp-text-sub)]')}>
-          {over ? t.over : balance !== null ? fill(t.available, { amount: formatAmount(balance, locale) }) : ' '}
+        <span id="withdraw-available" className={cn('mt-1.5 block text-[14px]', over ? 'font-semibold text-[var(--color-critical)]' : 'text-[var(--ink-secondary)]')}>
+          {over ? t.over : balance !== null ? fill(t.available, { amount: formatAmount(balance, locale) }) : ' '}
         </span>
       </label>
       <fieldset>
-        <legend className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.whereTitle}</legend>
-        <div role="radiogroup" aria-label={t.whereTitle} className="mt-2 grid gap-2 sm:grid-cols-2">
-          {choice('wallet', t.toWallet, t.toWalletLine)}
-          {choice('karwan', t.toKarwan, t.toKarwanLine)}
+        <legend className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.whereTitle}</legend>
+        <div role="radiogroup" aria-label={t.whereTitle} className={`${CARD_CLASS} mt-2 divide-y divide-[var(--line)] px-5`}>
+          {choice('wallet', t.toWallet)}
+          {choice('karwan', t.toKarwan)}
         </div>
       </fieldset>
       {destination === 'wallet' ? (
         <label className="block">
-          <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.pasteAddress}</span>
+          <span className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.pasteAddress}</span>
           <input
             value={address}
             onChange={(e) => setAddress(e.target.value)}
@@ -84,14 +84,14 @@ export function WithdrawStart({ onWallet }: { onWallet: (amount: number, address
             spellCheck={false}
             autoComplete="off"
             placeholder="0x"
-            className="form-input mt-1.5 block w-full font-mono text-[15px]"
+            className="form-input mt-2 block w-full font-mono text-[15px]"
           />
           {badAddress ? <span role="alert" className="mt-1.5 block text-[14px] text-[var(--color-critical)]">{t.badAddress}</span> : null}
         </label>
       ) : null}
-      <button type="button" disabled={!check.ok} onClick={go} className={PRIMARY}>
+      <Button type="button" size="lg" disabled={!check.ok} onClick={go} className="w-full">
         {check.ok && destination === 'wallet' ? fill(t.withdrawCta, { amount: formatAmount(Number(amount), locale) }) : t.continueCta}
-      </button>
+      </Button>
     </div>
   );
 }

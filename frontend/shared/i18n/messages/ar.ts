@@ -5384,15 +5384,8 @@ export const ar: Messages = {
     },
   },
   bridgeOut: {
-    header: {
-      eyebrow: 'إرسال للخارج',
-      title: 'السحب من Arc',
-      subtitle: 'إلى أي شبكة مدعومة',
-    },
-    reassurance: 'تصل أموالك إلى الشبكة التي تختارها.',
     web3Fallback: 'الإرسال من محفظة web3 يتطلّب أن توقّع حرق Arc بنفسك، وهي ميزة قادمة قريبًا. استخدم حساب Karwan بالبريد للإرسال الآن.',
     form: {
-      destinationEyebrow: 'الوجهة',
       amountEyebrow: 'المبلغ',
       fromArcCaption: 'من ARC',
       faucetCta: 'تحتاج USDC على Arc؟ الصنبور',
@@ -5402,7 +5395,6 @@ export const ar: Messages = {
       recipientPlaceholder: '0x عنوانك على سلسلة الوجهة',
       yourWallet: 'محفظتك',
       addressInvalid: '• خطأ: العنوان غير صالح',
-      submitTemplate: 'إرسال إلى {dest}',
       sending: 'جارٍ الإرسال…',
     },
     activityEyebrow: 'النشاط',

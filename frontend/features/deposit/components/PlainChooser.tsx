@@ -2,53 +2,50 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Icon, type IconName } from '@/shared/components/Icon';
+import { Icon } from '@/shared/components/Icon';
+import { Button } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { cn } from '@/shared/utils/cn';
 import type { PlainOption } from '../plainSteps';
 
-const CARD =
-  'flex w-full items-center gap-4 rounded-[18px] border p-4 text-start transition-[transform,border-color,background-color] duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]';
-
-/// One plain question with a card per way that works for this account (view
-/// 19, Money board). A card opens a page, or tells the page which panel to
-/// show; a coming one says so and has nothing to press.
-export function PlainChooser<Id extends string>({ question, options, words, icons, onPick }: {
+/// One plain question, then one card with a row per way that works for this
+/// account (view 19, Money board; Figma, Batch 9 · Add money). A row opens a
+/// page, or tells the page which panel to show; a coming one says so and has
+/// nothing to press.
+export function PlainChooser<Id extends string>({ question, options, words, onPick }: {
   question: string;
   options: PlainOption<Id>[];
-  words: (id: Id) => { label: string; note: string };
-  icons: Record<Id, IconName>;
+  words: (id: Id) => { label: string };
   onPick: (option: PlainOption<Id>) => void;
 }) {
   const t = useTranslations().plainMoney;
+  const row = 'flex min-h-[52px] w-full items-center gap-3 py-3.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]';
   return (
     <section aria-labelledby="plain-question">
-      <h2 id="plain-question" className="text-[20px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{question}</h2>
-      <ul className="mt-4 flex flex-col gap-2.5">
-        {options.map((o, i) => {
-          const w = words(o.id);
+      <h2 id="plain-question" className="text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-[var(--ink)]">{question}</h2>
+      <ul className={`${CARD_CLASS} mt-5 divide-y divide-[var(--line)] px-5`}>
+        {options.map((o) => {
+          const label = words(o.id).label;
+          if (o.soon) {
+            return (
+              <li key={o.id} className={row}>
+                <span className="min-w-0 flex-1 text-[15px] font-medium text-[var(--ink-muted)]">{label}</span>
+                <span className="shrink-0 text-[14px] text-[var(--ink-muted)]">{t.soon}</span>
+              </li>
+            );
+          }
           const inner = (
             <>
-              <span aria-hidden className={cn('grid size-11 shrink-0 place-items-center rounded-[12px]', i === 0 && !o.soon ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]')}>
-                <Icon name={icons[o.id]} size={20} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className={cn('block text-[16px] font-semibold', o.soon ? 'text-[var(--lp-text-sub)]' : 'text-[var(--lp-dark)]')}>{w.label}</span>
-                <span className="mt-0.5 block text-[14px] font-medium leading-snug text-[var(--lp-text-sub)]">{w.note}</span>
-              </span>
-              {o.soon ? <span className="shrink-0 rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.soon}</span> : null}
+              <span className="min-w-0 flex-1 text-[15px] font-medium text-[var(--ink)]">{label}</span>
+              <Icon name="chevron-right" size={20} directional className="shrink-0 text-[var(--ink-secondary)]" />
             </>
           );
-          if (o.soon) {
-            return <li key={o.id} className={cn(CARD, 'border-dashed border-[var(--lp-border-light)]')}>{inner}</li>;
-          }
-          const live = cn(CARD, 'border-[var(--lp-border-light)] bg-[var(--lp-card)] hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] motion-reduce:hover:translate-y-0');
           return (
             <li key={o.id}>
               {o.opens && 'href' in o.opens ? (
-                <Link href={o.opens.href} className={live}>{inner}</Link>
+                <Link href={o.opens.href} className={row}>{inner}</Link>
               ) : (
-                <button type="button" onClick={() => onPick(o)} className={live}>{inner}</button>
+                <button type="button" onClick={() => onPick(o)} className={row}>{inner}</button>
               )}
             </li>
           );
@@ -63,21 +60,22 @@ export function ExchangePanel({ address }: { address: string }) {
   const t = useTranslations().plainMoney;
   const [copied, setCopied] = useState(false);
   return (
-    <section aria-labelledby="exchange-title" className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
-      <h2 id="exchange-title" className="text-[18px] font-semibold text-[var(--lp-dark)]">{t.exchangeTitle}</h2>
-      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{t.exchangeBody}</p>
-      <div className="mt-4 flex items-center gap-2 rounded-[14px] border border-[var(--lp-outline-strong)] bg-[var(--lp-light)] py-2 pe-2 ps-3.5">
-        <span className="min-w-0 flex-1 break-all text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">{address}</span>
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(address).then(() => setCopied(true)).catch(() => {});
-          }}
-          className="min-h-11 shrink-0 rounded-[10px] bg-[var(--lp-accent)] px-4 text-[14px] font-semibold text-[var(--accent-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
-        >
-          {copied ? t.copied : t.copy}
-        </button>
+    <section aria-labelledby="exchange-title">
+      <h2 id="exchange-title" className="text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-[var(--ink)]">{t.exchangeTitle}</h2>
+      <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">{t.exchangeBody}</p>
+      <div className={`${CARD_CLASS} mt-5 p-5`}>
+        <span dir="ltr" className="block break-all text-[17px] font-medium tabular-nums text-[var(--ink)]">{address}</span>
       </div>
+      <Button
+        type="button"
+        size="lg"
+        className="mt-6 w-full"
+        onClick={() => {
+          void navigator.clipboard?.writeText(address).then(() => setCopied(true)).catch(() => {});
+        }}
+      >
+        {copied ? t.copied : t.copy}
+      </Button>
     </section>
   );
 }

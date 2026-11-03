@@ -5381,15 +5381,8 @@ export const sw: Messages = {
     },
   },
   bridgeOut: {
-    header: {
-      eyebrow: 'Peleka nje',
-      title: 'Toa kutoka Arc',
-      subtitle: 'Kwenda mtandao wowote unaotumika',
-    },
-    reassurance: 'Pesa zako zinafika kwenye mnyororo unaouchagua.',
     web3Fallback: 'Kupeleka nje kutoka pochi ya web3 unahitaji kutia saini burn ya Arc mwenyewe, hii inakuja hivi karibuni. Tumia akaunti ya Karwan ya barua pepe kupeleka nje sasa.',
     form: {
-      destinationEyebrow: 'Mahali pa kwenda',
       amountEyebrow: 'Kiasi',
       fromArcCaption: 'Kutoka Arc',
       faucetCta: 'Unahitaji USDC ya Arc? Faucet',
@@ -5399,7 +5392,6 @@ export const sw: Messages = {
       recipientPlaceholder: '0x anwani yako kwenye mnyororo wa kufika',
       yourWallet: 'Wallet yako',
       addressInvalid: '• Hitilafu: anwani si halali',
-      submitTemplate: 'Tuma kwa {dest}',
       sending: 'Inatuma…',
     },
     activityEyebrow: 'Shughuli',

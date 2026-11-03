@@ -8,13 +8,9 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import { FitLine } from '@/shared/components/FitLine';
-
-const PRIMARY =
-  'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
-const SECONDARY =
-  'inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
-const INPUT =
-  'min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[16px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+import { Button, buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { FactRows } from '@/shared/components/FactRows';
 
 /// Adding money, with the bridge left underneath.
 ///
@@ -55,6 +51,7 @@ interface Deposit {
 
 export function DepositCard() {
   const t = useTranslations().deposit;
+  const mp = useTranslations().moneyPage;
   const { address } = useAuth();
   const refreshMoney = useMoneyRefresh();
   const [group, setGroup] = useState<Group>('evm');
@@ -183,41 +180,33 @@ export function DepositCard() {
         </div>
       ) : null}
 
-      <div className="mt-6 flex flex-col sm:flex-row sm:items-start gap-6">
+      {/* The address, then what it takes, as facts (Figma, Batch 9 · Your address). */}
+      <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-start">
         {shown ? <Qr value={shown} label={t.qrAlt} /> : null}
-
         <div className="min-w-0 flex-1">
-          <span className="text-[14px] font-medium text-[var(--ink-secondary)]">
-            {t.addressLabel}
-          </span>
+          <span className="text-[14px] text-[var(--ink-secondary)]">{t.addressLabel}</span>
           {/* The whole address on one line where it fits, never truncated. A
               shortened address is fine as a reference and useless as a
               destination, and this one is a destination. */}
-          {shown ? <FitLine text={shown} className="mt-2 leading-[1.6] font-medium text-[var(--ink)]" /> : null}
-
-          <button
-            type="button"
-            onClick={copy}
-            className={`mt-4 ${PRIMARY}`}
-          >
-            {copied ? t.copied : t.copy}
-          </button>
-
-          <Link href="/request" className={`mt-3 ${SECONDARY}`}>
-            {t.request.title}
-          </Link>
-
-          <div className="mt-6">
-            <span className="text-[14px] font-medium text-[var(--ink-secondary)]">
-              {t.acceptsLabel}
-            </span>
-            <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
-              {group === 'solana' ? t.groups.solana : evm.map((chain) => chain.name).join(', ')}
-            </p>
-          </div>
+          {shown ? <FitLine text={shown} className="mt-1 leading-[1.6] font-medium text-[var(--ink)]" /> : null}
         </div>
       </div>
-
+      <div data-deposit-facts className="mt-4 border-t border-[var(--line)]">
+        <FactRows
+          facts={[
+            { id: 'networks', label: t.acceptsLabel, value: group === 'solana' ? t.groups.solana : evm.map((chain) => chain.name).join(', ') },
+            { id: 'money', label: mp.moneyLabel, value: mp.usdcOnly },
+          ]}
+        />
+      </div>
+      <div className="mt-5 flex flex-col gap-2">
+        <Button type="button" size="lg" onClick={copy} className="w-full">
+          {copied ? t.copied : t.copy}
+        </Button>
+        <Link href="/request" className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>
+          {t.request.title}
+        </Link>
+      </div>
       <div className="mt-7 border-t border-[var(--line)] pt-5">
         {deposits.length > 0 ? (
           <ul className="space-y-3" role="status" aria-live="polite">
@@ -321,7 +310,7 @@ function GroupHalf({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`min-h-11 flex-1 rounded-full px-5 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] ${active ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink-secondary)] hover:bg-[var(--line)]'}`}
+      className={`min-h-11 flex-1 rounded-full px-5 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${active ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--ash)] text-[var(--ink-secondary)] hover:bg-[var(--line)]'}`}
     >
       {children}
     </button>
@@ -358,7 +347,7 @@ function DepositRow({
   };
 }) {
   const { stage } = deposit;
-  const tone = stage === 'stuck' ? 'var(--color-warning)' : stage === 'arrived' ? 'var(--color-positive)' : 'var(--ink-secondary)';
+  const tone = stage === 'stuck' ? 'var(--color-warning)' : stage === 'arrived' ? 'var(--ink)' : 'var(--ink-secondary)';
   return (
     <li className="flex items-center justify-between gap-4 fade-up motion-reduce:animate-none" style={{ animationDuration: 'var(--dur-panel)', animationTimingFunction: 'var(--ease-ui)' }}>
       <span className="flex items-center gap-2.5 min-w-0">
@@ -395,7 +384,7 @@ function Shell({
   return (
     <div
       data-guide={dataGuide}
-      className="rounded-[20px] bg-[var(--surface)] p-6 sm:p-8"
+      className={`${CARD_CLASS} p-5 sm:p-6`}
     >
       {children}
     </div>

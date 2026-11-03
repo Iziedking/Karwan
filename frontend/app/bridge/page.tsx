@@ -10,6 +10,8 @@ import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySection';
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { NetworkHint } from '@/shared/components/NetworkContext';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
@@ -18,7 +20,6 @@ import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { ExchangePanel, PlainChooser } from '@/features/deposit/components/PlainChooser';
 import { addOptions, withdrawOptions, type AddOptionId, type PlainOption, type WithdrawOptionId } from '@/features/deposit/plainSteps';
-import type { IconName } from '@/shared/components/Icon';
 import {
   defaultRail,
   railsFor,
@@ -190,8 +191,7 @@ function BridgePageInner() {
           />
         </div>
         <header className="max-w-[620px] pb-6">
-          <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{messages.accountHome.balanceLabel}</p>
-          <div className="mt-1 flex items-center"><h1 className="text-[32px] sm:text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">{pageTitle}</h1><NetworkHint /></div>
+          <div className="flex items-center"><h1 className="text-[26px] font-semibold leading-[1.2] tracking-[-0.02em] text-[var(--ink)]">{pageTitle}</h1><NetworkHint /></div>
         </header>
 
         <div className="max-w-xl">
@@ -206,7 +206,6 @@ function BridgePageInner() {
                   question={plain.addQuestion}
                   options={addOptions(account, ARC_NETWORK === 'testnet' ? 'testnet' : 'mainnet')}
                   words={(id) => plain.add[id]}
-                  icons={ADD_ICONS}
                   onPick={setPicked}
                 />
               ) : withdrawTo && ownWalletRail ? (
@@ -258,13 +257,6 @@ function BridgePageInner() {
   );
 }
 
-const ADD_ICONS: Record<AddOptionId, IconName> = {
-  faucet: 'coins',
-  address: 'arrow-down-left',
-  card: 'wallet',
-  fromWallet: 'wallet',
-  fromExchange: 'arrow-down-left',
-};
 
 /// The panel for one rail. Every branch is a component that already owns that
 /// movement, including its own balance reads and its own errors; nothing is
@@ -299,7 +291,7 @@ function RailPanel({
   }
   return direction === 'in' ? (
     <BridgeCard agents={agents} prefillRecipient={prefillRecipient} prefillAmount={prefillAmount} />
-  ) : <BridgeOutCard />;
+  ) : <BridgeOutCard prefillAmount={prefillAmount} prefillRecipient={prefillRecipient} />;
 }
 
 /// A rail that is real and not open yet. It says what it will do and offers no
@@ -314,39 +306,17 @@ function ComingSoonPanel({
   soon: string;
 }) {
   return (
-    <div
-      className="rounded-[20px] bg-[var(--surface)] p-5 sm:p-6"
-      style={{
-        background: 'var(--surface)',
-          borderRadius: 20,
-      }}
-    >
-      <span
-        className="inline-flex rounded-full bg-[var(--tint)] px-3 py-1 text-[14px] text-[var(--ink-secondary)] font-medium"
-
-      >
-        {soon}
-      </span>
-      <p className="mt-4 text-[17px] font-medium text-[var(--ink)]">{action}</p>
-      <p className="mt-2 max-w-[46ch] text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
-        {body}
-      </p>
+    <div className={`${CARD_CLASS} p-5 sm:p-6`}>
+      <p className="text-[14px] text-[var(--ink-muted)]">{soon}</p>
+      <p className="mt-2 text-[17px] font-medium text-[var(--ink)]">{action}</p>
+      <p className="mt-2 max-w-[46ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{body}</p>
     </div>
   );
 }
 
 function HistoryButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--tint)] px-5 py-3 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] sm:w-auto"
-      style={{
-        background: 'var(--tint)',
-        color: 'var(--ink)',
-        borderRadius: 999,
-      }}
-    >
+    <button type="button" onClick={onClick} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
       {label}
     </button>
   );

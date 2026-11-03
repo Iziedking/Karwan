@@ -41,6 +41,8 @@ import { routeSpeed, stepForPhase } from '../routePlan';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { LpHint } from '@/shared/components/LpHint';
+import { Button } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { PageTour } from '@/shared/guide/PageTour';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { completedBridgeLabel } from './bridgeHistoryPresentation';
@@ -52,21 +54,12 @@ const STEP_ORDER: BridgePhase[] = ['approving', 'burning', 'attesting', 'minting
 
 // Curated tones. match the deal palette so the bridge ties back visually.
 const TONE_HEX = {
-  live: 'var(--lp-accent)',
-  positive: 'var(--lp-accent)',
+  live: 'var(--ink)',
+  positive: 'var(--ink)',
   critical: '#b03d3a',
   warning: '#b25425',
 } as const;
 
-const CARD_STYLE = {
-  background: 'var(--lp-card)',
-  color: 'var(--lp-dark)',
-  border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 22,
-  borderTopRightRadius: 22,
-  borderBottomLeftRadius: 22,
-  borderBottomRightRadius: 5,
-} as const;
 
 function stepIndexFor(phase: BridgePhase): number {
   if (phase === 'error') return -1;
@@ -678,7 +671,7 @@ export function BridgeCard({
   /// rather than render the picker against an empty option set.
   if (!identityAddress && !buyerAgent && !sellerAgent && !(prefillRecipient && isAddress(prefillRecipient))) {
     return (
-      <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
+      <div className={`${CARD_CLASS} p-5`}>
         <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {bc.eyebrow.bridge}
         </span>
@@ -692,35 +685,18 @@ export function BridgeCard({
   const activeCount = inBridges.filter((b) => isActive(b.phase)).length;
 
   return (
-    <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
+    <div className="flex flex-col">
       {/* The page heading already names this task; the card starts at the form. */}
-      <div className="px-6 pt-6 pb-4 flex items-start justify-end gap-4">
+      <div className="flex items-start justify-end gap-4 empty:hidden">
         {activeCount > 0 && (
-          <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[14px] font-bold shrink-0"
-            style={{
-              background: 'rgba(175, 201, 91,0.10)',
-              color: 'var(--lp-dark)',
-              border: '1px solid rgba(175, 201, 91,0.35)',
-              borderRadius: 6,
-            }}
-          >
-            <span className="relative flex size-1.5">
-              <span
-                className="absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping"
-                style={{ background: 'var(--lp-accent)' }}
-              />
-              <span
-                className="relative inline-flex size-1.5 rounded-full"
-                style={{ background: 'var(--lp-accent)' }}
-              />
-            </span>
+          <span className="mb-4 inline-flex items-center gap-2 text-[14px] font-medium text-[var(--ink)]">
+            <span aria-hidden className="size-2 rounded-full bg-[var(--ink)] motion-safe:animate-pulse motion-reduce:animate-none" />
             {bc.inFlightTemplate.replace('{n}', String(activeCount))}
           </span>
         )}
       </div>
 
-      <div className="px-6 pb-6">
+      <div>
         {solanaDepositPath && auth.address && (
           <SolanaDepositBanner userAddress={auth.address} copy={bc.solanaFund} />
         )}
@@ -774,12 +750,7 @@ export function BridgeCard({
           {/* AMOUNT INPUT */}
           <div
             data-guide="bridge-amount"
-            className="bridge-amount transition-shadow"
-            style={{
-              background: 'var(--lp-card)',
-              border: '1px solid var(--lp-border-light)',
-              borderRadius: 12,
-            }}
+            className="bridge-amount rounded-[var(--radius-input)] border border-[var(--line)] bg-[var(--surface)] transition-colors focus-within:border-[var(--ink)]"
           >
             <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
               <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
@@ -811,19 +782,13 @@ export function BridgeCard({
                 step="any"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="no-spinner flex-1 bg-transparent font-sans text-[32px] font-extrabold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] min-w-0 text-[var(--lp-dark)]"
+                className="amount-input no-spinner flex-1 bg-transparent font-sans text-[28px] font-semibold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] min-w-0 text-[var(--lp-dark)]"
                 placeholder="0"
               />
-              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] font-semibold">
+              <span className="mono text-[14px] text-[var(--lp-text-muted)] font-semibold">
                 USDC
               </span>
             </div>
-            <style jsx>{`
-              .bridge-amount:focus-within {
-                border-color: var(--lp-dark);
-                box-shadow: 0 0 0 3px rgba(175, 201, 91, 0.25);
-              }
-            `}</style>
           </div>
 
           {/* DESTINATION. The default flow lands the money in the user's own
@@ -881,67 +846,29 @@ export function BridgeCard({
           {/* PRIMARY ACTION. Connect a wallet first; once connected (or in the
               Circle deposit fallback) the same slot submits the top-up. */}
           {needsConnect ? (
-            <button
-              type="button"
-              data-guide="bridge-submit"
-              onClick={() => openConnectModal?.()}
-              className="group relative min-h-[45px] w-full px-4 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
-              style={{
-                background: 'var(--lp-accent)',
-                color: 'var(--accent-ink)',
-                borderRadius: 14,
-                boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
-              }}
-            >
-              <span>{bc.connect.cta}</span>
-              <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            </button>
+            <Button type="button" data-guide="bridge-submit" size="lg" onClick={() => openConnectModal?.()} className="w-full">
+              {bc.connect.cta}
+            </Button>
           ) : (
-            <button
+            <Button
               type="submit"
               data-guide="bridge-submit"
-              disabled={!canSubmit || startingBridge}
-              aria-busy={startingBridge}
-              className="group relative min-h-[45px] w-full px-4 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
-              style={{
-                background: 'var(--lp-accent)',
-                color: 'var(--accent-ink)',
-                borderRadius: 14,
-                boxShadow: canSubmit && !startingBridge ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
-                opacity: startingBridge ? 0.75 : !canSubmit ? 0.4 : 1,
-              }}
+              size="lg"
+              disabled={!canSubmit}
+              loading={startingBridge}
+              loadingLabel={bc.submit.starting}
+              className="w-full"
             >
-              <span>
-                {/* The label has to change. Leaving it on "Add money from X"
-                    while the transfer runs, with only a 14px arrow spinning,
-                    read as though the click had done nothing. */}
-                {startingBridge
-                  ? bc.submit.starting
-                  : appKitPath || depositPath
-                    ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
-                    : isSwitching
-                      ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
-                      : onWrongChain
-                        ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
-                        : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
-              </span>
-              <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
-                {startingBridge ? (
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="animate-spin">
-                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.8" strokeOpacity="0.25" />
-                    <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </span>
-            </button>
+              {/* The label names the move. While it starts it turns, so the
+                  click never reads as though nothing happened. */}
+              {appKitPath || depositPath
+                ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
+                : isSwitching
+                  ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
+                  : onWrongChain
+                    ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
+                    : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
+            </Button>
           )}
 
           <div className="flex justify-center">
@@ -1040,10 +967,10 @@ export function BridgeRow({
             number first, route + time as a quiet subtitle below. */}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 min-w-0">
-            <span className="font-sans text-[22px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
+            <span className="font-sans text-[22px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(bridge.amountUsdc, { withSuffix: false })}
             </span>
-            <span className="text-[14px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
+            <span className="text-[14px] mono text-[var(--lp-text-muted)] leading-none">
               USDC
             </span>
           </div>
@@ -1130,7 +1057,7 @@ export function BridgeRow({
                   rel="noreferrer"
                   className="flex items-baseline justify-between gap-3 text-[14px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors font-medium"
                 >
-                  <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  <span className="mono text-[var(--lp-text-muted)]">
                     {copy.burnLabelTemplate.replace(
                       '{chain}',
                       (isOut ? 'Arc' : meta.shortName).toUpperCase(),
@@ -1153,7 +1080,7 @@ export function BridgeRow({
                   rel="noreferrer"
                   className="flex items-baseline justify-between gap-3 text-[14px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors font-medium"
                 >
-                  <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  <span className="mono text-[var(--lp-text-muted)]">
                     {isOut
                       ? copy.mintLabelOutTemplate.replace('{chain}', meta.shortName.toUpperCase())
                       : copy.mintLabel}
@@ -1178,10 +1105,10 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onRecheck}
-                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-colors"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] font-bold transition-colors"
                 style={{
-                  background: 'var(--lp-accent)',
-                  color: 'var(--accent-ink)',
+                  background: 'var(--ash)',
+                  color: 'var(--ink)',
                   borderRadius: 8,
                 }}
               >
@@ -1192,7 +1119,7 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onRetry}
-                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-90"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] font-bold transition-opacity hover:opacity-90"
                 style={{
                   background: 'var(--lp-control-active-bg)',
                   color: 'var(--lp-control-active-ink)',
@@ -1206,7 +1133,7 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded font-medium"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded font-medium"
               >
                 {copy.dismiss}
               </button>
@@ -1233,7 +1160,7 @@ function SegmentedProgress({
       ? TONE_HEX.positive
       : tone === 'critical'
         ? TONE_HEX.critical
-        : 'var(--lp-accent)';
+        : 'var(--ink)';
 
   return (
     <div className="flex items-center gap-1">
@@ -1310,14 +1237,14 @@ function BridgeSteps({
         const tileBg = done
           ? TONE_HEX.positive
           : active
-            ? 'rgba(175, 201, 91,0.12)'
+            ? 'var(--raised)'
             : failedHere
               ? TONE_HEX.critical
               : 'var(--lp-card)';
         const tileBorder = done
           ? TONE_HEX.positive
           : active
-            ? 'var(--lp-accent)'
+            ? 'var(--ink)'
             : failedHere
               ? TONE_HEX.critical
               : 'var(--lp-border-light)';
@@ -1325,7 +1252,7 @@ function BridgeSteps({
         const ledColor = done
           ? TONE_HEX.positive
           : active
-            ? 'var(--lp-accent)'
+            ? 'var(--ink)'
             : failedHere
               ? TONE_HEX.critical
               : 'rgba(0,0,0,0.10)';
@@ -1354,7 +1281,7 @@ function BridgeSteps({
             </span>
             <div className="flex-1 min-w-0 pt-1 flex items-center justify-between gap-3 flex-wrap">
               <span
-                className={`mono text-[14px] uppercase tracking-[0.14em] ${
+                className={`mono text-[14px] ${
                   done || active
                     ? 'text-[var(--lp-dark)] font-bold'
                     : 'text-[var(--lp-text-muted)] font-semibold'
@@ -1442,16 +1369,16 @@ function StatusPill({
         : 'var(--lp-dark)';
   const bg =
     tone === 'positive'
-      ? 'rgba(175,201,91,0.12)'
+      ? 'var(--raised)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.12)'
-        : 'rgba(175,201,91,0.20)';
+        : 'var(--raised)';
   const border =
     tone === 'positive'
-      ? 'rgba(175,201,91,0.38)'
+      ? 'var(--line-strong)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.30)'
-        : 'rgba(175,201,91,0.50)';
+        : 'var(--line-strong)';
   return (
     <span
       className="shrink-0 inline-flex items-center text-[14px] font-bold leading-none px-2.5 py-1.5 whitespace-nowrap"
@@ -1487,22 +1414,22 @@ function PhaseChip({
         : 'var(--lp-dark)';
   const bg =
     tone === 'positive'
-      ? 'rgba(175,201,91,0.10)'
+      ? 'var(--raised)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.10)'
-        : 'rgba(175, 201, 91,0.14)';
+        : 'var(--raised)';
   const border =
     tone === 'positive'
-      ? 'rgba(175,201,91,0.42)'
+      ? 'var(--line-strong)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.35)'
-        : 'rgba(175, 201, 91,0.45)';
+        : 'var(--line-strong)';
   const led =
     tone === 'positive'
       ? TONE_HEX.positive
       : tone === 'critical'
         ? TONE_HEX.critical
-        : 'var(--lp-accent)';
+        : 'var(--ink)';
   return (
     <span
       className="inline-flex items-stretch overflow-hidden text-[14px] font-bold leading-none"
@@ -1588,7 +1515,7 @@ function CircleSourceFundBanner({
   const usdc = wallet?.usdcBalance != null ? Number(wallet.usdcBalance) : null;
   const funded = usdc != null && usdc > 0;
   const empty = usdc != null && usdc <= 0;
-  const accent = empty ? TONE_HEX.warning : 'var(--lp-accent)';
+  const accent = empty ? TONE_HEX.warning : 'var(--ink)';
 
   const statusLine = !wallet
     ? copy.statusChecking
@@ -1613,9 +1540,9 @@ function CircleSourceFundBanner({
           <span
             className="inline-flex items-center gap-1.5 px-1.5 py-[3px] text-[14px] font-bold leading-none"
             style={{
-              background: funded ? 'rgba(175,201,91,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(175, 201, 91, 0.18)',
-              color: funded ? TONE_HEX.positive : empty ? TONE_HEX.warning : 'var(--lp-band-dark)',
-              border: `1px solid ${funded ? 'rgba(175,201,91,0.42)' : empty ? 'rgba(178,84,37,0.35)' : 'var(--lp-accent)'}`,
+              background: funded ? 'var(--raised)' : empty ? 'rgba(178,84,37,0.12)' : 'var(--raised)',
+              color: funded ? TONE_HEX.positive : empty ? TONE_HEX.warning : 'var(--ink)',
+              border: `1px solid ${funded ? 'var(--line-strong)' : empty ? 'rgba(178,84,37,0.35)' : 'var(--ink)'}`,
               borderRadius: 4,
             }}
           >
@@ -1633,7 +1560,7 @@ function CircleSourceFundBanner({
             <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
               {copy.balanceHere}
             </p>
-            <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+            <p className="mt-0.5 font-sans text-[18px] font-semibold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
               {wallet?.usdcBalance == null ? '—' : formatUsdc(wallet.usdcBalance, { withSuffix: false })}
               <span className="ms-1 text-[14px] font-semibold text-[var(--ink-secondary)]">
                 USDC
@@ -1645,7 +1572,7 @@ function CircleSourceFundBanner({
               {copy.gas}
             </p>
             <p
-              className="mt-0.5 mono text-[14px] uppercase tracking-[0.12em] leading-none"
+              className="mt-0.5 mono text-[14px] leading-none"
               style={{ color: gasDry ? TONE_HEX.warning : TONE_HEX.positive }}
             >
               {gasSponsored ? copy.sponsored : gasDry ? copy.needed : copy.covered}
@@ -1666,8 +1593,8 @@ function CircleSourceFundBanner({
             disabled={!address || claiming}
             className="min-h-11 text-[14px] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
             style={{
-              background: 'var(--lp-accent)',
-              color: 'var(--lp-band-dark)',
+              background: 'var(--ash)',
+              color: 'var(--ink)',
               borderRadius: 6,
             }}
           >
@@ -1857,8 +1784,8 @@ function Web3FundHint({
             disabled={!fundAddress}
             className="min-h-11 text-[14px] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
             style={{
-              background: 'var(--lp-accent)',
-              color: 'var(--lp-band-dark)',
+              background: 'var(--ash)',
+              color: 'var(--ink)',
               borderRadius: 6,
             }}
           >
@@ -1876,9 +1803,9 @@ function Web3FundHint({
           disabled={!fundAddress}
           className="min-h-11 text-[14px] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
           style={{
-            borderColor: 'var(--lp-accent)',
-            color: 'var(--lp-band-dark)',
-            background: 'rgba(175, 201, 91, 0.18)',
+            borderColor: 'var(--line-strong)',
+            color: 'var(--ink)',
+            background: 'var(--raised)',
             borderRadius: 6,
           }}
         >
@@ -1972,9 +1899,9 @@ function RecipientPicker({
               aria-pressed={active}
               className="relative overflow-hidden text-start px-3 py-2.5 transition-colors"
               style={{
-                background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
+                background: active ? 'var(--raised)' : 'var(--lp-card)',
                 border: active
-                  ? '1px solid var(--lp-accent)'
+                  ? '1px solid var(--ink)'
                   : '1px solid var(--lp-border-light)',
                 borderRadius: 10,
                 opacity: disabled ? 0.5 : 1,
@@ -2045,16 +1972,16 @@ function RecipientPicker({
             <span
               className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2 py-1 text-[14px] whitespace-nowrap font-medium"
               style={{
-                background: 'rgba(175, 201, 91, 0.12)',
-                color: 'var(--lp-accent)',
-                border: '1px solid rgba(175, 201, 91, 0.38)',
+                background: 'var(--raised)',
+                color: 'var(--ink)',
+                border: '1px solid var(--line-strong)',
                 borderRadius: 4,
               }}
             >
               <span
                 aria-hidden
                 className="inline-block w-[5px] h-[5px]"
-                style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
+                style={{ background: 'var(--ink)', borderRadius: 1 }}
               />
               {copy.verify.verifiedEoa}
             </span>
@@ -2075,7 +2002,7 @@ function VerifyBanner({
   if (kind === 'idle') return null;
   const tone =
     kind === 'eoa'
-      ? { bg: 'rgba(175, 201, 91, 0.12)', text: 'var(--lp-accent)', border: 'rgba(175, 201, 91, 0.38)' }
+      ? { bg: 'var(--raised)', text: 'var(--ink)', border: 'var(--line-strong)' }
       : kind === 'contract' || kind === 'invalid'
         ? { bg: 'rgba(176, 61, 58, 0.10)', text: '#b03d3a', border: 'rgba(176, 61, 58, 0.30)' }
         : { bg: 'var(--lp-card)', text: 'var(--lp-text-sub)', border: 'var(--lp-border-light)' };
@@ -2297,7 +2224,7 @@ function SourceChainDropdown({
                       <span
                         aria-hidden
                         className="ms-auto inline-block w-[6px] h-[6px]"
-                        style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
+                        style={{ background: 'var(--ink)', borderRadius: 1 }}
                       />
                     )}
                   </button>

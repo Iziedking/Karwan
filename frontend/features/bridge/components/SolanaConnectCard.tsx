@@ -67,8 +67,8 @@ export function SolanaConnectCard({
           rel="noreferrer"
           className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-[14px] font-bold px-3 py-1.5"
           style={{
-            background: 'var(--lp-accent)',
-            color: 'var(--lp-band-dark)',
+            background: 'var(--ash)',
+            color: 'var(--ink)',
             borderRadius: 8,
           }}
         >
@@ -84,8 +84,8 @@ export function SolanaConnectCard({
           disabled={wallet.connecting}
           className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-[14px] font-bold px-3 py-1.5 disabled:opacity-50"
           style={{
-            background: 'var(--lp-accent)',
-            color: 'var(--lp-band-dark)',
+            background: 'var(--ash)',
+            color: 'var(--ink)',
             borderRadius: 8,
           }}
         >
@@ -103,7 +103,7 @@ export function SolanaConnectCard({
               </p>
             </div>
             <div className="text-end shrink-0">
-              <p className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+              <p className="font-sans text-[16px] font-semibold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
                 {wallet.usdcBalance == null ? '—' : formatUsdc(wallet.usdcBalance, { withSuffix: false })}
                 <span className="ms-1 text-[14px] font-semibold text-[var(--ink-secondary)]">
                   USDC
@@ -136,8 +136,8 @@ export function SolanaConnectCard({
                 onClick={() => void copyAndOpen(USDC_FAUCET!, 'usdc')}
                 className="min-h-11 text-[14px] font-bold inline-flex items-center gap-1 px-2.5 py-1"
                 style={{
-                  background: 'var(--lp-accent)',
-                  color: 'var(--lp-band-dark)',
+                  background: 'var(--ash)',
+                  color: 'var(--ink)',
                   borderRadius: 6,
                 }}
               >
@@ -150,9 +150,9 @@ export function SolanaConnectCard({
               onClick={() => void copyAndOpen(SOLANA_GAS_FAUCET, 'gas')}
               className="min-h-11 text-[14px] font-bold inline-flex items-center gap-1 px-2.5 py-1 border transition-colors"
               style={{
-                borderColor: 'var(--lp-accent)',
-                color: 'var(--lp-band-dark)',
-                background: 'rgba(175, 201, 91, 0.18)',
+                borderColor: 'var(--line-strong)',
+                color: 'var(--ink)',
+                background: 'var(--raised)',
                 borderRadius: 6,
               }}
             >
