@@ -41,6 +41,8 @@ function fields(): NotesFields {
     counterScheduleVersion: 1_700_000_000_000_002,
     parkedAgreement: null,
     escrowFunded: false,
+    pendingCounter: { seller: A, priceUsdc: '105', deadlineUnix: 3_000, deadlineDays: 5, round: 2, key: 'counter:0xjob:a:2' },
+    pendingProposal: { seller: B, priceUsdc: '140', humanChosen: true },
   };
 }
 
@@ -60,6 +62,8 @@ test('every kept field survives a round trip through the stored JSON', () => {
   assert.equal(back.counterScheduleVersion, 1_700_000_000_000_002);
   assert.equal(back.parkedAgreement, null);
   assert.deepEqual(back.shortlist, [{ seller: A, recommended: true }]);
+  assert.equal(back.pendingCounter?.key, 'counter:0xjob:a:2');
+  assert.equal(back.pendingProposal?.humanChosen, true);
   assert.deepEqual(toNotes(back), toNotes(fields()));
 });
 

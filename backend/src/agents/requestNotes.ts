@@ -16,6 +16,25 @@ export interface StandingLower {
   deadlineUnix: number;
 }
 
+/// A counter written down before it goes to the board. Its key makes the board
+/// apply it once, so after a restart it is sent again safely.
+export interface PendingCounter {
+  seller: string;
+  priceUsdc: string;
+  deadlineUnix: number;
+  deadlineDays: number;
+  round: number;
+  key: string;
+}
+
+/// A match written down before it is stored, so a restart between deciding and
+/// storing never leaves a request finished with no proposal.
+export interface PendingProposal {
+  seller: string;
+  priceUsdc: string;
+  humanChosen?: boolean;
+}
+
 export interface Parked {
   seller: string;
   priceUsdc: string;
@@ -52,6 +71,8 @@ export interface NotesFields {
   parkedAgreement?: Parked | null;
   latePreemptAttempted?: boolean;
   escrowFunded: boolean;
+  pendingCounter?: PendingCounter;
+  pendingProposal?: PendingProposal;
 }
 
 const bidSchema = z.object({
@@ -90,6 +111,19 @@ export const requestNotesSchema = z.object({
   parkedAgreement: z.object({ seller: z.string(), priceUsdc: z.string(), pattern: z.unknown().optional() }).strict().nullable().optional(),
   latePreemptAttempted: z.boolean().optional(),
   escrowFunded: z.boolean(),
+  pendingCounter: z.object({
+    seller: z.string().min(1),
+    priceUsdc: z.string().min(1),
+    deadlineUnix: z.number().int().positive(),
+    deadlineDays: z.number().int().positive(),
+    round: z.number().int().positive(),
+    key: z.string().min(1),
+  }).strict().optional(),
+  pendingProposal: z.object({
+    seller: z.string().min(1),
+    priceUsdc: z.string().min(1),
+    humanChosen: z.boolean().optional(),
+  }).strict().optional(),
 }).strict();
 
 export type RequestNotes = z.infer<typeof requestNotesSchema>;
@@ -125,6 +159,8 @@ export function toNotes(f: NotesFields): RequestNotes {
     ...opt('parkedAgreement', f.parkedAgreement),
     ...opt('latePreemptAttempted', f.latePreemptAttempted),
     escrowFunded: f.escrowFunded,
+    ...opt('pendingCounter', f.pendingCounter),
+    ...opt('pendingProposal', f.pendingProposal),
   });
 }
 
@@ -168,6 +204,8 @@ export function fromNotes(raw: unknown): NotesFields {
     ...opt('parkedAgreement', n.parkedAgreement as Parked | null | undefined),
     ...opt('latePreemptAttempted', n.latePreemptAttempted),
     escrowFunded: n.escrowFunded,
+    ...opt('pendingCounter', n.pendingCounter),
+    ...opt('pendingProposal', n.pendingProposal),
   };
 }
 

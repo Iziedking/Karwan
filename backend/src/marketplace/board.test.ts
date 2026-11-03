@@ -170,3 +170,32 @@ test('a request from the old board is read from the chain and copied in on its f
   assert.equal(r.state, 2);
   assert.equal(r.acceptedPrice, 4n, 'the offer placed on the old board is honoured');
 });
+
+test('a counter sent with a key is made once; sending it again returns the first one', async () => {
+  const { board, store } = setup();
+  const { jobId } = await post(board);
+  const later = BigInt(NOW) + DAY;
+  await board.placeOffer({ walletId: 's', seller: SELLER, jobId, price: 90_000_000n, deadline: later });
+  const counter = { walletId: 'b', buyer: BUYER, jobId, seller: SELLER, price: 80_000_000n, deadline: later, key: 'counter:job:seller:1' };
+  const first = await board.counter(counter);
+  assert.equal(first.replayed, false);
+  // The seller answers with their own price, which replaces the standing counter.
+  await board.respond({ walletId: 's', seller: SELLER, jobId, accept: false, price: 85_000_000n, deadline: later });
+  const again = await board.counter(counter);
+  assert.equal(again.replayed, true);
+  assert.equal(again.ref, first.ref);
+  const counters = (await store.eventsAfter(0, 100)).filter((e) => e.kind === 'CounterOfferIssued');
+  assert.equal(counters.length, 1);
+  assert.equal((await store.get(jobId))?.counters[SELLER.toLowerCase()]?.price, '85000000', 'the replay changed nothing');
+});
+
+test('a counter with a new key, the next round, is made', async () => {
+  const { board, store } = setup();
+  const { jobId } = await post(board);
+  const later = BigInt(NOW) + DAY;
+  await board.placeOffer({ walletId: 's', seller: SELLER, jobId, price: 90_000_000n, deadline: later });
+  await board.counter({ walletId: 'b', buyer: BUYER, jobId, seller: SELLER, price: 80_000_000n, deadline: later, key: 'counter:job:seller:1' });
+  const next = await board.counter({ walletId: 'b', buyer: BUYER, jobId, seller: SELLER, price: 82_000_000n, deadline: later, key: 'counter:job:seller:2' });
+  assert.equal(next.replayed, false);
+  assert.equal((await store.eventsAfter(0, 100)).filter((e) => e.kind === 'CounterOfferIssued').length, 2);
+});

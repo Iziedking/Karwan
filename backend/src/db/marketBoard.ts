@@ -45,8 +45,9 @@ export interface BoardStore {
   /// Adds a request read from the old board; a row already kept wins.
   seed(row: BoardRow): Promise<void>;
   /// Applies one step to a request under its lock and appends its event. `apply`
-  /// throws to refuse, and nothing is written.
-  update(jobId: Hex, apply: (row: BoardRow | null) => BoardChange): Promise<{ eventId: number }>;
+  /// throws to refuse, and nothing is written. With a `key`, a step already
+  /// applied under that key is not applied again: its event is returned.
+  update(jobId: Hex, apply: (row: BoardRow | null) => BoardChange, key?: string): Promise<{ eventId: number; replayed?: boolean }>;
   eventsAfter(id: number, limit: number): Promise<StoredBoardEvent[]>;
   latestEventId(): Promise<number>;
   postedSince(atMs: number): Promise<StoredBoardEvent[]>;
@@ -68,12 +69,16 @@ export function memoryBoardStore(): BoardStore {
     async seed(row) {
       if (!rows.has(key(row.jobId))) rows.set(key(row.jobId), copy(row));
     },
-    async update(jobId, apply) {
+    async update(jobId, apply, stepKey) {
+      if (stepKey) {
+        const seen = events.find((e) => key(e.jobId) === key(jobId) && e.args.key === stepKey);
+        if (seen) return { eventId: seen.id, replayed: true };
+      }
       const current = rows.get(key(jobId));
       const change = apply(current ? copy(current) : null);
       rows.set(key(jobId), copy(change.row));
       const id = events.length + 1;
-      events.push({ id, jobId, kind: change.event.kind, args: plain(change.event.args), at: Date.now() });
+      events.push({ id, jobId, kind: change.event.kind, args: plain({ ...change.event.args, ...(stepKey ? { key: stepKey } : {}) }), at: Date.now() });
       return { eventId: id };
     },
     async eventsAfter(id, limit) {
@@ -103,10 +108,17 @@ export function postgresBoardStore(): BoardStore {
         [row.jobId.toLowerCase(), row],
       );
     },
-    async update(jobId, apply) {
+    async update(jobId, apply, stepKey) {
       return withPostgresTransaction(async (tx) => {
         const id = jobId.toLowerCase();
         const res = await tx.query('SELECT data FROM market_requests WHERE job_id = $1 FOR UPDATE', [id]);
+        if (stepKey) {
+          const seen = await tx.query(
+            "SELECT id FROM market_board_events WHERE job_id = $1 AND data->>'key' = $2 LIMIT 1",
+            [id, stepKey],
+          );
+          if (seen.rows[0]) return { eventId: Number(seen.rows[0].id), replayed: true };
+        }
         const current = (res.rows[0]?.data as BoardRow | undefined) ?? null;
         const change = apply(current);
         if (current) {
@@ -121,7 +133,7 @@ export function postgresBoardStore(): BoardStore {
         }
         const ev = await tx.query(
           'INSERT INTO market_board_events (job_id, kind, data, at) VALUES ($1, $2, $3, $4) RETURNING id',
-          [id, change.event.kind, plain(change.event.args), Date.now()],
+          [id, change.event.kind, plain({ ...change.event.args, ...(stepKey ? { key: stepKey } : {}) }), Date.now()],
         );
         return { eventId: Number(ev.rows[0]!.id) };
       });

@@ -12,6 +12,7 @@ import { closedForOffers } from './offerWindow.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { marketBoard } from '../marketplace/chainBoard.js';
+import { BoardError } from '../marketplace/board.js';
 import {
   jobBoard,
   escrow,
@@ -88,7 +89,7 @@ import { countCleanDealsBetween } from './workRecord.js';
 import { pendingEvaluations } from './evaluationTracker.js';
 import { type CollectionClose, type LiveCollection, armClose } from './collectionClose.js';
 import { type CounterWait, type LiveCounter, armCounterWait } from './counterTimeout.js';
-import { type NotesFields, fromNotes, resumeAt, toNotes, withTerminalFacts } from './requestNotes.js';
+import { type NotesFields, type PendingCounter, type PendingProposal, fromNotes, resumeAt, toNotes, withTerminalFacts } from './requestNotes.js';
 import { NotesWriter } from './notesWriter.js';
 import { requestNotesStore } from '../db/requestNotes.js';
 
@@ -413,6 +414,10 @@ interface JobState {
   shadowRevision: number;
   /// The version of this request's notes row the agent last wrote or read (view 48, decision 8).
   notesVersion: number;
+  /// A counter or a match written down before it happens, so a restart in
+  /// between sends it once (view 48, decision 8).
+  pendingCounter?: PendingCounter;
+  pendingProposal?: PendingProposal;
   negotiationShadowRevision: number;
 }
 
@@ -1482,9 +1487,40 @@ function resumeOpenWaits(state: JobState): void {
   const closeAt = state.collectionFired ? null : resumeAt(state.collectionCloseAt, now);
   if (closeAt !== null) armCollectionClose(state, closeAt);
   const dueAt = resumeAt(state.counterWatchdogDueAt, now);
-  if (state.counterWatchdogSeller && dueAt !== null) {
+  if (state.counterWatchdogSeller && dueAt !== null && !state.pendingCounter) {
     armCounterWatchdog(state, state.counterWatchdogSeller, state.counterWatchdogRound ?? 1, dueAt);
   }
+  const counter = state.pendingCounter;
+  if (counter) safe('resumeCounter', () => resumeCounter(state, counter));
+  const proposal = state.pendingProposal;
+  if (proposal) safe('resumeProposal', () => resumeProposal(state, proposal));
+}
+
+/// A counter written down but maybe not sent when Karwan stopped. Sending it
+/// again under its key either finds it on the board or sends it now. A counter
+/// whose own deadline has passed cannot be sent; the agent moves on instead.
+async function resumeCounter(state: JobState, pending: PendingCounter): Promise<void> {
+  try {
+    await sendCounter(state, pending);
+  } catch (err) {
+    if (!(err instanceof BoardError)) throw err;
+    logger.warn({ jobId: state.jobId, seller: pending.seller, code: err.code }, 'written-down counter could not be sent after a restart, moving on');
+    state.pendingCounter = undefined;
+    notesChanged(state);
+    await tryNextCandidate(state, pending.seller as `0x${string}`, 'counter-not-sent');
+  }
+}
+
+/// A match decided but maybe not stored when Karwan stopped: stored now unless
+/// the same match is already there.
+async function resumeProposal(state: JobState, pending: PendingProposal): Promise<void> {
+  const stored = await dbGetMatchProposal(state.jobId);
+  if (stored && stored.sellerAgent.toLowerCase() === pending.seller.toLowerCase()) {
+    state.pendingProposal = undefined;
+    notesChanged(state);
+    return;
+  }
+  await proposeMatch(state, pending.seller as `0x${string}`, pending.priceUsdc, undefined, pending.humanChosen ? { allowSupersede: false } : undefined);
 }
 
 type DirectOfferLookup = (jobId: string, sellerAgent: string) => Promise<{ id: string } | null>;
@@ -3342,7 +3378,6 @@ async function issueCounter(state: JobState, bid: Bid) {
 
   const counterDeadlineUnix =
     Math.floor(Date.now() / 1000) + bid.suggestedCounterDeadlineDays * 86_400;
-  const counterPriceWei = parseUnits(counterUsdc, USDC_DECIMALS);
 
   // Keep the brief's working deadline in step with the negotiation. A counter
   // routinely proposes a later delivery date than the original (often short)
@@ -3351,46 +3386,55 @@ async function issueCounter(state: JobState, bid: Bid) {
   extendWorkingDeadline(state, counterDeadlineUnix);
 
   state.lastCounterPriceBySeller.set(bid.seller, counterUsdc);
-  state.counterRoundsBySeller.set(
-    bid.seller,
-    (state.counterRoundsBySeller.get(bid.seller) ?? 0) + 1,
-  );
-
+  const round = (state.counterRoundsBySeller.get(bid.seller) ?? 0) + 1;
+  state.counterRoundsBySeller.set(bid.seller, round);
+  state.pendingCounter = {
+    seller: bid.seller,
+    priceUsdc: counterUsdc,
+    deadlineUnix: counterDeadlineUnix,
+    deadlineDays: bid.suggestedCounterDeadlineDays,
+    round,
+    key: `counter:${state.jobId.toLowerCase()}:${bid.seller.toLowerCase()}:${round}`,
+  };
   await notesConfirmed(state);
-  const { ref } = await marketBoard().counter({
-    walletId: buyer.walletId,
-    buyer: buyer.address as `0x${string}`,
-    jobId: state.jobId,
-    seller: bid.seller as `0x${string}`,
-    price: counterPriceWei,
-    deadline: BigInt(counterDeadlineUnix),
-  });
-  const result = { txHash: ref };
+  await sendCounter(state, state.pendingCounter);
+}
 
-  logger.info({ jobId: state.jobId, seller: bid.seller, ...result }, 'counter issued');
-  bus.emitEvent({
-    type: 'counter.issued',
+/// Sends a written-down counter to the board. The key makes the board apply it
+/// once, so a counter resent after a restart never reaches the seller twice.
+async function sendCounter(state: JobState, pending: PendingCounter): Promise<void> {
+  const seller = pending.seller as `0x${string}`;
+  const { ref, replayed } = await marketBoard().counter({
+    walletId: state.buyer.walletId,
+    buyer: state.buyer.address as `0x${string}`,
     jobId: state.jobId,
-    actor: 'buyer',
-    payload: {
-      seller: bid.seller,
-      counterPriceUsdc: counterUsdc,
-      counterDeadlineDays: bid.suggestedCounterDeadlineDays,
-      txHash: result.txHash,
-    },
+    seller,
+    price: parseUnits(pending.priceUsdc, USDC_DECIMALS),
+    deadline: BigInt(pending.deadlineUnix),
+    key: pending.key,
   });
+  state.pendingCounter = undefined;
+  if (!replayed) {
+    logger.info({ jobId: state.jobId, seller, txHash: ref }, 'counter issued');
+    bus.emitEvent({
+      type: 'counter.issued',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        seller,
+        counterPriceUsdc: pending.priceUsdc,
+        counterDeadlineDays: pending.deadlineDays,
+        txHash: ref,
+      },
+    });
+  }
 
   // Arm the stall watchdog. The seller now owes us an on-chain CounterResponse;
   // if none lands before the timeout (it declined off-chain, the WS event was
   // dropped, or the seller crashed mid-round) we cascade to the next candidate
   // instead of waiting forever. handleCounterResponse clears this on a reply.
   clearCounterWatchdog(state);
-  armCounterWatchdog(
-    state,
-    bid.seller,
-    state.counterRoundsBySeller.get(bid.seller) ?? 1,
-    Date.now() + COUNTER_RESPONSE_TIMEOUT_MS,
-  );
+  armCounterWatchdog(state, seller, pending.round, Date.now() + COUNTER_RESPONSE_TIMEOUT_MS);
 }
 
 /// Waits for the seller's reply to a counter. Also re-armed from the notes when
@@ -4170,6 +4214,11 @@ async function proposeMatch(
 
   state.finalized = true;
   state.parkedAgreement = null;
+  state.pendingProposal = {
+    seller,
+    priceUsdc: agreedPriceUsdc,
+    ...(opts?.allowSupersede === false ? { humanChosen: true } : {}),
+  };
   notesChanged(state);
   clearCounterWatchdog(state);
   try {
@@ -4180,6 +4229,8 @@ async function proposeMatch(
         { jobId: state.jobId, buyerAgent: state.buyer.address, sellerAgent: seller },
         'match not proposed: missing wallet binding',
       );
+      state.pendingProposal = undefined;
+      notesChanged(state);
       bus.emitEvent({
         type: 'agent.error',
         jobId: state.jobId,
@@ -4360,6 +4411,8 @@ async function proposeMatch(
 
     await notesConfirmed(state);
     await dbUpsertMatchProposal(proposal);
+    state.pendingProposal = undefined;
+    notesChanged(state);
 
     logger.info(
       {

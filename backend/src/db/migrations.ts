@@ -1422,6 +1422,17 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX work_offers_request ON work_offers (request_id);
     `,
   },
+  {
+    // A board step sent with a key happens once per request: a repeat returns
+    // the first event (view 48, decision 8).
+    version: 54,
+    name: 'market_board_event_keys',
+    sql: `
+      CREATE UNIQUE INDEX market_board_events_key
+        ON market_board_events (job_id, (data->>'key'))
+        WHERE data ? 'key';
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

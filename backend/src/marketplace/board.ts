@@ -24,7 +24,9 @@ export interface MarketBoard {
   readonly kind: 'chain' | 'karwan';
   postRequest(i: { walletId: string; poster: Address; salt: Hex; budget: bigint; deadline: bigint; termsHash: string }): Promise<{ jobId: Hex; ref: string }>;
   placeOffer(i: { walletId: string; seller: Address; jobId: Hex; price: bigint; deadline: bigint }): Promise<{ ref: string }>;
-  counter(i: { walletId: string; buyer: Address; jobId: Hex; seller: Address; price: bigint; deadline: bigint }): Promise<{ ref: string }>;
+  /// With a `key`, a counter already made under that key is not made again; its
+  /// ref comes back with `replayed` (view 48, decision 8).
+  counter(i: { walletId: string; buyer: Address; jobId: Hex; seller: Address; price: bigint; deadline: bigint; key?: string }): Promise<{ ref: string; replayed?: boolean }>;
   respond(i: { walletId: string; seller: Address; jobId: Hex; accept: boolean; price: bigint; deadline: bigint }): Promise<{ ref: string }>;
   accept(i: { walletId: string; buyer: Address; jobId: Hex; seller: Address }): Promise<{ ref: string }>;
   read(jobId: Hex): Promise<BoardRequest | null>;
@@ -147,18 +149,26 @@ export function createKarwanBoard(deps: {
     return store.get(jobId);
   }
 
-  async function change(jobId: Hex, apply: (row: BoardRow | null) => BoardChange): Promise<string> {
-    let eventId: number;
+  async function changeOnce(
+    jobId: Hex,
+    apply: (row: BoardRow | null) => BoardChange,
+    key?: string,
+  ): Promise<{ ref: string; replayed: boolean }> {
+    let result: { eventId: number; replayed?: boolean };
     try {
-      ({ eventId } = await store.update(jobId, apply));
+      result = await store.update(jobId, apply, key);
     } catch (err) {
       const code = (err as { code?: unknown }).code;
       if (err instanceof BoardError) throw err;
       if (code === 'JobAlreadyExists') throw new BoardError('JobAlreadyExists');
       throw err;
     }
-    void pollOnce();
-    return boardRef(eventId);
+    if (!result.replayed) void pollOnce();
+    return { ref: boardRef(result.eventId), replayed: result.replayed === true };
+  }
+
+  async function change(jobId: Hex, apply: (row: BoardRow | null) => BoardChange): Promise<string> {
+    return (await changeOnce(jobId, apply)).ref;
   }
 
   const open = (row: BoardRow | null): BoardRow => {
@@ -247,7 +257,7 @@ export function createKarwanBoard(deps: {
     async counter(i) {
       const kept = await rowFor(i.jobId);
       const old = kept?.fromChain && !kept.offers[lower(i.seller)] ? await chain.offer(i.jobId, i.seller) : null;
-      const ref = await change(i.jobId, (current) => {
+      return changeOnce(i.jobId, (current) => {
         const row = open(current);
         if (lower(i.buyer) !== lower(row.buyer)) throw new BoardError('NotJobBuyer');
         if (!row.offers[lower(i.seller)] && old) {
@@ -257,8 +267,7 @@ export function createKarwanBoard(deps: {
         if (i.price === 0n || i.deadline <= now()) throw new BoardError('InvalidCounter');
         row.counters[lower(i.seller)] = { price: i.price.toString(), deadline: i.deadline.toString() };
         return { row, event: { kind: 'CounterOfferIssued', args: { jobId: i.jobId, seller: i.seller, newPrice: i.price, newDeadline: i.deadline } } };
-      });
-      return { ref };
+      }, i.key);
     },
 
     async respond(i) {
