@@ -259,6 +259,12 @@ test('the guide walks Add money and Withdraw as the new look shows them (view 48
   assert.match(said('withdraw'), /Nothing moves before that/);
 });
 
+test('the guide reads a conversation as the new look shows it (view 48, batch 9g)', () => {
+  const all = PLATFORM_GUIDE.map((e) => [e.summary, ...e.steps].join(' ')).join(' ');
+  assert.match(all, /Your own messages show in ink/);
+  assert.match(all, /round Send button is the one green control/);
+});
+
 test('the guide sends the record to its own page, with one line on Profile (view 48, batch 9e)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('reputation'), /record in one line/);

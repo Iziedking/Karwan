@@ -220,13 +220,13 @@ export function SettingsBand() {
       {saving ? <span role="status" className="sr-only">{t.common.loading}</span> : null}
 
       <ConfirmSheetShell open={sheet === 'language'} labelledBy={`${titleId}-language`} busy={false} onClose={() => setSheet(null)}>
-        <h2 id={`${titleId}-language`} className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.settings.language}</h2>
-        <p className="mt-1 mb-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.settings.languageHint}</p>
+        <h2 id={`${titleId}-language`} className="text-[20px] font-semibold text-[var(--ink)]">{t.settings.language}</h2>
+        <p className="mt-1 mb-4 text-[14px] font-medium text-[var(--ink-secondary)]">{t.settings.languageHint}</p>
         <LanguagePicker onChange={onLocaleChange} />
       </ConfirmSheetShell>
 
       <ConfirmSheetShell open={sheet === 'theme'} labelledBy={`${titleId}-theme`} busy={false} onClose={() => setSheet(null)}>
-        <h2 id={`${titleId}-theme`} className="mb-4 text-[20px] font-semibold text-[var(--lp-dark)]">{t.settings.theme}</h2>
+        <h2 id={`${titleId}-theme`} className="mb-4 text-[20px] font-semibold text-[var(--ink)]">{t.settings.theme}</h2>
         <div role="radiogroup" aria-labelledby={`${titleId}-theme`} className="divide-y divide-[var(--line)] overflow-hidden rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)]">
           {themeOptions.map((o) => (
             <button
@@ -250,9 +250,9 @@ export function SettingsBand() {
       </ConfirmSheetShell>
 
       <ConfirmSheetShell open={sheet === 'reach'} labelledBy={`${titleId}-reach`} busy={false} onClose={() => setSheet(null)}>
-        <h2 id={`${titleId}-reach`} className="text-[20px] font-semibold text-[var(--lp-dark)]">{reach.title}</h2>
-        <p className="mt-1 mb-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{reach.help}</p>
-        <div role="radiogroup" aria-labelledby={`${titleId}-reach`} className="divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+        <h2 id={`${titleId}-reach`} className="text-[20px] font-semibold text-[var(--ink)]">{reach.title}</h2>
+        <p className="mt-1 mb-4 text-[14px] font-medium text-[var(--ink-secondary)]">{reach.help}</p>
+        <div role="radiogroup" aria-labelledby={`${titleId}-reach`} className="divide-y divide-[var(--line)] overflow-hidden rounded-[18px] border border-[var(--line)] bg-[var(--surface)]">
           {reachOptions.map(([value, o]) => (
             <button
               key={value}
@@ -263,14 +263,14 @@ export function SettingsBand() {
                 save({ notifyVia: value });
                 setSheet(null);
               }}
-              className="flex min-h-[64px] w-full items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+              className="flex min-h-[64px] w-full items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
             >
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{o.label}</span>
-                <span className="mt-0.5 block text-[14px] font-medium text-[var(--lp-text-sub)]">{o.note}</span>
+                <span className="block text-[15px] font-semibold text-[var(--ink)]">{o.label}</span>
+                <span className="mt-0.5 block text-[14px] font-medium text-[var(--ink-secondary)]">{o.note}</span>
               </span>
               {reachNow === value ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-[var(--lp-accent-on-light)]"><path d="m5 12 5 5 9-10" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-[var(--ink-on-light)]"><path d="m5 12 5 5 9-10" /></svg>
               ) : null}
             </button>
           ))}
@@ -278,10 +278,10 @@ export function SettingsBand() {
       </ConfirmSheetShell>
 
       <ConfirmSheetShell open={sheet === 'delete'} labelledBy={`${titleId}-delete`} busy={deleting} onClose={closeDelete} initialFocus={deleteInput}>
-        <h2 id={`${titleId}-delete`} className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.settings.deleteTitle}</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.settings.accountDeleteHint}</p>
+        <h2 id={`${titleId}-delete`} className="text-[20px] font-semibold text-[var(--ink)]">{t.settings.deleteTitle}</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-secondary)] font-medium">{t.settings.accountDeleteHint}</p>
         {forceConfirm ? (
-          <p role="alert" className="mt-4 rounded-[14px] border border-[var(--color-critical)] p-4 text-[14px] leading-relaxed text-[var(--lp-dark)] font-medium">{forceConfirm}</p>
+          <p role="alert" className="mt-4 rounded-[14px] border border-[var(--color-critical)] p-4 text-[14px] leading-relaxed text-[var(--ink)] font-medium">{forceConfirm}</p>
         ) : (
           <label className="mt-5 block">
             <span className="sr-only">{t.settings.accountDeleteConfirm}</span>
@@ -293,7 +293,7 @@ export function SettingsBand() {
               onChange={(e) => setDeleteConfirm(e.target.value)}
               placeholder={t.settings.accountDeleteConfirm}
               disabled={deleting}
-              className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+              className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--ash)] px-4 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             />
           </label>
         )}
@@ -311,7 +311,7 @@ export function SettingsBand() {
             type="button"
             disabled={deleting}
             onClick={closeDelete}
-            className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-40"
+            className="min-h-12 rounded-full border border-[var(--line)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--raised)] disabled:opacity-40"
           >
             {t.settings.confirmDeleteNo}
           </button>

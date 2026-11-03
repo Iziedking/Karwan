@@ -71,13 +71,13 @@ export function NotificationBell() {
           onClick={() => setOpen((s) => !s)}
           aria-label={badge > 0 ? `${t.aria}, ${badge} unread` : t.aria}
           aria-expanded={open}
-          className="relative inline-flex size-9 items-center justify-center rounded-full text-[var(--color-ink-dim)] before:absolute before:-inset-1 before:content-[''] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          className="relative inline-flex size-9 items-center justify-center rounded-full text-[var(--ink-secondary)] before:absolute before:-inset-1 before:content-[''] transition-colors hover:bg-[var(--raised)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           <Icon name="bell" size={20} />
           {badge > 0 ? (
             <span
               aria-hidden
-              className="absolute -end-1.5 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--lp-accent)] px-[5px] text-[13px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--accent-ink)] shadow-[0_0_0_1.5px_var(--color-surface)]"
+              className="absolute -end-1.5 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--action)] px-[5px] text-[14px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--on-action)] shadow-[0_0_0_1.5px_var(--surface)]"
             >
               {badge > 9 ? '9+' : badge}
             </span>
@@ -91,13 +91,13 @@ export function NotificationBell() {
               ref={panelRef}
               role="dialog"
               aria-label={t.sectionTag}
-              className="fade-up fixed end-2 start-2 top-[64px] z-[60] flex max-h-[min(72dvh,560px)] flex-col overflow-hidden rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] sm:start-auto sm:end-4 sm:w-[400px]"
+              className="fade-up fixed end-2 start-2 top-[64px] z-[60] flex max-h-[min(72dvh,560px)] flex-col overflow-hidden rounded-[22px] border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] sm:start-auto sm:end-4 sm:w-[400px]"
               style={{ boxShadow: 'var(--product-panel-shadow, 0 18px 48px -24px rgba(0,0,0,0.35))' }}
             >
               <header className="flex items-center justify-between gap-3 px-5 pb-2 pt-4">
                 <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{t.sectionTag}</h2>
                 {unreadCount > 0 ? (
-                  <button type="button" onClick={markAllRead} className="-me-2 min-h-11 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  <button type="button" onClick={markAllRead} className="-me-2 min-h-11 rounded-full px-3 text-[14px] font-semibold text-[var(--ink-secondary)] transition-colors hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                     {t.markRead}
                   </button>
                 ) : null}
@@ -109,10 +109,10 @@ export function NotificationBell() {
                 <Link
                   href="/messages"
                   onClick={() => setOpen(false)}
-                  className="mx-2 mb-1 flex min-h-12 items-center justify-between gap-3 rounded-[16px] px-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+                  className="mx-2 mb-1 flex min-h-12 items-center justify-between gap-3 rounded-[16px] px-3 text-start transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
                 >
-                  <span className="text-[15px] font-semibold text-[var(--lp-dark)]">{inbox.title}</span>
-                  <span className={`text-[14px] ${messages.unread > 0 ? 'font-semibold text-[var(--lp-dark)]' : 'font-medium text-[var(--lp-text-sub)]'}`}>
+                  <span className="text-[15px] font-semibold text-[var(--ink)]">{inbox.title}</span>
+                  <span className={`text-[14px] ${messages.unread > 0 ? 'font-semibold text-[var(--ink)]' : 'font-medium text-[var(--ink-secondary)]'}`}>
                     {messages.unread === 0 ? inbox.noneNew : messages.unread === 1 ? inbox.newOne : inbox.newMany.replace('{n}', String(messages.unread))}
                   </span>
                 </Link>
@@ -121,7 +121,7 @@ export function NotificationBell() {
               {notifications.length === 0 ? (
                 <div className="px-5 pb-8 pt-6 text-center">
                   <p className="text-[15px] font-semibold">{t.emptyTitle}</p>
-                  <p className="mx-auto mt-1 max-w-[32ch] text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{t.emptyBody}</p>
+                  <p className="mx-auto mt-1 max-w-[32ch] text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{t.emptyBody}</p>
                 </div>
               ) : (
                 <>
@@ -133,28 +133,28 @@ export function NotificationBell() {
                           <button
                             type="button"
                             onClick={() => openItem(group)}
-                            className={`flex w-full items-start gap-3 rounded-[16px] px-3 py-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] ${group.read ? '' : 'bg-[color-mix(in_srgb,var(--lp-accent)_12%,transparent)]'}`}
+                            className={`flex w-full items-start gap-3 rounded-[16px] px-3 py-3 text-start transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)] ${group.read ? '' : 'bg-[var(--ash)]'}`}
                           >
                             <KindIcon type={n.type} />
                             <span className="min-w-0 flex-1">
                               {group.read ? null : <span className="sr-only">{t.unread}: </span>}
-                              <span className={`block text-[14px] leading-snug ${group.read ? 'font-medium text-[var(--lp-text-sub)]' : 'font-semibold text-[var(--lp-dark)]'}`}>
+                              <span className={`block text-[14px] leading-snug ${group.read ? 'font-medium text-[var(--ink-secondary)]' : 'font-semibold text-[var(--ink)]'}`}>
                                 {n.summary}
                               </span>
-                              <span className="mt-1 block text-[14px] font-medium text-[var(--lp-text-muted)]">
+                              <span className="mt-1 block text-[14px] font-medium text-[var(--ink-muted)]">
                                 {relativeTime(n.ts, locale)}
                                 {group.count > 1 ? ` · ${t.timesTemplate.replace('{n}', String(group.count))}` : ''}
                               </span>
                             </span>
-                            {group.read ? null : <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-[var(--lp-accent)]" />}
+                            {group.read ? null : <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-[var(--action)]" />}
                             <span className="sr-only">{t.openAction}</span>
                           </button>
                         </li>
                       );
                     })}
                   </ul>
-                  <footer className="border-t border-[var(--lp-border-light)] px-5 py-1 text-end">
-                    <button type="button" onClick={clearAll} className="-me-2 min-h-11 rounded-full px-3 text-[14px] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  <footer className="border-t border-[var(--line)] px-5 py-1 text-end">
+                    <button type="button" onClick={clearAll} className="-me-2 min-h-11 rounded-full px-3 text-[14px] text-[var(--ink-muted)] transition-colors hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                       {t.clear}
                     </button>
                   </footer>

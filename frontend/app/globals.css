@@ -1508,8 +1508,8 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
 .auth-sheet { animation: auth-sheet-up var(--dur-base) var(--ease-out) both; }
 .auth-capsule-backdrop { animation: auth-backdrop-in 180ms var(--ease-out) both; }
 .auth-capsule {
-  color: var(--lp-dark);
-  background: var(--lp-card);
+  color: var(--ink);
+  background: var(--surface);
   font-family: var(--font-sans);
   animation: karwan-sheet-up var(--dur-base) var(--ease-out) both;
   transform-origin: bottom;
@@ -1524,34 +1524,20 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
 .deal-view-deck {
   touch-action: pan-y;
 }
-/* The sign-in dialog sits over the slate entry backdrop. Keep its dark
-   surfaces local so the signed-in workspace retains its own theme tokens. */
-html[data-theme="dark"] .auth-capsule {
-  color-scheme: dark;
-  --lp-card: #1b242e;
-  --lp-light: #26313d;
-  --lp-field: #26313d;
-  --lp-field-border: #91a0b0;
-  --lp-dark: #f4f6f8;
-  --lp-text-sub: #c5cdd5;
-  --lp-text-muted: #abb8c4;
-  --lp-border-light: rgba(206, 220, 232, 0.18);
-  --lp-outline-strong: rgba(206, 220, 232, 0.48);
-  --lp-workspace-soft: rgba(206, 220, 232, 0.08);
-  border-color: var(--lp-border-light);
-}
-/* An empty email is not the green action yet. Show the disabled control as a
-   readable inset, then reserve Karwan green for an available Continue. */
-html[data-theme="dark"] .auth-capsule .auth-email-continue:disabled {
-  background: var(--lp-light);
-  color: var(--lp-text-muted);
-  border: 1px solid var(--lp-outline-strong);
+/* The sign-in sheet uses the app's own surfaces (view 48, batch 9g). An empty
+   email is not the green action yet: the disabled Continue reads as a quiet
+   inset, and Karwan green is kept for an available Continue. */
+html[data-theme="dark"] .auth-capsule { color-scheme: dark; }
+.auth-capsule .auth-email-continue:disabled {
+  background: var(--raised);
+  color: var(--ink-muted);
+  border: 1px solid var(--line-strong);
   opacity: 1;
 }
 /* Authentication follows the selected app theme. Keep the wallet method
    visibly card-like on light surfaces while preserving the approved dark
    treatment. */
-.auth-wallet-method { background: var(--lp-light); }
+.auth-wallet-method { background: var(--raised); }
 html[data-theme="dark"] .auth-wallet-method { background: transparent; }
 @media (min-width: 640px) {
   .auth-capsule {

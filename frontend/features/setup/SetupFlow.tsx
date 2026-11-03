@@ -125,16 +125,16 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
   };
 
   return (
-    <div className="min-h-[calc(100svh-var(--lp-nav-h,68px))] text-[var(--lp-dark)]">
+    <div className="min-h-[calc(100svh-68px)] text-[var(--ink)]">
       <div className="mx-auto flex min-h-11 max-w-[560px] items-center gap-3 px-5 pt-4">
         {backable ? (
-          <button type="button" onClick={() => dispatch({ type: 'back' })} aria-label={t.buttons.back} className="-ms-2.5 grid size-11 shrink-0 place-items-center rounded-full text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          <button type="button" onClick={() => dispatch({ type: 'back' })} aria-label={t.buttons.back} className="-ms-2.5 grid size-11 shrink-0 place-items-center rounded-full text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
           </button>
         ) : null}
-        {embedded ? <StartBar part={step === 'summary' ? 3 : 2} fill={aboutProgress(steps, step)} /> : <span className="flex-1 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.progressLabel}</span>}
+        {embedded ? <StartBar part={step === 'summary' ? 3 : 2} fill={aboutProgress(steps, step)} /> : <span className="flex-1 text-[14px] font-medium text-[var(--ink-secondary)]">{t.progressLabel}</span>}
         {step !== 'summary' ? (
-          <Link href={destination ?? '/app'} className="inline-flex min-h-11 shrink-0 items-center px-1 text-[14px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">{t.later}</Link>
+          <Link href={destination ?? '/app'} className="inline-flex min-h-11 shrink-0 items-center px-1 text-[14px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)]">{t.later}</Link>
         ) : null}
       </div>
 
@@ -153,8 +153,8 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
             {step === 'goals' ? (
               <div>
                 {tag && !state.fromSummary ? <Nudge from="agent">{f.hello.replace('@{tag}', tag)}</Nudge> : null}
-                <h1 id="setup-q-goals" className="mt-6 text-[28px] font-bold leading-tight tracking-[-0.03em]">{t.goals.title}</h1>
-                <p className="mt-2 text-[16px] font-medium text-[var(--lp-text-sub)]">{f.goalsHelp}</p>
+                <h1 id="setup-q-goals" className="mt-6 text-[26px] font-semibold leading-tight tracking-[-0.03em]">{t.goals.title}</h1>
+                <p className="mt-2 text-[16px] font-medium text-[var(--ink-secondary)]">{f.goalsHelp}</p>
                 <div role="group" aria-labelledby="setup-q-goals" className="mt-5 flex flex-col gap-2.5">
                   {GOALS.map((goal) => (
                     <ChoiceCard key={goal} multi reduce={reduce} label={t.goals.options[goal].label} note={t.goals.options[goal].note} on={answers.goals.includes(goal)} onPick={() => dispatch({ type: 'toggleGoal', goal })} />
@@ -165,7 +165,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
 
             {step === 'work' ? (
               <div>
-                <h1 className="text-[28px] font-bold leading-tight tracking-[-0.03em]">{sellOnly ? f.work.titleSell : f.work.title}</h1>
+                <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{sellOnly ? f.work.titleSell : f.work.title}</h1>
                 <Field
                   id="setup-what"
                   label={sellOnly ? f.work.whatLabelSell : f.work.whatLabel}
@@ -190,7 +190,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                         <ul className="mt-2 space-y-1 font-semibold">
                           {readBack.lines.map((line) => <li key={line} dir="auto">{line}</li>)}
                         </ul>
-                        <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{f.work.again}</p>
+                        <p className="mt-2 text-[14px] text-[var(--ink-secondary)]">{f.work.again}</p>
                       </>
                     )}
                   </Nudge>
@@ -200,8 +200,8 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
 
             {text ? (
               <div>
-                <h1 className="text-[28px] font-bold leading-tight tracking-[-0.03em]">{t.questions[text].title}</h1>
-                <p className="mt-2 text-[16px] font-medium text-[var(--lp-text-sub)]">{t.questions[text].help}</p>
+                <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{t.questions[text].title}</h1>
+                <p className="mt-2 text-[16px] font-medium text-[var(--ink-secondary)]">{t.questions[text].help}</p>
                 <Field
                   id={`setup-${text}`}
                   label={t.questions[text].title}
@@ -219,7 +219,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
               <div>
                 {asksClients(answers.goals) ? (
                   <>
-                    <h1 id="setup-q-clients" className="text-[28px] font-bold leading-tight tracking-[-0.03em]">{f.contact.title}</h1>
+                    <h1 id="setup-q-clients" className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{f.contact.title}</h1>
                     <div role="radiogroup" aria-labelledby="setup-q-clients" className="mt-5 flex flex-col gap-2.5">
                       {(['own', 'find', 'both'] as const).map((value) => (
                         <ChoiceCard key={value} multi={false} reduce={reduce} label={t.choices.clients.options[value].label} note={t.choices.clients.options[value].note} on={answers.clients === value} onPick={() => dispatch({ type: 'pick', step: 'clients', value })} />
@@ -229,8 +229,8 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                   </>
                 ) : null}
                 {asksClients(answers.goals)
-                  ? <h2 id="setup-q-reach" className="mt-8 text-[20px] font-bold">{f.contact.reachTitle}</h2>
-                  : <h1 id="setup-q-reach" className="text-[28px] font-bold leading-tight tracking-[-0.03em]">{f.contact.reachTitle}</h1>}
+                  ? <h2 id="setup-q-reach" className="mt-8 text-[20px] font-semibold">{f.contact.reachTitle}</h2>
+                  : <h1 id="setup-q-reach" className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{f.contact.reachTitle}</h1>}
                 <div role="radiogroup" aria-labelledby="setup-q-reach" className="mt-4 grid grid-cols-3 gap-2">
                   {(['telegram', 'email', 'both'] as const).map((value) => {
                     const on = answers.reach === value;
@@ -241,22 +241,22 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                         role="radio"
                         aria-checked={on}
                         onClick={() => dispatch({ type: 'pick', step: 'reach', value })}
-                        className={`min-h-[52px] rounded-[16px] border px-2 text-[15px] font-semibold transition-colors duration-[180ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${on ? 'border-[var(--lp-accent)] bg-[var(--offer-surface)]' : 'border-[var(--lp-outline-strong)] bg-[var(--lp-card)] hover:bg-[var(--lp-light)]'}`}
+                        className={`min-h-[52px] rounded-[16px] border px-2 text-[15px] font-semibold transition-colors duration-[180ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${on ? 'border-[var(--ink)] bg-[var(--surface)] shadow-[inset_0_0_0_1px_var(--ink)]' : 'border-[var(--line-strong)] bg-[var(--surface)] hover:bg-[var(--raised)]'}`}
                       >
                         {t.choices.reach.options[value].label}
                       </button>
                     );
                   })}
                 </div>
-                <p className="mt-2.5 text-[14px] font-medium text-[var(--lp-text-sub)]">{f.contact.reachHelp}</p>
+                <p className="mt-2.5 text-[14px] font-medium text-[var(--ink-secondary)]">{f.contact.reachHelp}</p>
                 {answers.reach ? <div className="mt-4"><Nudge from="agent" live>{f.contact.reach[answers.reach]}</Nudge></div> : null}
               </div>
             ) : null}
 
             {choice ? (
               <div>
-                <h1 id={`setup-q-${choice}`} className="text-[28px] font-bold leading-tight tracking-[-0.03em]">{t.choices[choice].title}</h1>
-                <p className="mt-2 text-[16px] font-medium text-[var(--lp-text-sub)]">{t.choices[choice].help}</p>
+                <h1 id={`setup-q-${choice}`} className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{t.choices[choice].title}</h1>
+                <p className="mt-2 text-[16px] font-medium text-[var(--ink-secondary)]">{t.choices[choice].help}</p>
                 <div role="radiogroup" aria-labelledby={`setup-q-${choice}`} className="mt-5 flex flex-col gap-2.5">
                   {(Object.entries(t.choices[choice].options) as Array<[string, { label: string; note: string }]>).map(([value, option]) => (
                     <ChoiceCard key={value} multi={false} reduce={reduce} label={option.label} note={option.note} on={answers[choice] === value} onPick={() => dispatch({ type: 'pick', step: choice, value })} />
@@ -268,14 +268,14 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
             {step === 'reading' ? (
               <div role="status" className="pt-16 text-center">
                 <p className="text-[20px] font-semibold">{t.reading.title}</p>
-                <p className="mt-2 text-[15px] font-medium text-[var(--lp-text-sub)]">{t.reading.body}</p>
+                <p className="mt-2 text-[15px] font-medium text-[var(--ink-secondary)]">{t.reading.body}</p>
               </div>
             ) : null}
 
             {step === 'summary' ? (
               <div>
-                <h1 className="text-[28px] font-bold tracking-[-0.03em]">{f.summary.title}</h1>
-                <dl className="mt-5 border-t border-[var(--lp-border-light)]">
+                <h1 className="text-[26px] font-semibold tracking-[-0.03em]">{f.summary.title}</h1>
+                <dl className="mt-5 border-t border-[var(--line)]">
                   {tag ? <SummaryRow label={f.summary.rows.tag} value={tag} /> : null}
                   {asksClients(answers.goals) && answers.clients ? <SummaryRow label={f.summary.rows.clients} value={choiceLabel('clients', answers.clients)} change={f.summary.change} onChange={() => dispatch({ type: 'goto', step: 'contact' })} /> : null}
                   {sells(answers.goals) ? <SummaryRow label={f.summary.rows.paid} value={choiceLabel('paid', answers.paid)} change={f.summary.change} onChange={() => dispatch({ type: 'goto', step: 'paid' })} /> : null}
@@ -284,12 +284,12 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                 </dl>
 
                 {state.lines.length > 0 ? (
-                  <section aria-labelledby="setup-first-post" className="mt-6 rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
-                    <h2 id="setup-first-post" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{firstPostKind === 'request' ? f.summary.firstRequest : f.summary.firstOffer}</h2>
+                  <section aria-labelledby="setup-first-post" className="mt-6 rounded-[22px] border border-[var(--line)] bg-[var(--surface)] p-5">
+                    <h2 id="setup-first-post" className="text-[14px] font-semibold text-[var(--ink-secondary)]">{firstPostKind === 'request' ? f.summary.firstRequest : f.summary.firstOffer}</h2>
                     <SummaryLines lines={state.lines} reduce={reduce} />
                     {firstPostKind && !destination ? (
                       <label className="mt-4 flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold">
-                        <input type="checkbox" checked={postNow} onChange={(e) => setPostNow(e.target.checked)} className="size-5 shrink-0 accent-[var(--lp-accent)]" />
+                        <input type="checkbox" checked={postNow} onChange={(e) => setPostNow(e.target.checked)} className="size-5 shrink-0 accent-[var(--ink)]" />
                         {f.summary.postNow}
                       </label>
                     ) : null}
@@ -298,7 +298,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
 
                 <div className="mt-5"><Nudge from="agent">{f.summary.body}</Nudge></div>
                 <button type="button" onClick={() => void save()} disabled={saving} aria-busy={saving} className={`${PRIMARY} mt-6 w-full`}>{saving ? f.summary.saving : f.summary.done}</button>
-                <button type="button" onClick={() => dispatch({ type: 'edit' })} disabled={saving} className="mt-2 inline-flex min-h-11 w-full items-center justify-center text-[15px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">{t.summary.change}</button>
+                <button type="button" onClick={() => dispatch({ type: 'edit' })} disabled={saving} className="mt-2 inline-flex min-h-11 w-full items-center justify-center text-[15px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)]">{t.summary.change}</button>
               </div>
             ) : null}
           </m.section>
@@ -326,18 +326,18 @@ function Field({ id, label, hideLabel = false, value, placeholder, examples, onC
 }) {
   return (
     <div className="mt-5">
-      <label htmlFor={id} className={hideLabel ? 'sr-only' : 'block text-[15px] font-semibold text-[var(--lp-dark)]'}>{label}</label>
+      <label htmlFor={id} className={hideLabel ? 'sr-only' : 'block text-[15px] font-semibold text-[var(--ink)]'}>{label}</label>
       <input
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         dir="auto"
-        className="mt-2 block min-h-14 w-full rounded-[14px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] px-[18px] text-[17px] text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="mt-2 block min-h-14 w-full rounded-[14px] border border-[var(--line-strong)] bg-[var(--surface)] px-[18px] text-[17px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
         {examples.map((x) => (
-          <button key={x} type="button" onClick={() => onChange(x)} className="min-h-11 rounded-full border border-[var(--lp-outline-strong)] px-3.5 text-[14px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          <button key={x} type="button" onClick={() => onChange(x)} className="min-h-11 rounded-full border border-[var(--line-strong)] px-3.5 text-[14px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
             {x}
           </button>
         ))}
@@ -348,12 +348,12 @@ function Field({ id, label, hideLabel = false, value, placeholder, examples, onC
 
 function SummaryRow({ label, value, change, onChange }: { label: string; value: string | null; change?: string; onChange?: () => void }) {
   return (
-    <div className="flex min-h-14 items-center gap-3 border-b border-[var(--lp-border-light)] py-2">
-      <dt className="w-28 shrink-0 text-[14px] font-medium text-[var(--lp-text-sub)]">{label}</dt>
+    <div className="flex min-h-14 items-center gap-3 border-b border-[var(--line)] py-2">
+      <dt className="w-28 shrink-0 text-[14px] font-medium text-[var(--ink-secondary)]">{label}</dt>
       <dd className="flex min-w-0 flex-1 items-center gap-3">
         <span dir="auto" className="min-w-0 flex-1 text-[15px] font-semibold">{value}</span>
         {change && onChange ? (
-          <button type="button" onClick={onChange} className="inline-flex min-h-11 shrink-0 items-center px-1 text-[14px] font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          <button type="button" onClick={onChange} className="inline-flex min-h-11 shrink-0 items-center px-1 text-[14px] font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
             {change}
             <span className="sr-only"> {label}</span>
           </button>

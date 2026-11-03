@@ -15,11 +15,11 @@ function MailGlyph({ size = 13 }: { size?: number }) {
     <span
       aria-hidden
       className="inline-flex items-center justify-center rounded-[5px] shrink-0"
-      style={{ background: 'var(--lp-dark)', width: size + 5, height: size + 5 }}
+      style={{ background: 'var(--ink)', width: size + 5, height: size + 5 }}
     >
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-        <rect x="3" y="5" width="18" height="14" rx="2" stroke="var(--lp-light)" strokeWidth="1.8" />
-        <path d="M4 7l8 6 8-6" stroke="var(--lp-light)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="3" y="5" width="18" height="14" rx="2" stroke="var(--raised)" strokeWidth="1.8" />
+        <path d="M4 7l8 6 8-6" stroke="var(--raised)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
   );
@@ -49,7 +49,7 @@ export function ProfileEmailButton({
   const verified = !!displayEmail && (!!profile?.emailVerified || !!sessionEmail);
   const onLight = tone === 'light';
   const chipClass = onLight
-    ? 'border-[var(--lp-border)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)]'
+    ? 'border-[var(--line)] text-[var(--ink)] hover:bg-[var(--raised)]'
     : 'border-white/20 text-white hover:bg-white/[0.08] hover:border-white/35';
 
   return (
@@ -66,7 +66,7 @@ export function ProfileEmailButton({
         {verified && (
           <span
             className="text-[14px] font-semibold px-1.5 py-0.5"
-            style={{ background: 'rgba(175, 201, 91,0.18)', color: 'var(--lp-accent)', borderRadius: 3 }}
+            style={{ background: 'rgba(175, 201, 91,0.18)', color: 'var(--ink)', borderRadius: 3 }}
           >
             {t.verifiedTag}
           </span>
@@ -167,11 +167,11 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
           <div>
             <div className="flex items-center gap-2.5">
               <MailGlyph size={16} />
-              <span className="text-[14px] text-[var(--lp-text-muted)]">
+              <span className="text-[14px] text-[var(--ink-muted)]">
                 {isBusiness ? t.businessEmailLabel : t.emailLabel}
               </span>
             </div>
-            <h2 id={titleId} className="mt-2 text-[20px] font-semibold text-[var(--lp-dark)]">
+            <h2 id={titleId} className="mt-2 text-[20px] font-semibold text-[var(--ink)]">
               {isBusiness ? t.headlineBusiness : t.headlineIndividual}
             </h2>
           </div>
@@ -179,7 +179,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
             type="button"
             onClick={onClose}
             aria-label={t.cancel}
-            className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)]"
+            className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--ink-secondary)] transition-colors hover:bg-[var(--raised)] hover:text-[var(--ink)]"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -190,29 +190,29 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
         <div className="space-y-4">
           {notReady && step === 'email' ? (
             <div className="space-y-3" aria-hidden>
-              <div className="h-[68px] rounded-xl bg-[var(--lp-light)] animate-pulse motion-reduce:animate-none" />
-              <div className="h-4 w-2/3 rounded-md bg-[var(--lp-light)] animate-pulse motion-reduce:animate-none" />
+              <div className="h-[68px] rounded-xl bg-[var(--raised)] animate-pulse motion-reduce:animate-none" />
+              <div className="h-4 w-2/3 rounded-md bg-[var(--raised)] animate-pulse motion-reduce:animate-none" />
             </div>
           ) : verified && step === 'email' ? (
             <div
               className="px-4 py-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
               style={{
-                background: 'var(--lp-light)',
-                border: '1px solid var(--lp-border-light)',
+                background: 'var(--raised)',
+                border: '1px solid var(--line)',
                 borderRadius: 12,
               }}
             >
               <div className="min-w-0">
-                <p className="text-[14px] text-[var(--lp-text-muted)]">
+                <p className="text-[14px] text-[var(--ink-muted)]">
                   {t.currentLabel}
                 </p>
-                <p className="mt-1 font-sans text-[16px] font-extrabold tracking-[-0.01em] truncate">
+                <p className="mt-1 font-sans text-[16px] font-semibold tracking-[-0.01em] truncate">
                   {displayEmail}
                 </p>
               </div>
               <span
                 className="inline-flex items-center gap-1.5 text-[14px] font-semibold px-2 py-0.5"
-                style={{ background: 'rgba(175, 201, 91,0.18)', color: 'var(--lp-accent)', borderRadius: 3 }}
+                style={{ background: 'rgba(175, 201, 91,0.18)', color: 'var(--ink)', borderRadius: 3 }}
               >
                 {t.verifiedTag}
               </span>
@@ -223,13 +223,13 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
             // One email at a time. Once verified, the only action is removal;
             // adding a different address means removing this one first.
             <>
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+              <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
                 {t.manageNote}
               </p>
               <button
                 type="button"
                 onClick={remove}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-semibold border border-[var(--lp-border)] text-[var(--lp-text-sub)] hover:border-[var(--lp-critical)] hover:text-[var(--lp-critical)] transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-semibold border border-[var(--line)] text-[var(--ink-secondary)] hover:border-[var(--color-critical)] hover:text-[var(--color-critical)] transition-colors"
                 style={{ borderRadius: 12 }}
               >
                 {t.remove}
@@ -237,11 +237,11 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
             </>
           ) : step === 'email' ? (
             <>
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+              <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
                 {isBusiness ? t.descriptionBusiness : t.descriptionIndividual}
               </p>
               <label className="block space-y-2">
-                <span className="text-[14px] font-medium text-[var(--lp-text-muted)]">
+                <span className="text-[14px] font-medium text-[var(--ink-muted)]">
                   {isBusiness ? t.businessEmailLabel : t.emailLabel}
                 </span>
                 <input
@@ -260,7 +260,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   type="button"
                   onClick={sendCode}
                   disabled={sending}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-semibold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-semibold bg-[var(--action)] text-[var(--on-action)] hover:opacity-90 disabled:opacity-60 transition-colors"
                   style={{ borderRadius: 12 }}
                 >
                   {sending ? t.sending : t.sendCode}
@@ -269,16 +269,16 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
             </>
           ) : (
             <>
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+              <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
                 {t.sentNote.replace('{email}', pendingEmail)}
               </p>
               {devCode ? (
-                <p className="text-[14px] text-[var(--lp-accent)]">
+                <p className="text-[14px] text-[var(--ink)]">
                   {t.devCodeNote.replace('{code}', devCode)}
                 </p>
               ) : null}
               <label className="block space-y-2">
-                <span className="text-[14px] font-medium text-[var(--lp-text-muted)]">
+                <span className="text-[14px] font-medium text-[var(--ink-muted)]">
                   {t.codeLabel}
                 </span>
                 <input
@@ -296,7 +296,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   type="button"
                   onClick={verify}
                   disabled={verifying}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-semibold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-semibold bg-[var(--action)] text-[var(--on-action)] hover:opacity-90 disabled:opacity-60 transition-colors"
                   style={{ borderRadius: 12 }}
                 >
                   {verifying ? t.verifying : t.verify}
@@ -305,7 +305,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   type="button"
                   onClick={sendCode}
                   disabled={sending || verifying}
-                  className="text-[14px] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                  className="text-[14px] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors"
                 >
                   {sending ? t.sending : t.resend}
                 </button>
@@ -314,7 +314,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
           )}
 
           {error ? (
-            <p className="text-[14px] text-[var(--lp-critical)]">{error}</p>
+            <p className="text-[14px] text-[var(--color-critical)]">{error}</p>
           ) : null}
         </div>
     </ConfirmSheetShell>

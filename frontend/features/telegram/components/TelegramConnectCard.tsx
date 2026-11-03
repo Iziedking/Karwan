@@ -5,8 +5,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
 
 const CARD_STYLE = {
-  background: 'var(--lp-card)',
-  border: '1px solid var(--lp-border-light)',
+  background: 'var(--surface)',
+  border: '1px solid var(--line)',
   borderTopLeftRadius: 22,
   borderTopRightRadius: 22,
   borderBottomLeftRadius: 22,
@@ -22,9 +22,9 @@ function Note({ tone, children }: { tone: 'info' | 'error'; children: ReactNode 
           border: '1px solid rgba(176,61,58,0.35)',
         }
       : {
-          background: 'rgba(175, 201, 91,0.10)',
-          color: 'var(--lp-dark)',
-          border: '1px solid rgba(175, 201, 91,0.30)',
+          background: 'var(--ash)',
+          color: 'var(--ink)',
+          border: '1px solid var(--line)',
         };
   return (
     <div
@@ -48,24 +48,24 @@ export function TelegramConnectCard({ address }: { address?: string }) {
     <section style={CARD_STYLE} className="p-6 md:p-8">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="text-[14px] font-semibold text-[var(--ink-muted)]">
             {tc.eyebrow}
           </span>
-          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
+          <h2 className="mt-2 font-sans text-[22px] font-semibold tracking-[-0.02em] leading-none">
             {tc.title}
-            <span style={{ color: 'var(--lp-accent)' }}>.</span>
+            <span style={{ color: 'var(--ink)' }}>.</span>
           </h2>
-          <p className="mt-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="mt-2 text-[14px] font-semibold text-[var(--ink-muted)]">
             {tc.subtitle}
           </p>
         </div>
         {status?.linked && (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 mono text-[13px] font-bold uppercase tracking-[0.14em]"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[14px] font-semibold"
             style={{
-              background: 'rgba(175,201,91,0.12)',
-              color: 'var(--lp-accent)',
-              border: '1px solid rgba(175,201,91,0.38)',
+              background: 'var(--ash)',
+              color: 'var(--ink)',
+              border: '1px solid var(--line)',
               borderRadius: 6,
             }}
           >
@@ -74,7 +74,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
               data-instrument-blink
               className="inline-block w-[6px] h-[6px]"
               style={{
-                background: 'var(--lp-accent)',
+                background: 'var(--ink)',
                 animation: 'instrumentBlink 1.6s ease-in-out infinite',
               }}
             />
@@ -96,13 +96,13 @@ export function TelegramConnectCard({ address }: { address?: string }) {
 
         {status?.enabled && !status.linked && !linking && (
           <>
-            <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+            <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
               {tc.idleDescription}
             </p>
             <button
               type="button"
               onClick={startLink}
-              className="inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
+              className="inline-flex items-center gap-2 px-5 py-3 text-[14px] font-semibold transition-[transform,box-shadow] duration-150 bg-[var(--action)] text-[var(--on-action)] hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0"
               style={{
                 borderRadius: 14,
                 boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
@@ -116,9 +116,9 @@ export function TelegramConnectCard({ address }: { address?: string }) {
 
         {status?.enabled && !status.linked && linking && deepLink && (
           <>
-            <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+            <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
               {tc.linkingPrefix}{' '}
-              <span className="font-semibold text-[var(--lp-dark)]">Start</span>
+              <span className="font-semibold text-[var(--ink)]">Start</span>
               {tc.linkingSuffix}
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -126,7 +126,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
                 href={deepLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
+                className="inline-flex items-center gap-2 px-5 py-3 text-[14px] font-semibold transition-[transform,box-shadow] duration-150 bg-[var(--action)] text-[var(--on-action)] hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0"
                 style={{
                   borderRadius: 14,
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
@@ -138,13 +138,13 @@ export function TelegramConnectCard({ address }: { address?: string }) {
               <button
                 type="button"
                 onClick={cancelLink}
-                className="px-3 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-light)] transition-colors rounded"
+                className="px-3 py-1.5 text-[14px] font-semibold text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--raised)] transition-colors rounded"
               >
                 {tc.cancelCta}
               </button>
             </div>
             <Note tone="info">
-              <p className="font-bold uppercase tracking-[0.08em] text-[13px]">
+              <p className="font-semibold text-[14px]">
                 {tc.waitingTitle}
               </p>
               <p className="mt-1 text-[14px] opacity-90 normal-case">
@@ -159,23 +159,23 @@ export function TelegramConnectCard({ address }: { address?: string }) {
             <div
               className="px-4 py-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
               style={{
-                background: 'var(--lp-light)',
-                border: '1px solid var(--lp-border-light)',
+                background: 'var(--raised)',
+                border: '1px solid var(--line)',
                 borderRadius: 12,
               }}
             >
               <div>
-                <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                <p className="text-[14px] font-semibold text-[var(--ink-muted)]">
                   {tc.telegramLabel}
                 </p>
-                <p className="mt-1 font-sans text-[16px] font-extrabold tracking-[-0.01em]">
+                <p className="mt-1 font-sans text-[16px] font-semibold tracking-[-0.01em]">
                   {status.username
                     ? `@${status.username}`
                     : tc.chatFallback.replace('{id}', String(status.chatId ?? ''))}
                 </p>
               </div>
               {status.linkedAt && (
-                <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <p className="text-[14px] font-semibold text-[var(--ink-muted)]">
                   {tc.linkedAt.replace('{date}', formatLinkedAt(status.linkedAt))}
                 </p>
               )}
@@ -184,11 +184,11 @@ export function TelegramConnectCard({ address }: { address?: string }) {
               <button
                 type="button"
                 onClick={unlink}
-                className="px-3 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[#b03d3a] hover:bg-[rgba(176,61,58,0.07)] transition-colors rounded"
+                className="px-3 py-1.5 text-[14px] font-semibold text-[var(--ink-secondary)] hover:text-[#b03d3a] hover:bg-[rgba(176,61,58,0.07)] transition-colors rounded"
               >
                 {tc.unlinkCta}
               </button>
-              <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              <p className="text-[14px] font-semibold text-[var(--ink-muted)]">
                 {tc.emailNote}
               </p>
             </div>

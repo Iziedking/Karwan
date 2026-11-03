@@ -295,23 +295,14 @@ test('the first-sign-in terms gate retains the reviewed desktop width and phone 
   assert.match(terms, /disabled=\{!scrolledToEnd \|\| submitting\}/);
 });
 
-test('dark sign-in card uses slate surfaces and reserves brand green for an available action', () => {
+test('the sign-in sheet uses the app surfaces and keeps green for an available Continue (view 48, batch 9g)', () => {
   const css = source('../../app/globals.css');
   const modal = source('./LoginModal.tsx');
-  const darkDialog = css.match(/html\[data-theme="dark"\] \.auth-capsule \{([\s\S]*?)\n\}/)?.[1];
-  assert.ok(darkDialog);
-  const token = (name: string) => darkDialog.match(new RegExp(`${name}:\\s*(#[a-fA-F0-9]{6})`))?.[1];
-  const card = token('--lp-card');
-  const field = token('--lp-field');
-  assert.ok(card && field);
-  assert.notEqual(card.toLowerCase(), '#151b17');
-  assert.ok(contrast(token('--lp-dark')!, card) >= 4.5);
-  assert.ok(contrast(token('--lp-text-sub')!, card) >= 4.5);
-  assert.ok(contrast(token('--lp-text-muted')!, field) >= 4.5);
-  assert.ok(contrast(token('--lp-field-border')!, field) >= 3);
+  assert.match(css, /\.auth-capsule \{\n  color: var\(--ink\);\n  background: var\(--surface\);/);
+  assert.doesNotMatch(css, /\.auth-capsule \{[^}]*--lp-card:/);
+  assert.match(css, /\.auth-capsule \.auth-email-continue:disabled \{[\s\S]*?background: var\(--raised\)/);
   assert.match(modal, /auth-email-continue/);
-  assert.match(css, /html\[data-theme="dark"\] \.auth-capsule \.auth-email-continue:disabled \{[\s\S]*?background: var\(--lp-light\)/);
-  assert.match(modal, /bg-\[var\(--lp-accent\)\] text-\[var\(--accent-ink\)\]/);
+  assert.match(modal, /bg-\[var\(--action\)\] text-\[var\(--on-action\)\]/);
 });
 
 test('signed out, a private page goes straight to the one sign-in screen, never an older gate', () => {

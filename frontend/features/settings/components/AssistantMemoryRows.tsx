@@ -53,22 +53,22 @@ export function AssistantMemoryRows() {
       {failed && !open ? <p role="alert" className="px-1 text-[14px] font-medium text-[var(--color-critical)]">{t.failed}</p> : null}
 
       <ConfirmSheetShell open={open} labelledBy={titleId} busy={busy} onClose={() => { setOpen(false); setConfirmAll(false); }}>
-        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.sheetTitle}</h2>
-        <p className="mt-1 mb-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.sheetBody}</p>
+        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--ink)]">{t.sheetTitle}</h2>
+        <p className="mt-1 mb-4 text-[14px] font-medium text-[var(--ink-secondary)]">{t.sheetBody}</p>
         {count ? (
-          <ul className="divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+          <ul className="divide-y divide-[var(--line)] overflow-hidden rounded-[18px] border border-[var(--line)] bg-[var(--surface)]">
             {memory!.notes.map((n) => (
               <li key={n.id} className="flex items-start gap-3 py-3 ps-4 pe-2">
                 <span className="min-w-0 flex-1">
-                  <span dir="auto" className="block text-[15px] text-[var(--lp-dark)]">{n.text}</span>
-                  <span className="block text-[14px] text-[var(--lp-text-sub)]">{date(n.at)}</span>
+                  <span dir="auto" className="block text-[15px] text-[var(--ink)]">{n.text}</span>
+                  <span className="block text-[14px] text-[var(--ink-secondary)]">{date(n.at)}</span>
                 </span>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void run(() => api.deleteAssistantMemoryNote(n.id))}
                   aria-label={t.deleteNote.replace('{text}', n.text)}
-                  className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--color-critical)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                  className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--ink-secondary)] hover:bg-[var(--raised)] hover:text-[var(--color-critical)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                 >
                   <Icon name="trash" size={20} />
                 </button>
@@ -76,22 +76,22 @@ export function AssistantMemoryRows() {
             ))}
           </ul>
         ) : (
-          <p className="text-[15px] text-[var(--lp-text-sub)]">{t.none}</p>
+          <p className="text-[15px] text-[var(--ink-secondary)]">{t.none}</p>
         )}
         {failed ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{t.failed}</p> : null}
         {count ? (
           confirmAll ? (
             <div className="mt-5 grid gap-2">
-              <p className="text-[15px] text-[var(--lp-dark)]">{t.forgetAllConfirm}</p>
+              <p className="text-[15px] text-[var(--ink)]">{t.forgetAllConfirm}</p>
               <button type="button" disabled={busy} onClick={() => void run(api.forgetAssistantMemory).then(() => setConfirmAll(false))} className="min-h-12 rounded-full bg-[var(--color-critical)] px-5 text-[15px] font-semibold text-white disabled:opacity-50">
                 {t.forgetAllYes}
               </button>
-              <button type="button" disabled={busy} onClick={() => setConfirmAll(false)} className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50">
+              <button type="button" disabled={busy} onClick={() => setConfirmAll(false)} className="min-h-12 rounded-full border border-[var(--line)] px-5 text-[15px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50">
                 {t.keep}
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => setConfirmAll(true)} className="mt-5 min-h-12 w-full rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--color-critical)] hover:bg-[var(--lp-light)]">
+            <button type="button" onClick={() => setConfirmAll(true)} className="mt-5 min-h-12 w-full rounded-full border border-[var(--line)] px-5 text-[15px] font-semibold text-[var(--color-critical)] hover:bg-[var(--raised)]">
               {t.forgetAll}
             </button>
           )

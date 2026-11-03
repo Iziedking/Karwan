@@ -443,7 +443,7 @@ export function AuthCard({
             <form onSubmit={signInLookup} className="mt-6 space-y-3">
               <Field label={t.signIn.emailLabel}>
                 <input type="email" inputMode="email" autoComplete="email webauthn" value={email}
-                  onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
+                  onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--ash)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
               </Field>
               <EmailSuggestion email={email} onApply={setEmail} />
               <Primary type="submit" disabled={!!busy || !EMAIL_RE.test(email.trim())}>
@@ -460,13 +460,13 @@ export function AuthCard({
               </Primary>
               {fallback === 'email' && (
                 <button type="button" onClick={() => void sendCode()} disabled={!!busy || waitingForSignIn}
-                  className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
+                  className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50">
                   {busy === 'send' ? t.signIn.sendingCode : t.signIn.useCodeInstead}
                 </button>
               )}
               {fallback === 'recovery' && (
                 <button type="button" onClick={() => { setError(null); setRecovering(true); }} disabled={!!busy}
-                  className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
+                  className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50">
                   {recoveryCopy.flow.entry}
                 </button>
               )}
@@ -499,14 +499,14 @@ export function AuthCard({
           <div className="mt-5 space-y-1 border-t border-[var(--line)] pt-4 text-center text-[14px] text-[var(--ink-secondary)] sm:mt-6 sm:pt-5 font-medium">
             {onWaitlist ? (
               <p>
-                <button type="button" onClick={onWaitlist} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+                <button type="button" onClick={onWaitlist} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                   {t.waitlist.back}
                 </button>
               </p>
             ) : (
               <p>
                 {t.signIn.noAccount}{' '}
-                <button type="button" onClick={() => switchMode('signup')} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+                <button type="button" onClick={() => switchMode('signup')} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                   {t.signIn.signUp}
                 </button>
               </p>
@@ -514,7 +514,7 @@ export function AuthCard({
             {DEALS_AVAILABLE && (
               <p>
                 {t.signIn.browsePrompt}{' '}
-                <Link href={next === '/market' || next?.startsWith('/market?') ? next : '/market'} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">{t.signIn.browse}</Link>
+                <Link href={next === '/market' || next?.startsWith('/market?') ? next : '/market'} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">{t.signIn.browse}</Link>
               </p>
             )}
           </div>
@@ -540,7 +540,7 @@ export function AuthCard({
               if (businessOpen) setUpStep('kind');
               else void createAccount();
             }}>
-              <div className="flex min-h-[52px] items-center rounded-[14px] bg-[var(--tint)] px-4 focus-within:ring-2 focus-within:ring-[var(--action)]">
+              <div className="flex min-h-[52px] items-center rounded-[14px] bg-[var(--ash)] px-4 focus-within:ring-2 focus-within:ring-[var(--ink)]">
                 <span className="text-[17px] font-medium text-[var(--ink-secondary)]" aria-hidden>@</span>
                 <input aria-label={s.tagLabel} value={tag} onChange={(e) => setTag(e.target.value.replace(/\s/g, ''))}
                   autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={21} autoFocus
@@ -562,7 +562,7 @@ export function AuthCard({
               <form onSubmit={sendCode} className="space-y-3">
                 <Field label={s.emailLabel}>
                   <input type="email" inputMode="email" autoComplete="email" value={email}
-                    onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
+                    onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--ash)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
                 </Field>
                 <EmailSuggestion email={email} onApply={setEmail} />
                 <Primary type="submit" disabled={!!busy || !EMAIL_RE.test(email.trim())}>
@@ -616,7 +616,7 @@ export function AuthCard({
 
           {onWaitlist && !authedWithoutAccount && (
             <p className="mt-4 text-[14px]">
-              <button type="button" onClick={onWaitlist} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+              <button type="button" onClick={onWaitlist} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                 {t.waitlist.back}
               </button>
             </p>
@@ -624,7 +624,7 @@ export function AuthCard({
           {!authedWithoutAccount && (
             <p className="mt-5 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5 font-medium">
               {s.haveAccount}{' '}
-              <button type="button" onClick={() => switchMode('signin')} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+              <button type="button" onClick={() => switchMode('signin')} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                 {s.signIn}
               </button>
             </p>
@@ -666,7 +666,7 @@ function WalletButton({ label, disabled, onStart }: { label: string; disabled: b
     <ConnectButton.Custom>
       {({ openConnectModal, mounted }) => (
         <button type="button" disabled={!mounted || disabled} onClick={() => onStart(openConnectModal)}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-full border border-[var(--line)] bg-[var(--tint)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] enabled:hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-full border border-[var(--line)] bg-[var(--ash)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] enabled:hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18" /><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" /></svg>
           {label}
         </button>
@@ -685,11 +685,11 @@ function CodeForm(props: {
       <Field label={props.label}>
         <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} value={props.code}
           onChange={(e) => props.setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} disabled={!!props.busy}
-          className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[18px] tabular-nums tracking-[0.3em] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
+          className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--ash)] px-4 py-3 text-[18px] tabular-nums tracking-[0.3em] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
       </Field>
       <Primary type="submit" disabled={!!props.busy || props.code.length !== 6}>{props.submit}</Primary>
       <button type="button" onClick={props.onResend} disabled={!!props.busy}
-        className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
+        className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50">
         {props.resend}
       </button>
     </form>
@@ -708,7 +708,7 @@ function KindOption(props: { selected: boolean; title: string; body: string; bad
       <button type="button" role="radio" aria-checked={props.selected} aria-disabled={inert || undefined}
         aria-describedby={inert && props.badge ? noteId : undefined}
         onClick={() => (inert ? setNoteOpen(true) : props.onSelect())} onBlur={() => setNoteOpen(false)}
-        className={`min-h-[96px] w-full rounded-[20px] p-4 text-start transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] ${inert ? 'cursor-not-allowed bg-[var(--tint)] text-[var(--ink-secondary)]' : props.selected ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink)] hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--surface))]'}`}>
+        className={`min-h-[96px] w-full rounded-[20px] p-4 text-start transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${inert ? 'cursor-not-allowed bg-[var(--ash)] text-[var(--ink-secondary)]' : props.selected ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--ash)] text-[var(--ink)] hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--surface))]'}`}>
         <span className="block text-[16px] font-medium">{props.title}</span>
         <span className={`mt-1 block text-[14px] leading-[1.45] ${props.selected ? 'text-[var(--canvas)]' : 'text-[var(--ink-secondary)]'}`}>{props.body}</span>
       </button>
@@ -725,7 +725,7 @@ function KindOption(props: { selected: boolean; title: string; body: string; bad
 function BackLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
-      className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+      className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
       {label}
     </button>
   );
@@ -740,7 +740,7 @@ function ErrorLine({ error }: { error: string | null }) {
   );
 }
 
-const AGREE_LINK = 'font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+const AGREE_LINK = 'font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
 
 /// The one box ticked before the account exists: the terms and the privacy
 /// notice, each a link that opens beside the card.
@@ -752,7 +752,7 @@ function TermsAgree({ checked, onChange, copy }: {
   return (
     <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-1 text-[14px] font-medium leading-[1.6] text-[var(--ink-secondary)]">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}
-        className="mt-[3px] h-4 w-4 shrink-0 accent-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]" />
+        className="mt-[3px] h-4 w-4 shrink-0 accent-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]" />
       <span>
         {copy.agreeBefore}{' '}
         <Link href="/terms" target="_blank" className={AGREE_LINK}>{copy.terms}</Link>{' '}
