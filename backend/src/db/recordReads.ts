@@ -86,6 +86,34 @@ export async function recentReadBy(reader: string, subject: string, sinceMs: num
   return row ? fromRow(row) : null;
 }
 
+/// The newest read one reader paid for on one subject for one request, while
+/// its signed detail is still kept, so the same check is never paid twice.
+export async function keptReadFor(reader: string, subject: string, ref: string, sinceMs: number): Promise<RecordReadReceipt | null> {
+  const [rd, s] = [reader.toLowerCase(), subject.toLowerCase()];
+  if (!pgEnabled) {
+    return (
+      mem
+        .filter((r) => r.reader === rd && r.subject === s && r.ref === ref && r.detail !== null && r.createdAt >= sinceMs)
+        .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null
+    );
+  }
+  const [row] = await db()
+    .select()
+    .from(recordReads)
+    .where(
+      and(
+        eq(recordReads.reader, rd),
+        eq(recordReads.subject, s),
+        eq(recordReads.ref, ref),
+        isNotNull(recordReads.detail),
+        gte(recordReads.createdAt, sinceMs),
+      ),
+    )
+    .orderBy(desc(recordReads.createdAt))
+    .limit(1);
+  return row ? fromRow(row) : null;
+}
+
 export async function purgeReadDetails(now: number): Promise<number> {
   const cutoff = now - READ_DETAIL_TTL_MS;
   if (!pgEnabled) {

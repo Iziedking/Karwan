@@ -108,4 +108,6 @@ flowchart TB
 |---|---|
 | Duplicate seller on the shortlist | Fixed 3 Nov 2026 at the market board, not deployed |
 | This view | Proposed 3 Nov 2026; decisions 1 to 4, 6 and 7 approved, decision 5 waiting |
-| Steps 1 to 7 | Not built |
+| Step 1, record reads | Built 3 Nov 2026, not deployed: `backend/src/x402/dataGate.ts` reuses a kept read for the same reader, subject and request unless the record changed, shares one payment between checks running at once, and tells only the owner what was paid; the buyer shortlist, the seller's buyer check and the assistant's question go through it |
+| Step 1, research paid by the person's agent | Designed, waiting for the owner: research becomes a paid Karwan read on Arc from the agent's own balance |
+| Steps 2 to 7 | Not built |

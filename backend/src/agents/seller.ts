@@ -67,7 +67,8 @@ import { accountTypeOf } from '../profile/accountType.js';
 import { getProfile } from '../db/profiles.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
 import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
-import { paidRecordRead, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { type PaidPassportSignal } from '../x402/buyerClient.js';
+import { acquireRecordRead } from '../x402/dataGate.js';
 import { assessBuyer, type BuyerCheck } from './buyerCheck.js';
 import { config } from '../config.js';
 import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
@@ -823,8 +824,8 @@ async function checkBuyer(seller: SellerProfile, job: JobContext): Promise<Buyer
   const owner = await findAgentWalletByAgentAddress(seller.address).catch(() => null);
   if (!poster || !owner) return null;
   const requestUsdc = Number(job.budgetUsdc) || 0;
-  const reading = paidRecordRead(seller.address, poster, { purpose: 'bid', ref: job.jobId, forAccount: owner.userAddress })
-    .then((r) => assessBuyer(r.read, requestUsdc, { paidUsdc: r.amountUsd, receipt: r.transaction || null, checkedAt: Date.now() }))
+  const reading = acquireRecordRead({ payerAgent: seller.address, subject: poster, purpose: 'bid', ref: job.jobId, forAccount: owner.userAddress })
+    .then((r) => assessBuyer(r.read, requestUsdc, { paidUsdc: r.receipt.amountUsd, receipt: r.receipt.transaction, checkedAt: Date.now() }))
     .catch(() => null);
   let timer: ReturnType<typeof setTimeout> | undefined;
   const inTime = await Promise.race([

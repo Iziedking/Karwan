@@ -3,7 +3,7 @@ import test from 'node:test';
 
 process.env.NODE_ENV = 'test';
 delete process.env.DATABASE_URL;
-const { saveRecordRead, readersOf, purgeReadDetails, recentReadBy, deleteReadsFor, readsForRef } = await import('./recordReads.js');
+const { saveRecordRead, readersOf, purgeReadDetails, recentReadBy, deleteReadsFor, readsForRef, keptReadFor } = await import('./recordReads.js');
 
 const base = { purpose: 'shortlist' as const, ref: '0xjob', priceUsdc: 0.01, paymentTx: 'tx', scoreAtRead: 82, levelAtRead: 'work_verified' };
 const r = (id: string, reader: string, subject: string, createdAt: number) => ({ ...base, id, reader, subject, detail: { counts: {} }, createdAt });
@@ -45,4 +45,15 @@ test('the reads one reader paid for on one request are counted with their total 
   await saveRecordRead({ ...r('c4', '0xOTHER', '0xS4', 13), ref: 'job-1' });
   assert.deepEqual(await readsForRef('job-1', '0xr'), { count: 2, usdc: 0.02 });
   assert.deepEqual(await readsForRef('job-9', '0xr'), { count: 0, usdc: 0 });
+});
+
+test('the kept read for one reader, subject and request is the newest with its detail', async () => {
+  await saveRecordRead({ ...r('k1', '0xRDR', '0xSUB', 1_000), ref: '0xreq' });
+  await saveRecordRead({ ...r('k2', '0xRDR', '0xSUB', 2_000), ref: '0xreq', detail: { counts: { completed: 2 } } });
+  await saveRecordRead({ ...r('k3', '0xRDR', '0xSUB', 3_000), ref: '0xother' });
+  await saveRecordRead({ ...r('k4', '0xRDR', '0xSUB', 4_000), ref: '0xreq', detail: null });
+  const kept = await keptReadFor('0xrdr', '0xsub', '0xreq', 0);
+  assert.equal(kept?.id, 'k2');
+  assert.equal(await keptReadFor('0xrdr', '0xsub', '0xreq', 2_001), null);
+  assert.equal(await keptReadFor('0xrdr', '0xsub', '0xnone', 0), null);
 });

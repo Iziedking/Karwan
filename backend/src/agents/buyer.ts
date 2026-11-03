@@ -130,12 +130,11 @@ import { collectingOffers, inBudgetShortlistEntry, maybeRaiseNearMiss, setCollec
 import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/nearMiss.js';
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
-import { paidCreditPassport, paidRecordRead, READS_BALANCE_EMPTY, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { paidCreditPassport, READS_BALANCE_EMPTY, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { acquireRecordRead } from '../x402/dataGate.js';
 import { markUnavailable, pickRecommended, rankCandidates, sealEntries, shortlistLimits, toEntries, unavailableSellers, type ShortlistCandidate, type ShortlistEntry } from './shortlist.js';
 import { buildCandidates, type ShortlistDeps } from './shortlistRun.js';
-import { recentReadBy } from '../db/recordReads.js';
 import { countsFor } from '../reputation/recordRead.js';
-import type { SignedRecordRead } from '../verification/recordReadSignature.js';
 import { levelOf } from '../verification/live.js';
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
 import { chargeResearch } from '../x402/researchAccount.js';
@@ -2033,7 +2032,6 @@ interface RankedBidEntry {
 }
 
 const SHORTLIST_READ_TIMEOUT_MS = 10_000;
-const READ_REUSE_MS = 600_000;
 
 /// `notify` marks the updates worth a chat message: the first list, a new
 /// recommendation, and an agreed price. Other refreshes only update screens.
@@ -2058,12 +2056,9 @@ function shortlistDeps(state: JobState): ShortlistDeps {
   return {
     readRecord: async (payerAgent, subject, ref, forAccount) => {
       if (!config.RECORD_READS_ENABLED) return null;
-      const reused = await recentReadBy(forAccount, subject, Date.now() - READ_REUSE_MS).catch(() => null);
-      const kept = reused?.detail as SignedRecordRead | null | undefined;
-      if (kept) return { counts: kept.counts, score: kept.score };
       try {
-        const r = await paidRecordRead(payerAgent, subject, { purpose: 'shortlist', ref, forAccount });
-        recordSpend(ref, r.amountUsd);
+        const r = await acquireRecordRead({ payerAgent, subject, purpose: 'shortlist', ref, forAccount });
+        if (r.amountUsd > 0) recordSpend(ref, r.amountUsd);
         return { counts: r.read.counts, score: r.read.score };
       } catch (err) {
         if ((err as Error).message.startsWith(READS_BALANCE_EMPTY)) state.readsBalanceEmpty = true;

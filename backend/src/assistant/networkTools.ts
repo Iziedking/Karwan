@@ -15,7 +15,8 @@ import { prohibitedReason } from '../policy/prohibited.js';
 import { loadPublicPassport } from '../sealed/passportLoader.js';
 import { levelOf } from '../verification/live.js';
 import { buyerVisible, sellerMayBid } from '../verification/networkGate.js';
-import { paidCreditPassport, paidRecordRead } from '../x402/buyerClient.js';
+import { paidCreditPassport } from '../x402/buyerClient.js';
+import { acquireRecordRead } from '../x402/dataGate.js';
 import { searchMarket } from './marketSearch.js';
 import { paidReadView } from './paidReadView.js';
 import { personName } from '../channels/personName.js';
@@ -134,10 +135,10 @@ export function networkTools(address: string) {
           try {
             const wallets = await getAgentWallets(address);
             if (!wallets?.buyerAddress) return { answer, paidRecordRead: null };
-            const r = await paidRecordRead(wallets.buyerAddress, listing.sellerUser, { purpose: 'question', ref: listingId, forAccount: address });
+            const r = await acquireRecordRead({ payerAgent: wallets.buyerAddress, subject: listing.sellerUser, purpose: 'question', ref: listingId, forAccount: address });
             return {
               answer,
-              paidRecordRead: paidReadView(r.read, r.amountUsd, r.depositTxHash ?? null, config.SEALED_RECORDS),
+              paidRecordRead: paidReadView(r.read, r.receipt.amountUsd, r.depositTxHash ?? null, config.SEALED_RECORDS),
             };
           } catch (err) {
             logger.warn({ err: (err as Error).message }, 'assistant ask_their_agent record read failed');
