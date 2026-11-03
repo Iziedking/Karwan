@@ -46,6 +46,7 @@ export type RouteTitleKey =
   | 'business'
   | 'businessSetup'
   | 'contact'
+  | 'theme'
   | 'editProfile'
   | 'openDeals'
   | 'profileSetup'
@@ -123,6 +124,7 @@ const en: RouteTitleCopy = {
   business: 'Business',
   businessSetup: 'Business setup',
   contact: 'Contact details',
+  theme: 'Theme',
   editProfile: 'Edit profile',
   openDeals: 'Open deals',
   profileSetup: 'Your agent',
@@ -199,6 +201,7 @@ const ar: RouteTitleCopy = {
   business: 'النشاط التجاري',
   businessSetup: 'إعداد النشاط التجاري',
   contact: 'بيانات التواصل',
+  theme: 'المظهر',
   editProfile: 'تعديل الملف',
   openDeals: 'الصفقات المفتوحة',
   profileSetup: 'وكيلك',
@@ -275,6 +278,7 @@ const fr: RouteTitleCopy = {
   business: 'Entreprise',
   businessSetup: 'Configurer l’entreprise',
   contact: 'Coordonnées',
+  theme: 'Thème',
   editProfile: 'Modifier le profil',
   openDeals: 'Deals ouverts',
   profileSetup: 'Votre agent',
@@ -351,6 +355,7 @@ const hi: RouteTitleCopy = {
   business: 'व्यवसाय',
   businessSetup: 'व्यवसाय सेटअप',
   contact: 'संपर्क विवरण',
+  theme: 'थीम',
   editProfile: 'प्रोफ़ाइल संपादित करें',
   openDeals: 'खुली डील',
   profileSetup: 'आपका एजेंट',
@@ -427,6 +432,7 @@ const sw: RouteTitleCopy = {
   business: 'Biashara',
   businessSetup: 'Kuandaa biashara',
   contact: 'Mawasiliano',
+  theme: 'Mwonekano',
   editProfile: 'Hariri wasifu',
   openDeals: 'Mikataba iliyo wazi',
   profileSetup: 'Wakala wako',

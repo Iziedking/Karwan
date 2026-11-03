@@ -36,6 +36,12 @@ export interface RecordCopy {
   connected: string;
   otherPlatforms: string;
   noPartners: string;
+  /// The record's facts card and its one primary (view 48).
+  averageRating: string;
+  newRating: string;
+  ratingsOne: string;
+  ratingsMany: string;
+  askForOffer: string;
 }
 
 const en: RecordCopy = {
@@ -79,6 +85,11 @@ const en: RecordCopy = {
   connected: 'Connected',
   otherPlatforms: 'Other platforms',
   noPartners: 'No partner platforms yet',
+  averageRating: 'average rating',
+  newRating: 'New',
+  ratingsOne: 'rating',
+  ratingsMany: 'ratings',
+  askForOffer: 'Ask {name} for an offer',
 };
 
 const ar: RecordCopy = {
@@ -122,6 +133,11 @@ const ar: RecordCopy = {
   connected: 'متصل',
   otherPlatforms: 'منصات أخرى',
   noPartners: 'لا منصات شريكة بعد',
+  averageRating: 'متوسط التقييم',
+  newRating: 'جديد',
+  ratingsOne: 'تقييم',
+  ratingsMany: 'تقييمات',
+  askForOffer: 'اطلب عرضًا من {name}',
 };
 
 const fr: RecordCopy = {
@@ -165,6 +181,11 @@ const fr: RecordCopy = {
   connected: 'Connecté',
   otherPlatforms: 'Autres plateformes',
   noPartners: 'Aucune plateforme partenaire pour l’instant',
+  averageRating: 'note moyenne',
+  newRating: 'Nouveau',
+  ratingsOne: 'avis',
+  ratingsMany: 'avis',
+  askForOffer: 'Demander une offre à {name}',
 };
 
 const hi: RecordCopy = {
@@ -208,6 +229,11 @@ const hi: RecordCopy = {
   connected: 'जुड़ा है',
   otherPlatforms: 'दूसरे प्लेटफ़ॉर्म',
   noPartners: 'अभी कोई साझेदार प्लेटफ़ॉर्म नहीं',
+  averageRating: 'औसत रेटिंग',
+  newRating: 'नया',
+  ratingsOne: 'रेटिंग',
+  ratingsMany: 'रेटिंग',
+  askForOffer: '{name} से ऑफ़र माँगें',
 };
 
 const sw: RecordCopy = {
@@ -251,6 +277,11 @@ const sw: RecordCopy = {
   connected: 'Imeunganishwa',
   otherPlatforms: 'Majukwaa mengine',
   noPartners: 'Bado hakuna majukwaa washirika',
+  averageRating: 'wastani wa ukadiriaji',
+  newRating: 'Mpya',
+  ratingsOne: 'ukadiriaji',
+  ratingsMany: 'ukadiriaji',
+  askForOffer: 'Muombe {name} ofa',
 };
 
 export const recordCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', RecordCopy> = { en, ar, fr, hi, sw };

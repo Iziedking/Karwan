@@ -7,6 +7,12 @@ import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useBridges, type BridgeStartResult } from '@/features/bridge/hooks/useBridge';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { FactRows } from '@/shared/components/FactRows';
+import { Button, buttonClasses } from '@/shared/components/Button';
+import { DealRoute } from '@/features/deals/DealRoute';
+import { Icon } from '@/shared/components/Icon';
 import {
   api,
   ApiError,
@@ -84,9 +90,9 @@ export function AssistantThread({ messages, busy, onNavigate }: { messages: read
 function PastCard({ action }: { action: PastAssistantAction }) {
   const t = useTranslations().assistantMode;
   return (
-    <div className="ms-1 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3">
-      <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{action.title ?? action.label}</p>
-      <p className={action.status === 'done' ? 'mt-1 text-[14px] font-semibold text-[var(--lp-accent-on-light)]' : 'mt-1 text-[14px] text-[var(--lp-text-sub)]'}>
+    <div className={`${CARD_CLASS} px-4 py-3`}>
+      <p className="text-[15px] font-semibold text-[var(--ink)]">{action.title ?? action.label}</p>
+      <p className={action.status === 'done' ? 'mt-1 text-[14px] font-semibold text-[var(--ink)]' : 'mt-1 text-[14px] text-[var(--ink-secondary)]'}>
         {action.status === 'done' ? t.pastDone : t.pastClosed}
       </p>
     </div>
@@ -137,15 +143,15 @@ function NavigateButton({
     <button
       type="button"
       onClick={go}
-      className="group flex min-h-12 w-full items-center gap-3 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 py-2.5 text-start text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      className="group flex min-h-12 w-full items-center gap-3 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-start text-[var(--ink)] transition-colors hover:border-[var(--line-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
     >
       <span className="min-w-0 flex-1">
         <span className="line-clamp-2 text-[14px] font-semibold leading-snug">{action.label}</span>
         {action.description ? (
-          <span className="mt-0.5 block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{action.description}</span>
+          <span className="mt-0.5 block truncate text-[14px] text-[var(--ink-secondary)] font-medium">{action.description}</span>
         ) : null}
       </span>
-      <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--lp-light)] text-[var(--lp-text-sub)] transition-colors group-hover:bg-[var(--lp-accent)] group-hover:text-[var(--accent-ink)]">
+      <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--raised)] text-[var(--ink-secondary)] transition-colors group-hover:bg-[var(--ash)] group-hover:text-[var(--accent-ink)]">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="rtl:-scale-x-100">
           <path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -1488,28 +1494,28 @@ function ConfirmCard({
 
   if (status === 'done' && result) {
     return (
-      <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
-        <p className={`mono text-[13px] uppercase tracking-[0.12em] font-bold ${result.state === 'pending' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-accent)]'}`}>
+      <div className={`${CARD_CLASS} p-4`} data-card-done>
+        <p className="text-[13px] font-semibold text-[var(--ink-secondary)]">
           {result.state === 'pending' ? 'In flight' : 'Completed'}
         </p>
-        <p className="text-[14px] text-[var(--lp-dark)] mt-1">{result.successText}</p>
+        <p className="mt-1 text-[15px] text-[var(--ink)]">{result.successText}</p>
         {result.txHash ? (
           <a
             href={ARC_EXPLORER_TX(result.txHash)}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 flex items-baseline justify-between gap-3 group"
+            className="mt-2 flex items-baseline justify-between gap-3 text-[13px] group"
             title={result.txHash}
           >
-            <span className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Receipt</span>
-            <span className="min-w-0 mono text-[14px] text-[var(--lp-dark)] tabular-nums truncate underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 group-hover:opacity-80">
+            <span className="shrink-0 text-[var(--ink-secondary)]">Receipt</span>
+            <span className="min-w-0 truncate tabular-nums text-[var(--ink)] underline underline-offset-2 group-hover:opacity-80">
               {result.txHash.slice(0, 8)}…{result.txHash.slice(-6)} ↗
             </span>
           </a>
         ) : result.refId ? (
-          <div className="mt-2 flex items-baseline justify-between gap-3" title={result.refId}>
-            <span className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{pb.assistant.transferRef}</span>
-            <span className="min-w-0 mono text-[14px] text-[var(--lp-dark)] tabular-nums truncate">
+          <div className="mt-2 flex items-baseline justify-between gap-3 text-[13px]" title={result.refId}>
+            <span className="shrink-0 text-[var(--ink-secondary)]">{pb.assistant.transferRef}</span>
+            <span className="min-w-0 truncate tabular-nums text-[var(--ink)]">
               {result.refId.slice(0, 8)}…{result.refId.slice(-6)}
             </span>
           </div>
@@ -1520,7 +1526,7 @@ function ConfirmCard({
             onNavigate();
             router.push(result.viewHref);
           }}
-          className="mt-2 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+          className={`mt-3 w-full ${buttonClasses({ variant: 'secondary' })}`}
         >
           {result.viewLabel}
         </button>
@@ -1529,52 +1535,62 @@ function ConfirmCard({
   }
 
   return (
-    <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
+    <div className={`${CARD_CLASS} p-4`} data-confirm-card>
       {/* Card copy comes in English from the server, so each line keeps its own direction inside an Arabic page. */}
-      <p dir="auto" className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">{action.title}</p>
+      <p dir="auto" className="text-[15px] font-semibold text-[var(--ink)]">{action.title}</p>
       {action.summary && (
-        <p dir="auto" className="text-[14px] leading-snug text-[var(--lp-text-sub)] mt-1 font-medium">{action.summary}</p>
+        <p dir="auto" className="mt-1 text-[14px] leading-snug text-[var(--ink-secondary)]">{action.summary}</p>
       )}
-      <dl className="mt-2 space-y-1.5">
-        {action.fields.map((f, i) => (
-          <div key={i} className="flex items-baseline justify-between gap-3">
-            <dt dir="auto" className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
-            <dd dir="auto" className="min-w-0 text-[14px] text-[var(--lp-dark)] text-end [overflow-wrap:anywhere] tabular-nums">{f.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <CardDealRoute action={action} />
+      {action.fields.length ? (
+        <div className="mt-2 border-t border-[var(--line)]">
+          <FactRows facts={action.fields.map((f, i) => ({ label: <span dir="auto">{f.label}</span>, value: <span dir="auto" className="tabular-nums">{f.value}</span>, id: `${i}` }))} />
+        </div>
+      ) : null}
       {action.warning && (
-        <p className="flex items-start gap-1.5 mono text-[13px] leading-snug text-[var(--lp-critical)] mt-2.5">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 mt-px">
-            <path d="M8 1.5l6.5 11.5H1.5L8 1.5zm0 4.2v3.4m0 1.7v.1" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-          </svg>
+        <p className="mt-2.5 flex items-start gap-1.5 text-[13px] leading-snug text-[var(--color-critical)]">
+          <Icon name="alert" size={16} className="mt-px shrink-0" />
           <span dir="auto">{action.warning}</span>
         </p>
       )}
-      {status === 'error' && <p className="mono text-[13px] text-[var(--lp-critical)] mt-2">{errMsg}</p>}
-      <div className="flex gap-2 mt-3">
-        <button
+      {status === 'error' && <p role="alert" className="mt-2 text-[13px] text-[var(--color-critical)]">{errMsg}</p>}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button type="button" onClick={confirm} loading={status === 'running'} loadingLabel={busyLabel}>
+          {status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
+        </Button>
+        <Button
           type="button"
-          onClick={confirm}
-          disabled={status === 'running'}
-          className="flex-1 min-h-11 mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
-          style={{ borderRadius: 10 }}
-        >
-          {status === 'running' ? busyLabel : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
-        </button>
-        <button
-          type="button"
+          variant="secondary"
           onClick={() => {
             confirmOutcomes.set(action.id, 'dismissed');
             setStatus('dismissed');
           }}
           disabled={status === 'running'}
-          className="min-h-11 mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
-          style={{ borderRadius: 10 }}
         >
           {action.cancelLabel ?? 'Not now'}
-        </button>
+        </Button>
       </div>
+    </div>
+  );
+}
+
+/// A card about one of your deals shows where that deal stands (view 48):
+/// read fresh, so the route is the deal page's, never the card's guess.
+function CardDealRoute({ action }: { action: AssistantConfirmAction }) {
+  const payload = action.payload as { jobId?: unknown; caller?: unknown } | null;
+  const jobId = typeof payload?.jobId === 'string' && /^0x[0-9a-fA-F]{64}$/.test(payload.jobId) ? payload.jobId : null;
+  const caller = typeof payload?.caller === 'string' ? payload.caller : null;
+  const deal = useQuery({
+    queryKey: ['assistant-card-deal', jobId, caller],
+    queryFn: () => api.directDeal(jobId!, caller),
+    enabled: !!jobId && !!caller,
+    retry: false,
+    staleTime: 15_000,
+  });
+  if (!deal.data?.deal) return null;
+  return (
+    <div className="mt-3" data-card-route>
+      <DealRoute deal={deal.data.deal} />
     </div>
   );
 }
@@ -1582,13 +1598,12 @@ function ConfirmCard({
 export function Bubble({ role, children }: { role: 'user' | 'assistant'; children: React.ReactNode }) {
   const isUser = role === 'user';
   return (
-    <div className={isUser ? 'flex justify-end' : 'flex items-start justify-start gap-2'}>
-      {isUser ? null : <img src="/brand/karwan-mark-lime.svg" alt="" aria-hidden width={22} height={22} className="mt-0.5 size-[22px] shrink-0" />}
+    <div className={isUser ? 'flex justify-end' : 'flex justify-start'} data-bubble={role}>
       <div
         className={
           isUser
-            ? 'max-w-[85%] min-w-0 break-words rounded-[16px] rounded-ee-[4px] bg-[#E7F0CF] px-3.5 py-2.5 text-[15px] leading-relaxed text-[#1f2a0b]'
-            : 'max-w-[88%] min-w-0 break-words py-0.5 text-[15px] leading-relaxed text-[var(--lp-dark)]'
+            ? 'max-w-[85%] min-w-0 break-words rounded-[16px] rounded-ee-[4px] border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[15px] leading-relaxed text-[var(--ink)]'
+            : 'max-w-[92%] min-w-0 break-words py-0.5 text-[15px] leading-relaxed text-[var(--ink)]'
         }
       >
         {children}
@@ -1600,7 +1615,7 @@ export function Bubble({ role, children }: { role: 'user' | 'assistant'; childre
 export function Dot() {
   return (
     <span
-      className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--lp-text-muted)] animate-pulse motion-reduce:animate-none"
+      className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--ink-muted)] animate-pulse motion-reduce:animate-none"
     />
   );
 }
@@ -1633,7 +1648,7 @@ function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
             key={`k${key}`}
             href={href}
             onClick={onNavigate}
-            className="font-semibold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+            className="font-semibold text-[var(--ink)] underline decoration-[var(--ink)] decoration-2 underline-offset-2 hover:opacity-80"
           >
             {label}
           </Link>,
@@ -1645,7 +1660,7 @@ function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
             href={href}
             target="_blank"
             rel="noreferrer noopener"
-            className="font-semibold underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+            className="font-semibold underline decoration-[var(--ink)] decoration-2 underline-offset-2 hover:opacity-80"
           >
             {label}
           </a>,
@@ -1655,7 +1670,7 @@ function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
       }
     } else if (m[3] !== undefined) {
       parts.push(
-        <strong key={`k${key}`} className="font-bold text-[var(--lp-dark)]">
+        <strong key={`k${key}`} className="font-bold text-[var(--ink)]">
           {m[3]}
         </strong>,
       );
@@ -1681,7 +1696,7 @@ export function RichText({ text, onNavigate }: { text: string; onNavigate: () =>
             <div key={li} className="flex gap-2.5">
               <span
                 aria-hidden
-                className="mt-[3px] inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--lp-accent)] px-1 text-[14px] font-bold tabular-nums text-[var(--lp-band-dark)]"
+                className="mt-[3px] inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--ash)] px-1 text-[13px] font-semibold tabular-nums text-[var(--ink)]"
               >
                 {step[1]}
               </span>
@@ -1695,7 +1710,7 @@ export function RichText({ text, onNavigate }: { text: string; onNavigate: () =>
         if (isBullet) {
           return (
             <div key={li} className="flex gap-2">
-              <span aria-hidden className="text-[var(--lp-accent)] leading-relaxed">
+              <span aria-hidden className="text-[var(--ink-secondary)] leading-relaxed">
                 •
               </span>
               <p className="flex-1">{inline}</p>

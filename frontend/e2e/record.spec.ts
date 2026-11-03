@@ -66,11 +66,37 @@ test('what others see is words only, with what they sell, even on your own previ
   });
   await page.goto('/r/ada');
   await expect(page.getByRole('heading', { level: 1, name: 'Ada Builds' })).toBeVisible();
-  await expect(page.getByText('4.8 from 23 deals')).toBeVisible();
+  // View 48: three facts in one card, the rating, how many rated it and the level; never a deal count or a score.
+  const facts = page.locator('[data-record-facts]');
+  await expect(facts).toContainText('4.8');
+  await expect(facts).toContainText('average rating');
+  await expect(facts).toContainText('23');
+  await expect(facts).toContainText('ratings');
   await expect(page.getByText('512')).toHaveCount(0);
   await expect(page.getByText(/95%/)).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'What Ada Builds sells' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What Ada sells' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Logo design/ })).toHaveAttribute('href', '/listings/lst_1');
+  // Your own record never asks you for an offer.
+  await expect(page.getByRole('link', { name: 'Ask Ada for an offer' })).toHaveCount(0);
+});
+
+test("someone else's record has one primary: ask them for an offer (view 48)", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
+  const ada = '0x2222222222222222222222222222222222222222';
+  await page.route(`${API}/**`, async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === '/api/r/ada') return route.fulfill({ json: { ...record, rating: { kind: 'rated', value: 4.8, count: 23 } } });
+    if (pathname === '/api/tags/ada') return route.fulfill({ json: { found: true, self: false, tag: 'ada', displayName: 'Ada Builds', address: ada } });
+    if (pathname === '/api/auth/bootstrap') return route.fulfill({ json: { user: null, profile: null } });
+    return route.fulfill({ json: {} });
+  });
+  await page.goto('/r/ada');
+  await expect(page.getByRole('link', { name: 'Ask Ada for an offer' })).toHaveAttribute('href', `/buyer?seller=${ada}`);
+  await expect(page.getByRole('link', { name: 'Message @ada' })).toBeVisible();
+  const green = await page.locator('main a, main button').evaluateAll((els) => els
+    .filter((el) => el.checkVisibility() && getComputedStyle(el).backgroundColor === 'rgb(175, 201, 91)')
+    .map((el) => el.textContent?.trim()));
+  expect(green).toEqual(['Ask Ada for an offer']);
 });
 
 test('the record has Back, which goes to the market when opened from a link', async ({ page }) => {

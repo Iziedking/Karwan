@@ -241,19 +241,19 @@ function AssistantPage() {
   const empty = chat.messages.length === 0;
 
   return (
-    <div className="flex min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full text-[var(--lp-dark)]">
-      <aside className="hidden w-[264px] shrink-0 border-e border-[var(--lp-border-light)] px-4 py-5 lg:block">
+    <div className="flex min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full text-[var(--ink)]">
+      <aside className="hidden w-[264px] shrink-0 border-e border-[var(--line)] px-4 py-5 lg:block">
         <div className="sticky top-[calc(var(--lp-nav-h,72px)+20px)]">{column}</div>
       </aside>
 
       {/* On wide screens the column sits in the middle of the window, not just beside the list. */}
       <section className="flex min-w-0 flex-1 flex-col xl:pe-[264px]">
         <div className="flex items-center justify-between gap-2 px-4 pt-3 lg:hidden">
-          <button type="button" onClick={() => setListOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+          <button type="button" onClick={() => setListOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h10" /></svg>
             {t.conversations}
           </button>
-          <button type="button" onClick={() => void startNew()} aria-label={t.newConversation} className="grid size-11 place-items-center rounded-full text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+          <button type="button" onClick={() => void startNew()} aria-label={t.newConversation} className="grid size-11 place-items-center rounded-full text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
           </button>
         </div>
@@ -263,13 +263,13 @@ function AssistantPage() {
             <button
               type="button"
               onClick={() => callPerson(chat.messages.map((message) => ({ role: message.role, content: message.content })))}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--line)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             >
               <Icon name="user" size={20} />
               {messages.assistant.humanButton}
             </button>
             {chat.conversationId ? (
-              <button type="button" onClick={() => { setRemoveError(false); setRemoveId(chat.conversationId); }} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+              <button type="button" onClick={() => { setRemoveError(false); setRemoveId(chat.conversationId); }} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[14px] font-semibold text-[var(--ink-secondary)] hover:bg-[var(--raised)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>
                 {t.remove}
               </button>
@@ -278,7 +278,7 @@ function AssistantPage() {
           {empty ? (
             <m.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="pt-6 sm:pt-12">
               <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[28px]">{greeting}</h1>
-              <p className="mt-2 max-w-[52ch] text-[15px] font-medium text-[var(--lp-text-sub)]">{t.greetingBody}</p>
+              <p className="mt-2 max-w-[52ch] text-[15px] font-medium text-[var(--ink-secondary)]">{t.greetingBody}</p>
             </m.div>
           ) : (
             <div ref={threadRef}>
@@ -291,14 +291,14 @@ function AssistantPage() {
           <div ref={endRef} className="scroll-mb-40" />
         </div>
 
-        <div className="sticky bottom-0 bg-[var(--lp-bg)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
+        <div className="sticky bottom-0 bg-[var(--canvas)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
           <div className="relative mx-auto max-w-[760px]">
             {!empty && !atLatest ? (
               <button
                 type="button"
                 onClick={() => toLatest(true)}
                 aria-label={t.jumpLatest}
-                className="absolute -top-14 start-1/2 grid size-11 -translate-x-1/2 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rtl:translate-x-1/2"
+                className="absolute -top-14 start-1/2 grid size-11 -translate-x-1/2 place-items-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] rtl:translate-x-1/2"
               >
                 <Icon name="arrow-down" size={20} />
               </button>
@@ -311,7 +311,7 @@ function AssistantPage() {
                     type="button"
                     onClick={() => void send(chip)}
                     disabled={chat.busy}
-                    className="min-h-11 shrink-0 rounded-full border border-[var(--lp-border-light)] bg-[var(--tint)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                    className="min-h-11 shrink-0 rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                   >
                     {chip}
                   </button>
@@ -319,18 +319,18 @@ function AssistantPage() {
               </div>
             ) : null}
             {photoChoice ? (
-              <div role="group" aria-label={photoCopy.chooseTitle} className="mb-3 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-3">
+              <div role="group" aria-label={photoCopy.chooseTitle} className="mb-3 rounded-[20px] border border-[var(--line)] bg-[var(--surface)] p-3">
                 <div className="flex items-center gap-2">
-                  <p className="min-w-0 flex-1 px-1 text-[14px] font-semibold text-[var(--lp-dark)]">{photoCopy.chooseTitle}</p>
-                  <button type="button" onClick={() => setPhotoChoice(null)} aria-label={photoCopy.cancel} className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  <p className="min-w-0 flex-1 px-1 text-[14px] font-semibold text-[var(--ink)]">{photoCopy.chooseTitle}</p>
+                  <button type="button" onClick={() => setPhotoChoice(null)} aria-label={photoCopy.cancel} className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--ink-secondary)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                     <Icon name="close" size={20} />
                   </button>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-2">
-                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'offer'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--tint)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'offer'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                     {photoCopy.forOffer}
                   </button>
-                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'invoice'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--tint)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'invoice'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                     {photoCopy.asInvoice}
                   </button>
                 </div>
@@ -339,13 +339,13 @@ function AssistantPage() {
             {staged ? (
               <div className="mb-2 flex items-center gap-2 px-1">
                 {stagedUrl ? (
-                  <img src={stagedUrl} alt={staged.name} className="size-16 rounded-[12px] border border-[var(--lp-border-light)] object-cover" />
+                  <img src={stagedUrl} alt={staged.name} className="size-16 rounded-[12px] border border-[var(--line)] object-cover" />
                 ) : (
-                  <span className="inline-flex min-h-11 max-w-[60%] items-center gap-2 rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 text-[14px] font-medium text-[var(--lp-dark)]">
+                  <span className="inline-flex min-h-11 max-w-[60%] items-center gap-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] px-3 text-[14px] font-medium text-[var(--ink)]">
                     <span className="truncate">{staged.name}</span>
                   </span>
                 )}
-                <button type="button" onClick={() => setStaged(null)} aria-label={photoCopy.removeTemplate.replace('{n}', '1')} className="grid size-11 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                <button type="button" onClick={() => setStaged(null)} aria-label={photoCopy.removeTemplate.replace('{n}', '1')} className="grid size-11 place-items-center rounded-full text-[var(--ink-secondary)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                   <Icon name="close" size={16} />
                 </button>
               </div>
@@ -362,9 +362,9 @@ function AssistantPage() {
                 e.preventDefault();
                 take(e.dataTransfer.files[i]!);
               }}
-              className="flex items-end gap-2 rounded-[28px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 pe-1.5 ps-2 focus-within:border-[color-mix(in_srgb,var(--lp-accent)_60%,transparent)]"
+              className="flex items-end gap-2 rounded-[28px] border border-[var(--line)] bg-[var(--surface)] py-1.5 pe-1.5 ps-2 focus-within:border-[var(--line-strong)]"
             >
-              <label className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
+              <label className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-[var(--ink-secondary)] hover:bg-[var(--raised)] hover:text-[var(--ink)] focus-within:ring-2 focus-within:ring-[var(--ink)]">
                 <span className="sr-only">{t.attach}</span>
                 <Icon name="image-plus" size={20} />
                 <input
@@ -402,13 +402,13 @@ function AssistantPage() {
                 rows={1}
                 dir="auto"
                 placeholder={t.placeholder}
-                className="max-h-36 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-[16px] text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
+                className="max-h-36 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-[16px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
               />
               <button
                 type="submit"
                 disabled={chat.busy || (!input.trim() && !staged)}
                 aria-label={messages.assistant.send}
-                className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
+                className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--karwan-green)] text-[var(--accent-ink)] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
               >
                 <Icon name="return" size={20} directional />
               </button>
@@ -418,14 +418,14 @@ function AssistantPage() {
       </section>
 
       <ConfirmSheetShell open={removeId !== null} labelledBy="remove-conversation" busy={removing} onClose={() => setRemoveId(null)}>
-        <h2 id="remove-conversation" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.removeTitle}</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.removeBody}</p>
+        <h2 id="remove-conversation" className="text-[20px] font-semibold text-[var(--ink)]">{t.removeTitle}</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{t.removeBody}</p>
         {removeError ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{t.removeFailed}</p> : null}
         <div className="mt-5 grid gap-2">
           <button type="button" disabled={removing} onClick={() => void removeConversation()} className="min-h-12 rounded-full bg-[var(--color-critical)] px-5 text-[15px] font-semibold text-white disabled:opacity-50">
             {t.remove}
           </button>
-          <button type="button" disabled={removing} onClick={() => setRemoveId(null)} className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50">
+          <button type="button" disabled={removing} onClick={() => setRemoveId(null)} className="min-h-12 rounded-full border border-[var(--line)] px-5 text-[15px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50">
             {t.removeKeep}
           </button>
         </div>
@@ -446,7 +446,7 @@ function AssistantPage() {
               role="dialog"
               aria-modal="true"
               aria-label={t.conversations}
-              className="absolute inset-x-0 bottom-0 max-h-[80svh] overflow-y-auto rounded-t-[22px] bg-[var(--lp-card)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+              className="absolute inset-x-0 bottom-0 max-h-[80svh] overflow-y-auto rounded-t-[22px] bg-[var(--surface)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
               initial={reduce ? false : { y: 40 }}
               animate={{ y: 0 }}
               exit={reduce ? undefined : { y: 40 }}

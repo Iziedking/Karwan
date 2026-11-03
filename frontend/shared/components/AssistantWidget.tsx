@@ -330,7 +330,7 @@ export function AssistantWidget() {
           aria-label={t.launcherAria}
           data-float-launcher
           data-float-side="end"
-          className="fixed z-[60] end-4 bottom-24 inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-full bg-[var(--lp-dark)] px-5 text-[14px] font-semibold text-[var(--lp-light)] shadow-[0_10px_28px_-12px_rgba(0,0,0,0.5)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 md:end-5 md:bottom-5"
+          className="fixed z-[60] end-4 bottom-24 inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-5 text-[14px] font-semibold text-[var(--raised)] shadow-[0_10px_28px_-12px_rgba(0,0,0,0.5)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 md:end-5 md:bottom-5"
           style={floatingClearanceStyle(clearance)}
         >
           {unread && (
@@ -341,7 +341,7 @@ export function AssistantWidget() {
               1
             </span>
           )}
-          <span aria-hidden className="-ms-1.5 grid size-[26px] place-items-center rounded-full bg-[var(--lp-light)] text-[15px] font-bold leading-none text-[var(--lp-dark)]">?</span>
+          <span aria-hidden className="-ms-1.5 grid size-[26px] place-items-center rounded-full bg-[var(--raised)] text-[15px] font-bold leading-none text-[var(--ink)]">?</span>
           <span>
             {unread ? a11y.newReply : t.launcherLabel}
           </span>
@@ -351,7 +351,7 @@ export function AssistantWidget() {
       {open && (
         <div
           className={
-            'fixed z-[70] inset-x-0 bottom-0 sm:inset-x-auto sm:end-5 sm:bottom-5 flex flex-col bg-[var(--lp-card)] border border-[var(--lp-border-light)] shadow-[0_24px_64px_-20px_rgba(0,0,0,0.45)] max-h-[calc(100vh-1rem)] transition-[width,height] duration-200 ' +
+            'fixed z-[70] inset-x-0 bottom-0 sm:inset-x-auto sm:end-5 sm:bottom-5 flex flex-col bg-[var(--surface)] border border-[var(--line)] shadow-[0_24px_64px_-20px_rgba(0,0,0,0.45)] max-h-[calc(100vh-1rem)] transition-[width,height] duration-200 ' +
             (expanded
               ? 'h-[86vh] sm:w-[560px] sm:h-[760px]'
               : 'h-[76vh] sm:w-[440px] sm:h-[640px]')
@@ -366,12 +366,12 @@ export function AssistantWidget() {
           aria-label={t.title}
         >
           {/* header */}
-          <div className="flex items-start justify-between gap-3 p-4 border-b border-[var(--lp-border-light)]">
+          <div className="flex items-start justify-between gap-3 p-4 border-b border-[var(--line)]">
             <div className="flex min-w-0 items-center gap-2.5">
               <img src="/brand/karwan-mark-lime.svg" alt="" aria-hidden width={30} height={30} className="size-[30px] shrink-0" />
               <div className="min-w-0">
-                <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{t.title}</p>
-                <p className="mt-0.5 truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{t.subtitle}</p>
+                <p className="text-[16px] font-semibold text-[var(--ink)]">{t.title}</p>
+                <p className="mt-0.5 truncate text-[14px] text-[var(--ink-secondary)] font-medium">{t.subtitle}</p>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -379,7 +379,7 @@ export function AssistantWidget() {
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
                 aria-label={expanded ? 'Shrink' : 'Expand'}
-                className="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-black/[0.05] transition-colors"
+                className="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-black/[0.05] transition-colors"
               >
                 {expanded ? (
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -395,7 +395,7 @@ export function AssistantWidget() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-black/[0.05] transition-colors"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-black/[0.05] transition-colors"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
                   <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -415,7 +415,7 @@ export function AssistantWidget() {
                     type="button"
                     onClick={() => void send(question)}
                     disabled={loading}
-                    className="min-h-9 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 text-[14px] text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                    className="min-h-9 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 text-[14px] text-[var(--ink)] transition-colors hover:border-[var(--line-strong)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                   >
                     {question}
                   </button>
@@ -426,19 +426,19 @@ export function AssistantWidget() {
             {isLive && (
               <>
                 <div className="flex items-center gap-2 pt-1">
-                  <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
-                  <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                  <span className="h-px flex-1 bg-[var(--line)]" />
+                  <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--ink-muted)]">
                     {t.liveHeader}
                   </span>
-                  <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
+                  <span className="h-px flex-1 bg-[var(--line)]" />
                 </div>
                 {convoId && (
-                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] text-center">
+                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--ink-muted)] text-center">
                     Ticket {convoId}
                   </p>
                 )}
                 {!liveClosed && (
-                  <p className="mono text-[13px] leading-snug text-[var(--lp-text-sub)] px-1">
+                  <p className="mono text-[13px] leading-snug text-[var(--ink-secondary)] px-1">
                     {t.liveBanner ??
                       'Connected to support. A person will reply here, usually within a few minutes.'}
                     {fromElsewhere ? ` ${t.handoffContext}` : null}
@@ -447,7 +447,7 @@ export function AssistantWidget() {
                 {live.map((m, i) => (
                   <div key={`l${i}`}>
                     {m.role === 'operator' && (
-                      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-accent)] mb-1 ms-1">
+                      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--ink-secondary)] mb-1 ms-1">
                         {t.operatorName}
                       </p>
                     )}
@@ -457,7 +457,7 @@ export function AssistantWidget() {
                   </div>
                 ))}
                 {liveClosed && (
-                  <p className="mono text-[13px] leading-snug text-[var(--lp-text-muted)] px-1 pt-1">
+                  <p className="mono text-[13px] leading-snug text-[var(--ink-muted)] px-1 pt-1">
                     {t.liveClosed ??
                       'This support chat is closed. The transcript was emailed to you.'}
                   </p>
@@ -477,11 +477,11 @@ export function AssistantWidget() {
           </div>
 
           {/* input */}
-          <div className="p-3 border-t border-[var(--lp-border-light)]">
+          <div className="p-3 border-t border-[var(--line)]">
             {showFeedbackLink && (
               <Link
                 href="/feedback"
-                className="mb-2 flex min-h-11 w-full items-center justify-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)]"
+                className="mb-2 flex min-h-11 w-full items-center justify-center rounded-full border border-[var(--line)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--raised)]"
               >
                 {t.humanButton}
               </Link>
@@ -491,7 +491,7 @@ export function AssistantWidget() {
                 type="button"
                 onClick={startHandoff}
                 disabled={loading}
-                className="mb-2 min-h-11 w-full rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-50"
+                className="mb-2 min-h-11 w-full rounded-full border border-[var(--line)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--raised)] disabled:opacity-50"
               >
                 {t.humanButton}
               </button>
@@ -501,7 +501,7 @@ export function AssistantWidget() {
                 <button
                   type="button"
                   onClick={endChat}
-                  className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition"
+                  className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--ink-muted)] hover:text-[var(--ink)] transition"
                 >
                   {t.endChat}
                 </button>
@@ -511,13 +511,13 @@ export function AssistantWidget() {
               <button
                 type="button"
                 onClick={resetToAssistant}
-                className="w-full mono text-[14px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 rounded-[10px] bg-[var(--lp-dark)] text-[var(--lp-bg)] transition"
+                className="w-full mono text-[14px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 rounded-[10px] bg-[var(--ink)] text-[var(--canvas)] transition"
               >
                 {t.backToAssistant}
               </button>
             ) : (
               <>
-                <div className="flex items-end gap-2 rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 pe-1.5 ps-4 focus-within:border-[var(--lp-outline-strong)]">
+                <div className="flex items-end gap-2 rounded-[22px] border border-[var(--line)] bg-[var(--surface)] py-1.5 pe-1.5 ps-4 focus-within:border-[var(--line-strong)]">
                   <textarea
                     ref={inputBoxRef}
                     value={input}
@@ -526,27 +526,27 @@ export function AssistantWidget() {
                     placeholder={isLive ? t.livePlaceholder : t.placeholder}
                     rows={1}
                     aria-label={isLive ? t.livePlaceholder : t.placeholder}
-                    className="max-h-28 min-h-9 flex-1 resize-none bg-transparent py-2 text-[15px] text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
+                    className="max-h-28 min-h-9 flex-1 resize-none bg-transparent py-2 text-[15px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
                   />
                   <button
                     type="button"
                     onClick={() => void send()}
                     disabled={loading || !input.trim()}
                     aria-label={t.send}
-                    className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[#10170b] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
+                    className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--karwan-green)] text-[var(--accent-ink)] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                   >
                     <Icon name="return" size={20} directional />
                   </button>
                 </div>
                 {!isLive && auth.isAuthenticated ? (
-                  <p className="mt-2 text-center text-[14px] text-[var(--lp-text-muted)]">{t.confirmNote}</p>
+                  <p className="mt-2 text-center text-[14px] text-[var(--ink-muted)]">{t.confirmNote}</p>
                 ) : null}
                 {/* Guidance disclaimer is only true for signed-OUT visitors (the
                     assistant holds no tools for them). Once signed in it CAN act
                     (each action still gated by a confirm card), so the line would
                     be wrong — hide it. */}
                 {!isLive && !auth.isAuthenticated && (
-                  <p className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] mt-2 leading-snug">
+                  <p className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--ink-muted)] mt-2 leading-snug">
                     {t.disclaimer}
                   </p>
                 )}

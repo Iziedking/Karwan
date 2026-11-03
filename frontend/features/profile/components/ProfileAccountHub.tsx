@@ -27,6 +27,9 @@ import { useQuery } from '@tanstack/react-query';
 import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
 import { ownRecord, type OwnRecord } from '../ownRecord';
 import { yourAgentCopy } from '@/shared/i18n/messages/yourAgent';
+import { useTheme } from '@/shared/hooks/useTheme';
+import { LOCALE_NAMES } from '@/shared/i18n/locales';
+import { routeTitlesCopy } from '@/shared/i18n/messages/routeTitles';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -105,6 +108,8 @@ export function ProfileAccountHub({
   const { hasPasskey, method, email, refresh } = useAuth();
   const passkey = useAddPasskey(email, () => refresh());
   const { locale } = useLocale();
+  const { preference, mounted } = useTheme();
+  const themeNow = mounted ? preference : 'dark';
   const agentCopy = yourAgentCopy[locale as keyof typeof yourAgentCopy] ?? yourAgentCopy.en;
   const simple = messages.profile.simple;
   const balanceFacts = { balance: money.balance, pool: money.pool, loading: money.loading, error: money.error };
@@ -152,22 +157,22 @@ export function ProfileAccountHub({
             ) : (
               <WalletAvatar address={address} size={56} />
             )}
-            <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)]"><Icon name="plus" size={16} /></span>
+            <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)]"><Icon name="plus" size={16} /></span>
           </PhotoMenu>
           <span className="min-w-0">
             <span className="line-clamp-2 break-words text-[20px] leading-tight">{displayName}</span>
-            <span className="block truncate text-[14px] font-normal tracking-normal text-[var(--lp-text-sub)]">
+            <span className="block truncate text-[14px] font-normal tracking-normal text-[var(--ink-secondary)]">
               {[profile.handle ? `@${profile.handle}` : contact, business ? hub.businessAccount : hub.personalAccount].join(' · ')}
             </span>
           </span>
         </span>
-        <Link href="/profile/edit" className="ms-auto inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-outline-strong)] px-4 text-[14px] font-semibold tracking-normal text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">{hub.editProfile}</Link>
+        <Link href="/profile/edit" className="ms-auto inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--line-strong)] px-4 text-[14px] font-semibold tracking-normal text-[var(--ink)] transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">{hub.editProfile}</Link>
         </>
       }
     >
       {photoBusy || photoError ? (
         <div className="-mt-3 flex flex-wrap items-center gap-3 text-[14px] font-medium">
-          <span role="status" aria-live="polite" className="text-[var(--lp-text-sub)]">{photoBusy ? hub.savingPhoto : ''}</span>
+          <span role="status" aria-live="polite" className="text-[var(--ink-secondary)]">{photoBusy ? hub.savingPhoto : ''}</span>
           {photoError ? <span role="alert" className="text-[var(--color-critical)]">{photoError}</span> : null}
         </div>
       ) : null}
@@ -243,14 +248,22 @@ export function ProfileAccountHub({
         ) : null}
       </RowGroup>
 
+      {/* Language and Theme sit in the profile; Theme opens its own screen (view 48). */}
       <RowGroup>
+        <Row label={messages.settings.language} value={LOCALE_NAMES[locale]} href="/settings" />
+        <Row label={messages.settings.theme} value={themeNow === 'light' ? messages.settings.themeLight : messages.settings.themeDark} href="/profile/theme" />
         <Row label={nav.allSettings} href="/settings" />
         <Row label={nav.help} href="/how-it-works" />
       </RowGroup>
 
       {/* The account address lives in Wallets, with a copy button. */}
-      <footer className="flex justify-end px-1">
+      <footer className="space-y-4">
         <ProfileSignOut />
+        <p className="px-1 text-[14px] text-[var(--ink-muted)]">
+          <Link href="/terms" className="hover:text-[var(--ink)]">{routeTitlesCopy[locale].terms}</Link>
+          {' · '}
+          <Link href="/privacy" className="hover:text-[var(--ink)]">{routeTitlesCopy[locale].privacy}</Link>
+        </p>
       </footer>
     </ProfileFrame>
   );
@@ -273,11 +286,11 @@ function RecordStats({ record }: { record: Extract<OwnRecord, { kind: 'record' }
   }
   stats.push([n(record.problemsLost), record.problemsLost === 1 ? pp.statProblemsOne : pp.statProblems]);
   return (
-    <dl data-record-stats className="grid grid-cols-2 gap-px bg-[var(--lp-border-light)] sm:grid-cols-4">
+    <dl data-record-stats className="grid grid-cols-2 gap-px bg-[var(--line)] sm:grid-cols-4">
       {stats.map(([value, label]) => (
-        <div key={label} className="flex flex-col-reverse gap-0.5 bg-[var(--lp-card)] px-4 py-3">
-          <dt className="text-[13px] font-medium text-[var(--lp-text-sub)]">{label}</dt>
-          <dd className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">{value}</dd>
+        <div key={label} className="flex flex-col-reverse gap-0.5 bg-[var(--surface)] px-4 py-3">
+          <dt className="text-[13px] font-medium text-[var(--ink-secondary)]">{label}</dt>
+          <dd className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">{value}</dd>
         </div>
       ))}
     </dl>
