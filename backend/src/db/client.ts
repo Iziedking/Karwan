@@ -267,6 +267,12 @@ export async function ensureSchema(): Promise<void> {
       owner TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS seller_judged_v1 (
+      job_id TEXT NOT NULL,
+      seller TEXT NOT NULL,
+      judged_at BIGINT NOT NULL,
+      PRIMARY KEY (job_id, seller)
+    );
     CREATE TABLE IF NOT EXISTS near_misses_v1 (
       job_id TEXT PRIMARY KEY,
       updated_at BIGINT NOT NULL,

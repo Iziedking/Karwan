@@ -233,3 +233,18 @@ test('a reader without a saved position starts at the newest step, as before', a
   await fresh.pollOnce();
   assert.deepEqual(seen, []);
 });
+
+test('a seller reply sent with a key is made once', async () => {
+  const { board, store } = setup();
+  const { jobId } = await post(board);
+  const later = BigInt(NOW) + DAY;
+  await board.placeOffer({ walletId: 's', seller: SELLER, jobId, price: 90_000_000n, deadline: later });
+  await board.counter({ walletId: 'b', buyer: BUYER, jobId, seller: SELLER, price: 80_000_000n, deadline: later, key: 'counter:job:seller:1' });
+  const reply = { walletId: 's', seller: SELLER, jobId, accept: false, price: 85_000_000n, deadline: later, key: 'reply:job:seller:c1' };
+  const first = await board.respond(reply);
+  const again = await board.respond(reply);
+  assert.equal(first.replayed, false);
+  assert.equal(again.replayed, true);
+  assert.equal(again.ref, first.ref);
+  assert.equal((await store.eventsAfter(0, 100)).filter((e) => e.kind === 'CounterResponse').length, 1);
+});

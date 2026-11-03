@@ -6,6 +6,7 @@ import { formatUnits, parseUnits, type Address, type Hex, type Log } from 'viem'
 import { vault, getReservationBps } from '../chain/contracts.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { marketBoard } from '../marketplace/chainBoard.js';
+import { BoardError } from '../marketplace/board.js';
 
 /// KarwanJobBoard.JobState. None=0, Posted=1, Accepted=2, Cancelled=3,
 /// Expired=4. Only Posted accepts a bid.
@@ -20,10 +21,6 @@ async function placeOffer(walletId: string, seller: string, jobId: string, price
   return { txHash: ref };
 }
 
-async function respondToCounter(walletId: string, seller: string, jobId: string, accept: boolean, price: bigint, deadlineUnix: number) {
-  const { ref } = await marketBoard().respond({ walletId, seller: seller as Address, jobId: jobId as Hex, accept, price, deadline: BigInt(deadlineUnix) });
-  return { txHash: ref };
-}
 import { negotiationModel } from '../llm/client.js';
 import { bidDecisionSchema } from '../llm/schemas.js';
 import { buildBidEvaluationPrompt, type JobContext } from '../llm/prompts.js';
@@ -59,7 +56,8 @@ import { locationOf } from '../location/live.js';
 import { kindOf } from '../location/rules.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { actorSignalsFor } from './signals.js';
-import { saveActiveBids, saveActiveBidsSync, loadActiveBids } from '../db/activeBids.js';
+import { saveActiveBids, saveActiveBidsConfirmed, saveActiveBidsSync, loadActiveBids } from '../db/activeBids.js';
+import { clearJudged, loadJudged, saveJudged } from '../db/sellerJudged.js';
 import { marketHeat, setResearchHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
@@ -135,6 +133,12 @@ interface ActiveBid {
   humanReview?: boolean;
   /// What the agent learned from its paid read of the buyer before bidding.
   buyerCheck?: BuyerCheck;
+  /// The board reference of the buyer counter being answered, so the reply to
+  /// it carries one key (view 48, decision 8).
+  lastCounterRef?: string;
+  /// A reply written down before it goes to the board; sent again under its key
+  /// after a restart, so the seller never answers one counter twice.
+  pendingReply?: { key: string; accept: boolean; priceWei: string; deadlineUnix: number };
 }
 
 /// How far below the original bid the seller agent will steer on a profile-
@@ -228,14 +232,67 @@ function liveActiveBids(): Record<string, ActiveBid> {
 /// The open offers as they are saved: only in-flight negotiations, and never
 /// marked as mid-reply. `responding` is a lock for the running process; saved,
 /// it would come back after a restart and the offer would ignore every counter.
-export function activeBidsForSaving<T extends { finalized: boolean; responding: boolean }>(
+export function activeBidsForSaving<T extends { finalized: boolean; responding: boolean; pendingReply?: unknown }>(
   bids: ReadonlyMap<string, T>,
 ): Record<string, T> {
   const out: Record<string, T> = {};
   for (const [k, v] of bids) {
-    if (!v.finalized) out[k] = { ...v, responding: false };
+    if (!v.finalized || v.pendingReply) out[k] = { ...v, responding: false };
   }
   return out;
+}
+
+/// Replies on the board once: the reply is written into the offer's notes and
+/// saved before it is sent, then sent under its key.
+async function replyOnce(
+  seller: SellerProfile,
+  active: ActiveBid,
+  reply: { accept: boolean; price: bigint; deadlineUnix: number },
+): Promise<{ txHash: string }> {
+  const jobId = active.jobContext.jobId;
+  active.pendingReply = {
+    key: `reply:${jobId.toLowerCase()}:${seller.address.toLowerCase()}:${active.lastCounterRef ?? active.counterRounds}`,
+    accept: reply.accept,
+    priceWei: reply.price.toString(),
+    deadlineUnix: reply.deadlineUnix,
+  };
+  await saveActiveBidsConfirmed(liveActiveBids());
+  return sendPendingReply(seller, active);
+}
+
+async function sendPendingReply(seller: SellerProfile, active: ActiveBid): Promise<{ txHash: string }> {
+  const pending = active.pendingReply!;
+  const { ref } = await marketBoard().respond({
+    walletId: seller.walletId,
+    seller: seller.address as Address,
+    jobId: active.jobContext.jobId as Hex,
+    accept: pending.accept,
+    price: BigInt(pending.priceWei),
+    deadline: BigInt(pending.deadlineUnix),
+    key: pending.key,
+  });
+  active.pendingReply = undefined;
+  if (pending.accept) active.finalized = true;
+  scheduleActiveBidsPersist();
+  return { txHash: ref };
+}
+
+/// Replies written down but maybe not sent when Karwan stopped. Sent again
+/// under their keys: found on the board, or sent now. A reply the board refuses
+/// (the request closed) is dropped.
+async function resumePendingReplies(): Promise<void> {
+  for (const active of activeBids.values()) {
+    if (!active.pendingReply) continue;
+    try {
+      await sendPendingReply(active.seller, active);
+    } catch (err) {
+      logger.warn({ jobId: active.jobContext.jobId, seller: active.seller.address, err: (err as Error).message }, 'written-down reply could not be sent after a restart');
+      if (err instanceof BoardError) {
+        active.pendingReply = undefined;
+        scheduleActiveBidsPersist();
+      }
+    }
+  }
 }
 
 function scheduleActiveBidsPersist(): void {
@@ -264,6 +321,7 @@ export async function hydrateActiveBids(): Promise<void> {
       n += 1;
     }
     if (n > 0) logger.info({ count: n }, 'active bids hydrated from snapshot');
+    void resumePendingReplies().catch((err: Error) => logger.warn({ err: err.message }, 'resuming written-down replies failed'));
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'active bids hydrate failed (non-fatal)');
   }
@@ -552,6 +610,25 @@ function safe(label: string, fn: () => Promise<unknown>) {
 /// sellers the live listener missed and never double-bids or spams skip events.
 const evaluatedSellers = new Map<string, Set<string>>();
 
+/// Records a judged seller in memory and in Postgres, so a restart does not
+/// judge the request again (view 48, decision 8).
+function markJudged(jobId: string, evaluated: Set<string>, sellerLower: string): void {
+  if (evaluated.has(sellerLower)) return;
+  evaluated.add(sellerLower);
+  saveJudged(jobId, sellerLower);
+}
+
+/// Loads who judged what in the last 30 days, before the agents start.
+export async function hydrateJudgedSellers(now = Date.now()): Promise<number> {
+  const rows = await loadJudged(now - 30 * 86_400_000);
+  for (const { jobId, seller } of rows) {
+    const set = evaluatedSellers.get(jobId) ?? new Set<string>();
+    set.add(seller);
+    evaluatedSellers.set(jobId, set);
+  }
+  return rows.length;
+}
+
 async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
   const dedupeKey = logDedupeKey('JobPosted', log);
   // The live path dedupes per JobPosted log. The reconciler passes rescan:true
@@ -689,7 +766,7 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
           // don't bid against themselves. Emit it so the owner sees why their seller
           // stood down instead of wondering where their bid went (the silent skip
           // here read as "my agent ignored my request").
-          evaluated.add(sellerLower);
+          markJudged(jobId, evaluated, sellerLower);
           bus.emitEvent({
             type: 'agent.skipped',
             jobId,
@@ -703,7 +780,7 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
           continue;
         }
         if (activeBids.has(bidKey(jobId, seller.address))) {
-          evaluated.add(sellerLower);
+          markJudged(jobId, evaluated, sellerLower);
           continue;
         }
         evaluationStarted(jobId);
@@ -712,7 +789,7 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
           recordDecision(jobId, Date.now());
           // Marked only on success, so the reconciler's rescan retries a seller
           // whose evaluation failed instead of writing them off for the job.
-          evaluated.add(sellerLower);
+          markJudged(jobId, evaluated, sellerLower);
         } catch (err) {
           logger.warn(
             { jobId, seller: seller.address, err: (err as Error).message },
@@ -1520,7 +1597,7 @@ export async function answerCounterQuestion(
   const accept = answer.choice === 'yes';
   const price = accept ? 0n : parseUnits(answer.priceUsdc ?? active.lastBidPrice, USDC_DECIMALS);
   const deadline = accept ? 0 : active.jobContext.deadlineUnix;
-  const result = await respondToCounter(seller.walletId, seller.address, active.jobContext.jobId, accept, price, deadline);
+  const result = await replyOnce(seller, active, { accept, price, deadlineUnix: deadline });
   if (accept) {
     active.finalized = true;
     recordAgreement({
@@ -1565,6 +1642,7 @@ async function handleCounterOffer(log: Log) {
   // running the LLM or broadcasting a respondToCounter tx, drop it.
   if (active.responding) return;
   active.responding = true;
+  active.lastCounterRef = String((log as { transactionHash?: string }).transactionHash ?? dedupeKey);
 
   try {
     await runCounterEvaluation(seller, active, args);
@@ -1708,7 +1786,7 @@ async function runCounterEvaluation(
   }
 
   if (move.kind === 'accept') {
-    const result = await respondToCounter(seller.walletId, seller.address, args.jobId, true, 0n, 0);
+    const result = await replyOnce(seller, active, { accept: true, price: 0n, deadlineUnix: 0 });
     active.finalized = true;
     recordAgreement({
       jobId: args.jobId,
@@ -1738,8 +1816,8 @@ async function runCounterEvaluation(
   const counterPriceWei = parseUnits(finalCounterPrice, USDC_DECIMALS);
   active.counterRounds += 1;
   if (move.kind === 'trade') active.tradedTime = true;
-  const result = await respondToCounter(seller.walletId, seller.address, args.jobId, false, counterPriceWei, counterDeadlineUnix);
   active.lastBidPrice = finalCounterPrice;
+  const result = await replyOnce(seller, active, { accept: false, price: counterPriceWei, deadlineUnix: counterDeadlineUnix });
   logger.info({ jobId: args.jobId, move: move.kind, ...result }, 'counter back submitted');
   bus.emitEvent({
     type: 'counter.response.submitted',
@@ -2081,7 +2159,7 @@ export async function matchSellerNow(userAddress: string): Promise<number> {
     evaluationStarted(job.jobId);
     try {
       await evaluateAndBid(seller, { ...job });
-      evaluated.add(sellerLower);
+      markJudged(job.jobId, evaluated, sellerLower);
       judged += 1;
     } catch (err) {
       logger.warn({ jobId: job.jobId, seller: seller.address, err: (err as Error).message }, 'seller evaluation after a save failed');
@@ -2105,6 +2183,7 @@ const sweepRequest = queuedPerKey(async (jobId: string) => {
   const job = listOpenJobContexts().find((j) => j.jobId.toLowerCase() === jobId.toLowerCase());
   if (!job) return;
   evaluatedSellers.delete(job.jobId);
+  clearJudged(job.jobId);
   await handleJobPosted(jobLogFor(job), { rescan: true });
 });
 

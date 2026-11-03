@@ -27,7 +27,8 @@ export interface MarketBoard {
   /// With a `key`, a counter already made under that key is not made again; its
   /// ref comes back with `replayed` (view 48, decision 8).
   counter(i: { walletId: string; buyer: Address; jobId: Hex; seller: Address; price: bigint; deadline: bigint; key?: string }): Promise<{ ref: string; replayed?: boolean }>;
-  respond(i: { walletId: string; seller: Address; jobId: Hex; accept: boolean; price: bigint; deadline: bigint }): Promise<{ ref: string }>;
+  /// A seller's reply to a counter; with a `key` it is made once, like `counter`.
+  respond(i: { walletId: string; seller: Address; jobId: Hex; accept: boolean; price: bigint; deadline: bigint; key?: string }): Promise<{ ref: string; replayed?: boolean }>;
   accept(i: { walletId: string; buyer: Address; jobId: Hex; seller: Address }): Promise<{ ref: string }>;
   read(jobId: Hex): Promise<BoardRequest | null>;
   /// Requests posted lately, as `JobPosted` logs, for the agents' catch-up
@@ -292,7 +293,7 @@ export function createKarwanBoard(deps: {
       const s = lower(i.seller);
       const oldCounter = kept?.fromChain && !kept.counters[s] ? await chain.counter(i.jobId, i.seller) : null;
       const oldOffer = kept?.fromChain && !kept.offers[s] ? await chain.offer(i.jobId, i.seller) : null;
-      const ref = await change(i.jobId, (current) => {
+      return changeOnce(i.jobId, (current) => {
         const row = open(current);
         if (!row.counters[s] && oldCounter) row.counters[s] = { price: oldCounter.price.toString(), deadline: oldCounter.deadline.toString() };
         if (!row.offers[s] && oldOffer) row.offers[s] = { seller: i.seller, price: oldOffer.price.toString(), deadline: oldOffer.deadline.toString() };
@@ -311,8 +312,7 @@ export function createKarwanBoard(deps: {
           row,
           event: { kind: 'CounterResponse', args: { jobId: i.jobId, seller: i.seller, accepted: false, newPrice: i.price, newDeadline: i.deadline } },
         };
-      });
-      return { ref };
+      }, i.key);
     },
 
     async accept(i) {

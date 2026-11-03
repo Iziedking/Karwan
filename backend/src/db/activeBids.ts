@@ -66,6 +66,19 @@ export async function saveActiveBids(entries: Record<string, unknown>): Promise<
   }
 }
 
+/// The save the agent waits for before it replies on the board (view 48,
+/// decision 8): the same snapshot, but a Postgres failure is thrown, not
+/// swallowed, so the agent never replies without its notes saved.
+export async function saveActiveBidsConfirmed(entries: Record<string, unknown>): Promise<void> {
+  const snap: Snapshot = { updatedAt: Date.now(), entries };
+  writeFlat(snap);
+  if (!pgEnabled) return;
+  await db()
+    .insert(appSnapshots)
+    .values({ key: SNAPSHOT_KEY, data: snap, updatedAt: snap.updatedAt })
+    .onConflictDoUpdate({ target: appSnapshots.key, set: { data: snap, updatedAt: snap.updatedAt } });
+}
+
 /// Synchronous flat-file flush for the shutdown hook (stopFns run sync and the
 /// process exits immediately, so an async PG write would be cut off). Hydrate
 /// picks the fresher of flat-file vs PG, so this shutdown copy wins.

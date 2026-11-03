@@ -172,6 +172,7 @@ import { configureDurableTimers } from './agents/durableTimers.js';
 import {
   startSellerAgents,
   hydrateActiveBids,
+  hydrateJudgedSellers,
   flushActiveBidsSync,
   configureSellerStakeQualificationShadow,
   configureSellerEvidenceAcquisitionShadow,
@@ -1030,6 +1031,8 @@ async function boot() {
   // In-flight seller bids restore BEFORE agents start, so a deploy mid-auction
   // resumes negotiations instead of stalling on a lost activeBids map.
   await hydrateActiveBids();
+  // Who already judged each recent request, so a restart does not judge it again.
+  await hydrateJudgedSellers().catch((err: Error) => appLogger.warn({ err: err.message }, 'judged sellers hydrate failed'));
   if (config.AGENT_RUNTIME_V2_ENABLED && schemaReady) {
     // Preserve the historical evidence-shadow coupling while exposing an
     // explicit staking flag for staged rollout and operator reporting.
