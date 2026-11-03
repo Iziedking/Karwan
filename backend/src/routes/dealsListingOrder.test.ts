@@ -12,7 +12,8 @@ import { dealsRoutes } from './deals.js';
 
 const BUYER = `0x${'11'.repeat(20)}`;
 const SELLER = `0x${'22'.repeat(20)}`;
-const source = await readFile(new URL('./deals.ts', import.meta.url), 'utf8');
+// Read with plain newlines, so the patterns hold on a Windows checkout too.
+const source = (await readFile(new URL('./deals.ts', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
 const create = source.slice(source.indexOf("dealsRoutes.post('/direct', async"), source.indexOf("dealsRoutes.post('/direct/:jobId/edit'"));
 
 test('a listing order needs the buyer session like any other deal', async () => {

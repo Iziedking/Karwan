@@ -5,6 +5,8 @@ import {
   clearSellerBindingCache,
   sellerAgentBinding,
   sellerBindingRefusal,
+  sellerLinkFor,
+  vaultLinkMatters,
 } from './sellerBinding.js';
 
 const agent = '0x121e7ff8a9b47d171d4b6d910e487eda34e37be2';
@@ -59,4 +61,29 @@ test('a fresh answer is reused for a minute, then read again', async () => {
   assert.equal(reads, 1);
   await sellerAgentBinding(agent, person, read, 62_000);
   assert.equal(reads, 2);
+});
+
+test('the vault link matters only on the older escrows, never on the escrow family', () => {
+  assert.equal(vaultLinkMatters('suite'), false);
+  assert.equal(vaultLinkMatters('v3'), true);
+  assert.equal(vaultLinkMatters(null), true);
+});
+
+test('a deal on the escrow family never reads the vault, so an unlinked seller is not held back', async () => {
+  clearSellerBindingCache();
+  let reads = 0;
+  const state = await sellerLinkFor('suite', agent, person, async () => {
+    reads += 1;
+    return agent;
+  });
+  assert.equal(reads, 0);
+  assert.equal(sellerBindingRefusal(state), null);
+  assert.equal(blocksOffer(state), false);
+});
+
+test('a deal on an older escrow still needs the link', async () => {
+  clearSellerBindingCache();
+  const state = await sellerLinkFor('v3', agent, person, async () => agent);
+  assert.equal(state.kind, 'unbound');
+  assert.equal(sellerBindingRefusal(state)?.code, 'SELLER_NOT_BOUND');
 });

@@ -9,6 +9,9 @@ export type GateResult = { ok: true } | { ok: false; status: 403 | 404; error: s
 
 export type ReadPurpose = 'shortlist' | 'bid' | 'question';
 
+/// What an agent pays for one Karwan record read (owner, 3 Nov 2026).
+export const RECORD_READ_PRICE_USDC = 0.005;
+
 export function recordReadGate(input: {
   subjectExists: boolean;
   readerAccount: string | null;

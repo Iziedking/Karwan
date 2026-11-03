@@ -24,7 +24,7 @@ import { issuerAddress } from '../attestation/issuer.js';
 import { buildRecordRead } from '../reputation/recordRead.js';
 import { signRecordRead } from '../verification/recordReadSignature.js';
 import { levelOf } from '../verification/live.js';
-import { inMarketReader, isPartyToRequest, paymentFromReader, recordReadGate, type RequestFacts } from '../x402/recordReadGate.js';
+import { inMarketReader, isPartyToRequest, paymentFromReader, recordReadGate, RECORD_READ_PRICE_USDC, type RequestFacts } from '../x402/recordReadGate.js';
 
 /// Karwan's paid data endpoints. Financiers and external agents pay
 /// per-call in USDC over x402 (Circle Gateway batched settlement on Arc
@@ -48,7 +48,7 @@ const PRICES = {
   concentration: 0.005,
   documentAnchors: 0.005,
   skillDemand: 0.005,
-  record: 0.01,
+  record: RECORD_READ_PRICE_USDC,
 } as const;
 
 /// Resolve an agent DCW to its owner so paid queries against either
@@ -250,7 +250,7 @@ function requestFacts(ref: string, subject: string): RequestFacts {
   };
 }
 
-/// GET /api/x402/record/:subject: $0.01. A signed karwan-record-v1 read for an
+/// GET /api/x402/record/:subject: 0.005 USDC. A signed karwan-record-v1 read for an
 /// agent acting for a named account on a named request, only with the
 /// subject's consent. Every refusal happens before the payment gate.
 x402Routes.get('/record/:subject', async (c) => {

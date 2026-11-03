@@ -1,6 +1,6 @@
 import { sellerMayBid } from '../verification/networkGate.js';
 import { levelOf } from '../verification/live.js';
-import { blocksOffer, sellerAgentBinding, SELLER_LINK_DETAIL } from '../deals/sellerBinding.js';
+import { blocksOffer, sellerLinkFor, SELLER_LINK_DETAIL } from '../deals/sellerBinding.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Address, type Hex, type Log } from 'viem';
 import { vault, getReservationBps } from '../chain/contracts.js';
@@ -53,6 +53,7 @@ import { limitDecision, orderSize } from './limits.js';
 import { askOwner } from './agentQuestion.js';
 import { getBrief } from '../db/briefs.js';
 import { fittingWay, sellerForRequest } from './ways.js';
+import { oneAtATime, queuedPerKey } from './oneAtATime.js';
 import { deliveryQuestions, reachGate } from '../location/deliveryQuestions.js';
 import { locationOf } from '../location/live.js';
 import { kindOf } from '../location/rules.js';
@@ -906,7 +907,18 @@ async function askSellerOwner(
   logger.info({ jobId: job.jobId, seller: seller.address, kind }, 'request outside the limits: owner asked');
 }
 
+/// One judgement per seller per request at a time, whatever started it: a
+/// sweep, an edit, a saved setup or a listing. Two at once each passed the
+/// "already offered?" check before the other had offered, and the seller
+/// offered twice (30 Oct 2026, request 0xfb2fa5ea).
+const judging = oneAtATime();
+
 async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
+  const outcome = await judging.run(bidKey(job.jobId, profile.address), () => judgeAndOffer(profile, job));
+  if (outcome === 'busy') logger.info({ jobId: job.jobId, seller: profile.address }, 'seller agent already judging this request; not judged twice');
+}
+
+async function judgeAndOffer(profile: SellerProfile, job: JobContext) {
   const tradeType = getBrief(job.jobId)?.tradeType;
   const seller = sellerForRequest(profile, tradeType);
   // Limits decide whether the agent offers or asks its person, never whether
@@ -1134,7 +1146,8 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
   // person is told how to link.
   const linkOwner = await findAgentWalletByAgentAddress(seller.address);
   if (linkOwner?.userAddress) {
-    const link = await sellerAgentBinding(seller.address, linkOwner.userAddress);
+    // New deals fund on the escrow family when it is ready, and it needs no link.
+    const link = await sellerLinkFor(suiteFundingEnabled() ? 'suite' : null, seller.address, linkOwner.userAddress);
     if (blocksOffer(link)) {
       logger.info({ jobId: job.jobId, seller: seller.address, link: link.kind }, 'seller agent not linked to its owner: offering, marked must link');
       // Same event as before, so the seller still gets the link prompt on Stake.
@@ -2093,10 +2106,22 @@ export async function matchSellerNow(userAddress: string): Promise<number> {
 /// Offers one open request to the sellers again. `fresh` forgets who already
 /// looked, for a request the buyer just changed (text, price limit), so a seller
 /// who passed on the old one judges the new one.
-export async function rescanRequest(jobId: string, opts: { fresh?: boolean } = {}): Promise<void> {
+/// Sweeps of one request queue instead of overlapping: a change made while a
+/// sweep runs is judged by one more sweep after it, against the request as it
+/// is then. Sellers who offered in the first sweep are left to answer the
+/// change (reviseStandingOffers), never judged as new.
+const sweepRequest = queuedPerKey(async (jobId: string) => {
   const { listOpenJobContexts } = await import('./buyer.js');
   const job = listOpenJobContexts().find((j) => j.jobId.toLowerCase() === jobId.toLowerCase());
   if (!job) return;
-  if (opts.fresh) evaluatedSellers.delete(job.jobId);
+  evaluatedSellers.delete(job.jobId);
+  await handleJobPosted(jobLogFor(job), { rescan: true });
+});
+
+export async function rescanRequest(jobId: string, opts: { fresh?: boolean } = {}): Promise<void> {
+  if (opts.fresh) return sweepRequest(jobId);
+  const { listOpenJobContexts } = await import('./buyer.js');
+  const job = listOpenJobContexts().find((j) => j.jobId.toLowerCase() === jobId.toLowerCase());
+  if (!job) return;
   await handleJobPosted(jobLogFor(job), { rescan: true });
 }

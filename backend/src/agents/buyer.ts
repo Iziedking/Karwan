@@ -1,7 +1,7 @@
 import { locationOf } from '../location/live.js';
 import { loadPublicRating } from '../ratings/publicRating.js';
 import { kindOf } from '../location/rules.js';
-import { blocksOffer, SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
+import { blocksOffer, SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerBindingRefusal, sellerLinkFor } from '../deals/sellerBinding.js';
 import { carriedGate } from './proposalCarry.js';
 import { offerToChoose, priceAsSeen, withAgreedPrice, type OfferChoice } from './chooseOffer.js';
 import { sellerKey } from './sellerKey.js';
@@ -2078,10 +2078,11 @@ function shortlistDeps(state: JobState): ShortlistDeps {
     },
     location: locationOf,
     rating: (user) => loadPublicRating(user),
-    // An agent not linked to its owner is listed but cannot be chosen (view 41, decision 13).
+    // An agent not linked to its owner is listed but cannot be chosen (view 41,
+    // decision 13), on the older escrows only: the escrow family needs no link.
     linked: async (agent) => {
       const owner = (await findAgentWalletByAgentAddress(agent))?.userAddress;
-      return !!owner && !blocksOffer(await sellerAgentBinding(agent, owner));
+      return !!owner && !blocksOffer(await sellerLinkFor(await fundingEscrowForJob(state), agent, owner));
     },
     timeoutMs: SHORTLIST_READ_TIMEOUT_MS,
   };
@@ -4847,7 +4848,7 @@ async function fundingEscrowForJob(state: JobState): Promise<'suite' | 'v3' | nu
 async function sellerLinkRefusal(state: JobState, sellerAgent: string, sellerUser?: string) {
   const owner = (await findAgentWalletByAgentAddress(sellerAgent))?.userAddress ?? sellerUser;
   const refusal = sellerBindingRefusal(
-    owner ? await sellerAgentBinding(sellerAgent, owner) : { kind: 'unknown' },
+    owner ? await sellerLinkFor(await fundingEscrowForJob(state), sellerAgent, owner) : { kind: 'unknown' },
   );
   if (!refusal) return null;
   logger.warn({ jobId: state.jobId, seller: sellerAgent }, 'escrow funding held: seller agent not linked to its owner');

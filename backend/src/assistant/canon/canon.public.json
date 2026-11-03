@@ -20,7 +20,7 @@
           "date": "2026-10-16"
         }
       ],
-      "body": "On Arc Testnet, a Karwan agent pays 0.01 USD over x402 to read the other\nside's deal record before it commits. Payment settles through Circle Gateway.\nThe first live read ran on 16 October 2026.\n\nA buyer's agent reads each seller's record before building the shortlist, and\na seller's agent reads the buyer's record before it bids. The seller's agent\npasses on a buyer who has lost more disputes than they have completed, and\nflags a new buyer on a large request for the seller to look at. The seller desk\nshows what was paid and what the agent learned.\n\nAn agent pays for a person's record once per request. Checking it again on the\nsame request, after an edit or in a later round, uses the same read unless the\nrecord changed since, and each payment shows in what the agent spent.\n\nA record is read only when its owner has turned on Let agents check my record.\nThe details of a read are deleted after 24 hours, and the owner sees who read\ntheir record. Others see the name, verified or not, the tier, the rating and up\nto three reasons, never a score, counts, deal amounts or who someone traded with.\n\nMainnet escrow is not enabled, so these checks run on testnet only."
+      "body": "On Arc Testnet, a Karwan agent pays 0.005 USDC over x402 to read the other\nside's deal record before it commits. Payment settles through Circle Gateway.\nThe first live read ran on 16 October 2026.\n\nA buyer's agent reads each seller's record before building the shortlist, and\na seller's agent reads the buyer's record before it bids. The seller's agent\npasses on a buyer who has lost more disputes than they have completed, and\nflags a new buyer on a large request for the seller to look at. The seller desk\nshows what was paid and what the agent learned.\n\nAn agent pays for a person's record once per request. Checking it again on the\nsame request, after an edit or in a later round, uses the same read unless the\nrecord changed since, and each payment shows in what the agent spent.\n\nA record is read only when its owner has turned on Let agents check my record.\nThe details of a read are deleted after 24 hours, and the owner sees who read\ntheir record. Others see the name, verified or not, the tier, the rating and up\nto three reasons, never a score, counts, deal amounts or who someone traded with.\n\nMainnet escrow is not enabled, so these checks run on testnet only."
     },
     {
       "id": "assistant-mode-and-help",
@@ -831,7 +831,7 @@
         "x402",
         "testnet"
       ],
-      "summary": "On Arc Testnet, a Karwan agent pays 0.01 USD over x402 to read the other side's deal record before it commits. Payment settles through Circle Gateway. The first live read ran on 16 October 2026.",
+      "summary": "On Arc Testnet, a Karwan agent pays 0.005 USDC over x402 to read the other side's deal record before it commits. Payment settles through Circle Gateway. The first live read ran on 16 October 2026.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/13-portable-reputation.md",

@@ -56,6 +56,29 @@ export function blocksOffer(state: AgentBindingState): boolean {
   return state.kind === 'unbound' || state.kind === 'foreign';
 }
 
+export type FundingEscrow = 'suite' | 'v3' | null;
+
+/// Only the older escrows read the seller through the vault link. The escrow
+/// family (view 27) records each side through their Karwan record, which
+/// nothing waits for, so holding a family deal back for the vault link stopped
+/// offers and funding for no reason (1,089 skipped requests and 15 refused
+/// fundings on testnet in the two weeks to 3 Nov 2026).
+export function vaultLinkMatters(escrow: FundingEscrow): boolean {
+  return escrow !== 'suite';
+}
+
+/// The link state that matters for a deal on this escrow: the vault binding
+/// on an older escrow, and none at all on the escrow family.
+export async function sellerLinkFor(
+  escrow: FundingEscrow,
+  agent: string,
+  identity: string,
+  read?: (agent: `0x${string}`) => Promise<string>,
+): Promise<AgentBindingState> {
+  if (!vaultLinkMatters(escrow)) return { kind: 'bound', owner: identity.toLowerCase() };
+  return sellerAgentBinding(agent, identity, read);
+}
+
 export const SELLER_LINK_DETAIL = 'Link your agent to your account on Stake so your offers can go out.';
 
 export function clearSellerBindingCache(): void {

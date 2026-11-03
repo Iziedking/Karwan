@@ -18,7 +18,7 @@ import { gatewayFundingCoordinator } from './gatewayFundingCoordinator.js';
 import { ARC } from '../chain/client.js';
 import { issuerAddress } from '../attestation/issuer.js';
 import { verifyRecordRead, type SignedRecordRead } from '../verification/recordReadSignature.js';
-import type { ReadPurpose } from './recordReadGate.js';
+import { RECORD_READ_PRICE_USDC, type ReadPurpose } from './recordReadGate.js';
 
 /// Buyer-side x402 client (Path A: same-chain self-pay on the active Arc network).
 /// The buyer agent pays Karwan's own paid endpoints during bid scoring,
@@ -371,7 +371,6 @@ export interface PaidRecordRead {
   gatewayBalanceAfter?: number;
 }
 
-const RECORD_READ_PRICE_USD = 0.01;
 export const READS_BALANCE_EMPTY = 'reads balance not yet credited';
 
 /// A paid record read for one request, by the agent of the account it acts
@@ -387,7 +386,7 @@ export async function paidRecordRead(
   const payerWalletId =
     payerAgentAddress.toLowerCase() === record.sellerAddress.toLowerCase() ? record.sellerWalletId : record.buyerWalletId;
   const x402 = await ensureX402Wallet(record);
-  const funding = await ensureGatewayFunding(record, x402, RECORD_READ_PRICE_USD, payerWalletId, opts.ref);
+  const funding = await ensureGatewayFunding(record, x402, RECORD_READ_PRICE_USDC, payerWalletId, opts.ref);
   if (!funding.funded) throw new Error(`${READS_BALANCE_EMPTY} (available ${funding.availableUsd} USDC)`);
   const query = new URLSearchParams({ purpose: opts.purpose, ref: opts.ref, for: opts.forAccount });
   const result = await payX402<SignedRecordRead>(
