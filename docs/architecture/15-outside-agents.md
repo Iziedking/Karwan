@@ -131,7 +131,7 @@ sequenceDiagram
 | Call | Price | Paid by |
 |---|---|---|
 | `find_counterparty` | 0.10 USDC | the outside agent, with x402 |
-| `check_person` | 0.01 USDC | the outside agent, with x402 |
+| `check_person` | 0.005 USDC, the same as a record read inside Karwan (owner, 3 Nov 2026) | the outside agent, with x402 |
 | `open_protected_deal`, `fund_deal`, `deal_status`, `request_release`, `open_dispute`, `post_request` | free | the Karwan deal fee applies to the deal |
 
 ## What fails where
