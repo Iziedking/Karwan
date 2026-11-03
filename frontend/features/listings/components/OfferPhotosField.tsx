@@ -35,18 +35,18 @@ export function OfferPhotosField({ value, onChange, title }: { value: string[]; 
 
   return (
     <div>
-      <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.label}</p>
-      <p className="mt-0.5 text-[13px] font-medium text-[var(--lp-text-sub)]">{t.hint}</p>
+      <p className="text-[14px] font-semibold text-[var(--ink)]">{t.label}</p>
+      <p className="mt-0.5 text-[13px] font-medium text-[var(--ink-secondary)]">{t.hint}</p>
       <ul className="mt-3 flex flex-wrap gap-3">
         {value.map((src, i) => (
           <li key={`${i}-${src.slice(-16)}`} className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoSrc(src)} alt={t.altTemplate.replace('{n}', String(i + 1)).replace('{title}', title || t.label)} className="size-20 rounded-[14px] border border-[var(--lp-border-light)] object-cover" />
+            <img src={photoSrc(src)} alt={t.altTemplate.replace('{n}', String(i + 1)).replace('{title}', title || t.label)} className="size-20 rounded-[14px] border border-[var(--line)] object-cover" />
             <button
               type="button"
               onClick={() => onChange(value.filter((_, j) => j !== i))}
               aria-label={t.removeTemplate.replace('{n}', String(i + 1))}
-              className="absolute -end-2 -top-2 grid size-7 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] shadow-sm before:absolute before:-inset-2 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="absolute -end-2 -top-2 grid size-7 place-items-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] shadow-sm before:absolute before:-inset-2 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             >
               <Icon name="close" size={16} />
             </button>
@@ -58,7 +58,7 @@ export function OfferPhotosField({ value, onChange, title }: { value: string[]; 
               type="button"
               onClick={() => input.current?.click()}
               disabled={busy}
-              className="flex size-20 flex-col items-center justify-center gap-1 rounded-[14px] border border-dashed border-[var(--lp-outline-strong)] bg-[var(--tint)] text-[13px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="flex size-20 flex-col items-center justify-center gap-1 rounded-[14px] border border-dashed border-[var(--line-strong)] bg-[var(--raised)] text-[13px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             >
               <Icon name="image-plus" size={20} />
               <span className="px-1 text-center leading-tight">{t.add}</span>

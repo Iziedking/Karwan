@@ -27,8 +27,8 @@ export function MarketReadsNotice() {
   }, []);
   if (!show) return null;
   return (
-    <div role="status" className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3">
-      <p className="min-w-0 flex-1 text-[14px] font-medium text-[var(--lp-dark)]">{copy.notice}</p>
+    <div role="status" className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[18px] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+      <p className="min-w-0 flex-1 text-[14px] font-medium text-[var(--ink)]">{copy.notice}</p>
       <button
         type="button"
         onClick={() => {
@@ -39,7 +39,7 @@ export function MarketReadsNotice() {
           }
           setShow(false);
         }}
-        className="inline-flex min-h-11 items-center rounded-full px-3 text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="inline-flex min-h-11 items-center rounded-full px-3 text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
       >
         {copy.dismiss}
       </button>

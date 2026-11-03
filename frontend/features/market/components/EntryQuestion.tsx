@@ -34,9 +34,9 @@ export function EntryQuestion({ address }: { address: string }) {
   }
 
   return (
-    <section aria-labelledby="market-entry-question" className="border-y border-[var(--lp-border-light)] py-5" aria-busy={busy}>
-      <h2 id="market-entry-question" className="text-[17px] font-medium text-[var(--lp-dark)]">{copy.question}</h2>
-      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{copy.note}</p>
+    <section aria-labelledby="market-entry-question" className="border-y border-[var(--line)] py-5" aria-busy={busy}>
+      <h2 id="market-entry-question" className="text-[17px] font-medium text-[var(--ink)]">{copy.question}</h2>
+      <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{copy.note}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <button type="button" disabled={busy} onClick={() => void choose('self')} className={quietButton}>
           {copy.self}
@@ -45,7 +45,7 @@ export function EntryQuestion({ address }: { address: string }) {
           {copy.business}
         </button>
       </div>
-      {failed ? <p role="alert" className="mt-3 text-[15px] text-[var(--lp-dark)]">{copy.saveError}</p> : null}
+      {failed ? <p role="alert" className="mt-3 text-[15px] text-[var(--ink)]">{copy.saveError}</p> : null}
     </section>
   );
 }

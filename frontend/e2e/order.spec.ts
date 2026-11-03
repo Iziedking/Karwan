@@ -5,8 +5,9 @@ import { en } from '../shared/i18n/messages/en';
 import { API, BUYER_AGENT, ME, serveMoney, sseEvent } from './moneyFixtures';
 
 /// The order path (view 44, Figma 05 to 09): sign in and come back, review
-/// with one fee line, add money when short, confirm in a sheet, and land on
-/// the deal. The seller's agent accepts an order that is the listing.
+/// with one fee line, add money when short, confirm in a sheet that turns while
+/// the money goes in, then the Paid in result (view 48). The seller's agent
+/// accepts an order that is the listing.
 
 const t = en.orderFlow;
 const SELLER = '0x5555555555555555555555555555555555555555';
@@ -135,8 +136,12 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   await pay.click();
 
   const sheet = page.getByRole('dialog');
+  await expect(sheet.getByRole('heading', { name: 'Pay 120.60 USDC into the deal' })).toBeVisible();
   await expect(sheet.getByText(t.confirmFor, { exact: true })).toBeVisible();
-  await expect(sheet.getByText('Logo and brand kit', { exact: true })).toBeVisible();
+  await expect(sheet.getByText('Logo and brand kit, Ada', { exact: true })).toBeVisible();
+  await expect(sheet.getByText(t.confirmFrom, { exact: true })).toBeVisible();
+  await expect(sheet.getByText(t.leftAfter, { exact: true })).toBeVisible();
+  await expect(sheet.getByText('29.40 USDC', { exact: true })).toBeVisible();
   await expect(sheet.getByText(t.confirmHeld, { exact: true })).toBeVisible();
   await expect(sheet.getByText('If Ada does not deliver', { exact: true })).toBeVisible();
   await expect(sheet.getByRole('button', { name: t.notNow })).toBeVisible();
@@ -144,8 +149,26 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
   await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('confirm.png') });
+  // The sheet stays up and turns while the money goes in.
+  let releaseFund!: () => void;
+  const fundHeld = new Promise<void>((resolve) => { releaseFund = resolve; });
+  await page.route(`${API}/api/deals/direct/${JOB}/fund`, async (route) => { await fundHeld; await route.fallback(); });
   await sheet.getByTestId('facts-confirm').click();
+  await expect(sheet.getByTestId('facts-confirm')).toHaveAttribute('aria-busy', 'true');
+  await expect(sheet.getByTestId('facts-confirm')).toContainText('Paying 120.60 USDC');
+  await expect(sheet.getByRole('button', { name: t.notNow })).toBeDisabled();
+  releaseFund();
 
+  // Paid in: who has the order, where the money is, the route and the facts.
+  const paid = page.locator('[data-order-paid]');
+  await expect(paid.getByRole('heading', { level: 1, name: 'Ada has your order' })).toBeVisible();
+  await expect(paid.getByText('120.60 USDC in escrow', { exact: true })).toBeVisible();
+  await expect(paid.locator('[aria-current="step"]')).toHaveText(en.dealPage.steps.paidIn);
+  await expect(paid.getByText(en.dealPage.release.deal, { exact: true })).toBeVisible();
+  await expect(paid.getByRole('link', { name: en.marketShop.listing.message.replace('{name}', 'Ada') })).toHaveAttribute('href', '/messages/ada?about=listing:lst_logo');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('paid-in.png'), fullPage: true });
+  await paid.getByRole('link', { name: t.done }).click();
   await expect(page).toHaveURL(new RegExp(`/deals/${JOB}$`));
   expect(world.creates).toHaveLength(1);
   expect(world.creates[0]).toMatchObject({ buyerAddress: ME, sellerAddress: SELLER, dealAmountUsdc: 120, deadlineDays: 3, terms: 'Your logo in 3 versions.', listingId: 'lst_logo' });

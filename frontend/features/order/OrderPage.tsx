@@ -9,6 +9,11 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { FactRows } from '@/shared/components/FactRows';
+import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
+import { dealReference } from '@/features/deals/dealReference';
 import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { fill, formatDealDate } from '@/features/deals/workspace/presentation';
@@ -17,24 +22,24 @@ import { CATEGORY_IDS, type CategoryId } from '@/features/market/marketModel';
 import { samplePhoto, sellerLine } from '@/features/market/listingFacts';
 import { AddMoneyPanel } from './AddMoneyPanel';
 import { orderPhase, shortfallUsdc, spendableUsdc, type OrderQuoteError } from './orderModel';
-import { usePayOrder } from './usePayOrder';
+import { usePayOrder, type PaidIn } from './usePayOrder';
 
-const PRIMARY =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2';
-const QUIET =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--tint)] px-6 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--line)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+const PRIMARY = `w-full ${buttonClasses({ variant: 'primary', size: 'lg' })}`;
+const QUIET = `w-full ${buttonClasses({ variant: 'secondary', size: 'lg' })}`;
 
 function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2.5">
-      <span className={strong ? 'text-[15px] font-semibold text-[var(--lp-dark)]' : 'text-[15px] text-[var(--lp-text-sub)]'}>{label}</span>
-      <span className={`tabular-nums text-end ${strong ? 'text-[17px] font-semibold text-[var(--lp-dark)]' : 'text-[15px] font-medium text-[var(--lp-dark)]'}`}>{value}</span>
+      <span className={strong ? 'text-[15px] font-semibold text-[var(--ink)]' : 'text-[15px] text-[var(--ink-secondary)]'}>{label}</span>
+      <span className={`tabular-nums text-end ${strong ? 'text-[17px] font-semibold text-[var(--ink)]' : 'text-[15px] font-medium text-[var(--ink)]'}`}>{value}</span>
     </div>
   );
 }
 
 /// Review your order (view 44, Figma 05 to 09): what you get and when, one fee
-/// line, your balance, then Add money or Pay. Pay asks once more in a sheet.
+/// line, your balance, then Add money or Pay. Pay asks once more in a sheet
+/// that turns while the money goes in, then the page is the Paid in result
+/// (view 48).
 export function OrderPage({ listingId }: { listingId: string }) {
   const auth = useAuth();
   const router = useRouter();
@@ -92,6 +97,9 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
   useEffect(() => {
     if (phase === 'ready') setAdding(false);
   }, [phase]);
+  useEffect(() => {
+    if (payOrder.paid || outcome === 'changed' || outcome === 'closed' || outcome === 'own') setConfirming(false);
+  }, [payOrder.paid, outcome]);
 
   const usd = useMemo(() => {
     const format = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -102,12 +110,17 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
   const deliverBy = quote?.deliverByUnix ? formatDealDate(quote.deliverByUnix * 1000, locale) : null;
   const photo = listing ? ((listing as Listing & { photoUrls?: string[] }).photoUrls?.[0] ?? samplePhoto((CATEGORY_IDS as readonly string[]).includes(listing.category ?? '') ? (listing.category as CategoryId) : null)) : null;
   const backHref = `/listings/${encodeURIComponent(listingId)}`;
+  const firstName = listing?.seller?.name?.split(/\s+/)[0] || name;
+
+  if (payOrder.paid && listing && quote) {
+    return <PaidInResult paid={payOrder.paid} name={firstName} amount={usd(quote.youPayUsdc)} tag={listing.seller?.tag ?? null} listingId={listing.id} />;
+  }
 
   if (phase === 'changed' || phase === 'closed' || phase === 'own') {
     return (
       <main className="mx-auto w-full max-w-[560px] px-4 py-8 sm:px-6">
-        <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{t.title}</h1>
-        <p role="status" className="mt-4 text-[16px] text-[var(--lp-dark)]">{phase === 'changed' ? t.changed : phase === 'closed' ? t.closed : t.own}</p>
+        <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{t.title}</h1>
+        <p role="status" className="mt-4 text-[16px] text-[var(--ink)]">{phase === 'changed' ? t.changed : phase === 'closed' ? t.closed : t.own}</p>
         <Link href={backHref} className={`mt-6 ${PRIMARY}`}>{t.backToOffer}</Link>
       </main>
     );
@@ -116,8 +129,8 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
   if ((listingQuery.isError || quoteQuery.isError) && !listing) {
     return (
       <main className="mx-auto w-full max-w-[560px] px-4 py-8 sm:px-6">
-        <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{t.title}</h1>
-        <p role="alert" className="mt-4 text-[16px] text-[var(--lp-dark)]">{t.loadFailed}</p>
+        <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{t.title}</h1>
+        <p role="alert" className="mt-4 text-[16px] text-[var(--ink)]">{t.loadFailed}</p>
         <button type="button" onClick={() => { void listingQuery.refetch(); void quoteQuery.refetch(); }} className={`mt-6 ${QUIET}`}>{t.retry}</button>
       </main>
     );
@@ -130,23 +143,23 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
 
   return (
     <main className="mx-auto w-full max-w-[560px] px-4 pb-16 pt-6 sm:px-6" data-order-page>
-      <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{t.title}</h1>
-      <p data-order-deal className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.dealNext}</p>
+      <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{t.title}</h1>
+      <p data-order-deal className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{t.dealNext}</p>
 
       <section className="mt-5 flex items-center gap-4">
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt="" className="h-16 w-16 shrink-0 rounded-[14px] object-cover" />
+          <img src={photo} alt="" className="h-16 w-16 shrink-0 rounded-[12px] object-cover" />
         ) : (
-          <div aria-hidden className="h-16 w-16 shrink-0 rounded-[14px] bg-[var(--lp-light)]" />
+          <div aria-hidden className="h-16 w-16 shrink-0 rounded-[14px] bg-[var(--raised)]" />
         )}
         <div className="min-w-0">
-          <p className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{listing?.title ?? ' '}</p>
-          <p className="truncate text-[14px] text-[var(--lp-text-sub)]">{name || ' '}</p>
+          <p className="truncate text-[16px] font-semibold text-[var(--ink)]">{listing?.title ?? ' '}</p>
+          <p className="truncate text-[14px] text-[var(--ink-secondary)]">{name || ' '}</p>
         </div>
       </section>
 
-      <section className="mt-5 divide-y divide-[var(--lp-border-light)] rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-1">
+      <section className={`${CARD_CLASS} mt-5 divide-y divide-[var(--line)] px-5 py-1`}>
         <Row label={t.delivery} value={deliverBy ? fill(t.deliverBy, { date: deliverBy }) : '…'} />
         <div className="py-1">
           <Row label={t.price} value={quote ? `${usd(quote.priceUsdc)} USDC` : '…'} />
@@ -155,11 +168,11 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
         <Row label={t.youPay} value={quote ? `${youPay} USDC` : '…'} strong />
       </section>
 
-      <section className="mt-4 flex gap-3 rounded-[20px] bg-[var(--tint)] p-4">
+      <section className={`${CARD_CLASS} mt-4 flex gap-3 p-4`}>
         <Icon name="shield-check" size={20} className="mt-0.5 shrink-0 text-[var(--ink)]" />
         <div>
-          <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{t.protectedTitle}</p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="text-[15px] font-semibold text-[var(--ink)]">{t.protectedTitle}</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
             {deliverBy ? fill(t.protectedBody, { name, date: deliverBy }) : fill(t.protectedBodyNoDate, { name })}
           </p>
           <Link href="/docs/escrow" className="mt-2 inline-flex min-h-11 items-center text-[14px] font-medium underline underline-offset-4">{copy.landingEditorial.rulesLink}</Link>
@@ -168,28 +181,28 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
 
       {held ? (
         <>
-          <p role="status" className="mt-4 text-[15px] leading-relaxed text-[var(--lp-dark)]" data-order-held>{fill(t.heldNote, { name })}</p>
-          {failure ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--lp-dark)]">{failure}</p> : null}
+          <p role="status" className="mt-4 text-[15px] leading-relaxed text-[var(--ink)]" data-order-held>{fill(t.heldNote, { name })}</p>
+          {failure ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--ink)]">{failure}</p> : null}
           <button type="button" disabled={payOrder.busy} onClick={() => void payOrder.pay()} className={`mt-6 ${PRIMARY}`}>
             {fill(t.askSeller, { name })}
           </button>
         </>
       ) : (
       <>
-      <section className="mt-4 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4" data-order-balance>
+      <section className={`${CARD_CLASS} mt-4 px-5 py-4`} data-order-balance>
         <div className="flex items-baseline justify-between gap-4">
-          <span className="text-[15px] text-[var(--lp-text-sub)]">{t.balance}</span>
-          <span className="tabular-nums text-[15px] font-medium text-[var(--lp-dark)]">{spendable === null ? '…' : `${usd(spendable)} USDC`}</span>
+          <span className="text-[15px] text-[var(--ink-secondary)]">{t.balance}</span>
+          <span className="tabular-nums text-[15px] font-medium text-[var(--ink)]">{spendable === null ? '…' : `${usd(spendable)} USDC`}</span>
         </div>
         {phase === 'ready' || phase === 'paying' ? (
-          <p className="mt-1 text-[14px] font-medium text-[var(--color-success,var(--lp-dark))]">{t.enough}</p>
+          <p className="mt-1 text-[14px] font-medium text-[var(--ink)]">{t.enough}</p>
         ) : phase === 'short' ? (
-          <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">{fill(t.short, { amount: usd(short) })}</p>
+          <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{fill(t.short, { amount: usd(short) })}</p>
         ) : null}
-        {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{fill(t.arrived, { amount: usd(arrived) })}</p> : null}
+        {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{fill(t.arrived, { amount: usd(arrived) })}</p> : null}
       </section>
 
-      {failure ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--lp-dark)]">{failure}</p> : null}
+      {failure ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--ink)]">{failure}</p> : null}
 
       {adding && phase === 'short' ? (
         <div className="mt-4">
@@ -216,7 +229,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
             onClick={() => { payOrder.clearOutcome(); setConfirming(true); }}
             className={PRIMARY}
           >
-            {phase === 'paying' ? t.paying : fill(t.pay, { amount: youPay || '…' })}
+            {phase === 'paying' ? fill(t.paying, { amount: youPay }) : fill(t.pay, { amount: youPay || '…' })}
           </button>
         )}
       </div>
@@ -225,19 +238,68 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
 
       <FactsConfirmSheet
         open={confirming}
-        title={t.confirmTitle}
+        title={fill(t.confirmTitle, { amount: youPay })}
         rows={[
-          [t.confirmFor, listing?.title ?? ''],
-          [t.confirmTo, name],
+          [t.confirmFor, [listing?.title, name].filter(Boolean).join(', ')],
+          [t.amount, `${youPay} USDC`],
+          [t.confirmFrom, t.balance],
+          ...(spendable !== null && quote ? [[t.leftAfter, `${usd(Math.max(0, spendable - Number(quote.youPayUsdc)))} USDC`] as [string, string]] : []),
           [t.confirmHeld, t.heldValue],
           [fill(t.confirmIf, { name }), t.ifValue],
         ]}
         primaryLabel={fill(t.pay, { amount: youPay })}
+        busyLabel={fill(t.paying, { amount: youPay })}
         quietLabel={t.notNow}
         busy={payOrder.busy}
-        onConfirm={() => { setConfirming(false); void payOrder.pay(); }}
+        error={failure}
+        onConfirm={() => void payOrder.pay()}
         onClose={() => setConfirming(false)}
       />
+    </main>
+  );
+}
+
+/// The money is in (view 48, Figma Paid in): who has the order, where the
+/// money sits, the route with Paid in as the stop you are at, and the facts.
+function PaidInResult({ paid, name, amount, tag, listingId }: { paid: PaidIn; name: string; amount: string; tag: string | null; listingId: string }) {
+  const copy = useTranslations();
+  const t = copy.orderFlow;
+  const dp = copy.dealPage;
+  const { locale } = useLocale();
+  const at = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(paid.at);
+  const reference = dealReference(paid.jobId);
+  return (
+    <main data-order-paid className="mx-auto w-full max-w-[560px] space-y-5 px-4 pb-16 pt-10 sm:px-6">
+      <span aria-hidden className="grid size-14 place-items-center rounded-full bg-[var(--ash)] text-[var(--ink)]">
+        <Icon name="check" size={24} />
+      </span>
+      <div>
+        <h1 className="text-[24px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink)]">{fill(t.paidTitle, { name })}</h1>
+        <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{fill(t.paidHeld, { amount })}</p>
+      </div>
+      <div className={`${CARD_CLASS} p-5`}>
+        <StepsTrack steps={[
+          { key: 'agreed', state: 'done' },
+          { key: 'paidIn', state: 'current' },
+          { key: 'delivered', state: 'upcoming' },
+          { key: 'paidOut', state: 'upcoming' },
+        ]} />
+        <div className="mt-5 border-t border-[var(--line)] pt-1">
+          <FactRows facts={[
+            { label: dp.steps.paidIn, value: at },
+            { label: dp.amount, value: `${amount} USDC` },
+            ...(reference ? [{ label: dp.release.deal, value: <span dir="ltr">{reference}</span>, id: 'reference' }] : []),
+          ]} />
+        </div>
+      </div>
+      <div className="grid gap-2">
+        <Link href={`/deals/${paid.jobId}`} className={PRIMARY}>{t.done}</Link>
+        {tag ? (
+          <Link href={`/messages/${encodeURIComponent(tag)}?about=listing:${encodeURIComponent(listingId)}`} className={QUIET}>
+            {copy.marketShop.listing.message.replace('{name}', name)}
+          </Link>
+        ) : null}
+      </div>
     </main>
   );
 }

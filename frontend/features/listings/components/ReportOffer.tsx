@@ -33,8 +33,8 @@ export function ReportOffer({ listingId, hasPhotos }: { listingId: string; hasPh
       aria-pressed={reason === value}
       onClick={() => setReason(value)}
       className={cn(
-        'flex min-h-12 w-full items-center rounded-[14px] border px-4 text-start text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
-        reason === value ? 'border-[var(--lp-dark)] text-[var(--lp-dark)]' : 'border-[var(--lp-border-light)] text-[var(--lp-text-sub)]',
+        'flex min-h-12 w-full items-center rounded-[14px] border px-4 text-start text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]',
+        reason === value ? 'border-[var(--ink)] text-[var(--ink)]' : 'border-[var(--line)] text-[var(--ink-secondary)]',
       )}
     >
       {label}
@@ -46,19 +46,19 @@ export function ReportOffer({ listingId, hasPhotos }: { listingId: string; hasPh
       <button
         type="button"
         onClick={() => { setOpen(true); setState('idle'); }}
-        className="mt-6 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="mt-6 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink-secondary)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
       >
         {t.report}
       </button>
       <Sheet open={open} title={t.reportTitle} onClose={() => setOpen(false)} busy={state === 'sending'}>
         {state === 'sent' ? (
-          <p role="status" className="text-[15px] font-medium text-[var(--lp-dark)]">{t.reportSent}</p>
+          <p role="status" className="text-[15px] font-medium text-[var(--ink)]">{t.reportSent}</p>
         ) : (
           <div className="space-y-3">
             {hasPhotos ? choice('photo', t.reportPhoto) : null}
             {choice('listing', t.reportListing)}
             <label className="block pt-2">
-              <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.reportNote}</span>
+              <span className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.reportNote}</span>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -72,7 +72,7 @@ export function ReportOffer({ listingId, hasPhotos }: { listingId: string; hasPh
               type="button"
               onClick={() => void send()}
               disabled={state === 'sending'}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2"
             >
               {t.reportSend}
             </button>

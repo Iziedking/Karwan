@@ -28,10 +28,10 @@ export function CategoryChips({
             aria-pressed={pressed}
             onClick={() => onChange(id)}
             className={cn(
-              'inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]',
+              'inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]',
               pressed
                 ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]'
-                : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--ink)] hover:border-[var(--ink-secondary)]',
+                : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--ink-secondary)]',
             )}
           >
             {id === 'all' ? t.all : t.categories[id]}

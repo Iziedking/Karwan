@@ -25,21 +25,21 @@ export function DealLinkPanel({ start = 'ask' }: { start?: 'ask' | 'link' }) {
     ];
     return (
       <div>
-        <p id="deal-link-question" className="text-[17px] font-semibold text-[var(--lp-dark)]">{copy.question}</p>
-        <ul aria-labelledby="deal-link-question" className="mt-3 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+        <p id="deal-link-question" className="text-[17px] font-semibold text-[var(--ink)]">{copy.question}</p>
+        <ul aria-labelledby="deal-link-question" className="mt-3 overflow-hidden rounded-[20px] border border-[var(--line)] bg-[var(--surface)]">
           {choices.map((c) => {
             const inner = (
               <>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[17px] font-semibold text-[var(--lp-dark)]">{c.title}</span>
-                  <span className="mt-0.5 block text-[15px] font-medium text-[var(--lp-text-sub)]">{c.body}</span>
+                  <span className="block text-[17px] font-semibold text-[var(--ink)]">{c.title}</span>
+                  <span className="mt-0.5 block text-[15px] font-medium text-[var(--ink-secondary)]">{c.body}</span>
                 </span>
                 <Chevron />
               </>
             );
-            const row = 'flex min-h-[72px] w-full items-center gap-4 px-4 py-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5';
+            const row = 'flex min-h-[72px] w-full items-center gap-4 px-4 py-3 text-start transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)] sm:px-5';
             return (
-              <li key={c.key} className="border-b border-[var(--lp-border-light)] last:border-b-0">
+              <li key={c.key} className="border-b border-[var(--line)] last:border-b-0">
                 {c.href ? <Link href={c.href} className={row}>{inner}</Link> : <button type="button" onClick={() => setView('link')} className={row}>{inner}</button>}
               </li>
             );
@@ -59,7 +59,7 @@ function LinkToSend() {
   const tag = profile?.handle;
   if (!tag) {
     return (
-      <Link href="/profile/edit" className="text-[15px] font-medium text-[var(--lp-dark)] underline underline-offset-4">{copy.noTag}</Link>
+      <Link href="/profile/edit" className="text-[15px] font-medium text-[var(--ink)] underline underline-offset-4">{copy.noTag}</Link>
     );
   }
   const link = sellerDealLink(window.location.origin, tag);
@@ -76,14 +76,14 @@ function LinkToSend() {
 
   return (
     <div>
-      <p className="text-[17px] font-semibold text-[var(--lp-dark)]">{copy.title}</p>
-      <p className="mt-3 break-all rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-4 py-3 text-[15px] font-medium text-[var(--lp-dark)]">{link}</p>
-      <p className="mt-3 text-[15px] font-medium text-[var(--lp-text-sub)]">{copy.note}</p>
+      <p className="text-[17px] font-semibold text-[var(--ink)]">{copy.title}</p>
+      <p className="mt-3 break-all rounded-[12px] border border-[var(--line)] bg-[var(--raised)] px-4 py-3 text-[15px] font-medium text-[var(--ink)]">{link}</p>
+      <p className="mt-3 text-[15px] font-medium text-[var(--ink-secondary)]">{copy.note}</p>
       <div className="mt-5 flex flex-wrap gap-2.5">
         <button type="button" onClick={() => void copyLink()} className={PRIMARY}>{copied ? copy.copied : copy.copy}</button>
         {canShare ? <button type="button" onClick={() => void navigator.share({ url: link, text: copy.note }).catch(() => {})} className={SECONDARY}>{copy.share}</button> : null}
       </div>
-      <Link href="/request" className="mt-4 inline-flex min-h-11 items-center text-[15px] font-medium text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]">{copy.requestInstead}</Link>
+      <Link href="/request" className="mt-4 inline-flex min-h-11 items-center text-[15px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)]">{copy.requestInstead}</Link>
     </div>
   );
 }

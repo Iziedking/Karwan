@@ -111,13 +111,12 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['dark', 'ar']] 
     const logo = cards(page).first();
     await expect(logo).toContainText('Logo and brand kit');
     await expect(logo).toContainText('120');
-    await expect(logo).toContainText(t.protected);
+    // View 48: a card is the photo, what it is, the price and who sells it. No pill, no green.
+    await expect(logo).not.toContainText(t.protected);
     await expect(logo).toContainText('Ada Obi');
     await expect(logo.getByRole('img', { name: t.verified })).toBeVisible();
     if (locale === 'en') {
       await expect(logo).toContainText('4.8 from 23 deals');
-      await expect(logo).toContainText('Delivers in 3 days');
-      await expect(cards(page).filter({ hasText: 'iPhone 13' })).toContainText('Ships in 1 day');
       await expect(cards(page).filter({ hasText: 'Ankara' })).toContainText(t.someone);
     }
     // No photo of its own: a sample photo, marked, never a broken image.
@@ -130,6 +129,20 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['dark', 'ar']] 
     await sound(page, testInfo, `buy-${theme}-${locale}`);
   });
 }
+
+test('the market carries no green: the picked chip is ink, cards are photos, the way to ask is a plain button (view 48)', async ({ page }) => {
+  await open(page);
+  const green = await page.locator('main a, main button').evaluateAll((els) => els
+    .filter((el) => el.checkVisibility() && getComputedStyle(el).backgroundColor === 'rgb(175, 201, 91)')
+    .map((el) => el.textContent?.trim()));
+  expect(green).toEqual([]);
+  const all = page.getByRole('group', { name: en.marketShop.categoriesLabel }).getByRole('button', { name: en.marketShop.all });
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  expect(await all.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(await page.evaluate(() => {
+    const probe = document.createElement('span'); probe.style.background = 'var(--ink)'; document.body.append(probe);
+    const colour = getComputedStyle(probe).backgroundColor; probe.remove(); return colour;
+  }));
+});
 
 test('See all lists every offer, examples last and marked', async ({ page }) => {
   await open(page);

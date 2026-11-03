@@ -3,7 +3,6 @@
 export interface MarketShopCopy {
   title: string;
   heroTitle: string;
-  heroBody: string;
   switchLabel: string;
   buy: string;
   sell: string;
@@ -28,7 +27,6 @@ export interface MarketShopCopy {
   example: string;
   business: string;
   cantFind: string;
-  cantFindBody: string;
   postNeed: string;
   dealDirect: string;
   yourRequests: string;
@@ -69,6 +67,8 @@ export interface MarketShopCopy {
     stepRelease: string;
     order: string;
     message: string;
+    /// The seller card's link to their record (view 48).
+    record: string;
     seller: string;
   };
 }
@@ -77,7 +77,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
   en: {
     title: 'Market',
     heroTitle: 'Buy and sell safely',
-    heroBody: "Agree the terms, fund the deal and review delivery before payment is released under the agreed rules.",
     switchLabel: 'Buy or sell',
     buy: 'Buy',
     sell: 'Sell',
@@ -102,7 +101,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     example: 'Example',
     business: 'Business',
     cantFind: 'Can’t find it?',
-    cantFindBody: 'Say what you need and sellers send you offers.',
     postNeed: 'Post what you need',
     dealDirect: 'More ways to start',
     yourRequests: 'Your requests',
@@ -141,14 +139,14 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
       stepInPerson: '{name} meets you to hand it over.',
       stepRelease: "Review delivery from {name}. Payment follows the agreed release rules.",
       order: "Review order · {amount} USDC",
-      message: 'Message',
+      message: 'Message {name}',
+      record: 'Record',
       seller: 'the seller',
     },
   },
   fr: {
     title: 'Marché',
     heroTitle: 'Achetez et vendez en sécurité',
-    heroBody: "Convenez des conditions, approvisionnez l’accord et vérifiez la livraison avant le versement selon les règles convenues.",
     switchLabel: 'Acheter ou vendre',
     buy: 'Acheter',
     sell: 'Vendre',
@@ -173,7 +171,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     example: 'Exemple',
     business: 'Entreprise',
     cantFind: 'Vous ne trouvez pas ?',
-    cantFindBody: 'Dites ce qu’il vous faut et les vendeurs vous font des offres.',
     postNeed: 'Publier ce qu’il vous faut',
     dealDirect: 'D’autres façons de commencer',
     yourRequests: 'Vos demandes',
@@ -212,14 +209,14 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
       stepInPerson: '{name} vous retrouve pour vous le remettre.',
       stepRelease: "Vérifiez la livraison de {name}. Le paiement suit les règles de versement convenues.",
       order: "Vérifier la commande · {amount} USDC",
-      message: 'Message',
+      message: 'Écrire à {name}',
+      record: 'Historique',
       seller: 'le vendeur',
     },
   },
   ar: {
     title: 'السوق',
     heroTitle: 'اشترِ وبِع بأمان',
-    heroBody: "اتفق على الشروط وموّل الصفقة وراجع التسليم قبل صرف المبلغ وفق القواعد المتفق عليها.",
     switchLabel: 'شراء أو بيع',
     buy: 'شراء',
     sell: 'بيع',
@@ -244,7 +241,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     example: 'مثال',
     business: 'شركة',
     cantFind: 'لم تجده؟',
-    cantFindBody: 'قل ما تحتاجه، وسيرسل لك البائعون عروضهم.',
     postNeed: 'انشر ما تحتاجه',
     dealDirect: 'طرق أخرى للبدء',
     yourRequests: 'طلباتك',
@@ -283,14 +279,14 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
       stepInPerson: '{name} يلتقي بك لتسليمه.',
       stepRelease: "راجع تسليم {name}. يتم الدفع وفق قواعد الصرف المتفق عليها.",
       order: "راجع الطلب · {amount} USDC",
-      message: 'رسالة',
+      message: 'راسل {name}',
+      record: 'السجل',
       seller: 'البائع',
     },
   },
   hi: {
     title: 'बाज़ार',
     heroTitle: 'सुरक्षित खरीदें और बेचें',
-    heroBody: "शर्तें तय करें, सौदे के लिए भुगतान जमा करें और तय नियमों के अनुसार भुगतान जारी होने से पहले डिलीवरी की समीक्षा करें।",
     switchLabel: 'खरीदें या बेचें',
     buy: 'खरीदें',
     sell: 'बेचें',
@@ -315,7 +311,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     example: 'उदाहरण',
     business: 'व्यवसाय',
     cantFind: 'नहीं मिला?',
-    cantFindBody: 'बताइए आपको क्या चाहिए, विक्रेता आपको ऑफ़र भेजेंगे।',
     postNeed: 'अपनी ज़रूरत पोस्ट करें',
     dealDirect: 'शुरू करने के और तरीके',
     yourRequests: 'आपके अनुरोध',
@@ -354,14 +349,14 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
       stepInPerson: '{name} आपसे मिलकर सौंपते हैं।',
       stepRelease: "{name} की डिलीवरी की समीक्षा करें। भुगतान तय नियमों के अनुसार जारी होता है।",
       order: "ऑर्डर देखें · {amount} USDC",
-      message: 'संदेश',
+      message: '{name} को संदेश भेजें',
+      record: 'रिकॉर्ड',
       seller: 'विक्रेता',
     },
   },
   sw: {
     title: 'Soko',
     heroTitle: 'Nunua na uuze kwa usalama',
-    heroBody: "Kubalianeni masharti, weka fedha za makubaliano na kagua kilichowasilishwa kabla ya malipo kutolewa kwa masharti yaliyokubaliwa.",
     switchLabel: 'Nunua au uza',
     buy: 'Nunua',
     sell: 'Uza',
@@ -386,7 +381,6 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     example: 'Mfano',
     business: 'Biashara',
     cantFind: 'Hukipati?',
-    cantFindBody: 'Sema unachohitaji na wauzaji watakutumia ofa.',
     postNeed: 'Weka unachohitaji',
     dealDirect: 'Njia nyingine za kuanza',
     yourRequests: 'Maombi yako',
@@ -425,7 +419,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
       stepInPerson: '{name} anakutana nawe kukukabidhi.',
       stepRelease: "Kagua kilichowasilishwa na {name}. Malipo yanafuata masharti yaliyokubaliwa.",
       order: "Kagua oda · {amount} USDC",
-      message: 'Ujumbe',
+      message: 'Mtumie {name} ujumbe',
+      record: 'Rekodi',
       seller: 'muuzaji',
     },
   },

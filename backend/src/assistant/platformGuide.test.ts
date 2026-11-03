@@ -195,6 +195,10 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   const market = PLATFORM_GUIDE.find((entry) => entry.id === 'market')!;
   assert.match(market.summary, /Price, Karwan fee and You pay/);
   assert.match(market.summary, /accepted at once by the seller's agent/);
+  // View 48: the sheet turns while paying, then the Paid in result; no promise of money back.
+  assert.match(market.summary, /Paying 120 USDC while the money goes in/);
+  assert.match(market.summary, /shows Paid in: the seller has your order/);
+  assert.doesNotMatch(market.summary, /you get it back|Protected, the seller/);
   assert.ok(market.tools.includes('order_listing'));
   assert.ok(market.pages.includes('/order/[listingId]'));
   assert.ok(market.api.includes('GET /api/listings/:id/quote'));

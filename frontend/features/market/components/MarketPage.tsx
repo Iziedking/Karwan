@@ -9,6 +9,7 @@ import { OpenContests } from '@/features/contests/components/OpenContests';
 import { OpenWorkRequests } from '@/features/work/components/OpenWorkRequests';
 import { Band, FullBleed } from '@/shared/components/Bands';
 import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { Icon } from '@/shared/components/Icon';
 import { Skeleton } from '@/shared/components/Skeleton';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -91,7 +92,6 @@ function Shop() {
         <Band tone="light" compact>
           <header className="pt-2 sm:pt-3">
             <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.heroTitle}</h1>
-            <p className="mt-1.5 max-w-[56ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{t.heroBody}</p>
           </header>
           {askTradesAs && address ? <div className="mt-4"><EntryQuestion address={address} /></div> : null}
           <div className="mt-5 max-w-[480px]">
@@ -110,7 +110,7 @@ function Shop() {
 
 function Notice({ failed, retry, t }: { failed: MarketSource[]; retry: () => void; t: MarketShopCopy }) {
   return (
-    <div role="status" className="mt-6 flex flex-col gap-3 rounded-[20px] bg-[var(--surface)] p-5 sm:flex-row sm:items-center sm:justify-between">
+    <div role="status" className={`${CARD_CLASS} mt-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between`}>
       <p className="text-[15px] text-[var(--ink-secondary)]" data-failed={failed.join(' ')}>{t.loadError}</p>
       <button type="button" onClick={retry} className={buttonClasses({ variant: 'outline', size: 'sm' })}>{t.retry}</button>
     </div>
@@ -160,7 +160,7 @@ function BuySide({
             value={q}
             onChange={(event) => setQ(event.target.value.slice(0, 120))}
             placeholder={t.search}
-            className="min-h-[52px] w-full rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] ps-12 pe-4 text-[15px] text-[var(--ink)] placeholder:text-[var(--ink-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--action)]"
+            className="min-h-12 w-full rounded-[var(--radius-input)] border border-[var(--line)] bg-[var(--surface)] ps-12 pe-4 text-[15px] text-[var(--ink)] placeholder:text-[var(--ink-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--ink)]"
           />
         </label>
       </div>
@@ -174,18 +174,18 @@ function BuySide({
         <div className="flex min-h-11 items-center justify-between gap-3">
           <h2 id="market-buy-heading" className="text-[17px] font-semibold text-[var(--ink)]">{title}</h2>
           {!full && matched > fresh.length ? (
-            <button type="button" onClick={() => setSeeAll(true)} className="inline-flex min-h-11 items-center px-1 text-[14px] font-semibold text-[var(--lp-accent-on-light)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--action)]">
+            <button type="button" onClick={() => setSeeAll(true)} className="inline-flex min-h-11 items-center px-1 text-[14px] font-semibold text-[var(--ink)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]">
               {t.seeAll}
             </button>
           ) : null}
         </div>
         {loading ? (
-          <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="aspect-[3/4] w-full rounded-[20px]" />)}
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 xl:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="aspect-[4/3] w-full rounded-[var(--radius-card)]" />)}
           </div>
         ) : visible.length > 0 ? (
           <>
-            <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            <ul className="mt-3 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 xl:grid-cols-4">
               {visible.map((card) => <li key={card.id}><ListingCard card={card} /></li>)}
             </ul>
             {full && matched > shown && shown < MARKET_PAGE_MAX ? (
@@ -195,7 +195,7 @@ function BuySide({
             ) : null}
           </>
         ) : (
-          <div className="mt-3 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-6">
+          <div className={`${CARD_CLASS} mt-3 p-6`}>
             <p className="text-[16px] font-semibold text-[var(--ink)]">{t.nothingMatches}</p>
             <p className="mt-1.5 text-[15px] text-[var(--ink-secondary)]">{t.nothingBody}</p>
             {narrowed ? (
@@ -207,16 +207,16 @@ function BuySide({
         )}
       </section>
 
-      <section aria-labelledby="market-cant-find" className="mt-8 rounded-[20px] bg-[var(--surface)] p-5 sm:p-6">
+      {/* The market's one way to ask is a plain button: green is kept for the page's main move (view 48). */}
+      <section aria-labelledby="market-cant-find" className={`${CARD_CLASS} mt-8 p-5 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-6`}>
         <h2 id="market-cant-find" className="text-[17px] font-semibold text-[var(--ink)]">{t.cantFind}</h2>
-        <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{t.cantFindBody}</p>
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Link href="/buyer" className={buttonClasses({ variant: 'primary' })}>{t.postNeed}</Link>
-          <button type="button" onClick={() => setStartOpen(true)} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--action)]">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 sm:mt-0">
+          <Link href="/buyer" className={buttonClasses({ variant: 'secondary' })}>{t.postNeed}</Link>
+          <button type="button" onClick={() => setStartOpen(true)} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]">
             {t.dealDirect}
           </button>
           {isAuthenticated ? (
-            <Link href={marketViewHref('yours', 'requests')} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--action)]">
+            <Link href={marketViewHref('yours', 'requests')} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]">
               {t.yourRequests}
             </Link>
           ) : null}

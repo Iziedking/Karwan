@@ -77,6 +77,18 @@ test('Money has one green button, Add money, and no other green (view 48)', () =
   assert.doesNotMatch(source('../../features/money/components/RecentMoney.tsx'), /--color-positive/);
 });
 
+test('Market, listing and order wear the new look: no old tokens, no green but Order and Pay (view 48)', () => {
+  for (const file of ['../../features/market/components/ListingCard.tsx', '../../features/market/components/CategoryChips.tsx', '../../features/market/components/MarketPage.tsx', '../../features/listings/components/OfferGallery.tsx', '../../features/order/OrderPage.tsx', '../../features/order/AddMoneyPanel.tsx']) {
+    assert.doesNotMatch(source(file), /--lp-|--color-accent-soft|bg-\[var\(--action\)\]/, file);
+  }
+  const market = source('../../features/market/components/MarketPage.tsx');
+  assert.doesNotMatch(market, /variant: 'primary'/);
+  // A card is the photo, what it is, the price and who sells it: no Protected pill.
+  assert.doesNotMatch(source('../../features/market/components/ListingCard.tsx'), /t\.protected\b/);
+  const listing = source('../../features/listings/components/ListingDetail.tsx');
+  assert.equal(listing.match(/variant: 'primary', size: 'lg' \}\)\}>\{orderLabel\}/g)?.length, 1);
+});
+
 test('Home cards carry no green: the one green button on Home is a deal move', () => {
   for (const file of ['../../features/home/components/HomeBlock.tsx', '../../features/home/components/FirstTrade.tsx', '../../features/home/components/FaucetDrop.tsx', '../../features/home/components/RecordHomeNudge.tsx', '../../features/deals/DealStatePill.tsx', '../../features/market/components/SellCards.tsx']) {
     assert.doesNotMatch(source(file), /--lp-accent\b|className=\{PRIMARY\}/, file);

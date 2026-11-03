@@ -32,23 +32,23 @@ export function StartTradeSheet({ open, onClose }: { open: boolean; onClose: () 
     hourly: { href: '/work/new', title: hourly.title, body: hourly.body, icon: <ClockIcon /> },
   };
   const paths = startTradePaths(features).map((id) => byId[id]);
-  const row = 'group flex min-h-[76px] w-full items-center gap-4 px-4 py-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5';
+  const row = 'group flex min-h-[76px] w-full items-center gap-4 px-4 py-3 text-start transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)] sm:px-5';
   return (
     <Sheet open={open} title={agreement ? entryCopy.agreement : entryCopy.title} onClose={close}>
-      {agreement ? <DealLinkPanel /> : <ul className="overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]" aria-label={copy.question}>
+      {agreement ? <DealLinkPanel /> : <ul className="overflow-hidden rounded-[20px] border border-[var(--line)] bg-[var(--surface)]" aria-label={copy.question}>
         {paths.map((path) => {
           const inner = (
             <>
-              <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-[var(--lp-light)] text-[var(--lp-dark)]">{path.icon}</span>
+              <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-[var(--raised)] text-[var(--ink)]">{path.icon}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[17px] font-semibold text-[var(--lp-dark)]">{path.title}</span>
-                <span className="mt-0.5 block text-[15px] font-medium text-[var(--lp-text-sub)]">{path.body}</span>
+                <span className="block text-[17px] font-semibold text-[var(--ink)]">{path.title}</span>
+                <span className="mt-0.5 block text-[15px] font-medium text-[var(--ink-secondary)]">{path.body}</span>
               </span>
               <Chevron />
             </>
           );
           return (
-            <li key={path.title} className="border-b border-[var(--lp-border-light)] last:border-b-0">
+            <li key={path.title} className="border-b border-[var(--line)] last:border-b-0">
               {path.href ? <Link href={path.href} className={row}>{inner}</Link> : <button type="button" onClick={() => setAgreement(true)} className={row}>{inner}</button>}
             </li>
           );

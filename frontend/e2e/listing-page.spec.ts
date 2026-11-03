@@ -4,9 +4,9 @@ import type { Listing } from '../core/api';
 import { en } from '../shared/i18n/messages/en';
 import { BUYER } from './fixtures';
 
-/// The listing page (view 44, Figma 02 and D2): a photo, the price, the
-/// seller, what you get, how it works, and Order in a bar on a phone or a
-/// panel on desktop. The owner manages it instead.
+/// The listing page (views 44 and 48): photos, the price, the seller card, the
+/// facts, what you get, how it works, and Order with Message pinned in a bar on
+/// a phone or a panel on desktop. The owner manages it instead.
 
 const API = 'http://127.0.0.1:3199';
 const SELLER = '0x5555555555555555555555555555555555555555';
@@ -68,6 +68,15 @@ test('a buyer sees the offer, the seller and one way to order', async ({ page },
   const width = page.viewportSize()!.width;
   if (width >= 1024) await expect(page.locator('[data-order-panel]')).toBeVisible();
   else await expect(page.locator('[data-order-bar]')).toBeVisible();
+  // View 48: the escrow line sits with the buttons, the seller card names their record, and Order is the one green button.
+  const buttons = page.locator(width >= 1024 ? '[data-order-panel]' : '[data-order-bar]');
+  await expect(buttons.locator('[data-listing-safety]')).toHaveText(t.listing.protectedNote);
+  await expect(buttons.getByRole('link', { name: 'Message Ada', exact: true })).toBeVisible();
+  await expect(seller).toContainText(t.listing.record);
+  const green = await page.locator('main a, main button').evaluateAll((els) => els
+    .filter((el) => el.checkVisibility() && getComputedStyle(el).backgroundColor === 'rgb(175, 201, 91)')
+    .map((el) => el.textContent?.trim()));
+  expect(green).toEqual(['Review order · 120 USDC']);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);

@@ -225,15 +225,15 @@ test('canonical theme text, selected controls and field edges meet contrast thre
 
 test('market price and unit stay together, and card facts sit on fixed lines that truncate rather than wrap', () => {
   const card = source('../../features/market/components/ListingCard.tsx');
-  assert.match(card, /<span className="flex items-baseline gap-1">/);
-  // Two title lines always take the same room, so every card in a row lines up.
-  assert.match(card, /line-clamp-2 h-\[42px\]/);
-  assert.match(card, /block truncate text-\[14px\] text-\[var\(--ink-secondary\)\]">\{rating\}/);
+  assert.match(card, /\{formatUsdc\(card\.priceUsdc, \{ withSuffix: false \}\)\} \{t\.usdc\}/);
+  assert.match(card, /line-clamp-2 text-\[15px\]/);
+  assert.match(card, /<span className="truncate">\{rating\}<\/span>/);
 });
 
-test('market cards are quiet: a white card, a real photo or a marked sample, and example stock says so', () => {
+test('market cards are quiet: a framed photo, never a boxed card, a real photo or a marked sample, and example stock says so (view 48)', () => {
   const card = source('../../features/market/components/ListingCard.tsx');
-  assert.match(card, /rounded-\[20px\] border border-\[var\(--lp-border-light\)\] bg-\[var\(--lp-card\)\]/);
+  assert.match(card, /aspect-\[4\/3\] overflow-hidden rounded-\[var\(--radius-card\)\] bg-\[var\(--raised\)\]/);
+  assert.doesNotMatch(card, /border border-\[var\(--line\)\] bg-\[var\(--surface\)\]/);
   assert.doesNotMatch(card, /--market-surface|market-card-glyph|WORK_ICON/);
   assert.match(card, /card\.example \? t\.example/);
   assert.match(card, /picture === 'sample' && !card\.example/);

@@ -7,13 +7,16 @@ import { fundingShortfall } from '@/features/deposit/fundingPlan';
 import { orderTermsOf } from './orderModel';
 
 export type PayOutcome = 'changed' | 'closed' | 'own' | 'failed' | { totalChanged: string } | null;
+/// The deal a payment went into, and when, for the Paid in result (view 48).
+export interface PaidIn { jobId: string; at: number }
 
 const sameUsdc = (a: string, b: string) => Math.round(Number(a) * 1e6) === Math.round(Number(b) * 1e6);
 
 /// Pressing Pay: the deal is made from the listing as it stands, the seller's
 /// agent accepts it in the same request, any shortfall moves to the buying
 /// agent the way the deal page does it, and the money is paid in at the total
-/// the review showed. Nothing exists until this runs (view 44, D10).
+/// the review showed. Nothing exists until this runs (view 44, D10). A payment
+/// that went in stays on the page as the Paid in result (view 48).
 export function usePayOrder(input: {
   listing: Listing | null;
   quote: ListingQuote | null;
@@ -27,6 +30,7 @@ export function usePayOrder(input: {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<PayOutcome>(null);
+  const [paid, setPaid] = useState<PaidIn | null>(null);
   const busyRef = useRef(false);
   // A deal made by an earlier press is paid in on the next, never made twice.
   const jobRef = useRef<string | null>(null);
@@ -85,7 +89,7 @@ export function usePayOrder(input: {
         expectedAgreementVersion: deal.agreementVersion,
         expectedAgreementDigest: deal.agreementDigest,
       });
-      router.push(`/deals/${jobId}`);
+      setPaid({ jobId, at: Date.now() });
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       const status = err instanceof ApiError ? err.status : undefined;
@@ -103,5 +107,5 @@ export function usePayOrder(input: {
     }
   }, [listing, quote, address, circle, buyerAgentUsdc, router, queryClient]);
 
-  return { pay, busy, outcome, clearOutcome: () => setOutcome(null) };
+  return { pay, busy, outcome, paid, clearOutcome: () => setOutcome(null) };
 }
