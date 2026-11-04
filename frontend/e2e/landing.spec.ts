@@ -115,7 +115,7 @@ for (const [width, height] of [[1440, 800], [1280, 720], [1600, 1000]]) {
     await open(page);
     const footer = page.locator('#site-footer');
     // Pinned as a curtain only when all of it fits under the bar.
-    const fit = await footer.evaluate((el) => {
+    const fit = await footer.evaluate((el: HTMLElement) => {
       const bar = document.querySelector('header[data-chrome="nav"]')!.getBoundingClientRect().height;
       return { pinned: getComputedStyle(el).position === 'sticky', fits: el.offsetHeight <= window.innerHeight - bar, bar };
     });
