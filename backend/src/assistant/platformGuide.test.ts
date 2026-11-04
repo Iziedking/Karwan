@@ -265,6 +265,12 @@ test('the guide reads a conversation as the new look shows it (view 48, batch 9g
   assert.match(all, /round Send button is the one green control/);
 });
 
+test('the guide knows the landing questions and the team email (view 49)', () => {
+  const e = PLATFORM_GUIDE.find((entry) => entry.id === 'support')!;
+  assert.match(e.summary, /opens the assistant with it already asked/);
+  assert.match(e.summary, /Talk to our team writes to admin@karwan\.site/);
+});
+
 test('the guide knows the docs AI buttons (view 48, batch 9j)', () => {
   const e = PLATFORM_GUIDE.find((entry) => entry.id === 'support')!;
   assert.match(e.summary, /Copy for AI copies the page as plain text/);
