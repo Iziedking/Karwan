@@ -36,8 +36,9 @@ test('a chip carries its words to the assistant', async ({ page }) => {
   await open(page);
   const chip = page.getByRole('button', { name: t.ask.chips[0], exact: true });
   await chip.scrollIntoViewIfNeeded();
+  const carried = page.waitForURL(/\/assistant$/);
   await chip.click();
-  await expect(page).toHaveURL(/\/assistant$/);
+  await carried;
 });
 
 test('with motion on, falling chips settle and send nothing by themselves', async ({ page }) => {
