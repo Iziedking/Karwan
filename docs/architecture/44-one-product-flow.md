@@ -25,7 +25,7 @@ flowchart LR
 
 ## Decisions
 
-1. **Four places.** Phone: Home, Market, Deals, Profile in the bottom bar. Desktop adds Money and Messages to the side rail. Money opens from the balance on Home on phones.
+1. **Four places.** Phone: Home, Market, Deals, Profile in the bottom bar, with Finance before Profile where trade finance is on. Desktop adds Money and Messages to the side rail, and Finance where it is on. Money opens from the balance on Home on phones.
 2. **One home per thing.** Deals live in Deals, in one order: needs you, then active, then finished, paginated. Home shows the top of that list. Nothing else lists deals.
 3. **The market is a market.** Search ("What do you need?"), a Buy and Sell switch, categories, and listing cards with a photo, the price in USDC, the seller's name, the rating in words ("4.8 from 23 deals"), the delivery time and a Protected mark. Sell shows what buyers need, with "Fits what you sell". "Can't find it? Post what you need" is always one tap away.
 4. **One deal page for every kind.** Title block (who, the reference, what, the amount as the largest line, where the money is), the steps of that kind, this moment in one sentence with the date anything happens on its own, one move, then rows that open in place.

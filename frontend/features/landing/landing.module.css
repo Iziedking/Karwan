@@ -46,6 +46,10 @@
 .platforms { display: inline-flex; gap: 6px; margin-top: 10px; padding: 6px; border-radius: 16px; background: var(--tile); }
 .platform { display: inline-flex; align-items: center; gap: 8px; min-width: 44px; min-height: 40px; padding: 0 12px; border-radius: 11px; color: var(--mute); font-size: 14px; font-weight: 600; transition: background-color 0.2s var(--ease), color 0.2s var(--ease); }
 .platform:hover { color: var(--ink); }
+.platform svg { opacity: 0.62; transition: opacity 0.3s var(--ease); }
+.platform:hover svg, .platform[aria-selected='true'] svg { opacity: 1; }
+.platform span { animation: rise 0.4s var(--ease); }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .platform[aria-selected='true'] { background: var(--raised); color: var(--ink); }
 .sceneBar { display: block; width: 88px; height: 3px; margin-top: 40px; border-radius: 2px; background: var(--line-strong); overflow: hidden; }
 .sceneBar span { display: block; height: 100%; width: 100%; background: var(--green); transform-origin: left; transform: scaleX(var(--p, 0)); }
@@ -96,7 +100,7 @@
 .platformLine div { display: grid; }
 .platformLine strong { font-size: 14px; }
 .platformLine span { color: var(--quiet); font-size: 14px; }
-.bubble { padding: 10px 14px; border-radius: 14px; background: var(--raised); line-height: 1.45; }
+.bubble { padding: 10px 14px; border-radius: 14px; background: var(--raised); line-height: 1.45; animation: rise 0.45s var(--ease); }
 .bring { display: flex; gap: 6px; align-items: center; color: var(--mute); font-size: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .phoneLabel { color: var(--quiet); font-size: 14px; padding-top: 4px; }
 .phoneSub { color: var(--quiet); font-size: 14px; margin-top: -6px !important; }
@@ -138,6 +142,7 @@
   .floor { transform: translateX(-50%); }
   .sellerPhone { display: none; }
   .copyBlock { transition: none; }
+  .platform span, .bubble { animation: none; }
   .copyBlock:not([data-on]) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) and (max-width: 1023px) {
@@ -340,9 +345,9 @@
   .overCaption { font-size: 17px; }
   .receipt div { grid-template-columns: 1fr; gap: 2px; }
   .rules { grid-template-columns: 1fr; gap: 24px; margin-top: 56px; }
-  .toss { height: 520px; border-radius: 26px; }
+  .toss { height: 560px; border-radius: 26px; }
   .chatBar { top: 16px; padding-inline-start: 20px; }
-  .chip { font-size: 15px; min-height: 42px; padding: 0 16px; }
+  .chip { font-size: 14px; min-height: 38px; padding: 0 14px; }
   .pile { inset: 90px 16px 16px; }
   .toss:not([data-live]) .chatBar { margin-top: 16px; }
   .toss:not([data-live]) .pile { padding: 28px 16px 16px; }
@@ -351,6 +356,8 @@
 }
 @media (max-width: 639px) {
   .board { display: none; }
+  .toss { height: 600px; }
+  .toss[data-live] .pile { inset: 88px 0 0; }
 }
 @media (min-width: 1024px) {
   .steps li:nth-child(n+2):nth-child(-n+4) { justify-items: center; text-align: center; }

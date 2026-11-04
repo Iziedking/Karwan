@@ -12,8 +12,9 @@ import { DEALS_HREF, navHref, workspaceNavItems, type NavItemId } from './worksp
 import { cn } from '@/shared/utils/cn';
 import { getShellSurface, WALLET_HOME } from '@/shared/utils/routes';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
+import { SME_TRADES_ENABLED } from '@/features/profile/config';
 
-type IconName = 'home' | 'market' | 'deals' | 'profile';
+type IconName = 'home' | 'market' | 'deals' | 'finance' | 'profile';
 
 interface BottomNavItem {
   href: string;
@@ -31,14 +32,14 @@ const ICON: Record<NavItemId, IconName> = {
   deals: 'deals',
   money: 'home',
   messages: 'home',
-  finance: 'home',
+  finance: 'finance',
   activity: 'home',
   profile: 'profile',
 };
 
 /**
  * Persistent mobile task navigation for the signed-in workspace: Home, Market,
- * Deals and Profile (view 44), one thumb away from every desk. Deals carries
+ * Deals, Finance when it is on, and Profile (view 44), one thumb away from every desk. Deals carries
  * the mark when something needs you.
  */
 export function WorkspaceBottomNav() {
@@ -59,7 +60,7 @@ export function WorkspaceBottomNav() {
     if (id === 'home') return pathname === href;
     return pathname.startsWith(href);
   };
-  const items: BottomNavItem[] = workspaceNavItems({ surface: 'phone', dealsAvailable: DEALS_AVAILABLE, financeEnabled: false }).map((id) => {
+  const items: BottomNavItem[] = workspaceNavItems({ surface: 'phone', dealsAvailable: DEALS_AVAILABLE, financeEnabled: SME_TRADES_ENABLED }).map((id) => {
     const href = navHref(id, homeHref);
     return {
       href,

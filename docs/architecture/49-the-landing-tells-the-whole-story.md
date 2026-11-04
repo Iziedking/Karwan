@@ -37,6 +37,9 @@ flowchart LR
 - **Motion says it, not paragraphs.** A scene has a label, a title and its moving picture. No explaining paragraph sits under a title.
 - **A phone with a body.** The hero phone has a front, a back with its camera, metal edges and depth, seen in perspective, so its one full turn on scroll reads as an object, not a flat card.
 - **Cards without outlines.** Cards and tiles stand apart by their shade on the black, never by a line around them.
+- **The hero chat moves between platforms.** At rest, the chat on the phone goes from TikTok to Instagram, Facebook, X and LinkedIn, each shown in its own colours. It stops when someone picks one, and waits while a pointer or focus is on the row.
+- **The chips float.** After they drop and bounce, they drift slowly like bubbles, under the chat bar, nudging each other and the edges. Slow enough to read, never fast. Only a chip thrown by a hand, or tapped, is sent.
+- **The link preview is the landing.** Every Karwan link previews as the black ground, the hero line and the phone holding an agreed deal.
 - **Every example question works.** Each chip asks for one thing the assistant has a tool for: search the market, hold money in a deal, check a person, a payment link, weekly hourly work, the record, early payment, cash out, a send to a tag.
 - **Motion that can be turned off.** With reduced motion, no clip plays and every scene shows its final state. Clips play muted and only while on screen.
 - **Five languages.** Every word is in English, French, Arabic, Hindi and Swahili, and Arabic reads right to left.

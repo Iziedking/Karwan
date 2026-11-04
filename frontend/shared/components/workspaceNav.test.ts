@@ -6,8 +6,9 @@ import { navHref, workspaceNavItems } from './workspaceNav';
 ///
 ///   npx tsx --test shared/components/workspaceNav.test.ts
 
-test('phone: four tabs, Deals third', () => {
-  assert.deepEqual(workspaceNavItems({ surface: 'phone', dealsAvailable: true, financeEnabled: true }), ['home', 'market', 'deals', 'profile']);
+test('phone: four tabs, Deals third, Finance before Profile when on', () => {
+  assert.deepEqual(workspaceNavItems({ surface: 'phone', dealsAvailable: true, financeEnabled: false }), ['home', 'market', 'deals', 'profile']);
+  assert.deepEqual(workspaceNavItems({ surface: 'phone', dealsAvailable: true, financeEnabled: true }), ['home', 'market', 'deals', 'finance', 'profile']);
 });
 
 test('desktop: Money and Messages, Finance only when on', () => {

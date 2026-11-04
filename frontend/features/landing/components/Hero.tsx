@@ -1,18 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { landingCopy, type LandingCopy, type Platform } from '@/shared/i18n/messages/landing';
 import { landingEntryRoutes } from '@/features/home/landingEntry';
 import { heroStage, heroView, type HeroStage } from '../heroStages';
-import { useSceneProgress } from '../useLandingMotion';
+import { useReducedMotionPreference, useSceneProgress } from '../useLandingMotion';
 import { PlatformIcon } from './PlatformIcon';
 import s from '../landing.module.css';
 
 const PLATFORMS: Platform[] = ['tiktok', 'instagram', 'facebook', 'x', 'linkedin'];
+/// How long each platform's chat shows before the next one, while the hero rests.
+const PLATFORM_DWELL_MS = 2600;
 
 function Row({ k, v }: { k: string; v: string }) {
   return <div className={s.phoneRow}><span>{k}</span><strong>{v}</strong></div>;
@@ -34,7 +36,7 @@ function Screen({ view, platform, t, side, sellerAgreed }: { view: 'chat' | 'ter
       {view === 'chat' && (
         <>
           <div className={s.platformLine}><PlatformIcon platform={platform} size={16} /><div><strong>{t.hero.platformNames[platform]}</strong><span>{p.conversation}</span></div></div>
-          <p className={s.bubble}>{t.hero.messages[platform]}</p>
+          <p key={platform} className={s.bubble}>{t.hero.messages[platform]}</p>
           <p className={s.bring}><Icon name="arrow-down" size={16} aria-hidden />{p.bring}</p>
           <p className={s.phoneLabel}>{p.draft}</p>
           <p className={s.phoneItem}>{p.item}</p>
@@ -111,6 +113,16 @@ export function Hero() {
   const onProgress = useCallback((p: number) => setStage(heroStage(p)), []);
   useSceneProgress(ref, 'pinned', { onProgress });
   const view = heroView(stage);
+  const reduced = useReducedMotionPreference();
+  // The chat moves from one platform to the next until someone picks one, and
+  // waits while a pointer or focus is on the row.
+  const [picked, setPicked] = useState(false);
+  const [holding, setHolding] = useState(false);
+  useEffect(() => {
+    if (reduced || picked || holding || view.copy !== 'hero') return;
+    const timer = window.setInterval(() => setPlatform((p) => PLATFORMS[(PLATFORMS.indexOf(p) + 1) % PLATFORMS.length]), PLATFORM_DWELL_MS);
+    return () => window.clearInterval(timer);
+  }, [reduced, picked, holding, view.copy]);
 
   const block = (name: 'hero' | 'terms' | 'agree') => (view.copy === name ? {} : { 'aria-hidden': true, inert: true });
 
@@ -127,11 +139,11 @@ export function Hero() {
               <Link className={s.textLink} href={entry.market}>{DEALS_AVAILABLE ? h.explore : h.tryTestnet}<Icon name="arrow-right" size={16} directional aria-hidden /></Link>
             </div>
             <p className={s.platformsLabel} id="landing-platforms">{h.platformsLabel}</p>
-            <div className={s.platforms} role="tablist" aria-labelledby="landing-platforms">
+            <div className={s.platforms} role="tablist" aria-labelledby="landing-platforms" onPointerEnter={() => setHolding(true)} onPointerLeave={() => setHolding(false)} onFocus={() => setHolding(true)} onBlur={() => setHolding(false)}>
               {PLATFORMS.map((name) => (
-                <button key={name} type="button" role="tab" aria-selected={platform === name} aria-label={h.platformNames[name]} className={s.platform} onClick={() => setPlatform(name)}>
+                <button key={name} type="button" role="tab" aria-selected={platform === name} aria-label={h.platformNames[name]} className={s.platform} onClick={() => { setPlatform(name); setPicked(true); }}>
                   <PlatformIcon platform={name} />
-                  {platform === name && <span>{h.platformNames[name]}</span>}
+                  {platform === name && <span key={name}>{h.platformNames[name]}</span>}
                 </button>
               ))}
             </div>
