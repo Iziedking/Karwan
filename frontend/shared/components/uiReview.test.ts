@@ -421,10 +421,11 @@ test('every balance surface offers Withdraw, the route out that works for every 
     assert.match(src, /\/bridge\?direction=out"/, file);
     assert.match(src, /\.withdraw\b/, file);
   }
-  // Home's money moves are four round buttons, none green: the one green button there is a deal's move (owner, 3 Nov 2026).
+  // Home's money moves are four round buttons; Add money is the green one (owner, 3 and 4 Nov 2026).
   const home = source('../../features/home/components/AccountHome.tsx');
   assert.equal(home.match(/<QuickAction href=/g)?.length, 4);
   assert.match(home, /<QuickAction href="\/request"/);
+  assert.match(home, /<QuickAction href="\/bridge\?direction=in" icon="add" green>/);
   assert.doesNotMatch(home, /--lp-accent|--accent|variant: 'primary'/);
 });
 

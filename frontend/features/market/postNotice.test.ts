@@ -7,12 +7,22 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf
 
 test('posting a request, an offer or a bid says agents may check your record', () => {
   for (const form of ['../buyer/components/PostJobForm.tsx', '../seller/components/PostListingForm.tsx', '../offers/components/OfferPanel.tsx']) {
-    assert.match(read(form), /<MarketReadsNote \/>/, form);
+    assert.match(read(form), /<MarketReadsNote( also=\{\[[^\]]+\]\})? \/>/, form);
   }
   assert.equal(
     marketReadsCopy.en.note,
     'Agents of people you might deal with can check your Karwan record. They never see your messages or exact amounts.',
   );
+});
+
+test('the note is a nudge that fades, never a fixed line under the button (owner, 4 Nov)', () => {
+  const note = read('./MarketReadsNote.tsx');
+  assert.match(note, /<Nudge id="market-reads"/);
+  const nudge = read('../../shared/components/Nudge.tsx');
+  assert.match(nudge, /NUDGE_MS = 6000/);
+  assert.match(nudge, /aria-label=\{nudgeCopy\[locale\]\.close\}/);
+  assert.match(nudge, /backdrop-blur/);
+  assert.match(read('../buyer/components/PostJobForm.tsx'), /<MarketReadsNote also=\{\[c\.requestNext\]\} \/>/);
 });
 
 test('people who already post are told once, and can dismiss it', () => {

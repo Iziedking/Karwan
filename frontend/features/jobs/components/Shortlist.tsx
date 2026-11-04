@@ -273,7 +273,7 @@ function OfferDetails({ entry, place, canChoose, onClose, onChoose }: {
               </button>
             ) : null}
             {v.profileHref ? (
-              <Link href={v.profileHref} className={buttonClasses({ variant: 'secondary', size: 'lg' })}>
+              <Link href={v.profileHref} target="_blank" rel="noopener" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>
                 {copy.viewProfile}
               </Link>
             ) : null}

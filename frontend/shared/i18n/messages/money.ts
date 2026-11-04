@@ -28,6 +28,8 @@ export interface MoneyCopy {
     statusPending: string;
     statusFailed: string;
     gatewayBalance: string;
+    /// What the Transfer balance is, behind its info tip.
+    gatewayBalanceHint: string;
     showAmountsIn: string;
     localCurrencySoon: string;
     proofTitle: string;
@@ -73,6 +75,8 @@ export interface MoneyCopy {
     consequenceWithdrawAgent: string;
     doneWithdrawAgent: string;
     switchTo: string;
+    /// A top-up short of money offers the other agent's money instead.
+    useOther: string;
     consequenceSend: string;
     sendIrreversible: string;
     ctaTopUp: string;
@@ -194,6 +198,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       statusPending: "Pending confirmation",
       statusFailed: "Not completed",
       gatewayBalance: "Transfer balance",
+      gatewayBalanceHint: "One balance that holds your USDC from every network together, ready to move to Arc in one step.",
       showAmountsIn: 'Show amounts in',
       localCurrencySoon: 'Local currency soon',
       proofTitle: 'Proof on Arc',
@@ -234,7 +239,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: "Confirmation time depends on the network.",
       consequenceTopUpBuyer: '{amount} USDC moves to your buying agent. You can withdraw it at any time.',
       consequenceTopUpSeller: '{amount} USDC moves to your selling agent. You can withdraw it at any time.',
-      consequenceWithdraw: '{amount} USDC comes back to your balance.', consequenceWithdrawAgent: "{amount} USDC moves to your {name}.", doneWithdrawAgent: "{amount} USDC is in your {name}.", switchTo: "Switch to {name}",
+      consequenceWithdraw: '{amount} USDC comes back to your balance.', consequenceWithdrawAgent: "{amount} USDC moves to your {name}.", doneWithdrawAgent: "{amount} USDC is in your {name}.", switchTo: "Switch to {name}", useOther: "Use your {name} instead",
       consequenceSend: '{amount} USDC goes to the address above.',
       sendIrreversible: "A send can't be undone.",
       ctaTopUp: 'Top up {amount} USDC',
@@ -347,6 +352,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       statusPending: "بانتظار التأكيد",
       statusFailed: "لم تكتمل",
       gatewayBalance: "رصيد التحويل",
+      gatewayBalanceHint: "رصيد واحد يجمع USDC الخاص بك من كل الشبكات، جاهز للانتقال إلى Arc بخطوة واحدة.",
       showAmountsIn: 'عرض المبالغ بـ',
       localCurrencySoon: 'العملة المحلية قريبًا',
       proofTitle: 'الإثبات على Arc',
@@ -387,7 +393,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: "يعتمد وقت التأكيد على الشبكة.",
       consequenceTopUpBuyer: 'ينتقل {amount} USDC إلى وكيل الشراء. يمكنك سحبه في أي وقت.',
       consequenceTopUpSeller: 'ينتقل {amount} USDC إلى وكيل البيع. يمكنك سحبه في أي وقت.',
-      consequenceWithdraw: 'يعود {amount} USDC إلى رصيدك.', consequenceWithdrawAgent: "ينتقل {amount} USDC إلى {name}.", doneWithdrawAgent: "وصل {amount} USDC إلى {name}.", switchTo: "التبديل إلى {name}",
+      consequenceWithdraw: 'يعود {amount} USDC إلى رصيدك.', consequenceWithdrawAgent: "ينتقل {amount} USDC إلى {name}.", doneWithdrawAgent: "وصل {amount} USDC إلى {name}.", switchTo: "التبديل إلى {name}", useOther: "استخدم {name} بدلًا من ذلك",
       consequenceSend: 'يذهب {amount} USDC إلى العنوان أعلاه.',
       sendIrreversible: 'لا يمكن التراجع عن الإرسال.',
       ctaTopUp: 'تعبئة {amount} USDC',
@@ -500,6 +506,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       statusPending: "Confirmation en attente",
       statusFailed: "Non terminé",
       gatewayBalance: "Solde de transfert",
+      gatewayBalanceHint: "Un solde unique qui réunit vos USDC de tous les réseaux, prêt à passer sur Arc en une étape.",
       showAmountsIn: 'Afficher les montants en',
       localCurrencySoon: 'Monnaie locale bientôt',
       proofTitle: 'Preuve sur Arc',
@@ -540,7 +547,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: "Le délai de confirmation dépend du réseau.",
       consequenceTopUpBuyer: '{amount} USDC vont à votre agent d’achat. Vous pouvez les retirer à tout moment.',
       consequenceTopUpSeller: '{amount} USDC vont à votre agent de vente. Vous pouvez les retirer à tout moment.',
-      consequenceWithdraw: '{amount} USDC reviennent dans votre solde.', consequenceWithdrawAgent: "{amount} USDC passent vers {name}.", doneWithdrawAgent: "{amount} USDC sont dans {name}.", switchTo: "Passer à {name}",
+      consequenceWithdraw: '{amount} USDC reviennent dans votre solde.', consequenceWithdrawAgent: "{amount} USDC passent vers {name}.", doneWithdrawAgent: "{amount} USDC sont dans {name}.", switchTo: "Passer à {name}", useOther: "Utiliser {name} à la place",
       consequenceSend: '{amount} USDC partent vers l’adresse ci-dessus.',
       sendIrreversible: 'Un envoi ne peut pas être annulé.',
       ctaTopUp: 'Alimenter de {amount} USDC',
@@ -653,6 +660,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       statusPending: "पुष्टि का इंतज़ार",
       statusFailed: "पूरा नहीं हुआ",
       gatewayBalance: "ट्रांसफ़र बैलेंस",
+      gatewayBalanceHint: "एक ही बैलेंस जिसमें हर नेटवर्क का आपका USDC साथ रहता है, एक कदम में Arc पर भेजने के लिए तैयार।",
       showAmountsIn: 'राशि इसमें दिखाएँ',
       localCurrencySoon: 'स्थानीय मुद्रा जल्द',
       proofTitle: 'Arc पर प्रमाण',
@@ -693,7 +701,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: "पुष्टि का समय नेटवर्क पर निर्भर करता है।",
       consequenceTopUpBuyer: '{amount} USDC आपके खरीद एजेंट के पास जाएँगे। आप इन्हें कभी भी निकाल सकते हैं।',
       consequenceTopUpSeller: '{amount} USDC आपके बिक्री एजेंट के पास जाएँगे। आप इन्हें कभी भी निकाल सकते हैं।',
-      consequenceWithdraw: '{amount} USDC आपके बैलेंस में वापस आएँगे।', consequenceWithdrawAgent: "{amount} USDC आपके {name} में जाएँगे।", doneWithdrawAgent: "{amount} USDC आपके {name} में है।", switchTo: "{name} पर बदलें",
+      consequenceWithdraw: '{amount} USDC आपके बैलेंस में वापस आएँगे।', consequenceWithdrawAgent: "{amount} USDC आपके {name} में जाएँगे।", doneWithdrawAgent: "{amount} USDC आपके {name} में है।", switchTo: "{name} पर बदलें", useOther: "इसके बजाय {name} से लें",
       consequenceSend: '{amount} USDC ऊपर दिए पते पर जाएँगे।',
       sendIrreversible: 'भेजा गया पैसा वापस नहीं लिया जा सकता।',
       ctaTopUp: '{amount} USDC टॉप अप करें',
@@ -806,6 +814,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       statusPending: "Inasubiri uthibitisho",
       statusFailed: "Haijakamilika",
       gatewayBalance: "Salio la uhamisho",
+      gatewayBalanceHint: "Salio moja linaloshikilia USDC yako kutoka kila mtandao pamoja, tayari kuhamia Arc kwa hatua moja.",
       showAmountsIn: 'Onyesha kiasi kwa',
       localCurrencySoon: 'Sarafu ya ndani hivi karibuni',
       proofTitle: 'Uthibitisho kwenye Arc',
@@ -846,7 +855,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: "Muda wa uthibitisho unategemea mtandao.",
       consequenceTopUpBuyer: '{amount} USDC zinaenda kwa wakala wako wa kununua. Unaweza kuzitoa wakati wowote.',
       consequenceTopUpSeller: '{amount} USDC zinaenda kwa wakala wako wa kuuza. Unaweza kuzitoa wakati wowote.',
-      consequenceWithdraw: '{amount} USDC zinarudi kwenye salio lako.', consequenceWithdrawAgent: "USDC {amount} zinahamia kwenye {name}.", doneWithdrawAgent: "USDC {amount} ziko kwenye {name}.", switchTo: "Badilisha kwenda {name}",
+      consequenceWithdraw: '{amount} USDC zinarudi kwenye salio lako.', consequenceWithdrawAgent: "USDC {amount} zinahamia kwenye {name}.", doneWithdrawAgent: "USDC {amount} ziko kwenye {name}.", switchTo: "Badilisha kwenda {name}", useOther: "Tumia {name} badala yake",
       consequenceSend: '{amount} USDC zinaenda kwenye anwani iliyo juu.',
       sendIrreversible: 'Kutuma hakuwezi kutenduliwa.',
       ctaTopUp: 'Jaza {amount} USDC',

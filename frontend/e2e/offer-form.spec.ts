@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { en } from '../shared/i18n/messages/en';
 import { TERMS_COPY } from '../features/deals/terms/termsCopy';
 import { API, ME, funded, serveMoney } from './moneyFixtures';
+import { requestFlowCopy } from '../shared/i18n/messages/requestFlow';
 
 const rs = en.dealCreation.requestSteps;
 const f = en.postListing.flow;
@@ -130,4 +131,14 @@ test('a deal started from an offer starts from its terms and ready-in time', asy
   await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` })).toHaveValue('30');
   await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` })).toHaveValue('50');
   await expect(page.getByRole('button', { name: tb.days.replace('{n}', '7'), exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a deal link keeps its person whichever kind of deal is picked (owner notes, 4 Nov)', async ({ page }) => {
+  const rf = requestFlowCopy.en;
+  await signedIn(page, 'buyer');
+  await page.goto('/buyer?mode=direct&seller=%40kingizie');
+  await expect(page.locator('[data-kind-with]')).toHaveText(rf.kindWith.replace('{who}', '@kingizie'));
+  await expect(page.getByRole('button', { name: new RegExp(rf.kinds.contest) })).toHaveCount(0);
+  await page.getByRole('button', { name: new RegExp(`^${rf.kinds.one}`) }).click();
+  await expect(page.getByPlaceholder(en.directDeal.counterparty.oneBoxPlaceholder)).toHaveValue('@kingizie');
 });

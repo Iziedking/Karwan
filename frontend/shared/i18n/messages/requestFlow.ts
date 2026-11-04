@@ -27,6 +27,8 @@ export interface RequestFlowCopy {
   nothingPaid: string;
   agentLine: string;
   kindTitle: string;
+  /// Under the title when a deal link named the person.
+  kindWith: string;
   forWork: string;
   forGoods: string;
   kinds: {
@@ -77,6 +79,7 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     nothingPaid: 'Nothing is paid until you accept an offer.',
     agentLine: 'Your agent looks for sellers and brings you offers.',
     kindTitle: 'How do you want to pay?',
+    kindWith: 'With {who}',
     forWork: 'For work',
     forGoods: 'For goods',
     kinds: { one: 'One payment', stages: 'In stages', hourly: 'By the hour or week', monthly: 'Monthly', contest: 'A contest', shipped: 'Shipped', in_person: 'Handed over in person' },
@@ -117,6 +120,7 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     nothingPaid: 'Rien n’est payé tant que vous n’acceptez pas une offre.',
     agentLine: 'Votre agent cherche des vendeurs et vous apporte des offres.',
     kindTitle: 'Comment voulez-vous payer ?',
+    kindWith: 'Avec {who}',
     forWork: 'Pour un travail',
     forGoods: 'Pour des biens',
     kinds: { one: 'Un seul paiement', stages: 'Par étapes', hourly: 'À l’heure ou à la semaine', monthly: 'Au mois', contest: 'Un concours', shipped: 'Expédié', in_person: 'Remis en main propre' },
@@ -157,6 +161,7 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     nothingPaid: 'لا يُدفع شيء حتى تقبل عرضًا.',
     agentLine: 'يبحث وكيلك عن بائعين ويأتيك بالعروض.',
     kindTitle: 'كيف تريد أن تدفع؟',
+    kindWith: 'مع {who}',
     forWork: 'لعمل',
     forGoods: 'لبضائع',
     kinds: { one: 'دفعة واحدة', stages: 'على مراحل', hourly: 'بالساعة أو بالأسبوع', monthly: 'شهريًا', contest: 'مسابقة', shipped: 'شحن', in_person: 'تسليم يدًا بيد' },
@@ -197,6 +202,7 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     nothingPaid: 'जब तक आप कोई ऑफ़र स्वीकार नहीं करते, कुछ भी भुगतान नहीं होता।',
     agentLine: 'आपका एजेंट विक्रेता ढूँढता है और आपके लिए ऑफ़र लाता है।',
     kindTitle: 'आप कैसे भुगतान करना चाहते हैं?',
+    kindWith: '{who} के साथ',
     forWork: 'काम के लिए',
     forGoods: 'सामान के लिए',
     kinds: { one: 'एक बार में भुगतान', stages: 'चरणों में', hourly: 'घंटे या हफ़्ते के हिसाब से', monthly: 'मासिक', contest: 'प्रतियोगिता', shipped: 'शिप किया गया', in_person: 'हाथ में सौंपा गया' },
@@ -237,6 +243,7 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     nothingPaid: 'Hakuna kinacholipwa hadi ukubali ofa.',
     agentLine: 'Wakala wako anatafuta wauzaji na kukuletea ofa.',
     kindTitle: 'Unataka kulipa vipi?',
+    kindWith: 'Na {who}',
     forWork: 'Kwa kazi',
     forGoods: 'Kwa bidhaa',
     kinds: { one: 'Malipo mara moja', stages: 'Kwa hatua', hourly: 'Kwa saa au wiki', monthly: 'Kila mwezi', contest: 'Shindano', shipped: 'Imesafirishwa', in_person: 'Imekabidhiwa ana kwa ana' },

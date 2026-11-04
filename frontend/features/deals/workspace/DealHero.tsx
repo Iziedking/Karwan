@@ -484,7 +484,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           ) : null}
           {view.recordNudge ? <RecordNudge /> : null}
           {settledParty && !viewerIsBuyer && profile?.handle ? (
-            <Link href={`/r/${profile.handle}`} className={SECONDARY_CLASS}>
+            <Link href={`/r/${profile.handle}`} target="_blank" rel="noopener" className={SECONDARY_CLASS}>
               {dp.yourRecord}
             </Link>
           ) : null}

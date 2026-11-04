@@ -76,6 +76,8 @@ test('the button says what is missing, in the order a person fixes it', () => {
 test('the shortfall is exact', () => {
   assert.equal(shortfall(2000, 1240.5), 759.5);
   assert.equal(shortfall(10, 20), 0);
+  // Rounded up to the cent (owner notes, 4 Nov 2026): never 3.316867.
+  assert.equal(shortfall(24.3, 20.983133), 3.32);
 });
 
 test('an address is shown in groups of four to check against', () => {

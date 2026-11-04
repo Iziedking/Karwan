@@ -1,4 +1,5 @@
 ﻿'use client';
+import { clearRequestDraft, loadRequestDraft, saveRequestDraft } from '../requestDraft';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -215,6 +216,25 @@ export function PostJobForm() {
   // One screen (view 48): one payment unless the buyer opens Pay in parts, or a link brought a split.
   const [inParts, setInParts] = useState(!!parsedInitialSplit?.pcts && parsedInitialSplit.pcts.length > 1);
   const [tolerance, setTolerance] = useState<number | ''>(initialTolerance ?? '');
+  // A request half written comes back after leaving to add money or a top-up
+  // reload (owner notes, 4 Nov 2026). A link that prefills the form wins.
+  const draftRestored = useRef(false);
+  useEffect(() => {
+    if (draftRestored.current) return;
+    draftRestored.current = true;
+    if (initialBrief || initialBudget != null) return;
+    const draft = loadRequestDraft();
+    if (!draft) return;
+    setBrief(draft.brief);
+    setBudget(draft.budget);
+    setDeadlineValue(draft.deadlineValue);
+    setDeadlineUnit(draft.deadlineUnit);
+    setTolerance(draft.tolerance);
+  }, [initialBrief, initialBudget]);
+  useEffect(() => {
+    if (!draftRestored.current) return;
+    saveRequestDraft({ brief, budget, deadlineValue, deadlineUnit, tolerance });
+  }, [brief, budget, deadlineValue, deadlineUnit, tolerance]);
   // The most the agent may fund, so the balance beside the form shows a shortfall.
   useReportDealAmount(typeof budget === 'number' && budget > 0 ? authorisedPrice(budget, tolerance) : null);
   // Trusted Match: when on, the agent loop weights seller reputation + stake
@@ -332,6 +352,7 @@ export function PostJobForm() {
       });
       sfx.send();
       recordAction('post-job');
+      clearRequestDraft();
       router.push(`/jobs/${r.jobId}`);
     } catch (err) {
       if (err instanceof ApiError && err.message === 'insufficient buyer balance') {
@@ -811,7 +832,7 @@ export function PostJobForm() {
         >
           {buttonLabel}
         </Button>
-        <MarketReadsNote />
+        <MarketReadsNote also={[c.requestNext]} />
         {submitting && (
           <p className="text-[14px] text-[var(--ink-muted)] leading-snug max-w-[36ch]">
             {t.submit.pendingHelper}
@@ -820,11 +841,9 @@ export function PostJobForm() {
         {!submitting && !reviewing && (
           disabled && termsIssues(dealTerms).length > 0 ? (
             <TermsBlockerNote terms={dealTerms} />
-          ) : (
-            <p className="text-[14px] leading-6 text-[var(--ink-secondary)] font-medium">
-              {disabled ? c.requestRequired : c.requestNext}
-            </p>
-          )
+          ) : disabled ? (
+            <p className="text-[14px] leading-6 text-[var(--ink-secondary)] font-medium">{c.requestRequired}</p>
+          ) : null
         )}
       </div>
 

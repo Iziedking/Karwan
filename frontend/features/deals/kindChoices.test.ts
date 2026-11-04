@@ -20,3 +20,10 @@ test('a deal opened from a listing or a link starts on the right kind', () => {
   assert.equal(preselectedKind({ listingKind: 'remote' }), 'one');
   assert.equal(preselectedKind({}), null);
 });
+
+test('a deal link that names its person has no contest, and work by the hour carries them (owner notes, 4 Nov)', async () => {
+  const { kindChoices, workKindHref } = await import('./kindChoices');
+  assert.deepEqual(kindChoices({ hourlyWork: true, withPerson: true }).work, ['one', 'stages', 'hourly', 'monthly']);
+  assert.equal(workKindHref('hourly', '@kingizie'), '/work/new?kind=hourly&to=kingizie');
+  assert.equal(workKindHref('monthly', ''), '/work/new?kind=monthly');
+});

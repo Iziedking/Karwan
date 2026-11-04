@@ -6,11 +6,20 @@ export type KindChoice = 'one' | 'stages' | 'hourly' | 'monthly' | 'contest' | '
 
 const ALL: readonly KindChoice[] = ['one', 'stages', 'hourly', 'monthly', 'contest', 'shipped', 'in_person'];
 
-export function kindChoices(features: { hourlyWork: boolean }): { work: KindChoice[]; goods: KindChoice[] } {
+export function kindChoices(features: { hourlyWork: boolean; withPerson?: boolean }): { work: KindChoice[]; goods: KindChoice[] } {
+  // A contest is open to anyone, so a deal that already names its person has none.
+  const work: KindChoice[] = features.hourlyWork ? ['one', 'stages', 'hourly', 'monthly', 'contest'] : ['one', 'stages', 'contest'];
   return {
-    work: features.hourlyWork ? ['one', 'stages', 'hourly', 'monthly', 'contest'] : ['one', 'stages', 'contest'],
+    work: features.withPerson ? work.filter((kind) => kind !== 'contest') : work,
     goods: ['shipped', 'in_person'],
   };
+}
+
+/// Where a work kind that has its own page opens, carrying the person a deal
+/// link named so the form there starts with them.
+export function workKindHref(kind: 'hourly' | 'monthly', person: string): string {
+  const who = person.trim().replace(/^@/, '');
+  return `/work/new?kind=${kind}${who ? `&to=${encodeURIComponent(who)}` : ''}`;
 }
 
 /// The kind a deal starts on: the one a link asks for, else what the listing

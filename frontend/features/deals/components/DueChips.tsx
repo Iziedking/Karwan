@@ -115,56 +115,59 @@ export function DueChips({
             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
           />
         </label>
-      </div>
-      {exactTime ? (
-        <div className="flex items-stretch gap-2">
+        {/* Hours or minutes for a quick job, in the row with the other lengths (owner notes, 4 Nov 2026). */}
+        <div
+          data-due-time
+          className={cn(
+            'inline-flex min-h-11 items-stretch overflow-hidden rounded-[14px] border transition-colors',
+            exactTime ? 'border-[var(--ink)]' : 'border-[var(--line)] hover:border-[var(--line-strong)]',
+          )}
+        >
           <input
             type="number"
             inputMode="numeric"
             min={1}
-            max={unitMax}
+            max={unit === 'd' ? UNIT_MAX.hr : unitMax}
             step={1}
-            value={value}
+            value={exactTime ? value : ''}
             disabled={disabled}
-            onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value), unit)}
+            onChange={(e) => {
+              setPickedDate('');
+              setExactTime(e.target.value !== '');
+              onChange(e.target.value === '' ? '' : Number(e.target.value), unit === 'd' ? 'hr' : unit);
+            }}
             placeholder="0"
             aria-label={rs.exactTime}
-            className="form-input form-input-num min-w-0 flex-1"
+            className="no-spinner w-14 min-w-0 bg-[var(--surface)] px-3 text-[15px] font-medium tabular-nums text-[var(--ink)] placeholder:text-[var(--ink-muted)] focus:outline-none"
           />
-          <div role="radiogroup" aria-label={t.postJob.deadlineUnitAria} className="grid shrink-0 grid-cols-3 gap-0.5 rounded-[12px] border border-[var(--line)] bg-[var(--raised)] p-0.5">
-            {(['min', 'hr', 'd'] as const).map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="radio"
-                aria-checked={unit === key}
-                disabled={disabled}
-                // A sensible number per unit, so switching never lands on 90 minutes meant as 90 days.
-                onClick={() => onChange({ min: 15, hr: 2, d: 5 }[key], key)}
-                className={cn(
-                  'min-h-11 min-w-11 rounded-[10px] px-2.5 text-[14px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-                  unit === key ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]' : 'text-[var(--ink-secondary)]',
-                )}
-              >
-                {key === 'min' ? units.min : key === 'hr' ? units.hr : units.day}
-              </button>
-            ))}
+          <div role="radiogroup" aria-label={t.postJob.deadlineUnitAria} className="flex bg-[var(--surface)] p-0.5">
+            {(['hr', 'min'] as const).map((key) => {
+              const on = exactTime && unit === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={disabled}
+                  // A sensible number per unit, so switching never lands on 90 minutes meant as 90 hours.
+                  onClick={() => {
+                    setPickedDate('');
+                    setExactTime(true);
+                    onChange(exactTime && value !== '' && unit === key ? value : { min: 15, hr: 2 }[key], key);
+                  }}
+                  className={cn(
+                    'min-h-10 min-w-10 rounded-[11px] px-2 text-[14px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+                    on ? 'bg-[var(--ink)] text-[var(--raised)]' : 'text-[var(--ink-secondary)]',
+                  )}
+                >
+                  {key === 'min' ? units.min : units.hr}
+                </button>
+              );
+            })}
           </div>
         </div>
-      ) : (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => {
-            setPickedDate('');
-            setExactTime(true);
-            if (value === '') onChange(2, 'hr');
-          }}
-          className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)]"
-        >
-          {rs.exactTime}
-        </button>
-      )}
+      </div>
     </div>
   );
 }

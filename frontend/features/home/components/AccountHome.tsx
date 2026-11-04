@@ -79,7 +79,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             </p>
           )}
           <div className="mt-6 grid max-w-[420px] grid-cols-4 gap-2">
-            <QuickAction href="/bridge?direction=in" icon="add">{start.addMoney}</QuickAction>
+            <QuickAction href="/bridge?direction=in" icon="add" green>{start.addMoney}</QuickAction>
             <QuickAction href="/send" icon="send">{home.send}</QuickAction>
             <QuickAction href="/request" icon="request">{translations.payLink.create.short}</QuickAction>
             <QuickAction href="/bridge?direction=out" icon="withdraw">{home.withdraw}</QuickAction>
@@ -110,15 +110,15 @@ const QUICK_ICONS = {
 } as const;
 
 /// A round button with its word under it, as on a banking app (owner notes,
-/// 3 Nov 2026). None is green: green is only a deal's move.
-function QuickAction({ href, icon, children }: { href: string; icon: keyof typeof QUICK_ICONS; children: string }) {
+/// 3 Nov 2026). Add money is the green one (owner notes, 4 Nov 2026).
+function QuickAction({ href, icon, green = false, children }: { href: string; icon: keyof typeof QUICK_ICONS; green?: boolean; children: string }) {
   return (
     <Link
       href={href}
       data-money-move
       className="group flex min-h-11 flex-col items-center gap-2 rounded-[16px] py-1 text-center text-[13px] font-medium leading-tight text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
     >
-      <span aria-hidden className="grid size-14 place-items-center rounded-full border border-[var(--line-strong)] bg-[var(--raised)] transition-transform duration-[var(--dur-press)] group-active:scale-95 motion-reduce:transition-none">
+      <span aria-hidden className={`grid size-14 place-items-center rounded-full border transition-transform ${green ? 'border-[var(--action)] bg-[var(--action)] text-[var(--on-action)]' : 'border-[var(--line-strong)] bg-[var(--raised)]'} duration-[var(--dur-press)] group-active:scale-95 motion-reduce:transition-none`}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{QUICK_ICONS[icon]}</svg>
       </span>
       <span className="max-w-full">{children}</span>

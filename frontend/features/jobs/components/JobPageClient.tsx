@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { api, ApiError, type BuyerJob } from '@/core/api';
 import { settlementExplorer } from '@/core/arcNetwork';
@@ -7,15 +7,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { PAGE_REFRESH_EVENT } from '@/shared/utils/pageRefresh';
 import { RequestPage } from '@/features/search/components/RequestPage';
-import {
-  FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  CTAPill,
-} from '@/shared/components/Bands';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { OfferPanel } from '@/features/offers/components/OfferPanel';
 import { BuyerOffers } from '@/features/offers/components/BuyerOffers';
@@ -137,27 +130,22 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   }, [jobId, auth.address, auth.isLoading, reloadKey]);
 
   if (state.kind === 'loading') {
-    // Match the loading.tsx feel: render the route shell so the transition
-    // doesn't look broken. The shared loading.tsx covers the inter-route
-    // hop; this state covers data-fetch latency once we've landed. The
-    // min-h reserves roughly the height of the resolved request page
-    // so the swap into the real page doesn't shift the bands below, the
-    // dominant CLS source on /jobs/[id] before this pass.
+    // The shape of the request page while it loads, in the new look: no words
+    // to read, the min-h keeps the page from jumping when it arrives.
     return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="max-w-[48ch] fade-up min-h-[44vh]">
-            <SectionTag tone="dark">{jp.loading.tag}</SectionTag>
-            <HeroHeadline size="md">
-              {jp.loading.headline}
-              <Punc>.</Punc>
-            </HeroHeadline>
-            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {jp.loading.body}
-            </p>
-          </div>
-        </Band>
-      </FullBleed>
+      <div className="mx-auto min-h-[44vh] max-w-[640px] px-5 py-8" aria-busy="true">
+        <span className="sr-only" role="status">{jp.loading.headline}</span>
+        <div className="h-7 w-2/3 rounded-[8px] bg-[var(--ash)] motion-safe:animate-pulse" />
+        <div className="mt-3 h-4 w-1/3 rounded-[6px] bg-[var(--ash)] motion-safe:animate-pulse" />
+        <div className={`${CARD_CLASS} mt-6 space-y-4 p-5`}>
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="flex items-center justify-between gap-4">
+              <div className="h-4 w-1/3 rounded-[6px] bg-[var(--ash)] motion-safe:animate-pulse" />
+              <div className="h-4 w-1/5 rounded-[6px] bg-[var(--ash)] motion-safe:animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -168,63 +156,23 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     // A seller who is not a party yet sees the open request and can offer on
     // it; a closed or unknown request keeps the status-only view.
     const privateView = (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="max-w-[48ch] fade-up">
-            <SectionTag tone="dark">{jp.private.tags[variant]}</SectionTag>
-            <HeroHeadline size="md">
-              {jp.private.headlines[variant]}
-              <Punc>.</Punc>
-            </HeroHeadline>
-            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {jp.private.bodies[variant]}
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/market">{jp.private.browseCta}</CTAPill>
-              <Link
-                href="/buyer"
-                className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
-              >
-                {jp.private.postCta}
-              </Link>
-            </div>
-          </div>
-        </Band>
-      </FullBleed>
+      <StatePage title={jp.private.headlines[variant]} body={jp.private.bodies[variant]}>
+        <Link href="/market" className={buttonClasses({ size: 'lg' })}>{jp.private.browseCta}</Link>
+        <Link href="/buyer" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{jp.private.postCta}</Link>
+      </StatePage>
     );
     return <OfferPanel jobId={jobId} fallback={privateView} />;
   }
 
   if (state.kind === 'error') {
     return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="max-w-[48ch] fade-up">
-            <SectionTag tone="dark">
-              {state.isNotFound ? jp.error.notFoundTag : jp.error.errorTag}
-            </SectionTag>
-            <HeroHeadline size="md">
-              {state.isNotFound ? jp.error.notFoundHeadline : jp.error.errorHeadline}
-              <Punc>.</Punc>
-            </HeroHeadline>
-            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {state.isNotFound ? jp.error.notFoundBody : jp.error.errorBody}
-            </p>
-            <p className="mt-3 mono text-[13px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-workspace-faint)] break-all">
-              {jobId}
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href={YOUR_TRADES_HREF}>{jp.error.backCta}</CTAPill>
-              <Link
-                href="/activity"
-                className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
-              >
-                {jp.error.activityCta}
-              </Link>
-            </div>
-          </div>
-        </Band>
-      </FullBleed>
+      <StatePage
+        title={state.isNotFound ? jp.error.notFoundHeadline : jp.error.errorHeadline}
+        body={state.isNotFound ? jp.error.notFoundBody : jp.error.errorBody}
+      >
+        <Link href={YOUR_TRADES_HREF} className={buttonClasses({ size: 'lg' })}>{jp.error.backCta}</Link>
+        <Link href="/activity" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{jp.error.activityCta}</Link>
+      </StatePage>
     );
   }
 
@@ -237,5 +185,16 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     </>
   ) : (
     page
+  );
+}
+
+/// A request that cannot be shown, or is not yours to see, in the new look.
+function StatePage({ title, body, children }: { title: string; body: string; children: ReactNode }) {
+  return (
+    <div className="mx-auto max-w-[640px] px-5 py-10">
+      <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{title}</h1>
+      <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{body}</p>
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row">{children}</div>
+    </div>
   );
 }

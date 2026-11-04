@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/shared/components/Hint';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { m } from 'motion/react';
@@ -135,7 +136,7 @@ function MoneyHomeInner() {
                     ) : null}
                     {balances.pool > 0 ? (
                       <div data-gateway-balance className="flex min-h-[52px] items-center justify-between gap-3 py-3 text-[15px] tabular-nums">
-                        <dt className="text-[var(--ink-secondary)]">{t.home.gatewayBalance}</dt>
+                        <dt className="flex items-center gap-1.5 text-[var(--ink-secondary)]">{t.home.gatewayBalance}<Hint>{t.home.gatewayBalanceHint}</Hint></dt>
                         <dd className="font-medium text-[var(--ink)]">{formatBalance(balances.pool, locale)} USDC</dd>
                       </div>
                     ) : null}

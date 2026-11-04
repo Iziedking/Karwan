@@ -265,6 +265,13 @@ test('the guide reads a conversation as the new look shows it (view 48, batch 9g
   assert.match(all, /round Send button is the one green control/);
 });
 
+test('the guide knows the owner notes of 4 Nov: deal links keep the person, top-ups use the other agent', () => {
+  const all = PLATFORM_GUIDE.map((e) => [e.summary, ...e.steps].join(' ')).join(' ');
+  assert.match(all, /every kind keeps them/);
+  assert.match(all, /offers to use the other agent's money instead/);
+  assert.match(all, /The Transfer balance is one balance that holds USDC from every network together/);
+});
+
 test('the guide says bank and card withdrawals are coming soon, never open (owner, 4 Nov)', () => {
   const all = PLATFORM_GUIDE.map((e) => [e.summary, ...e.steps].join(' ')).join(' ');
   assert.match(all, /A bank account and A card are listed under it as Coming soon/);

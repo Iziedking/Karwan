@@ -85,7 +85,9 @@ export function sheetBlocker(facts: {
 }
 
 export function shortfall(amount: number, available: number): number {
-  return fromMicros(Math.max(0, toMicros(amount) - toMicros(available)));
+  // Rounded up to the cent, so "You need 3.32 USDC more" always covers it.
+  const micros = Math.max(0, toMicros(amount) - toMicros(available));
+  return Math.ceil(fromMicros(micros) * 100) / 100;
 }
 
 /// An address in four-character groups, so a person can check it against the

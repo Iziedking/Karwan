@@ -22,7 +22,7 @@ export function SellerBlock({ offer }: { offer: Pick<RankedWorkOffer, 'seller' |
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
           <span dir="auto" className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{offer.name}</span>
-          {offer.tag ? <Link href={`/r/${offer.tag}`} className="text-[14px] font-medium text-[var(--ink-secondary)] underline-offset-2 hover:underline">@{offer.tag}</Link> : null}
+          {offer.tag ? <Link href={`/r/${offer.tag}`} target="_blank" rel="noopener" className="text-[14px] font-medium text-[var(--ink-secondary)] underline-offset-2 hover:underline">@{offer.tag}</Link> : null}
         </p>
         <p className={`mt-0.5 text-[14px] font-semibold ${offer.verified ? 'text-[var(--color-positive)]' : 'text-[var(--lp-dark)]'}`}>
           {`${offer.verified ? copy.verified : copy.notVerified} · ${tier}`}

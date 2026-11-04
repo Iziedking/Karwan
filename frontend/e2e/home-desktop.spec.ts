@@ -40,7 +40,7 @@ test('asking on Home opens assistant mode with the question sent, not Help', asy
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
-/// Owner notes, 3 Nov 2026: the round money buttons are back, none green, and
+/// Owner notes, 3 Nov 2026: the round money buttons are back, Add money the green one (4 Nov), and
 /// a record that is not on yet is the one nudge under them.
 for (const locale of ['en', 'fr', 'sw'] as const) {
   test(`Home has four round money buttons that fit, and nudges a record that is off (${locale})`, async ({ page, context }, testInfo) => {
@@ -51,10 +51,12 @@ for (const locale of ['en', 'fr', 'sw'] as const) {
     const moves = page.locator('[data-money-move]');
     await expect(moves).toHaveCount(4);
     expect(await moves.evaluateAll((els) => els.map((el) => el.getAttribute('href')))).toEqual(['/bridge?direction=in', '/send', '/request', '/bridge?direction=out']);
-    for (const move of await moves.all()) {
+    // Add money is the one green circle (owner notes, 4 Nov 2026).
+    for (const [i, move] of (await moves.all()).entries()) {
       expect(await move.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), await move.innerText()).toBe(true);
-      const circle = move.locator('span').first();
-      expect(await circle.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe('rgb(175, 201, 91)');
+      const fill = await move.locator('span').first().evaluate((el) => getComputedStyle(el).backgroundColor);
+      if (i === 0) expect(fill).toBe('rgb(175, 201, 91)');
+      else expect(fill).not.toBe('rgb(175, 201, 91)');
     }
     await expect(page.locator('[data-home-nudge]')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);

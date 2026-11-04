@@ -88,11 +88,16 @@ export function WorkspaceBottomNav() {
               item.active ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)] hover:text-[var(--ink-secondary)]',
             )}
           >
-            <span aria-hidden className="relative">
+            {/* The tab you are on sits on a Karwan green pill, so the place reads at a glance (owner notes, 4 Nov 2026). */}
+            <span
+              aria-hidden
+              data-nav-pill={item.active ? 'on' : undefined}
+              className={cn('relative rounded-full px-3.5 py-0.5 transition-colors duration-[var(--dur-fade)]', item.active && 'bg-[var(--action)] text-[var(--on-action)]')}
+            >
               <NavIcon name={item.icon} />
               {item.signal ? <ActionBeacon className="absolute -top-1 -end-1.5" /> : null}
             </span>
-            <span className="max-w-full truncate text-[13px] font-medium leading-[1.3]">{item.label}</span>
+            <span className={cn('max-w-full truncate text-[13px] leading-[1.3]', item.active ? 'font-semibold' : 'font-medium')}>{item.label}</span>
           </Link>
         ))}
       </div>

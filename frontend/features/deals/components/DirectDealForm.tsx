@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLiveFeatures } from '@/shared/hooks/useLiveFeatures';
 import { KindPicker } from './KindPicker';
-import { kindChoices, preselectedKind, type KindChoice } from '../kindChoices';
+import { kindChoices, preselectedKind, type KindChoice, workKindHref } from '../kindChoices';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { api, ApiError, type Partner, type TrustView } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
@@ -482,9 +482,10 @@ export function DirectDealForm() {
   if (!kind) {
     return (
       <KindPicker
-        choices={kindChoices({ hourlyWork })}
+        choices={kindChoices({ hourlyWork, withPerson: !!initialSeller })}
+        withWho={initialSeller ? `@${initialSeller.replace(/^@/, '')}` : undefined}
         onPick={(next) => {
-          if (next === 'hourly' || next === 'monthly') return router.push(`/work/new?kind=${next}`);
+          if (next === 'hourly' || next === 'monthly') return router.push(workKindHref(next, counterparty));
           if (next === 'contest') return router.push('/contests/new');
           applyKind(next);
           setKind(next);

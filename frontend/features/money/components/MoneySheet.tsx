@@ -83,6 +83,8 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const [pressed, setPressed] = useState<number | null>(null);
   // Withdraw only: false sends to the account, true to the other agent.
   const [toOtherAgent, setToOtherAgent] = useState(false);
+  // Top up only: true takes the money from the other agent instead of the balance.
+  const [fromOtherAgent, setFromOtherAgent] = useState(false);
 
   // Opening starts clean: the move it was opened for, the prefilled amount and
   // no result left over from last time.
@@ -92,6 +94,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
     setRecipient(prefillRecipient ?? '');
     setPressed(null);
     setToOtherAgent(false);
+    setFromOtherAgent(false);
     announced.current = null;
     inFlight.current = false;
     reset();
@@ -120,6 +123,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const otherAgentAddress = (agent === 'buyer' ? balances.agents?.seller : balances.agents?.buyer) as `0x${string}` | undefined;
   const otherAgentBalance = agent === 'buyer' ? balances.seller : balances.buyer;
   const withdrawToAgent = move === 'withdraw' && toOtherAgent && !!otherAgentAddress;
+  const topUpFromAgent = move === 'topUp' && fromOtherAgent && !!otherAgentAddress;
   const amount = parseAmount(typed);
   const route =
     move === 'topUp' && amount !== null && balances.balance !== null
@@ -127,7 +131,9 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       : null;
   const fromPool = move === 'topUp' && balances.balance !== null && balances.pool > balances.balance;
   const available =
-    move === 'withdraw'
+    topUpFromAgent
+      ? otherAgentBalance
+      : move === 'withdraw'
       ? agentBalance
       : balances.balance === null
         ? null
@@ -178,8 +184,8 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       : move === 'withdraw'
         ? withdrawToAgent ? t.sheet.doneWithdrawAgent : t.sheet.doneWithdraw
         : agent === 'buyer' ? t.sheet.doneTopUpBuyer : t.sheet.doneTopUpSeller;
-  const fromName = move === 'withdraw' ? agentName : route?.kind === 'pool' ? t.home.gatewayBalance : t.sheet.yourBalance;
-  const fromAmount = move === 'withdraw' ? agentBalance : route?.kind === 'pool' ? balances.pool : balances.balance;
+  const fromName = topUpFromAgent ? otherAgentName : move === 'withdraw' ? agentName : route?.kind === 'pool' ? t.home.gatewayBalance : t.sheet.yourBalance;
+  const fromAmount = topUpFromAgent ? otherAgentBalance : move === 'withdraw' ? agentBalance : route?.kind === 'pool' ? balances.pool : balances.balance;
   const toName = move === 'withdraw' ? (withdrawToAgent ? otherAgentName : t.sheet.yourBalance) : agentName;
   const toAmount = move === 'withdraw' ? (withdrawToAgent ? otherAgentBalance : balances.balance) : agentBalance;
   const progress = sheetProgress(state);
@@ -199,6 +205,19 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
     inFlight.current = true;
     moneySounds.submit();
     setPressed(amount);
+    // A top-up from the other agent is that agent withdrawing straight to this one.
+    if (topUpFromAgent) {
+      void start({
+        move: 'withdraw',
+        agent: agent === 'buyer' ? 'seller' : 'buyer',
+        agentAddress: otherAgentAddress,
+        amount,
+        source: 'balance',
+        toAddress: agentAddress,
+        walletBalance: balances.balance,
+      });
+      return;
+    }
     void start({
       move,
       agent,
@@ -367,10 +386,20 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             {blocker === 'short' && amount !== null && max !== null ? (
               <p className="mt-3 flex flex-wrap items-center gap-x-3 text-[14px] text-[var(--ink)]">
                 <span>{fill(t.sheet.short, { amount: formatAmount(shortfall(amount, max), locale) })}</span>
+                {move === 'topUp' && !topUpFromAgent && otherAgentAddress && (otherAgentBalance ?? 0) > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setFromOtherAgent(true)}
+                    className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4"
+                  >
+                    {fill(t.sheet.useOther, { name: otherAgentName.toLowerCase() })}
+                  </button>
+                ) : null}
                 {move !== 'withdraw' ? (
-                  <Link href="/bridge?intent=add" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+                  // A new tab, so whatever this sheet was opened from (a request half written) stays as it is.
+                  <a href="/bridge?intent=add" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
                     {t.sheet.addUsdc}
-                  </Link>
+                  </a>
                 ) : null}
               </p>
             ) : null}

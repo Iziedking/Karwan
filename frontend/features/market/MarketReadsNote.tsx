@@ -3,14 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { marketReadsCopy } from '@/shared/i18n/messages/marketReads';
+import { Nudge } from '@/shared/components/Nudge';
 
 const SEEN_KEY = 'karwan:market-reads-notice:v1';
 
-/// The one line under a post or bid button: posting lets the agents of people
-/// you might deal with check your record.
-export function MarketReadsNote() {
+/// Posting or bidding lets the agents of people you might deal with check your
+/// record. Said once, as a nudge that fades (owner notes, 4 Nov 2026), with any
+/// other short line the screen has to say beside it.
+export function MarketReadsNote({ also = [] }: { also?: string[] }) {
   const { locale } = useLocale();
-  return <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{marketReadsCopy[locale].note}</p>;
+  return <Nudge id="market-reads" lines={[marketReadsCopy[locale].note, ...also]} />;
 }
 
 /// Tells someone who already posts, once, that agents may now check their record.
