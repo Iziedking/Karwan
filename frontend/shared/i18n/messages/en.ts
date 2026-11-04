@@ -14,7 +14,6 @@ import { plainMoneyCopy, type PlainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
 import { networkCopy, type NetworkCopy } from './network';
 import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
-import { socialTradeCopy, type SocialTradeCopy } from './socialTrade';
 import { protectionCopy, type ProtectionCopy } from './protection';
 import { moneyCopy, type MoneyCopy } from './money';
 import { notifyCopy, type NotifyCopy } from './notifications';
@@ -120,7 +119,6 @@ interface MessagesShape {
   offerFlow: OfferFlowCopy;
   recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
-  socialTrade: SocialTradeCopy;
   networkUi: NetworkCopy;
   docsEscrowPage: EscrowDocsCopy;
   landingEditorial: LandingEditorialCopy;
@@ -5363,7 +5361,6 @@ export const en: MessagesShape = {
   offerFlow: offerFlowCopy.en,
   recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
-  socialTrade: socialTradeCopy.en,
   networkUi: networkCopy.en,
   docsEscrowPage: escrowDocsCopy.en,
   activityReview: { filterLabel: 'Filter recent activity by type' },

@@ -11,7 +11,6 @@ import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
-import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { notifyCopy } from './notifications';
@@ -118,7 +117,6 @@ export const sw: Messages = {
   offerFlow: offerFlowCopy.sw,
   recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,
-  socialTrade: socialTradeCopy.sw,
   networkUi: networkCopy.sw,
   docsEscrowPage: escrowDocsCopy.sw,
   activityReview: { filterLabel: 'Chuja shughuli za karibuni kwa aina' },

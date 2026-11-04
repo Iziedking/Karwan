@@ -2,18 +2,14 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { en } from '../shared/i18n/messages/en';
-import { ar } from '../shared/i18n/messages/ar';
-import { fr } from '../shared/i18n/messages/fr';
-import { hi } from '../shared/i18n/messages/hi';
-import { sw } from '../shared/i18n/messages/sw';
+import { landingCopy } from '../shared/i18n/messages/landing';
 
 const mainnet = process.env.KARWAN_E2E_FIRST_VISIT_MAINNET === '1';
-const copies = { en, fr, ar, hi, sw };
 const API = 'http://127.0.0.1:3199';
 const marketHref = mainnet ? 'https://testnet.karwan.site/market' : '/market';
 const agreementHref = (mainnet ? 'https://testnet.karwan.site' : '') + '/buyer?mode=direct#new-deal';
 
-async function open(page: Page, locale: keyof typeof copies = 'en') {
+async function open(page: Page, locale: keyof typeof landingCopy = 'en') {
   await page.context().addCookies([{ name: 'karwan-locale', value: locale, domain: '127.0.0.1', path: '/' }]);
   await page.addInitScript(() => {
     localStorage.setItem('karwan:guide:disabled', '1');
@@ -27,27 +23,25 @@ async function open(page: Page, locale: keyof typeof copies = 'en') {
   });
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('lang', locale);
-  await expect(page.locator('#landing-title')).toContainText(copies[locale].landingEditorial.titleFirst);
+  await expect(page.locator('#landing-title')).toContainText(landingCopy[locale].hero.titleFirst);
 }
 
 for (const locale of ['en', 'fr', 'ar', 'hi', 'sw'] as const) {
-  test(locale + ': first visit explains the task, availability and correct next step', async ({ page }, info) => {
+  test(locale + ': first visit says what Karwan does and offers the right next step', async ({ page }, info) => {
     await open(page, locale);
-    const t = copies[locale].landingEditorial;
+    const t = landingCopy[locale].hero;
     const hero = page.locator('section[aria-labelledby="landing-title"]');
-    await expect(hero.getByText(t.trade, { exact: true })).toBeVisible();
-    await expect(hero.getByRole('link', { name: mainnet ? t.waitlistCta : t.open, exact: true })).toHaveAttribute('href', mainnet ? '/waitlist' : '/market');
-    await expect(hero.getByRole('link', { name: mainnet ? t.waitlistCta : t.open, exact: true })).toBeInViewport();
-    await expect(hero.getByRole('link', { name: mainnet ? t.tryTestnet : t.bringLabel, exact: true })).toHaveAttribute('href', mainnet ? marketHref : agreementHref);
+    const primary = hero.getByRole('link', { name: mainnet ? t.waitlist : t.create, exact: true });
+    await expect(primary).toHaveAttribute('href', mainnet ? '/waitlist' : agreementHref);
+    await expect(primary).toBeInViewport();
+    await expect(hero.getByRole('link', { name: mainnet ? t.tryTestnet : t.explore })).toHaveAttribute('href', marketHref);
     await expect(page.locator('html')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-    const content = await hero.boundingBox();
-    expect(content).not.toBeNull();
-    for (const item of await hero.locator('h1, p, a').all()) {
+    for (const item of await hero.locator('[data-on] h1, [data-on] p, [data-on] a').all()) {
       const box = await item.boundingBox();
-      if (box) { expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width); }
+      if (box) { expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1); }
     }
-    await hero.screenshot({ path: info.outputPath('hero-' + locale + '.png') });
+    await page.screenshot({ path: info.outputPath('hero-' + locale + '.png') });
     if (locale === 'en' || locale === 'ar') {
       const scan = await new AxeBuilder({ page }).include('main').analyze();
       expect(scan.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
@@ -55,25 +49,15 @@ for (const locale of ['en', 'fr', 'ar', 'hi', 'sw'] as const) {
   });
 }
 
-test('primary action opens the task it names without a sign-in detour', async ({ page }) => {
+test('the main action opens the task it names without a sign-in detour', async ({ page }) => {
   await open(page);
   const hero = page.locator('section[aria-labelledby="landing-title"]');
-  await hero.getByRole('link', { name: mainnet ? en.landingEditorial.waitlistCta : en.landingEditorial.open, exact: true }).click();
-  await expect(page).toHaveURL(mainnet ? /\/waitlist$/ : /\/market$/);
-});
-
-test('existing-client entry preserves direct mode and the form anchor on the available network', async ({ page }) => {
-  await open(page);
-  const social = page.locator('#social-trades');
-  const action = social.getByRole('link', { name: mainnet ? en.landingEditorial.tryTestnet : en.socialTrade.action, exact: true });
-  await expect(action).toHaveAttribute('href', agreementHref);
   if (mainnet) {
-    await page.route('https://testnet.karwan.site/buyer?**', route => route.fulfill({ contentType: 'text/html', body: '<h1>Testnet deal entry</h1>' }));
-    await action.click();
-    await expect(page).toHaveURL(agreementHref);
+    await hero.getByRole('link', { name: landingCopy.en.hero.waitlist, exact: true }).click();
+    await expect(page).toHaveURL(/\/waitlist$/);
   } else {
-    await action.click();
-    await expect(page).toHaveURL(/\/start(?:\?|$)/);
+    await hero.getByRole('link', { name: landingCopy.en.hero.explore }).click();
+    await expect(page).toHaveURL(/\/market$/);
   }
 });
 

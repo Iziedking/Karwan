@@ -11,7 +11,6 @@ import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
-import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { notifyCopy } from './notifications';
@@ -118,7 +117,6 @@ export const fr: Messages = {
   offerFlow: offerFlowCopy.fr,
   recovery: recoveryCopy.fr,
   docsProduct: docsProductCopy.fr,
-  socialTrade: socialTradeCopy.fr,
   networkUi: networkCopy.fr,
   docsEscrowPage: escrowDocsCopy.fr,
   activityReview: { filterLabel: 'Filtrer l’activité récente par type' },

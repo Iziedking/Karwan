@@ -55,7 +55,7 @@ test('testnet warnings stay beside balances while mainnet shows network identity
   assert.match(footer, /networkUi.poweredByArc/);
   assert.match(footer, /<NetworkContext disclosure \/>/);
   assert.doesNotMatch(footer, /https:\/\/(testnet\.arcscan\.app|explorer\.testnet\.arc\.io)|landingEditorial.testnet/);
-  assert.match(source('../../app/page.tsx'), /styles.note\}>\{t.trade\}/);
+  assert.match(source('../../features/landing/components/Closing.tsx'), /DEALS_AVAILABLE \? t\.network : editorial\.trade/);
   for (const file of [
     '../../app/bridge/page.tsx',
     '../../features/money/components/MoneyHome.tsx',

@@ -28,7 +28,6 @@ test('public analytics and workspace notices avoid API internals and repeat main
   const networkContext = source('./NetworkContext.tsx');
   const nudge = source('./ProfileNudge.tsx');
   const history = source('../../features/bridge/components/BridgeHistorySection.tsx');
-  const socialExamples = source('../i18n/messages/socialTrade.ts');
 
   assert.doesNotMatch(analyticsPage, /publicApiUrl|CheckIt|raw figures/);
   assert.match(analyticsCopy, /Every figure is read from Karwan's contracts on Arc\./);
@@ -41,21 +40,26 @@ test('public analytics and workspace notices avoid API internals and repeat main
   assert.match(history, /width: 'min\(640px, 100vw\)'/);
   assert.match(history, /var\(--ink-secondary\)/);
   assert.doesNotMatch(history, /--lp-workspace-raised|--ink-3/);
-  assert.match(socialExamples, /disclaimer: 'Illustrative trades'/);
 });
 
-test('landing respects reduced motion and blends its full-screen film into content', () => {
+test('the landing respects reduced motion: no pinning, no clips, every scene at rest', () => {
   const page = source('../../app/page.tsx');
-  const css = source('../../app/landing.module.css');
-  assert.match(page, /prefers-reduced-motion/);
-  assert.match(page, /visibilitychange/);
-  assert.doesNotMatch(page, /aria-pressed=\{paused\}|videoControl/);
-  assert.match(css, /min-height: calc\(100svh - var\(--lp-nav-h,73px\)\)/);
-  assert.match(css, /mask-image: linear-gradient\(to bottom,#000 0%,#000 calc\(100% - 12px\),transparent 100%\)/);
-  assert.doesNotMatch(css, /\.media::after \{[^}]*linear-gradient/);
-  assert.doesNotMatch(page, /heroBottom/);
-  assert.doesNotMatch(css, /\.intro,\.record,\.closing \{ min-height: 100svh/);
+  const css = source('../../features/landing/landing.module.css');
+  const motion = source('../../features/landing/useLandingMotion.ts');
+  assert.match(page, /<LandingPage \/>/);
+  assert.match(motion, /prefers-reduced-motion: reduce/);
+  assert.match(motion, /el.style.setProperty\('--p', '1'\)/);
+  const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce) {'));
+  assert.match(reduced, /\.hero \{ height: auto; \}/);
+  assert.match(reduced, /\.sellerPhone \{ display: none; \}/);
   assert.doesNotMatch(page + css, /usePanelSnap|scroll-snap-type/);
+});
+
+test('nothing on the landing, mock-ups included, is under 14px', () => {
+  const css = source('../../features/landing/landing.module.css') + source('./SiteFooter.module.css');
+  for (const [, size] of css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) {
+    assert.ok(Number(size) >= 14, `${size}px on the landing`);
+  }
 });
 
 test('activity keeps personal transactions and the public feed distinct without category cards', () => {
@@ -136,14 +140,6 @@ test('public navigation uses viewport width while workspace chrome keeps its wid
   assert.match(nav, /ms-auto flex min-w-0 shrink-0 items-center/);
   assert.match(nav, /publicSurface && 'max-\[379px\]:\[&_span\]:hidden/);
   assert.match(nav, /function LaunchAppCTA\(\)[\s\S]*className="hidden [^"]*md:inline-flex"/);
-});
-
-test('the landing trade example keeps its explanatory copy readable', () => {
-  const social = source('../../features/home/components/SocialTradeSection.module.css');
-  for (const selector of ['.phoneBrand > span:last-child', '.source small', '.handoff', '.draft', '.terms dt', '.milestoneLabel', '.review']) {
-    assert.match(social, new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{[^}]*font-size: 14px`));
-  }
-  assert.match(social, /\.disclaimer \{[^}]*font-size: 16px/);
 });
 
 test('the theme is chosen only in Profile: no control in the top bar or the rail, two choices in Settings', () => {
@@ -258,15 +254,8 @@ test('the transfer header speaks of one balance, never the Gateway pool', () => 
 test('public and workspace backgrounds follow the same selected theme', () => {
   const nav = source('./TopNav.tsx');
   const footer = source('./SiteFooter.tsx');
-  const landing = source('../../app/landing.module.css');
-  const social = source('../../features/home/components/SocialTradeSection.module.css');
-  const protection = source('../../features/home/components/ProtectionSection.module.css');
   assert.doesNotMatch(nav, /LANDING_NAV_VARS/);
   assert.doesNotMatch(footer, /LANDING_FOOTER_VARS/);
-  assert.match(landing, /--landing-paper: var\(--lp-light\)/);
-  assert.match(landing, /\.record \{ background: var\(--lp-card\); color: var\(--lp-dark\)/);
-  assert.match(social, /html:not\(\[data-theme='dark'\]\)/);
-  assert.match(protection, /html:not\(\[data-theme='dark'\]\)/);
 });
 
 test('account entry stays centered across stages with readable, distinct methods', () => {
@@ -313,20 +302,18 @@ test('signed out, a private page goes straight to the one sign-in screen, never 
   assert.doesNotMatch(source('./AuthGuard.tsx'), /Band|GridOverlay/);
 });
 
-test('footer keeps the canonical brand and treats its motion as optional decoration', () => {
+test('footer keeps the canonical brand and, on the landing, waits under the page with a still light', () => {
   const footer = source('./SiteFooter.tsx');
   const css = source('./SiteFooter.module.css');
   assert.match(footer, /<Brand \/>/);
   assert.match(footer, /<NetworkContext disclosure \/>/);
   assert.match(footer, /api.subscribeNewsletter\(value\)/);
-  assert.match(footer, /prefers-reduced-motion: reduce/);
-  assert.match(footer, /visibilitychange/);
-  assert.match(footer, /IntersectionObserver/);
-  assert.match(footer, /data-running=\{running\}/);
-  assert.doesNotMatch(footer, /motionControl|aria-pressed=\{paused\}/);
-  assert.match(css, /prefers-reduced-motion: reduce/);
-  assert.match(css, /animation-play-state: paused/);
+  assert.match(footer, /landing && <div className=\{styles.glow\} aria-hidden="true" \/>/);
+  assert.match(footer, /landing && 'max-sm:hidden'/);
+  assert.doesNotMatch(footer, /FooterWaves|data-running|motionControl|aria-pressed=\{paused\}/);
+  assert.match(css, /position: sticky; bottom: 0; z-index: 0/);
   assert.match(css, /pointer-events: none/);
+  assert.doesNotMatch(css, /animation/);
   assert.match(css, /background: var\(--lp-card\)/);
   assert.match(css, /min-height: 100svh/);
 });

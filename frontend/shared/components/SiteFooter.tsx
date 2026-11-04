@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api } from '@/core/api';
@@ -20,41 +20,16 @@ export function SiteFooter() {
   const t = messages.footer;
   const network = networkPresentation(settlementChain);
   const landing = pathname === '/';
-  const footerRef = useRef<HTMLElement>(null);
-  const [reduced, setReduced] = useState(true);
-  const [inView, setInView] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const running = landing && !reduced && inView && visible;
-
-  useEffect(() => {
-    if (!landing) return;
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const syncMotion = () => setReduced(preference.matches);
-    const syncVisibility = () => setVisible(!document.hidden);
-    syncMotion();
-    syncVisibility();
-    preference.addEventListener('change', syncMotion);
-    document.addEventListener('visibilitychange', syncVisibility);
-    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
-    if (footerRef.current) observer.observe(footerRef.current);
-    return () => {
-      preference.removeEventListener('change', syncMotion);
-      document.removeEventListener('visibilitychange', syncVisibility);
-      observer.disconnect();
-    };
-  }, [landing]);
-
   if (pathname === '/market' || pathname === '/listings' || pathname.startsWith('/listings/')) {
     return null;
   }
   return (
-    <footer
-      ref={footerRef}
-      id="site-footer"
-      className={cn(styles.footer, landing && styles.landing)}
-      data-running={running}
-    >
-      {landing && <FooterWaves />}
+    <footer id="site-footer" className={cn(styles.footer, landing && styles.landing)}>
+      {/* On the landing the footer waits under the page and the last scene
+          lifts off it like a curtain (view 49): one soft light behind an
+          outlined wordmark, no animation. */}
+      {landing && <div className={styles.glow} aria-hidden="true" />}
+      {landing && <span className={styles.wordmark} aria-hidden="true">Karwan</span>}
       <div className={styles.shell}>
         <div
           className={styles.panel}
@@ -103,7 +78,7 @@ export function SiteFooter() {
               </FooterCol>
               <FooterCol
                 title={t.columns.socials}
-                className="col-span-2 sm:col-span-1"
+                className={cn('col-span-2 sm:col-span-1', landing && 'max-sm:hidden')}
                 linksClassName="flex-row flex-wrap gap-x-5 gap-y-2.5 sm:flex-col sm:gap-x-0"
               >
                 <FooterSocialLink href="https://x.com/karwanBuild" label="X" glyph={<XGlyph />} />
@@ -132,36 +107,6 @@ export function SiteFooter() {
 
       </div>
     </footer>
-  );
-}
-
-/** The supplied film's edge waves, redrawn in brand colors; never product data. */
-function FooterWaves() {
-  return (
-    <div id="footer-waves" className={styles.waves} aria-hidden="true">
-      <svg className={styles.upperWaves} viewBox="0 0 1600 260" preserveAspectRatio="none" focusable="false">
-        <g className={styles.waveFar}>
-          <path fill="#cbd5da" d="M-140-80H1740V115C1500 240 1310 55 1130 78S770 174 590 42 165 160-140 110Z" />
-        </g>
-        <g className={styles.waveNear}>
-          <path fill="var(--karwan-green)" d="M850-80H1740V100C1500 190 1460 8 1280 32S1040 95 850-80Z" />
-          <path d="M870-30C1120 134 1130-45 1400 48S1680 120 1770 15" fill="none" stroke="#52621e" strokeWidth="1" />
-        </g>
-      </svg>
-      <svg className={styles.lowerWaves} viewBox="0 0 1600 310" preserveAspectRatio="none" focusable="false">
-        <g className={styles.waveFar}>
-          <path fill="#cbd5da" d="M-140 60C190-50 350 247 700 167S1250 33 1740 130V430H-140Z" />
-        </g>
-        <g className={styles.waveMiddle}>
-          <path fill="var(--karwan-green)" d="M-140 162C65-10 280 50 455 160S800 300 1110 175 1510 170 1740 190V430H-140Z" />
-          <path d="M-140 95C180 3 304 139 496 195S891 283 1190 152 1530 198 1770 143" fill="none" stroke="#647827" strokeWidth="1" />
-        </g>
-        <g className={styles.waveNear}>
-          <path fill="#151c17" d="M-140 254C140 136 235 199 452 263S846 271 1070 224 1462 173 1740 277V430H-140Z" />
-          <path d="M-140 294C170 182 277 224 482 283S850 290 1095 243 1500 235 1770 302" fill="none" stroke="#798671" strokeWidth="1" />
-        </g>
-      </svg>
-    </div>
   );
 }
 

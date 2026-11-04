@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { clipChoice, createFrameLoop, enterProgress, pinnedProgress, type ClipChoice } from './motion';
 
@@ -39,10 +39,20 @@ export function useReducedMotionPreference(): boolean {
 }
 
 /// Writes the scene's progress (0 to 1) into its `--p` custom property every
-/// frame it moves, without re-rendering React. Reduced motion pins it at 1, so
-/// every scene shows its final state.
-export function useSceneProgress(ref: RefObject<HTMLElement | null>, kind: 'pinned' | 'enter', span?: number) {
+/// frame it moves, without re-rendering React. `onProgress` hears the same
+/// value, for a scene that switches what it shows at set points. Reduced
+/// motion pins `--p` at 1 and never calls `onProgress`, so a scene shows its
+/// resting state.
+export function useSceneProgress(
+  ref: RefObject<HTMLElement | null>,
+  kind: 'pinned' | 'enter',
+  { span, onProgress }: { span?: number; onProgress?: (progress: number) => void } = {},
+) {
   const reduced = useReducedMotionPreference();
+  const listener = useRef(onProgress);
+  useEffect(() => {
+    listener.current = onProgress;
+  }, [onProgress]);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -60,6 +70,7 @@ export function useSceneProgress(ref: RefObject<HTMLElement | null>, kind: 'pinn
       if (Math.abs(p - last) < 0.0005) return;
       last = p;
       el.style.setProperty('--p', p.toFixed(4));
+      listener.current?.(p);
     };
     const off = pageLoop().add(measure);
     listen(true);

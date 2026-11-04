@@ -37,7 +37,8 @@ test('someone signed in opens the app, everyone else the sign-in page', () => {
 test('the session store keeps the hint while public trading actions remain independent of sign-in', () => {
   const store = readFileSync(new URL('./sessionStore.ts', import.meta.url), 'utf8');
   assert.match(store, /if \(loaded\) rememberSignedIn\(!!session\)/);
-  const landing = readFileSync(new URL('../../app/page.tsx', import.meta.url), 'utf8');
+  const landing = ['../../app/page.tsx', '../../features/landing/LandingPage.tsx', '../../features/landing/components/Hero.tsx', '../../features/landing/components/Closing.tsx']
+    .map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join(' ');
   assert.match(landing, /landingEntryRoutes\(DEALS_AVAILABLE\)/);
   assert.doesNotMatch(landing, /useEntryHref\(\)/, 'public browsing does not require a session hint');
   assert.doesNotMatch(landing, /useAuth|useSiwe/, 'the landing never runs sign-in');

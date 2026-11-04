@@ -11,7 +11,6 @@ import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
-import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { notifyCopy } from './notifications';
@@ -118,7 +117,6 @@ export const hi: Messages = {
   offerFlow: offerFlowCopy.hi,
   recovery: recoveryCopy.hi,
   docsProduct: docsProductCopy.hi,
-  socialTrade: socialTradeCopy.hi,
   networkUi: networkCopy.hi,
   docsEscrowPage: escrowDocsCopy.hi,
   activityReview: { filterLabel: 'हाल की गतिविधि को प्रकार के अनुसार फ़िल्टर करें' },
