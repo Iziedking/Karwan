@@ -29,7 +29,6 @@ export function Closing() {
     <section className={s.closing} aria-labelledby="landing-closing">
       <div className={s.glow} aria-hidden />
       <h2 id="landing-closing" className={s.closingTitle}><span>{t.titleFirst}</span> <span>{t.titleLast}</span></h2>
-      <p className={s.lead}>{t.body}</p>
       <div className={s.closingActions}>
         <Link className={s.primary} href={entry.primary}>{DEALS_AVAILABLE ? t.open : t.waitlist}</Link>
         <a className={s.secondary} href={`mailto:${TEAM_EMAIL}`}>{t.team}</a>

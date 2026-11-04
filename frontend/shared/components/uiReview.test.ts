@@ -55,6 +55,25 @@ test('the landing respects reduced motion: no pinning, no clips, every scene at 
   assert.doesNotMatch(page + css, /usePanelSnap|scroll-snap-type/);
 });
 
+test('landing cards are told apart by tone, never by an outline', () => {
+  const css = source('../../features/landing/landing.module.css');
+  for (const card of ['.platforms', '.board', '.node', '.recordCard', '.tile', '.place', '.fitCard', '.toss', '.chatBar', '.phoneNote']) {
+    const rule = css.match(new RegExp(`^\\${card} \\{[^}]*\\}`, 'm'))?.[0] ?? '';
+    assert.ok(rule, `${card} exists`);
+    assert.doesNotMatch(rule, /box-shadow: inset|border: 1/, `${card} has an outline`);
+  }
+});
+
+test('the hero phone is a body in perspective, not a flat card', () => {
+  const css = source('../../features/landing/landing.module.css');
+  const hero = source('../../features/landing/components/Hero.tsx');
+  assert.match(css, /\.buyerPhone \{[^}]*perspective: \d+px/);
+  assert.match(css, /\.device \{[^}]*--depth: \d+px/);
+  for (const side of ['left', 'right', 'top', 'bottom']) assert.match(css, new RegExp(`\\.edge\\[data-side='${side}'\\]`));
+  assert.match(hero, /<Device className=\{s\.turn\}/);
+  assert.match(hero, /SLICES\.map/);
+});
+
 test('nothing on the landing, mock-ups included, is under 14px', () => {
   const css = source('../../features/landing/landing.module.css') + source('./SiteFooter.module.css');
   for (const [, size] of css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) {

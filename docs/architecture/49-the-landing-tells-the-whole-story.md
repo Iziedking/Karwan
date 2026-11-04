@@ -34,6 +34,10 @@ flowchart LR
 
 - **Kinds of trade, never customers.** The clips are licensed stock footage. A tile names a kind of trade and an example amount; it never names a person, quotes one or says they use Karwan. Real traders replace a tile only when they agree to share their story.
 - **Only true claims.** Every line about the agent matches what it does today: it works inside your limits, waits for your approval above them, keeps a weekly data budget with a report, and lets you see and delete what it remembers.
+- **Motion says it, not paragraphs.** A scene has a label, a title and its moving picture. No explaining paragraph sits under a title.
+- **A phone with a body.** The hero phone has a front, a back with its camera, metal edges and depth, seen in perspective, so its one full turn on scroll reads as an object, not a flat card.
+- **Cards without outlines.** Cards and tiles stand apart by their shade on the black, never by a line around them.
+- **Every example question works.** Each chip asks for one thing the assistant has a tool for: search the market, hold money in a deal, check a person, a payment link, weekly hourly work, the record, early payment, cash out, a send to a tag.
 - **Motion that can be turned off.** With reduced motion, no clip plays and every scene shows its final state. Clips play muted and only while on screen.
 - **Five languages.** Every word is in English, French, Arabic, Hindi and Swahili, and Arabic reads right to left.
 - **Light on a phone.** Phones get smaller clips, and the chips are tapped instead of thrown.

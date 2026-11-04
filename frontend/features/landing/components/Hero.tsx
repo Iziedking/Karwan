@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
@@ -80,6 +80,24 @@ function Screen({ view, platform, t, side, sellerAgreed }: { view: 'chat' | 'ter
   );
 }
 
+const SLICES = Array.from({ length: 16 }, (_, i) => i / 15);
+
+/// A phone with a body: the screen on the front, an optional back, metal
+/// edges and the slices that round its corners, so a turn shows thickness.
+function Device({ children, back, className }: { children: ReactNode; back?: ReactNode; className?: string }) {
+  return (
+    <div className={className ? `${s.device} ${className}` : s.device}>
+      {SLICES.map((z) => <span key={z} className={s.slice} style={{ ['--z' as string]: z }} aria-hidden />)}
+      <span className={s.edge} data-side="left" aria-hidden />
+      <span className={s.edge} data-side="right" aria-hidden><i /><i /><i /></span>
+      <span className={s.edge} data-side="top" aria-hidden />
+      <span className={s.edge} data-side="bottom" aria-hidden />
+      <div className={s.face}>{children}<span className={s.sheen} aria-hidden /></div>
+      {back && <div className={`${s.face} ${s.back}`} aria-hidden>{back}</div>}
+    </div>
+  );
+}
+
 /// Section 1: the hero. Pinned while scrolling, the phone turns once and the
 /// chat becomes terms, then the seller's phone joins and both agree (view 49).
 export function Hero() {
@@ -104,7 +122,6 @@ export function Hero() {
           <div className={s.copyBlock} data-on={view.copy === 'hero' ? '' : undefined} {...block('hero')}>
             <p className={s.eyebrow}>{h.kicker}</p>
             <h1 id="landing-title" className={s.heroTitle}><span>{h.titleFirst}</span> <span>{h.titleLast}</span></h1>
-            <p className={s.lead}>{h.lead}</p>
             <div className={s.actions}>
               <Link className={s.primary} href={DEALS_AVAILABLE ? entry.agreement : '/waitlist'}>{DEALS_AVAILABLE ? h.create : h.waitlist}</Link>
               <Link className={s.textLink} href={entry.market}>{DEALS_AVAILABLE ? h.explore : h.tryTestnet}<Icon name="arrow-right" size={16} directional aria-hidden /></Link>
@@ -122,25 +139,27 @@ export function Hero() {
           <div className={s.copyBlock} data-on={view.copy === 'terms' ? '' : undefined} {...block('terms')}>
             <p className={s.eyebrow}>{h.termsLabel}</p>
             <h2 className={s.chapterTitle}>{h.termsTitle}</h2>
-            <p className={s.lead}>{h.termsBody}</p>
             <span className={s.sceneBar} aria-hidden><span /></span>
           </div>
           <div className={s.copyBlock} data-on={view.copy === 'agree' ? '' : undefined} {...block('agree')}>
             <p className={s.eyebrow}>{h.agreeLabel}</p>
             <h2 className={s.chapterTitle}>{h.agreeTitle}</h2>
-            <p className={s.lead}>{h.agreeBody}</p>
             <span className={s.sceneBar} aria-hidden><span /></span>
           </div>
         </div>
         <div className={s.stage} role="group" aria-label={h.phoneLabel}>
           <div className={s.buyerPhone}>
-            <div className={s.turn}>
-              <div className={s.face}><Screen view={view.screen} platform={platform} t={t} side="buyer" sellerAgreed={view.sellerAgreed} /></div>
-              <div className={`${s.face} ${s.back}`} aria-hidden><span className={s.camera} /><strong>Karwan</strong></div>
+            <div className={s.tilt}>
+              <Device className={s.turn} back={<><span className={s.camera}><i /><i /><i /><b /></span><img src="/brand/karwan-mark-lime.svg" alt="" width={64} height={64} /></>}>
+                <Screen view={view.screen} platform={platform} t={t} side="buyer" sellerAgreed={view.sellerAgreed} />
+              </Device>
             </div>
+            <span className={s.floor} aria-hidden />
           </div>
           <div className={s.sellerPhone} aria-hidden={!view.sellerPhone} data-on={view.sellerPhone ? '' : undefined}>
-            <div className={s.face}><Screen view="review" platform={platform} t={t} side="seller" sellerAgreed={view.sellerAgreed} /></div>
+            <Device>
+              <Screen view="review" platform={platform} t={t} side="seller" sellerAgreed={view.sellerAgreed} />
+            </Device>
           </div>
         </div>
       </div>

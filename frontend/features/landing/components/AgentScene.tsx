@@ -37,7 +37,6 @@ export function AgentScene() {
           <p className={s.eyebrow}>{t.eyebrow}</p>
           <h2 id="landing-agent" className={s.sectionTitle}><span>{t.titleFirst}</span> <span>{t.titleLast}</span></h2>
         </div>
-        <p className={s.lead}>{t.lede}</p>
       </header>
       <p className={s.srOnly}>{t.summary}</p>
       <div className={s.agentStage} aria-hidden>
@@ -83,8 +82,8 @@ export function AgentScene() {
         </div>
       </div>
       <ul className={s.rules}>
-        {t.rules.map(([title, line], i) => (
-          <li key={title}><span>0{i + 1}</span><strong>{title}</strong><p>{line}</p></li>
+        {t.rules.map((title, i) => (
+          <li key={title}><span>0{i + 1}</span><strong>{title}</strong></li>
         ))}
       </ul>
     </section>

@@ -110,7 +110,6 @@ export function TradeCases() {
           <p className={s.eyebrow}>{t.eyebrow}</p>
           <h2 id="landing-trades" className={s.sectionTitle}>{t.title}</h2>
         </div>
-        <p className={s.lead}>{t.lede}</p>
       </header>
       <div className={s.tiles}>
         {TRADE_CLIPS.map((clip, index) => <Tile key={clip.key} clip={clip} index={index} />)}

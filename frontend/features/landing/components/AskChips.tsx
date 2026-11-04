@@ -173,7 +173,6 @@ export function AskChips() {
           <p className={s.eyebrow}>{t.eyebrow}</p>
           <h2 id="landing-ask" className={s.sectionTitle}>{t.title}</h2>
         </div>
-        <p className={s.lead}>{t.lede}</p>
       </header>
       <div ref={panel} className={s.toss} data-live={live ? '' : undefined}>
         <form ref={bar} className={s.chatBar} onSubmit={submit}>
@@ -204,7 +203,6 @@ export function AskChips() {
           ))}
         </div>
       </div>
-      <p className={s.hint}>{t.hint}</p>
     </section>
   );
 }

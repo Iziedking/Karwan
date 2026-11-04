@@ -83,7 +83,7 @@ function RecordBoard({ t, item }: { t: Panels['record']; item: string }) {
   );
 }
 
-function Panel({ index, label, title, body, points, href, learnMore, children }: { index: number; label: string; title: string; body: string; points: readonly string[]; href: string; learnMore: string; children: ReactNode }) {
+function Panel({ index, label, title, href, learnMore, children }: { index: number; label: string; title: string; href: string; learnMore: string; children: ReactNode }) {
   const ref = useRef<HTMLElement>(null);
   useSceneProgress(ref, 'enter', { span: 0.7 });
   return (
@@ -96,8 +96,6 @@ function Panel({ index, label, title, body, points, href, learnMore, children }:
         </ol>
         <p className={s.eyebrow}>{label}</p>
         <h2 id={`landing-panel-${index}`} className={s.panelTitle}>{title}</h2>
-        <p className={s.lead}>{body}</p>
-        <ul className={s.points}>{points.map((point) => <li key={point}>{point}</li>)}</ul>
         <Link className={s.textLink} href={href}>{learnMore}<Icon name="arrow-right" size={16} directional aria-hidden /></Link>
       </div>
       {children}
