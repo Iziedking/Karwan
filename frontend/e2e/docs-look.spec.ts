@@ -62,3 +62,14 @@ test('a docs page has no green, and on a phone the AI buttons fit on one line', 
   });
   expect(green).toBe(0);
 });
+
+test.describe('before the page runs', () => {
+  test.use({ javaScriptEnabled: false });
+  test('the AI links already name this page', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/docs/escrow');
+    const link = page.getByRole('group', { name: t.group }).getByRole('link', { name: new RegExp(t.claude) });
+    const href = new URL((await link.getAttribute('href'))!);
+    expect(href.searchParams.get('q')).toContain('/docs/escrow');
+  });
+});

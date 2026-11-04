@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
@@ -11,6 +12,7 @@ const BUTTON =
   'transition-colors hover:bg-[var(--raised)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] sm:px-3';
 const BLOCKS = 'h1,h2,h3,p,li,dt,dd,th,td,summary,figcaption';
 const MARK: Record<string, string> = { H1: '# ', H2: '## ', H3: '### ', LI: '- ' };
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
 
 /// The page as plain text an AI reads well: headings marked, one block per line,
 /// without the buttons and the pager.
@@ -33,11 +35,14 @@ export function DocsAskAi() {
   const { locale } = useLocale();
   const t = docsAiCopy[locale] ?? docsAiCopy.en;
   const [copied, setCopied] = useState(false);
-  const [href, setHref] = useState('');
+  const pathname = usePathname();
+  /// The page address is in the links from the first paint; the real origin
+  /// replaces the site's once the page runs, so a preview links to itself.
+  const [origin, setOrigin] = useState(SITE);
   const timer = useRef<number>(0);
 
   useEffect(() => {
-    setHref(window.location.origin + window.location.pathname);
+    setOrigin(window.location.origin);
     return () => window.clearTimeout(timer.current);
   }, []);
 
@@ -52,7 +57,7 @@ export function DocsAskAi() {
       .catch(() => {});
   };
 
-  const prompt = t.prompt.replace('{url}', href);
+  const prompt = t.prompt.replace('{url}', origin + pathname);
   return (
     <div role="group" aria-label={t.group} data-ai-skip className="mt-5 flex flex-wrap gap-2">
       <button type="button" onClick={copy} className={BUTTON} aria-live="polite">
