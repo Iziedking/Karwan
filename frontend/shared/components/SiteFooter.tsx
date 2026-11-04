@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api } from '@/core/api';
@@ -13,6 +13,31 @@ import styles from './SiteFooter.module.css';
 
 const SUPPORT_EMAIL = 'support@karwan.site';
 
+/// The landing footer waits under the page only while all of it fits below
+/// the top bar; taller than that, it scrolls like any footer so its top is
+/// never hidden.
+function useCurtain(landing: boolean) {
+  const ref = useRef<HTMLElement>(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!landing || !el) return;
+    const measure = () => {
+      const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lp-nav-h')) || 68;
+      setOn(el.offsetHeight <= window.innerHeight - bar);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    window.addEventListener('resize', measure, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [landing]);
+  return { ref, on };
+}
+
 // Shared brand and navigation follow the selected theme on every public route.
 export function SiteFooter() {
   const pathname = usePathname();
@@ -20,11 +45,12 @@ export function SiteFooter() {
   const t = messages.footer;
   const network = networkPresentation(settlementChain);
   const landing = pathname === '/';
+  const curtain = useCurtain(landing);
   if (pathname === '/market' || pathname === '/listings' || pathname.startsWith('/listings/')) {
     return null;
   }
   return (
-    <footer id="site-footer" className={cn(styles.footer, landing && styles.landing)}>
+    <footer ref={curtain.ref} id="site-footer" className={cn(styles.footer, landing && styles.landing)} data-curtain={curtain.on ? '' : undefined}>
       {/* On the landing the footer waits under the page and the last scene
           lifts off it like a curtain (view 49): one soft light behind an
           outlined wordmark, no animation. */}

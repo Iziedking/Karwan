@@ -7,23 +7,24 @@
   border-top: 1px solid var(--lp-border-light);
 }
 
-.landing { min-height: 100svh; display: grid; align-items: center; }
+.landing { min-height: calc(100svh - var(--lp-nav-h, 68px)); display: grid; align-items: center; }
 .shell { position: relative; width: min(100% - 64px, 1360px); margin-inline: auto; padding-block: 64px; }
-.landing .shell { padding-block: clamp(64px, 8vw, 112px) clamp(130px, 13vw, 208px); }
+.landing .shell { padding-block: clamp(40px, 5vw, 72px) clamp(110px, 11vw, 176px); }
 .panel { background: var(--lp-card); border: 1px solid var(--lp-border-light); border-radius: 24px; padding: clamp(24px, 3.5vw, 56px); }
 .panel :is(a, button, input, summary):focus-visible { outline: 2px solid var(--lp-accent-on-light); outline-offset: 4px; }
 .panel :is(a, button) { overflow-wrap: anywhere; }
 .bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--lp-border-light); }
 
-/* The landing footer: dark, one soft light behind an outlined wordmark. On
-   tall desktop screens it sits under the page (sticky to the bottom) and the
-   landing's last scene lifts off it like a curtain. Nothing moves. */
+/* The landing footer: dark, one soft light behind an outlined wordmark. On a
+   desktop screen tall enough to show all of it below the top bar, it sits
+   under the page (sticky to the bottom) and the landing's last scene lifts off
+   it like a curtain; data-curtain says it fits. Nothing moves. */
 .landing { background: #0f1012; border-top: 0; overflow: clip; }
 .landing .panel { background: rgb(22 24 27 / 0.72); }
 .glow { position: absolute; z-index: -1; inset-inline: 15%; top: 4%; height: 70%; border-radius: 50%; background: rgb(175 201 91 / 0.12); filter: blur(140px); pointer-events: none; }
 .wordmark { position: absolute; z-index: -1; inset-inline-start: 4%; bottom: -0.22em; font-size: clamp(120px, 22vw, 340px); font-weight: 600; line-height: 1; letter-spacing: -0.04em; color: transparent; -webkit-text-stroke: 1px rgb(244 244 241 / 0.08); pointer-events: none; user-select: none; }
-@media (min-width: 1024px) and (min-height: 760px) {
-  .landing { position: sticky; bottom: 0; z-index: 0; }
+@media (min-width: 1024px) {
+  .landing[data-curtain] { position: sticky; bottom: 0; z-index: 0; }
 }
 
 @media (max-width: 639px) {

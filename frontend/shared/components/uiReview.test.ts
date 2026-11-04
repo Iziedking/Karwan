@@ -334,7 +334,9 @@ test('footer keeps the canonical brand and, on the landing, waits under the page
   assert.match(css, /pointer-events: none/);
   assert.doesNotMatch(css, /animation/);
   assert.match(css, /background: var\(--lp-card\)/);
-  assert.match(css, /min-height: 100svh/);
+  assert.match(css, /min-height: calc\(100svh - var\(--lp-nav-h, 68px\)\)/);
+  assert.match(css, /\.landing\[data-curtain\] \{ position: sticky/);
+  assert.match(footer, /setOn\(el\.offsetHeight <= window\.innerHeight - bar\)/);
 });
 
 test('reputation badges and the app shell never leave a person on a bare number or an endless wait', () => {

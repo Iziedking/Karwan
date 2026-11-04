@@ -108,3 +108,28 @@ test('the footer is there at the end, and phones get no social icons on the land
   await expect(footer).toBeVisible();
   await expect(footer.getByRole('link', { name: 'LinkedIn' })).toBeHidden();
 });
+
+for (const [width, height] of [[1440, 800], [1280, 720], [1600, 1000]]) {
+  test(`at ${width}x${height} the whole footer can be seen, its top never under the bar`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await open(page);
+    const footer = page.locator('#site-footer');
+    // Pinned as a curtain only when all of it fits under the bar.
+    const fit = await footer.evaluate((el) => {
+      const bar = document.querySelector('header[data-chrome="nav"]')!.getBoundingClientRect().height;
+      return { pinned: getComputedStyle(el).position === 'sticky', fits: el.offsetHeight <= window.innerHeight - bar, bar };
+    });
+    if (fit.pinned) expect(fit.fits).toBe(true);
+    // Scrolling to the footer's top shows it just under the bar.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await footer.evaluate((el, bar) => {
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo(0, Math.min(top - bar, document.documentElement.scrollHeight));
+    }, fit.bar);
+    const brand = footer.getByRole('link', { name: 'Karwan' }).first();
+    await expect(brand).toBeInViewport();
+    const nav = await page.locator('header[data-chrome="nav"]').boundingBox();
+    const top = await brand.boundingBox();
+    expect(top!.y).toBeGreaterThanOrEqual(nav!.y + nav!.height);
+  });
+}

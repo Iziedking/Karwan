@@ -43,4 +43,5 @@ flowchart LR
 - **Every example question works.** Each chip asks for one thing the assistant has a tool for: search the market, hold money in a deal, check a person, a payment link, weekly hourly work, the record, early payment, cash out, a send to a tag.
 - **Motion that can be turned off.** With reduced motion, no clip plays and every scene shows its final state. Clips play muted and only while on screen.
 - **Five languages.** Every word is in English, French, Arabic, Hindi and Swahili, and Arabic reads right to left.
+- **The footer is always whole.** It waits under the page like a curtain only on a desktop screen tall enough to show all of it below the top bar; on a shorter screen it scrolls up like any footer.
 - **Light on a phone.** Phones get smaller clips, and the chips are tapped instead of thrown.
