@@ -139,14 +139,14 @@ test('Arabic reads right to left and the page never scrolls sideways', async ({ 
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test('the bars name the same places: four tabs on a phone, the rail on desktop', async ({ page }, testInfo) => {
+test('the bars name the same places: the phone tabs with Finance, the rail on desktop', async ({ page }, testInfo) => {
   await serve(page, world);
   await page.goto('/deals');
   const nav = en.nav;
   if (testInfo.project.name === 'phone') {
     const bar = page.locator('[data-workspace-bottom-nav]');
     // The Profile tab holds the photo or an initial, so match each label inside its tab.
-    await expect(bar.getByRole('link')).toHaveText([nav.home, nav.market, nav.deals, nav.profile].map((l) => new RegExp(l)));
+    await expect(bar.getByRole('link')).toHaveText([nav.home, nav.market, nav.deals, nav.finance, nav.profile].map((l) => new RegExp(l)));
     await expect(bar.getByRole('link', { name: nav.deals })).toHaveAttribute('aria-current', 'page');
   }
   if (testInfo.project.name === 'desktop') {
