@@ -1,5 +1,7 @@
 'use client';
 
+import { CARD_CLASS } from '@/shared/components/Card';
+import { DocsAskAi } from '@/features/docs/components/DocsAskAi';
 import { useEffect, useState } from 'react';
 import { api } from '@/core/api';
 import {
@@ -73,37 +75,27 @@ export default function DocsDisputesPage() {
   return (
     <article>
       <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
-      <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold tracking-[-0.025em] leading-[1.02] text-[var(--lp-dark)]">
+      <h1 className="mt-3 text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.12] tracking-[-0.02em] text-[var(--ink)]">
         {t.title}
       </h1>
+      <DocsAskAi />
       <DocsP>{t.intro}</DocsP>
 
       {/* Live policy strip: hairline cells, one value each, LED-tagged live. */}
-      <div
-        className="mt-8 border border-[var(--lp-border-light)] bg-[var(--lp-card)] overflow-hidden"
-        style={{ borderRadius: 3 }}
-      >
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--lp-border-light)]">
-          <span
-            aria-hidden
-            data-instrument-blink
-            className="inline-block w-[6px] h-[6px]"
-            style={{
-              background: 'var(--lp-accent)',
-              animation: 'instrumentBlink 1.6s ease-in-out infinite',
-            }}
-          />
+      <div className={`${CARD_CLASS} mt-8 overflow-hidden`}>
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--line)]">
+          <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-positive)]" />
           <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
             {t.policy.liveTag}
           </span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-[var(--lp-border-light)]">
+        <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-[var(--line)]">
           {cells.map((cell) => (
             <div key={cell.label} className="px-4 py-3">
               <p className="min-h-[2.75em] text-[14px] text-[var(--ink-secondary)] leading-snug font-medium">
                 {cell.label}
               </p>
-              <p className="mt-1 mono text-[20px] font-semibold tabular-nums leading-none text-[var(--lp-dark)]">
+              <p className="mt-1 text-[20px] font-semibold tabular-nums leading-none text-[var(--ink)]">
                 {cell.value}
               </p>
             </div>

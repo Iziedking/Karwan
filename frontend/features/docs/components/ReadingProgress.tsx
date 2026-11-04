@@ -27,7 +27,7 @@ export function ReadingProgress() {
   }, []);
   return (
     <div aria-hidden className="pointer-events-none fixed inset-x-0 z-40 h-[2px]" style={{ top: 'var(--lp-nav-h, 68px)' }}>
-      <div ref={bar} className="h-full origin-left bg-[var(--lp-dark)] rtl:origin-right" style={{ transform: 'scaleX(0)' }} />
+      <div ref={bar} className="h-full origin-left bg-[var(--ink)] rtl:origin-right" style={{ transform: 'scaleX(0)' }} />
     </div>
   );
 }

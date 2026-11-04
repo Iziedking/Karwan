@@ -5,7 +5,7 @@
   width: 2px;
   height: 36px;
   border-radius: 2px;
-  background: var(--lp-border-light);
+  background: var(--line);
   overflow: hidden;
 }
 
@@ -16,12 +16,12 @@
   width: 2px;
   height: 12px;
   border-radius: 2px;
-  background: var(--lp-dark);
+  background: var(--ink);
   animation: cue 1.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
 }
 
 .cue:hover .dot {
-  background: var(--lp-accent);
+  background: var(--ink-secondary);
 }
 
 @keyframes cue {

@@ -1,5 +1,6 @@
 'use client';
 
+import { DocsAskAi } from '@/features/docs/components/DocsAskAi';
 import {
   DocsEyebrow,
   DocsH2,
@@ -19,13 +20,11 @@ export default function DocsEscrowPage() {
   return (
     <article>
       <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
-      <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold tracking-[-0.025em] leading-[1.02] text-[var(--lp-dark)]">
+      <h1 className="mt-3 text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.12] tracking-[-0.02em] text-[var(--ink)]">
         {t.title}
       </h1>
-      <p
-        className="mt-6 inline-block border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]"
-        style={{ borderRadius: 3 }}
-      >
+      <DocsAskAi />
+      <p className="mt-5 max-w-[64ch] text-[14px] font-medium leading-relaxed text-[var(--ink-muted)]">
         {t.status}
       </p>
       <DocsP>{t.intro}</DocsP>

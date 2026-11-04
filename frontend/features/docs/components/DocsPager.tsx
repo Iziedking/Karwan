@@ -1,4 +1,5 @@
 'use client';
+import { CARD_CLASS } from '@/shared/components/Card';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DOCS_SECTIONS, useDocsSectionLabel } from './DocsSidebar';
@@ -22,18 +23,17 @@ export function DocsPager() {
   if (!prev && !next) return null;
 
   return (
-    <nav className="mt-14 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-[var(--lp-border-light)] pt-8">
+    <nav data-ai-skip className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2">
       {prev ? (
         <Link
           href={prev.href}
-          className="group flex flex-col gap-1 p-4 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
-          style={{ borderRadius: 12, borderBottomLeftRadius: 3 }}
+          className={`${CARD_CLASS} group flex flex-col gap-1 px-5 py-4 transition-colors hover:border-[var(--line-strong)]`}
         >
-          <span className="text-[14px] text-[var(--ink-secondary)] inline-flex items-center gap-1 font-medium">
+          <span className="text-[14px] text-[var(--ink-muted)] inline-flex items-center gap-1 font-medium">
             <Icon name="arrow-left" size={16} directional className="transition-transform duration-200 group-hover:-translate-x-0.5" />
             {t.pager.previous}
           </span>
-          <span className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+          <span className="text-[15px] font-medium text-[var(--ink)]">
             {labelFor(prev.key)}
           </span>
         </Link>
@@ -43,14 +43,13 @@ export function DocsPager() {
       {next && (
         <Link
           href={next.href}
-          className="group flex flex-col gap-1 p-4 text-end bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors sm:col-start-2"
-          style={{ borderRadius: 12 }}
+          className={`${CARD_CLASS} group flex flex-col gap-1 px-5 py-4 text-end transition-colors hover:border-[var(--line-strong)] sm:col-start-2`}
         >
-          <span className="text-[14px] text-[var(--ink-secondary)] inline-flex items-center gap-1 justify-end font-medium">
+          <span className="text-[14px] text-[var(--ink-muted)] inline-flex items-center gap-1 justify-end font-medium">
             {t.pager.next}
             <Icon name="arrow-right" size={16} directional className="transition-transform duration-200 group-hover:translate-x-0.5" />
           </span>
-          <span className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+          <span className="text-[15px] font-medium text-[var(--ink)]">
             {labelFor(next.key)}
           </span>
         </Link>

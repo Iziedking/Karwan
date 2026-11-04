@@ -1,5 +1,6 @@
 'use client';
 
+import { DocsAskAi } from '@/features/docs/components/DocsAskAi';
 import Link from 'next/link';
 import { useTierLabels } from '@/features/reputation/useTierLabels';
 import {
@@ -21,9 +22,10 @@ export default function DocsReputationPage() {
   return (
     <article>
       <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
-      <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold tracking-[-0.025em] leading-[1.02] text-[var(--lp-dark)]">
+      <h1 className="mt-3 text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.12] tracking-[-0.02em] text-[var(--ink)]">
         {t.title}
       </h1>
+      <DocsAskAi />
       <DocsP>{t.intro}</DocsP>
       <DocsP>{all.record.meaning}</DocsP>
       <DocsP>{all.record.privacy}</DocsP>
@@ -52,7 +54,7 @@ export default function DocsReputationPage() {
         {t.signals.referralPrefix}{' '}
         <Link
           href="/docs/roadmap#referral-marketing-rail"
-          className="underline decoration-[var(--lp-accent)] underline-offset-2 hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          className="underline decoration-[var(--line-strong)] underline-offset-2 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           {t.signals.referralLink}
         </Link>

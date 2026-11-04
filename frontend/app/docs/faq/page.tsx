@@ -1,5 +1,6 @@
 'use client';
 
+import { DocsAskAi } from '@/features/docs/components/DocsAskAi';
 import {
   DocsEyebrow,
   DocsH3,
@@ -12,9 +13,10 @@ export default function DocsFaqPage() {
   return (
     <article>
       <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
-      <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold tracking-[-0.025em] leading-[1.02] text-[var(--lp-dark)]">
+      <h1 className="mt-3 text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.12] tracking-[-0.02em] text-[var(--ink)]">
         {t.headline}
       </h1>
+      <DocsAskAi />
       <DocsP>{t.intro}</DocsP>
 
       {t.items.map((item, i) => (

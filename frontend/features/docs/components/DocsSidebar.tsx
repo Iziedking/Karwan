@@ -39,7 +39,7 @@ export function DocsSidebar() {
   const labelFor = useDocsSectionLabel();
   return (
     <aside className="lg:sticky lg:top-[88px] lg:self-start">
-      <p className="mb-4 hidden text-[14px] text-[var(--ink-secondary)] lg:block font-medium">
+      <p className="mb-3 hidden text-[14px] font-medium text-[var(--ink-muted)] lg:block">
         {t.sidebar.eyebrow}
       </p>
       <nav
@@ -67,22 +67,12 @@ export function DocsSidebar() {
                   : undefined
               }
               className={cn(
-                'group flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap border px-3 py-2 text-[14px] font-medium tracking-[-0.005em] transition-colors lg:border-transparent',
+                'flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[10px] border px-3 py-2 text-[14px] transition-colors lg:border-transparent',
                 active
-                  ? 'border-[var(--lp-outline-strong)] bg-[var(--lp-card)] text-[var(--lp-dark)]'
-                  : 'border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)]/60',
+                  ? 'border-[var(--line-strong)] bg-[var(--surface)] font-semibold text-[var(--ink)]'
+                  : 'border-[var(--line)] font-medium text-[var(--ink-secondary)] hover:bg-[var(--raised)] hover:text-[var(--ink)]',
               )}
-              style={{
-                borderRadius: 10,
-              }}
             >
-              <span
-                aria-hidden
-                className={cn(
-                  'inline-block w-1.5 h-1.5 rounded-full transition-colors',
-                  active ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-border-light)] group-hover:bg-[var(--lp-accent)]',
-                )}
-              />
               {labelFor(section.key)}
             </Link>
           );

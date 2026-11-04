@@ -1,12 +1,10 @@
 'use client';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// Body-text wrapper for docs pages. Sets typography for h2/h3/p/ul/code so
-/// each page can write JSX without restating the same Tailwind classes on
-/// every element. Headings get the lime accent dot on the left to echo the
-/// Section labels stay readable without mechanical bracket punctuation.
+/// Body-text wrapper for docs pages, so each page writes plain JSX.
 export function Prose({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('docs-prose', className)}>{children}</div>;
 }
@@ -17,7 +15,7 @@ export function DocsH2({ children, id }: { children: ReactNode; id?: string }) {
     <h2
       id={id}
       style={{ scrollMarginTop: 104 }}
-      className="mt-12 first:mt-0 font-sans text-[clamp(1.5rem,2.4vw,2rem)] font-extrabold tracking-[-0.015em] leading-tight text-[var(--lp-dark)]"
+      className="mt-12 first:mt-0 text-[20px] font-semibold tracking-[-0.01em] leading-snug text-[var(--ink)]"
     >
       {children}
     </h2>
@@ -32,7 +30,7 @@ export function DocsH3({ children, id }: { children: ReactNode; id?: string }) {
     <h3
       id={id}
       style={id ? { scrollMarginTop: 96 } : undefined}
-      className="mt-7 font-sans text-[18px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]"
+      className="mt-7 text-[17px] font-semibold text-[var(--ink)]"
     >
       {children}
     </h3>
@@ -43,24 +41,20 @@ export function DocsH3({ children, id }: { children: ReactNode; id?: string }) {
 /// without the line breaking too short.
 export function DocsP({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-4 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[64ch]">
+    <p className="mt-4 max-w-[64ch] text-[16px] leading-relaxed text-[var(--ink-secondary)]">
       {children}
     </p>
   );
 }
 
-/// Bullet list with the lime accent dot.
+/// A list is one card of rows; a leading <strong> becomes the row title.
 export function DocsList({ children }: { children: ReactNode }) {
-  return <ul className="mt-4 space-y-2 max-w-[64ch]">{children}</ul>;
+  return <ul className={`${CARD_CLASS} mt-4 max-w-[720px] divide-y divide-[var(--line)] px-5`}>{children}</ul>;
 }
 
 export function DocsListItem({ children }: { children: ReactNode }) {
   return (
-    <li className="relative ps-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-      <span
-        aria-hidden
-        className="absolute start-0 top-[10px] w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]"
-      />
+    <li className="py-4 text-[15px] leading-relaxed text-[var(--ink-secondary)] [&>strong:first-child]:mb-1 [&>strong:first-child]:block [&>strong:first-child]:font-semibold [&>strong:first-child]:text-[var(--ink)]">
       {children}
     </li>
   );
@@ -76,7 +70,7 @@ export function DocsEyebrow({ children }: { children: ReactNode }) {
   );
 }
 
-/// Wraps a screenshot or video in the Phantom asymmetric-corner frame.
+/// Wraps a screenshot or video in a card.
 /// Pass the asset path (resolves under /docs/images/ or /docs/videos/) and
 /// an alt string. Drop a caption below the frame as the children.
 export function DocsFigure({
@@ -98,17 +92,10 @@ export function DocsFigure({
   return (
     <figure className="mt-7 max-w-[720px]">
       <div
-        className="overflow-hidden bg-[var(--lp-card)] border border-[var(--lp-border-light)]"
-        style={{
-          borderRadius: 14,
-        }}
+        className={`${CARD_CLASS} overflow-hidden`}
       >
         {missing ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-            <span
-              aria-hidden
-              className="inline-block w-2 h-2 rounded-full bg-[var(--lp-accent)]"
-            />
             <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
               {kind === 'video' ? t.figure.videoComingSoon : t.figure.screenshotComingSoon}
             </span>
@@ -128,7 +115,7 @@ export function DocsFigure({
         )}
       </div>
       {caption && (
-        <figcaption className="mt-3 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <figcaption className="mt-3 text-[14px] text-[var(--ink-muted)]">
           {caption}
         </figcaption>
       )}
@@ -147,16 +134,16 @@ export function DocsCallout({
   title: string;
   children: ReactNode;
 }) {
-  const border = tone === 'warn' ? 'var(--color-warning)' : 'var(--lp-accent)';
+  const border = tone === 'warn' ? 'var(--color-warning)' : 'var(--line-strong)';
   return (
     <aside
       className="mt-6 max-w-[64ch] ps-5 py-1"
       style={{ borderInlineStart: `3px solid ${border}` }}
     >
-      <p className="text-[14px] font-semibold text-[var(--lp-dark)]">
+      <p className="text-[14px] font-semibold text-[var(--ink)]">
         {title}
       </p>
-      <div className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+      <div className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
         {children}
       </div>
     </aside>

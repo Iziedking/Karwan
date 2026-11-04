@@ -265,6 +265,12 @@ test('the guide reads a conversation as the new look shows it (view 48, batch 9g
   assert.match(all, /round Send button is the one green control/);
 });
 
+test('the guide knows the docs AI buttons (view 48, batch 9j)', () => {
+  const e = PLATFORM_GUIDE.find((entry) => entry.id === 'support')!;
+  assert.match(e.summary, /Copy for AI copies the page as plain text/);
+  assert.match(e.summary, /Ask Claude and Ask ChatGPT open that chat in a new tab/);
+});
+
 test('the guide reads the work pages as the new look shows them (view 48, batch 9i)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('hourly-work'), /each week is its own card/);

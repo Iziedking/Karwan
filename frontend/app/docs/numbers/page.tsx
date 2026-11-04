@@ -89,20 +89,20 @@ export default function DocsNumbersPage() {
 
   return (
     <article className="product-surface">
-      <header className="space-y-4 border-b border-[var(--lp-border-light)] pb-8">
+      <header className="space-y-4 border-b border-[var(--line)] pb-8">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[14px]">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3 py-1 font-medium text-[var(--lp-dark)]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-1 font-medium text-[var(--ink)]">
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--chart-bar)]" />
             {testnet ? t.networkTestnet : t.networkMainnet}
           </span>
           {OTHER_NETWORK_URL ? (
-            <a href={OTHER_NETWORK_URL} className="inline-flex min-h-11 items-center text-[var(--lp-text-sub)] underline-offset-4 hover:underline">
+            <a href={OTHER_NETWORK_URL} className="inline-flex min-h-11 items-center text-[var(--ink-secondary)] underline-offset-4 hover:underline">
               {testnet ? t.otherMainnet : t.otherTestnet} ↗
             </a>
           ) : null}
         </div>
-        <h1 className="text-[32px] font-semibold leading-tight text-[var(--lp-dark)] sm:text-[36px]">{t.title}</h1>
-        <p className="max-w-[60ch] text-[16px] leading-relaxed text-[var(--lp-text-sub)]">{t.lead}</p>
+        <h1 className="text-[32px] font-semibold leading-tight text-[var(--ink)] sm:text-[36px]">{t.title}</h1>
+        <p className="max-w-[60ch] text-[16px] leading-relaxed text-[var(--ink-secondary)]">{t.lead}</p>
         {state === 'ready' && stats ? <Freshness block={stats.toBlock} updatedAt={updatedAt} t={t} /> : null}
       </header>
 
@@ -110,7 +110,7 @@ export default function DocsNumbersPage() {
       {state === 'unscanned' ? <Message text={t.states.unscanned} /> : null}
       {state === 'error' ? <Message text={t.states.error} action={t.states.retry} onAction={loadLifetime} /> : null}
       {state === 'ready' && stats ? (
-        <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-10">
+        <div className="divide-y divide-[var(--line)] [&>*]:py-10">
           <Hero stats={stats} t={t} />
           <OverTime stats={stats} t={t} />
           <WhereItWent stats={stats} t={t} />
@@ -130,7 +130,7 @@ function Freshness({ block, updatedAt, t }: { block: string; updatedAt: number; 
   }, []);
   const age = Math.max(0, Math.round((now - updatedAt) / 1000));
   return (
-    <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
+    <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
       {age < 5 ? t.updatedNow : fill(t.updatedAgo, { n: String(age) })}
       <span aria-hidden className="mx-2">·</span>
       {fill(t.block, { block: Number(block).toLocaleString('en-US') })}
@@ -139,7 +139,7 @@ function Freshness({ block, updatedAt, t }: { block: string; updatedAt: number; 
 }
 
 function Skeleton() {
-  const soft = 'rounded-[12px] bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse';
+  const soft = 'rounded-[12px] bg-[var(--raised)] motion-safe:animate-pulse';
   return (
     <div aria-busy="true" className="space-y-6 py-10">
       <div className={`h-16 w-72 ${soft}`} />
@@ -152,12 +152,12 @@ function Skeleton() {
 function Message({ text, action, onAction }: { text: string; action?: string; onAction?: () => void }) {
   return (
     <div className="space-y-4 py-12">
-      <p className="text-[16px] text-[var(--lp-dark)]">{text}</p>
+      <p className="text-[16px] text-[var(--ink)]">{text}</p>
       {action && onAction ? (
         <button
           type="button"
           onClick={onAction}
-          className="inline-flex min-h-11 items-center rounded-[10px] border border-[var(--lp-outline-strong)] px-4 text-[15px] font-medium text-[var(--lp-dark)]"
+          className="inline-flex min-h-11 items-center rounded-[10px] border border-[var(--line-strong)] px-4 text-[15px] font-medium text-[var(--ink)]"
         >
           {action}
         </button>
@@ -177,18 +177,18 @@ function RowBars({ rows }: { rows: Array<{ label: string; value: number; note?: 
       {rows.map((r) => (
         <li key={r.label} className="space-y-1.5">
           <div className="flex items-baseline justify-between gap-4">
-            <span className="text-[15px] text-[var(--lp-dark)]">{r.label}</span>
-            <span dir="ltr" className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">
-              {glanceUsdc(r.value)} <span className="text-[14px] font-normal text-[var(--lp-text-sub)]">USDC</span>
+            <span className="text-[15px] text-[var(--ink)]">{r.label}</span>
+            <span dir="ltr" className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">
+              {glanceUsdc(r.value)} <span className="text-[14px] font-normal text-[var(--ink-secondary)]">USDC</span>
             </span>
           </div>
-          <div className="h-2 w-full rounded-full bg-[var(--lp-border-light)]">
+          <div className="h-2 w-full rounded-full bg-[var(--line)]">
             <div
               className="h-2 rounded-full bg-[var(--chart-bar)]"
               style={{ width: `${r.value > 0 ? Math.max(1.5, (r.value / max) * 100) : 0}%` }}
             />
           </div>
-          {r.note ? <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{r.note}</p> : null}
+          {r.note ? <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{r.note}</p> : null}
         </li>
       ))}
     </ul>
@@ -198,11 +198,11 @@ function RowBars({ rows }: { rows: Array<{ label: string; value: number; note?: 
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</p>
-      <p className="text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">
+      <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{label}</p>
+      <p className="text-[24px] font-semibold tabular-nums text-[var(--ink)]">
         <span dir="ltr">
           {value}
-          {unit ? <span className="ms-1.5 text-[14px] font-normal text-[var(--lp-text-sub)]">{unit}</span> : null}
+          {unit ? <span className="ms-1.5 text-[14px] font-normal text-[var(--ink-secondary)]">{unit}</span> : null}
         </span>
       </p>
     </div>
@@ -215,14 +215,14 @@ function Hero({ stats, t }: { stats: LifetimeStats; t: Copy }) {
   return (
     <section aria-labelledby="hero" className="space-y-8">
       <div className="space-y-2">
-        <h2 id="hero" className="text-[15px] font-medium text-[var(--lp-text-sub)]">{t.hero.label}</h2>
-        <p className="text-[48px] font-semibold leading-none tabular-nums text-[var(--lp-dark)] sm:text-[64px]">
+        <h2 id="hero" className="text-[15px] font-medium text-[var(--ink-secondary)]">{t.hero.label}</h2>
+        <p className="text-[48px] font-semibold leading-none tabular-nums text-[var(--ink)] sm:text-[64px]">
           <span dir="ltr">
             {glanceUsdc(num(stats.totalMovedUsdc))}
-            <span className="ms-2 text-[18px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+            <span className="ms-2 text-[18px] font-medium text-[var(--ink-secondary)]">USDC</span>
           </span>
         </p>
-        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.hero.note}</p>
+        <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{t.hero.note}</p>
       </div>
       <RowBars
         rows={[
@@ -256,15 +256,15 @@ function OverTime({ stats, t }: { stats: LifetimeStats; t: Copy }) {
   let body: React.ReactNode;
   if (!series.complete) {
     const pct = Math.floor(series.indexedShare * 100);
-    body = <p className="text-[15px] text-[var(--lp-text-sub)]">{fill(t.overTime.indexing, { pct: String(pct) })}</p>;
+    body = <p className="text-[15px] text-[var(--ink-secondary)]">{fill(t.overTime.indexing, { pct: String(pct) })}</p>;
   } else if (weeks.length === 0) {
-    body = <p className="text-[15px] text-[var(--lp-text-sub)]">{t.overTime.empty}</p>;
+    body = <p className="text-[15px] text-[var(--ink-secondary)]">{t.overTime.empty}</p>;
   } else {
     const heading = (w: string) => fill(t.overTime.weekOf, { date: long.format(new Date(`${w}T00:00:00Z`)) });
     body = (
       <div className="grid gap-10 lg:grid-cols-2">
         <div className="space-y-3">
-          <h3 className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.overTime.moneyTitle}</h3>
+          <h3 className="text-[17px] font-semibold text-[var(--ink)]">{t.overTime.moneyTitle}</h3>
           <WeeklyBars
             title={t.overTime.moneyTitle}
             data={weeks.map((w) => ({
@@ -281,7 +281,7 @@ function OverTime({ stats, t }: { stats: LifetimeStats; t: Copy }) {
           />
         </div>
         <div className="space-y-3">
-          <h3 className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.overTime.dealsTitle}</h3>
+          <h3 className="text-[17px] font-semibold text-[var(--ink)]">{t.overTime.dealsTitle}</h3>
           <WeeklyBars
             title={t.overTime.dealsTitle}
             data={weeks.map((w) => ({
@@ -303,7 +303,7 @@ function OverTime({ stats, t }: { stats: LifetimeStats; t: Copy }) {
 
   return (
     <section aria-labelledby="over-time" className="space-y-6">
-      <h2 id="over-time" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.overTime.title}</h2>
+      <h2 id="over-time" className="text-[22px] font-semibold text-[var(--ink)]">{t.overTime.title}</h2>
       {body}
     </section>
   );
@@ -317,7 +317,7 @@ function WhereItWent({ stats, t }: { stats: LifetimeStats; t: Copy }) {
   const fees = num(stats.volumes.feesUsdc);
   return (
     <section aria-labelledby="went" className="space-y-6">
-      <h2 id="went" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.went.title}</h2>
+      <h2 id="went" className="text-[22px] font-semibold text-[var(--ink)]">{t.went.title}</h2>
       <RowBars
         rows={[
           { label: t.went.sellers, value: sellers, note: share(sellers) },
@@ -325,7 +325,7 @@ function WhereItWent({ stats, t }: { stats: LifetimeStats; t: Copy }) {
           { label: t.went.fees, value: fees, note: share(fees) },
         ]}
       />
-      <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.went.note}</p>
+      <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{t.went.note}</p>
     </section>
   );
 }
@@ -336,7 +336,7 @@ function Rails({ stats, t }: { stats: LifetimeStats; t: Copy }) {
   const treasury = stats.byKind.find((k) => k.kind === 'treasury');
   return (
     <section aria-labelledby="rails" className="space-y-6">
-      <h2 id="rails" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.rails.title}</h2>
+      <h2 id="rails" className="text-[22px] font-semibold text-[var(--ink)]">{t.rails.title}</h2>
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
         <Stat label={t.rails.stakeLocked} value={glanceUsdc(num(staking?.volumes.stakedUsdc))} unit="USDC" />
         <Stat label={t.rails.stakeTaken} value={glanceUsdc(num(stats.volumes.slashedUsdc))} unit="USDC" />
@@ -372,7 +372,7 @@ function Contracts({
       href={`${explorer}/address/${address}`}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex min-h-11 items-center mono text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:underline font-medium"
+      className="inline-flex min-h-11 items-center mono text-[14px] text-[var(--ink-secondary)] underline-offset-4 hover:underline font-medium"
     >
       {address.slice(0, 6)}…{address.slice(-4)} ↗
     </a>
@@ -383,23 +383,23 @@ function Contracts({
   return (
     <section aria-labelledby="contracts" className="space-y-6">
       <div className="space-y-2">
-        <h2 id="contracts" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.contracts.title}</h2>
-        <p className="text-[15px] text-[var(--lp-text-sub)]">{t.contracts.lead}</p>
+        <h2 id="contracts" className="text-[22px] font-semibold text-[var(--ink)]">{t.contracts.title}</h2>
+        <p className="text-[15px] text-[var(--ink-secondary)]">{t.contracts.lead}</p>
       </div>
-      <ul className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+      <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
         {live.map((c) => {
           const history = byAddress.get(c.address.toLowerCase());
           return (
             <li key={c.address} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-3">
               <div className="min-w-0">
-                <p className="text-[15px] font-medium text-[var(--lp-dark)]">
+                <p className="text-[15px] font-medium text-[var(--ink)]">
                   {plainName(c.name)}
-                  {version(history) ? <span className="ms-2 text-[14px] font-normal text-[var(--lp-text-sub)]">{version(history)}</span> : null}
+                  {version(history) ? <span className="ms-2 text-[14px] font-normal text-[var(--ink-secondary)]">{version(history)}</span> : null}
                 </p>
-                <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{role(c.kind)}</p>
+                <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{role(c.kind)}</p>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-[14px] tabular-nums text-[var(--lp-dark)]">
+                <span className="text-[14px] tabular-nums text-[var(--ink)]">
                   {c.usdcBalance === null || num(c.usdcBalance) === 0
                     ? t.contracts.noFunds
                     : fill(t.contracts.holds, { amount: glanceUsdc(num(c.usdcBalance)) })}
@@ -412,16 +412,16 @@ function Contracts({
       </ul>
       {retired.length > 0 ? (
         <details className="group">
-          <summary className="inline-flex min-h-11 cursor-pointer items-center text-[15px] font-medium text-[var(--lp-dark)]">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-[15px] font-medium text-[var(--ink)]">
             {t.contracts.retiredTitle} ({retired.length})
           </summary>
-          <p className="mb-3 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.contracts.retiredLead}</p>
-          <ul className="divide-y divide-[var(--lp-border-light)]">
+          <p className="mb-3 text-[14px] text-[var(--ink-secondary)] font-medium">{t.contracts.retiredLead}</p>
+          <ul className="divide-y divide-[var(--line)]">
             {retired.map((c) => (
               <li key={c.address} className="flex flex-wrap items-center justify-between gap-x-6 py-2">
-                <span className="text-[14px] text-[var(--lp-dark)]">
+                <span className="text-[14px] text-[var(--ink)]">
                   {plainName(c.name)}
-                  {version(c) ? <span className="ms-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{version(c)}</span> : null}
+                  {version(c) ? <span className="ms-2 text-[14px] text-[var(--ink-secondary)] font-medium">{version(c)}</span> : null}
                 </span>
                 {link(c.address)}
               </li>
