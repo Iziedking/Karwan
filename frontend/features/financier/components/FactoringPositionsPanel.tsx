@@ -69,16 +69,17 @@ export function FactoringPositionsPanel() {
 
   return (
     <section aria-labelledby="your-positions" className="pt-8" data-guide="financier-positions">
-      <h2 id="your-positions" className="text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--ink)]">
+      <h2 id="your-positions" className="text-[17px] font-semibold leading-tight text-[var(--ink)]">
         {t.title}
       </h2>
-      <p className="mt-1 text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">
+      {/* Nothing out means nothing to sum up. */}
+      {summary.active > 0 || needsYou.length > 0 ? <p className="mt-1 text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">
         {t.summary
           .replace('{active}', String(summary.active))
           .replace('{out}', formatUsdc(summary.outUsdc, { withSuffix: false }))
           .replace('{back}', formatUsdc(summary.expectedUsdc, { withSuffix: false }))}
         {needsYou.length > 0 ? ` · ${t.needsReview.replace('{count}', String(needsYou.length))}` : ''}
-      </p>
+      </p> : null}
 
       {needsYou.length > 0 && (
         <PositionGroup id="positions-needs-you" title={t.needsYouTitle}>
@@ -117,7 +118,7 @@ export function FactoringHistoryPanel() {
 
   return (
     <section aria-labelledby="positions-history" className="pt-10">
-      <h2 id="positions-history" className="text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--ink)]">
+      <h2 id="positions-history" className="text-[17px] font-semibold leading-tight text-[var(--ink)]">
         {t.historyTitle}
       </h2>
       <ul className={`${CARD_CLASS} mt-4 divide-y divide-[var(--line)] px-5`}>

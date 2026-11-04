@@ -1,5 +1,7 @@
 'use client';
 
+import { CARD_CLASS } from '@/shared/components/Card';
+import { buttonClasses } from '@/shared/components/Button';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,8 +10,10 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/workspace/Sheet';
 import { useTagRecipient } from '@/features/money/hooks/useTagRecipient';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { ALERT, FIELD, PRIMARY } from '@/shared/ui/controls';
+import { ALERT } from '@/shared/ui/controls';
 import { localDay, microsToUsdc } from '../workModel';
+
+const GREEN = buttonClasses({ size: 'lg' });
 
 /// Hire someone by the hour or monthly (view 32): who, how you pay, the rate
 /// and how long; then one sheet with every figure before the buying agent
@@ -78,7 +82,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
       role="radio"
       aria-checked={kind === k}
       onClick={() => setKind(k)}
-      className={`min-h-11 rounded-full border px-4 text-[15px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${kind === k ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-bg)]' : 'border-[var(--lp-border-light)] bg-[var(--tint)] text-[var(--lp-dark)]'}`}
+      className={`min-h-11 rounded-[9px] px-4 text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${kind === k ? 'bg-[var(--surface)] font-semibold text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink)]' : 'font-medium text-[var(--ink-secondary)]'}`}
     >
       {label}
     </button>
@@ -86,63 +90,63 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
 
   return (
     <main className="mx-auto w-full max-w-[760px] px-4 pb-16 pt-8 sm:px-6">
-      <h1 className="text-[28px] font-semibold text-[var(--lp-dark)]">{t.form.title}</h1>
-      <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">
+      <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.form.title}</h1>
+      <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">
         {t.requests.findBody}{' '}
-        <Link href="/work/requests/new" className="font-semibold text-[var(--lp-dark)] underline underline-offset-2">{t.requests.findTitle}</Link>
+        <Link href="/work/requests/new" className="font-semibold text-[var(--ink)] underline underline-offset-2">{t.requests.findTitle}</Link>
       </p>
       <div className="mt-6 space-y-5">
         <label className="block">
           <span className={fieldLabel}>{t.form.who}</span>
-          <input className={`${FIELD} mt-2`} value={who} maxLength={40} autoCapitalize="none" autoCorrect="off" spellCheck={false} onChange={(e) => setWho(e.target.value)} />
-          <span aria-live="polite" className={`mt-1 block text-[14px] ${found ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{tagLine}</span>
+          <input className={`form-input block w-full mt-2`} value={who} maxLength={40} autoCapitalize="none" autoCorrect="off" spellCheck={false} onChange={(e) => setWho(e.target.value)} />
+          <span aria-live="polite" className={`mt-1 block text-[14px] ${found ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}>{tagLine}</span>
         </label>
         <fieldset>
           <legend className={fieldLabel}>{t.form.how}</legend>
-          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup">
+          <div role="radiogroup" className="grid grid-cols-2 gap-1 rounded-[12px] bg-[var(--ash)] p-1">
             {toggle('hourly', t.form.hourly)}
             {toggle('monthly', t.form.monthly)}
           </div>
         </fieldset>
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.rate : t.form.rateMonthly}</span>
-          <input className={`${FIELD} mt-2 tabular-nums`} inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, ''))} />
+          <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, ''))} />
         </label>
         {hourly ? (
           <label className="block">
             <span className={fieldLabel}>{t.form.hours}</span>
-            <input className={`${FIELD} mt-2 tabular-nums`} inputMode="numeric" value={hours} onChange={(e) => setHours(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+            <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={hours} onChange={(e) => setHours(e.target.value.replace(/\D/g, '').slice(0, 2))} />
           </label>
         ) : null}
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.weeks : t.form.months}</span>
-          <input className={`${FIELD} mt-2 tabular-nums`} inputMode="numeric" value={periods} onChange={(e) => setPeriods(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+          <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={periods} onChange={(e) => setPeriods(e.target.value.replace(/\D/g, '').slice(0, 2))} />
         </label>
         <label className="block">
           <span className={fieldLabel}>{t.form.starts}</span>
-          <input className={`${FIELD} mt-2 tabular-nums`} inputMode="numeric" value={starts} onChange={(e) => setStarts(e.target.value.replace(/\D/g, '').slice(0, 2))} />
-          <span className="mt-1 block text-[14px] text-[var(--lp-text-sub)]">{t.form.startsHint}</span>
+          <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={starts} onChange={(e) => setStarts(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+          <span className="mt-1 block text-[14px] text-[var(--ink-secondary)]">{t.form.startsHint}</span>
         </label>
         <label className="block">
           <span className={fieldLabel}>{t.form.what}</span>
-          <input className={`${FIELD} mt-2`} value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
+          <input className={`form-input block w-full mt-2`} value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
         </label>
         <label className="block">
           <span className={fieldLabel}>{t.form.brief}</span>
-          <textarea className={`${FIELD} mt-2 min-h-28 py-3`} value={brief} maxLength={1500} onChange={(e) => setBrief(e.target.value)} />
+          <textarea className={`form-input block w-full mt-2 min-h-28 py-3`} value={brief} maxLength={1500} onChange={(e) => setBrief(e.target.value)} />
         </label>
       </div>
       {error && !card ? <p role="alert" className={`${ALERT} mt-5`}>{error}</p> : null}
-      <button type="button" disabled={!ready || busy} onClick={() => void review()} className={`${PRIMARY} mt-8 w-full sm:w-auto`}>
+      <button type="button" disabled={!ready || busy} onClick={() => void review()} className={`${GREEN} mt-8 w-full sm:w-auto`}>
         {t.form.review}
       </button>
 
       <Sheet open={!!card} title={t.card.title} busy={busy} onClose={() => { setCard(null); setError(null); }}>
         {card ? (
           <>
-            <p className="text-[32px] font-semibold tabular-nums text-[var(--lp-dark)]">{usdc(card.totalMicros)}</p>
-            {found ? <p className="mt-1 text-[15px] font-semibold text-[var(--lp-dark)]">{fill(t.form.whoFound, { name: found.displayName, tag: found.tag })}</p> : null}
-            <dl className="mt-4 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)] text-[15px]">
+            <p className="text-[32px] font-semibold tabular-nums text-[var(--ink)]">{usdc(card.totalMicros)}</p>
+            {found ? <p className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{fill(t.form.whoFound, { name: found.displayName, tag: found.tag })}</p> : null}
+            <dl className={`${CARD_CLASS} mt-4 divide-y divide-[var(--line)] px-5 text-[15px]`}>
               {[
                 [hourly ? t.card.firstWeek : t.card.firstMonth, usdc(card.budgetMicros)],
                 [t.card.fee, usdc(card.feeHalfMicros)],
@@ -150,12 +154,12 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
                 [t.card.starts, localDay(card.startsAt, locale)],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4 py-3">
-                  <dt className="text-[var(--lp-text-sub)]">{k}</dt>
-                  <dd className="font-semibold tabular-nums text-[var(--lp-dark)]">{v}</dd>
+                  <dt className="text-[var(--ink-secondary)]">{k}</dt>
+                  <dd className="font-semibold tabular-nums text-[var(--ink)]">{v}</dd>
                 </div>
               ))}
             </dl>
-            <p className="mt-4 text-[14px] text-[var(--lp-text-sub)]">{card.note}</p>
+            <p className="mt-4 text-[14px] text-[var(--ink-secondary)]">{card.note}</p>
             {error ? <p role="alert" className={`${ALERT} mt-4`}>{error}</p> : null}
             <div className="mt-6 space-y-3">
               <button type="button" disabled={busy} onClick={() => void confirm()} className={primaryButton}>

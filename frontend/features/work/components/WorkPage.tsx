@@ -1,14 +1,19 @@
 'use client';
 
+import { CARD_CLASS } from '@/shared/components/Card';
+import { buttonClasses } from '@/shared/components/Button';
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type WorkView, type WorkWeekView } from '@/core/api';
 import { fill } from '@/features/deals/workspace/presentation';
 import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/workspace/Sheet';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { ALERT, FIELD, PRIMARY, QUIET } from '@/shared/ui/controls';
+import { ALERT } from '@/shared/ui/controls';
 import { hoursText, localDay, microsToUsdc, minutesFrom, weekLine, workActions } from '../workModel';
 import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
 import { workSteps } from '../workSteps';
+
+const GREEN = buttonClasses({ size: 'lg' });
+const QUIET_BUTTON = buttonClasses({ variant: 'secondary', size: 'lg' });
 
 type SheetKind =
   | { kind: 'accept' | 'decline' | 'takeBack' | 'fund' | 'notice' }
@@ -40,7 +45,7 @@ export function WorkPage({ id }: { id: string }) {
     return () => window.clearInterval(poll);
   }, [load]);
 
-  if (missing) return <main className="mx-auto max-w-[760px] px-4 pt-8 sm:px-6"><p className="text-[15px] text-[var(--lp-text-sub)]">{t.failed}</p></main>;
+  if (missing) return <main className="mx-auto max-w-[760px] px-4 pt-8 sm:px-6"><p className="text-[15px] text-[var(--ink-secondary)]">{t.failed}</p></main>;
   if (!v) return null;
 
   const hourly = v.kind === 'hourly';
@@ -74,20 +79,22 @@ export function WorkPage({ id }: { id: string }) {
 
   return (
     <main className="mx-auto w-full max-w-[760px] px-4 pb-16 pt-8 sm:px-6">
-      <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.page.status[v.status]}</p>
-      <h1 dir="auto" className="mt-1 text-[28px] font-semibold text-[var(--lp-dark)]">{v.title}</h1>
-      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{other}</p>
-      <p className="mt-5 text-[32px] font-semibold tabular-nums text-[var(--lp-dark)]">
+      <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{t.page.status[v.status]}</p>
+      <h1 dir="auto" className="mt-1 text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{v.title}</h1>
+      <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{other}</p>
+      <div className={`${CARD_CLASS} mt-5 px-5 py-4`}>
+      <p className="text-[24px] font-semibold tabular-nums text-[var(--ink)]">
         {fill(hourly ? t.page.rateHour : t.page.rateMonth, { amount: microsToUsdc(v.rateMicros) })}
       </p>
-      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">
+      <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
         {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, fill(hourly ? t.page.weeks : t.page.months, { n: v.runs }), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}
       </p>
-      {v.status === 'ending' ? <p className="mt-1 text-[15px] font-semibold text-[var(--lp-dark)]">{fill(hourly ? t.page.endsAfterWeek : t.page.endsAfterMonth, { n: lastK + 1 })}</p> : null}
-      {v.brief ? <p dir="auto" className="mt-4 whitespace-pre-line text-[15px] leading-relaxed text-[var(--lp-dark)]">{v.brief}</p> : null}
+      </div>
+      {v.status === 'ending' ? <p className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{fill(hourly ? t.page.endsAfterWeek : t.page.endsAfterMonth, { n: lastK + 1 })}</p> : null}
+      {v.brief ? <p dir="auto" className="mt-4 whitespace-pre-line text-[15px] leading-relaxed text-[var(--ink)]">{v.brief}</p> : null}
       {trackWeek ? (
-        <div data-steps-card className="mt-6 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
-          <p className="mb-4 text-[14px] font-semibold text-[var(--lp-text-sub)]">{periodName(trackWeek.k)}</p>
+        <div data-steps-card className={`${CARD_CLASS} mt-6 p-5`}>
+          <p className="mb-4 text-[14px] font-semibold text-[var(--ink-secondary)]">{periodName(trackWeek.k)}</p>
           <StepsTrack steps={workSteps(trackWeek)} />
         </div>
       ) : null}
@@ -103,7 +110,7 @@ export function WorkPage({ id }: { id: string }) {
               notice: t.page.notice,
             }[a];
             return (
-              <button key={a} type="button" onClick={() => setSheet({ kind: a })} className={primaryWeek === null && i === 0 && a !== 'notice' ? PRIMARY : QUIET}>
+              <button key={a} type="button" onClick={() => setSheet({ kind: a })} className={primaryWeek === null && i === 0 && a !== 'notice' ? GREEN : QUIET_BUTTON}>
                 {label}
               </button>
             );
@@ -111,10 +118,10 @@ export function WorkPage({ id }: { id: string }) {
         </div>
       ) : null}
       {v.role === 'hirer' && v.fundBlocked && (v.status === 'active' || v.status === 'ending') && v.weeks.length < v.runs ? (
-        <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">{v.fundBlocked}</p>
+        <p className="mt-3 text-[14px] text-[var(--ink-secondary)]">{v.fundBlocked}</p>
       ) : null}
 
-      <ul className="mt-8 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+      <ul className="mt-8 space-y-3">
         {[...v.weeks].reverse().map((w) => {
           const line = weekLine(w, now);
           const status =
@@ -125,40 +132,40 @@ export function WorkPage({ id }: { id: string }) {
               : line === 'logging' ? fill(t.page.logBy, { date: day(w.logBy) })
               : fill(t.page.starts, { date: day(w.start) });
           return (
-            <li key={w.k} className="py-4">
+            <li key={w.k} className={`${CARD_CLASS} px-5 py-4`}>
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-[17px] font-semibold text-[var(--lp-dark)]">{periodName(w.k)}</span>
-                <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">
+                <span className="text-[17px] font-semibold text-[var(--ink)]">{periodName(w.k)}</span>
+                <span className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">
                   {hourly
                     ? (w.loggedMinutes ? fill(t.page.logged, { hours: hoursText(w.loggedMinutes), most: hoursText(v.maxHours * 60) }) : t.page.nothingLogged)
                     : (w.loggedMinutes ? t.page.claimed : t.page.nothingLogged)}
                 </span>
               </div>
-              <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{status}</p>
+              <p className="mt-1 text-[14px] text-[var(--ink-secondary)]">{status}</p>
               {w.log.length > 0 ? (
                 <ul className="mt-2 space-y-1">
                   {w.log.filter((x) => x.note).map((x) => (
-                    <li key={x.at} dir="auto" className="text-[14px] text-[var(--lp-text-sub)]">{hourly ? `${hoursText(x.minutes)} · ` : ''}{x.note}</li>
+                    <li key={x.at} dir="auto" className="text-[14px] text-[var(--ink-secondary)]">{hourly ? `${hoursText(x.minutes)} · ` : ''}{x.note}</li>
                   ))}
                 </ul>
               ) : null}
               <div className="mt-3 flex flex-wrap gap-3">
-                {w.canLog ? <button type="button" onClick={() => setSheet({ kind: 'log', k: w.k })} className={primaryWeek === w.k ? PRIMARY : QUIET}>{hourly ? t.page.logHours : t.page.claimMonth}</button> : null}
+                {w.canLog ? <button type="button" onClick={() => setSheet({ kind: 'log', k: w.k })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>{hourly ? t.page.logHours : t.page.claimMonth}</button> : null}
                 {w.canApprove ? (
-                  <button type="button" onClick={() => setSheet({ kind: 'approve', w })} className={primaryWeek === w.k ? PRIMARY : QUIET}>
+                  <button type="button" onClick={() => setSheet({ kind: 'approve', w })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>
                     {hourly ? fill(t.page.approve, { hours: hoursText(w.loggedMinutes) }) : t.page.approveMonth}
                   </button>
                 ) : null}
-                {w.canObject ? <button type="button" onClick={() => setSheet({ kind: 'object', w })} className={QUIET}>{t.page.wrong}</button> : null}
+                {w.canObject ? <button type="button" onClick={() => setSheet({ kind: 'object', w })} className={QUIET_BUTTON}>{t.page.wrong}</button> : null}
               </div>
             </li>
           );
         })}
         {v.weeks.length < v.runs && (v.status === 'active' || v.status === 'ending') ? (
-          <li className="py-4">
+          <li className={`${CARD_CLASS} px-5 py-4`}>
             <div className="flex items-baseline justify-between gap-4">
-              <span className="text-[17px] font-semibold text-[var(--lp-dark)]">{periodName(v.weeks.length)}</span>
-              <span className="text-[15px] text-[var(--lp-text-sub)]">{t.page.notFunded}</span>
+              <span className="text-[17px] font-semibold text-[var(--ink)]">{periodName(v.weeks.length)}</span>
+              <span className="text-[15px] text-[var(--ink-secondary)]">{t.page.notFunded}</span>
             </div>
           </li>
         ) : null}
@@ -198,7 +205,7 @@ export function WorkPage({ id }: { id: string }) {
 
   function sheetBody() {
     if (!sheet || !v) return null;
-    const body = (text: string) => <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">{text}</p>;
+    const body = (text: string) => <p className="text-[15px] leading-relaxed text-[var(--ink)]">{text}</p>;
     switch (sheet.kind) {
       case 'accept':
         return <>{body(t.sheets.accept.body)}{buttons(t.sheets.accept.confirm, () => api.acceptWork(v.id))}</>;
@@ -211,17 +218,17 @@ export function WorkPage({ id }: { id: string }) {
       case 'fund':
         return (
           <>
-            <p className="text-[32px] font-semibold tabular-nums text-[var(--lp-dark)]">{usdc(v.nextWeek?.totalMicros ?? '0')}</p>
-            <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">{t.sheets.fund.body}</p>
+            <p className="text-[32px] font-semibold tabular-nums text-[var(--ink)]">{usdc(v.nextWeek?.totalMicros ?? '0')}</p>
+            <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">{t.sheets.fund.body}</p>
             {buttons(fill(t.sheets.fund.confirm, { amount: microsToUsdc(v.nextWeek?.totalMicros ?? '0') }), () => api.fundWork(v.id))}
           </>
         );
       case 'approve':
         return (
           <>
-            <p className="text-[32px] font-semibold tabular-nums text-[var(--lp-dark)]">{usdc(sheet.w.ifPaid.netMicros)}</p>
-            <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{t.sheets.approve.gets}</p>
-            <p className="mt-4 text-[15px] text-[var(--lp-dark)]">{t.sheets.approve.body}</p>
+            <p className="text-[32px] font-semibold tabular-nums text-[var(--ink)]">{usdc(sheet.w.ifPaid.netMicros)}</p>
+            <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{t.sheets.approve.gets}</p>
+            <p className="mt-4 text-[15px] text-[var(--ink)]">{t.sheets.approve.body}</p>
             {buttons(t.sheets.approve.confirm, () => api.approveHours(v.id, sheet.w.k))}
           </>
         );
@@ -230,17 +237,17 @@ export function WorkPage({ id }: { id: string }) {
         const ok = minutes !== null && minutes <= most && note.trim().length > 0;
         return (
           <>
-            <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">{t.sheets.object.body}</p>
+            <p className="text-[15px] leading-relaxed text-[var(--ink)]">{t.sheets.object.body}</p>
             <fieldset className="mt-4">
               <legend className={fieldLabel}>{t.sheets.object.hours}</legend>
               <div className="mt-2 grid grid-cols-2 gap-3">
-                <input aria-label={t.sheets.log.hours} className={`${FIELD} tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.hours} value={h} onChange={(e) => setH(e.target.value.replace(/\D/g, '').slice(0, 2))} />
-                <input aria-label={t.sheets.log.minutes} className={`${FIELD} tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.minutes} value={m} onChange={(e) => setM(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+                <input aria-label={t.sheets.log.hours} className={`form-input block w-full tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.hours} value={h} onChange={(e) => setH(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+                <input aria-label={t.sheets.log.minutes} className={`form-input block w-full tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.minutes} value={m} onChange={(e) => setM(e.target.value.replace(/\D/g, '').slice(0, 2))} />
               </div>
             </fieldset>
             <label className="mt-4 block">
               <span className={fieldLabel}>{t.sheets.object.why}</span>
-              <textarea className={`${FIELD} mt-2 min-h-24 py-3`} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
+              <textarea className={`form-input block w-full mt-2 min-h-24 py-3`} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
             </label>
             {buttons(t.sheets.object.confirm, () => api.objectHours(v.id, { k: sheet.w.k, minutes: minutes ?? 0, reason: note.trim() }), !ok)}
           </>
@@ -254,14 +261,14 @@ export function WorkPage({ id }: { id: string }) {
               <fieldset>
                 <legend className={fieldLabel}>{t.sheets.log.title}</legend>
                 <div className="mt-2 grid grid-cols-2 gap-3">
-                  <input aria-label={t.sheets.log.hours} className={`${FIELD} tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.hours} value={h} onChange={(e) => setH(e.target.value.replace(/\D/g, '').slice(0, 2))} />
-                  <input aria-label={t.sheets.log.minutes} className={`${FIELD} tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.minutes} value={m} onChange={(e) => setM(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+                  <input aria-label={t.sheets.log.hours} className={`form-input block w-full tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.hours} value={h} onChange={(e) => setH(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+                  <input aria-label={t.sheets.log.minutes} className={`form-input block w-full tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.minutes} value={m} onChange={(e) => setM(e.target.value.replace(/\D/g, '').slice(0, 2))} />
                 </div>
               </fieldset>
             ) : null}
             <label className="mt-4 block">
               <span className={fieldLabel}>{t.sheets.log.note}</span>
-              <textarea className={`${FIELD} mt-2 min-h-24 py-3`} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+              <textarea className={`form-input block w-full mt-2 min-h-24 py-3`} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
             </label>
             {buttons(
               hourly ? fill(t.sheets.log.confirm, { hours: minutes ? hoursText(minutes) : '' }) : t.sheets.log.claim,

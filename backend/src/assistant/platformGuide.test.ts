@@ -265,6 +265,13 @@ test('the guide reads a conversation as the new look shows it (view 48, batch 9g
   assert.match(all, /round Send button is the one green control/);
 });
 
+test('the guide reads the work pages as the new look shows them (view 48, batch 9i)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('hourly-work'), /each week is its own card/);
+  assert.match(said('hourly-work'), /Hire is green only on the best fit/);
+  assert.match(said('finance'), /an empty list is one line/);
+});
+
 test('the guide knows the owner notes of 4 Nov: deal links keep the person, top-ups use the other agent', () => {
   const all = PLATFORM_GUIDE.map((e) => [e.summary, ...e.steps].join(' ')).join(' ');
   assert.match(all, /every kind keeps them/);

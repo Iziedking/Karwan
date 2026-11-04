@@ -154,6 +154,18 @@ test('the hirer sees offers ranked by fit, with who they are and never a score, 
   }), sent);
   await page.goto('/work/requests/wr_demo');
   await expect(page.getByRole('heading', { name: t.requests.page.offers })).toBeVisible();
+  // The new look (view 48, batch 9i): only Hire on the best fit is green.
+  const green = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = 'var(--action)';
+    document.querySelector('main')!.appendChild(probe);
+    const color = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return [...document.querySelectorAll<HTMLElement>('main a, main button')]
+      .filter((el) => el.offsetParent !== null && getComputedStyle(el).backgroundColor === color)
+      .map((el) => el.getAttribute('aria-label') || el.textContent?.trim() || '');
+  });
+  expect(green).toEqual([`${t.requests.page.hire} Ada Obi`]);
   await expect(page.getByText('4.8 from 23 deals')).toBeVisible();
   await expect(page.getByText(t.requests.page.over)).toBeVisible();
   await expect(page.getByText(/\bscore\b|\b23 completed\b/i)).toHaveCount(0);

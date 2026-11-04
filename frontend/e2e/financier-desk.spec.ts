@@ -114,10 +114,12 @@ test('an invoice with nothing left in escrow says so and cannot be offered on', 
   await expect(sheet.getByRole('button', { name: t.offer.postOffer })).toBeDisabled();
 });
 
-test('an empty desk says what appears there and when', async ({ page }) => {
+test('an empty desk says so in one line, with when it fills behind the info tip, and what the desk does as a nudge', async ({ page }) => {
   await serveDesk(page, { invoices: [], positions: [] });
   await page.goto('/financier');
   await expect(page.getByText(t.open.emptyTitle)).toBeVisible();
+  await expect(page.locator('[data-nudge="finance-desk"]')).toContainText(t.intro);
+  await page.getByText(t.open.emptyTitle).getByRole('button', { name: en.hint.triggerAria }).focus();
   await expect(page.getByText(t.open.emptyBody)).toBeVisible();
   await expect(page.getByRole('heading', { name: t.positions.title })).toHaveCount(0);
 });

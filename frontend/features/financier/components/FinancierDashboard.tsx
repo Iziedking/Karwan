@@ -1,4 +1,7 @@
 'use client';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { Hint } from '@/shared/components/Hint';
+import { Nudge } from '@/shared/components/Nudge';
 import { useCallback, useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 import { useWalletClient, usePublicClient, useChainId } from 'wagmi';
@@ -123,7 +126,7 @@ const TIER_DISCOUNT_HINT: ReadonlyArray<{ tier: 'elite' | 'strong' | 'establishe
   { tier: 'established', bps: 400 },
 ];
 
-const SECTION_TITLE = 'text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--ink)]';
+const SECTION_TITLE = 'text-[17px] font-semibold leading-tight text-[var(--ink)]';
 const LABEL = 'text-[14px] font-medium text-[var(--ink-secondary)]';
 const TOGGLE =
   'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
@@ -221,13 +224,11 @@ export function FinancierDashboard() {
       <PageTour id={FINANCIER_DESK_TOUR_ID} steps={FINANCIER_DESK_STEPS} />
       <Band tone="light" compact>
         <div className="mx-auto max-w-[940px]">
-          <header className="border-b border-[var(--line)] pb-6">
-            <h1 className="text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--ink)]">
-              {t.title}
-            </h1>
-            <p className="mt-3 max-w-[62ch] text-[16px] leading-relaxed text-[var(--ink-secondary)]">{t.intro}</p>
-            {ARC_NETWORK === 'testnet' && <p className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{t.testnet}</p>}
+          <header>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.title}</h1>
           </header>
+          {/* What the desk does is said once, as a nudge that fades (owner notes, 4 Nov 2026). */}
+          <Nudge id="finance-desk" lines={ARC_NETWORK === 'testnet' ? [t.intro, t.testnet] : [t.intro]} />
 
           <FactoringPositionsPanel />
           {PO_FINANCING_ENABLED && <POLinesPanel />}
@@ -370,12 +371,13 @@ function ListSkeleton() {
   );
 }
 
+// One line, with what fills it behind the info tip (owner notes, 4 Nov 2026).
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="mt-4 border-y border-[var(--line)] py-8">
-      <p className="text-[16px] font-semibold text-[var(--ink)]">{title}</p>
-      <p className="mt-1 max-w-[56ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{body}</p>
-    </div>
+    <p className={`${CARD_CLASS} mt-3 flex items-center gap-1.5 px-5 py-4 text-[15px] text-[var(--ink-secondary)]`}>
+      {title}
+      <Hint>{body}</Hint>
+    </p>
   );
 }
 

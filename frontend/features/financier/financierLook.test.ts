@@ -80,3 +80,11 @@ test('every language has every finance desk key, without em dashes', () => {
     assert.doesNotMatch(JSON.stringify(financeDeskCopy[locale]), /—/);
   }
 });
+
+test('the finance desk says less: its intro is a nudge and an empty list is one line (owner, 4 Nov)', () => {
+  const { dashboard, positions } = FILES;
+  assert.match(dashboard, /<Nudge id="finance-desk"/);
+  assert.doesNotMatch(dashboard, /<p[^>]*>\{t\.intro\}<\/p>/);
+  assert.match(dashboard, /<Hint>\{body\}<\/Hint>/);
+  assert.match(positions, /summary\.active > 0 \|\| needsYou\.length > 0/);
+});
