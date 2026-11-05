@@ -1,7 +1,7 @@
 'use client';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
-import { formatBalance } from '../balanceModel';
+import { usdcFigure } from '../moneyText';
 import { formatLocal } from '../displayCurrency';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
 
@@ -19,6 +19,7 @@ export function Price({
   className,
   usdcClassName,
   figureClassName,
+  compact = false,
 }: {
   usdc: number;
   size?: 'hero' | 'stack' | 'inline';
@@ -27,12 +28,14 @@ export function Price({
   usdcClassName?: string;
   /// The hero figure's own size, for a page whose hero is bigger.
   figureClassName?: string;
+  /// Offers read their USDC without forced cents: "96 USDC".
+  compact?: boolean;
 }) {
   const { locale } = useLocale();
   const { currency, rate } = useDisplayCurrency();
-  const numberLocale = locale === 'ar' ? 'ar-u-nu-latn' : locale;
   const sign = signed && usdc > 0 ? '+' : signed && usdc < 0 ? '−' : '';
-  const usdcText = `${sign}${formatBalance(Math.abs(usdc), numberLocale)} USDC`;
+  const figure = usdcFigure(usdc, locale, { compact });
+  const usdcText = `${sign}${figure} USDC`;
   const local = formatLocal(usdc, currency, rate, locale, signed);
 
   if (size === 'inline') {
@@ -48,7 +51,7 @@ export function Price({
       <span data-price className={cn('block', className)}>
         <span dir="ltr" className="flex items-baseline gap-2 tabular-nums">
           <span className={figureClassName ?? 'text-[34px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[40px]'}>
-            {local ?? `${sign}${formatBalance(Math.abs(usdc), numberLocale)}`}
+            {local ?? `${sign}${figure}`}
           </span>
           {local ? null : <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>}
         </span>

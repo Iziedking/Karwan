@@ -251,7 +251,7 @@ function OfferRow({ bid, pick, copy, onOpen }: { bid: BuyerBid; pick: boolean; c
           {by ? <span>{fill(copy.delivers, { date: by })}</span> : null}
         </span>
       </span>
-      <Price usdc={Number(bid.priceUsdc)} className="shrink-0 text-end text-[16px] font-semibold text-[var(--ink)]" />
+      <Price usdc={Number(bid.priceUsdc)} compact className="shrink-0 text-end text-[16px] font-semibold text-[var(--ink)]" />
     </button>
   );
 }
@@ -280,7 +280,7 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
           <ReputationBadge address={bid.seller} size="md" appearance="quiet" />
           {pick ? <p className="mt-0.5 text-[14px] font-semibold text-[var(--ink)]">{copy.pick}</p> : null}
         </div>
-        <Price usdc={Number(bid.priceUsdc)} className="shrink-0 text-end text-[22px] font-semibold text-[var(--ink)]" />
+        <Price usdc={Number(bid.priceUsdc)} compact className="shrink-0 text-end text-[22px] font-semibold text-[var(--ink)]" />
       </div>
       <dl className={cn('grid gap-2', data ? 'grid-cols-3' : 'grid-cols-1')}>
         {data ? (

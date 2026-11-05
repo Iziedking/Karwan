@@ -149,7 +149,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
                   <span className="block truncate text-[13px] text-[var(--ink-secondary)]">{recordLine(e)}</span>
                 </span>
                 <span className="shrink-0 text-end">
-                  <Price usdc={e.priceUsdc} className="text-[15px] font-semibold text-[var(--ink)]" />
+                  <Price usdc={e.priceUsdc} compact className="text-[15px] font-semibold text-[var(--ink)]" />
                   <span
                     {...(e.bestFit ? { 'data-best-fit': '' } : {})}
                     className={`block text-[13px] ${e.bestFit ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}
@@ -240,7 +240,7 @@ function OfferDetails({ entry, place, canChoose, onClose, onChoose }: {
               </p>
             </div>
           </div>
-          <Price usdc={entry.priceUsdc} size="hero" className="mt-5" figureClassName="text-[34px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]" />
+          <Price usdc={entry.priceUsdc} compact size="hero" className="mt-5" figureClassName="text-[34px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]" />
           {v.askedLine ? <p className={`mt-1 ${line}`}>{v.askedLine}</p> : null}
           <p className={`mt-1 text-[14px] ${entry.bestFit ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}>{rankLine(place, entry.bestFit, copy)}</p>
           <div className={`${CARD_CLASS} mt-4 px-5 py-1`}>
