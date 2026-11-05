@@ -29,6 +29,7 @@ import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { agentJobsCopy } from './agentJobs';
+import { moneyMoveCopy } from './moneyMove';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -86,6 +87,7 @@ export const fr: Messages = {
   dealGuarantee: dealGuaranteeCopy.fr,
   contests: contestsCopy.fr,
   agentJobs: agentJobsCopy.fr,
+  moneyMove: moneyMoveCopy.fr,
   work: workCopy.fr,
   offersThatMove: offersThatMoveCopy.fr,
   agentQuestions: agentQuestionsCopy.fr,
@@ -2058,6 +2060,7 @@ export const fr: Messages = {
       'escrow.milestone.released': 'Jalon libéré',
       'escrow.settled': 'Deal réglé',
       'agent.skipped': 'Le vendeur a sauté cette requête',
+      'agent.link-needed': "L'agent d'un vendeur doit être relié avant d'être choisi",
       'agent.declined': "L'agent a mis fin à la négociation",
       'agent.error': "L'agent a rencontré une erreur",
       'agent.fallback': "L'agent a utilisé une décision de secours",
@@ -5113,7 +5116,7 @@ export const fr: Messages = {
       bullets: {
         deals: { label: 'Transactions avec séquestre.', body: 'Ouvrez une transaction directement avec quelqu\'un que vous connaissez déjà, ou publiez une demande et laissez le marché enchérir. Dans les deux cas, l\'argent se verrouille dans un smart contract sur Arc avant le début du travail, et se libère par jalons.' },
         settlement: { label: 'Règlement en USDC.', body: 'Tout le mouvement à l\'intérieur de Karwan est en USDC, un stablecoin dollar émis par Circle.' },
-        localCurrency: { label: 'Monnaie locale.', body: 'Karwan ne convertit pas vers ou depuis votre monnaie locale à l\'intérieur du produit aujourd\'hui. Convertir est votre propre décision, prise hors de Karwan. L\'accès à la monnaie locale est activé région par région. Là où il devient disponible, il est fourni par un partenaire agréé sous ses propres conditions et ses propres vérifications d\'identité, et ce que vous pouvez atteindre dépend de la région dans laquelle votre compte est enregistré. Rien ici n\'est un engagement sur une date ou sur une région particulière.' },
+        localCurrency: { label: 'Monnaie locale.', body: 'Karwan ne convertit pas vers ou depuis votre monnaie locale à l\'intérieur du produit aujourd\'hui. Les montants peuvent s’afficher dans une monnaie locale, à titre indicatif au taux du moment ; votre argent reste en USDC. Convertir est votre propre décision, prise hors de Karwan. L\'accès à la monnaie locale est activé région par région. Là où il devient disponible, il est fourni par un partenaire agréé sous ses propres conditions et ses propres vérifications d\'identité, et ce que vous pouvez atteindre dépend de la région dans laquelle votre compte est enregistré. Rien ici n\'est un engagement sur une date ou sur une région particulière.' },
         invite: { label: 'Invitation par e-mail.', body: 'Vous pouvez ouvrir une transaction avec quelqu\'un qui n\'a pas de compte. Cette personne la réclame depuis un lien envoyé par e-mail avec un code à usage unique, et se fait payer sans jamais installer de wallet.' },
         moving: { label: 'Entrées et sorties de fonds.', body: 'Utilisez les voies de dépôt et de retrait affichées dans le produit. Les réseaux disponibles et les parcours de transfert dépendent de la configuration Circle en vigueur. Les transferts sur Arc sont directs.' },
         reputation: { label: 'Réputation et passeport de crédit.', body: 'Votre compte porte un tier et un score construits à partir de l\'historique des transactions réglées. Toute personne ayant votre adresse peut lire la partie on-chain.' },

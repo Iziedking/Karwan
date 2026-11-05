@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { logger } from '../logger.js';
+import { DISPLAY_CURRENCIES } from '../rates/usdcRates.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import {
   buildChangeSettingsConfirm,
@@ -81,7 +82,7 @@ export function accountTools(address: string, actions: AssistantAction[], deps: 
   return {
     propose_change_settings: tool({
       description:
-        "Prepare a card to change account settings: language (en, ar, fr, hi, sw), theme, sounds, alerts on or off, the public passport, publishing settled deals, showing deal history on the passport, and how Karwan reaches them (telegram, email or both). Pass only what changes.",
+        "Prepare a card to change account settings: language (en, ar, fr, hi, sw), theme, sounds, alerts on or off, the public passport, publishing settled deals, showing deal history on the passport, how Karwan reaches them (telegram, email or both), and which currency amounts are shown in (displayCurrency; money always stays in USDC, this only changes how amounts read). Pass only what changes.",
       inputSchema: z.object({
         locale: z.enum(['en', 'ar', 'fr', 'hi', 'sw']).optional(),
         theme: z.enum(['light', 'dark']).optional(),
@@ -91,6 +92,7 @@ export function accountTools(address: string, actions: AssistantAction[], deps: 
         publishDeals: z.boolean().optional(),
         publishHistory: z.boolean().optional(),
         notifyVia: z.enum(['telegram', 'email', 'both']).optional(),
+        displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
       }),
       execute: async ({ alertsOn, ...rest }) =>
         guarded('propose_change_settings', async () => {

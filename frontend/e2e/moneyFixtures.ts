@@ -53,7 +53,16 @@ export interface MoneyWorld {
   pool?: number;
   /// Every /api/money-out/* call: status, World ID checks, remove, pause.
   moneyOut?: (route: Route, path: string) => Promise<void>;
+  /// 1 USDC in each display currency; omit for none (view 51).
+  rates?: Record<string, number>;
+  /// The account's saved settings; a POST merges into it.
+  settings?: Record<string, unknown>;
+  /// How the account signs in; a web3 wallet owns a Transfer balance.
+  method?: 'circle' | 'web3';
 }
+
+/// Today's rates as the backend serves them in tests.
+export const RATES = { NGN: 1346.11, USD: 0.999778, EUR: 0.889118, GBP: 0.741927, CNY: 6.67, INR: 94.4, AED: 3.67, KES: 129.91, XOF: 583.22 };
 
 /// One live-stream event in the stream's own framing.
 export function sseEvent(event: Record<string, unknown>): string {
@@ -109,7 +118,7 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
   await page.route(`${API}/**`, async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/auth/bootstrap') {
-      return route.fulfill({ json: { user: { address: ME, method: 'circle', hasPasskey: true }, profile: null } });
+      return route.fulfill({ json: { user: { address: ME, method: world.method ?? 'circle', hasPasskey: true }, profile: null } });
     }
     if (path === '/api/activation/status') {
       return route.fulfill({ json: { activated: true, agents: { buyer: BUYER_AGENT, seller: SELLER_AGENT } } });
@@ -117,6 +126,17 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
     if (path === '/api/gateway/balance') {
       return route.fulfill({ json: { balance: { address: ME, confirmed: (world.pool ?? 0).toFixed(6), pending: '0', chains: [], fetchedAt: 0 } } });
     }
+    if (path === '/api/money/rates') {
+      return route.fulfill({ json: world.rates ? { rates: world.rates, updatedAt: Date.now(), source: 'coingecko' } : { rates: {}, updatedAt: null, source: null } });
+    }
+    if (path === '/api/settings') {
+      if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON() as { settings?: Record<string, unknown> };
+        world.settings = { ...(world.settings ?? {}), ...(body.settings ?? {}) };
+      }
+      return route.fulfill({ json: { settings: world.settings ?? {} } });
+    }
+    if (path === '/api/assistant/memory') return route.fulfill({ json: { enabled: true, notes: [] } });
     if (path === '/api/activity/me') return route.fulfill({ json: { items: world.activity ?? recentActivity } });
     if (path === '/api/activity/recent-people') return route.fulfill({ json: { people: world.recentPeople ?? [] } });
     if (path === '/api/bridge/list') return route.fulfill({ json: { bridges: [] } });

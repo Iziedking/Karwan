@@ -20,6 +20,7 @@ import {
 } from '../money/railIntent.js';
 import { logger } from '../logger.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
+import { readUsdcRates } from '../rates/usdcRates.js';
 
 export const moneyRoutes = new Hono();
 
@@ -121,6 +122,14 @@ moneyRoutes.get('/balance', async (c) => {
   const address = sessionAddress(c);
   if (!address) return c.json({ error: 'unauthorized' }, 401);
   return c.json({ balance: await readOwnedBalance(address) });
+});
+
+/// 1 USDC in each display currency (view 51). Public: a rate is not personal.
+/// Empty rates mean no fresh figure, and the screen reads USDC.
+moneyRoutes.get('/rates', async (c) => {
+  const rates = await readUsdcRates();
+  c.header('Cache-Control', 'public, max-age=30');
+  return c.json(rates);
 });
 
 moneyRoutes.get('/capabilities', (c) => {

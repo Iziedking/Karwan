@@ -12,6 +12,16 @@ test('trading for yourself or for a business is saved as a setting', () => {
   assert.equal(settingsSchema.parse({ settings: { tradesAs: 'business' } }).settings.tradesAs, 'business');
 });
 
+test('savesDisplayCurrency: amounts can read in any of the ten currencies', () => {
+  for (const displayCurrency of ['USDC', 'NGN', 'USD', 'EUR', 'GBP', 'CNY', 'INR', 'AED', 'KES', 'XOF']) {
+    assert.equal(settingsSchema.parse({ settings: { displayCurrency } }).settings.displayCurrency, displayCurrency);
+  }
+});
+
+test('rejectsUnknownCurrency', () => {
+  assert.equal(settingsSchema.safeParse({ settings: { displayCurrency: 'BTC' } }).success, false);
+});
+
 test('any other answer is refused', () => {
   assert.throws(() => settingsSchema.parse({ settings: { tradesAs: 'both' } }));
 });

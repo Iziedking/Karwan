@@ -29,6 +29,7 @@ import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { agentJobsCopy } from './agentJobs';
+import { moneyMoveCopy } from './moneyMove';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -86,6 +87,7 @@ export const sw: Messages = {
   dealGuarantee: dealGuaranteeCopy.sw,
   contests: contestsCopy.sw,
   agentJobs: agentJobsCopy.sw,
+  moneyMove: moneyMoveCopy.sw,
   work: workCopy.sw,
   offersThatMove: offersThatMoveCopy.sw,
   agentQuestions: agentQuestionsCopy.sw,
@@ -2055,6 +2057,7 @@ export const sw: Messages = {
       'escrow.milestone.released': 'Hatua imetolewa',
       'escrow.settled': 'Biashara imekamilika',
       'agent.skipped': 'Muuzaji ameruka ombi hili',
+      'agent.link-needed': 'Wakala wa muuzaji anahitaji kuunganishwa kabla ya kuchaguliwa',
       'agent.declined': 'Wakala amemaliza majadiliano',
       'agent.error': 'Wakala amepata kosa',
       'agent.fallback': 'Wakala ametumia uamuzi mbadala',
@@ -5110,7 +5113,7 @@ export const sw: Messages = {
       bullets: {
         deals: { label: 'Deal zenye escrow.', body: 'Fungua deal moja kwa moja na mtu unayemjua tayari, au chapisha ombi na uache soko lipige bei. Kwa njia zote mbili, fedha hufungwa katika smart contract kwenye Arc kabla kazi haijaanza, na hutolewa kwa hatua.' },
         settlement: { label: 'Malipo kwa USDC.', body: 'Mwenendo wote ndani ya Karwan uko katika USDC, stablecoin ya dola inayotolewa na Circle.' },
-        localCurrency: { label: 'Sarafu ya ndani.', body: 'Karwan haibadilishi kwenda au kutoka kwa sarafu yako ya ndani ndani ya bidhaa leo. Kubadilisha ni uamuzi wako, unaofanyika nje ya Karwan. Ufikiaji wa sarafu ya ndani unawashwa eneo baada ya eneo. Pale unapopatikana, hutolewa na mshirika mwenye leseni chini ya masharti yake mwenyewe na ukaguzi wake mwenyewe wa utambulisho, na kile unachoweza kufikia kinategemea eneo ambalo akaunti yako imesajiliwa. Hakuna kilichoandikwa hapa ni ahadi ya tarehe au ya eneo fulani.' },
+        localCurrency: { label: 'Sarafu ya ndani.', body: 'Karwan haibadilishi kwenda au kutoka kwa sarafu yako ya ndani ndani ya bidhaa leo. Kiasi kinaweza kuonyeshwa kwenye skrini kwa sarafu ya ndani, kama makadirio kwa kiwango cha sasa; pesa yako inabaki katika USDC. Kubadilisha ni uamuzi wako, unaofanyika nje ya Karwan. Ufikiaji wa sarafu ya ndani unawashwa eneo baada ya eneo. Pale unapopatikana, hutolewa na mshirika mwenye leseni chini ya masharti yake mwenyewe na ukaguzi wake mwenyewe wa utambulisho, na kile unachoweza kufikia kinategemea eneo ambalo akaunti yako imesajiliwa. Hakuna kilichoandikwa hapa ni ahadi ya tarehe au ya eneo fulani.' },
         invite: { label: 'Mwaliko kwa barua pepe.', body: 'Unaweza kufungua deal na mtu asiye na akaunti. Anaidai kutoka kiungo kilichotumwa kwa barua pepe pamoja na msimbo wa mara moja, na hulipwa bila kusakinisha wallet yoyote.' },
         moving: { label: 'Kuingiza na kutoa fedha.', body: 'Tumia njia za kuweka na kutoa fedha zinazoonyeshwa kwenye bidhaa. Mitandao na njia za uhamisho zinazopatikana hutegemea usanidi wa sasa wa Circle. Uhamisho ndani ya Arc ni wa moja kwa moja.' },
         reputation: { label: 'Sifa na pasipoti ya mkopo.', body: 'Akaunti yako hubeba kiwango na alama zilizojengwa kutoka historia ya deal zilizolipwa. Yeyote mwenye anwani yako anaweza kusoma sehemu iliyo on-chain.' },

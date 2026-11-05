@@ -37,7 +37,7 @@ const TONE = {
 
 /// A cross-chain move settles on its own chain, so the receipt has to point at
 /// that chain's explorer. Anything else happened on Arc.
-function explorerFor(item: Pick<Item, 'txHash' | 'chain'>): string | null {
+export function explorerFor(item: Pick<Item, 'txHash' | 'chain'>): string | null {
   if (!item.txHash) return null;
   const chain = item.chain ? SOURCE_CHAINS[item.chain as keyof typeof SOURCE_CHAINS] : undefined;
   return chain ? chain.explorerTx(item.txHash) : ARC_EXPLORER_TX(item.txHash);

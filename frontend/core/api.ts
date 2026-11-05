@@ -354,6 +354,8 @@ export interface UserSettings {
   notifyVia?: 'telegram' | 'email' | 'both';
   /// When they finished the setup conversation after activation.
   setupDoneAt?: number;
+  /// How amounts read (view 51). Money stays in USDC; absent means USDC.
+  displayCurrency?: import('@/features/money/displayCurrency').DisplayCurrency;
   /// Deals from agents outside Karwan (view 15); absent means on.
   acceptsOutsideAgents?: boolean;
 }
@@ -936,7 +938,7 @@ export interface DirectDeal {
     handedOverAt?: number;
     deliveryProof?: string;
     held?: true;
-    deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+    deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'received' | 'unknown'; reason: string };
   }>;
   /// Photos with the latest delivery, served to the two sides only.
   deliveryPhotos?: { revision: number; count: number };
@@ -974,9 +976,12 @@ export interface DirectDeal {
   /// Security Agent verdict on whether the delivery meets the request (separate
   /// from link safety). 'partial'/'mismatch' surface a buyer review notice and
   /// pause auto-release; the proof is always shown, the buyer decides.
-  deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+  deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'received' | 'unknown'; reason: string };
   /// Where the delivery check stands, visible to both parties without the buyer's review.
-  deliveryCheck?: 'checking' | 'passed' | 'held' | 'unverified' | null;
+  deliveryCheck?: 'checking' | 'passed' | 'received' | 'held' | 'unverified' | null;
+  /// The budget a market request was posted with, when the accepted offer
+  /// changed the price. The signed text still says this amount.
+  postedPriceUsdc?: string | null;
   /// This viewer's view of a dispute (backend deals/disputeJudge.ts
   /// disputeViewFor): the other side's account appears only once both are in
   /// or the statement window has closed.
@@ -3911,6 +3916,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address, settings }),
     }),
+  /// 1 USDC in each display currency; empty rates mean no fresh figure (view 51).
+  moneyRates: () =>
+    json<{ rates: Partial<Record<string, number>>; updatedAt: number | null; source: string | null }>('/api/money/rates'),
   xStatus: () => json<{ configured: boolean }>('/api/x/status'),
   xOauthStart: (address: string, returnTo?: string) =>
     json<{ url: string }>('/api/x/oauth/start', {

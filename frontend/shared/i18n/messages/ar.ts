@@ -29,6 +29,7 @@ import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { agentJobsCopy } from './agentJobs';
+import { moneyMoveCopy } from './moneyMove';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -86,6 +87,7 @@ export const ar: Messages = {
   dealGuarantee: dealGuaranteeCopy.ar,
   contests: contestsCopy.ar,
   agentJobs: agentJobsCopy.ar,
+  moneyMove: moneyMoveCopy.ar,
   work: workCopy.ar,
   offersThatMove: offersThatMoveCopy.ar,
   agentQuestions: agentQuestionsCopy.ar,
@@ -2058,6 +2060,7 @@ export const ar: Messages = {
       'escrow.milestone.released': 'تم الإفراج عن مرحلة',
       'escrow.settled': 'تمت تسوية الصفقة',
       'agent.skipped': 'تخطّى البائع هذا الطلب',
+      'agent.link-needed': 'يجب ربط وكيل البائع قبل اختياره',
       'agent.declined': 'أنهى الوكيل التفاوض',
       'agent.error': 'واجه الوكيل خطأ',
       'agent.fallback': 'استخدم الوكيل قراراً احتياطياً',
@@ -5113,7 +5116,7 @@ export const ar: Messages = {
       bullets: {
         deals: { label: 'صفقات بضمان.', body: 'افتح صفقة مباشرة مع شخص تعرفه، أو انشر طلباً ودع السوق يزايد. في الحالتين، يُقفل المال في عقد ذكي على Arc قبل بدء العمل، ويُطلق على مراحل.' },
         settlement: { label: 'التسوية بـ USDC.', body: 'كل الحركة داخل Karwan بـ USDC، وهي عملة مستقرة بالدولار مُصدرة من Circle.' },
-        localCurrency: { label: 'العملة المحلية.', body: 'Karwan لا يحوّل من وإلى عملتك المحلية داخل المنتج اليوم. التحويل قرار يخصك، يتم خارج Karwan. الوصول إلى العملة المحلية يُفعَّل منطقة بعد منطقة. حيث يصبح متاحاً، يقدمه شريك مرخّص وفق شروطه الخاصة وفحوصاته الخاصة للهوية، وما يمكنك الوصول إليه يعتمد على المنطقة المسجَّل بها حسابك. لا شيء هنا التزام بتاريخ أو بمنطقة بعينها.' },
+        localCurrency: { label: 'العملة المحلية.', body: 'Karwan لا يحوّل من وإلى عملتك المحلية داخل المنتج اليوم. يمكن عرض المبالغ على الشاشة بعملة محلية كتقدير بسعر لحظي، وتبقى أموالك بعملة USDC. التحويل قرار يخصك، يتم خارج Karwan. الوصول إلى العملة المحلية يُفعَّل منطقة بعد منطقة. حيث يصبح متاحاً، يقدمه شريك مرخّص وفق شروطه الخاصة وفحوصاته الخاصة للهوية، وما يمكنك الوصول إليه يعتمد على المنطقة المسجَّل بها حسابك. لا شيء هنا التزام بتاريخ أو بمنطقة بعينها.' },
         invite: { label: 'الدعوة بالبريد الإلكتروني.', body: 'يمكنك فتح صفقة مع شخص لا يملك حساباً. يستلمها من رابط يصله بالبريد مع رمز لمرة واحدة، ويُدفع له دون تثبيت أي محفظة.' },
         moving: { label: 'إدخال الأموال وإخراجها.', body: 'استخدم مسارات الإيداع والسحب الظاهرة في المنتج. تعتمد الشبكات ومسارات التحويل المتاحة على إعداد Circle الحالي. التحويلات داخل Arc مباشرة.' },
         reputation: { label: 'السمعة وجواز الائتمان.', body: 'حسابك يحمل مستوى ودرجة مبنيين على سجل الصفقات المسواة. أي شخص يملك عنوانك يمكنه قراءة الجزء الموجود على السلسلة.' },

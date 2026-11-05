@@ -32,6 +32,7 @@ import { profilePageCopy, type ProfilePageCopy } from './profilePage';
 import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy, type ContestsCopy } from './contests';
 import { agentJobsCopy, type AgentJobsCopy } from './agentJobs';
+import { moneyMoveCopy, type MoneyMoveCopy } from './moneyMove';
 import { workCopy, type WorkCopy } from './work';
 import { offersThatMoveCopy, type OffersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy, type AgentQuestionsCopy } from './agentQuestions';
@@ -88,6 +89,7 @@ interface MessagesShape {
   dealGuarantee: DealGuaranteeCopy;
   contests: ContestsCopy;
   agentJobs: AgentJobsCopy;
+  moneyMove: MoneyMoveCopy;
   work: WorkCopy;
   offersThatMove: OffersThatMoveCopy;
   agentQuestions: AgentQuestionsCopy;
@@ -5331,6 +5333,7 @@ export const en: MessagesShape = {
   dealGuarantee: dealGuaranteeCopy.en,
   contests: contestsCopy.en,
   agentJobs: agentJobsCopy.en,
+  moneyMove: moneyMoveCopy.en,
   work: workCopy.en,
   offersThatMove: offersThatMoveCopy.en,
   agentQuestions: agentQuestionsCopy.en,
@@ -7331,6 +7334,7 @@ export const en: MessagesShape = {
       'escrow.milestone.released': 'Milestone released',
       'escrow.settled': 'Deal settled',
       'agent.skipped': 'Seller skipped this request',
+      'agent.link-needed': "A seller's agent needs linking before it can be chosen",
       'agent.declined': 'Agent ended negotiation',
       'agent.error': 'Agent hit an error',
       'agent.fallback': 'Agent used a backup decision',
@@ -10515,7 +10519,7 @@ export const en: MessagesShape = {
       bullets: {
         deals: { label: 'Deals with escrow.', body: 'Open a deal directly with someone you already know, or post a request and let the market bid. Either way, payment locks in a smart contract on Arc before delivery begins and releases in milestones.' },
         settlement: { label: 'Settlement in USDC.', body: 'All movement inside Karwan is in USDC, a dollar stablecoin issued by Circle.' },
-        localCurrency: { label: 'Local currency.', body: 'Karwan does not convert to or from your local currency inside the product today. Converting is your own decision, made outside Karwan. Local currency access is being enabled region by region. Where it becomes available, it is provided by a licensed partner under their own terms and their own identity checks, and what you can reach depends on the region your account is registered in. Nothing here is a commitment to a date or to a particular region.' },
+        localCurrency: { label: 'Local currency.', body: 'Karwan does not convert to or from your local currency inside the product today. Amounts can be shown on screen in a local currency, as an estimate at a live rate; your money stays in USDC. Converting is your own decision, made outside Karwan. Local currency access is being enabled region by region. Where it becomes available, it is provided by a licensed partner under their own terms and their own identity checks, and what you can reach depends on the region your account is registered in. Nothing here is a commitment to a date or to a particular region.' },
         invite: { label: 'Invite by email.', body: 'You can open a deal with someone who has no account. They claim it from an emailed link with a one-time code, and get paid without ever installing a wallet.' },
         moving: { label: 'Moving money in and out.', body: 'Use the deposit and withdrawal routes shown in the product. Available networks and transfer paths depend on the current Circle configuration. Transfers within Arc are direct.' },
         reputation: { label: 'Reputation and the credit passport.', body: 'Your account carries a tier and a score built from settled deal history. Anyone with your address can read the on-chain part.' },

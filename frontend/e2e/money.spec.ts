@@ -3,10 +3,10 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { ME, TX, accentControls, funded, serveMoney, watchHydration } from './moneyFixtures';
 
-/// The agents fold under one row on the money page (view 44, Batch 7); open it first.
+/// The agents sit behind the Agents tab on the money page (view 51); open it first.
 async function agents(page: Page, name: string) {
-  const row = page.getByRole('button', { name: 'Money your agents hold' });
-  if ((await row.getAttribute('aria-expanded')) === 'false') await row.click();
+  const tab = page.getByRole('tab', { name: 'Agents' });
+  if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
   return page.getByRole('listitem').filter({ hasText: name });
 }
 
@@ -24,7 +24,7 @@ test('the balance is the loudest thing on the page, with one primary action', as
   await expect(heading).toContainText(moneyCopy.en.home.balanceLabel);
   await expect(heading).toContainText('1,240.50');
   await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Add money', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add money', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Withdraw', exact: true })).toHaveAttribute('href', '/bridge?direction=out');
   await expect(page.getByRole('link', { name: 'Send', exact: true })).toHaveAttribute('href', '/send');
   expect(await accentControls(page)).toBe(1);
@@ -37,7 +37,7 @@ test('the ready dot is ink, not green, and Add money stays on one line on a phon
   await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
   const dot = await page.locator('[data-balance-dot]').evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(dot).not.toBe('rgb(175, 201, 91)');
-  const add = await page.locator('[data-money-actions]').getByRole('link', { name: 'Add money', exact: true }).evaluate((el) => {
+  const add = await page.locator('[data-money-actions]').getByRole('button', { name: 'Add money', exact: true }).evaluate((el) => {
     const r = document.createRange();
     r.selectNodeContents(el);
     // One rect per line of text.
@@ -46,16 +46,15 @@ test('the ready dot is ink, not green, and Add money stays on one line on a phon
   expect(add).toBe(1);
 });
 
-test('money is one balance on Arc: no list of other networks, amounts in USDC with local currency soon', async ({ page }) => {
+test('money is one balance on Arc: no list of other networks, no Proof on Arc and no Show amounts in row', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
   await expect(page.getByRole('button', { name: 'By network' })).toHaveCount(0);
   await expect(page.getByText('In your wallet on other networks')).toHaveCount(0);
-  const amounts = page.locator('[data-amounts-in]');
-  await expect(amounts).toContainText('Show amounts in');
-  await expect(amounts).toContainText('Local currency soon');
-  await expect(amounts.getByRole('link')).toHaveCount(0);
+  await expect(page.getByText('Show amounts in')).toHaveCount(0);
+  await expect(page.getByText('Local currency soon')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Proof on Arc' })).toHaveCount(0);
 });
 
 test('agents show what they can spend, with top up and withdraw', async ({ page }) => {
@@ -384,8 +383,7 @@ test('the balance says what is held in your deals, and the agents fold under one
   ] } }));
   await page.goto('/account');
   await expect(page.locator('[data-held-in-deals]')).toHaveText(/^Held in your deals\s*120\.00 USDC$/);
-  const agentsRow = page.getByRole('button', { name: 'Money your agents hold' });
-  await expect(agentsRow).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('tab', { name: 'Balance' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('listitem').filter({ hasText: 'Buying agent' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Ask for money' })).toHaveAttribute('href', '/request');
   // Add money is the one green button (view 48); Send and Withdraw sit beside it.

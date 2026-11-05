@@ -15,6 +15,7 @@ import { LanguagePicker } from './LanguagePicker';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { PublishDealsRows } from './PublishDealsRows';
 import { AssistantMemoryRows } from './AssistantMemoryRows';
+import { DisplayCurrencySection } from './DisplayCurrencySection';
 import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { sfx } from '@/shared/utils/sfx';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
@@ -168,6 +169,7 @@ export function SettingsBand() {
       <RowGroup title={t.settings.groups.preferences}>
         <Row label={t.settings.language} value={LOCALE_NAMES[locale]} onClick={() => setSheet('language')} />
         <Row label={t.settings.theme} value={themeLabel} onClick={() => setSheet('theme')} />
+        <DisplayCurrencySection />
         <ToggleRow
           label={t.settings.sound}
           note={t.money.settings.soundsSwitch}

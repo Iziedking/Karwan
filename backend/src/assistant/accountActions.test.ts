@@ -36,6 +36,12 @@ test('settings change only what is named, and how we reach you needs the channel
   assert.match(err(buildChangeSettingsConfirm({ address: ME, settings: { notifyVia: 'email' }, hasTelegram: true, hasEmail: false })), /no verified email/);
 });
 
+test('setDisplayCurrencyCard: the settings card names the currency amounts will show in', () => {
+  const card = ok(buildChangeSettingsConfirm({ address: ME, settings: { displayCurrency: 'NGN' }, hasTelegram: false, hasEmail: false }));
+  assert.deepEqual(card.payload, { address: ME, settings: { displayCurrency: 'NGN' } });
+  assert.deepEqual(card.fields, [{ label: 'Show amounts in', value: 'NGN' }]);
+});
+
 test('the theme card offers Dark or Light, the same two choices as Profile', () => {
   const dark = ok(buildChangeSettingsConfirm({ address: ME, settings: { theme: 'dark' }, hasTelegram: false, hasEmail: false }));
   assert.deepEqual(dark.fields, [{ label: 'Theme', value: 'Dark' }]);

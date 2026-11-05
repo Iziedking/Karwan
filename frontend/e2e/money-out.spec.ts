@@ -47,7 +47,6 @@ test('a chat account sees where its money can go, when each address opens, and t
     },
   });
   await page.goto('/account');
-  await page.getByRole('button', { name: 'Money your agents hold' }).click();
   const saved = section(page);
   await expect(saved).toBeVisible();
   await expect(saved).toContainText('Money leaves your account only to these addresses.');
@@ -69,7 +68,6 @@ test('a chat account sees where its money can go, when each address opens, and t
 test('a paused account says so and offers to resume with World ID', async ({ page }) => {
   await serveMoney(page, { balances: funded, moneyOut: (route) => route.fulfill({ json: status({ paused: true }) }) });
   await page.goto('/account');
-  await page.getByRole('button', { name: 'Money your agents hold' }).click();
   const saved = section(page);
   await expect(saved).toContainText('Payments out are paused.');
   await expect(saved.getByRole('button', { name: 'Resume with World ID' })).toBeVisible();
@@ -79,9 +77,10 @@ test('a paused account says so and offers to resume with World ID', async ({ pag
 test('an account that holds its own keys sees no saved addresses', async ({ page }) => {
   await serveMoney(page, { balances: funded, moneyOut: (route) => route.fulfill({ json: status({ kind: 'web' }) }) });
   await page.goto('/account');
-  await page.getByRole('button', { name: 'Money your agents hold' }).click();
-  await expect(page.getByRole('listitem').filter({ hasText: 'Buying agent' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
   await expect(section(page)).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Agents' }).click();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Buying agent' })).toBeVisible();
 });
 
 test('a send to a new address says so and offers to add it with World ID, for exactly that address', async ({ page }) => {
@@ -118,7 +117,7 @@ test('the daily limit says what can leave now and when more can, with nothing to
     withdraw: refusal({ code: 'MONEY_OUT_DAILY_LIMIT', error: 'limit', limitUsdc: '500', leftUsdc: '20', moreAt: Date.now() + 5 * HOUR }),
   });
   await page.goto('/account');
-  await page.getByRole('button', { name: 'Money your agents hold' }).click();
+  await page.getByRole('tab', { name: 'Agents' }).click();
   await page.getByRole('listitem').filter({ hasText: 'Buying agent' }).getByRole('button', { name: 'Withdraw', exact: true }).click();
   const sheet = page.getByRole('dialog');
   await sheet.getByLabel('Amount').fill('60');
@@ -163,9 +162,9 @@ for (const theme of ['light', 'dark'] as const) {
       moneyOut: (route) => route.fulfill({ json: status() }),
     });
     await page.goto('/account');
-    await page.getByRole('button', { name: 'Money your agents hold' }).click();
     await expect(section(page)).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.getByRole('tab', { name: 'Agents' }).click();
     await page.getByRole('listitem').filter({ hasText: 'Buying agent' }).getByRole('button', { name: 'Withdraw', exact: true }).click();
     const sheet = page.getByRole('dialog');
     await sheet.getByLabel('Amount').fill('10');

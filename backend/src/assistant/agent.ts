@@ -40,6 +40,9 @@ import { stageOf } from '../deals/dealView.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { BUDGET_REACHED, acquireResearch, researchQuote } from '../x402/dataGate.js';
 import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
+import { insightsFor } from '../intelligence/insights.js';
+import { insightLine, plain } from '../intelligence/insightText.js';
+import { insightNextStep } from '../intelligence/insightNextStep.js';
 import { MAX_WEEKLY_BUDGET_USDC, spentThisWeek } from '../agents/agentRecord.js';
 import { PAID_READS_PER_REQUEST, RECORD_READ_PRICE_USDC } from '../x402/recordReadGate.js';
 import { dataBalanceUsd, READS_BALANCE_EMPTY } from '../x402/buyerClient.js';
@@ -52,6 +55,7 @@ import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { dealReference } from '../deals/reference.js';
 import { withDealReferences } from './dealReferences.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
+import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
 import { mergeSetupAnswers } from './setupTool.js';
@@ -293,13 +297,17 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const [owned, gas, record] = await Promise.all([
+          const [owned, gas, record, profile, rates] = await Promise.all([
             readOwnedBalance(address),
             publicClient.getBalance({ address: address as Address }),
             getAgentWallets(address),
+            getProfile(address).catch(() => null),
+            readUsdcRates().catch(() => ({ rates: {}, updatedAt: null, source: null }) as const),
           ]);
+          const local = localFigure(owned.total, profile?.settings?.displayCurrency, rates);
           return {
             totalUsdc: owned.total.toFixed(2),
+            ...(local ? { local, localNote: `They chose to see amounts in ${local.currency}. Give the balance in USDC first, then about ${local.amount} ${local.currency} at today's rate. Their money stays in USDC.` } : {}),
             parts: {
               walletOnArcUsdc: owned.wallet.toFixed(2),
               agentsUsdc: owned.agents.toFixed(2),
@@ -2202,6 +2210,27 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           dataBalanceNote: 'The data balance is the user’s own USDC, prepaid on Circle Gateway for these checks. When it runs low the agent moves 0.10 USDC into it from its own wallet; that move is not a charge.',
           weeklyLine: record.weeklyReport ? 'on' : 'off',
           watches: watches.map((w) => ({ id: w.id, kind: w.kind, category: CATEGORY_NAMES[w.category] })),
+        };
+      },
+    }),
+
+    whats_my_agent_seeing: tool({
+      description:
+        "What the user's agent sees about how they trade (view 52): up to three things, the biggest first, each with the one change it suggests. From Karwan's own deals only: a budget far from what deals settled at, requests missed because their lowest price sat above what buyers offered, cheaper sellers with as good a record on a request, a request with no offer and too few days. Use for 'what is my agent seeing', 'why no deal', 'why am I not getting offers', 'is my price right'. Say each line as given; offer the next step with its tool, which still asks the user to confirm.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const now = Date.now();
+        const [{ gatherFacts }, profile] = await Promise.all([import('../intelligence/insightsLive.js'), getProfile(address).catch(() => null)]);
+        const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
+        const insights = insightsFor(await gatherFacts(address, [], now), now);
+        if (!insights.length) return { insights: [], say: 'Nothing stands out right now: budgets and prices sit where recent deals settled.' };
+        return {
+          insights: insights.map((i) => ({
+            kind: i.kind,
+            say: plain(insightLine(i, locale) ?? ''),
+            numbers: i.numbers,
+            nextStep: insightNextStep(i),
+          })),
         };
       },
     }),

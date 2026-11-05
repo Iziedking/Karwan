@@ -29,7 +29,7 @@ for(const locale of ['en','fr','ar','hi','sw'] as const){
   await world(page,locale,{balances:funded,fundAgent:async route=>{calls.push(route.request().postDataJSON());return route.fulfill({status:calls.length===1?202:200,json:{accepted:true,code:calls.length===1?'funding_unconfirmed':undefined,txHash:TX,reference:'KWN-2026-B6',movementState:calls.length===1?'submitted':'completed'}});}});
   await page.goto('/account');await expect(page.getByRole('heading',{level:1})).toContainText(t.home.balanceLabel);
   await expect(page.locator('html')).toHaveAttribute('dir',locale==='ar'?'rtl':'ltr');
-  await page.getByRole('button',{name:m.moneyPage.agentsRow,exact:true}).click();
+  await page.getByRole('tab',{name:m.moneyMove.tabs.agents,exact:true}).click();
   const agent=page.getByRole('listitem').filter({hasText:t.home.buyingAgent});await agent.getByRole('button',{name:t.home.topUp,exact:true}).click();
   const dialog=page.getByRole('dialog');await dialog.getByLabel(t.sheet.amountLabel,{exact:true}).fill('50');
   await dialog.getByRole('button',{name:t.sheet.ctaTopUp.replace('{amount}',fifty),exact:true}).click();

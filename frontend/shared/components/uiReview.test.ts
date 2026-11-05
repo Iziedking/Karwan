@@ -504,11 +504,12 @@ test('profile says each thing once: one Your record row, Edit profile in the hea
   assert.doesNotMatch(hub, /howAgentTrades/);
 });
 
-test('money is one balance on Arc: a transfer balance line, no list of other networks, local currency marked soon', () => {
+test('money is one balance on Arc: a transfer balance line, no list of other networks, amounts in the chosen currency', () => {
   const money = source('../../features/money/components/MoneyHome.tsx');
   assert.doesNotMatch(money, /useChainBalances|money-networks|CHAIN_META/);
-  assert.match(money, /data-gateway-balance[\s\S]{0,200}t\.home\.gatewayBalance/);
-  assert.match(money, /t\.home\.localCurrencySoon/);
+  assert.match(money, /data-gateway-balance[\s\S]{0,300}t\.home\.gatewayBalance/);
+  assert.match(money, /formatDisplay\(/);
+  assert.doesNotMatch(money, /t\.home\.localCurrencySoon|ProofOnArc/);
   assert.equal(en.money.home.gatewayBalance, 'Transfer balance');
 });
 

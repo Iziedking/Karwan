@@ -1,4 +1,5 @@
 import { confirmNonce, type ConfirmActionBase } from './actions.js';
+import type { DisplayCurrency } from '../rates/usdcRates.js';
 
 /// Confirm cards for the account (view 31 phase E): profile, settings, links,
 /// memory, published deals, outside reads, agents, research credit, feedback
@@ -13,6 +14,7 @@ export type SettingsPatch = {
   publishDeals?: boolean;
   publishHistory?: boolean;
   notifyVia?: 'telegram' | 'email' | 'both';
+  displayCurrency?: DisplayCurrency;
 };
 
 export interface ChangeSettingsConfirm extends ConfirmActionBase {
@@ -126,6 +128,7 @@ function settingFields(s: SettingsPatch): Array<{ label: string; value: string }
   if (s.publicPassport !== undefined) rows.push({ label: 'Public passport', value: onOff(s.publicPassport) });
   if (s.publishDeals !== undefined) rows.push({ label: 'Publish settled deals', value: onOff(s.publishDeals) });
   if (s.publishHistory !== undefined) rows.push({ label: 'Show deal history on my passport', value: onOff(s.publishHistory) });
+  if (s.displayCurrency) rows.push({ label: 'Show amounts in', value: s.displayCurrency });
   if (s.notifyVia) rows.push({ label: 'How we reach you', value: s.notifyVia === 'both' ? 'Telegram and email' : s.notifyVia === 'telegram' ? 'Telegram' : 'Email' });
   return rows;
 }

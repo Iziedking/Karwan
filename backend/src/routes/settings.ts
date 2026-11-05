@@ -10,6 +10,7 @@ import {
 import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import { DISPLAY_CURRENCIES } from '../rates/usdcRates.js';
 
 const localeSchema = z.enum(['en', 'ar', 'fr', 'hi', 'sw']);
 const themeSchema = z.enum(['light', 'dark', 'system']);
@@ -31,6 +32,8 @@ export const settingsSchema = z.object({
     notifyVia: z.enum(['telegram', 'email', 'both']).optional(),
     /// Deals from agents outside Karwan (view 15).
     acceptsOutsideAgents: z.boolean().optional(),
+    /// How amounts read (view 51). Money stays in USDC.
+    displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
   }),
 });
 

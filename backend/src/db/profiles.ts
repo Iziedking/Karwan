@@ -14,6 +14,8 @@ export type Role = 'buyer' | 'seller' | 'both';
 export type UserLocale = 'en' | 'ar' | 'fr' | 'hi' | 'sw';
 export type ThemePreference = 'light' | 'dark' | 'system';
 
+import type { DisplayCurrency } from '../rates/usdcRates.js';
+
 export interface UserSettings {
   locale?: UserLocale;
   theme?: ThemePreference;
@@ -34,6 +36,8 @@ export interface UserSettings {
   setupDoneAt?: number;
   /// Deals from agents outside Karwan (view 15). Absent means on.
   acceptsOutsideAgents?: boolean;
+  /// How amounts read on screen (view 51). Money stays in USDC; absent means USDC.
+  displayCurrency?: DisplayCurrency;
 }
 
 /// What a person told the setup conversation they want Karwan to do (view 19).
