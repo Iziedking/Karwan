@@ -200,6 +200,7 @@ flowchart TB
 5. A change that widens what the agent may do is confirmed through a channel the agent cannot answer for.
 6. An event says what happened: a seller whose agent offered is never counted as a pass.
 7. A failure that changes what the person gets is told to them once, in plain words.
+8. Nothing waits on a model. Every step the agent takes has a path in code that completes it, and every sentence it sends has a template; a model may only improve the words, with a time limit, and on any failure the template goes out (owner, 5 Nov 2026).
 
 ## What fails where
 
