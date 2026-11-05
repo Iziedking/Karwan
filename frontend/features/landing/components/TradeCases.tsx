@@ -54,6 +54,9 @@ function Tile({ clip, index }: { clip: TradeClip; index: number }) {
   const onScreen = useInView(ref);
   const choice = useClipChoice();
   const files = clipFiles(clip.key);
+  /// The poster stays under the clip, which fades in on its first frame, so
+  /// the tile never shows a blank frame between the two.
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const el = video.current;
@@ -64,10 +67,9 @@ function Tile({ clip, index }: { clip: TradeClip; index: number }) {
 
   return (
     <article ref={ref} className={s.tile} data-wide={index % 4 === 0 || index % 4 === 3 ? '' : undefined} data-arrived={arrived ? '' : undefined} data-drawn={full ? '' : undefined} style={{ transitionDelay: `${stagger(index % 2)}ms` }}>
-      {choice === 'poster' ? (
-        <img className={s.clip} src={files.poster} alt="" loading="lazy" decoding="async" />
-      ) : (
-        <video key={choice} ref={video} className={s.clip} muted loop playsInline preload="none" poster={files.poster} aria-hidden="true">
+      <img className={s.clip} src={files.poster} alt="" loading="lazy" decoding="async" />
+      {choice !== 'poster' && (
+        <video key={choice} ref={video} className={s.clip} muted loop playsInline preload="none" poster={files.poster} aria-hidden="true" data-ready={ready ? '' : undefined} onPlaying={() => setReady(true)}>
           <source src={choice === 'small' ? files.small : files.large} type="video/mp4" />
         </video>
       )}

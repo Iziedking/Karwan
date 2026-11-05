@@ -45,3 +45,5 @@ flowchart LR
 - **Five languages.** Every word is in English, French, Arabic, Hindi and Swahili, and Arabic reads right to left.
 - **The footer is always whole.** It waits under the page like a curtain only on a desktop screen tall enough to show all of it below the top bar; on a shorter screen it scrolls up like any footer.
 - **Light on a phone.** Phones get smaller clips, and the chips are tapped instead of thrown.
+- **The same story on a phone.** The three panels keep their pictures on a phone, laid out as a short list, and stack over each other as on a desktop wherever the screen is tall enough to hold a whole panel.
+- **No flash between picture and clip.** A clip fades in over its still picture once its first frame plays, and scene glows are soft gradients rather than blurs, so scrolling stays smooth on phones.
