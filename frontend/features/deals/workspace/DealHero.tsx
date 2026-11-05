@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ApiError, api, type DealView, type DirectDeal, type MoneyMovementView } from '@/core/api';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { Icon } from '@/shared/components/Icon';
@@ -110,6 +111,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     retry: false,
   });
   const money = useMoneyBalances();
+  const mt = useMoneyText({ compact: true });
   const { profile } = useUserProfile();
   // The short reference people give the assistant or support (view 42).
   const reference = dealReference(deal.jobId);
@@ -161,7 +163,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     }
   }
   const automatic = automaticLine(view, copy, locale, viewerIsBuyer ? dl : undefined);
-  const momentNow = address ? momentFor(view, name, dp, view.next.amountUsdc ? formatUsdcAmount(view.next.amountUsdc, locale) : '') : null;
+  const momentNow = address ? momentFor(view, name, dp, view.next.amountUsdc ? formatUsdcAmount(view.next.amountUsdc, locale) : '', mt.fill) : null;
   const close = () => setPanel(null);
   const done = () => {
     setPanel(null);
@@ -329,8 +331,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
 
   const settled = view.stage === 'settled';
   const what = whatItIs(deal);
-  const amount = formatUsdcAmount(deal.dealAmountUsdc, locale);
-  const moneyLine = titleMoneyLine(deal, name, dp, locale) ?? copy.money[LINE_KEY[view.money.line]];
+  const moneyLine = titleMoneyLine(deal, name, dp, locale, mt.fill) ?? copy.money[LINE_KEY[view.money.line]];
   const canProblem = !!address && problems.length > 0;
   const referenceButton = reference ? (
     <button
@@ -453,9 +454,9 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           </span>
           {settledParty && !viewerIsBuyer ? (
             <div data-seller-paid>
-              <h1 id="deal-amount" className="text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">{fill(dp.paidYou, { amount: formatUsdcAmount(sellerNetUsdc(deal), locale) })}</h1>
+              <h1 id="deal-amount" className="text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">{mt.fill(dp.paidYou, { amount: sellerNetUsdc(deal) })}</h1>
               <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
-                {dp.inBalance}{money.balance !== null ? ` · ${formatUsdcAmount(String(money.balance), locale)} USDC` : ''}
+                {dp.inBalance}{money.balance !== null ? ` · ${mt.text(money.balance)}` : ''}
               </p>
               {rating.data?.received ? (
                 <div className="mt-3">
@@ -469,7 +470,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               <h1 id="deal-amount" className="text-[24px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink)]">
                 {viewerIsBuyer ? fill(dp.paidTitle, { name }) : dp.doneTitle}
               </h1>
-              <p dir="auto" className="mt-1 text-[15px] text-[var(--ink-secondary)]">{amount} USDC{what ? ` · ${what}` : ''}</p>
+              <p dir="auto" className="mt-1 text-[15px] text-[var(--ink-secondary)]">{mt.text(deal.dealAmountUsdc)}{what ? ` · ${what}` : ''}</p>
             </div>
           )}
           <div className={`${CARD_CLASS} p-5 lg:p-6`}>
@@ -477,7 +478,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             <div className="mt-5 border-t border-[var(--line)] pt-1">
               <FactRows facts={[
                 ...(deal.settledAt ? [{ label: dp.stageLine.paidOut, value: formatDealDate(deal.settledAt, locale) }] : []),
-                { label: dp.amount, value: `${amount} USDC` },
+                { label: dp.amount, value: mt.text(deal.dealAmountUsdc) },
                 ...(reference ? [{ label: dp.release.deal, value: <span dir="ltr">{reference}</span>, id: 'reference' }] : []),
               ]} />
             </div>

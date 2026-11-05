@@ -64,7 +64,7 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
       <div className="space-y-5">
         <h1 id="money-balance" className="space-y-1.5">
           <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{a.withAgent}<Hint>{t.moneyPages.tips.agent}</Hint></span>
-          <span data-agent-money className="block"><Price usdc={withAgent} size="hero" /></span>
+          <span data-agent-money className="block"><Price usdc={withAgent} size="block" /></span>
           {limit ? (
             <span data-agent-limit className="block text-[13px] font-medium text-[var(--ink-secondary)]">{money.fill(a.line, { limit: limit.weeklyUsdc }, {}, { exact: true })}</span>
           ) : null}

@@ -33,6 +33,7 @@ import { useReportDealAmount } from '@/features/balances/dealAmount';
 import { AcceptWithin, formatWindow } from './AcceptWithin';
 import { protectionLines } from '../protection';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const MAX_DEADLINE_DAYS = 180;
 const shortAddress = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`;
@@ -92,6 +93,7 @@ function inferDocKindDD(name: string): DocumentKind {
 }
 
 export function DirectDealForm() {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations();
   const tt = t.tradeTerms;
   const wf = t.work.dealForm;
@@ -929,7 +931,7 @@ export function DirectDealForm() {
                 ? `@${contactMatch.tag}`
                 : sellerAddress ?? counterparty.trim(),
         },
-        { label: dd.terms.amountLabel, value: `${amount} USDC` },
+        { label: dd.terms.amountLabel, value: mt.text(amount) },
         { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : durationText({ days: submitDays, hours: submitHours }, { day: TERMS_COPY[locale].day, days: TERMS_COPY[locale].days, hr: dd.preview.unitHr, min: dd.preview.unitMin }) },
         { label: c.payment, value: dealTerms.parts.map((part) => `${part.pct}%`).join(' / ') },
         { label: TERMS_COPY[locale].agreement, value: agreementText },

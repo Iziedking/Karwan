@@ -10,9 +10,10 @@ import { runWalletGuarantee } from '@/features/guarantee/walletGuarantee';
 import { ARC_CHAIN_ID } from '@/features/profile/config';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill, formatUsdcAmount } from './presentation';
+import { fill } from './presentation';
 import { getPaidNowView, takePlan } from './getPaidNow';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// Get paid now on the deal page (view 18): the seller of a business order on
 /// the escrow family asks from acceptance, reviews financiers' offers and takes
@@ -20,6 +21,7 @@ import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 type GetPaidOffer = ReturnType<typeof getPaidNowView>['offers'][number];
 
 export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDeal; viewerIsSeller: boolean; onChanged: () => void }) {
+  const mt = useMoneyText({ compact: true });
   const copy = useTranslations();
   const g = copy.dealWorkspace.getPaid;
   const { locale } = useLocale();
@@ -36,7 +38,6 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
   const [reviewing, setReviewing] = useState<GetPaidOffer | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const usdc = (value: string) => formatUsdcAmount(value, locale);
   const max = deal.dealAmountUsdc;
 
   useEffect(() => setRequestedAt(deal.factoringRequestedAt), [deal.factoringRequestedAt]);
@@ -79,7 +80,7 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
   async function request() {
     const value = amount.trim();
     if (!value || !Number.isFinite(Number(value)) || Number(value) <= 0 || Number(value) > Number(max)) {
-      setError(fill(g.amountInvalid, { max: usdc(max) }));
+      setError(mt.fill(g.amountInvalid, { max: max }));
       return;
     }
     setBusy(true);
@@ -174,13 +175,13 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
             <li key={offer.id} className="flex items-center justify-between gap-4 py-3">
               <div className="min-w-0">
                 <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">
-                  {fill(g.offerNow, { advance: usdc(offer.nowUsdc) })}
+                  {mt.fill(g.offerNow, { advance: offer.nowUsdc })}
                   {offer.recommended ? (
                     <span className="rounded-full bg-[var(--lp-accent)] px-2.5 py-0.5 text-[13px] font-semibold text-[var(--accent-ink)]">{g.recommended}</span>
                   ) : null}
                 </p>
-                <p className="mt-0.5 text-[14px] tabular-nums text-[var(--lp-text-sub)]">{fill(g.offerRepay, { repay: usdc(offer.backUsdc) })}</p>
-                {offer.holdUsdc ? <p className="mt-0.5 text-[14px] tabular-nums text-[var(--lp-text-sub)]">{fill(g.hold, { amount: usdc(offer.holdUsdc) })}</p> : null}
+                <p className="mt-0.5 text-[14px] tabular-nums text-[var(--lp-text-sub)]">{mt.fill(g.offerRepay, { repay: offer.backUsdc })}</p>
+                {offer.holdUsdc ? <p className="mt-0.5 text-[14px] tabular-nums text-[var(--lp-text-sub)]">{mt.fill(g.hold, { amount: offer.holdUsdc })}</p> : null}
                 {!offer.funded ? <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{g.waitingOnFinancier}</p> : null}
               </div>
               <button type="button" onClick={() => { setError(null); setReviewing(offer); }} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
@@ -206,7 +207,7 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
           <span className="mt-1.5 block">
             <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} className="form-input form-input-num" />
           </span>
-          <span className="mt-1.5 block text-[14px] font-normal text-[var(--lp-text-sub)]">{fill(g.amountNote, { max: usdc(max) })}</span>
+          <span className="mt-1.5 block text-[14px] font-normal text-[var(--lp-text-sub)]">{mt.fill(g.amountNote, { max: max })}</span>
         </label>
         {errorLine}
         <div className="mt-6">
@@ -214,17 +215,17 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
         </div>
       </Sheet>
 
-      <Sheet open={!!reviewing} title={reviewing ? fill(g.acceptTitle, { advance: usdc(reviewing.nowUsdc) }) : ''} onClose={() => setReviewing(null)} busy={busy}>
+      <Sheet open={!!reviewing} title={reviewing ? mt.fill(g.acceptTitle, { advance: reviewing.nowUsdc }) : ''} onClose={() => setReviewing(null)} busy={busy}>
         {reviewing ? (
           <>
             <p className="text-[15px] text-[var(--lp-dark)]">
-              {fill(g.consequence, { advance: usdc(reviewing.nowUsdc), repay: usdc(reviewing.backUsdc) })}
+              {mt.fill(g.consequence, { advance: reviewing.nowUsdc, repay: reviewing.backUsdc })}
             </p>
-            {reviewing.holdUsdc ? <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">{fill(g.hold, { amount: usdc(reviewing.holdUsdc) })}</p> : null}
+            {reviewing.holdUsdc ? <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">{mt.fill(g.hold, { amount: reviewing.holdUsdc })}</p> : null}
             {errorLine}
             <div className="mt-6">
               <button type="button" disabled={busy} onClick={() => void accept(reviewing)} className={primaryButton}>
-                {reviewing.gapUsdc ? fill(g.putUpAndTake, { gap: usdc(reviewing.gapUsdc) }) : g.accept}
+                {reviewing.gapUsdc ? mt.fill(g.putUpAndTake, { gap: reviewing.gapUsdc }) : g.accept}
               </button>
             </div>
           </>

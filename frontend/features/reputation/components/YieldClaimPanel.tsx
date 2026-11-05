@@ -18,6 +18,7 @@ import {
   ARC_EXPLORER_TX,
   KARWAN_YIELD_DISTRIBUTOR_ADDRESS,
 } from '../../profile/config';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// The account's yield: what has been earned, what has been claimed, and one
 /// Claim that carries the amount ready now. Claiming moves money, so it asks in
@@ -42,6 +43,7 @@ function fmt(s: string | undefined): string {
 }
 
 export function YieldClaimPanel() {
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().yieldClaim;
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
@@ -114,11 +116,11 @@ export function YieldClaimPanel() {
           {t.earned}
           <Hint side="bottom">{t.earnedHint}</Hint>
         </span>
-        <span className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">{loading ? ' ' : `${fmt(lifetimeCredited)} USDC`}</span>
+        <span className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">{loading ? ' ' : money.text(lifetimeCredited ?? 0, { exact: true })}</span>
       </div>
       <div className="flex min-h-[52px] items-center justify-between gap-3 py-3">
         <span className="text-[15px] font-medium text-[var(--ink)]">{t.claimed}</span>
-        <span className="text-[15px] font-semibold tabular-nums text-[var(--ink-secondary)]">{loading ? ' ' : `${fmt(lifetimeClaimed)} USDC`}</span>
+        <span className="text-[15px] font-semibold tabular-nums text-[var(--ink-secondary)]">{loading ? ' ' : money.text(lifetimeClaimed ?? 0, { exact: true })}</span>
       </div>
       <div className="pt-4">
         {onWrongChain ? (

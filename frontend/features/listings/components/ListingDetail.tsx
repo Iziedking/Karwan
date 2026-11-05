@@ -23,11 +23,14 @@ import { samplePhoto } from '@/features/market/listingFacts';
 import { countryName, howItWorks, howYouPay, whatYouGet } from '../listingPage';
 import { ReportOffer } from './ReportOffer';
 import type { WithPhotos } from '../photos';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { Price } from '@/features/money/components/Price';
 
 type FetchState = 'loading' | 'ok' | 'error';
 
 export function ListingDetail({ listingId }: { listingId: string }) {
   const translations = useTranslations();
+  const money = useMoneyText({ compact: true });
   const ld = translations.listingDetail;
   const { locale } = useLocale();
   const auth = useAuth();
@@ -224,8 +227,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
     ? `/messages/${encodeURIComponent(sellerProfile.handle)}?about=listing:${encodeURIComponent(listing.id)}`
     : null;
   const buyerView = isOpen && !viewerIsOwner;
-  const price = formatUsdc(listing.askingPriceUsdc, { withSuffix: false });
-  const orderLabel = shop.listing.order.replace('{amount}', price);
+  const orderLabel = money.fill(shop.listing.order, { amount: listing.askingPriceUsdc });
   const facts = [
     listing.readyInDays
       ? { label: shop.listing.delivery, value: listing.readyInDays === 1 ? shop.listing.inOneDay : shop.listing.inDays.replace('{n}', String(listing.readyInDays)) }
@@ -248,10 +250,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
     </div>
   );
   const priceLine = (size: 'page' | 'panel') => (
-    <p className="flex items-baseline gap-2">
-      <span className={`${size === 'panel' ? 'text-[34px]' : 'text-[22px]'} font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--ink)]`}>{price}</span>
-      <span className="text-[15px] font-semibold text-[var(--ink-secondary)]">{shop.usdc}</span>
-    </p>
+    <Price usdc={Number(listing.askingPriceUsdc)} compact size="hero" figureClassName={`${size === 'panel' ? 'text-[34px]' : 'text-[22px]'} font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]`} />
   );
 
   return (
@@ -317,7 +316,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           {showFloor ? (
             <div className="mt-6">
               <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{ld.pitch.floorLabelTemplate.replace('{n}', String(listing.negotiationMaxDecreasePct ?? 0))}</p>
-              <p className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--ink)]">{formatUsdc(floor!)}</p>
+              <p className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--ink)]">{money.text(floor!)}</p>
               <p className="mt-1 text-[14px] text-[var(--ink-muted)]">{ld.pitch.floorNote}</p>
             </div>
           ) : null}

@@ -2,14 +2,15 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api, type DirectDeal } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill, formatUsdcAmount } from './presentation';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { fill } from './presentation';
 import { moneySplit } from './dealSteps';
 import { proposalOutcome, proposeKinds, type Problem } from './problems';
 import type { WrongChoice } from './wrongChoices';
 import { MAX_DELIVERY_PHOTOS, deliveryNeedsPhoto, deliveryNeedsShipment, deliveryReady, type Shipment } from './delivery';
 import { resizePhoto } from '@/features/listings/photos';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const DAY_S = 86_400;
 
@@ -268,17 +269,17 @@ export function AnswerTimeSheet({ open, deal, caller, name, onClose, onDone }: S
 /// Answers any open proposal: a plain cancel, or a dispute ending that refunds
 /// the buyer or pays the seller, with the amount that moves in words.
 export function AnswerCancelSheet({ open, deal, caller, name, onClose, onDone }: SheetProps) {
+  const mt = useMoneyText({ compact: true });
   const s = useTranslations().dealWorkspace.simple;
   const dp = useTranslations().dealPage;
-  const { locale } = useLocale();
   const move = useMove(onDone);
   const outcome = proposalOutcome(deal);
-  const amount = formatUsdcAmount(moneySplit(deal)?.heldUsdc ?? deal.dealAmountUsdc, locale);
+  const amount = moneySplit(deal)?.heldUsdc ?? deal.dealAmountUsdc;
   const ruling = outcome === 'refund' || outcome === 'pay';
   return (
     <Sheet open={open} title={ruling ? dp.answerProposal : s.answerCancelTitle} onClose={onClose} busy={move.busy}>
       <p className="text-[15px] text-[var(--lp-dark)]">
-        {outcome === 'refund' ? fill(dp.outcomeRefund, { amount }) : outcome === 'pay' ? fill(dp.outcomePay, { amount }) : fill(s.answerCancelTemplate, { name })}
+        {outcome === 'refund' ? mt.fill(dp.outcomeRefund, { amount }) : outcome === 'pay' ? mt.fill(dp.outcomePay, { amount }) : fill(s.answerCancelTemplate, { name })}
       </p>
       {deal.cancellationProposal?.reason ? (
         <p dir="auto" className="mt-3 rounded-[12px] bg-[var(--lp-light)] px-3 py-2 text-[15px] text-[var(--lp-dark)]">{deal.cancellationProposal.reason}</p>

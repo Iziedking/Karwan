@@ -50,6 +50,7 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
   const sheetCopy = all.money.sheet;
   const entry = all.money.entry;
   const money = useMoneyText();
+  const moves = useTranslations().dealPage.release.moves;
   const router = useRouter();
   const auth = useAuth();
   const { connector } = useAccount();
@@ -279,6 +280,7 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
         title={money.fill(mp.reviewTitle, { amount: amount ?? 0 }, {}, { exact: true })}
         note={mp.cannotUndo}
         rows={[
+          [moves, money.usdc(amount ?? 0, { exact: true })],
           [mp.toLabel, address.trim()],
           [mp.networkLabel, destName],
         ]}

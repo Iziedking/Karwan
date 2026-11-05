@@ -121,7 +121,6 @@ export function RecentMoney({ agentsOnly = false }: { agentsOnly?: boolean } = {
                   {amount ? (
                     <span dir="ltr" className="flex shrink-0 flex-col items-end tabular-nums">
                       <span className="text-[15px] font-semibold text-[var(--ink)]">{local ?? amount}</span>
-                      {local ? <span className="text-[13px] font-medium text-[var(--ink-secondary)]">{amount}</span> : null}
                     </span>
                   ) : null}
                 </button>

@@ -12,6 +12,7 @@ import { useTagRecipient } from '@/features/money/hooks/useTagRecipient';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
 import { localDay, microsToUsdc } from '../workModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const GREEN = buttonClasses({ size: 'lg' });
 
@@ -19,6 +20,7 @@ const GREEN = buttonClasses({ size: 'lg' });
 /// and how long; then one sheet with every figure before the buying agent
 /// pays for the first week.
 export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations().work;
   const { locale } = useLocale();
   const router = useRouter();
@@ -42,7 +44,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
     worker: `@${tag}`, kind, rateUsdc: rate, periods: Number(periods), startsInDays: Number(starts), title, brief,
     ...(hourly ? { maxHours: Number(hours) } : {}),
   });
-  const usdc = (m: string) => `${microsToUsdc(m)} USDC`;
+  const usdc = (m: string) => mt.text(microsToUsdc(m));
 
   async function review() {
     setError(null);

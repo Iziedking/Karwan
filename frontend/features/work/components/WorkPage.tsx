@@ -11,6 +11,7 @@ import { ALERT } from '@/shared/ui/controls';
 import { hoursText, localDay, microsToUsdc, minutesFrom, weekLine, workActions } from '../workModel';
 import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
 import { workSteps } from '../workSteps';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const GREEN = buttonClasses({ size: 'lg' });
 const QUIET_BUTTON = buttonClasses({ variant: 'secondary', size: 'lg' });
@@ -24,6 +25,7 @@ type SheetKind =
 /// One piece of hourly work (view 32), the same page for both sides. The
 /// rate and this week's hours lead; each money step opens the confirm sheet.
 export function WorkPage({ id }: { id: string }) {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations().work;
   const { locale } = useLocale();
   const [v, setV] = useState<WorkView | null>(null);
@@ -49,7 +51,7 @@ export function WorkPage({ id }: { id: string }) {
   if (!v) return null;
 
   const hourly = v.kind === 'hourly';
-  const usdc = (micros: string) => `${microsToUsdc(micros)} USDC`;
+  const usdc = (micros: string) => mt.text(microsToUsdc(micros));
   const day = (ms: number) => localDay(ms, locale);
   const periodName = (k: number) => fill(hourly ? t.page.week : t.page.month, { n: k + 1 });
   const close = () => { setSheet(null); setError(null); setH(''); setM(''); setNote(''); };

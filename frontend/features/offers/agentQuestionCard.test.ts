@@ -48,10 +48,10 @@ test('with a money filler, every amount in the line reads in the chosen currency
     fillMoney(template, Object.fromEntries(Object.entries(amounts).map(([k, v]) => [k, v === null || v === undefined ? null : Number(v)])), 'NGN', 1346.11, 'en', vars);
   assert.equal(
     questionLine(copy, base, money),
-    'The budget is ₦107,689 · 80.00 USDC, under your lowest of ₦121,150 · 90.00 USDC. Offer ₦121,150 · 90.00 USDC?',
+    'The budget is ₦107,689, under your lowest of ₦121,150. Offer ₦121,150?',
   );
   assert.equal(
     questionLine(copy, { ...base, kind: 'time', facts: { budgetUsdc: '80', dueDays: 2, limit: 7 }, suggested: { priceUsdc: '80', days: 7 } }, money),
-    'It is due in 2 days. You usually take 7 days. Offer ₦107,689 · 80.00 USDC in 7 days?',
+    'It is due in 2 days. You usually take 7 days. Offer ₦107,689 in 7 days?',
   );
 });

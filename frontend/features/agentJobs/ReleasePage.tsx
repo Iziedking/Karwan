@@ -8,11 +8,13 @@ import { localDay } from '@/features/work/workModel';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT, FIELD, PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import { usePersonSession } from './usePersonSession';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// The person's answer to delivered work (view 15). The agent sends the link;
 /// the answer is proved with the World ID they paired with, so the agent can
 /// never pay the seller on its own.
 export function ReleasePage({ token }: { token: string }) {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations().agentJobs;
   const { locale } = useLocale();
   const [view, setView] = useState<AgentReleaseView | null>(null);
@@ -50,7 +52,7 @@ export function ReleasePage({ token }: { token: string }) {
   return (
     <div className="mx-auto w-full max-w-[720px] px-4 py-12 sm:py-16">
       <h1 className="text-[28px] font-semibold leading-tight text-[var(--lp-ink)]">{t.release.title}</h1>
-      <p className="mt-6 text-[40px] font-semibold tabular-nums leading-none text-[var(--lp-ink)]">{view.amountUsdc} USDC</p>
+      <p className="mt-6 text-[40px] font-semibold tabular-nums leading-none text-[var(--lp-ink)]">{mt.text(view.amountUsdc)}</p>
       <dl className="mt-6 divide-y divide-[var(--lp-line)] border-y border-[var(--lp-line)] text-[15px]">
         <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--ink-secondary)]">{t.release.from}</dt><dd className="text-[var(--lp-ink)]">{view.seller}</dd></div>
         <div className="py-3"><dt className="text-[var(--ink-secondary)]">{view.work}</dt></div>

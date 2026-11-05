@@ -1,6 +1,6 @@
 # 54 · A guide as you sign up
 
-Track T1 (find and agree), roadmap item T1.1 (one market, one entry), and T5 (money) for how amounts read. Proposed 5 Nov 2026 from the owner's notes, with the desktop pop-up added after the first review: "the AI nudge during registration… more like a pop up while signing up showing it is guiding you as you sign up, very smart and responsive", "country selection below choosing your pay tag", and "only block balance per page should have USDC value". It builds on [view 39](39-start-to-home.md) and replaces the seventh round of [view 51](51-top-up-in-one-tap.md). Not built.
+Track T1 (find and agree), roadmap item T1.1 (one market, one entry), and T5 (money) for how amounts read. Proposed 5 Nov 2026 from the owner's notes, with the desktop pop-up added after the first review: "the AI nudge during registration… more like a pop up while signing up showing it is guiding you as you sign up, very smart and responsive", "country selection below choosing your pay tag", and "only block balance per page should have USDC value". It builds on [view 39](39-start-to-home.md) and replaces the seventh round of [view 51](51-top-up-in-one-tap.md). Built 5 Nov 2026, not deployed.
 
 ## How sign-up works today
 
@@ -106,6 +106,16 @@ On a computer, a line arrives by moving 16px in from the form's side while fadin
 
 The steps, their order and the three-part bar stay as they are. The questions About you asks stay as they are. Nothing new is asked except the country, and the country takes one tap because it is already picked.
 
+## As built
+
+- **Two big sizes.** `Price` has `block` (the page's one balance: your currency big, USDC under it) and `hero` (any other big figure, your currency only). Home's total, the Agent tab and the Deal guarantee use `block`; the Balance tab keeps its own block. Rows, cards and sentences go through `useMoneyText()` and show one figure.
+- **The exact USDC lines.** The withdraw confirm, the order confirm and the release confirm on a deal each carry one Moves row with the exact USDC; the funding confirm keeps its rows in USDC. Typed amounts show "≈ ₦…" under them.
+- **Kept in USDC on purpose.** Moving between networks (the bridge, the transfer balance, wallet balances per network), the exact amount to add on the order page, Karwan-wide totals on public pages, and the developer docs. A test (`oneCurrency.test.ts`) fails the build when any other screen prints a figure with "USDC" by hand.
+- **The guide.** `Nudge` in `features/setup/StartParts.tsx` is now the pop-up. It sits beside the form from 1240px wide (the form is centred, so narrower screens have no open space beside it) and drops in under the header below that. The agent's read-back of a price in About you stays in the page, because the person checks it before going on.
+- **Country.** `CountrySelect` sits under the tag line; the browser's region is picked first. `POST /api/signup` takes `country`, and the new account gets that location and, for a supported currency, Show amounts in. A country without one stores no currency, so it reads in USDC and takes a currency added later. The assistant's `set_location` and the Telegram interview set the currency the same way, only when none was chosen.
+- **Telegram.** The interview asks where you are right after the goals, the first question it asks after you are in, rather than before them.
+- **Not done.** Receipts do not yet carry a separate "Settled N USDC" row, and the titles the server writes for money movements ("Received 500 USDC" on a Recent row) still name USDC; the amount beside them reads in your currency.
+
 ## Status
 
-Proposed 5 Nov 2026, waiting for the owner.
+Approved and built 5 Nov 2026, not deployed.

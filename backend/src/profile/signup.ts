@@ -4,6 +4,8 @@
 
 import type { UserProfile } from '../db/profiles.js';
 import { checkKarwanTag } from './karwanTag.js';
+import { currencyForCountry } from '../rates/countryCurrency.js';
+import { normalizeLocation } from '../location/rules.js';
 
 export interface SignupInput {
   tag: string;
@@ -34,8 +36,15 @@ export function newAccountProfile(
   address: string,
   tag: string,
   accountKind: 'person' | 'business',
+  /// The country picked under the tag (view 54). It is the person's country
+  /// and sets the currency amounts read in; USDC needs no setting.
+  country?: string,
 ): Omit<UserProfile, 'createdAt' | 'updatedAt'> {
+  const where = country ? normalizeLocation({ country }) : null;
+  const currency = currencyForCountry(where?.country);
   return {
+    ...(where?.country ? { location: { ...where, reach: {} } } : {}),
+    ...(currency !== 'USDC' ? { settings: { displayCurrency: currency } } : {}),
     address: address.toLowerCase(),
     handle: tag,
     displayName: tag,

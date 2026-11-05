@@ -2,13 +2,16 @@ import type { DirectDeal } from '@/core/api';
 import type { DealPageCopy } from '@/shared/i18n/messages/dealPage';
 import { moneySplit } from './dealSteps';
 import { fill, formatUsdcAmount } from './presentation';
+import type { MoneyFill } from './momentLine';
 
 /// The money line of a deal paid in stages once part of it is out (rule 1):
 /// "60 USDC paid to Ada · 60 USDC held by Karwan". Null otherwise, and the
 /// page says where the money is in one word.
-export function titleMoneyLine(deal: DirectDeal, name: string, t: DealPageCopy, locale: string): string | null {
+/// With a money filler the amounts read in the person's chosen currency.
+export function titleMoneyLine(deal: DirectDeal, name: string, t: DealPageCopy, locale: string, money?: MoneyFill): string | null {
   const split = moneySplit(deal);
   if (!split || split.paidOutUsdc === '0' || split.heldUsdc === '0') return null;
+  if (money) return money(t.split, { paid: split.paidOutUsdc, held: split.heldUsdc }, { name });
   return fill(t.split, { paid: formatUsdcAmount(split.paidOutUsdc, locale), held: formatUsdcAmount(split.heldUsdc, locale), name });
 }
 

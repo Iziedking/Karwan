@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { fill } from '@/features/deals/workspace/presentation';
-import { walletAmount } from '@/features/balances/walletFormat';
 import { ProfileFrame } from '@/features/profile/ui/ProfileUi';
 import { requestTitle } from '@/features/search/requestTitle';
 import { requestLineState } from '@/features/search/requestView';
@@ -19,6 +18,7 @@ import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '../tradeEntry';
 import { liveOffers, openRequests } from '../tradeHub';
 import { MarketReadsNotice } from '@/features/market/MarketReadsNote';
 import { marketViewHref } from '@/features/market/marketQuery';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// The requests still looking for a seller: the list the Trade card counts.
 export function YourRequests() {
@@ -36,6 +36,7 @@ function YourRequestsInner() {
   const entry = TRADE_ENTRY_COPY[locale];
   const hub = entry.desk.hub;
   const t = useTranslations().search;
+  const money = useMoneyText();
   const me = useAuth().address?.toLowerCase() ?? '';
   // Same key as the Trade card, so the count and the list come from one answer.
   const requests = useQuery({ queryKey: ['search', 'myRequests', me], queryFn: () => api.buyer(me).then((r) => r.jobs), enabled: !!me, staleTime: 15_000 });
@@ -55,7 +56,7 @@ function YourRequestsInner() {
         href: `/jobs/${job.jobId}`,
         title: requestTitle(job.briefText) ?? t.request.aRequest,
         line: fill(t.request.states[LINE_COPY[requestLineState(job, now)]].headline, { count: job.bids.length }),
-        amount: `${walletAmount(job.budgetUsdc) ?? job.budgetUsdc} USDC`,
+        amount: money.text(job.budgetUsdc),
       }))}
     />
   );
@@ -76,6 +77,7 @@ function YourOffersInner() {
   const { locale } = useLocale();
   const entry = TRADE_ENTRY_COPY[locale];
   const hub = entry.desk.hub;
+  const money = useMoneyText();
   const me = useAuth().address?.toLowerCase() ?? '';
   const listings = useQuery({ queryKey: ['trade-hub', 'listings', me], queryFn: () => api.listingsForSeller(me).then((r) => r.listings), enabled: !!me, staleTime: 15_000 });
   const live = liveOffers(listings.data ?? [], Date.now());
@@ -93,7 +95,7 @@ function YourOffersInner() {
         href: `/listings/${l.id}`,
         title: l.title,
         line: hub.live,
-        amount: `${walletAmount(String(l.askingPriceUsdc)) ?? l.askingPriceUsdc} USDC`,
+        amount: money.text(l.askingPriceUsdc),
       }))}
     />
   );

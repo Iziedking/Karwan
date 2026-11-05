@@ -1,21 +1,21 @@
 'use client';
 import { useState } from 'react';
 import { useActivation } from '@/shared/hooks/useActivation';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { formatBalance } from '@/features/money/balanceModel';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { MoneySheet } from '@/features/money/components/MoneySheet';
 import type { AgentKey, MoneyMove } from '@/features/money/moneySheetModel';
 import { Row, RowGroup } from '../ui/ProfileUi';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const pill =
   'inline-flex min-h-11 items-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
 
 /// Each agent's balance with top up and withdraw, opened in place.
 export function AgentFundsList({ onSetUp }: { onSetUp: () => void }) {
+  const mt = useMoneyText();
   const t = useTranslations().money.home;
   const simple = useTranslations().profile.simple;
-  const { locale } = useLocale();
   const balances = useMoneyBalances();
   const activation = useActivation();
   const [sheet, setSheet] = useState<{ move: MoneyMove; agent: AgentKey } | null>(null);
@@ -45,7 +45,7 @@ export function AgentFundsList({ onSetUp }: { onSetUp: () => void }) {
                 <span className="block">
                   {custom || (agent === 'buyer' ? t.buyingAgent : t.sellingAgent)}
                   <span className="block text-[14px] font-normal tabular-nums text-[var(--lp-text-sub)]">
-                    {amount == null ? simple.notAvailable : `${formatBalance(amount, locale)} USDC`}
+                    {amount == null ? simple.notAvailable : mt.text(amount)}
                   </span>
                 </span>
               }

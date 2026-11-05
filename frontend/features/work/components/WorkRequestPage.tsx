@@ -15,6 +15,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
 import { localDay, microsToUsdc } from '../workModel';
 import { SellerBlock } from './SellerBlock';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const GREEN = buttonClasses({ size: 'lg' });
 const QUIET_BUTTON = buttonClasses({ variant: 'secondary', size: 'lg' });
@@ -22,6 +23,7 @@ const QUIET_BUTTON = buttonClasses({ variant: 'secondary', size: 'lg' });
 /// Posted hourly work (view 32). The hirer sees the offers their agent ranked,
 /// best fit first, and hires one; a seller offers a rate; anyone else reads it.
 export function WorkRequestPage({ id }: { id: string }) {
+  const mt = useMoneyText({ compact: true });
   const all = useTranslations().work;
   const t = all.requests;
   const { locale } = useLocale();
@@ -49,7 +51,7 @@ export function WorkRequestPage({ id }: { id: string }) {
   if (!r) return null;
 
   const hourly = r.kind === 'hourly';
-  const usdc = (m: string) => `${microsToUsdc(m)} USDC`;
+  const usdc = (m: string) => mt.text(microsToUsdc(m));
   const fail = (err: unknown) => {
     const need = err instanceof ApiError ? (err.body as { needMicros?: string } | undefined)?.needMicros : undefined;
     setError(need ? fill(all.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : all.failed);

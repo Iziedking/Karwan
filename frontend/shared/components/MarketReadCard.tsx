@@ -1,4 +1,5 @@
 'use client';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// The agent's paid market read, rendered identically on the match-proposal
 /// banner and the deal page. UI copy says "agent research" / "Market read" and
@@ -32,7 +33,6 @@ export interface MarketReadData {
   researchedAt: number;
 }
 
-const usdcFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 const TONES: Record<MarketReadData['demand'], { fg: string; bg: string }> = {
   hot: { fg: 'var(--lp-accent)', bg: 'rgba(175,201,91,0.14)' },
@@ -68,6 +68,7 @@ export function MarketReadCard({
   /// the neutral note the agent wrote.
   role?: 'buyer' | 'seller';
 }) {
+  const mt = useMoneyText({ compact: true });
   const tone = TONES[mr.demand];
   const note = role ? roleNote(mr.demand, role) : mr.priceNote;
   return (
@@ -89,15 +90,14 @@ export function MarketReadCard({
               className="mono text-[13px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)] tabular-nums"
               style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 3 }}
             >
-              market {usdcFmt.format(mr.priceBandUsdc.low)} to{' '}
-              {usdcFmt.format(mr.priceBandUsdc.high)} USDC
+              market {mt.text(mr.priceBandUsdc.low)} to {mt.text(mr.priceBandUsdc.high)}
             </span>
           ) : mr.fairPriceUsdc != null ? (
             <span
               className="mono text-[13px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)] tabular-nums"
               style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 3 }}
             >
-              market ~{usdcFmt.format(mr.fairPriceUsdc)} USDC
+              market ~{mt.text(mr.fairPriceUsdc)}
             </span>
           ) : null}
           <span
@@ -136,7 +136,7 @@ export function MarketReadCard({
               return (
                 <li key={`${o.sourceIndex}-${i}`} className="text-[14px] leading-snug">
                   <span className="mono font-bold text-[var(--lp-dark)] tabular-nums">
-                    {usdcFmt.format(o.amountUsdc)} USDC
+                    {mt.text(o.amountUsdc)}
                   </span>
                   <span className="mono text-[13px] text-[var(--lp-text-muted)]"> · {o.unit}</span>
                   <span className="text-[var(--lp-text-sub)] italic"> “{o.quote.length > 110 ? `${o.quote.slice(0, 110)}…` : o.quote}”</span>

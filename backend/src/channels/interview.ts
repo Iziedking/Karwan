@@ -77,13 +77,14 @@ export function interviewQuestions(goals: readonly Goal[]): SetupQuestion[] {
   const selling = has('work') || has('sell');
   return [
     'goals',
+    // Where you are comes first after the goals: it sets the currency amounts read in (view 54).
+    'where',
     ...(selling ? (['what', 'price'] as const) : []),
     ...(has('buy') ? (['buy'] as const) : []),
     ...(has('business') ? (['business'] as const) : []),
     ...(has('record') ? (['places'] as const) : []),
     ...(selling || has('buy') ? (['clients'] as const) : []),
     'reach',
-    'where',
   ];
 }
 
@@ -146,7 +147,9 @@ export function createInterview<A extends ChatAccount>(deps: InterviewDeps) {
     const i = order.indexOf(q);
     // Someone left at a question the chat no longer asks picks up at the first
     // one they have not answered.
-    const next = i >= 0 ? order[i + 1] : order.find((s) => s !== 'goals' && answers[s as keyof BriefAnswers] === undefined);
+    // A question already answered is not asked again.
+    const unanswered = (s: SetupQuestion) => s !== 'goals' && answers[s as keyof BriefAnswers] === undefined;
+    const next = i >= 0 ? order.slice(i + 1).find(unanswered) : order.find(unanswered);
     if (next) return { account: at(account, { step: next, answers }), out: [ask(next, answers)] };
     return card(account, answers);
   }

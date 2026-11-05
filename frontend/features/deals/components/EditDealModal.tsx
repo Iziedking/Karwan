@@ -3,11 +3,11 @@ import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { api, ApiError, type DirectDeal } from '@/core/api';
 import { feeBreakdown } from '../config';
-import { formatUsdc } from '@/shared/utils/format';
 import { sfx } from '@/shared/utils/sfx';
 import { CTAPill } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { splitDeadline } from '../deadlineSplit';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const DAY_MS = 86_400_000;
 /// The API caps a deadline at 180 days and 23 hours from now.
@@ -49,6 +49,7 @@ export function EditDealModal({
   onSaved: () => Promise<void> | void;
   mode?: 'edit' | 'counter';
 }) {
+  const mt = useMoneyText({ compact: true });
   const em = useTranslations().editDealModal;
   const initialAmount = Number(deal.dealAmountUsdc) || 0;
   const initialDue = deal.deadlineUnix && deal.deadlineUnix * 1000 > Date.now() ? isoDate(deal.deadlineUnix * 1000) : '';
@@ -129,9 +130,7 @@ export function EditDealModal({
             </div>
             {fee ? (
               <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">
-                {em.feeTemplate
-                  .replace('{funded}', formatUsdc(fee.fundedAmount, { withSuffix: false }))
-                  .replace('{seller}', formatUsdc(fee.sellerNet, { withSuffix: false }))}
+                {mt.fill(em.feeTemplate, { funded: fee.fundedAmount, seller: fee.sellerNet })}
               </span>
             ) : null}
           </Field>

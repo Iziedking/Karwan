@@ -10,7 +10,6 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
-import { formatUsdc } from '@/shared/utils/format';
 import { ARC_CHAIN_ID } from '@/features/profile/config';
 import { PreviousEscrowDeals } from '@/features/deals/components/PreviousEscrowDeals';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
@@ -20,6 +19,7 @@ import { GUARANTEE_QUERY } from '@/features/guarantee/useGuarantee';
 import { Pager } from '@/shared/components/Pager';
 import { paged } from '@/shared/utils/paged';
 import { dealReference } from '@/features/deals/dealReference';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const LEGACY_QUERY = ['legacy-positions'] as const;
 
@@ -54,6 +54,7 @@ export default function LegacyPage() {
 /// with the step that works now. Karwan signs for a wallet it holds; an own
 /// wallet signs the calls the server simulated for it.
 function LegacyPageInner() {
+  const mt = useMoneyText({ compact: true });
   const { locale, t } = useLocale();
   const c = t.dealGuarantee.legacy;
   const mpDeal = t.moneyPage.deal;
@@ -139,7 +140,7 @@ function LegacyPageInner() {
                   {/* Names, never addresses (rule 9): the deal's reference stands in for the other side. */}
                   <p className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{dealReference(d.jobId) ? fill(mpDeal, { reference: dealReference(d.jobId)! }) : (d.role === 'buyer' ? c.asBuyer : c.asSeller)}</p>
                   <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
-                    {d.role === 'buyer' ? c.asBuyer : c.asSeller} · <span className="tabular-nums">{formatUsdc(d.amountUsdc)}</span> ·{' '}
+                    {d.role === 'buyer' ? c.asBuyer : c.asSeller} · <span className="tabular-nums">{mt.text(d.amountUsdc)}</span> ·{' '}
                     {d.state === 'disputed' ? c.disputed : d.steps.length === 0 && d.role === 'seller' ? c.waitingBuyer : c.funded}
                   </p>
                   {d.heldByKarwan ? <p className="mt-1 text-[14px] font-medium text-[var(--lp-dark)]">{c.heldByKarwan}</p> : null}
@@ -171,7 +172,7 @@ function LegacyPageInner() {
           <ul className="mt-4 space-y-3">
             {guaranteesPage.rows.map((p) => (                <li key={`${p.contract}:${p.positionId}`} className={row}>
                   <div className="min-w-0">
-                    <p className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(p.amountUsdc)}</p>
+                    <p className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{mt.text(p.amountUsdc)}</p>
                     <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
                       {p.state === 'in_place'
                         ? c.inPlace
@@ -207,7 +208,7 @@ function LegacyPageInner() {
         <h2 id={`${sheetId}-title`} className="text-[20px] font-semibold text-[var(--lp-dark)]">
           {pending?.label}
         </h2>
-        <p className="mt-2 text-[16px] font-semibold tabular-nums text-[var(--lp-dark)]">{pending ? formatUsdc(pending.amountUsdc) : null}</p>
+        <p className="mt-2 text-[16px] font-semibold tabular-nums text-[var(--lp-dark)]">{pending ? mt.text(pending.amountUsdc) : null}</p>
         {pending?.body.kind === 'deal' && pending.body.step === 'releaseFinal' ? (
           <p className="mt-3 text-[15px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{c.releaseWarning}</p>
         ) : null}

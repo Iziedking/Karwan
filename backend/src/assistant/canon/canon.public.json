@@ -404,7 +404,7 @@
           "date": "2026-09-01"
         }
       ],
-      "body": "Local bank payout corridors are planned and are not live in the current Arc\nTestnet release. A local trade can be created today, but its present settlement\nuses test USDC.\n\nKarwan plans to keep USDC as the cross-border settlement layer while approved\npayout infrastructure converts to local currency. Each corridor must pass\navailability, compliance, recipient, fee, foreign-exchange, reconciliation,\nrefund and support gates before launch.\n\nOn screen, amounts can read in a local currency (NGN, USD, EUR, GBP, CNY, INR, AED,\nKES or XOF) at a live rate, chosen under Show amounts in. This changes only how\namounts read: money stays in USDC."
+      "body": "Local bank payout corridors are planned and are not live in the current Arc\nTestnet release. A local trade can be created today, but its present settlement\nuses test USDC.\n\nKarwan plans to keep USDC as the cross-border settlement layer while approved\npayout infrastructure converts to local currency. Each corridor must pass\navailability, compliance, recipient, fee, foreign-exchange, reconciliation,\nrefund and support gates before launch.\n\nOn screen, amounts can read in a local currency (NGN, USD, EUR, GBP, CNY, INR, AED,\nKES or XOF) at a live rate. The country picked at sign-up sets it, and it changes\nunder Show amounts in. Every figure then reads in that currency alone; only a\npage's one big balance shows the USDC under it. This changes only how amounts\nread: money stays in USDC, and what you type and confirm to move stays in USDC."
     },
     {
       "id": "market-demand-and-prices",

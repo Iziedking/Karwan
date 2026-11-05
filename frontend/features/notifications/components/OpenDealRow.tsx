@@ -10,6 +10,7 @@ import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { cn } from '@/shared/utils/cn';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// One deal in a list (view 48). `card` is the Deals list card: the person,
 /// what it is, the amount, the route and one status line. `feature` is the
@@ -25,7 +26,6 @@ export function OpenDealRow({
   deal,
   reference,
   amount,
-  unit,
   status,
   yourMove,
   next,
@@ -59,7 +59,8 @@ export function OpenDealRow({
   const who = counterparty ?? role;
   const heading = title || who;
   const statusLine = [status, next, due].filter(Boolean).join(' · ');
-  const label = [heading, status, reference, `${formatUsdc(amount)} ${unit}`].filter(Boolean).join(', ');
+  const money = useMoneyText({ compact: true });
+  const label = [heading, status, reference, money.text(amount)].filter(Boolean).join(', ');
 
   if (variant === 'ended') {
     const struck = state ? amountStruck(state) : false;
@@ -160,10 +161,4 @@ export function shortDate(value: number, locale: string): string {
   const date = new Date(ms);
   if (!Number.isFinite(date.getTime())) return '';
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(date);
-}
-
-function formatUsdc(raw: string): string {
-  const value = Number(raw);
-  if (!Number.isFinite(value)) return raw;
-  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }

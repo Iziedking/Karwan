@@ -1,7 +1,7 @@
 'use client';
 import { useCallback } from 'react';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { fillMoney, localHint, moneyText, type MoneyTextOptions } from '../moneyText';
+import { fillMoney, localHint, moneyText, usdcFigure, type MoneyTextOptions } from '../moneyText';
 import { useDisplayCurrency } from './useDisplayCurrency';
 
 /// A figure from the API ("20.5", 20.5, "" or null) as a number, or null.
@@ -46,5 +46,14 @@ export function useMoneyText(defaults: MoneyTextOptions = {}) {
     [currency, rate, locale],
   );
 
-  return { text, fill, hint, currency };
+  /// The exact USDC that moves, for the one line a confirm card keeps (view 54).
+  const usdc = useCallback(
+    (value: number | string | null | undefined, options?: MoneyTextOptions): string => {
+      const n = toNumber(value);
+      return n === null ? '' : `${usdcFigure(n, locale, { compact, exact, ...options })} USDC`;
+    },
+    [locale, compact, exact],
+  );
+
+  return { text, fill, hint, usdc, currency };
 }

@@ -14,6 +14,7 @@ import {
   type ReceiptExportData,
 } from '../receiptPresentation';
 import { ledgerLine } from '../ledgerPresentation';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 type Copy = Messages['activity']['myMoney'];
 
@@ -50,6 +51,7 @@ export function PortableReceipt({
   onClose: () => void;
   canShare?: boolean;
 }) {
+  const money = useMoneyText({ compact: true });
   const panelRef = useRef<HTMLDivElement>(null);
   const noteLabel = useTranslations().money.sendFlow.note;
   const [mounted, setMounted] = useState(false);
@@ -77,7 +79,7 @@ export function PortableReceipt({
       title: copy.receiptTitle,
       summary: item.note ? `${line} · ${noteLabel}: ${item.note}` : line,
       reference,
-      amount: item.amountUsdc ? `${item.amountUsdc} USDC` : null,
+      amount: item.amountUsdc ? money.text(item.amountUsdc) : null,
       status,
       date,
       transaction,
@@ -152,7 +154,7 @@ export function PortableReceipt({
           className="mt-5"
           status={{ label: status, tone: item.status }}
           kind={copy.receiptTitle}
-          amount={item.amountUsdc ? `${item.amountUsdc} USDC` : null}
+          amount={item.amountUsdc ? money.text(item.amountUsdc) : null}
           sentence={line}
           rows={[
             ...(item.note ? [{ label: noteLabel, value: item.note }] : []),

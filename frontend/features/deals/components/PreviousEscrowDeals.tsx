@@ -5,14 +5,15 @@ import { Pager } from '@/shared/components/Pager';
 import { paged } from '@/shared/utils/paged';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { formatUsdc } from '@/shared/utils/format';
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { previousEscrowDeals } from '../previousEscrow';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// The deals from before the new escrow, gathered so they can be reconciled.
 /// Each row opens the deal page, where its actions still run on the escrow it
 /// started on. Shows nothing when there are none.
 export function PreviousEscrowDeals() {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations();
   const c = t.previousEscrow;
   const { address } = useAuth();
@@ -41,7 +42,7 @@ export function PreviousEscrowDeals() {
                   {d.counterpartyName ?? `${(buying ? d.seller : d.buyer).slice(0, 6)}…`}
                 </p>
                 <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
-                  {buying ? c.asBuyer : c.asSeller} · <span className="tabular-nums">{formatUsdc(d.dealAmountUsdc)}</span>
+                  {buying ? c.asBuyer : c.asSeller} · <span className="tabular-nums">{mt.text(d.dealAmountUsdc)}</span>
                   {stage ? <> · {t.dealStage.labels[stage]}</> : null}
                 </p>
               </div>

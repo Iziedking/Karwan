@@ -53,6 +53,8 @@ export interface DealPageCopy {
     for: string;
     deal: string;
     heldBy: string;
+    /// The one exact USDC line on the confirm before money moves (view 54).
+    moves: string;
     heldValue: string;
     checked: string;
     cannotUndo: string;
@@ -130,6 +132,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       for: 'For',
       deal: 'Deal',
       heldBy: "Payment",
+      moves: "Moves",
       heldValue: "Held in escrow under the agreed release rules",
       checked: 'Checked by Karwan',
       cannotUndo: 'This cannot be undone.',
@@ -205,6 +208,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       for: 'Pour',
       deal: 'Transaction',
       heldBy: "Paiement",
+      moves: "Montant envoyé",
       heldValue: "Sous séquestre selon les règles de versement convenues",
       checked: 'Vérifié par Karwan',
       cannotUndo: 'Cette action est définitive.',
@@ -280,6 +284,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       for: 'مقابل',
       deal: 'الصفقة',
       heldBy: "الدفع",
+      moves: "المبلغ المُرسَل",
       heldValue: "محفوظ في الضمان وفق قواعد الصرف المتفق عليها",
       checked: 'تحققت منه كاروان',
       cannotUndo: 'لا يمكن التراجع عن هذا.',
@@ -355,6 +360,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       for: 'किसके लिए',
       deal: 'डील',
       heldBy: "भुगतान",
+      moves: "भेजी जाने वाली राशि",
       heldValue: "तय भुगतान नियमों के अनुसार एस्क्रो में सुरक्षित",
       checked: 'Karwan ने जाँचा',
       cannotUndo: 'इसे वापस नहीं लिया जा सकता।',
@@ -430,6 +436,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       for: 'Kwa ajili ya',
       deal: 'Mpango',
       heldBy: "Malipo",
+      moves: "Kiasi kinachotumwa",
       heldValue: "Zimeshikiliwa kwenye escrow kwa masharti ya malipo yaliyokubaliwa",
       checked: 'Imekaguliwa na Karwan',
       cannotUndo: 'Hili haliwezi kutenduliwa.',

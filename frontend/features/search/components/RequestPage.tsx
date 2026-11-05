@@ -21,6 +21,7 @@ import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { requestTitle } from '../requestTitle';
 import { refreshKey, requestView, type RequestView } from '../requestView';
 import { MatchPanel } from './MatchPanel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 type StateKeys = keyof ReturnType<typeof useTranslations>['search']['request']['states'];
 
@@ -47,6 +48,7 @@ const TOGGLE =
 /// action that moves it on. Offers and the agent's timeline stay folded, and
 /// a matched seller never gets them at all.
 export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().search.request;
   const rp = useTranslations().requestPage;
   const rf = useTranslations().requestFlow;
@@ -138,7 +140,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
               {view.viewer === 'buyer' ? (
                 <span className="text-[15px] font-semibold text-[var(--ink)]">{matchedName}</span>
               ) : null}
-              <span className="text-[22px] font-semibold tabular-nums text-[var(--ink)]">{view.priceUsdc} USDC</span>
+              <span className="text-[22px] font-semibold tabular-nums text-[var(--ink)]">{money.text(view.priceUsdc)}</span>
               {view.wasUsdc ? (
                 <span className="text-[14px] text-[var(--ink-secondary)] font-medium">{fill(t.match.was, { was: view.wasUsdc })}</span>
               ) : null}

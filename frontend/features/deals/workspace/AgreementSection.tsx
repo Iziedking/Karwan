@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatDealDate, formatUsdcAmount } from './presentation';
 import { agreementBlocks, type AgreementBlock, type AgreementPart } from './agreementBlocks';
 import { agreedPrice } from './agreedPrice';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const MICROS = 1_000_000n;
 
@@ -19,6 +20,7 @@ function feeUsdc(deal: DirectDeal): string | null {
 export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bare?: boolean }) {
   const copy = useTranslations().dealWorkspace;
   const dp = useTranslations().dealPage;
+  const money = useMoneyText();
   const { locale } = useLocale();
   const price = agreedPrice(deal);
   const [open, setOpen] = useState(false);
@@ -32,11 +34,11 @@ export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bar
       {price ? (
         <div data-agreed-price className="max-w-[62ch] space-y-1 border-s-2 border-[var(--lp-border-light)] ps-3">
           <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">
-            {fill(dp.priceChanged, { agreed: formatUsdcAmount(price.agreed, locale), posted: formatUsdcAmount(price.posted, locale) })}
+            {money.fill(dp.priceChanged, { agreed: price.agreed, posted: price.posted })}
           </p>
           {price.stages.length ? (
             <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
-              {price.stages.map((amount, i) => fill(dp.stageAmount, { n: i + 1, amount: formatUsdcAmount(amount, locale) })).join(' · ')}
+              {price.stages.map((amount, i) => money.fill(dp.stageAmount, { amount }, { n: i + 1 })).join(' · ')}
             </p>
           ) : null}
         </div>
@@ -46,7 +48,7 @@ export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bar
         {[
           payments === 1 ? copy.agreement.paymentsOne : fill(copy.agreement.paymentsTemplate, { n: payments }),
           deal.deadlineUnix ? fill(copy.agreement.deliverByTemplate, { date: formatDealDate(deal.deadlineUnix * 1000, locale) }) : null,
-          fee ? fill(copy.agreement.feeTemplate, { amount: formatUsdcAmount(fee, locale) }) : null,
+          fee ? money.fill(copy.agreement.feeTemplate, { amount: fee }) : null,
         ].filter(Boolean).join(' · ')}
       </p>
       <button

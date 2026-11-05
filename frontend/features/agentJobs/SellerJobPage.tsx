@@ -8,10 +8,12 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { localDay } from '@/features/work/workModel';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT, FIELD, PRIMARY, SECONDARY } from '@/shared/ui/controls';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// A deal an outside agent funded for a verified person (view 15), as its
 /// seller sees it: what they get, by when, and the one step that is theirs.
 export function SellerJobPage({ jobRef }: { jobRef: string }) {
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().agentJobs;
   const { locale } = useLocale();
   const [job, setJob] = useState<AgentJobView | null>(null);
@@ -63,7 +65,7 @@ export function SellerJobPage({ jobRef }: { jobRef: string }) {
       <h1 className="mt-4 text-[24px] font-semibold text-[var(--lp-ink)]">{t.seller.title}</h1>
       <p className="mt-1 text-[14px] text-[var(--ink-secondary)]">{t.seller.badge}</p>
       <p className="mt-6 text-[14px] text-[var(--ink-secondary)]">{t.seller.youGet}</p>
-      <p className="text-[40px] font-semibold tabular-nums leading-none text-[var(--lp-ink)]">{job.amountUsdc} USDC</p>
+      <p className="text-[40px] font-semibold tabular-nums leading-none text-[var(--lp-ink)]">{money.text(job.amountUsdc)}</p>
       <dl className="mt-6 divide-y divide-[var(--lp-line)] border-y border-[var(--lp-line)] text-[15px]">
         <div className="py-3"><dd className="text-[var(--lp-ink)]">{job.work}</dd></div>
         <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--ink-secondary)]">{t.seller.deadline}</dt><dd className="tabular-nums text-[var(--lp-ink)]">{day(job.deadline)}</dd></div>
@@ -117,6 +119,7 @@ export function SellerJobPage({ jobRef }: { jobRef: string }) {
 
 /// Every deal outside agents funded with this seller, newest first.
 export function SellerJobsList() {
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().agentJobs;
   const { locale } = useLocale();
   const [jobs, setJobs] = useState<AgentJobView[] | null>(null);
@@ -138,7 +141,7 @@ export function SellerJobsList() {
                   <span className="block truncate text-[15px] text-[var(--lp-ink)]">{j.work}</span>
                   <span className="block text-[14px] text-[var(--ink-secondary)]">{t.seller.status[j.status]} · {localDay(j.deadline, locale)}</span>
                 </span>
-                <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-ink)]">{j.amountUsdc} USDC</span>
+                <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-ink)]">{money.text(j.amountUsdc)}</span>
               </Link>
             </li>
           ))}

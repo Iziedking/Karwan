@@ -8,11 +8,13 @@ import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT, FIELD, PRIMARY } from '@/shared/ui/controls';
 import { microsToUsdc } from '../contestModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// Run a contest (view 40): what it is for, the prize, how many winners and
 /// how long entries stay open; then one sheet with every figure before the
 /// buying agent puts up the prize.
 export function ContestForm({ prefill }: { prefill: Partial<ContestInput> }) {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations().contests;
   const { locale } = useLocale();
   const router = useRouter();
@@ -26,7 +28,7 @@ export function ContestForm({ prefill }: { prefill: Partial<ContestInput> }) {
   const [error, setError] = useState<string | null>(null);
   const input = (): ContestInput => ({ title, brief, prizeUsdc: prize, places, entriesDays: Number(days), ...(prefill.awardDays ? { awardDays: prefill.awardDays } : {}) });
   const date = (ms: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(ms);
-  const usdc = (m: string) => `${microsToUsdc(m)} USDC`;
+  const usdc = (m: string) => mt.text(microsToUsdc(m));
 
   async function review() {
     setError(null);

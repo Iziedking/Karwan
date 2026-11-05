@@ -9,7 +9,8 @@ import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { shortAddress } from '@/shared/utils/format';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { formatBalance, heroAmount } from '@/features/money/balanceModel';
+import { heroAmount } from '@/features/money/balanceModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { ProfileFrame, Row, RowGroup, ToggleRow } from '../ui/ProfileUi';
 import { liveOffers, openRequests } from '@/features/home/tradeHub';
@@ -126,7 +127,8 @@ export function ProfileAccountHub({
   // One figure for Money, the same one Money shows (view 51, fifth round).
   const agentTotal = (money.buyer ?? 0) + (money.seller ?? 0);
   const balanceFacts = { balance: money.balance, pool: money.pool, agents: agentTotal, loading: money.loading, error: money.error };
-  const usdc = (value: number | null) => (value == null ? undefined : `${formatBalance(value, locale)} USDC`);
+  const mt = useMoneyText();
+  const balanceText = (value: number | null) => (value == null ? undefined : mt.text(value));
   // What setup already filled in, instead of "Set up" (accountRows.ts).
   const rows = accountRows(
     {
@@ -192,7 +194,7 @@ export function ProfileAccountHub({
           the agent and the guarantee (view 51, fifth round). */}
       <RowGroup>
         <Row label={pp.yourRecord} value={summary ?? undefined} href={`/credit-passport/${address}`} />
-        <Row label={mpg.money} value={usdc(heroAmount(balanceFacts))} href="/account" />
+        <Row label={mpg.money} value={balanceText(heroAmount(balanceFacts))} href="/account" />
       </RowGroup>
 
       {DEALS_AVAILABLE ? (

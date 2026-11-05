@@ -245,7 +245,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
   return (
     <section className="mt-6">
       <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.earnings}</p>
-      <Price usdc={available} size="hero" className="mt-2" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.03em] text-[var(--lp-dark)]" usdcClassName="text-[var(--lp-text-sub)]" />
+      <Price usdc={available} size="hero" className="mt-2" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.03em] text-[var(--lp-dark)]" />
       {sources.length > 1 ? (
         <div className="mt-6">
           <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.from}</p>

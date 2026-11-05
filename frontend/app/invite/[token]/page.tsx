@@ -13,7 +13,7 @@ import {
   Accent,
   PageCard,
 } from '@/shared/components/Bands';
-import { formatUsdc, relativeTime } from '@/shared/utils/format';
+import { relativeTime } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { buildInviteUrl } from '@/features/deals/inviteLink';
@@ -24,12 +24,14 @@ import {
   InviteRecipientMismatchError,
   verifyInviteRecipient,
 } from '@/features/deals/inviteVerification';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 type InviteResponse = Awaited<ReturnType<typeof api.getDealInvite>>;
 
 /// /invite/[token] is a public, privacy-safe preview. Only the verified
 /// recipient gets the private terms and an explicit claim action.
 export default function InvitePage() {
+  const mt = useMoneyText({ compact: true });
   const { locale } = useLocale();
   const router = useRouter();
   const params = useParams<{ token: string }>();
@@ -234,10 +236,7 @@ export default function InvitePage() {
       <Band tone="light" compact>
         <SectionTag>{ip.deal.eyebrow}</SectionTag>
         <HeroHeadline size="md">
-          {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-          <span className="mono text-[18px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-text-sub)]">
-            USDC
-          </span>
+          {mt.text(deal.dealAmountUsdc)}
           <Punc>.</Punc>
         </HeroHeadline>
 

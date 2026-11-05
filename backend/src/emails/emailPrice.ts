@@ -5,16 +5,15 @@ import { emailAmount } from './brand.js';
 import { formatEmailUsdc } from './dealEventEmail.js';
 
 /// A deal amount in an invite, update or cancel email reads the way prices do
-/// on the site (owner, 5 Nov 2026): the chosen currency leads, the USDC it
-/// really is stays beside it. With no local figure, USDC alone.
+/// on the site (view 54): one figure in the chosen currency. Only the big
+/// amount at the top, the email's block balance, keeps the USDC under it.
 
-/// "₦26,922 · 20.00 USDC", or "20.00 USDC".
+/// "₦26,922", or "20.00 USDC".
 export function emailPriceText(usdc: string, local?: string): string {
-  const figure = `${formatEmailUsdc(usdc)} USDC`;
-  return local ? `${local} · ${figure}` : figure;
+  return local ?? `${formatEmailUsdc(usdc)} USDC`;
 }
 
-/// The big amount at the top of the email.
+/// The big amount at the top of the email, the USDC beside it.
 export function emailPriceHero(usdc: string, local?: string): string {
   return local ? emailAmount(local, `${formatEmailUsdc(usdc)} USDC`) : emailAmount(formatEmailUsdc(usdc));
 }

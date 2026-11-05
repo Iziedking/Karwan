@@ -4,8 +4,9 @@ import { useMemo, useState } from 'react';
 import { stageOf, StageBadge, STAGE_META, type DealStage } from './DirectDealList';
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { cn } from '@/shared/utils/cn';
-import { formatUsdc, relativeTime } from '@/shared/utils/format';
+import { relativeTime } from '@/shared/utils/format';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 type Filter = 'all' | 'active' | 'completed';
 
@@ -22,6 +23,7 @@ const ACTIVE_STAGES: DealStage[] = [
 /// lives in the NetworkTicker, that one shows masked network-wide activity
 /// and stays as the public surface. Renders inside a PageCard.
 export function DealsFeed() {
+  const mt = useMoneyText({ compact: true });
   const { locale } = useLocale();
   const translations = useTranslations();
   const tr = translations.dealsFeed;
@@ -165,10 +167,7 @@ export function DealsFeed() {
                     {/* Amount appears here on mobile, hidden on desktop (renders below as its own col) */}
                     <div className="flex md:hidden items-baseline gap-1.5 shrink-0">
                       <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)] text-end">
-                        {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
-                      </span>
-                      <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                        USDC
+                        {mt.text(deal.dealAmountUsdc)}
                       </span>
                     </div>
                   </div>
@@ -180,10 +179,7 @@ export function DealsFeed() {
                       places and the column read as ragged. */}
                   <div className="hidden md:flex min-w-0 items-baseline gap-2">
                     <span className="font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)] text-end min-w-[6.5ch]">
-                      {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
-                    </span>
-                    <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                      USDC
+                      {mt.text(deal.dealAmountUsdc)}
                     </span>
                   </div>
 

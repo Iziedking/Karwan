@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { api, type DealDisputeView, type DisputeStatementView } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill, formatDealDate, formatUsdcAmount } from './presentation';
+import { fill, formatDealDate } from './presentation';
 import { problemSteps } from './problemSteps';
 import { StepsTrack } from './StepsTrack';
 import { linksFrom, proposalNote, splitShares } from './disputeShares';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// The dispute on the deal page: this side's account, the other side's once it
 /// may be seen, and the judge's proposed ruling with what a reviewer does next.
@@ -25,6 +26,7 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
   myName: string;
   onChanged: () => void;
 }) {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations().disputeJudge;
   const pp = useTranslations().profilePage;
   const { locale } = useLocale();
@@ -48,7 +50,7 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
     <section aria-labelledby="dispute-title" className="mt-6 space-y-4 rounded-[20px] bg-[var(--lp-card)] p-5">
       <div data-problem-steps className="space-y-3">
         <StepsTrack steps={track.steps.map((step) => ({ ...step, label: labels[step.key] }))} />
-        {heldUsdc ? <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{fill(pp.heldUntil, { amount: formatUsdcAmount(heldUsdc, locale) })}</p> : null}
+        {heldUsdc ? <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{mt.fill(pp.heldUntil, { amount: heldUsdc })}</p> : null}
         {silent ? <p className="text-[14px] text-[var(--lp-text-sub)]">{fill(pp.silentLine, { name, date })}</p> : null}
       </div>
       {proposal ? (

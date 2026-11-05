@@ -1,9 +1,9 @@
 import { formatAmount, formatBalance } from './balanceModel';
 import { formatLocal, type DisplayCurrency } from './displayCurrency';
 
-/// A price as plain text, for buttons, small print and sentences (owner,
-/// 5 Nov 2026): the chosen currency leads and the USDC it really is follows,
-/// "₦26,922 · 20.00 USDC". With USDC chosen, or no fresh rate, "20.00 USDC".
+/// A price as plain text, for buttons, small print and sentences (view 54):
+/// one figure in the chosen currency, "₦26,922". With USDC chosen, or no
+/// fresh rate, "20.00 USDC". Only a page's block balance shows both.
 ///
 ///   default  to the cent, "20.00", as balances read
 ///   exact    every decimal a movement has, "0.125"
@@ -26,15 +26,14 @@ export function moneyText(
   locale: string,
   options: MoneyTextOptions = {},
 ): string {
-  const sign = options.signed && usdc > 0 ? '+' : options.signed && usdc < 0 ? '−' : '';
-  const usdcPart = `${sign}${usdcFigure(usdc, locale, options)} USDC`;
   const local = formatLocal(usdc, currency, rate, locale, options.signed);
-  return local ? `${local} · ${usdcPart}` : usdcPart;
+  if (local) return local;
+  const sign = options.signed && usdc > 0 ? '+' : options.signed && usdc < 0 ? '−' : '';
+  return `${sign}${usdcFigure(usdc, locale, options)} USDC`;
 }
 
 /// Fills a sentence such as "Add {amount} USDC": a money value takes the
-/// placeholder and the "USDC" after it, so the sentence reads
-/// "Add ₦26,922 · 20.00 USDC". Swahili puts USDC first ("Tuma USDC {amount}"),
+/// placeholder and the "USDC" after it, so the sentence reads "Add ₦26,922". Swahili puts USDC first ("Tuma USDC {amount}"),
 /// and that USDC is taken too. Other values fill as plain text.
 export function fillMoney(
   template: string,

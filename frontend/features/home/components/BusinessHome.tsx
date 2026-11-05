@@ -28,6 +28,7 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { Icon } from '@/shared/components/Icon';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 type BusinessStatus = 'none' | 'submitted' | 'verified' | 'rejected';
 
@@ -58,6 +59,7 @@ export function BusinessHome({
   workspaceId: string;
   stats: LiveNetworkStats | null;
 }) {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations();
   const bh = t.businessHome;
   const { deals } = useDirectDeals();
@@ -171,7 +173,7 @@ export function BusinessHome({
                   {bh.analytics.chartTitle}
                 </span>
                 <span className="text-[14px] font-semibold text-[var(--ink-muted)] tabular-nums">
-                  {book.volume.toLocaleString('en-US', { maximumFractionDigits: 2 })} USDC
+                  {mt.text(book.volume)}
                 </span>
               </div>
               <div className="mt-5">

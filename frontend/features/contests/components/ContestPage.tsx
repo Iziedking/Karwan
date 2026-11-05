@@ -13,10 +13,12 @@ import { ALERT, FIELD, PRIMARY, QUIET } from '@/shared/ui/controls';
 import { contestScreen, microsToUsdc, picksReady } from '../contestModel';
 import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
 import { contestSteps } from '../contestSteps';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// One contest (view 40). The prize is the loudest line; the buyer picks
 /// winners from previews; an entrant sends their work or replaces it.
 export function ContestPage({ id }: { id: string }) {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations().contests;
   const { locale } = useLocale();
   const { isAuthenticated } = useAuth();
@@ -44,7 +46,7 @@ export function ContestPage({ id }: { id: string }) {
   if (!c) return null;
 
   const date = (ms: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(ms);
-  const usdc = (m: string) => `${microsToUsdc(m)} USDC`;
+  const usdc = (m: string) => mt.text(microsToUsdc(m));
   const { next } = contestScreen(c, { signedIn: isAuthenticated, now });
   const shown = (c.entryList ?? []).filter((e) => e.status === 'in' || e.status === 'won' || e.status === 'lost');
   const close = () => { setSheet(null); setError(null); };

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api, type MoneyMovementView } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ConnectWalletButton } from '@/shared/components/ConnectWallet';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { type SettlementRecordFetchState } from '../components/SettlementRecord';
@@ -24,7 +24,8 @@ import { dealReference } from '../dealReference';
 import { checkSummary } from './checkSummary';
 import { dealKindOf } from './dealSteps';
 import { whatItIs } from './titleLine';
-import { fill, formatUsdcAmount } from './presentation';
+import { fill } from './presentation';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
@@ -92,10 +93,10 @@ function DealFetchError({ kind, isRefetching, onRetry }: {
 }
 
 export function DealWorkspace({ jobId }: { jobId: string }) {
+  const mt = useMoneyText({ compact: true });
   const copy = useTranslations().dealWorkspace;
   const dp = useTranslations().dealPage;
   const notNow = useTranslations().orderFlow.notNow;
-  const { locale } = useLocale();
   const auth = useAuth();
   const pathname = usePathname();
   const address = auth.address ?? null;
@@ -132,7 +133,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   const what = deal ? whatItIs(deal) : null;
   const reference = dealReference(jobId);
   const summary = deal?.view ? checkSummary(deal, actions.viewerIsBuyer, dealKindOf(deal)) : null;
-  const moveAmount = deal?.view?.next.amountUsdc ? formatUsdcAmount(deal.view.next.amountUsdc, locale) : '';
+  const moveUsdc = deal?.view?.next.amountUsdc ?? null;
 
   if (fetchState !== 'success') {
     if (fetchState === 'error') {
@@ -181,10 +182,11 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
       {factsAction ? (
         <FactsConfirmSheet
           open
-          title={factsAction === 'release' ? fill(dp.release.title, { amount: moveAmount, name: actions.displayName }) : actions.sheet?.title ?? ''}
+          title={factsAction === 'release' ? mt.fill(dp.release.title, { amount: moveUsdc }, { name: actions.displayName }) : actions.sheet?.title ?? ''}
           rows={factsAction === 'release'
             ? [
                 [dp.release.to, actions.displayName],
+                ...(moveUsdc ? [[dp.release.moves, mt.usdc(moveUsdc)] as [string, string]] : []),
                 ...(what ? [[dp.release.for, what] as [string, string]] : []),
                 ...(reference ? [[dp.release.deal, reference] as [string, string]] : []),
                 [dp.release.heldBy, dp.release.heldValue],
@@ -195,8 +197,8 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
                 ...(reference ? [[dp.release.deal, reference] as [string, string]] : []),
               ]}
           note={factsAction === 'release' ? dp.release.cannotUndo : actions.sheet?.consequence}
-          primaryLabel={factsAction === 'release' ? fill(dp.release.primary, { amount: moveAmount }) : actions.sheet?.title ?? ''}
-          busyLabel={factsAction === 'release' ? fill(dp.release.releasing, { amount: moveAmount }) : undefined}
+          primaryLabel={factsAction === 'release' ? mt.fill(dp.release.primary, { amount: moveUsdc }) : actions.sheet?.title ?? ''}
+          busyLabel={factsAction === 'release' ? mt.fill(dp.release.releasing, { amount: moveUsdc }) : undefined}
           quietLabel={factsAction === 'release' ? dp.release.notYet : notNow}
           busy={actions.busy}
           error={actions.error}

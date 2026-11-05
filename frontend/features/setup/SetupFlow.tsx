@@ -183,7 +183,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                   onChange={(value) => dispatch({ type: 'answer', step: 'price', value })}
                 />
                 <div className="mt-6">
-                  <Nudge from="agent" live>
+                  <Nudge from="agent" live inline>
                     {readBack === null ? (answers.retried ? f.work.noPrice : f.work.waiting) : readBack === 'reading' ? f.work.reading : readBack.noPrice ? f.work.noPrice : (
                       <>
                         <p>{f.work.read}</p>
@@ -211,7 +211,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                   examples={t.questions[text].examples}
                   onChange={(value) => dispatch({ type: 'answer', step: text, value })}
                 />
-                <div className="mt-6"><Nudge from="agent">{f.nudges[text]}</Nudge></div>
+                <Nudge from="agent">{f.nudges[text]}</Nudge>
               </div>
             ) : null}
 
@@ -225,7 +225,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                         <ChoiceCard key={value} multi={false} reduce={reduce} label={t.choices.clients.options[value].label} note={t.choices.clients.options[value].note} on={answers.clients === value} onPick={() => dispatch({ type: 'pick', step: 'clients', value })} />
                       ))}
                     </div>
-                    {answers.clients ? <div className="mt-4"><Nudge from="agent" live>{f.contact.clients[answers.clients]}</Nudge></div> : null}
+                    {answers.clients ? <Nudge from="agent" live>{f.contact.clients[answers.clients]}</Nudge> : null}
                   </>
                 ) : null}
                 {asksClients(answers.goals)
@@ -249,7 +249,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                   })}
                 </div>
                 <p className="mt-2.5 text-[14px] font-medium text-[var(--ink-secondary)]">{f.contact.reachHelp}</p>
-                {answers.reach ? <div className="mt-4"><Nudge from="agent" live>{f.contact.reach[answers.reach]}</Nudge></div> : null}
+                {answers.reach ? <Nudge from="agent" live>{f.contact.reach[answers.reach]}</Nudge> : null}
               </div>
             ) : null}
 
@@ -296,7 +296,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                   </section>
                 ) : null}
 
-                <div className="mt-5"><Nudge from="agent">{f.summary.body}</Nudge></div>
+                <Nudge from="agent">{f.summary.body}</Nudge>
                 <button type="button" onClick={() => void save()} disabled={saving} aria-busy={saving} className={`${PRIMARY} mt-6 w-full`}>{saving ? f.summary.saving : f.summary.done}</button>
                 <button type="button" onClick={() => dispatch({ type: 'edit' })} disabled={saving} className="mt-2 inline-flex min-h-11 w-full items-center justify-center text-[15px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)]">{t.summary.change}</button>
               </div>

@@ -21,12 +21,14 @@ import { requestLineState } from '../requestView';
 import { LINE_COPY } from '../requestLineCopy';
 import { StartSheet } from './StartSheet';
 import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 
 /// The personal buyer desk: say what you need, the most you will pay and when,
 /// and the agent looks. The first press sets up the agents and moves the
 /// money when it has to, in one sheet that says so before it happens.
 export function FindSellerPage() {
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().search;
   const shopCopy = useTranslations().marketShop;
   const router = useRouter();
@@ -226,7 +228,7 @@ export function FindSellerPage() {
                         {fill(t.request.states[LINE_COPY[state]].headline, { count: job.bids.length })}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{job.budgetUsdc} USDC</span>
+                    <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.text(job.budgetUsdc)}</span>
                   </Link>
                 </li>
               ))}

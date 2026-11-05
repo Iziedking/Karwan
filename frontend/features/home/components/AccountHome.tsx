@@ -77,7 +77,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               {' '}<span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
             </p>
           ) : (
-            <p className="mt-1"><Price usdc={totalBalance} size="hero" /></p>
+            <p className="mt-1"><Price usdc={totalBalance} size="block" /></p>
           )}
           <div className="mt-6 grid max-w-[420px] grid-cols-4 gap-2">
             <QuickAction href="/add" icon="add" green>{start.addMoney}</QuickAction>

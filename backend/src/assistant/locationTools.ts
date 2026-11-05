@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { updateProfile } from '../db/profiles.js';
 import { normalizeLocation, publicLocation, type PrivateLocation } from '../location/rules.js';
+import { currencyForCountry } from '../rates/countryCurrency.js';
 
 /// Where a person is and where they deliver, told to their agent in plain
 /// words. Only the country is ever shown to anyone; city, area and delivery
@@ -65,6 +66,15 @@ export function locationTools(address: string, deps: LocationToolDeps) {
 export const liveLocationToolDeps: LocationToolDeps = {
   now: Date.now,
   update: async (address, change) => {
-    await updateProfile(address, (current) => ({ ...current, location: change(current.location ?? null) }));
+    await updateProfile(address, (current) => {
+      const location = change(current.location ?? null);
+      // A country told to the agent sets the currency only when none was ever chosen (view 54).
+      const currency = current.settings?.displayCurrency ? null : currencyForCountry(location.country);
+      return {
+        ...current,
+        location,
+        ...(currency && currency !== 'USDC' ? { settings: { ...current.settings, displayCurrency: currency } } : {}),
+      };
+    });
   },
 };

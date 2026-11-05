@@ -3,9 +3,11 @@ import { useTierLabels } from '@/features/reputation/useTierLabels';
 import type { TrustCardView } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { reasonLine } from '@/features/reputation/sealed';
-import { fill, formatUsdcAmount, trustFactParts } from './presentation';
+import { fill, trustFactParts } from './presentation';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustCardView; onOpenPassport: () => void; bare?: boolean }) {
+  const mt = useMoneyText({ compact: true });
   const TIER_LABEL = useTierLabels();
   const copy = useTranslations().dealWorkspace;
   const sr = useTranslations().sealedRecord;
@@ -43,7 +45,7 @@ export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustC
         <p className="text-[14px] tabular-nums text-[var(--lp-dark)]">{trustFactParts(card, copy, locale).join(' · ')}</p>
       )}
       {card.stakeUsdc ? (
-        <p className="text-[14px] tabular-nums text-[var(--lp-dark)]">{fill(copy.trust.stakeTemplate, { amount: formatUsdcAmount(card.stakeUsdc, locale) })}</p>
+        <p className="text-[14px] tabular-nums text-[var(--lp-dark)]">{mt.fill(copy.trust.stakeTemplate, { amount: card.stakeUsdc })}</p>
       ) : null}
       {card.provenAccounts.length > 0 ? (
         <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">

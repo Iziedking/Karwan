@@ -20,7 +20,9 @@ import { useSiwe } from '@/shared/hooks/useSiwe';
 import { termsAcceptanceMessage } from '@/shared/hooks/useTerms';
 import { Icon } from '@/shared/components/Icon';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { CountrySelect } from './CountrySelect';
+import { browserCountry, currencyForCountry } from '../countries';
 import { WALLET_HOME } from '@/shared/utils/routes';
 import { localTagIssue, normalizeTag, type TagIssue } from '../tag';
 import { RECOVERY_ON } from '@/features/recovery/flag';
@@ -69,6 +71,11 @@ export function AuthCard({
   const [code, setCode] = useState('');
   const [tag, setTag] = useState('');
   const [tagState, setTagState] = useState<'idle' | 'checking' | 'available' | TagIssue>('idle');
+  const [tagSuggestion, setTagSuggestion] = useState<string | null>(null);
+  const [country, setCountry] = useState<string | null>(null);
+  const [lastTouched, setLastTouched] = useState<'tag' | 'country'>('tag');
+  const [codeLate, setCodeLate] = useState(false);
+  const { locale } = useLocale();
   const [kind, setKind] = useState<'person' | 'business'>('person');
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState<Busy>(null);
@@ -181,6 +188,18 @@ export function AuthCard({
   }, [awaitingAuth, siwe.state, siwe.error, t]);
 
   // Live tag availability, after the shape passes locally.
+  // The country under the tag starts at the browser's region (view 54).
+  useEffect(() => {
+    setCountry((current) => current ?? browserCountry(typeof navigator === 'undefined' ? [] : navigator.languages ?? [navigator.language]));
+  }, []);
+  // A code that has not come in 30 seconds gets a hint from the guide.
+  useEffect(() => {
+    setCodeLate(false);
+    if (upStep !== 'code') return;
+    const id = window.setTimeout(() => setCodeLate(true), 30_000);
+    return () => window.clearTimeout(id);
+  }, [upStep]);
+
   useEffect(() => {
     const clean = normalizeTag(tag);
     const issue = localTagIssue(tag);
@@ -192,6 +211,16 @@ export function AuthCard({
         const r = await api.signupTagCheck(clean);
         if (normalizeTag(tag) !== r.tag) return;
         setTagState(r.available ? 'available' : (r.reason ?? 'taken'));
+        setTagSuggestion(null);
+        // A taken tag gets one free one to try, from the same name.
+        if (!r.available && (r.reason ?? 'taken') === 'taken') {
+          for (const n of [Math.floor(10 + Math.random() * 89), Math.floor(100 + Math.random() * 899)]) {
+            const next = `${clean}${n}`.slice(0, 20);
+            const tried = await api.signupTagCheck(next).catch(() => null);
+            if (normalizeTag(tag) !== clean) return;
+            if (tried?.available) { setTagSuggestion(tried.tag); break; }
+          }
+        }
       } catch {
         setTagState('idle');
       }
@@ -355,7 +384,7 @@ export function AuthCard({
       return;
     }
     try {
-      await api.signupCreate(normalizeTag(tag), kind);
+      await api.signupCreate(normalizeTag(tag), kind, country ?? undefined);
       clearEmailProof();
       if (afterCreate({ recoveryStep: RECOVERY_ON && connector?.id === PASSKEY_CONNECTOR_ID }) === 'recovery') {
         setBusy(null);
@@ -391,6 +420,13 @@ export function AuthCard({
                 : tagState === 'reserved' ? s.tagReserved
                   : s.tagHint;
   const f = messages.startFlow;
+  const currencyNames = messages.moneyMove.currency.names;
+  const countryCurrency = currencyForCountry(country);
+  const tagGuide = lastTouched === 'country'
+    ? (countryCurrency === 'USDC' ? f.guide.countryUsdc : f.guide.country.replace('{currency}', currencyNames[countryCurrency]))
+    : tagState === 'available' ? f.guide.tagFree.replace('{tag}', cleanTag)
+      : tagState === 'taken' && tagSuggestion ? f.guide.tagTaken.replace('{tag}', cleanTag).replace('{suggest}', tagSuggestion)
+        : f.tag.nudge;
   // Account, then tag; About you follows on the same page once the account exists.
   const startPart = upStep === 'tag' || upStep === 'kind' || upStep === 'recovery' ? 1 : 0;
   const businessOpen = BUSINESS_ACCOUNTS_OPEN;
@@ -542,18 +578,19 @@ export function AuthCard({
             }}>
               <div className="flex min-h-[52px] items-center rounded-[14px] bg-[var(--ash)] px-4 focus-within:ring-2 focus-within:ring-[var(--ink)]">
                 <span className="text-[17px] font-medium text-[var(--ink-secondary)]" aria-hidden>@</span>
-                <input aria-label={s.tagLabel} value={tag} onChange={(e) => setTag(e.target.value.replace(/\s/g, ''))}
+                <input aria-label={s.tagLabel} value={tag} onChange={(e) => { setTag(e.target.value.replace(/\s/g, '')); setLastTouched('tag'); }}
                   autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={21} autoFocus
                   className="ms-1 min-h-[52px] min-w-0 w-full border-0 bg-transparent text-[17px] text-[var(--ink)] outline-none" />
               </div>
               <p aria-live="polite" className={`text-[14px] ${tagState === 'available' ? 'text-[var(--ink)]' : tagState === 'idle' || tagState === 'checking' ? 'text-[var(--ink-secondary)]' : 'text-[var(--color-critical)]'}`}>
                 {tagLine}
               </p>
+              <div className="pt-2"><CountrySelect value={country} onChange={(code) => { setCountry(code); setLastTouched('country'); }} locale={locale} copy={f.tag.country} /></div>
               {businessOpen ? null : <TermsAgree checked={agreed} onChange={setAgreed} copy={f.tag} />}
               <Primary type="submit" disabled={tagState !== 'available' || (!businessOpen && (!agreed || !!busy || !auth.address))}>
                 {busy === 'create' ? s.creating : businessOpen ? s.next : f.tag.continueAs.replace('{tag}', cleanTag)}
               </Primary>
-              <div className="pt-2"><Nudge from="karwan">{f.tag.nudge}</Nudge></div>
+              <Nudge from="karwan">{tagGuide}</Nudge>
             </form>
           )}
 
@@ -572,7 +609,7 @@ export function AuthCard({
               <Divider label={t.signIn.or} />
               <WalletButton label={busy === 'wallet' || waitingForSignIn ? s.walletSigning : s.wallet}
                 disabled={!!busy || waitingForSignIn} onStart={startWallet} />
-              <div className="pt-2"><Nudge from="karwan">{f.account.nudge}</Nudge></div>
+              <Nudge from="karwan">{busy === 'wallet' || waitingForSignIn ? f.guide.wallet : f.account.nudge}</Nudge>
             </div>
           )}
 
@@ -581,7 +618,7 @@ export function AuthCard({
               <CodeForm label={s.codeLabel} hint={s.codeSent.replace('{email}', email)} code={code} setCode={setCode}
                 busy={busy} onSubmit={verifyCode} submit={busy === 'verify' ? s.verifying : s.verify}
                 resend={s.resend} onResend={() => void sendCode()} />
-              <div className="mt-4"><Nudge from="karwan">{f.code.nudge}</Nudge></div>
+              <Nudge from="karwan">{codeLate ? f.guide.codeLate : f.code.nudge}</Nudge>
               <BackLink label={s.back} onClick={() => setUpStep('method')} />
             </>
           )}

@@ -62,7 +62,7 @@ export function GuaranteeTab() {
       <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
       <h1 id="money-guarantee" className="space-y-1.5">
         <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{t.moneyPages.tabs.guarantee}<Hint>{tips.guarantee}</Hint></span>
-        <span data-guaranteed className="block"><Price usdc={Number(view.guaranteed)} size="hero" /></span>
+        <span data-guaranteed className="block"><Price usdc={Number(view.guaranteed)} size="block" /></span>
         <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{g.inPlace}. {g.notCounted}</span>
       </h1>
       <div data-guarantee-actions data-guide="guarantee-actions" className="grid grid-cols-2 gap-2 sm:gap-3">

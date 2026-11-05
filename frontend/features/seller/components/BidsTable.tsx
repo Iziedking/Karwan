@@ -6,8 +6,9 @@ import { api, type SellerActiveBid } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { useDismissed } from '@/shared/hooks/useDismissed';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { shortHash, formatUsdc } from '@/shared/utils/format';
+import { shortHash } from '@/shared/utils/format';
 import { Icon } from '@/shared/components/Icon';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 export function BidsTable({
   bids,
@@ -18,6 +19,7 @@ export function BidsTable({
   /// drop it from its list immediately.
   onAbandon?: (jobId: string) => void;
 }) {
+  const mt = useMoneyText({ compact: true });
   const router = useRouter();
   const bt = useTranslations().bidsTable;
   const { dismissed, dismiss } = useDismissed('seller-bids');
@@ -73,7 +75,7 @@ export function BidsTable({
                 </div>
                 <div className="min-w-0">
                   <dt className="text-[13px] font-medium text-[var(--lp-text-muted)]">{bt.columns.bid}</dt>
-                  <dd className="mt-1 font-sans text-[16px] font-extrabold tabular-nums text-[var(--lp-dark)]">{formatUsdc(b.lastBidPrice)}</dd>
+                  <dd className="mt-1 font-sans text-[16px] font-extrabold tabular-nums text-[var(--lp-dark)]">{mt.text(b.lastBidPrice)}</dd>
                 </div>
                 <div className="min-w-0">
                   <dt className="text-[13px] font-medium text-[var(--lp-text-muted)]">{bt.columns.rounds}</dt>
@@ -160,7 +162,7 @@ export function BidsTable({
                   {shortHash(b.jobBuyer, 6, 4)}
                 </td>
                 <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-[var(--lp-dark)]">
-                  {formatUsdc(b.lastBidPrice)}
+                  {mt.text(b.lastBidPrice)}
                 </td>
                 <td className="px-5 py-3.5 mono tabular-nums text-[var(--lp-text-sub)]">{b.counterRounds}</td>
                 <td className="px-5 py-3.5">

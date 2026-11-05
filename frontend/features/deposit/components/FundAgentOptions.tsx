@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
 import { api, ConfirmCancelled } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { Icon } from '@/shared/components/Icon';
 import { FundAgentFromBalance } from './FundAgentFromBalance';
@@ -10,6 +10,7 @@ import { FundAgentFromWallet } from './FundAgentFromWallet';
 import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { defaultFundRoute, fundingShortfall, type FundSource } from '../fundingPlan';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// Where the money comes from, as a choice already made.
 ///
@@ -49,8 +50,8 @@ export function FundAgentOptions({
   onFunded?: () => void;
   onBusyChange?: (busy: boolean) => void;
 }) {
+  const mt = useMoneyText({ compact: true });
   const copy = useTranslations().fundAgentOptions;
-  const { locale } = useLocale();
   const money = useMoneyBalances();
   const needed = inPlaceUsdc === undefined ? amountUsdc : fundingShortfall(amountUsdc, inPlaceUsdc);
   const [chosen, setChosen] = useState<FundRoute | null>(null);
@@ -71,7 +72,7 @@ export function FundAgentOptions({
   const hasOtherAgent = !!(otherAgentAddress && recipient);
   const otherAgentBalance = hasOtherAgent ? (agent === 'buyer' ? money.seller : money.buyer) : null;
   const route = chosen ?? defaultFundRoute(fundingAmount, { wallet: money.balance, otherAgent: otherAgentBalance });
-  const usdc = (value: number | null) => (value === null ? null : `${value.toLocaleString(locale, { maximumFractionDigits: 2 })} USDC`);
+  const usdc = (value: number | null) => (value === null ? null : mt.text(value));
 
   const routes: Array<{ id: FundRoute; label: string; detail: string; balance: string | null }> = [
     { id: 'wallet', label: copy.wallet.label, detail: copy.wallet.tooltip, balance: usdc(money.balance) },

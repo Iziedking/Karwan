@@ -111,14 +111,14 @@ test('a recent row opens its receipt with Download image as the one green button
   expect(green).toEqual(['Download image']);
 });
 
-test('with naira chosen the balance leads in naira with USDC under it, and Recent shows both', async ({ page }) => {
+test('with naira chosen only the block balance shows USDC; Recent amounts read in naira alone', async ({ page }) => {
   await serveMoney(page, { balances: funded, rates: RATES, settings: { displayCurrency: 'NGN' } });
   await page.goto('/account');
   const heading = page.getByRole('heading', { level: 1 });
   await expect(heading).toContainText('₦1,831,383');
   await expect(page.locator('[data-balance-usdc]')).toHaveText('1,360.50 USDC');
   await expect(page.locator('[data-recent-row]').first()).toContainText('+₦673,055');
-  await expect(page.locator('[data-recent-row]').first()).toContainText('+500.00 USDC');
+  await expect(page.locator('[data-recent-row]').first()).not.toContainText('+500.00 USDC');
   // Every price reads the same way (owner, 5 Nov 2026): the Agent tab too.
   await page.goto('/account?tab=agent');
   await expect(page.locator('[data-agent-money]')).toContainText('₦');

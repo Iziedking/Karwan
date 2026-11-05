@@ -5,9 +5,9 @@ import type { DirectDeal } from '@/core/api';
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { useDismissed } from '@/shared/hooks/useDismissed';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 export type DealStage =
   | 'awaiting-acceptance'
@@ -127,6 +127,7 @@ export function StageBadge({ stage }: { stage: DealStage }) {
 }
 
 export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
+  const mt = useMoneyText({ compact: true });
   const translations = useTranslations();
   const t = translations.directDealList;
   const receiptReferenceLabel = translations.activity.myMoney.receiptReference;
@@ -210,10 +211,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                   </div>
                   <div className="mt-2.5 flex items-baseline gap-2">
                     <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-                      {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
-                    </span>
-                    <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                      USDC
+                      {mt.text(deal.dealAmountUsdc)}
                     </span>
                   </div>
                   <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] line-clamp-1 max-w-[60ch] font-medium">

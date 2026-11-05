@@ -35,7 +35,6 @@ import { durationText } from '@/features/deals/durationText';
 import { composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
-import { walletAmount } from '@/features/balances/walletFormat';
 import { requestFunding } from '../requestFunding';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
@@ -398,7 +397,7 @@ export function PostJobForm() {
     staleTime: 10_000,
   });
   const funding = reviewing ? requestFunding(quote.data) : null;
-  const usdc = (n: number) => `${walletAmount(String(n)) ?? n} USDC`;
+  const usdc = (n: number) => money.text(n);
 
   const disabled =
     funding?.enough === false || submitting || hashingFile || profileLoading || !profile?.buyer || !brief.trim() || !validAmount(budget, 5_000_000) ||
@@ -781,7 +780,7 @@ export function PostJobForm() {
         requestAnimationFrame(() => formRef.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus());
       }} rows={[
         { label: t.sectionWork.requestLabel, value: brief },
-        { label: t.sectionTerms.budgetLabel, value: `${budget} USDC` },
+        { label: t.sectionTerms.budgetLabel, value: money.text(budget) },
         { label: rf.neededByLabel, value: durationText(
           deadlineUnit === 'min' ? { days: 0, hours: 0, minutes: Number(deadlineValue) } : deadlineUnit === 'hr' ? { days: 0, hours: Number(deadlineValue) } : { days: Number(deadlineValue), hours: 0 },
           { day: TERMS_COPY[locale].day, days: TERMS_COPY[locale].days, hr: dt.directDeal.preview.unitHr, min: dt.directDeal.preview.unitMin },
@@ -809,15 +808,12 @@ export function PostJobForm() {
             </dl>
             <p className="mt-1.5 text-[var(--ink-secondary)]">
               {funding.parts
-                ? c.canSpendParts
-                    .replace('{price}', walletAmount(String(funding.parts.price)) ?? String(funding.parts.price))
-                    .replace('{fee}', walletAmount(String(funding.parts.fee)) ?? String(funding.parts.fee))
-                    .replace('{reserve}', walletAmount(String(funding.parts.reserve)) ?? String(funding.parts.reserve))
+                ? money.fill(c.canSpendParts, { price: funding.parts.price, fee: funding.parts.fee, reserve: funding.parts.reserve })
                 : c.fees}
             </p>
             {funding.enough === false ? (
               <div className="mt-3 border-t border-[var(--line)] pt-3">
-                <p className="font-semibold">{c.shortBy.replace('{amount}', walletAmount(String(funding.topUp)) ?? String(funding.topUp))}</p>
+                <p className="font-semibold">{money.fill(c.shortBy, { amount: funding.topUp })}</p>
                 <FundAgentButton amountUsdc={funding.topUp} onFunded={() => void quote.refetch()} hideLine />
               </div>
             ) : null}

@@ -7,9 +7,13 @@ export interface StartFlowCopy {
   /// Who a nudge is from: Karwan before the account exists, the agent after.
   fromKarwan: string;
   fromAgent: string;
+  /// The sign-up guide pop-up (view 54): its close button and the lines it
+  /// says as the person acts.
+  guideClose: string;
+  guide: { wallet: string; codeLate: string; tagTaken: string; tagFree: string; country: string; countryUsdc: string };
   account: { title: string; body: string; nudge: string };
   code: { nudge: string };
-  tag: { title: string; body: string; nudge: string; continueAs: string; agreeBefore: string; terms: string; and: string; privacy: string };
+  tag: { title: string; body: string; nudge: string; country: { label: string; search: string; none: string }; continueAs: string; agreeBefore: string; terms: string; and: string; privacy: string };
   about: {
     hello: string;
     goalsHelp: string;
@@ -63,6 +67,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     bar: { step: 'Step {n} of 3, {name}', account: 'your account', tag: 'your tag', about: 'about you' },
     fromKarwan: 'Karwan',
     fromAgent: 'Your agent',
+    guideClose: "Hide guide",
+    guide: { wallet: "Your wallet only signs you in. It won’t move money.", codeLate: "Not there? Check spam, or send a new code.", tagTaken: "@{tag} is taken. Try @{suggest}.", tagFree: "@{tag} is yours. Clients find and pay you by it.", country: "Prices will show in {currency}. Change it any time in Settings.", countryUsdc: "Prices will show in USDC for now." },
     account: {
       title: 'Get paid safely, anywhere.',
       body: 'Create your Karwan. It takes about a minute.',
@@ -70,6 +76,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     },
     code: { nudge: 'Check your inbox. If it is not there, look in spam.' },
     tag: {
+      country: { label: "Country", search: "e.g. United Kingdom", none: "No country matches" },
       title: 'Pick your Karwan tag',
       body: 'Clients find you and pay you by it.',
       nudge: 'Short and easy to say works best. It goes on your deal links and your public record.',
@@ -155,6 +162,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     bar: { step: 'Étape {n} sur 3, {name}', account: 'votre compte', tag: 'votre identifiant', about: 'vous' },
     fromKarwan: 'Karwan',
     fromAgent: 'Votre agent',
+    guideClose: "Masquer le guide",
+    guide: { wallet: "Votre portefeuille sert seulement à vous connecter. Il ne déplace pas d’argent.", codeLate: "Pas reçu ? Regardez dans les spams ou demandez un nouveau code.", tagTaken: "@{tag} est pris. Essayez @{suggest}.", tagFree: "@{tag} est à vous. Vos clients vous trouvent et vous paient avec.", country: "Les prix s’afficheront en {currency}. Modifiable à tout moment dans Réglages.", countryUsdc: "Les prix s’afficheront en USDC pour le moment." },
     account: {
       title: 'Soyez payé en sécurité, partout.',
       body: 'Créez votre Karwan. Environ une minute.',
@@ -162,6 +171,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     },
     code: { nudge: 'Regardez votre boîte de réception. S’il n’y est pas, regardez dans les spams.' },
     tag: {
+      country: { label: "Pays", search: "ex. Royaume-Uni", none: "Aucun pays ne correspond" },
       title: 'Choisissez votre identifiant Karwan',
       body: 'Vos clients vous trouvent et vous paient avec.',
       nudge: 'Court et facile à dire, c’est le mieux. Il figure sur vos liens d’accord et votre historique public.',
@@ -247,6 +257,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     bar: { step: 'الخطوة {n} من 3، {name}', account: 'حسابك', tag: 'معرّفك', about: 'عنك' },
     fromKarwan: 'Karwan',
     fromAgent: 'وكيلك',
+    guideClose: "إخفاء الدليل",
+    guide: { wallet: "محفظتك تُستخدم لتسجيل الدخول فقط. لا تنقل أي أموال.", codeLate: "لم يصل؟ تحقق من البريد العشوائي أو اطلب رمزًا جديدًا.", tagTaken: "@{tag} محجوز. جرّب @{suggest}.", tagFree: "@{tag} لك. يجدك العملاء ويدفعون لك به.", country: "ستظهر الأسعار بـ{currency}. يمكنك تغييرها في أي وقت من الإعدادات.", countryUsdc: "ستظهر الأسعار بالـUSDC حاليًا." },
     account: {
       title: 'احصل على أجرك بأمان، من أي مكان.',
       body: 'أنشئ حسابك في Karwan. يستغرق نحو دقيقة.',
@@ -254,6 +266,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     },
     code: { nudge: 'افحص بريدك الوارد. إن لم تجده، انظر في الرسائل غير المرغوب فيها.' },
     tag: {
+      country: { label: "الدولة", search: "مثال: المملكة المتحدة", none: "لا توجد دولة مطابقة" },
       title: 'اختر معرّفك في Karwan',
       body: 'به يجدك عملاؤك ويدفعون لك.',
       nudge: 'الأفضل أن يكون قصيرًا وسهل النطق. يظهر على روابط صفقاتك وسجلك العام.',
@@ -339,6 +352,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     bar: { step: '3 में से चरण {n}, {name}', account: 'आपका खाता', tag: 'आपका टैग', about: 'आपके बारे में' },
     fromKarwan: 'Karwan',
     fromAgent: 'आपका एजेंट',
+    guideClose: "गाइड छिपाएँ",
+    guide: { wallet: "आपका वॉलेट सिर्फ़ साइन इन करता है। यह पैसे नहीं भेजता।", codeLate: "नहीं मिला? स्पैम देखें या नया कोड भेजें।", tagTaken: "@{tag} लिया जा चुका है। @{suggest} आज़माएँ।", tagFree: "@{tag} आपका है। ग्राहक इसी से आपको ढूँढते और भुगतान करते हैं।", country: "कीमतें {currency} में दिखेंगी। इसे कभी भी सेटिंग्स में बदलें।", countryUsdc: "अभी कीमतें USDC में दिखेंगी।" },
     account: {
       title: 'कहीं से भी, सुरक्षित भुगतान पाएँ।',
       body: 'अपना Karwan बनाएँ। लगभग एक मिनट लगता है।',
@@ -346,6 +361,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     },
     code: { nudge: 'अपना इनबॉक्स देखें। वहाँ न हो तो स्पैम में देखें।' },
     tag: {
+      country: { label: "देश", search: "जैसे यूनाइटेड किंगडम", none: "कोई देश नहीं मिला" },
       title: 'अपना Karwan टैग चुनें',
       body: 'ग्राहक इसी से आपको ढूँढते और भुगतान करते हैं।',
       nudge: 'छोटा और बोलने में आसान सबसे अच्छा है। यह आपके डील लिंक और सार्वजनिक रिकॉर्ड पर दिखता है।',
@@ -431,6 +447,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     bar: { step: 'Hatua {n} kati ya 3, {name}', account: 'akaunti yako', tag: 'jina lako', about: 'kuhusu wewe' },
     fromKarwan: 'Karwan',
     fromAgent: 'Wakala wako',
+    guideClose: "Ficha mwongozo",
+    guide: { wallet: "Pochi yako inakuingiza tu. Haihamishi pesa.", codeLate: "Haijafika? Angalia spam, au tuma msimbo mpya.", tagTaken: "@{tag} imeshachukuliwa. Jaribu @{suggest}.", tagFree: "@{tag} ni yako. Wateja wanakupata na kukulipa kwayo.", country: "Bei zitaonyeshwa kwa {currency}. Ibadilishe wakati wowote kwenye Mipangilio.", countryUsdc: "Kwa sasa bei zitaonyeshwa kwa USDC." },
     account: {
       title: 'Lipwa kwa usalama, popote.',
       body: 'Fungua Karwan yako. Inachukua kama dakika moja.',
@@ -438,6 +456,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
     },
     code: { nudge: 'Angalia kikasha chako. Kama haipo, angalia kwenye barua taka.' },
     tag: {
+      country: { label: "Nchi", search: "mf. Uingereza", none: "Hakuna nchi inayolingana" },
       title: 'Chagua jina lako la Karwan',
       body: 'Wateja wanakupata na kukulipa kwa jina hili.',
       nudge: 'Fupi na rahisi kutamka ni bora. Linaonekana kwenye viungo vya mikataba yako na rekodi yako ya umma.',

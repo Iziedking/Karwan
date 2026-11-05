@@ -18,12 +18,14 @@ import { startPlan } from '../startPlan';
 import { useStartRun } from '../hooks/useStartRun';
 import { StartSheet } from './StartSheet';
 import { OfferForm, type OfferDraft } from './OfferForm';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const DESK_POLL_MS = 8_000;
 
 /// The personal seller desk, status first: what needs you, what your agent is
 /// bidding on, what you offer. A seller with nothing yet gets the form.
 export function SellerDesk() {
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().search;
   const auth = useAuth();
   const qc = useQueryClient();
@@ -150,7 +152,7 @@ export function SellerDesk() {
                   <li key={m.jobId} className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-2">
                     <span className="min-w-0 truncate text-[15px] text-[var(--lp-dark)]">{m.title ?? t.request.aRequest}</span>
                     <span className="flex items-center gap-3">
-                      <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{m.priceUsdc} USDC</span>
+                      <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.text(m.priceUsdc)}</span>
                       <Link href={`/jobs/${m.jobId}`} className={SECONDARY}>{t.seller.accept}</Link>
                     </span>
                   </li>
@@ -175,7 +177,7 @@ export function SellerDesk() {
                       </span>
                       <span className="flex items-center gap-3">
                         {b.state === 'passed' ? null : (
-                          <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{b.priceUsdc} USDC</span>
+                          <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.text(b.priceUsdc)}</span>
                         )}
                         {b.withdrawable ? (
                           <button type="button" className={QUIET} onClick={() => void withdraw(b)}>
@@ -203,7 +205,7 @@ export function SellerDesk() {
                         <span className="block truncate text-[15px] text-[var(--lp-dark)]">{o.title}</span>
                         <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">{fill(t.seller.daysLeft, { days: o.daysLeft })}</span>
                       </span>
-                      <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{o.priceUsdc} USDC</span>
+                      <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.text(o.priceUsdc)}</span>
                     </li>
                   ))}
                 </ul>

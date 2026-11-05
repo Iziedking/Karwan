@@ -7,9 +7,11 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { Chevron } from '@/features/market/components/YourTrades';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { microsToUsdc } from '../contestModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// Open contests in the market (view 40). Nothing shows when there are none.
 export function OpenContests() {
+  const mt = useMoneyText({ compact: true });
   const t = useTranslations().contests;
   const { locale } = useLocale();
   const [list, setList] = useState<ContestView[]>([]);
@@ -34,7 +36,7 @@ export function OpenContests() {
                   {c.shares.length === 1 ? t.market.winnersOne : fill(t.market.winnersMany, { n: c.shares.length })} · {fill(t.market.entries, { n: c.entries })} · {fill(t.market.closes, { date: date(c.entriesBy) })}
                 </span>
               </span>
-              <span className="shrink-0 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{microsToUsdc(c.prizeMicros)} USDC</span>
+              <span className="shrink-0 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{mt.text(microsToUsdc(c.prizeMicros))}</span>
               <Chevron />
             </Link>
           </li>

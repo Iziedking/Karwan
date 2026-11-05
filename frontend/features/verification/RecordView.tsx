@@ -23,6 +23,7 @@ import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { attestedRows } from '@/features/reputation/attestedDeals';
 import { attestedDealsCopy } from '@/shared/i18n/messages/attestedDeals';
 import type { CompositeTier } from '@/features/reputation/tierColors';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 type RecordData = Awaited<ReturnType<typeof api.record>>;
 
@@ -31,6 +32,7 @@ type RecordData = Awaited<ReturnType<typeof api.record>>;
 /// Arc for each fact, and one primary: ask them for an offer. Never an exact
 /// amount or who the deals were with.
 export function RecordView({ tag }: { tag: string }) {
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().record;
   const sealed = useTranslations().sealedRecord;
   const { locale, t: all } = useLocale();
@@ -148,7 +150,7 @@ export function RecordView({ tag }: { tag: string }) {
                   <img src={offerPicture(l)} alt="" loading="lazy" className="size-12 shrink-0 rounded-[10px] bg-[var(--raised)] object-cover" />
                   <span className="min-w-0 flex-1">
                     <span dir="auto" className="block truncate text-[15px] font-medium text-[var(--ink)]">{l.title}</span>
-                    <span className="block text-[14px] tabular-nums text-[var(--ink-secondary)]">{l.askingPriceUsdc} USDC</span>
+                    <span className="block text-[14px] tabular-nums text-[var(--ink-secondary)]">{money.text(l.askingPriceUsdc)}</span>
                   </span>
                 </Link>
               </li>

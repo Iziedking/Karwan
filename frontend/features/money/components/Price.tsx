@@ -5,13 +5,14 @@ import { usdcFigure } from '../moneyText';
 import { formatLocal } from '../displayCurrency';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
 
-/// Every price on Karwan reads the same way (owner, 5 Nov 2026): the currency
-/// the person chose in Settings leads, and the USDC it really is sits under it.
-/// Money always stays in USDC; with USDC chosen, or no fresh rate, USDC leads alone.
+/// Every price on Karwan reads in the currency the person chose (view 54):
+/// one figure, "₦26,885". Only a page's one block balance also shows the USDC
+/// it really is, under it. With USDC chosen, or no fresh rate, USDC alone.
 ///
-///   hero    the big figure at the top of a page
-///   stack   a price on a card or a row: the figure, USDC under it
-///   inline  a price inside a line of text: "₦26,885 · 20.00 USDC"
+///   block   the page's one balance: the figure, USDC under it
+///   hero    any other big figure at the top of a page
+///   stack   a price on a card or a row
+///   inline  a price inside a line of text
 export function Price({
   usdc,
   size = 'stack',
@@ -22,11 +23,11 @@ export function Price({
   compact = false,
 }: {
   usdc: number;
-  size?: 'hero' | 'stack' | 'inline';
+  size?: 'block' | 'hero' | 'stack' | 'inline';
   signed?: boolean;
   className?: string;
   usdcClassName?: string;
-  /// The hero figure's own size, for a page whose hero is bigger.
+  /// The big figure's own size, for a page whose figure is bigger.
   figureClassName?: string;
   /// Offers read their USDC without forced cents: "96 USDC".
   compact?: boolean;
@@ -38,15 +39,7 @@ export function Price({
   const usdcText = `${sign}${figure} USDC`;
   const local = formatLocal(usdc, currency, rate, locale, signed);
 
-  if (size === 'inline') {
-    return (
-      <span data-price dir="ltr" className={cn('tabular-nums', className)}>
-        {local ? <>{local}<span className={cn('text-[var(--ink-secondary)]', usdcClassName)}> · {usdcText}</span></> : usdcText}
-      </span>
-    );
-  }
-
-  if (size === 'hero') {
+  if (size === 'block' || size === 'hero') {
     return (
       <span data-price className={cn('block', className)}>
         <span dir="ltr" className="flex items-baseline gap-2 tabular-nums">
@@ -55,15 +48,14 @@ export function Price({
           </span>
           {local ? null : <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>}
         </span>
-        {local ? <span data-price-usdc dir="ltr" className={cn('mt-0.5 block text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]', usdcClassName)}>{usdcText}</span> : null}
+        {local && size === 'block' ? <span data-price-usdc dir="ltr" className={cn('mt-0.5 block text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]', usdcClassName)}>{usdcText}</span> : null}
       </span>
     );
   }
 
   return (
-    <span data-price dir="ltr" className={cn('inline-flex flex-col tabular-nums', className)}>
-      <span>{local ?? usdcText}</span>
-      {local ? <span data-price-usdc className={cn('text-[13px] font-medium text-[var(--ink-secondary)]', usdcClassName)}>{usdcText}</span> : null}
+    <span data-price dir="ltr" className={cn('tabular-nums', size === 'stack' && 'inline-flex', className)}>
+      {local ?? usdcText}
     </span>
   );
 }

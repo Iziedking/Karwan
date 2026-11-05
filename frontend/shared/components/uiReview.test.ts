@@ -494,7 +494,7 @@ test('profile says each thing once: one Your record row, Edit profile in the hea
   assert.doesNotMatch(hub, /hub\.openDeals|payLink\.create\.title/);
   assert.doesNotMatch(hub, /<RowGroup title=\{pp\.yourOffers\}>/);
   // Money is one row with one figure; the balance, the agent and the guarantee live on Money (view 51, fifth round).
-  assert.match(hub, /<Row label=\{mpg\.money\} value=\{usdc\(heroAmount\(balanceFacts\)\)\} href="\/account" \/>/);
+  assert.match(hub, /<Row label=\{mpg\.money\} value=\{balanceText\(heroAmount\(balanceFacts\)\)\} href="\/account" \/>/);
   for (const gone of ['pp.withAgents', 'dealGuarantee.profile', 'hub.activityReceipts', 'pp.tradeAndMoney']) assert.ok(!hub.includes(gone), gone);
   const trade = hub.slice(hub.indexOf('<RowGroup title={mpg.trading}>'));
   const group = trade.slice(0, trade.indexOf('</RowGroup>'));

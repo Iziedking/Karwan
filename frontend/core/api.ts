@@ -4061,10 +4061,10 @@ export const api = {
     json<{ tag: string; available: boolean; reason?: 'too_short' | 'too_long' | 'invalid' | 'reserved' | 'taken' }>(
       `/api/signup/tag?tag=${encodeURIComponent(tag)}`,
     ),
-  signupCreate: (tag: string, accountKind: 'person' | 'business') =>
+  signupCreate: (tag: string, accountKind: 'person' | 'business', country?: string) =>
     json<{ profile: UserProfile }>('/api/signup', {
       method: 'POST',
-      body: JSON.stringify({ tag, accountKind }),
+      body: JSON.stringify({ tag, accountKind, ...(country ? { country } : {}) }),
     }),
   signupClaimTag: (tag: string) =>
     json<{ profile: UserProfile }>('/api/signup/tag', {

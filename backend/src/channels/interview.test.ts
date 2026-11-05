@@ -10,7 +10,7 @@ import type { ChatAccount, InboundMessage } from './types.js';
 /// order, with buttons for the choices, and ends with Here's your Karwan as a
 /// confirm card. How you are paid and how much the agent does alone are not
 /// asked: they start from the same defaults the website uses. Where you are is
-/// asked last, since a chat has nowhere else to add it. A first offer is
+/// asked first after the goals, since it sets the currency amounts read in. A first offer is
 /// offered only after the setup is saved.
 ///
 ///   npx tsx --test src/channels/interview.test.ts
@@ -48,11 +48,11 @@ async function toCard(iv: ReturnType<typeof make>['iv']) {
   let a = (await iv.enter(at())).account;
   a = (await iv.handle(a, tap('ws:goal:work')))!.account;
   a = (await iv.handle(a, tap('ws:goals:done')))!.account;
+  a = (await iv.handle(a, text('Lagos, Nigeria')))!.account;
   a = (await iv.handle(a, text('Logo design')))!.account;
   a = (await iv.handle(a, text('20 to 40 USDC, 3 days')))!.account;
   a = (await iv.handle(a, tap('ws:clients:own')))!.account;
-  a = (await iv.handle(a, tap('ws:reach:telegram')))!.account;
-  return iv.handle(a, text('Lagos, Nigeria'));
+  return iv.handle(a, tap('ws:reach:telegram'));
 }
 
 test('entering asks what Karwan should do, with a button per goal and Done', async () => {
@@ -77,11 +77,13 @@ test('a goal tap ticks it and asks again; Done with nothing picked asks again', 
   assert.deepEqual(untick?.account.onboarding?.answers?.goals, []);
 });
 
-test('the questions follow the website order: goals, what and price, clients, how to reach you, then where', async () => {
+test('the questions follow the website order: goals, where, what and price, clients, then how to reach you', async () => {
   const { iv, previewed } = make();
   let a = (await iv.enter(at())).account;
   a = (await iv.handle(a, tap('ws:goal:sell')))!.account;
-  const what = await iv.handle(a, tap('ws:goals:done'));
+  const where = await iv.handle(a, tap('ws:goals:done'));
+  assert.match(bodyOf(where?.out[0]), /Where are you/);
+  const what = await iv.handle(where!.account, text('Kano, Nigeria'));
   assert.match(bodyOf(what?.out[0]), /What do you sell/);
   const price = await iv.handle(what!.account, text('Ankara fabric'));
   assert.match(bodyOf(price?.out[0]), /usual price/);
@@ -89,9 +91,7 @@ test('the questions follow the website order: goals, what and price, clients, ho
   assert.deepEqual(idsOf(clients?.out[0]), ['ws:clients:own', 'ws:clients:find', 'ws:clients:both']);
   const reach = await iv.handle(clients!.account, tap('ws:clients:find'));
   assert.deepEqual(idsOf(reach?.out[0]), ['ws:reach:telegram', 'ws:reach:email', 'ws:reach:both']);
-  const where = await iv.handle(reach!.account, tap('ws:reach:both'));
-  assert.match(bodyOf(where?.out[0]), /Where are you/);
-  const card = await iv.handle(where!.account, text('Kano, Nigeria'));
+  const card = await iv.handle(reach!.account, tap('ws:reach:both'));
   assert.equal(card?.account.onboarding?.step, 'confirm');
   assert.deepEqual(previewed.at(-1), {
     goals: ['sell'], what: 'Ankara fabric', price: 'About 30 USDC a piece', paid: 'goods', clients: 'find', own: 'offers', reach: 'both', where: 'Kano, Nigeria',
@@ -111,7 +111,7 @@ test('every goal is asked in the website order', async () => {
       ? await iv.handle(r.account, tap(`ws:${step}:${step === 'clients' ? 'own' : 'email'}`))
       : await iv.handle(r.account, text(step === 'where' ? 'Lagos, Nigeria' : '20 USDC'));
   }
-  assert.deepEqual(asked, ['what', 'price', 'buy', 'business', 'places', 'clients', 'reach', 'where']);
+  assert.deepEqual(asked, ['where', 'what', 'price', 'buy', 'business', 'places', 'clients', 'reach']);
 });
 
 test('a work seller starts paid all at once, a goods seller paid on arrival, and both agents offer within their price', async () => {
@@ -123,7 +123,7 @@ test('a work seller starts paid all at once, a goods seller paid on arrival, and
 
 test('someone left at a question the chat no longer asks goes on to the next one they have not answered', async () => {
   const { iv } = make();
-  const r = await iv.handle(at({ onboarding: { step: 'paid', answers: { goals: ['work'], what: 'Logos', price: '20 USDC' } } }), tap('ws:paid:milestones'));
+  const r = await iv.handle(at({ onboarding: { step: 'paid', answers: { goals: ['work'], where: 'Lagos, Nigeria', what: 'Logos', price: '20 USDC' } } }), tap('ws:paid:milestones'));
   assert.equal(r?.account.onboarding?.step, 'clients');
   assert.equal(r?.account.onboarding?.answers?.paid, 'milestones');
 });
@@ -132,7 +132,8 @@ test('a buyer is asked what they buy, not what they sell or charge', async () =>
   const { iv } = make();
   let a = (await iv.enter(at())).account;
   a = (await iv.handle(a, tap('ws:goal:buy')))!.account;
-  const asked = await iv.handle(a, tap('ws:goals:done'));
+  a = (await iv.handle(a, tap('ws:goals:done')))!.account;
+  const asked = await iv.handle(a, text('Lagos, Nigeria'));
   assert.match(bodyOf(asked?.out[0]), /What do you usually buy or hire for/);
 });
 
@@ -268,7 +269,7 @@ test('a step that is not the interview\'s is left alone', async () => {
 
 test('when the reading fails the last answer is asked for again, nothing is lost', async () => {
   const { iv } = make({ preview: async () => { throw new Error('down'); } });
-  const a = at({ onboarding: { step: 'where', answers: { goals: ['record'], reach: 'email' } } });
+  const a = at({ onboarding: { step: 'where', answers: { goals: ['record'], places: 'Instagram', reach: 'email' } } });
   const r = await iv.handle(a, text('Accra, Ghana'));
   assert.deepEqual(r?.account.onboarding, a.onboarding);
   assert.match(bodyOf(r?.out[0]), /couldn't read that just now/);

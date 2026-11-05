@@ -243,7 +243,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
         title={mt.fill(t.confirmTitle, { amount: payUsdc }, {}, { exact: true })}
         rows={[
           [t.confirmFor, [listing?.title, name].filter(Boolean).join(', ')],
-          [t.amount, mt.text(payUsdc, { exact: true })],
+          [t.amount, mt.usdc(payUsdc, { exact: true })],
           [t.confirmFrom, t.balance],
           ...(spendable !== null && quote ? [[t.leftAfter, mt.text(Math.max(0, spendable - Number(quote.youPayUsdc)), { exact: true })] as [string, string]] : []),
           [t.confirmHeld, t.heldValue],

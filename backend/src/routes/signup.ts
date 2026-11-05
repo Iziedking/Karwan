@@ -1,7 +1,7 @@
 /// Short sign-up and Karwan tags.
 ///
 ///   GET  /api/signup/tag?tag=ada   is this tag free for me?
-///   POST /api/signup               { tag, accountKind } create my account
+///   POST /api/signup               { tag, accountKind, country? } create my account
 ///   POST /api/signup/tag           { tag } add a tag to an account made before tags
 ///
 /// Identity is always the signed session (email code, passkey or wallet); the
@@ -43,6 +43,7 @@ signupRoutes.get('/tag', rateLimit({ windowMs: 60_000, max: 60, name: 'signup-ta
 const signupSchema = z.object({
   tag: z.string().min(1).max(40),
   accountKind: z.enum(['person', 'business']),
+  country: z.string().regex(/^[A-Za-z]{2}$/).optional(),
 });
 
 signupRoutes.post('/', rateLimit({ windowMs: 10 * 60_000, max: 10, name: 'signup-create' }), async (c) => {
@@ -72,7 +73,7 @@ signupRoutes.post('/', rateLimit({ windowMs: 10 * 60_000, max: 10, name: 'signup
 
   let profile;
   try {
-    profile = await upsertProfile(newAccountProfile(address, tag, body.accountKind));
+    profile = await upsertProfile(newAccountProfile(address, tag, body.accountKind, body.country));
   } catch (err) {
     if (isUniqueViolation(err)) return c.json({ error: 'tag_taken', code: 'tag_taken' }, 409);
     throw err;
