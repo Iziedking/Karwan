@@ -148,6 +148,78 @@ flowchart LR
 
 Live rates need a source. A rates provider is picked in the spec, and checked the same way as Circle (docs, a read-only call, logged before code). Until a rate is fresh, the screen shows USDC rather than an old figure.
 
+## Fourth round: one Add money, one Withdraw, a page each, 5 Nov 2026
+
+Proposed after the owner tested a deposit from Arbitrum on testnet and walked Home, Money and Withdraw.
+
+**What is wrong on testnet today**
+
+- **Two ways to add money.** Home's Add opens the old `/bridge` chooser ("How do you want to add money?": free test USDC, an app or exchange, card soon). Money's Add money opens the new sheet. Same word, two screens.
+- **The confirmation doesn't stay.** When the money lands the sheet closes itself, so a deposit from Arbitrum flashes past with no card to read.
+- **Desktop doesn't match the drawing.** The drawing (Desktop 16) is a centred window with the network, the amount and the button on one screen and a close button. The build shows a panel on the right with no close button, in two steps.
+- **Withdraw is still the old form.** A bare amount field, a radio list, a pasted address and a Continue button, in a different style from Add money.
+- **Withdraw says a different figure.** Money shows 1,542.59 and Withdraw says 837.90 available, because Withdraw counts only the sign-in wallet.
+
+**The idea in one line**
+
+Add money and Withdraw are each one page, the same on Home and Money and on a phone and a computer, built from the same parts as the drawing: where, how much, one button, progress on the page, and a card that stays until you press Done.
+
+```mermaid
+flowchart LR
+  H[Home: Add] --> A[/add page/]
+  M[Money: Add money] --> A
+  A --> W{Where is the money?}
+  W -->|a network in your wallet| N[Amount, filled with what is there]
+  W -->|Transfer balance| N
+  W -->|an exchange| E[Your address and network]
+  N --> P[On its way, three steps]
+  P --> C[Added card: amount, from, time, fee, receipt]
+  C -->|Done| Back[Back where you started, balance counts up]
+```
+
+```mermaid
+flowchart LR
+  H2[Home or Money: Withdraw] --> WD[/withdraw page/]
+  WD --> T{Where to?}
+  T -->|your own wallet, wallet accounts| AM[Amount]
+  T -->|another wallet or an exchange| AD[Address and network] --> AM
+  T -->|someone on Karwan| S[Send, with the amount]
+  AM --> R[Review: to, network, arrives, fee, they receive]
+  R --> PS[On its way] --> SC[Sent card with receipt] -->|Done| Back2[Back where you started]
+```
+
+**Add money page**
+
+- **Phone:** a page with Back. "From your wallet" shows the networks as cards that swipe, exactly as Top up 2, then the Transfer balance row, then "Other ways" (an exchange, card soon). Picking one opens the amount on the same page with the keypad (Top up 3).
+- **Computer:** a centred column 560 wide. The richest network sits in one row with Change, the amount and the button sit under it, and "Other ways" are links at the foot (Desktop 16 as a page).
+- **On its way:** three steps on the page, as Top up 4: confirmed in your wallet, moving to your balance, in your balance. You can leave; the bell tells you when it lands.
+- **Added card that stays:** a tick, "40.00 USDC added from Arbitrum", then From, To (your balance), Took (18 seconds), Network fee (paid in your wallet) and View receipt. **Done** goes back to where you came from, and the balance counts up there. **Add more** starts again.
+- **Email accounts:** the same page. With no wallet connected the first row is "Connect a wallet" with the exchange address under Other ways. No Transfer balance row.
+- **Wallet accounts:** the networks where the connected wallet holds USDC, the Transfer balance row, then Other ways.
+- **On testnet** "Get free test USDC" stays, as a link under Other ways.
+
+**Withdraw page**
+
+- **Where to, first:** rows with an icon, a name and one line, like Add money:
+  - **Your wallet** (wallet accounts only): the connected address, short. One tap, then pick the network.
+  - **Another wallet or an exchange:** paste the address, pick the network. A saved address shows as a row you can tap.
+  - **Someone on Karwan:** search by tag, then Send with the amount.
+  - **A bank account** and **A card**: shown, Coming soon, never pickable.
+- **Then how much:** the amount hero with the keypad on a phone and 25%, 50%, Max. Under it, "837.90 USDC ready to withdraw". When part of the balance sits elsewhere: "704.69 is in your Transfer balance or with your agent", with **Bring it here**, which opens Where it is.
+- **Then the review** (the existing review sheet): To, Network, Arrives, Network fee, They receive, one button.
+- **On its way, then a Sent card that stays**, with the receipt and Done.
+- **Email accounts:** no Your wallet row. Karwan signs, so there's no wallet step.
+
+**Both themes, phone and computer**, drawn from the same colour variables, in Figma next to the third round: section "Money · Add and Withdraw pages (view 51, fourth round)", Dark and Light. Phone Add 1 to 5, Withdraw 1 to 6, Desktop 24 to 26.
+
+**When the build is checked**, each frame is compared with the running page at the same size before it counts as built, so the build and the drawing can't drift apart again.
+
+**Decisions for the owner (fourth round)**
+
+1. **Money's Add money opens the page too.** Recommended: yes, so there is one Add money everywhere and the side panel goes away. Alternative: Home opens the page and Money keeps a sheet.
+2. **What Withdraw counts.** Recommended: only what is ready, with Bring it here for the rest, so nothing moves without the person seeing it. Alternative: gather the Transfer balance and agent money on its own before sending, which adds a step that can fail.
+3. **Old routes.** Recommended: `/bridge?direction=in` and `?direction=out` open the new pages, so old links and the assistant's links keep working.
+
 ## Decisions for the owner
 
 1. **Default route for a top-up from Base, Ethereum or Arbitrum.** Recommended: straight to Arc (seconds), with Add to Transfer balance as the separate action. The alternative is to send every top-up into the Transfer balance, which makes most top-ups wait about 15 minutes.
