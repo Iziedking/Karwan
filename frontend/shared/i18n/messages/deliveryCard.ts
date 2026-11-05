@@ -16,7 +16,7 @@ export interface DeliveryCardCopy {
   checked: string;
   linksReal: string;
   trackingFitsTemplate: string;
-  match: { aligned: string; partial: string; mismatch: string; unknown: string };
+  match: { aligned: string; partial: string; mismatch: string; received: string; unknown: string };
   /// The delivery check could not run (view 43): what each side does instead.
   checkNotRunBuyer: string;
   checkNotRunSeller: string;
@@ -75,6 +75,7 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       aligned: 'It matches what you asked for.',
       partial: 'It partly matches what you asked for.',
       mismatch: 'It does not match what you asked for.',
+      received: 'The proof is in place. Check the work yourself.',
       unknown: 'It could not be compared with your request.',
     },
     checkNotRunBuyer: "Karwan couldn't check this delivery against your request. Open the work and check it yourself before you release. You can ask for changes.",
@@ -132,6 +133,7 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       aligned: 'La livraison correspond à votre demande.',
       partial: 'La livraison correspond en partie à votre demande.',
       mismatch: 'La livraison ne correspond pas à votre demande.',
+      received: 'La preuve est là. Vérifiez le travail vous-même.',
       unknown: 'La livraison n’a pas pu être comparée à votre demande.',
     },
     checkNotRunBuyer: 'Karwan n’a pas pu comparer cette livraison à votre demande. Ouvrez le travail et vérifiez-le vous-même avant de payer. Vous pouvez demander des modifications.',
@@ -189,6 +191,7 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       aligned: 'التسليم يطابق ما طلبته.',
       partial: 'التسليم يطابق ما طلبته جزئيًا.',
       mismatch: 'التسليم لا يطابق ما طلبته.',
+      received: 'الإثبات موجود. افحص العمل بنفسك.',
       unknown: 'تعذّرت مقارنة التسليم بطلبك.',
     },
     checkNotRunBuyer: 'لم يتمكن Karwan من مقارنة هذا التسليم بطلبك. افتح العمل وتحقق منه بنفسك قبل الدفع. يمكنك طلب تعديلات.',
@@ -246,6 +249,7 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       aligned: 'डिलीवरी आपके अनुरोध से मेल खाती है।',
       partial: 'डिलीवरी आपके अनुरोध से आंशिक रूप से मेल खाती है।',
       mismatch: 'डिलीवरी आपके अनुरोध से मेल नहीं खाती।',
+      received: 'सबूत मौजूद है। काम खुद जाँचें।',
       unknown: 'डिलीवरी की आपके अनुरोध से तुलना नहीं हो सकी।',
     },
     checkNotRunBuyer: 'Karwan इस डिलीवरी की आपके अनुरोध से जाँच नहीं कर सका। भुगतान से पहले काम खोलकर खुद जाँचें। आप बदलाव माँग सकते हैं।',
@@ -303,6 +307,7 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       aligned: 'Uwasilishaji unalingana na ulichoomba.',
       partial: 'Uwasilishaji unalingana kwa sehemu na ulichoomba.',
       mismatch: 'Uwasilishaji haulingani na ulichoomba.',
+      received: 'Uthibitisho upo. Kagua kazi mwenyewe.',
       unknown: 'Uwasilishaji haukuweza kulinganishwa na ombi lako.',
     },
     checkNotRunBuyer: 'Karwan haikuweza kulinganisha uwasilishaji huu na ombi lako. Fungua kazi uikague mwenyewe kabla ya kulipa. Unaweza kuomba mabadiliko.',

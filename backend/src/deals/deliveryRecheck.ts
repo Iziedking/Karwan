@@ -9,7 +9,7 @@ import { verifyDeliverable, type RequirementCheck } from '../security/requiremen
 
 export interface RecheckDeps {
   get(jobId: string): Promise<DirectDeal | null>;
-  check(input: { requirement: string; deliveryProof: string }): Promise<RequirementCheck>;
+  check(input: { requirement: string; deliveryProof: string; linkSafety?: DirectDeal['verificationStatus'] }): Promise<RequirementCheck>;
   save(jobId: string, patch: Partial<DirectDeal>): Promise<boolean>;
 }
 
@@ -19,21 +19,22 @@ export type RecheckResult =
   | { status: 'still-unknown' };
 
 /// Same rule as the delivery itself: a described deliverable against agreed
-/// terms, never goods, and only while there is no verdict.
+/// terms, never goods, and only while no model has given a verdict. A
+/// delivery the fixed proof rules marked received is still worth a model's read.
 function needsCheck(deal: DirectDeal | null): deal is DirectDeal & { terms: string; deliveryProof: string } {
   return !!deal
     && deal.delivered === true
     && deal.tradeType !== 'goods'
     && !!deal.terms
     && !!deal.deliveryProof
-    && deal.deliveryMatch?.verdict === 'unknown';
+    && (deal.deliveryMatch?.verdict === 'unknown' || deal.deliveryMatch?.verdict === 'received');
 }
 
 export async function recheckDelivery(jobId: string, deps: RecheckDeps = liveDeps): Promise<RecheckResult> {
   const before = await deps.get(jobId);
   if (!needsCheck(before)) return { status: 'not-needed' };
-  const check = await deps.check({ requirement: before.terms, deliveryProof: before.deliveryProof });
-  if (check.verdict === 'unknown') return { status: 'still-unknown' };
+  const check = await deps.check({ requirement: before.terms, deliveryProof: before.deliveryProof, linkSafety: before.verificationStatus });
+  if (check.verdict === 'unknown' || check.verdict === before.deliveryMatch?.verdict) return { status: 'still-unknown' };
   const now = await deps.get(jobId);
   // A newer delivery arrived while the check ran: its own check stands.
   if (!needsCheck(now) || now.deliveryRevision !== before.deliveryRevision || now.deliveryProof !== before.deliveryProof) {

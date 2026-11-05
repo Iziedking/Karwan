@@ -41,7 +41,10 @@ export interface DealPageCopy {
   };
   checkedTitle: string;
   compared: { work: string; goods: string; handover: string };
-  result: { matches: string; gap: string; checking: string; held: string; unverified: string };
+  result: { matches: string; received: string; gap: string; checking: string; held: string; unverified: string };
+  /// A request's posted budget that the accepted offer changed (owner, 5 Nov 2026).
+  priceChanged: string;
+  stageAmount: string;
   askChanges: string;
   changesDraft: string;
   release: {
@@ -116,7 +119,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       goods: 'Compared the photos and tracking with what you agreed',
       handover: 'Compared the handover with what you agreed',
     },
-    result: { matches: 'Matches what you agreed', gap: 'Does not match yet', checking: 'Checking now', held: 'Paused for a safety check', unverified: 'Could not be checked' },
+    result: { matches: 'Matches what you agreed', received: 'Delivery received. The buyer checks the work.', gap: 'Does not match yet', checking: 'Checking now', held: 'Paused for a safety check', unverified: 'Could not be checked' },
+    priceChanged: 'Agreed price: {agreed} USDC. The request said {posted} USDC before the offer was accepted.',
+    stageAmount: 'Stage {n}: {amount} USDC',
     askChanges: 'Ask for changes',
     changesDraft: 'Here is what needs changing: ',
     release: {
@@ -189,7 +194,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       goods: 'Photos et suivi comparés à ce que vous avez convenu',
       handover: 'Remise comparée à ce que vous avez convenu',
     },
-    result: { matches: 'Conforme à ce que vous avez convenu', gap: 'Pas encore conforme', checking: 'Vérification en cours', held: 'En pause pour un contrôle de sécurité', unverified: 'N’a pas pu être vérifié' },
+    result: { matches: 'Conforme à ce que vous avez convenu', received: 'Livraison reçue. L’acheteur vérifie le travail.', gap: 'Pas encore conforme', checking: 'Vérification en cours', held: 'En pause pour un contrôle de sécurité', unverified: 'N’a pas pu être vérifié' },
+    priceChanged: 'Prix convenu : {agreed} USDC. La demande indiquait {posted} USDC avant l’acceptation de l’offre.',
+    stageAmount: 'Étape {n} : {amount} USDC',
     askChanges: 'Demander des modifications',
     changesDraft: 'Voici ce qu’il faut modifier : ',
     release: {
@@ -262,7 +269,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       goods: 'قورنت الصور والتتبع بما اتفقتما عليه',
       handover: 'قورن التسليم بما اتفقتما عليه',
     },
-    result: { matches: 'يطابق ما اتفقتما عليه', gap: 'لا يطابق بعد', checking: 'جارٍ التحقق', held: 'متوقف لفحص أمان', unverified: 'تعذّر التحقق' },
+    result: { matches: 'يطابق ما اتفقتما عليه', received: 'تم استلام التسليم. يتحقق المشتري من العمل.', gap: 'لا يطابق بعد', checking: 'جارٍ التحقق', held: 'متوقف لفحص أمان', unverified: 'تعذّر التحقق' },
+    priceChanged: 'السعر المتفق عليه: {agreed} USDC. ذكر الطلب {posted} USDC قبل قبول العرض.',
+    stageAmount: 'المرحلة {n}: {amount} USDC',
     askChanges: 'اطلب تعديلات',
     changesDraft: 'هذا ما يحتاج إلى تعديل: ',
     release: {
@@ -335,7 +344,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       goods: 'फ़ोटो और ट्रैकिंग की तुलना तय की गई बात से की गई',
       handover: 'सौंपने की तुलना तय की गई बात से की गई',
     },
-    result: { matches: 'तय की गई बात से मेल खाता है', gap: 'अभी मेल नहीं खाता', checking: 'अभी जाँच हो रही है', held: 'सुरक्षा जाँच के लिए रुका है', unverified: 'जाँच नहीं हो सकी' },
+    result: { matches: 'तय की गई बात से मेल खाता है', received: 'डिलीवरी मिल गई। खरीदार काम जाँचता है।', gap: 'अभी मेल नहीं खाता', checking: 'अभी जाँच हो रही है', held: 'सुरक्षा जाँच के लिए रुका है', unverified: 'जाँच नहीं हो सकी' },
+    priceChanged: 'तय कीमत: {agreed} USDC. ऑफ़र स्वीकार होने से पहले अनुरोध में {posted} USDC लिखा था।',
+    stageAmount: 'चरण {n}: {amount} USDC',
     askChanges: 'बदलाव माँगें',
     changesDraft: 'यह बदलना है: ',
     release: {
@@ -408,7 +419,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       goods: 'Picha na ufuatiliaji vimelinganishwa na mlichokubaliana',
       handover: 'Ukabidhiano umelinganishwa na mlichokubaliana',
     },
-    result: { matches: 'Kinalingana na mlichokubaliana', gap: 'Bado hakilingani', checking: 'Inakaguliwa sasa', held: 'Imesimamishwa kwa ukaguzi wa usalama', unverified: 'Haikuweza kukaguliwa' },
+    result: { matches: 'Kinalingana na mlichokubaliana', received: 'Uwasilishaji umepokelewa. Mnunuzi anakagua kazi.', gap: 'Bado hakilingani', checking: 'Inakaguliwa sasa', held: 'Imesimamishwa kwa ukaguzi wa usalama', unverified: 'Haikuweza kukaguliwa' },
+    priceChanged: 'Bei iliyokubaliwa: {agreed} USDC. Ombi lilisema {posted} USDC kabla ofa haijakubaliwa.',
+    stageAmount: 'Hatua {n}: {amount} USDC',
     askChanges: 'Omba mabadiliko',
     changesDraft: 'Hiki ndicho kinachohitaji kubadilishwa: ',
     release: {

@@ -38,3 +38,12 @@ test('this moment names whose move it is in plain words', () => {
   assert.deepEqual(momentFor(view({ stage: 'awaiting-delivery', next: { action: 'deliver', actor: 'you', amountUsdc: null } }), 'Chidi', t, ''), { label: 'Your move', sentence: 'Send what you made when it is ready.' });
   assert.equal(momentFor(view({ stage: 'settled', next: { action: null, actor: 'nobody', amountUsdc: null } }), 'Ada', t, ''), null);
 });
+
+test('the seller waiting on a review hears what the buyer is doing, as the backend sends it', () => {
+  for (const stage of ['awaiting-first-release', 'awaiting-final-release'] as const) {
+    assert.deepEqual(
+      momentFor(view({ stage, next: { action: null, actor: 'counterparty', amountUsdc: null } }), 'otoszn', t, '35'),
+      { label: 'Waiting on otoszn', sentence: 'otoszn is checking your delivery.' },
+    );
+  }
+});

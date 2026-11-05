@@ -29,6 +29,9 @@ export function momentFor(
       : action === 'deliver' ? fill(t.moment.waitDeliver, { name })
       : action === 'release' ? fill(t.moment.waitRelease, { name })
       : action === 'accept' ? fill(t.moment.waitAccept, { name })
+      // The seller after a delivery: the buyer's move is a review, which the
+      // backend names for the buyer only.
+      : view.stage === 'awaiting-first-release' || view.stage === 'awaiting-final-release' ? fill(t.moment.waitRelease, { name })
       : null;
     return { label: fill(t.waitingOn, { name }), sentence };
   }

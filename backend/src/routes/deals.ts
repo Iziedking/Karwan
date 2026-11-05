@@ -1,6 +1,8 @@
 import { releaseLeg } from '../deals/payoutLeg.js';
 import { MAX_REVIEW_DAYS, reviewHasStarted } from '../deals/reviewClock.js';
 import { recheckDelivery, scheduleRecheck } from '../deals/deliveryRecheck.js';
+import { postedPriceUsdc } from '../deals/postedPrice.js';
+import { boardStore } from '../db/marketBoard.js';
 import { approvedDeadline, sellerMayAskMoreTime } from '../deals/deliveryDeadline.js';
 import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { SELLER_LINK_DETAIL, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
@@ -1594,9 +1596,10 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
     ? disputeViewFor(deal, viewerIsBuyer ? 'buyer' : 'seller', Date.now(), config.DISPUTE_STATEMENT_WINDOW_MS)
     : undefined;
   const deliveryHistory = deliveryHistoryFor(deal.deliveryHistory, viewerIsBuyer ? 'buyer' : 'seller', deal.deliveryReview);
+  const postedPrice = await postedPriceFor(deal);
   const shaped = viewerIsBuyer
-    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, matchRisk: undefined, disputeStatements: undefined, judgeProposal: undefined }
-    : { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, matchRisk: undefined, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
+    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, postedPriceUsdc: postedPrice, handover: undefined, matchRisk: undefined, disputeStatements: undefined, judgeProposal: undefined }
+    : { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, postedPriceUsdc: postedPrice, handover: undefined, matchRisk: undefined, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
   if (viewerIsBuyer && held && enriched.deliveryProof) {
     return c.json({ deal: { ...shaped, deliveryProof: undefined } });
   }
@@ -3314,6 +3317,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       const check = await verifyDeliverable({
         requirement: deal.terms,
         deliveryProof: body.deliveryProof,
+        linkSafety: verificationStatus,
       });
       deliveryMatch = check;
       if (check.verdict === 'mismatch' || check.verdict === 'partial') {
@@ -3420,7 +3424,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   });
   if (!recordedDelivery) return c.json({ error: 'The delivery changed while this submission was being saved. Refresh the deal before submitting again.', code: 'STALE_DELIVERY' }, 409);
   // No verdict (every model provider failed): try again in a few minutes (view 43, 5 Nov 2026).
-  if (deliveryMatch?.verdict === 'unknown') scheduleRecheck(jobId);
+  if (deliveryMatch?.verdict === 'unknown' || deliveryMatch?.verdict === 'received') scheduleRecheck(jobId);
   // Cancel only the previous request. A recovery worker may already have
   // published the new revision after the delivery was saved above.
   if (deal.creDeliveryRequest) {
@@ -5882,6 +5886,18 @@ interface EnrichContext {
 const closedEnrichCache = new Map<string, { at: number; value: Awaited<ReturnType<typeof enrich>> }>();
 const CLOSED_ENRICH_TTL_MS = 10 * 60_000;
 const CLOSED_ENRICH_MAX = 5_000;
+
+/// The budget a market request was posted with, when the accepted offer
+/// changed the price before the escrow was funded (owner, 5 Nov 2026).
+async function postedPriceFor(deal: DirectDeal): Promise<string | null> {
+  if (deal.origin !== 'agent') return null;
+  try {
+    const row = await boardStore().get(deal.jobId as `0x${string}`);
+    return postedPriceUsdc(deal.dealAmountUsdc, row?.budget);
+  } catch {
+    return null;
+  }
+}
 
 async function enrichForList(deal: DirectDeal, ctx: EnrichContext) {
   if (!deal.settledAt && !deal.cancelledAt) return enrich(deal, ctx);

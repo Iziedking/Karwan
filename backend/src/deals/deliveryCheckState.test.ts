@@ -37,3 +37,7 @@ test('a delivery with no link or a deal with no terms is never checked', () => {
   assert.equal(deliveryCheckState({ deliveryProof: undefined }), null);
   assert.equal(deliveryCheckState({ terms: undefined }), null);
 });
+
+test('proof the fixed rules found in hand reads as received, never as passed', () => {
+  assert.equal(deliveryCheckState({ delivered: true, deliveryMatch: { verdict: 'received', reason: '' } }), 'received');
+});

@@ -4,7 +4,7 @@ import type { DealKind } from './dealSteps';
 
 export interface CheckSummary {
   compared: 'work' | 'goods' | 'handover';
-  result: 'checking' | 'matches' | 'gap' | 'held' | 'unverified';
+  result: 'checking' | 'matches' | 'received' | 'gap' | 'held' | 'unverified';
   /// The buyer's own review, in the agents' words. Never on the seller's side.
   detail?: string;
 }
@@ -24,6 +24,8 @@ export function checkSummary(deal: DirectDeal, viewerIsBuyer: boolean, kind: Dea
       ? 'checking'
       : status === 'unverified'
         ? 'unverified'
+        : status === 'received'
+          ? 'received'
         : viewerIsBuyer && (deal.deliveryMatch?.verdict === 'partial' || deal.deliveryMatch?.verdict === 'mismatch')
           ? 'gap'
           : mismatch

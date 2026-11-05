@@ -376,7 +376,9 @@ export function PostJobForm() {
       : null;
   // Paid at once, the one part is the request itself.
   const dealTerms: TermsDraft = inParts ? terms : { ...terms, parts: [{ pct: 100, what: brief.trim().slice(0, 240) }] };
-  const agreementText = composeTerms(dealTerms, { priceUsdc: typeof budget === 'number' ? budget : null, dueLabel }, TERMS_COPY[locale].text);
+  // The signed text carries no price: an offer can change it before funding,
+  // and the escrow holds the amount both sides agreed (owner, 5 Nov 2026).
+  const agreementText = composeTerms(dealTerms, { priceUsdc: null, dueLabel }, TERMS_COPY[locale].text);
 
   // At review, the agent's balance against the most it may spend: the price
   // limit (budget plus the agreed flexibility), the buyer's half of the fee and
@@ -691,7 +693,7 @@ export function PostJobForm() {
             <TermsBuilder
               value={terms}
               onChange={setTerms}
-              priceUsdc={typeof budget === 'number' ? budget : null}
+              priceUsdc={null}
               dueLabel={dueLabel}
               disabled={submitting}
             />

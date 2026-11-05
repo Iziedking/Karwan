@@ -4,6 +4,7 @@ import type { DirectDeal } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatDealDate, formatUsdcAmount } from './presentation';
 import { agreementBlocks, type AgreementBlock, type AgreementPart } from './agreementBlocks';
+import { agreedPrice } from './agreedPrice';
 
 const MICROS = 1_000_000n;
 
@@ -17,7 +18,9 @@ function feeUsdc(deal: DirectDeal): string | null {
 
 export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bare?: boolean }) {
   const copy = useTranslations().dealWorkspace;
+  const dp = useTranslations().dealPage;
   const { locale } = useLocale();
+  const price = agreedPrice(deal);
   const [open, setOpen] = useState(false);
   const payments = deal.onChain?.milestonePcts?.length
     ?? deal.milestonePcts?.length
@@ -26,6 +29,18 @@ export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bar
   return (
     <section aria-labelledby={bare ? undefined : 'deal-agreement'} className="space-y-3">
       {bare ? null : <h2 id="deal-agreement" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.agreement.title}</h2>}
+      {price ? (
+        <div data-agreed-price className="max-w-[62ch] space-y-1 border-s-2 border-[var(--lp-border-light)] ps-3">
+          <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">
+            {fill(dp.priceChanged, { agreed: formatUsdcAmount(price.agreed, locale), posted: formatUsdcAmount(price.posted, locale) })}
+          </p>
+          {price.stages.length ? (
+            <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
+              {price.stages.map((amount, i) => fill(dp.stageAmount, { n: i + 1, amount: formatUsdcAmount(amount, locale) })).join(' · ')}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <AgreementText terms={deal.terms} />
       <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
         {[

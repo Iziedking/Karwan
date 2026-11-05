@@ -44,6 +44,7 @@ import { FactRows } from '@/shared/components/FactRows';
 import { checkSummary } from './checkSummary';
 import { wrongChoices } from './wrongChoices';
 import { CheckedCard } from './CheckedCard';
+import { CheckNotRun } from './CheckNotRun';
 import { titleMoneyLine, whatItIs } from './titleLine';
 import { momentFor } from './momentLine';
 
@@ -229,6 +230,9 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   } else if (summary) {
     moment = (
       <CheckedCard summary={summary}>
+        {summary.result === 'unverified' ? (
+          <CheckNotRun jobId={deal.jobId} viewerIsBuyer={viewerIsBuyer} caller={address ?? null} onChanged={onChanged} />
+        ) : null}
         {review === 'safe' || seeDelivery ? (
           <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
             {review === 'safe' ? `${copy.checkPaused.reviewedSafe} ` : null}

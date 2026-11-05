@@ -18,7 +18,7 @@ const deal = (over: Record<string, unknown> = {}) => ({
   ...over,
 }) as unknown as DirectDeal;
 
-function harness(start: DirectDeal | null, verdict: 'aligned' | 'unknown' = 'aligned') {
+function harness(start: DirectDeal | null, verdict: 'aligned' | 'received' | 'unknown' = 'aligned') {
   let current = start;
   const saved: Array<Partial<DirectDeal>> = [];
   let checks = 0;
@@ -56,6 +56,25 @@ test('still no verdict saves nothing and says so', async () => {
   const h = harness(deal(), 'unknown');
   assert.deepEqual(await recheckDelivery('0xjob', h.deps), { status: 'still-unknown' });
   assert.equal(h.saved.length, 0);
+});
+
+test('with no model, the fixed proof rules mark an old delivery received, and the link scan goes with the check', async () => {
+  const h = harness(deal({ verificationStatus: 'clean' }), 'received');
+  let seen: unknown;
+  const check = h.deps.check;
+  h.deps.check = async (input) => { seen = input.linkSafety; return check(input); };
+  assert.deepEqual(await recheckDelivery('0xjob', h.deps), { status: 'checked', verdict: 'received' });
+  assert.equal(seen, 'clean');
+  assert.deepEqual(h.saved[0]!.deliveryMatch, { verdict: 'received', reason: '' });
+});
+
+test('a received delivery is read again when a model answers, and left as it is when none does', async () => {
+  const received = { deliveryMatch: { verdict: 'received', reason: '' } };
+  const answered = harness(deal(received));
+  assert.deepEqual(await recheckDelivery('0xjob', answered.deps), { status: 'checked', verdict: 'aligned' });
+  const silent = harness(deal(received), 'received');
+  assert.deepEqual(await recheckDelivery('0xjob', silent.deps), { status: 'still-unknown' });
+  assert.equal(silent.saved.length, 0);
 });
 
 test('a newer delivery sent while the check ran is never overwritten', async () => {

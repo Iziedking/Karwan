@@ -9,7 +9,7 @@ export function releaseBlockReasonForDelivery(input: {
   /// Legacy deals omit this field and retain their previous optional behavior.
   evidenceRequired?: boolean;
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
-  deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown' };
+  deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'received' | 'unknown' };
   evidenceReceipt?: { state: 'not-configured' | 'not-recorded' | 'pass' | 'mismatch' | 'unavailable' | 'expired' | 'stale-terms' | 'stale-delivery' | 'read-unavailable' };
   /// The buyer took over the review of the current delivery because the check
   /// never answered. It lifts only "no answer"; a security hold or a verifier

@@ -1,6 +1,6 @@
 import type { DirectDeal } from '@/core/api';
 
-export type CheckStatus = 'checking' | 'passed' | 'held' | 'unverified';
+export type CheckStatus = 'checking' | 'passed' | 'received' | 'held' | 'unverified';
 
 type CheckInput = Pick<DirectDeal, 'deliveryCheck' | 'releaseBlockedReason' | 'releaseBlockedDetail' | 'verificationStatus'>;
 

@@ -1,6 +1,7 @@
 import type { DirectDeal } from '../db/deals.js';
 
-export type DeliveryCheckState = 'checking' | 'passed' | 'held' | 'unverified';
+/// 'received': no model answered and the fixed proof rules found the proof in hand.
+export type DeliveryCheckState = 'checking' | 'passed' | 'received' | 'held' | 'unverified';
 
 /// Where the delivery check stands, in words both parties may see. The buyer's
 /// written review stays private; this only says whether money can move. The
@@ -17,5 +18,6 @@ export function deliveryCheckState(
   const verdict = deal.deliveryMatch?.verdict;
   if (!verdict) return 'checking';
   if (verdict === 'mismatch' || verdict === 'partial') return 'held';
+  if (verdict === 'received') return 'received';
   return verdict === 'aligned' ? 'passed' : 'unverified';
 }

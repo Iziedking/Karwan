@@ -14,7 +14,7 @@ export interface DeliveryCardModel {
   handedOverAt: number | null;
   photos: string[];
   canConfirmArrival: boolean;
-  match: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string } | null;
+  match: { verdict: 'aligned' | 'partial' | 'mismatch' | 'received' | 'unknown'; reason: string } | null;
   earlier: Array<{ revision: number; submittedAt: number; milestoneNumber: number | null; links: DeliveryLink[]; trackingNumber: string | null; held: boolean; photos: string[] }>;
   documents: Array<{ kind: DocumentKind; label: string | null; anchoredAt: number | null }>;
 }

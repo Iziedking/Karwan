@@ -41,11 +41,20 @@ Karwan's delivery check compares what the seller delivered with what was agreed,
 - **It says so honestly.** Until a check runs, the delivery shows "Karwan couldn't check this delivery against your request. Open the work and check it yourself before you release." Automatic release waits for the buyer, and the seller is not asked to fix anything.
 - **On-chain checks are separate.** Chainlink CRE checks on chain are not live yet, and deals are opened without an on-chain checker; the page and the assistant never imply otherwise.
 
+## Decided by the owner, 5 Nov 2026: fixed rules, the agreed price and the seller's wait
+
+- **Fixed rules when no model answers.** Karwan checks what can be measured without a model: the proof is in place and every link in it passed the safety check and opened. Then the check card says "Delivery received. The buyer checks the work." It never says the work matches, it never pauses payment, and a model reads the delivery again later. A link that was held or did not open still reads "Could not be checked".
+- **Check again sits on the check card.** The plain words for a check that could not run, and the Check again button, are on the Checked by Karwan card both sides see, not inside the Delivery row.
+- **The agreed price.** A request's terms are now posted with no price. The price is the offer the buyer accepts, and the escrow holds it. On deals made before this, where an accepted offer changed the posted price, the signed text and its hash on chain stay as they were, and the Agreement row shows the agreed price and what each stage pays above them.
+- **The seller's wait says what is happening.** After a delivery the seller reads "Waiting on Ada" and "Ada is checking your delivery."
+
 ## Where it lives
 
 | Piece | Code |
 |---|---|
 | Which rows, in what order | `dealLayers` in `frontend/features/deals/workspace/dealLayers.ts` |
 | Title block and rows | `DealHero` in `frontend/features/deals/workspace/DealHero.tsx` |
+| Fixed proof rules | `proofRules` in `backend/src/security/requirementCheck.ts` |
+| Agreed price beside the signed text | `agreedPrice` in `frontend/features/deals/workspace/agreedPrice.ts`, `postedPriceUsdc` in `backend/src/deals/postedPrice.ts` |
 | Financier alert | `factoring.awaiting_financier` in `backend/src/routes/factoring.ts` and `emails/dealNotifier.ts` |
 | Position page states | `frontend/app/financier/factoring/[offerId]/page.tsx`, `FinancingPositionWorkspace` |

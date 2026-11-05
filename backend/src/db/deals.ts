@@ -200,7 +200,7 @@ export interface DirectDeal {
   /// and 'mismatch' surface a buyer review notice and pause auto-release so the
   /// buyer looks before money moves; 'unknown' means it could not be judged. The
   /// proof is never withheld for a requirement verdict, the buyer is the judge.
-  deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+  deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'received' | 'unknown'; reason: string };
   /// Monotonic delivery revision. A correction creates a new revision and
   /// invalidates receipts issued for the previous artifact.
   deliveryRevision?: number;
