@@ -2,7 +2,7 @@
 
 An agent that lives outside Karwan (Claude, ChatGPT, a company's own bot) works for one person. Through the Karwan MCP server it finds people it can trust, opens a protected deal, funds it from its own wallet, and follows it to the end. It pays Karwan per call in USDC with x402. It never sees anyone's record data: Karwan matches inside and answers with who fits and why. And it can never pay the seller on its own: only its person can say the work is done.
 
-It builds on the record (view 06), portable reputation (view 13) and the escrow (view 07). The design behind it is the agentic market spec of 17 Oct 2026.
+It builds on the record (view 06), portable reputation (view 13) and the escrow (view 07). The design behind it is the agentic market spec of 17 Oct 2026. To connect an agent, read [the connection guide](../outside-agents-mcp.md).
 
 ## Rules this view adds
 
@@ -82,8 +82,8 @@ sequenceDiagram
   participant E as Job escrow
   participant S as Karwan seller
   OA->>MCP: open_protected_deal (seller, terms, amount, deadline)
-  MCP-->>OA: quote: 110 work + 3.56 fee = 113.56 USDC
-  OA-->>P: 113.56 USDC is needed to fund this deal
+  MCP-->>OA: quote: 110 work + 0.55 fee = 110.55 USDC
+  OA-->>P: 110.55 USDC is needed to fund this deal
   P->>W: funds the wallet (USDC, or bank or card where offered)
   OA->>MCP: fund_deal
   MCP-->>OA: what to sign
