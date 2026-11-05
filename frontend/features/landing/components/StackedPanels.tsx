@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { landingCopy, type LandingCopy } from '@/shared/i18n/messages/landing';
@@ -83,9 +83,38 @@ function RecordBoard({ t, item }: { t: Panels['record']; item: string }) {
   );
 }
 
+/// Where a panel sticks: under the top bar when it fits on screen, or higher
+/// by however much it is taller, so its whole picture scrolls past before the
+/// next panel rises over it.
+function useStick(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    /// A phone's address bar showing or hiding changes only the height; the
+    /// panel keeps its place then, so it never jumps mid-scroll.
+    let width = 0;
+    let height = 0;
+    const place = () => {
+      if (window.innerWidth !== width || !height) height = window.innerHeight;
+      width = window.innerWidth;
+      const bar = document.querySelector('header[data-chrome="nav"]')?.getBoundingClientRect().height ?? 68;
+      el.style.setProperty('--stick', `${Math.min(bar, height - el.offsetHeight)}px`);
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(el);
+    window.addEventListener('resize', place, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', place);
+    };
+  }, [ref]);
+}
+
 function Panel({ index, label, title, href, learnMore, children }: { index: number; label: string; title: string; href: string; learnMore: string; children: ReactNode }) {
   const ref = useRef<HTMLElement>(null);
   useSceneProgress(ref, 'enter', { span: 0.7 });
+  useStick(ref);
   return (
     <section ref={ref} className={s.panel} style={{ zIndex: index + 1 }} aria-labelledby={`landing-panel-${index}`}>
       <div className={s.glow} aria-hidden />
