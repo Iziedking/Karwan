@@ -46,10 +46,9 @@ async function identityFor(header: string, resourceUri: string): Promise<AgentId
 
 export const mcpRoutes = new Hono();
 
-mcpRoutes.all('/', async (c) => {
+mcpRoutes.post('/', async (c) => {
   c.header('Cache-Control', 'no-store');
   if (!deps || !verifier) return c.json({ error: 'The Karwan MCP is not available on this network.' }, 404);
-  if (c.req.method !== 'POST') return c.json({ error: 'Use POST. This server keeps no sessions.' }, 405);
   const resourceUri = canonicalAgentKitResourceUri(c.req.url, config.PUBLIC_API_BASE_URL);
   const header = c.req.header(AGENTKIT);
   if (!header) {
@@ -68,4 +67,10 @@ mcpRoutes.all('/', async (c) => {
   } finally {
     void server.close().catch(() => {});
   }
+});
+
+mcpRoutes.all('/', (c) => {
+  c.header('Cache-Control', 'no-store');
+  if (!deps || !verifier) return c.json({ error: 'The Karwan MCP is not available on this network.' }, 404);
+  return c.json({ error: 'Use POST. This server keeps no sessions.' }, 405);
 });

@@ -554,6 +554,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/attestations/by-subject/:address" },
   { method: "GET", path: "/attestations/revocations.json" },
   { method: "GET", path: "/health" },
+  { method: "POST", path: "/mcp" },
   { method: "GET", path: "/oauth/authorize" },
   { method: "POST", path: "/oauth/authorize" },
   { method: "POST", path: "/oauth/authorize/approve" },
