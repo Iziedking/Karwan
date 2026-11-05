@@ -1,43 +1,32 @@
 'use client';
+import { useId, useState } from 'react';
 import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
-import { useActivation } from '@/shared/hooks/useActivation';
+import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { Hint } from '@/shared/components/Hint';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
-import { formatBalance } from '../balanceModel';
-import { formatDisplay } from '../displayCurrency';
-import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
+import { fill } from '@/features/deals/workspace/presentation';
+import { formatAmount } from '../balanceModel';
+import { useAgentLimit } from '../hooks/useAgentLimit';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
-import type { AgentKey } from '../moneySheetModel';
 import { RecentMoney } from './RecentMoney';
 
-const QUIET =
-  'inline-flex min-h-11 items-center rounded-[10px] px-3 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
 const SOFT = 'bg-[var(--raised)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
+const RECORD_CHECK_USDC = 0.005;
 
-function AgentGlyph() {
-  return (
-    <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--raised)] text-[var(--ink)]">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="5" y="8" width="14" height="11" rx="3" />
-        <path d="M12 4v4M9.5 13h.01M14.5 13h.01" strokeWidth="2.4" />
-      </svg>
-    </span>
-  );
-}
-
-/// What the agents hold, their two moves, each agent with what it does, and
-/// what they spent (view 51). Agents not set up yet get the one setup button.
-export function AgentsTab({ onMove, onSetUp }: { onMove: (move: 'topUp' | 'withdraw', agent: AgentKey) => void; onSetUp: () => void }) {
+/// The agent has no balance of its own on screen (view 51, third round): what
+/// it may spend each week on checks, what it spent and what is left, then each
+/// spend with its receipt. Agents not set up yet get the one setup button.
+export function AgentsTab({ onSetUp }: { onSetUp: () => void }) {
   const t = useTranslations();
-  const copy = t.moneyMove;
+  const one = t.moneyMove.one;
   const home = t.money.home;
   const { locale } = useLocale();
   const balances = useMoneyBalances();
-  const activation = useActivation();
-  const { currency, rate } = useDisplayCurrency();
+  const { limit, loading, save } = useAgentLimit();
+  const [open, setOpen] = useState(false);
 
-  if (balances.activationLoading) {
+  if (balances.activationLoading || (balances.activated && loading)) {
     return (
       <div aria-busy="true" className="space-y-3">
         <div className={`h-12 w-56 ${SOFT}`} />
@@ -56,50 +45,114 @@ export function AgentsTab({ onMove, onSetUp }: { onMove: (move: 'topUp' | 'withd
     );
   }
 
-  const total = (balances.buyer ?? 0) + (balances.seller ?? 0);
-  const shown = formatDisplay(total, currency, rate, locale);
-
   return (
     <div className="space-y-8">
       <div className="space-y-5">
         <h1 id="money-balance" className="space-y-1.5">
-          <span className="block text-[13px] text-[var(--ink-secondary)]">{copy.home.agentsHold}</span>
+          <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{one.canSpend}<Hint>{one.limitTip}</Hint></span>
           <span className="flex items-baseline gap-2 tabular-nums" dir="ltr">
-            <span className="text-[34px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[40px]">
-              {shown.unit ? <AnimatedNumber value={total} format={(value) => formatBalance(value, locale)} /> : shown.primary}
+            <span data-agent-limit className="text-[34px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[40px]">
+              {limit ? formatAmount(limit.weeklyUsdc, locale) : ' '}
             </span>
-            {shown.unit ? <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span> : null}
+            <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">{one.aWeek}</span>
           </span>
-          {shown.secondary ? <span className="block text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]" dir="ltr">{shown.secondary}</span> : null}
         </h1>
-        <div data-agent-actions className="grid grid-cols-2 gap-2 sm:max-w-[360px] sm:gap-3">
-          <button type="button" onClick={() => onMove('topUp', 'buyer')} className={buttonClasses({ variant: 'primary', size: 'lg' })}>{copy.agents.topUp}</button>
-          <button type="button" onClick={() => onMove('withdraw', 'seller')} className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{copy.agents.withdraw}</button>
-        </div>
-        <ul className="space-y-2">
-          {(['buyer', 'seller'] as const).map((agent) => {
-            const amount = agent === 'buyer' ? balances.buyer : balances.seller;
-            const custom = agent === 'buyer' ? activation.agents?.buyerName : activation.agents?.sellerName;
-            const name = custom || (agent === 'buyer' ? home.buyingAgent : home.sellingAgent);
-            const nameId = `money-agent-${agent}`;
-            return (
-              <li key={agent} className={`${CARD_CLASS} flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3`}>
-                <AgentGlyph />
-                <span className="min-w-0 flex-1">
-                  <span id={nameId} className="block text-[15px] font-semibold text-[var(--ink)]">{name}</span>
-                  <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{agent === 'buyer' ? copy.home.buyingDoes : copy.home.sellingDoes}</span>
+        <button type="button" data-change-limit onClick={() => setOpen(true)} className={`w-full sm:max-w-[360px] ${buttonClasses({ variant: 'secondary', size: 'lg' })}`}>
+          {one.changeLimit}
+        </button>
+        {limit ? (
+          <dl className={`${CARD_CLASS} divide-y divide-[var(--line)] px-4 sm:max-w-[480px]`}>
+            <div data-spent-week className="flex min-h-16 items-center justify-between gap-3 py-3">
+              <dt className="min-w-0">
+                <span className="block text-[15px] font-semibold text-[var(--ink)]">{one.spentWeek}</span>
+                <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">
+                  {fill(one.spentDetail, { checks: String(limit.recordChecks), searches: String(limit.webSearches) })}
                 </span>
-                <span className="text-[15px] font-semibold tabular-nums text-[var(--ink)]" dir="ltr">{amount === null ? ' ' : formatBalance(amount, locale)}</span>
-                <span className="flex w-full justify-end gap-1 sm:w-auto">
-                  <button type="button" aria-describedby={nameId} onClick={() => onMove('topUp', agent)} className={QUIET}>{home.topUp}</button>
-                  <button type="button" aria-describedby={nameId} onClick={() => onMove('withdraw', agent)} className={QUIET}>{home.withdraw}</button>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+              </dt>
+              <dd dir="ltr" className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatAmount(limit.spentUsdc, locale)} USDC</dd>
+            </div>
+            <div data-left-week className="flex min-h-16 items-center justify-between gap-3 py-3">
+              <dt className="min-w-0">
+                <span className="block text-[15px] font-semibold text-[var(--ink)]">{one.leftWeek}</span>
+                <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{one.leftNote}</span>
+              </dt>
+              <dd dir="ltr" className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatAmount(limit.leftUsdc, locale)} USDC</dd>
+            </div>
+          </dl>
+        ) : null}
       </div>
       <RecentMoney agentsOnly />
+      {limit ? (
+        <LimitSheet
+          open={open}
+          current={limit.weeklyUsdc}
+          choices={limit.choices}
+          saving={save.isPending}
+          failed={save.isError}
+          onClose={() => setOpen(false)}
+          onSave={(weeklyUsdc) => save.mutate(weeklyUsdc, { onSuccess: () => setOpen(false) })}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function LimitSheet({ open, current, choices, saving, failed, onClose, onSave }: {
+  open: boolean;
+  current: number;
+  choices: number[];
+  saving: boolean;
+  failed: boolean;
+  onClose: () => void;
+  onSave: (weeklyUsdc: number) => void;
+}) {
+  const one = useTranslations().moneyMove.one;
+  const { locale } = useLocale();
+  const titleId = useId();
+  const [picked, setPicked] = useState(current);
+
+  return (
+    <ConfirmSheetShell open={open} labelledBy={titleId} busy={saving} onClose={onClose}>
+      <h2 id={titleId} className="mb-1 flex items-center gap-2 text-[20px] font-semibold text-[var(--ink)]">
+        {one.limitTitle}
+        <Hint>{one.limitTip}</Hint>
+      </h2>
+      <p className="mb-4 text-[14px] text-[var(--ink-secondary)]">{one.limitLead}</p>
+      <div role="radiogroup" aria-labelledby={titleId} data-limit-choices className="space-y-2">
+        {choices.map((usdc) => {
+          const checked = picked === usdc;
+          return (
+            <button
+              key={usdc}
+              type="button"
+              role="radio"
+              aria-checked={checked}
+              onClick={() => setPicked(usdc)}
+              className={`flex min-h-[60px] w-full items-center gap-3 rounded-[var(--radius-card)] border bg-[var(--surface)] px-4 py-2 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${checked ? 'border-[var(--ink)]' : 'border-[var(--line)] hover:bg-[var(--raised)]'}`}
+            >
+              <span className="min-w-0 flex-1">
+                <span dir="ltr" className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatAmount(usdc, locale)} USDC</span>
+                <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">
+                  {fill(one.about, { n: new Intl.NumberFormat(locale).format(Math.floor(usdc / RECORD_CHECK_USDC)) })}
+                </span>
+              </span>
+              <span aria-hidden className={`grid size-5 shrink-0 place-items-center rounded-full border-[1.5px] ${checked ? 'border-[var(--ink)]' : 'border-[var(--line-strong)]'}`}>
+                {checked ? <span className="size-2.5 rounded-full bg-[var(--ink)]" /> : null}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {failed ? <p role="alert" className="mt-3 text-[14px] text-[var(--ink)]">{one.saveFailed}</p> : null}
+      <button
+        type="button"
+        disabled={saving || picked === current}
+        onClick={() => onSave(picked)}
+        className={`mt-5 w-full ${buttonClasses({ variant: 'primary', size: 'lg' })}`}
+      >
+        {one.save}
+      </button>
+      <p className="mt-3 text-[13px] font-medium text-[var(--ink-muted)]">{one.limitNote}</p>
+    </ConfirmSheetShell>
   );
 }

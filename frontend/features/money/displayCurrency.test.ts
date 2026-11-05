@@ -47,3 +47,9 @@ test('the rate line reads 1 USDC = the local figure', () => {
   assert.equal(rateLine('EUR', 0.889118, 'en'), '1 USDC = €0.89');
   assert.equal(rateLine('NGN', null, 'en'), null);
 });
+
+test('recentAmountsCarryTheirSign', () => {
+  assert.equal(formatLocal(500, 'NGN', 1346.11, 'en', true), '+₦673,055');
+  assert.equal(formatLocal(-50, 'NGN', 1346.11, 'en', true), '-₦67,306');
+  assert.equal(formatLocal(500, 'NGN', 1346.11, 'en'), '₦673,055');
+});

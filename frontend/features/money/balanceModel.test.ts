@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer } from './balanceModel';
+import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer, whereItIs } from './balanceModel';
 
 const facts = { balance: null as number | null, pool: 0, loading: false, error: false };
 
@@ -16,6 +16,20 @@ test('the home says loading, error, empty or ready from the balance', () => {
 test('the one number is the Arc balance plus a Gateway balance already held', () => {
   assert.equal(heroAmount({ ...facts, balance: 1240.5, pool: 20 }), 1260.5);
   assert.equal(heroAmount({ ...facts }), 0);
+});
+
+test('oneBalanceCountsWhatSitsWithTheAgents (view 51, third round)', () => {
+  assert.equal(heroAmount({ ...facts, balance: 4021.29, pool: 105.54, agents: 1763.5 }), 5890.33);
+  assert.equal(homeState({ ...facts, balance: 0, agents: 0.5 }), 'ready');
+});
+
+test('whereItIsListsEachPartThatHoldsMoney', () => {
+  assert.deepEqual(whereItIs({ ...facts, balance: 4021.29, pool: 105.54, agents: 1763.5 }), [
+    { part: 'ready', amount: 4021.29 },
+    { part: 'transfer', amount: 105.54 },
+    { part: 'agent', amount: 1763.5 },
+  ]);
+  assert.deepEqual(whereItIs({ ...facts, balance: 12, pool: 0, agents: 0 }), [{ part: 'ready', amount: 12 }]);
 });
 
 test('the moving line picks the newest transfer still in flight', () => {

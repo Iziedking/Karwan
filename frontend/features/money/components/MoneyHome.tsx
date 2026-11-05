@@ -1,5 +1,4 @@
 'use client';
-import { Hint } from '@/shared/components/Hint';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { m } from 'motion/react';
@@ -13,7 +12,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur } from '@/shared/motion/tokens';
 import { fill } from '@/features/deals/workspace/presentation';
 import { bridgeChainMeta, useBridges } from '@/features/bridge/hooks/useBridge';
-import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer } from '../balanceModel';
+import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer, whereItIs } from '../balanceModel';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import type { AgentKey, MoneyMove } from '../moneySheetModel';
 import { MoneySheet } from './MoneySheet';
@@ -28,6 +27,7 @@ import { dealReference } from '@/features/deals/dealReference';
 import { Segmented } from '@/shared/components/Segmented';
 import { AgentsTab } from './AgentsTab';
 import { AddMoneySheet, type AddSheetMode } from './AddMoneySheet';
+import { WhereItIsSheet } from './WhereItIsSheet';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { formatDisplay } from '../displayCurrency';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
@@ -38,8 +38,6 @@ const TAB_KEY = 'karwan:money:tab';
 const SECONDARY = buttonClasses({ variant: 'secondary' });
 const QUIET =
   'inline-flex min-h-11 items-center rounded-[10px] px-3 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
-const CHIP =
-  'inline-flex min-h-9 items-center rounded-full bg-[var(--raised)] px-3.5 text-[14px] font-medium text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
 const SOFT = 'bg-[var(--raised)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
 export function MoneyHome() {
@@ -70,6 +68,7 @@ function MoneyHomeInner() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [addSheet, setAddSheet] = useState<AddSheetMode | null>(null);
   const [landedNote, setLandedNote] = useState<string | null>(null);
+  const [whereOpen, setWhereOpen] = useState(false);
   const isWallet = useAuth().method === 'web3';
 
   // The landed note reads for five seconds, then leaves.
@@ -96,7 +95,17 @@ function MoneyHomeInner() {
     }
   }, []);
 
-  const facts = { balance: balances.balance, pool: balances.pool, loading: balances.loading, error: balances.error };
+  // One balance (view 51, third round): what sits with the agent counts too.
+  const agents = (balances.buyer ?? 0) + (balances.seller ?? 0);
+  const facts = { balance: balances.balance, pool: balances.pool, agents, loading: balances.loading, error: balances.error };
+  const parts = whereItIs(facts);
+  if (balances.activated && !parts.some((p) => p.part === 'agent')) parts.push({ part: 'agent', amount: 0 });
+  // The next sheet rises once Where it is has gone down, so only one is ever open.
+  const fromWhere = (open: () => void) => {
+    setWhereOpen(false);
+    window.setTimeout(open, dur.sheet * 1000 + 40);
+  };
+  const richerAgent: AgentKey = (balances.seller ?? 0) > (balances.buyer ?? 0) ? 'seller' : 'buyer';
   const state = homeState(facts);
   const hero = heroAmount(facts);
   const moving = movingTransfer(bridges, Date.now());
@@ -120,7 +129,7 @@ function MoneyHomeInner() {
             className="sm:max-w-[480px]"
           />
           {tab === 'agents' ? (
-            <AgentsTab onMove={(move, agent) => setSheet({ move, agent })} onSetUp={() => setSetupOpen(true)} />
+            <AgentsTab onSetUp={() => setSetupOpen(true)} />
           ) : state === 'loading' ? (
             <div aria-busy="true" className="space-y-4">
               <div className={`h-4 w-28 ${SOFT}`} />
@@ -137,7 +146,7 @@ function MoneyHomeInner() {
             <div className="space-y-5">
               <div className="flex items-start justify-between gap-3">
                 <h1 id="money-balance" className="space-y-1.5">
-                  <span className="block text-[13px] text-[var(--ink-secondary)]">{t.home.balanceLabel}</span>
+                  <span className="block text-[13px] text-[var(--ink-secondary)]">{mm.one.yourBalance}</span>
                   <span className="flex items-baseline gap-2 tabular-nums" dir="ltr">
                     {/* Counts to a new value; under reduced motion it fades instead. */}
                     <m.span
@@ -155,6 +164,9 @@ function MoneyHomeInner() {
                   {display.rate !== null ? (
                     <span data-balance-usdc dir="ltr" className="block text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{formatBalance(hero, locale)} USDC</span>
                   ) : null}
+                  <button type="button" data-where-it-is-open onClick={() => setWhereOpen(true)} className="inline-flex min-h-8 items-center text-[13px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
+                    {mm.one.whereItIs}<span aria-hidden className="ms-1 rtl:rotate-180">›</span>
+                  </button>
                 </h1>
                 <NetworkHint />
               </div>
@@ -175,29 +187,13 @@ function MoneyHomeInner() {
                 <Link href="/send" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.send}</Link>
                 <Link href="/bridge?direction=out" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.withdraw}</Link>
               </div>
-              {(held && held !== '0') || balances.pool > 0 ? (
+              {held && held !== '0' ? (
                 <div className={`${CARD_CLASS} px-5 lg:px-6`}>
-                  <dl className="divide-y divide-[var(--line)]">
-                    {held && held !== '0' ? (
-                      <div data-held-in-deals className="flex min-h-[52px] items-center justify-between gap-3 py-3 text-[15px] tabular-nums">
-                        <dt className="text-[var(--ink-secondary)]">{mp.heldLabel}</dt>
-                        <dd className="font-medium text-[var(--ink)]">{formatAmount(Number(held), locale)} USDC</dd>
-                      </div>
-                    ) : null}
-                    {balances.pool > 0 ? (
-                      <div data-gateway-balance className="py-3">
-                        <div className="flex min-h-[40px] items-center justify-between gap-3 text-[15px] tabular-nums">
-                          <dt className="flex items-center gap-1.5 text-[var(--ink-secondary)]">{t.home.gatewayBalance}<Hint>{t.home.gatewayBalanceHint}</Hint></dt>
-                          <dd className="font-medium text-[var(--ink)]" dir="ltr">{formatBalance(balances.pool, locale)} USDC</dd>
-                        </div>
-                        {isWallet ? (
-                          <dd className="mt-2 flex flex-wrap gap-2">
-                            <button type="button" onClick={() => setAddSheet('moveToBalance')} className={CHIP}>{mm.home.moveToBalance}</button>
-                            <button type="button" onClick={() => setAddSheet('addToPool')} className={CHIP}>{mm.home.addToIt}</button>
-                          </dd>
-                        ) : null}
-                      </div>
-                    ) : null}
+                  <dl>
+                    <div data-held-in-deals className="flex min-h-[52px] items-center justify-between gap-3 py-3 text-[15px] tabular-nums">
+                      <dt className="text-[var(--ink-secondary)]">{mp.heldLabel}</dt>
+                      <dd className="font-medium text-[var(--ink)]">{formatAmount(Number(held), locale)} USDC</dd>
+                    </div>
                   </dl>
                 </div>
               ) : null}
@@ -233,6 +229,18 @@ function MoneyHomeInner() {
           {landedNote}
         </p>
       ) : null}
+      <WhereItIsSheet
+        open={whereOpen}
+        total={hero}
+        parts={parts}
+        held={Number(held ?? 0)}
+        isWallet={isWallet}
+        onClose={() => setWhereOpen(false)}
+        onMoveToBalance={() => { fromWhere(() => setAddSheet('moveToBalance')); }}
+        onAddToPool={() => { fromWhere(() => setAddSheet('addToPool')); }}
+        onAgentToWallet={() => { fromWhere(() => setSheet({ move: 'withdraw', agent: richerAgent })); }}
+        onAddToAgent={() => { fromWhere(() => setSheet({ move: 'topUp', agent: 'buyer' })); }}
+      />
       <MoneySheet
         open={sheet !== null}
         onClose={() => setSheet(null)}

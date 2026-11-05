@@ -85,6 +85,35 @@ export interface MoneyMoveCopy {
     allOfIt: string;
     toAgent: string;
   };
+  one: {
+    yourBalance: string;
+    whereItIs: string;
+    ready: string;
+    readyNote: string;
+    transfer: string;
+    transferNote: string;
+    withAgent: string;
+    withAgentNote: string;
+    moveToWallet: string;
+    addToAgent: string;
+    heldNote: string;
+    canSpend: string;
+    aWeek: string;
+    changeLimit: string;
+    limitTitle: string;
+    limitLead: string;
+    about: string;
+    save: string;
+    limitNote: string;
+    limitTip: string;
+    spentWeek: string;
+    spentDetail: string;
+    leftWeek: string;
+    leftNote: string;
+    agentSpent: string;
+    saved: string;
+    saveFailed: string;
+  };
   receipt: {
     title: string;
     completed: string;
@@ -178,6 +207,35 @@ const en: MoneyMoveCopy = {
     allOfIt: 'All of it',
     toAgent: 'To {agent}',
   },
+  one: {
+    yourBalance: 'Your balance',
+    whereItIs: 'Where it is',
+    ready: 'Ready to send',
+    readyNote: 'Your wallet',
+    transfer: 'Transfer balance',
+    transferNote: 'Ready in seconds',
+    withAgent: 'With your agent',
+    withAgentNote: 'For checks and deals',
+    moveToWallet: 'Move to your wallet',
+    addToAgent: 'Add',
+    heldNote: 'Held in your deals ({amount} USDC) is not counted until the deal ends.',
+    canSpend: 'Your agent can spend',
+    aWeek: 'USDC a week',
+    changeLimit: 'Change limit',
+    limitTitle: 'Weekly limit',
+    limitLead: 'Your agent can spend each week on checks',
+    about: 'About {n} record checks',
+    save: 'Save',
+    limitNote: 'Deals still wait for your OK.',
+    limitTip: 'A record check costs 0.005 USDC. When the limit is reached, your agent stops paying for checks until the week moves on.',
+    spentWeek: 'Spent this week',
+    spentDetail: '{checks} record checks, {searches} searches',
+    leftWeek: 'Left this week',
+    leftNote: 'Until the week moves on',
+    agentSpent: 'What your agent spent',
+    saved: 'Limit saved',
+    saveFailed: 'The limit was not saved. Try again.',
+  },
   receipt: { title: 'Receipt', completed: 'Completed', pending: 'On its way', from: 'From', to: 'To', when: 'When', reference: 'Reference', about: 'About {amount}' },
 };
 
@@ -261,6 +319,35 @@ const fr: MoneyMoveCopy = {
     withdrawCta: 'Retirer {amount} USDC',
     allOfIt: 'La totalité',
     toAgent: 'Vers {agent}',
+  },
+  one: {
+    yourBalance: 'Votre solde',
+    whereItIs: 'Où il se trouve',
+    ready: 'Prêt à envoyer',
+    readyNote: 'Votre portefeuille',
+    transfer: 'Solde de transfert',
+    transferNote: 'Prêt en quelques secondes',
+    withAgent: 'Chez votre agent',
+    withAgentNote: 'Pour les vérifications et les accords',
+    moveToWallet: 'Déplacer vers votre portefeuille',
+    addToAgent: 'Ajouter',
+    heldNote: 'Le montant bloqué dans vos accords ({amount} USDC) n’est pas compté avant la fin de l’accord.',
+    canSpend: 'Votre agent peut dépenser',
+    aWeek: 'USDC par semaine',
+    changeLimit: 'Changer la limite',
+    limitTitle: 'Limite hebdomadaire',
+    limitLead: 'Ce que votre agent peut dépenser chaque semaine en vérifications',
+    about: 'Environ {n} vérifications de profil',
+    save: 'Enregistrer',
+    limitNote: 'Les accords attendent toujours votre accord.',
+    limitTip: 'Une vérification de profil coûte 0,005 USDC. Quand la limite est atteinte, votre agent cesse de payer des vérifications jusqu’à la semaine suivante.',
+    spentWeek: 'Dépensé cette semaine',
+    spentDetail: '{checks} vérifications, {searches} recherches',
+    leftWeek: 'Reste cette semaine',
+    leftNote: 'Jusqu’à la semaine suivante',
+    agentSpent: 'Ce que votre agent a dépensé',
+    saved: 'Limite enregistrée',
+    saveFailed: 'La limite n’a pas été enregistrée. Réessayez.',
   },
   receipt: { title: 'Reçu', completed: 'Terminé', pending: 'En route', from: 'De', to: 'Vers', when: 'Date', reference: 'Référence', about: 'Environ {amount}' },
 };
@@ -346,6 +433,35 @@ const ar: MoneyMoveCopy = {
     allOfIt: 'المبلغ كله',
     toAgent: 'إلى {agent}',
   },
+  one: {
+    yourBalance: 'رصيدك',
+    whereItIs: 'أين هو',
+    ready: 'جاهز للإرسال',
+    readyNote: 'محفظتك',
+    transfer: 'رصيد التحويل',
+    transferNote: 'جاهز خلال ثوانٍ',
+    withAgent: 'لدى وكيلك',
+    withAgentNote: 'للتحقق والصفقات',
+    moveToWallet: 'انقل إلى محفظتك',
+    addToAgent: 'إضافة',
+    heldNote: 'المبلغ المحجوز في صفقاتك ({amount} USDC) لا يُحتسب حتى تنتهي الصفقة.',
+    canSpend: 'يمكن لوكيلك أن ينفق',
+    aWeek: 'USDC في الأسبوع',
+    changeLimit: 'تغيير الحد',
+    limitTitle: 'الحد الأسبوعي',
+    limitLead: 'ما يمكن لوكيلك إنفاقه كل أسبوع على التحقق',
+    about: 'نحو {n} عملية تحقق من السجل',
+    save: 'حفظ',
+    limitNote: 'الصفقات تنتظر موافقتك دائمًا.',
+    limitTip: 'يكلّف التحقق من سجل واحد 0.005 USDC. عند بلوغ الحد يتوقف وكيلك عن الدفع للتحقق حتى يمضي الأسبوع.',
+    spentWeek: 'أُنفق هذا الأسبوع',
+    spentDetail: '{checks} عمليات تحقق، {searches} عمليات بحث',
+    leftWeek: 'المتبقي هذا الأسبوع',
+    leftNote: 'حتى يمضي الأسبوع',
+    agentSpent: 'ما أنفقه وكيلك',
+    saved: 'تم حفظ الحد',
+    saveFailed: 'لم يُحفظ الحد. حاول مرة أخرى.',
+  },
   receipt: { title: 'الإيصال', completed: 'مكتمل', pending: 'في الطريق', from: 'من', to: 'إلى', when: 'التاريخ', reference: 'المرجع', about: 'نحو {amount}' },
 };
 
@@ -430,6 +546,35 @@ const hi: MoneyMoveCopy = {
     allOfIt: 'पूरा',
     toAgent: '{agent} को',
   },
+  one: {
+    yourBalance: 'आपका बैलेंस',
+    whereItIs: 'यह कहाँ है',
+    ready: 'भेजने के लिए तैयार',
+    readyNote: 'आपका वॉलेट',
+    transfer: 'ट्रांसफ़र बैलेंस',
+    transferNote: 'कुछ सेकंड में तैयार',
+    withAgent: 'आपके एजेंट के पास',
+    withAgentNote: 'जाँच और सौदों के लिए',
+    moveToWallet: 'अपने वॉलेट में भेजें',
+    addToAgent: 'जोड़ें',
+    heldNote: 'आपके सौदों में रोकी गई राशि ({amount} USDC) सौदा पूरा होने तक नहीं गिनी जाती।',
+    canSpend: 'आपका एजेंट खर्च कर सकता है',
+    aWeek: 'USDC प्रति सप्ताह',
+    changeLimit: 'सीमा बदलें',
+    limitTitle: 'साप्ताहिक सीमा',
+    limitLead: 'आपका एजेंट हर सप्ताह जाँच पर कितना खर्च कर सकता है',
+    about: 'लगभग {n} रिकॉर्ड जाँच',
+    save: 'सहेजें',
+    limitNote: 'सौदे अब भी आपकी मंज़ूरी का इंतज़ार करते हैं।',
+    limitTip: 'एक रिकॉर्ड जाँच 0.005 USDC की है। सीमा पूरी होने पर आपका एजेंट सप्ताह बीतने तक जाँच के लिए भुगतान बंद कर देता है।',
+    spentWeek: 'इस सप्ताह खर्च',
+    spentDetail: '{checks} रिकॉर्ड जाँच, {searches} खोज',
+    leftWeek: 'इस सप्ताह बाकी',
+    leftNote: 'सप्ताह बीतने तक',
+    agentSpent: 'आपके एजेंट ने क्या खर्च किया',
+    saved: 'सीमा सहेजी गई',
+    saveFailed: 'सीमा सहेजी नहीं गई। फिर से कोशिश करें।',
+  },
   receipt: { title: 'रसीद', completed: 'पूरा हुआ', pending: 'रास्ते में', from: 'से', to: 'को', when: 'कब', reference: 'संदर्भ', about: 'लगभग {amount}' },
 };
 
@@ -513,6 +658,35 @@ const sw: MoneyMoveCopy = {
     withdrawCta: 'Toa USDC {amount}',
     allOfIt: 'Yote',
     toAgent: 'Kwenda {agent}',
+  },
+  one: {
+    yourBalance: 'Salio lako',
+    whereItIs: 'Liko wapi',
+    ready: 'Tayari kutuma',
+    readyNote: 'Pochi yako',
+    transfer: 'Salio la uhamisho',
+    transferNote: 'Tayari kwa sekunde',
+    withAgent: 'Kwa wakala wako',
+    withAgentNote: 'Kwa ukaguzi na mikataba',
+    moveToWallet: 'Hamishia kwenye pochi yako',
+    addToAgent: 'Ongeza',
+    heldNote: 'Kilichoshikiliwa kwenye mikataba yako ({amount} USDC) hakihesabiwi hadi mkataba uishe.',
+    canSpend: 'Wakala wako anaweza kutumia',
+    aWeek: 'USDC kwa wiki',
+    changeLimit: 'Badilisha kikomo',
+    limitTitle: 'Kikomo cha wiki',
+    limitLead: 'Wakala wako anaweza kutumia kila wiki kwa ukaguzi',
+    about: 'Takriban ukaguzi {n} wa rekodi',
+    save: 'Hifadhi',
+    limitNote: 'Mikataba bado inasubiri idhini yako.',
+    limitTip: 'Ukaguzi mmoja wa rekodi ni 0.005 USDC. Kikomo kikifikiwa, wakala wako anaacha kulipia ukaguzi hadi wiki isonge.',
+    spentWeek: 'Imetumika wiki hii',
+    spentDetail: 'Ukaguzi {checks}, utafutaji {searches}',
+    leftWeek: 'Imebaki wiki hii',
+    leftNote: 'Hadi wiki isonge',
+    agentSpent: 'Wakala wako alichotumia',
+    saved: 'Kikomo kimehifadhiwa',
+    saveFailed: 'Kikomo hakijahifadhiwa. Jaribu tena.',
   },
   receipt: { title: 'Risiti', completed: 'Imekamilika', pending: 'Iko njiani', from: 'Kutoka', to: 'Kwenda', when: 'Lini', reference: 'Kumbukumbu', about: 'Takriban {amount}' },
 };

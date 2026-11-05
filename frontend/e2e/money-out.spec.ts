@@ -77,10 +77,10 @@ test('a paused account says so and offers to resume with World ID', async ({ pag
 test('an account that holds its own keys sees no saved addresses', async ({ page }) => {
   await serveMoney(page, { balances: funded, moneyOut: (route) => route.fulfill({ json: status({ kind: 'web' }) }) });
   await page.goto('/account');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,360.50');
   await expect(section(page)).toHaveCount(0);
-  await page.getByRole('tab', { name: 'Agents' }).click();
-  await expect(page.getByRole('listitem').filter({ hasText: 'Buying agent' })).toBeVisible();
+  await page.getByRole('button', { name: /Where it is/ }).click();
+  await expect(page.getByRole('dialog').locator('[data-part="agent"]')).toBeVisible();
 });
 
 test('a send to a new address says so and offers to add it with World ID, for exactly that address', async ({ page }) => {
@@ -117,8 +117,8 @@ test('the daily limit says what can leave now and when more can, with nothing to
     withdraw: refusal({ code: 'MONEY_OUT_DAILY_LIMIT', error: 'limit', limitUsdc: '500', leftUsdc: '20', moreAt: Date.now() + 5 * HOUR }),
   });
   await page.goto('/account');
-  await page.getByRole('tab', { name: 'Agents' }).click();
-  await page.getByRole('listitem').filter({ hasText: 'Buying agent' }).getByRole('button', { name: 'Withdraw', exact: true }).click();
+  await page.getByRole('button', { name: /Where it is/ }).click();
+  await page.getByRole('dialog').locator('[data-part="agent"]').getByRole('button', { name: 'Move to your wallet', exact: true }).click();
   const sheet = page.getByRole('dialog');
   await sheet.getByLabel('Amount').fill('60');
   await sheet.getByRole('button', { name: 'Withdraw 60.00 USDC' }).click();
@@ -164,8 +164,8 @@ for (const theme of ['light', 'dark'] as const) {
     await page.goto('/account');
     await expect(section(page)).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-    await page.getByRole('tab', { name: 'Agents' }).click();
-    await page.getByRole('listitem').filter({ hasText: 'Buying agent' }).getByRole('button', { name: 'Withdraw', exact: true }).click();
+    await page.getByRole('button', { name: /Where it is/ }).click();
+    await page.getByRole('dialog').locator('[data-part="agent"]').getByRole('button', { name: 'Move to your wallet', exact: true }).click();
     const sheet = page.getByRole('dialog');
     await sheet.getByLabel('Amount').fill('10');
     await sheet.getByRole('button', { name: 'Withdraw 10.00 USDC' }).click();

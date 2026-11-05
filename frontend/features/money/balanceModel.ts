@@ -6,6 +6,8 @@ export interface BalanceFacts {
   balance: number | null;
   /// A confirmed Gateway balance the account already holds; zero for most.
   pool: number;
+  /// What sits in the buying and selling wallets; counted in the one balance (view 51, third round).
+  agents?: number;
   loading: boolean;
   error: boolean;
 }
@@ -14,12 +16,23 @@ export type HomeState = 'loading' | 'error' | 'empty' | 'ready';
 
 export function homeState(facts: BalanceFacts): HomeState {
   if (facts.balance === null) return facts.error && !facts.loading ? 'error' : 'loading';
-  return toMicros(facts.balance) + toMicros(facts.pool) > 0 ? 'ready' : 'empty';
+  return toMicros(facts.balance) + toMicros(facts.pool) + toMicros(facts.agents ?? 0) > 0 ? 'ready' : 'empty';
 }
 
-/// The one number: what the account can spend without first bringing money in.
+/// The one number: everything the person owns that is free to spend, each part
+/// read on its own, then added (view 51, third round). Money held in deals is not in it.
 export function heroAmount(facts: BalanceFacts): number {
-  return (facts.balance ?? 0) + facts.pool;
+  return (toMicros(facts.balance ?? 0) + toMicros(facts.pool) + toMicros(facts.agents ?? 0)) / 1e6;
+}
+
+export type BalancePart = 'ready' | 'transfer' | 'agent';
+
+/// The parts of the one balance that hold money, for Where it is.
+export function whereItIs(facts: BalanceFacts): Array<{ part: BalancePart; amount: number }> {
+  const parts: Array<{ part: BalancePart; amount: number }> = [{ part: 'ready', amount: facts.balance ?? 0 }];
+  if (facts.pool > 0) parts.push({ part: 'transfer', amount: facts.pool });
+  if ((facts.agents ?? 0) > 0) parts.push({ part: 'agent', amount: facts.agents ?? 0 });
+  return parts;
 }
 
 type MovingRecord = {

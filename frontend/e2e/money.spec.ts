@@ -3,15 +3,15 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { ME, TX, accentControls, funded, serveMoney, watchHydration } from './moneyFixtures';
 
-/// The agents sit behind the Agents tab on the money page (view 51); open it first.
-async function agents(page: Page, name: string) {
-  const tab = page.getByRole('tab', { name: 'Agents' });
-  if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
-  return page.getByRole('listitem').filter({ hasText: name });
+/// Money with the agent is one part of the balance (view 51, third round):
+/// Where it is lists it, with its two moves.
+async function agentPart(page: Page) {
+  await page.getByRole('button', { name: /Where it is/ }).click();
+  return page.getByRole('dialog').locator('[data-part="agent"]');
 }
 
 async function openTopUp(page: Page) {
-  await (await agents(page, 'Buying agent')).getByRole('button', { name: 'Top up', exact: true }).click();
+  await (await agentPart(page)).getByRole('button', { name: 'Add', exact: true }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByRole('heading', { name: 'Top up buying agent' })).toBeVisible();
   return sheet;
@@ -21,8 +21,8 @@ test('the balance is the loudest thing on the page, with one primary action', as
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
   const heading = page.getByRole('heading', { level: 1 });
-  await expect(heading).toContainText(moneyCopy.en.home.balanceLabel);
-  await expect(heading).toContainText('1,240.50');
+  await expect(heading).toContainText('Your balance');
+  await expect(heading).toContainText('1,360.50');
   await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add money', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Withdraw', exact: true })).toHaveAttribute('href', '/bridge?direction=out');
@@ -49,7 +49,7 @@ test('the ready dot is ink, not green, and Add money stays on one line on a phon
 test('money is one balance on Arc: no list of other networks, no Proof on Arc and no Show amounts in row', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,360.50');
   await expect(page.getByRole('button', { name: 'By network' })).toHaveCount(0);
   await expect(page.getByText('In your wallet on other networks')).toHaveCount(0);
   await expect(page.getByText('Show amounts in')).toHaveCount(0);
@@ -57,13 +57,15 @@ test('money is one balance on Arc: no list of other networks, no Proof on Arc an
   await expect(page.getByRole('button', { name: 'Proof on Arc' })).toHaveCount(0);
 });
 
-test('agents show what they can spend, with top up and withdraw', async ({ page }) => {
+test('money with the agent is counted and listed in Where it is, with its two moves', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
-  const row = (await agents(page, 'Buying agent'));
-  await expect(row).toContainText('120.00 USDC');
-  await expect(row.getByRole('button', { name: 'Top up', exact: true })).toBeVisible();
-  await expect(row.getByRole('button', { name: 'Withdraw', exact: true })).toBeVisible();
+  const part = await agentPart(page);
+  await expect(part).toContainText('With your agent');
+  await expect(part).toContainText('120.00');
+  await expect(part.getByRole('button', { name: 'Move to your wallet', exact: true })).toBeVisible();
+  await expect(part.getByRole('button', { name: 'Add', exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').locator('[data-part="ready"]')).toContainText('1,240.50');
 });
 
 test('recent money reads in words, signed, with its reference', async ({ page }) => {
@@ -163,7 +165,7 @@ test('a withdrawal brings money back to the balance', async ({ page }) => {
     withdraw: (route) => route.fulfill({ json: { accepted: true, txHash: TX, reference: 'KWN-2026-0200', movementState: 'completed' } }),
   });
   await page.goto('/account');
-  await (await agents(page, 'Buying agent')).getByRole('button', { name: 'Withdraw', exact: true }).click();
+  await (await agentPart(page)).getByRole('button', { name: 'Move to your wallet', exact: true }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByRole('heading', { name: 'Withdraw from buying agent' })).toBeVisible();
   await sheet.getByLabel('Amount').fill('20');
@@ -211,15 +213,15 @@ test('the sheet cannot be dismissed while money is in flight', async ({ page }) 
 test('the sheet keeps focus inside and gives it back', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
-  const opener = (await agents(page, 'Buying agent')).getByRole('button', { name: 'Top up', exact: true });
-  await opener.click();
+  const where = page.getByRole('button', { name: /Where it is/ });
+  await (await agentPart(page)).getByRole('button', { name: 'Add', exact: true }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByLabel('Amount')).toBeFocused();
   for (let i = 0; i < 12; i += 1) await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.querySelector('[role="dialog"]')?.contains(document.activeElement))).toBe(true);
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
-  await expect(opener).toBeFocused();
+  await expect(where).toBeFocused();
 });
 
 test('the money home reads right to left in Arabic', async ({ page, context }) => {
@@ -238,7 +240,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.addInitScript((value) => localStorage.setItem('karwan-theme', value), theme);
     await serveMoney(page, { balances: funded });
     await page.goto('/account');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('1,360.50');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);

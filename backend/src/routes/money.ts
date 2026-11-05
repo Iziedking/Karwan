@@ -21,6 +21,8 @@ import {
 import { logger } from '../logger.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { readUsdcRates } from '../rates/usdcRates.js';
+import { agentLimitSchema, agentLimitView } from '../agents/agentLimit.js';
+import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
 
 export const moneyRoutes = new Hono();
 
@@ -130,6 +132,25 @@ moneyRoutes.get('/rates', async (c) => {
   const rates = await readUsdcRates();
   c.header('Cache-Control', 'public, max-age=30');
   return c.json(rates);
+});
+
+/// What the person's agent may spend on checks this week, what it spent and
+/// what is left (view 51, third round). The person's own tap changes it.
+moneyRoutes.get('/agent-limit', async (c) => {
+  const owner = sessionAddress(c);
+  if (!owner) return c.json({ error: 'not authenticated' }, 401);
+  return c.json(agentLimitView(await getAgentRecord(owner), Date.now()));
+});
+
+moneyRoutes.post('/agent-limit', async (c) => {
+  const owner = sessionAddress(c);
+  if (!owner) return c.json({ error: 'not authenticated' }, 401);
+  const parsed = agentLimitSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'The weekly limit is from 0 to 5 USDC.' }, 400);
+  const weekly = Math.round(parsed.data.weeklyUsdc * 1e6) / 1e6;
+  const r = await updateAgentRecord(owner, (cur) => ({ ...cur, weeklyBudgetUsdc: weekly, lastBudgetNoticeAt: undefined }));
+  logger.info({ owner, weeklyUsdc: weekly }, 'agent weekly limit changed');
+  return c.json(agentLimitView(r, Date.now()));
 });
 
 moneyRoutes.get('/capabilities', (c) => {

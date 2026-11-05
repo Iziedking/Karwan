@@ -338,6 +338,16 @@ export type UserRole = 'buyer' | 'seller' | 'both';
 export type UserLocale = 'en' | 'ar' | 'fr' | 'hi' | 'sw';
 export type ThemePreference = 'light' | 'dark' | 'system';
 
+export interface AgentLimit {
+  weeklyUsdc: number;
+  spentUsdc: number;
+  leftUsdc: number;
+  recordChecks: number;
+  webSearches: number;
+  maxUsdc: number;
+  choices: number[];
+}
+
 export interface UserSettings {
   locale?: UserLocale;
   theme?: ThemePreference;
@@ -3919,6 +3929,10 @@ export const api = {
   /// 1 USDC in each display currency; empty rates mean no fresh figure (view 51).
   moneyRates: () =>
     json<{ rates: Partial<Record<string, number>>; updatedAt: number | null; source: string | null }>('/api/money/rates'),
+  /// What the person's agent may spend on checks this week (view 51, third round).
+  agentLimit: () => json<AgentLimit>('/api/money/agent-limit'),
+  setAgentLimit: (weeklyUsdc: number) =>
+    json<AgentLimit>('/api/money/agent-limit', { method: 'POST', body: JSON.stringify({ weeklyUsdc }) }),
   xStatus: () => json<{ configured: boolean }>('/api/x/status'),
   xOauthStart: (address: string, returnTo?: string) =>
     json<{ url: string }>('/api/x/oauth/start', {

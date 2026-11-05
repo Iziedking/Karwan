@@ -54,7 +54,7 @@ for (const route of ['/start', '/market', '/account']) {
           if (mainnet) await expect(page).toHaveURL(/\/account$/);
           else await expect(page.locator('[data-listing-card]').first()).toBeVisible();
         }
-        if (route === '/account') await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
+        if (route === '/account') await expect(page.getByRole('heading', { level: 1 })).toContainText('1,360.50');
         await page.evaluate(() => document.fonts.ready);
 
         const metrics = await page.evaluate(() => {
@@ -152,7 +152,7 @@ test('the theme is dark until changed in Settings, which offers Dark and Light a
   });
 
   await page.goto('/account');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,360.50');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.getByRole('button', { name: /theme/i })).toHaveCount(0);
 

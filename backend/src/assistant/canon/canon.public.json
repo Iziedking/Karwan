@@ -40,7 +40,7 @@
           "date": "2026-11-03"
         }
       ],
-      "body": "On Arc Testnet, a person's agent pays for the market research it uses, from\nits own balance, over x402 on Arc settled through Circle Gateway. Karwan runs\nthe web searches and pays the search provider.\n\nA search costs 0.007 USDC, and 0.002 USDC when another agent ran the same one\nrecently. The agent runs only the searches a question needs: price takes two,\ndemand or suppliers one, and everything four. An agent researching a request\nit is negotiating runs three: price, marketplace rates and demand.\n\nAsk your assistant to research something and it tells you the exact cost\nbefore it runs. When your agent's balance is short it says so, nothing is\npaid, and you can add money to it and ask again. Every payment shows in what\nyour agent spent. Web results are marked as from the web; Karwan's own market\ncomes first.\n\nA record check, your agent reading the other side's Karwan record, costs\n0.005 USDC. Your selling agent checks the buyer once before offering on a\nrequest, so offering costs 0.005 USDC; your buying agent checks up to five\nsellers on its shortlist, at most 0.025 USDC per request. These checks are paid\nfrom your agent's data balance, your own USDC prepaid on Circle Gateway. When\nit runs low your agent moves 0.10 USDC into it from its own wallet; that move\nshows as moved to your agent's data balance, not as money spent.\n\nYour agents have a weekly budget for the data they pay for, record checks and\nweb searches together: 0.25 USDC unless you change it, from 0 (free data only)\nup to 5 USDC. They never go over it. When the budget is reached they carry on\nwith free data and you hear once that week; a search you ask for says when it\nwould go over and offers to raise the budget. Once a week, unless you turn it\noff, you get one line in the app and on Telegram on what your agents spent and\nwhat for, the price of each record check and what is left in the data balance.\n\nOn mainnet, agents will pay Circle's services marketplace directly for this."
+      "body": "On Arc Testnet, a person's agent pays for the market research it uses, from\nits own balance, over x402 on Arc settled through Circle Gateway. Karwan runs\nthe web searches and pays the search provider.\n\nA search costs 0.007 USDC, and 0.002 USDC when another agent ran the same one\nrecently. The agent runs only the searches a question needs: price takes two,\ndemand or suppliers one, and everything four. An agent researching a request\nit is negotiating runs three: price, marketplace rates and demand.\n\nAsk your assistant to research something and it tells you the exact cost\nbefore it runs. When your agent's balance is short it says so, nothing is\npaid, and you can add money to it and ask again. Every payment shows in what\nyour agent spent. Web results are marked as from the web; Karwan's own market\ncomes first.\n\nA record check, your agent reading the other side's Karwan record, costs\n0.005 USDC. Your selling agent checks the buyer once before offering on a\nrequest, so offering costs 0.005 USDC; your buying agent checks up to five\nsellers on its shortlist, at most 0.025 USDC per request. These checks are paid\nfrom your agent's data balance, your own USDC prepaid on Circle Gateway. When\nit runs low your agent moves 0.10 USDC into it from its own wallet; that move\nshows as moved to your agent's data balance, not as money spent.\n\nYour agents have a weekly budget for the data they pay for, record checks and\nweb searches together: 0.25 USDC unless you change it, from 0 (free data only)\nup to 5 USDC. They never go over it. When the budget is reached they carry on\nwith free data and you hear once that week; a search you ask for says when it\nwould go over and offers to raise the budget. Once a week, unless you turn it\noff, you get one line in the app and on Telegram on what your agents spent and\nwhat for, the price of each record check and what is left in the data balance.\n\nOn the Money page the Agents tab shows this as the agent’s weekly limit: what it\ncan spend each week on checks, what it spent and what is left, with Change limit\n(0.50, 1 or 5 USDC). The agent has no balance of its own there. Money still\nsitting in the agent wallets counts in your one balance, and Where it is lists it.\n\nOn mainnet, agents will pay Circle's services marketplace directly for this."
     },
     {
       "id": "assistant-mode-and-help",
@@ -774,6 +774,26 @@
         }
       ],
       "body": "Karwan unifies online reputation, starting with an open market for secure local\nand cross-border trade. People join a new marketplace, job board or region and\nhave to vet themselves from zero every time; Karwan is building one reputation\nthat travels with a person, so hidden talent becomes visible and opportunity\nfollows. It starts with Karwan's market, where every completed deal is\nprotected in escrow and recorded.\n\nPeople and businesses can buy or sell services, goods, supplies and eligible\nbusiness orders. A trade may be local, with both parties in the same country,\nor cross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nKarwan is built by Karwan Technologies Limited, a private company limited by\nshares incorporated in Nigeria with the Corporate Affairs Commission on 29\nOctober 2026, registration number RC 9974106. The certificate is linked as\nCompany registration in the site footer, and the company can be looked up on the\nCAC public search. Incorporation makes it a company; it is not a licence to hold\ncustomer money or provide payment or financial services.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Unified reputation across platforms, browser capture, mainnet\nsettlement and local bank payout are planned expansion, not current capabilities."
+    },
+    {
+      "id": "what-your-agent-sees",
+      "title": "What your agent tells you about how you trade",
+      "status": "shipping",
+      "updated": "2026-11-05",
+      "tags": [
+        "agents",
+        "coaching",
+        "questions",
+        "testnet"
+      ],
+      "path": "public/product/what-your-agent-sees.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/52-an-agent-that-works-for-you.md",
+          "date": "2026-11-05"
+        }
+      ],
+      "body": "Your agent watches how your requests and offers are going and tells you what\nit sees, with one thing you can do about it. Every number comes from Karwan's\nown settled deals and offers. No model works any of it out, so it is there even\nwhen no model answers.\n\nIt tells you when a request budget sits far from what deals of that kind settled\nat. On the test network it says when your budget is above that range and gives\nthe middle price to use. It tells you when you missed requests because your\nlowest price was above what buyers offered, when sellers with as good a record\ncharge less than an offer you are about to accept, and when a request has had\nno offer for a day and allows fewer days than sellers asked for on similar ones.\n\nYou get at most three of these at a time, the ones that would change the most\nfirst, and the same one not twice in a week unless its number moved. They come\nin your weekly message and whenever you ask your assistant what your agent is\nseeing. Nothing changes until you confirm. A request's budget and due date are\nfixed once it is posted, so changing either means taking the request down and\nposting it again.\n\nWhen your agent needs you, it asks one question with the answer it would give,\nand says what happens if you do not answer and by when, usually a day later.\nMost questions decline politely by default. If no answer comes, that happens\nonce, and you are told. You can still make an offer from the request page. The\nquestion and its one reminder, sent 30 minutes before the deadline, go to one\nchannel: the one you chose, or Telegram when you chose both and linked it.\n\nWhen research your agent paid for does not finish, you are told once for that\nrequest, with the amount if any was spent, and your agent carries on with\nKarwan's own prices."
     },
     {
       "id": "when-a-paid-deal-does-not-start",
@@ -1885,6 +1905,35 @@
       "check": null,
       "updated": "2026-11-01",
       "path": "public/product/what-karwan-is.md"
+    },
+    {
+      "id": "what-your-agent-sees",
+      "title": "What your agent tells you about how you trade",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "agents",
+        "coaching",
+        "questions",
+        "testnet"
+      ],
+      "summary": "Your agent watches how your requests and offers are going and tells you what it sees, with one thing you can do about it. Every number comes from Karwan's own settled deals and offers. No model works any of it out, so it is there even when no model answers.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/52-an-agent-that-works-for-you.md",
+          "date": "2026-11-05"
+        }
+      ],
+      "check": {
+        "kind": "manual",
+        "note": "Built, not deployed yet. Thresholds, wording and the once-only default read against their tests, which passed on 5 November 2026.",
+        "lastVerified": "2026-11-05"
+      },
+      "updated": "2026-11-05",
+      "path": "public/product/what-your-agent-sees.md"
     },
     {
       "id": "when-a-paid-deal-does-not-start",

@@ -15,7 +15,7 @@ export function isDisplayCurrency(value: unknown): value is DisplayCurrency {
 
 /// A USDC amount in a local currency, or null when there is no fresh rate.
 /// Latin digits in every language, as the money screens already do.
-export function formatLocal(usdc: number, currency: DisplayCurrency, rate: number | null, locale: string): string | null {
+export function formatLocal(usdc: number, currency: DisplayCurrency, rate: number | null, locale: string, signed = false): string | null {
   if (currency === 'USDC' || !rate) return null;
   const digits = WHOLE.has(currency) ? 0 : 2;
   return new Intl.NumberFormat(locale, {
@@ -25,6 +25,7 @@ export function formatLocal(usdc: number, currency: DisplayCurrency, rate: numbe
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
     numberingSystem: 'latn',
+    signDisplay: signed ? 'exceptZero' : 'auto',
   } as Intl.NumberFormatOptions).format(usdc * rate);
 }
 

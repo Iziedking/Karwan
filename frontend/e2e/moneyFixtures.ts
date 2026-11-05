@@ -59,6 +59,8 @@ export interface MoneyWorld {
   settings?: Record<string, unknown>;
   /// How the account signs in; a web3 wallet owns a Transfer balance.
   method?: 'circle' | 'web3';
+  /// What the agent may spend on checks this week; a POST changes it (view 51, third round).
+  agentLimit?: { weeklyUsdc: number; spentUsdc: number; recordChecks: number; webSearches: number };
 }
 
 /// Today's rates as the backend serves them in tests.
@@ -125,6 +127,13 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
     }
     if (path === '/api/gateway/balance') {
       return route.fulfill({ json: { balance: { address: ME, confirmed: (world.pool ?? 0).toFixed(6), pending: '0', chains: [], fetchedAt: 0 } } });
+    }
+    if (path === '/api/money/agent-limit') {
+      const base = world.agentLimit ?? { weeklyUsdc: 0.25, spentUsdc: 0, recordChecks: 0, webSearches: 0 };
+      if (route.request().method() === 'POST') base.weeklyUsdc = (route.request().postDataJSON() as { weeklyUsdc: number }).weeklyUsdc;
+      world.agentLimit = base;
+      const choices = [...new Set([base.weeklyUsdc, 0.5, 1, 5])].sort((x, y) => x - y);
+      return route.fulfill({ json: { ...base, leftUsdc: Math.max(0, Math.round((base.weeklyUsdc - base.spentUsdc) * 1e6) / 1e6), maxUsdc: 5, choices } });
     }
     if (path === '/api/money/rates') {
       return route.fulfill({ json: world.rates ? { rates: world.rates, updatedAt: Date.now(), source: 'coingecko' } : { rates: {}, updatedAt: null, source: null } });
