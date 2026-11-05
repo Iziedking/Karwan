@@ -72,6 +72,7 @@ ssh -o BatchMode=yes $H "docker run --rm --name karwan-walk-app-$RUN --network $
   --entrypoint bash $IMAGE scripts/ops/walk-inside.sh $*" < /dev/null && STATUS=0 || STATUS=$?
 
 # Wallet sets made by this run are kept with the walk secrets for the next one.
-ssh -T -o BatchMode=yes $H "if [ -s $W/out/sets ]; then grep -E '^CIRCLE_(PAYLINK_)?WALLET_SET_ID=[0-9a-f-]+\$' $W/out/sets >> $SECRETS; echo 'walk: kept the new wallet set ids'; fi" < /dev/null
+ssh -T -o BatchMode=yes $H "if [ -s $W/out/sets ]; then grep -E '^CIRCLE_(PAYLINK_)?WALLET_SET_ID=[0-9a-f-]+\$' $W/out/sets >> $SECRETS; echo 'walk: kept the new wallet set ids'; fi
+  if [ -s $W/out/bank ]; then grep -E '^CIRCLE_WALK_BANK_(WALLET_ID=[0-9a-f-]+|ADDRESS=0x[0-9a-fA-F]{40})\$' $W/out/bank >> $SECRETS; echo 'walk: kept the bank wallet'; fi" < /dev/null
 [ $STATUS -eq 0 ] && echo "walk: all passed"
 exit $STATUS

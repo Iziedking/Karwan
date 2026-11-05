@@ -21,6 +21,18 @@ if [ -z "${CIRCLE_WALLET_SET_ID:-}" ] || [ -z "${CIRCLE_PAYLINK_WALLET_SET_ID:-}
   echo "walk: made the walk's wallet sets: $(cut -d= -f1 /run/walk-out/sets | tr '\n' ' ')"
 fi
 
+if [ "${1:-}" = bank ]; then
+  if [ -z "${CIRCLE_WALK_BANK_WALLET_ID:-}" ]; then
+    (cd backend && node dist/scripts/walk-bank.js) > /run/walk-out/bank
+    set -a
+    . /run/walk-out/bank
+    set +a
+    echo "walk: made the bank wallet $CIRCLE_WALK_BANK_ADDRESS"
+  fi
+  [ "${2:-}" = drip ] && (cd backend && node dist/scripts/walk-bank.js drip)
+  exit 0
+fi
+
 (cd backend && node dist/index.js >"$LOGS/backend.log" 2>&1) &
 BACKEND=$!
 
