@@ -353,4 +353,4 @@ const sw: AgentJobsCopy = {
   checking: 'Inakagua',
 };
 
-export const agentJobsCopy = { en, fr, ar, hi, sw };
+export const agentJobsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentJobsCopy> = { en, fr, ar, hi, sw };
