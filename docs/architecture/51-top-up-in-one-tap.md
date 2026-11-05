@@ -291,6 +291,8 @@ Drawn in Figma, section "One Money page and a tidy Profile (view 51, fifth round
 
 ## Seventh round: one currency per figure, and your country picks it, 5 Nov 2026 (proposed, not built)
 
+Replaced the same day by [view 54](54-a-guide-as-you-sign-up.md), after the owner's review: one block balance per page, the country under the tag, and a guide beside the sign-up form.
+
 Owner: "other currencies should strictly be on that currency, no USDC pegging beside each money view. Only block balances can have the USDC view." And: "Allow country choice as an extra step on sign up. Any country currency not yet supported defaults to USDC. You default to your country's currency upon sign up, changeable in settings."
 
 **One rule for every figure.**
