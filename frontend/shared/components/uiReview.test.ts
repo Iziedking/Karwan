@@ -238,9 +238,9 @@ test('canonical theme text, selected controls and field edges meet contrast thre
   }
 });
 
-test('market price and unit stay together, and card facts sit on fixed lines that truncate rather than wrap', () => {
+test('a market price reads in the chosen currency with USDC under it, and card facts sit on fixed lines that truncate rather than wrap', () => {
   const card = source('../../features/market/components/ListingCard.tsx');
-  assert.match(card, /\{formatUsdc\(card\.priceUsdc, \{ withSuffix: false \}\)\} \{t\.usdc\}/);
+  assert.match(card, /<Price usdc=\{card\.priceUsdc\}/);
   assert.match(card, /line-clamp-2 text-\[15px\]/);
   assert.match(card, /<span className="truncate">\{rating\}<\/span>/);
 });
@@ -569,4 +569,19 @@ test('an X photo is fetched with no referrer, since X refuses images asked for f
     assert.ok(imgs.length > 0, file);
     for (const img of imgs) assert.match(img, /referrerPolicy="no-referrer"/, `${file}: ${img}`);
   }
+});
+
+test('every price reads the same way: the chosen currency leads with USDC under it (owner, 5 Nov 2026)', () => {
+  for (const file of [
+    '../../features/home/components/AccountHome.tsx',
+    '../../features/money/components/AgentsTab.tsx',
+    '../../features/guarantee/GuaranteeTab.tsx',
+    '../../features/money/components/WhereItIsSheet.tsx',
+    '../../features/market/components/ListingCard.tsx',
+    '../../features/market/components/SellCards.tsx',
+    '../../features/notifications/components/OpenDealRow.tsx',
+    '../../features/deals/workspace/DealHero.tsx',
+  ]) assert.match(source(file), /<Price(In)? /, file);
+  // A switch that is on is Karwan green.
+  assert.match(source('../../features/profile/ui/ProfileUi.tsx'), /checked \? 'var\(--karwan-green\)'/);
 });

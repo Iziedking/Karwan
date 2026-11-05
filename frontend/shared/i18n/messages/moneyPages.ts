@@ -164,7 +164,7 @@ const en: MoneyPagesCopy = {
     limitError: 'Your limit didn’t load.',
   },
   guarantee: {
-    inPlace: 'USDC in place',
+    inPlace: 'In place',
     notCounted: 'Not counted in your balance',
     add: 'Add',
     withdraw: 'Withdraw',
@@ -267,7 +267,7 @@ const fr: MoneyPagesCopy = {
     limitError: 'Votre limite ne s’est pas chargée.',
   },
   guarantee: {
-    inPlace: 'USDC en place',
+    inPlace: 'En place',
     notCounted: 'Non compté dans votre solde',
     add: 'Ajouter',
     withdraw: 'Retirer',
@@ -370,7 +370,7 @@ const ar: MoneyPagesCopy = {
     limitError: 'لم يُحمَّل حدّك.',
   },
   guarantee: {
-    inPlace: 'USDC قائمة',
+    inPlace: 'قائم',
     notCounted: 'لا تُحسب في رصيدك',
     add: 'أضف',
     withdraw: 'سحب',
@@ -473,7 +473,7 @@ const hi: MoneyPagesCopy = {
     limitError: 'आपकी सीमा लोड नहीं हुई।',
   },
   guarantee: {
-    inPlace: 'USDC लगे हुए',
+    inPlace: 'लगा हुआ',
     notCounted: 'आपके शेष में नहीं गिना जाता',
     add: 'जोड़ें',
     withdraw: 'निकालें',
@@ -576,7 +576,7 @@ const sw: MoneyPagesCopy = {
     limitError: 'Kikomo chako hakijapakia.',
   },
   guarantee: {
-    inPlace: 'USDC zilizowekwa',
+    inPlace: 'Imewekwa',
     notCounted: 'Haihesabiwi kwenye salio lako',
     add: 'Ongeza',
     withdraw: 'Toa',

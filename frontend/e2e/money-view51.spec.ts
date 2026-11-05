@@ -119,6 +119,13 @@ test('with naira chosen the balance leads in naira with USDC under it, and Recen
   await expect(page.locator('[data-balance-usdc]')).toHaveText('1,360.50 USDC');
   await expect(page.locator('[data-recent-row]').first()).toContainText('+₦673,055');
   await expect(page.locator('[data-recent-row]').first()).toContainText('+500.00 USDC');
+  // Every price reads the same way (owner, 5 Nov 2026): the Agent tab and Home too.
+  await page.goto('/account?tab=agent');
+  await expect(page.locator('[data-agent-money]')).toContainText('₦');
+  await expect(page.locator('[data-agent-money] [data-price-usdc]')).toHaveText(/^[0-9,.]+ USDC$/);
+  await page.goto('/app');
+  await expect(page.getByRole('group', { name: 'Total balance' })).toContainText('₦');
+  await expect(page.getByRole('group', { name: 'Total balance' }).locator('[data-price-usdc]')).toHaveText(/^[0-9,.]+ USDC$/);
 });
 
 test('with no fresh rate everything reads in USDC', async ({ page }) => {

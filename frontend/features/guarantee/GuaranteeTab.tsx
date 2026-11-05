@@ -1,7 +1,8 @@
 'use client';
+import { Price } from '@/features/money/components/Price';
 import { PageTour } from '@/shared/guide/PageTour';
 import { STAKE_STEPS, STAKE_TOUR_ID } from '@/shared/guide/tours';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { buttonClasses } from '@/shared/components/Button';
@@ -48,12 +49,12 @@ export function GuaranteeTab() {
   if (view.kind === 'off' || !data.available) return <div className="space-y-3">{plainTitle}<p role="status" className="text-[15px] text-[var(--ink-secondary)]">{g.off}</p></div>;
 
   const comingBack = Number(data.comingBackUsdc);
-  const rows: [string, string][] = [
+  const rows: [string, ReactNode][] = [
     [g.earns, g.earnsValue],
-    [g.holding, `${view.held} USDC`],
-    [g.ready, `${view.free} USDC`],
-    ...(comingBack > 0 && !data.ready && data.readyAt ? [[g.comingBack, fillIn(g.comingBackValue, { amount: data.comingBackUsdc, date: day(data.readyAt) })] as [string, string]] : []),
-    ...(comingBack > 0 && data.ready ? [[g.comingBack, fillIn(g.readyToCollect, { amount: data.comingBackUsdc })] as [string, string]] : []),
+    [g.holding, <Price key="held" usdc={Number(view.held)} size="inline" />],
+    [g.ready, <Price key="free" usdc={Number(view.free)} size="inline" />],
+    ...(comingBack > 0 && !data.ready && data.readyAt ? [[g.comingBack, fillIn(g.comingBackValue, { amount: data.comingBackUsdc, date: day(data.readyAt) })] as [string, ReactNode]] : []),
+    ...(comingBack > 0 && data.ready ? [[g.comingBack, fillIn(g.readyToCollect, { amount: data.comingBackUsdc })] as [string, ReactNode]] : []),
   ];
 
   return (
@@ -61,13 +62,10 @@ export function GuaranteeTab() {
       <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
       <h1 id="money-guarantee" className="space-y-1.5">
         <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{t.moneyPages.tabs.guarantee}<Hint>{tips.guarantee}</Hint></span>
-        <span className="flex items-baseline gap-2 tabular-nums" dir="ltr">
-          <span data-guaranteed className="text-[34px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[40px]">{view.guaranteed}</span>
-          <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">{g.inPlace}</span>
-        </span>
-        <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{g.notCounted}</span>
+        <span data-guaranteed className="block"><Price usdc={Number(view.guaranteed)} size="hero" /></span>
+        <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{g.inPlace}. {g.notCounted}</span>
       </h1>
-      <div data-guarantee-actions data-guide="guarantee-actions" className="grid grid-cols-2 gap-2 sm:max-w-[480px] sm:gap-3">
+      <div data-guarantee-actions data-guide="guarantee-actions" className="grid grid-cols-2 gap-2 sm:gap-3">
         <Link href={guaranteeStepHref('put_up')} className={buttonClasses({ size: 'lg' })}>{g.add}</Link>
         {Number(data.freeUsdc) > 0 ? <Link href={guaranteeStepHref('take_out')} className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{g.withdraw}</Link> : null}
         {comingBack > 0 && data.ready ? <Link href="/account/guarantee?step=collect" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{g.collect}</Link> : null}

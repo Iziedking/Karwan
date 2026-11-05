@@ -1,10 +1,11 @@
 'use client';
+import { Price } from './Price';
 import { useId } from 'react';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Hint } from '@/shared/components/Hint';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill } from '@/features/deals/workspace/presentation';
-import { formatAmount, formatBalance, type BalancePart } from '../balanceModel';
+import { formatAmount, type BalancePart } from '../balanceModel';
 
 const CHIP =
   'inline-flex min-h-9 items-center rounded-full bg-[var(--raised)] px-3.5 text-[14px] font-medium text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
@@ -38,7 +39,7 @@ export function WhereItIsSheet({ open, total, parts, held, isWallet, onClose, on
     <ConfirmSheetShell open={open} labelledBy={titleId} busy={false} onClose={onClose}>
       <h2 id={titleId} className="mb-1 text-[20px] font-semibold text-[var(--ink)]">{one.whereItIs}</h2>
       <p dir="auto" className="mb-4 text-[14px] tabular-nums text-[var(--ink-secondary)]">
-        {one.yourBalance} · <span dir="ltr">{formatBalance(total, locale)} USDC</span>
+        {one.yourBalance} · <Price usdc={total} size="inline" />
       </p>
       <ul data-where-it-is className="space-y-2">
         {parts.map(({ part, amount }) => (
@@ -51,7 +52,7 @@ export function WhereItIsSheet({ open, total, parts, held, isWallet, onClose, on
                 </span>
                 <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{names[part].note}</span>
               </span>
-              <span dir="ltr" className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatBalance(amount, locale)}</span>
+              <Price usdc={amount} className="shrink-0 items-end text-[15px] font-semibold text-[var(--ink)]" />
             </div>
             {part === 'transfer' && isWallet ? (
               <div className="mt-2 flex flex-wrap gap-2">

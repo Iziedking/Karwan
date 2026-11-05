@@ -278,6 +278,13 @@ Drawn in Figma, section "One Money page and a tidy Profile (view 51, fifth round
 3. **Old routes.** Recommended: `/bridge?direction=in` and `?direction=out` open the new pages, so old links and the assistant's links keep working.
 4. **How the tab you are on shows.** Recommended: A, the green fills the icon itself. Alternative: B, a small pill that hugs the icon.
 
+## Sixth round: your currency on every price, 5 Nov 2026
+
+- **Every price reads the same way.** With a currency chosen under Show amounts in, it leads and the USDC figure sits under it (or beside it inside a line of text). One component draws it everywhere: Home, the Balance, Agent and Deal guarantee tabs, Where it is, Recent, the market's offer and request cards, the deals list and the deal page. Money still moves in USDC, and amounts you type stay in USDC.
+- **Money is one centred column**, wider than before, with Back on the column. The deals holding money sit beside it on a computer only when there are some.
+- **Switches that are on are Karwan green.**
+- Still in USDC only, for a later pass: the money sheets' small print, the agent's weekly limit figures, Send, payment links, offers and the financier desk.
+
 ## Decisions for the owner
 
 1. **Default route for a top-up from Base, Ethereum or Arbitrum.** Recommended: straight to Arc (seconds), with Add to Transfer balance as the separate action. The alternative is to send every top-up into the Transfer balance, which makes most top-ups wait about 15 minutes.

@@ -1,4 +1,5 @@
 'use client';
+import { Price } from './Price';
 import { useId, useState } from 'react';
 import Link from 'next/link';
 import { buttonClasses } from '@/shared/components/Button';
@@ -63,17 +64,12 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
       <div className="space-y-5">
         <h1 id="money-balance" className="space-y-1.5">
           <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{a.withAgent}<Hint>{t.moneyPages.tips.agent}</Hint></span>
-          <span className="flex items-baseline gap-2 tabular-nums" dir="ltr">
-            <span data-agent-money className="text-[34px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[40px]">
-              {formatAmount(withAgent, locale)}
-            </span>
-            <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
-          </span>
+          <span data-agent-money className="block"><Price usdc={withAgent} size="hero" /></span>
           {limit ? (
             <span data-agent-limit className="block text-[13px] font-medium text-[var(--ink-secondary)]">{fill(a.line, { limit: formatAmount(limit.weeklyUsdc, locale) })}</span>
           ) : null}
         </h1>
-        <div data-agent-actions className="grid grid-cols-3 gap-2 sm:max-w-[480px] sm:gap-3">
+        <div data-agent-actions className="grid grid-cols-3 gap-2 sm:gap-3">
           <Link href={agentMoveHref('topUp', 'buyer')} className={buttonClasses({ size: 'lg', className: 'px-2' })}>{a.topUp}</Link>
           <Link href={agentMoveHref('withdraw', agent)} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'px-2' })}>{a.withdraw}</Link>
           <button type="button" data-change-limit disabled={!limit} onClick={() => setOpen(true)} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'px-2 leading-tight' })}>
@@ -81,9 +77,9 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
           </button>
         </div>
         {loading ? (
-          <div className={`h-24 sm:max-w-[480px] ${SOFT}`} />
+          <div className={`h-24 ${SOFT}`} />
         ) : limit ? (
-          <div data-spent-week className={`${CARD_CLASS} space-y-2.5 px-5 py-4 sm:max-w-[480px]`}>
+          <div data-spent-week className={`${CARD_CLASS} space-y-2.5 px-5 py-4`}>
             <p className="flex items-center justify-between gap-3 text-[14px]">
               <span className="text-[var(--ink-secondary)]">{one.spentWeek}</span>
               <span dir="ltr" className="font-semibold tabular-nums text-[var(--ink)]">
@@ -98,7 +94,7 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
             </p>
           </div>
         ) : failed ? (
-          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 sm:max-w-[480px]">
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-[15px] font-medium text-[var(--ink)]">{a.limitError}</p>
             <button type="button" onClick={retry} className={buttonClasses({ variant: 'secondary' })}>{home.tryAgain}</button>
           </div>

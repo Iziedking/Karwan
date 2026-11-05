@@ -1,5 +1,6 @@
 'use client';
 
+import { Price, PriceIn } from '@/features/money/components/Price';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -10,7 +11,6 @@ import { photoSrc } from '@/features/listings/photos';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { CARD_CLASS } from '@/shared/components/Card';
-import { formatUsdc } from '@/shared/utils/format';
 import { listingCategory, samplePhoto } from '../listingFacts';
 import { marketViewHref } from '../marketQuery';
 
@@ -48,7 +48,7 @@ export function RequestCard({ card, fits }: { card: DiscoveryCard; fits: boolean
       </span>
       <span className="flex flex-1 flex-col p-4">
         <span dir="auto" className="line-clamp-2 text-[15px] font-medium leading-[21px] text-[var(--ink)]">{card.title}</span>
-        <span className="mt-2 text-[15px] font-semibold tabular-nums text-[var(--ink)]">{t.upTo.replace('{amount}', formatUsdc(card.priceUsdc, { withSuffix: false }))}</span>
+        <PriceIn template={t.upTo} usdc={card.priceUsdc} className="mt-2 text-[15px] font-semibold text-[var(--ink)]" />
         <span className="mt-1 block truncate text-[13px] text-[var(--ink-secondary)]">{t.neededBy.replace('{date}', by)}</span>
         <span dir="auto" className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">{[card.seller?.name || (card.seller?.tag ? `@${card.seller.tag}` : null), offers].filter(Boolean).join(' · ')}</span>
       </span>
@@ -100,7 +100,7 @@ function OwnOffer({ listing }: { listing: Listing }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" loading="lazy" onError={() => own && setFailed(own)} className="aspect-[4/3] w-full rounded-[10px] bg-[var(--raised)] object-cover" />
       <span dir="auto" className="mt-1.5 block truncate text-[13px] font-medium text-[var(--ink)]">{listing.title}</span>
-      <span className="block text-[13px] tabular-nums text-[var(--ink-secondary)]">{formatUsdc(listing.askingPriceUsdc, { withSuffix: false })} USDC</span>
+      <Price usdc={Number(listing.askingPriceUsdc)} className="text-[13px] text-[var(--ink-secondary)]" usdcClassName="text-[12px]" />
     </Link>
   );
 }

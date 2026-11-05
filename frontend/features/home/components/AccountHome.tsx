@@ -1,5 +1,6 @@
 'use client';
 
+import { Price } from '@/features/money/components/Price';
 import Link from 'next/link';
 import { m } from 'motion/react';
 import type { UserProfile } from '@/core/api';
@@ -70,13 +71,13 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
                 {home.balanceRetry}
               </button>
             </p>
-          ) : (
+          ) : totalBalance == null ? (
             <p className="mt-1 flex items-baseline gap-2">
-              <span className={`text-[34px] font-semibold leading-[1.1] tabular-nums tracking-[-0.03em] text-[var(--ink)] sm:text-[40px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
-                {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
+              <span className={`text-[34px] font-semibold leading-[1.1] tabular-nums tracking-[-0.03em] text-[var(--ink)] sm:text-[40px] ${owned.loading ? 'motion-safe:animate-pulse' : ''}`}>-</span>
               {' '}<span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
             </p>
+          ) : (
+            <p className="mt-1"><Price usdc={totalBalance} size="hero" /></p>
           )}
           <div className="mt-6 grid max-w-[420px] grid-cols-4 gap-2">
             <QuickAction href="/add" icon="add" green>{start.addMoney}</QuickAction>

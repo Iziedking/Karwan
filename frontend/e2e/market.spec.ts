@@ -207,7 +207,7 @@ test('Sell shows what buyers need, the requests that fit you first', async ({ pa
   await expect(rows).toHaveCount(3);
   await expect(rows.first()).toContainText('Flyer for a church event');
   await expect(rows.first()).toContainText(t.fits);
-  await expect(rows.first()).toContainText('Up to 25 USDC');
+  await expect(rows.first()).toContainText('Up to 25.00 USDC');
   await expect(rows.first()).toContainText('@tunde · 5 offers so far');
   await expect(rows.filter({ hasText: 'Logo for a food business' })).toContainText('Chidi Eze');
   // A request with nobody readable shows only its offers line, never an address.

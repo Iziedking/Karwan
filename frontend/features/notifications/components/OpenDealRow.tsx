@@ -1,5 +1,6 @@
 'use client';
 
+import { Price } from '@/features/money/components/Price';
 import Link from 'next/link';
 import type { DirectDeal } from '@/core/api';
 import { DealRoute } from '@/features/deals/DealRoute';
@@ -75,7 +76,7 @@ export function OpenDealRow({
             <span className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">{[title ? who : role, due].filter(Boolean).join(' · ')}</span>
           </span>
           <span className="flex shrink-0 flex-col items-end gap-1.5">
-            <span className={cn('text-[15px] font-medium tabular-nums', struck ? 'text-[var(--ink-muted)] line-through' : 'text-[var(--ink)]')}>{formatUsdc(amount)} {unit}</span>
+            <Price usdc={Number(amount)} size="inline" className={cn('text-[15px] font-medium', struck ? 'text-[var(--ink-muted)] line-through' : 'text-[var(--ink)]')} />
             {state ? <DealStatePill state={state} /> : null}
           </span>
         </Link>
@@ -98,7 +99,7 @@ export function OpenDealRow({
             </span>
           </span>
           <span className="shrink-0 text-end">
-            <span className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatUsdc(amount)} {unit}</span>
+            <Price usdc={Number(amount)} className="items-end text-[15px] font-semibold text-[var(--ink)]" />
             {reference ? <span dir="ltr" className="mt-0.5 block text-[13px] tabular-nums text-[var(--ink-muted)]">{reference}</span> : null}
           </span>
         </Link>
@@ -128,7 +129,7 @@ export function OpenDealRow({
               {reference ? <span dir="ltr" className="shrink-0 tabular-nums text-[var(--ink-muted)]">{reference}</span> : null}
             </span>
           </span>
-          <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatUsdc(amount)} {unit}</span>
+          <Price usdc={Number(amount)} className="shrink-0 items-end text-[15px] font-semibold text-[var(--ink)]" />
         </span>
         {deal ? <DealRoute deal={deal} /> : null}
         <span className="flex items-center justify-between gap-3">

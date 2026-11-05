@@ -1,4 +1,5 @@
 'use client';
+import { Price } from '@/features/money/components/Price';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -515,9 +516,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               <p role="status" aria-live="polite" className="min-w-0 text-[13px] text-[var(--ink-secondary)]">{moneyLine}</p>
               {referenceButton}
             </div>
-            <h1 id="deal-amount" className="mt-1 flex items-baseline gap-2 tabular-nums">
-              <span className="text-[56px] font-semibold leading-none tracking-[-0.04em] text-[var(--ink)]">{amount}</span>
-              <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
+            <h1 id="deal-amount" className="mt-1">
+              <Price usdc={Number(deal.dealAmountUsdc)} size="hero" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.04em] text-[var(--ink)]" />
             </h1>
             <div className="mt-5 border-t border-[var(--line)] pt-5">
               <DealRoute deal={deal} />

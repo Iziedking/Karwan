@@ -1,4 +1,5 @@
 'use client';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -78,6 +79,7 @@ function MoneyHomeInner() {
   const whereAsked = params.get('where') === '1';
   useEffect(() => { if (whereAsked) setWhereOpen(true); }, [whereAsked]);
   const isWallet = useAuth().method === 'web3';
+  const heldDeals = useHeldDeals();
 
   const chooseTab = useCallback((next: MoneyTab) => {
     const q = new URLSearchParams(params.toString());
@@ -109,8 +111,14 @@ function MoneyHomeInner() {
     : null;
 
   return (
-    <div className="product-surface mx-auto max-w-[1120px] px-4 pb-24 pt-6 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-10">
-      <div className="min-w-0 max-w-[720px] divide-y divide-[var(--line)] [&>*]:py-8">
+    // One centred column (owner, 5 Nov 2026); the deals holding money sit beside it on a wide screen when there are any.
+    <div className={heldDeals.length > 0
+      ? 'product-surface mx-auto max-w-[1180px] px-4 pb-24 pt-6 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-10'
+      : 'product-surface mx-auto max-w-[800px] px-4 pb-24 pt-6 sm:px-6'}>
+      <div data-own-back className="-ms-2 empty:hidden lg:col-span-2">
+        <ProductBackLink pathname={pathname} isAuthenticated />
+      </div>
+      <div className="min-w-0 divide-y divide-[var(--line)] [&>*]:py-8">
         <section aria-labelledby="money-balance" className="space-y-6">
           {/* Everything about money on one page: Balance, Agent, Deal guarantee (view 51, fifth round). */}
           <Segmented
@@ -118,7 +126,6 @@ function MoneyHomeInner() {
             value={tab}
             onChange={chooseTab}
             options={[{ value: 'balance', label: pages.tabs.balance }, { value: 'agent', label: pages.tabs.agent }, { value: 'guarantee', label: pages.tabs.guarantee }]}
-            className="sm:max-w-[480px]"
           />
           {tab === 'agent' ? (
             <AgentsTab onSetUp={() => setSetupOpen(true)} withAgent={agents} agent={richerAgent} />
@@ -176,7 +183,7 @@ function MoneyHomeInner() {
               {balances.error ? <button type="button" onClick={balances.refetch} className={buttonClasses({ variant: 'secondary' })}>{t.home.tryAgain}</button> : null}
               {/* Add money is the one green button on the page (view 48). */}
               {/* On a phone Add money takes the full row, so no label wraps. */}
-              <div data-money-actions className="grid grid-cols-2 gap-2 sm:max-w-[480px] sm:grid-cols-3 sm:gap-3 [&>a]:px-3 [&>a]:text-center [&>a]:leading-tight">
+              <div data-money-actions className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 [&>a]:px-3 [&>a]:text-center [&>a]:leading-tight">
                 <Link href={ADD_HREF} data-add-money className={`col-span-2 sm:col-span-1 ${buttonClasses({ variant: 'primary', size: 'lg' })}`}>{mp.addMoney}</Link>
                 <Link href="/send" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.send}</Link>
                 <Link href={WITHDRAW_HREF} className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.withdraw}</Link>

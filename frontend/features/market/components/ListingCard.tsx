@@ -1,5 +1,6 @@
 'use client';
 
+import { Price } from '@/features/money/components/Price';
 import Link from 'next/link';
 import { useState } from 'react';
 import type { DiscoveryCard } from '@/features/discovery/model';
@@ -7,7 +8,6 @@ import { photoSrc } from '@/features/listings/photos';
 import { ratingText } from '@/features/ratings/ratingText';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { formatUsdc } from '@/shared/utils/format';
 import { CATEGORY_ICON, cardPicture, samplePhoto, sellerLine } from '../listingFacts';
 
 type Picture = 'own' | 'sample' | 'tile';
@@ -55,9 +55,7 @@ export function ListingCard({ card }: { card: DiscoveryCard }) {
         ) : null}
       </span>
       <span dir="auto" className="mt-3 line-clamp-2 text-[15px] font-medium leading-[1.4] text-[var(--ink)]">{card.title}</span>
-      <span className="mt-1 text-[15px] font-semibold tabular-nums text-[var(--ink)]">
-        {formatUsdc(card.priceUsdc, { withSuffix: false })} {t.usdc}
-      </span>
+      <Price usdc={card.priceUsdc} className="mt-1 text-[15px] font-semibold text-[var(--ink)]" />
       <span className="mt-1 flex min-w-0 items-center gap-1 text-[13px] text-[var(--ink-secondary)]">
         <span dir="auto" className="truncate">{sellerLine(card.seller, t)}</span>
         {card.seller?.verified ? (
