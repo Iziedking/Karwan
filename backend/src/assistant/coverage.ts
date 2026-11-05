@@ -21,6 +21,7 @@ const CONFIRM = { by: 'page', why: 'Setting or using a passkey, Karwan PIN or em
 const WORLD = { by: 'page', why: 'World ID and Selfie Check need the camera and the World app.' } as const;
 const WAITLIST = { by: 'page', why: 'Joining the waitlist happens before there is an account.' } as const;
 const WALLET_STEP = { by: 'internal', why: 'A bookkeeping step inside a wallet-signed transfer the card or page already runs.' } as const;
+const OUTSIDE_AGENT_DEAL = { by: 'page', why: 'A deal an outside agent funded is worked on its own page, /agent-jobs; assistant tools for it are not built yet.' } as const;
 const UNUSED = { by: 'internal', why: 'No screen calls it.' } as const;
 const ASSISTANT_OWN = { by: 'internal', why: "The assistant's own conversation and memory plumbing." } as const;
 
@@ -114,6 +115,12 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/financier/apply': { by: 'assistant', via: 'finance_apply' },
 
   // Contests on the job escrow (view 40).
+  // Deals from agents outside Karwan (view 15).
+  'POST /api/agent-jobs/pair/:': WORLD,
+  'POST /api/agent-jobs/release/:/check': WORLD,
+  'POST /api/agent-jobs/release/:': WORLD,
+  'POST /api/agent-jobs/:/delivered': OUTSIDE_AGENT_DEAL,
+  'POST /api/agent-jobs/:/dispute': OUTSIDE_AGENT_DEAL,
   'POST /api/contests/draft': { by: 'assistant', via: 'contest_post' },
   'POST /api/contests': { by: 'assistant', via: 'contest_post' },
   'POST /api/contests/:/entries': { by: 'assistant', via: 'contest_enter' },

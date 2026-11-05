@@ -39,16 +39,16 @@ export function ReleasePage({ token }: { token: string }) {
 
   if (gone) {
     return (
-      <main className="mx-auto w-full max-w-[720px] px-4 py-12">
+      <div className="mx-auto w-full max-w-[720px] px-4 py-12">
         <p className="text-[16px] text-[var(--ink-secondary)]">{t.errors.used}</p>
-      </main>
+      </div>
     );
   }
   if (!view) return null;
 
   const amount = fill(t.release.happy, { amount: view.amountUsdc });
   return (
-    <main className="mx-auto w-full max-w-[720px] px-4 py-12 sm:py-16">
+    <div className="mx-auto w-full max-w-[720px] px-4 py-12 sm:py-16">
       <h1 className="text-[28px] font-semibold leading-tight text-[var(--lp-ink)]">{t.release.title}</h1>
       <p className="mt-6 text-[40px] font-semibold tabular-nums leading-none text-[var(--lp-ink)]">{view.amountUsdc} USDC</p>
       <dl className="mt-6 divide-y divide-[var(--lp-line)] border-y border-[var(--lp-line)] text-[15px]">
@@ -98,6 +98,6 @@ export function ReleasePage({ token }: { token: string }) {
         {null}
       </ConfirmSheet>
       {check.widget}
-    </main>
+    </div>
   );
 }

@@ -30,7 +30,7 @@ export function SellerJobPage({ jobRef }: { jobRef: string }) {
     return () => window.clearInterval(poll);
   }, [load]);
 
-  if (missing) return <main className="mx-auto max-w-[760px] px-4 pt-8"><p className="text-[15px] text-[var(--ink-secondary)]">{t.errors.failed}</p></main>;
+  if (missing) return <div className="mx-auto max-w-[760px] px-4 pt-8"><p className="text-[15px] text-[var(--ink-secondary)]">{t.errors.failed}</p></div>;
   if (!job) return null;
 
   const day = (ms: number) => localDay(ms, locale);
@@ -58,7 +58,7 @@ export function SellerJobPage({ jobRef }: { jobRef: string }) {
   );
 
   return (
-    <main className="mx-auto w-full max-w-[760px] px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-[760px] px-4 py-8 sm:px-6">
       <Link href="/agent-jobs" className="text-[14px] text-[var(--ink-secondary)] underline underline-offset-4">{t.seller.list}</Link>
       <h1 className="mt-4 text-[24px] font-semibold text-[var(--lp-ink)]">{t.seller.title}</h1>
       <p className="mt-1 text-[14px] text-[var(--ink-secondary)]">{t.seller.badge}</p>
@@ -111,7 +111,7 @@ export function SellerJobPage({ jobRef }: { jobRef: string }) {
       >
         {null}
       </ConfirmSheet>
-    </main>
+    </div>
   );
 }
 
@@ -125,7 +125,7 @@ export function SellerJobsList() {
   }, []);
   if (!jobs) return null;
   return (
-    <main className="mx-auto w-full max-w-[760px] px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-[760px] px-4 py-8 sm:px-6">
       <h1 className="text-[24px] font-semibold text-[var(--lp-ink)]">{t.seller.list}</h1>
       {jobs.length === 0 ? (
         <p className="mt-4 text-[15px] text-[var(--ink-secondary)]">{t.seller.empty}</p>
@@ -144,6 +144,6 @@ export function SellerJobsList() {
           ))}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

@@ -21,7 +21,7 @@ export function PairPage({ token }: { token: string }) {
   });
 
   return (
-    <main className="mx-auto w-full max-w-[720px] px-4 py-12 sm:py-16">
+    <div className="mx-auto w-full max-w-[720px] px-4 py-12 sm:py-16">
       <h1 className="text-[28px] font-semibold leading-tight text-[var(--lp-ink)]">{done ? t.pair.done : t.pair.title}</h1>
       <p className="mt-3 text-[16px] leading-relaxed text-[var(--ink-secondary)]">{done ? t.pair.doneLead : t.pair.lead}</p>
       {done ? null : (
@@ -31,6 +31,6 @@ export function PairPage({ token }: { token: string }) {
       )}
       {check.error ? <p role="alert" className={`mt-4 ${ALERT}`}>{check.error}</p> : null}
       {check.widget}
-    </main>
+    </div>
   );
 }
