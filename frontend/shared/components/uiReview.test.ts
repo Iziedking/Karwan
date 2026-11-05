@@ -498,7 +498,7 @@ test('profile says each thing once: one Your record row, Edit profile in the hea
   for (const gone of ['pp.withAgents', 'dealGuarantee.profile', 'hub.activityReceipts', 'pp.tradeAndMoney']) assert.ok(!hub.includes(gone), gone);
   const trade = hub.slice(hub.indexOf('<RowGroup title={mpg.trading}>'));
   const group = trade.slice(0, trade.indexOf('</RowGroup>'));
-  for (const piece of ['pp.buying', 'pp.selling', 'simple.agentsTitle', 'mpg.assistant']) assert.ok(group.includes(piece), piece);
+  for (const piece of ['pp.buying', 'pp.selling', 'simple.agentsTitle', 'messages.assistantMode.use']) assert.ok(group.includes(piece), piece);
   assert.match(hub, /<RowGroup title=\{mpg\.preferences\}>[\s\S]*<DisplayCurrencySection \/>/);
   // One agent row, not two that open the same page (owner, 3 Nov 2026).
   assert.equal(hub.split('simple.agentsTitle').length - 1, 1);

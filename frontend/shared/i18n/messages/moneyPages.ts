@@ -93,7 +93,6 @@ export interface MoneyPagesCopy {
     trading: string;
     account: string;
     preferences: string;
-    assistant: string;
     assistantLine: string;
     showAmounts: string;
     moreSettings: string;
@@ -196,7 +195,6 @@ const en: MoneyPagesCopy = {
     trading: 'Trading',
     account: 'Account',
     preferences: 'Preferences',
-    assistant: 'Assistant on this site',
     assistantLine: 'Ask it to do anything you can do here',
     showAmounts: 'Show amounts in',
     moreSettings: 'More settings',
@@ -299,7 +297,6 @@ const fr: MoneyPagesCopy = {
     trading: 'Commerce',
     account: 'Compte',
     preferences: 'Préférences',
-    assistant: 'Assistant sur ce site',
     assistantLine: 'Demandez-lui tout ce que vous pouvez faire ici',
     showAmounts: 'Afficher les montants en',
     moreSettings: 'Plus de réglages',
@@ -402,7 +399,6 @@ const ar: MoneyPagesCopy = {
     trading: 'التجارة',
     account: 'الحساب',
     preferences: 'التفضيلات',
-    assistant: 'المساعد على هذا الموقع',
     assistantLine: 'اطلب منه أي شيء يمكنك فعله هنا',
     showAmounts: 'اعرض المبالغ بـ',
     moreSettings: 'إعدادات أخرى',
@@ -505,7 +501,6 @@ const hi: MoneyPagesCopy = {
     trading: 'व्यापार',
     account: 'खाता',
     preferences: 'पसंद',
-    assistant: 'इस साइट पर सहायक',
     assistantLine: 'यहाँ जो कुछ आप कर सकते हैं, उससे कहें',
     showAmounts: 'राशि दिखाएँ',
     moreSettings: 'और सेटिंग्स',
@@ -608,7 +603,6 @@ const sw: MoneyPagesCopy = {
     trading: 'Biashara',
     account: 'Akaunti',
     preferences: 'Mapendeleo',
-    assistant: 'Msaidizi kwenye tovuti hii',
     assistantLine: 'Muombe chochote unachoweza kufanya hapa',
     showAmounts: 'Onyesha kiasi kwa',
     moreSettings: 'Mipangilio zaidi',

@@ -203,10 +203,11 @@ export function ProfileAccountHub({
           {/* On a computer the switch sits in the top bar, so it is not said twice. */}
           {wideScreen ? null : (
             <ToggleRow
-              label={mpg.assistant}
+              label={messages.assistantMode.use}
               checked={false}
               onChange={() => {
-                rememberReturn('/profile');
+                // Off again, it comes back to exactly this place (section and anchor too).
+                rememberReturn(window.location.pathname);
                 router.push('/assistant');
               }}
             />

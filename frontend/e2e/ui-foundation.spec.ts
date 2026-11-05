@@ -117,7 +117,7 @@ for (const route of ['/start', '/market', '/account']) {
             expect(band.right).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
           }
           if (route === '/market' && !mainnet) {
-            expect(metrics.cards).toHaveLength(6);
+            expect(metrics.cards).toHaveLength(7);
             for (const card of metrics.cards) {
               expect(Math.abs(card.priceBottom - card.bottom)).toBeLessThanOrEqual(2);
               for (const peer of metrics.cards.filter(peer => Math.abs(peer.top - card.top) < 2)) {
