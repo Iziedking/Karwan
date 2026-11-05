@@ -19,6 +19,8 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   post_offer: (p) => ({ method: 'POST', path: '/api/listings', body: p }),
   save_setup: (p) => ({ method: 'POST', path: '/api/setup/save', body: { answers: p.answers } }),
   save_ways: (p) => ({ method: 'POST', path: '/api/setup/ways', body: { ways: p.ways } }),
+  // The card's own id goes with the change, so one card makes one change.
+  change_mandate: (p, a) => ({ method: 'POST', path: '/api/agents/mandate', body: { patch: p.patch, cardId: a.id } }),
   // The card carries the exact body the deal form sends, already validated (view 24).
   create_direct_deal: (p) => ({ method: 'POST', path: '/api/deals/direct', body: p }),
   post_request: (p) => ({
@@ -256,6 +258,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   post_offer: 'Your offer is live.',
   save_setup: 'Saved. Your agents now work this way.',
   save_ways: 'Saved. Your agents now deal this way.',
+  change_mandate: 'Done. Your agent works this way from now on.',
   create_direct_deal: 'Deal sent. The seller is asked to accept the terms; you pay into escrow after that.',
   fund_direct_deal: 'Paid into escrow. The seller can start the work.',
   set_up_record: 'Your Karwan record is set up.',
@@ -459,6 +462,11 @@ function finish(action: ConfirmAction, res: { status: number; json: Record<strin
     }
     if (state !== 'completed') return { ok: true, summary: 'It is being confirmed. It is not complete yet.', ...(txHash ? { txHash } : {}) };
     return { ok: true, summary: 'Completed.', ...(txHash ? { txHash } : {}) };
+  }
+  // The route's own line on what the change did, in the person's language.
+  if (action.intent === 'change_mandate') {
+    const line = (res.json.replan as { line?: unknown } | undefined)?.line;
+    return { ok: true, summary: typeof line === 'string' ? line : DONE.change_mandate! };
   }
   if (action.intent === 'create_direct_deal' && res.json.agentAccepted === true) {
     return { ok: true, summary: "Ordered. The seller's agent accepted it. Ask me to pay it in when you are ready." };

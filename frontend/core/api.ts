@@ -1978,6 +1978,7 @@ export interface AssistantConfirmAction {
     | 'cancel_listing'
     | 'save_setup'
     | 'save_ways'
+    | 'change_mandate'
     | 'guarantee_put_up'
     | 'claim_yield'
     | 'guarantee_take_out'
@@ -5774,6 +5775,13 @@ export const api = {
     json<{ profile: UserProfile }>('/api/setup/agent-mode', { method: 'POST', body: JSON.stringify({ agentMode }) }),
   saveWays: (ways: import('@/features/profile/ways').AgentWays) =>
     json<{ profile: UserProfile; lines: string[] }>('/api/setup/ways', { method: 'POST', body: JSON.stringify({ ways }) }),
+  /// One confirmed change to what the person's agent may do (view 52). The
+  /// card's id goes with it, so one card makes one change.
+  changeMandate: (patch: Record<string, unknown>, cardId: string) =>
+    json<{ lines: string[]; replan: { judged: number; offered: number; closedQuestions: number; failed?: true; line: string } }>('/api/agents/mandate', {
+      method: 'POST',
+      body: JSON.stringify({ patch, cardId }),
+    }),
   /// Assistant conversations saved to the account (view 19).
   assistantConversations: () => json<{ conversations: AssistantConversationSummary[] }>('/api/assistant/conversations'),
   assistantConversation: (id: string) =>

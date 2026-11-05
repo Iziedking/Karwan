@@ -26,8 +26,9 @@ export interface QuestionAnswer {
   choice: 'yes' | 'change' | 'no';
   priceUsdc?: string;
   days?: number;
-  /// Set when no answer came and the stated default ran (view 52, step 2).
-  by?: 'default';
+  /// Set when no answer came and the stated default ran (view 52, step 2), or
+  /// when a mandate change made the question moot (view 52, step 3).
+  by?: 'default' | 'replan';
 }
 
 export interface AgentQuestion {

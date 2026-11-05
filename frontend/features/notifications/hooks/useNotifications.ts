@@ -79,7 +79,8 @@ function hrefForType(type: string, jobId: string): string {
   if (type === 'listing.matched') return '/seller';
   // Trend nudge points the seller at the live requests driving the rising demand.
   if (type === 'trend.match' || type === 'market.watch') return '/market';
-  if (type === 'agent.weekly' || type === 'agent.budget' || type === 'agent.research.failed') return '/profile/setup';
+  if (type === 'agent.weekly' || type === 'agent.budget' || type === 'agent.research.failed' || type === 'agent.brief') return '/profile/setup';
+  if (type === 'agent.note') return jobId ? `/jobs/${jobId}` : '/profile/setup';
   if (BRIDGE_TYPES.has(type) || WALLET_TYPES.has(type)) return '/activity';
   if (type.startsWith('vault.') || type.startsWith('guarantee.')) return '/guarantee';
   if (type.startsWith('agent.')) return '/profile';

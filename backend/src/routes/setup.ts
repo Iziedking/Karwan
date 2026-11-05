@@ -4,7 +4,7 @@ import type { BriefResult, ProfilePatch } from '../agents/agentBrief.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import { firstPost } from '../agents/firstPost.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
-import { legacyFromWays, upgradeWays, waysSchema, wayLines } from '../agents/ways.js';
+import { legacyFromWays, upgradeWays, waysSchema, wayLines, type AgentWays } from '../agents/ways.js';
 import type { Suggestion } from '../agents/learned.js';
 
 /// The setup conversation after activation (view 19). The answers are read on
@@ -46,6 +46,23 @@ export interface SetupRouteDeps {
 
 const LIMIT = 20;
 const WINDOW_MS = 10 * 60 * 1000;
+
+/// The profile change that saves a person's ways whole, with the older seller
+/// and buyer settings rewritten from them. The mandate route saves through it too.
+export function patchForWays(ways: AgentWays, current: UserProfile): ProfilePatch {
+  const { seller, buyer } = legacyFromWays(ways, current);
+  return {
+    agentWays: ways,
+    seller,
+    buyer,
+    role: seller && buyer ? 'both' : seller ? 'seller' : 'buyer',
+    agentPrefs: {
+      ...(current.agentPrefs ?? {}),
+      ...(ways.sell.length ? { sellerPriceSet: true } : {}),
+      ...(ways.buy.length ? { buyerPriceSet: true } : {}),
+    },
+  };
+}
 
 export function createSetupRoutes(deps: SetupRouteDeps): Hono {
   const app = new Hono();
@@ -107,19 +124,7 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     // the page clears the mark on the way whose price they edited (view 41,
     // decision 14), so saving only how they get paid keeps it.
     const { ways } = parsed.data;
-    const { seller, buyer } = legacyFromWays(ways, current);
-    const patch: ProfilePatch = {
-      agentWays: ways,
-      seller,
-      buyer,
-      role: seller && buyer ? 'both' : seller ? 'seller' : 'buyer',
-      agentPrefs: {
-        ...(current.agentPrefs ?? {}),
-        ...(ways.sell.length ? { sellerPriceSet: true } : {}),
-        ...(ways.buy.length ? { buyerPriceSet: true } : {}),
-      },
-    };
-    const profile = await deps.save(address, patch);
+    const profile = await deps.save(address, patchForWays(ways, current));
     if (!profile) return c.json({ error: 'profile not found' }, 404);
     if (ways.sell.length) deps.sellerSaved?.(address);
     return c.json({ profile, lines: wayLines(ways) });

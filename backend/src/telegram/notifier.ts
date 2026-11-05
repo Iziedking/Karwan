@@ -1,6 +1,6 @@
 import { bus, type KarwanEvent } from '../events.js';
 import { config } from '../config.js';
-import { channelsFor, questionChannelFor } from '../channels/notifyVia.js';
+import { briefChannelFor, channelsFor, questionChannelFor } from '../channels/notifyVia.js';
 import { getDeal } from '../db/deals.js';
 import { getBrief } from '../db/briefs.js';
 import { requestTitle } from '../agents/bidOutcome.js';
@@ -163,6 +163,8 @@ export const RELEVANT = new Set([
   'market.watch',
   'agent.weekly',
   'agent.budget',
+  'agent.brief',
+  'agent.note',
   'agent.research.failed',
   'chat.message',
   'bridge.minted',
@@ -357,7 +359,7 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     return seller ? [{ address: seller, role: 'self' }] : [];
   }
   // A watch the person set on their agent saw a change (view 48, step 5).
-  if (e.type === 'market.watch' || e.type === 'agent.weekly' || e.type === 'agent.budget' || e.type === 'agent.research.failed') {
+  if (e.type === 'market.watch' || e.type === 'agent.weekly' || e.type === 'agent.budget' || e.type === 'agent.research.failed' || e.type === 'agent.brief' || e.type === 'agent.note') {
     const owner = (e.payload?.user as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'self' }] : [];
   }
@@ -567,6 +569,16 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       const q = p.questions as { asked?: number; answered?: number; byDefault?: number } | undefined;
       const asked = q?.asked ? tg('insight.questions', locale, { asked: String(q.asked), answered: String(q.answered ?? 0), byDefault: String(q.byDefault ?? 0) }) : '';
       return withLink([spend, asked, tips].filter(Boolean).join('\n\n'), yourAgentUrl());
+    }
+    case 'agent.brief':
+    case 'agent.note': {
+      // Built in the person's language by the person agent (view 52, step 4).
+      const p = e.payload ?? {};
+      const lines = (Array.isArray(p.lines) ? p.lines : []).filter((l): l is string => typeof l === 'string' && l.length > 0);
+      if (!lines.length) return null;
+      const heading = typeof p.heading === 'string' ? `*${p.heading}*\n` : '';
+      const text = `${heading}${lines.map((l) => `• ${l}`).join('\n')}`;
+      return withLink(text, e.type === 'agent.note' ? jobUrl(p.jobId as string | undefined) : yourAgentUrl());
     }
     case 'agent.question.decided': {
       if (role !== (e.payload?.buyerUser ? 'buyer' : 'seller')) return null;
@@ -1107,6 +1119,7 @@ export function startTelegramNotifier(): () => void {
         if (!channelsFor(profile?.settings, true).telegram) continue;
         // An agent question, its reminder and its outcome go out on one channel (view 52).
         if ((e.type === 'agent.question.decided' || (e.type === 'agent.suggestion' && e.payload?.questionId)) && !questionChannelFor(profile?.settings, true).telegram) continue;
+        if ((e.type === 'agent.brief' || e.type === 'agent.note') && !briefChannelFor(profile?.settings, true).telegram) continue;
         const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
         const summary = r.role === 'financier' ? financierSummaryFor(e, r.href, locale) : summaryFor(e, r.role, locale, { names, counterparty: r.counterparty });
         if (!summary) continue;

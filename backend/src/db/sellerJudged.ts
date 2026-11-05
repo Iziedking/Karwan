@@ -25,6 +25,14 @@ export function saveJudged(jobId: string, seller: string): void {
     .catch((err: Error) => logger.warn({ jobId, err: err.message }, 'seller judged write failed'));
 }
 
+/// A seller whose limits changed judges these requests again (view 52).
+export function clearJudgedBySeller(seller: string, jobIds: readonly string[]): void {
+  if (!pgEnabled || jobIds.length === 0) return;
+  postgresExecutor()
+    .query('DELETE FROM seller_judged_v1 WHERE seller = $1 AND job_id = ANY($2)', [seller.toLowerCase(), [...jobIds]])
+    .catch((err: Error) => logger.warn({ seller, err: err.message }, 'seller judged clear failed'));
+}
+
 /// A changed request is judged again by everyone.
 export function clearJudged(jobId: string): void {
   if (!pgEnabled) return;

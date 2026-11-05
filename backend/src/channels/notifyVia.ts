@@ -19,6 +19,18 @@ export function questionChannelFor(settings: Pick<UserSettings, 'notifyVia'> | u
   return via;
 }
 
+/// The morning brief and the agent's live notes go out on one channel (view
+/// 52, step 4): Telegram when linked and allowed; else nothing beyond the bell
+/// and the assistant for someone who visited in the last 7 days; else email.
+/// Karwan keeps no record of visits yet, so callers pass false and a person
+/// without Telegram gets the brief by email.
+export function briefChannelFor(settings: Pick<UserSettings, 'notifyVia'> | undefined, hasTelegram: boolean, visitedIn7Days = false): { email: boolean; telegram: boolean } {
+  const via = channelsFor(settings, hasTelegram);
+  if (hasTelegram && via.telegram) return { email: false, telegram: true };
+  if (visitedIn7Days) return { email: false, telegram: false };
+  return { email: via.email, telegram: false };
+}
+
 /// The one reminder of an agent question (view 41) goes to the first channel,
 /// Telegram then email, that the first notice did not use and that the person
 /// has. When the first notice already used both, the reminder stays in the app

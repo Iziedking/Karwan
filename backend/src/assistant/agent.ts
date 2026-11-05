@@ -42,6 +42,7 @@ import { BUDGET_REACHED, acquireResearch, researchQuote } from '../x402/dataGate
 import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
 import { insightsFor } from '../intelligence/insights.js';
 import { insightLine, plain } from '../intelligence/insightText.js';
+import { proposeChangeMandate, showMyMandate, whatDidMyAgentDo } from './mandateActions.js';
 import { insightNextStep } from '../intelligence/insightNextStep.js';
 import { MAX_WEEKLY_BUDGET_USDC, spentThisWeek } from '../agents/agentRecord.js';
 import { PAID_READS_PER_REQUEST, RECORD_READ_PRICE_USDC } from '../x402/recordReadGate.js';
@@ -2250,6 +2251,60 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       execute: async ({ on }) => {
         const r = await updateAgentRecord(address, (cur) => ({ ...cur, weeklyReport: on }));
         return { weeklyLine: r.weeklyReport ? 'on' : 'off' };
+      },
+    }),
+
+    show_my_mandate: tool({
+      description:
+        "Everything the user's agent may do, as one answer (view 52): what it sells and from what price, the most it spends when buying, whether it makes offers on its own, asks first or agrees for them, its weekly limit for paid checks, the markets it watches, their goals, when the daily brief comes and the quiet hours. Use for 'what can my agent do', 'what are my agent's rules', 'what did I tell my agent'.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { liveMandateToolDeps } = await import('../agents/mandateLive.js');
+        return showMyMandate(liveMandateToolDeps, address, Date.now()).catch(() => ({ error: 'Could not read that just now. Try again shortly.' }));
+      },
+    }),
+
+    propose_change_mandate: tool({
+      description:
+        "Show a card that changes one part of what the user's agent may do (view 52). Nothing changes until the user confirms the card; then the agent acts on it at once (a lower selling price looks again at requests it passed on). One part per call: sell-price (shape and lowestUsdc, optional usualUsdc), alone (mode offers, ask or agree), weekly-limit (usdc, 0 to 5, for paid checks), buy-most (usdc, the most per new request), goal-add (kind buy, sell or watch, text in their words, optional untilDays), goal-remove (id from show_my_mandate), brief (on, hour 0 to 23, timeZone like Africa/Lagos), quiet (from and to hours), quiet-off. Only when the user asks for the change.",
+      inputSchema: z.object({
+        part: z.enum(['sell-price', 'alone', 'weekly-limit', 'buy-most', 'goal-add', 'goal-remove', 'brief', 'quiet', 'quiet-off']),
+        shape: z.enum(['one_time', 'milestones', 'goods', 'deposit', 'hourly', 'monthly']).optional(),
+        lowestUsdc: z.number().optional(),
+        usualUsdc: z.number().optional(),
+        mode: z.enum(['offers', 'ask', 'agree']).optional(),
+        usdc: z.number().optional(),
+        kind: z.enum(['buy', 'sell', 'watch']).optional(),
+        text: z.string().max(200).optional(),
+        untilDays: z.number().int().optional(),
+        id: z.string().max(80).optional(),
+        on: z.boolean().optional(),
+        hour: z.number().int().optional(),
+        timeZone: z.string().max(64).optional(),
+        from: z.number().int().optional(),
+        to: z.number().int().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { liveMandateToolDeps } = await import('../agents/mandateLive.js');
+          const r = await proposeChangeMandate(liveMandateToolDeps, address, input, Date.now());
+          if ('error' in r) return r;
+          if (!hasEquivalentConfirm(actions, r.card)) actions.push(r.card);
+          return { ok: true, shown: r.card.title, whatItDoesNext: r.effect, next: 'Say the change and what it does next in one or two lines; the card asks them to confirm.' };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_change_mandate failed');
+          return { error: 'Could not prepare that just now. Try again shortly.' };
+        }
+      },
+    }),
+
+    what_did_my_agent_do: tool({
+      description:
+        "What the user's agent told them today or this week (view 52): the morning briefs and the notes it sent, from its own log, newest first. Use for 'what did my agent do', 'what did you tell me this morning', 'did my agent send anything'.",
+      inputSchema: z.object({ range: z.enum(['today', 'week']).default('today') }),
+      execute: async ({ range }) => {
+        const { liveMandateToolDeps } = await import('../agents/mandateLive.js');
+        return whatDidMyAgentDo(liveMandateToolDeps, address, range, Date.now()).catch(() => ({ error: 'Could not read that just now. Try again shortly.' }));
       },
     }),
 

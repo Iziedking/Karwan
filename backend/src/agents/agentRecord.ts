@@ -3,6 +3,8 @@
 /// the agent asks before going over), what they spent in the last 7 days, and
 /// the weekly spend line, on by default. Pure; the store keeps it.
 
+import type { BriefPrefs, Goal, QuietHours } from './mandate.js';
+
 export const DEFAULT_WEEKLY_BUDGET_USDC = 0.25;
 export const MAX_WEEKLY_BUDGET_USDC = 5;
 const WEEK_MS = 7 * 86_400_000;
@@ -19,6 +21,11 @@ export interface AgentRecord {
   /// What the agent told the person about how they trade (view 52): the key,
   /// when, and the number it turned on. Kept 30 days.
   insightsSent?: Array<{ key: string; at: number; value: number }>;
+  /// The mandate's new parts (view 52, step 3). Absent reads as the defaults
+  /// in mandate.ts; quiet null means quiet hours are off.
+  goals?: Goal[];
+  brief?: BriefPrefs;
+  quiet?: QuietHours | null;
 }
 
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;

@@ -1482,6 +1482,26 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX agent_questions_decide ON agent_questions_v1 (state, decide_at) WHERE state = 'input-required';
     `,
   },
+  {
+    // What the person's agent told them, one row per person, local day, kind
+    // and key (view 52, step 4). Inserting the row is the claim to send it, so
+    // two servers or a restart never send the same brief twice.
+    version: 58,
+    name: 'agent_progress',
+    sql: `
+      CREATE TABLE agent_progress_v1 (
+        owner TEXT NOT NULL,
+        day TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        key TEXT NOT NULL,
+        at BIGINT NOT NULL,
+        state TEXT NOT NULL,
+        data JSONB NOT NULL,
+        PRIMARY KEY (owner, day, kind, key)
+      );
+      CREATE INDEX agent_progress_owner_at ON agent_progress_v1 (owner, at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

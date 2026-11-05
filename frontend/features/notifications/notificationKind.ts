@@ -25,7 +25,7 @@ const MONEY_PREFIXES = ['agent.weekly', 'wallet.', 'vault.', 'agent.funded', 'ag
 export function notificationKind(type: string): NotificationKind {
   if (ATTENTION.has(type)) return 'attention';
   if (DONE.has(type)) return 'done';
-  if (type.startsWith('deal.match') || type === 'deal.matched' || type === 'listing.matched' || type === 'negotiation.near-miss' || type === 'trend.match' || type === 'market.watch' || type === 'agent.suggestion' || type === 'offer.request-changed' || type === 'agent.declined') return 'match';
+  if (type.startsWith('deal.match') || type === 'deal.matched' || type === 'listing.matched' || type === 'negotiation.near-miss' || type === 'trend.match' || type === 'market.watch' || type === 'agent.suggestion' || type === 'offer.request-changed' || type === 'agent.declined' || type === 'agent.brief' || type === 'agent.note') return 'match';
   if (MONEY_PREFIXES.some((prefix) => type.startsWith(prefix))) return 'money';
   return 'deal';
 }
@@ -35,7 +35,12 @@ export function notificationKind(type: string): NotificationKind {
 /// per request) and the record reminder. Null for anything else.
 export function sellerNudge(type: string, payload: Record<string, unknown> | undefined, ts: number): { id: string; href: string } | null {
   if (type === 'trend.match') return { id: `trend.match-${ts}`, href: '/market' };
-  if (type === 'agent.weekly' || type === 'agent.budget' || type === 'agent.research.failed') return { id: `${type}-${ts}`, href: '/profile/setup' };
+  if (type === 'agent.weekly' || type === 'agent.budget' || type === 'agent.research.failed' || type === 'agent.brief') return { id: `${type}-${ts}`, href: '/profile/setup' };
+  // A live note is about one request (view 52, step 4).
+  if (type === 'agent.note') {
+    const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
+    return { id: `agent.note-${jobId}-${ts}`, href: jobId ? `/jobs/${jobId}` : '/profile/setup' };
+  }
   if (type === 'market.watch') return { id: `market.watch-${String(payload?.watchId ?? '')}-${ts}`, href: '/market' };
   if (type === 'agent.suggestion') {
     const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';

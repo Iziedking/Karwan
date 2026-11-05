@@ -22,7 +22,7 @@ import {
 } from '../deals/tradeVocabulary.js';
 import { getProfile } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
-import { channelsFor, questionChannelFor } from '../channels/notifyVia.js';
+import { briefChannelFor, channelsFor, questionChannelFor } from '../channels/notifyVia.js';
 import { resendClient } from './resend.js';
 import { sendDealEventEmail } from './dealEventEmail.js';
 import { logger } from '../logger.js';
@@ -59,6 +59,8 @@ function financierUrl(): string | undefined {
 
 // High-signal events only. Keep this list short on purpose.
 const EMAIL_RELEVANT = new Set([
+  // The morning brief, only for someone without Telegram (view 52, step 4).
+  'agent.brief',
   'agent.suggestion',
   'agent.question.decided',
   'offer.request-changed',
@@ -200,6 +202,10 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     // The buyer's choices before their review ends are the buyer's alone.
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
+  }
+  if (e.type === 'agent.brief') {
+    const owner = (e.payload?.user as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'seller' }] : [];
   }
   if ((e.type === 'agent.suggestion' || e.type === 'agent.question.decided') && e.payload?.buyerUser) {
     // A buyer's agent asking its person (view 41): only that buyer.
@@ -498,6 +504,21 @@ export function contentFor(
         body: `${title ? `${title}. ` : ''}${price ? `Your offer is ${price} USDC. ` : ''}Keep it, lower it or withdraw it from the request page. You can reduce an offer up to three times.`,
         ctaLabel: 'Open the request',
         ctaUrl: jobUrl(e.payload?.jobId as string | undefined),
+      };
+    }
+    case 'agent.brief': {
+      // Built in the person's language by the person agent (view 52, step 4).
+      const lines = (Array.isArray(e.payload?.lines) ? (e.payload.lines as unknown[]) : []).filter((l): l is string => typeof l === 'string' && l.length > 0);
+      if (!lines.length) return null;
+      const heading = typeof e.payload?.heading === 'string' ? e.payload.heading : 'Your morning brief';
+      const b = base();
+      return {
+        kicker: 'Your agent',
+        subject: heading,
+        heading,
+        body: lines.join(' '),
+        ctaLabel: typeof e.payload?.openLabel === 'string' ? e.payload.openLabel : 'Open Karwan',
+        ctaUrl: b ? `${b}/profile/setup` : undefined,
       };
     }
     case 'agent.question.decided': {
@@ -1082,9 +1103,10 @@ export function startEmailNotifier(): () => void {
         // "How should we reach you": Telegram only skips email while a chat is linked.
         // An agent question and its reminder go out on one channel (view 52).
         const question = e.type === 'agent.question.decided' || (e.type === 'agent.suggestion' && Boolean(e.payload?.questionId));
-        if (question || profile.settings?.notifyVia === 'telegram') {
+        const brief = e.type === 'agent.brief';
+        if (question || brief || profile.settings?.notifyVia === 'telegram') {
           const linked = !!(await getTelegramLink(r.address).catch(() => null));
-          const via = question ? questionChannelFor(profile.settings, linked) : channelsFor(profile.settings, linked);
+          const via = brief ? briefChannelFor(profile.settings, linked) : question ? questionChannelFor(profile.settings, linked) : channelsFor(profile.settings, linked);
           if (!via.email) continue;
         }
         const content = r.role === 'financier' ? financierContentFor(e, r.href) : contentFor(e, r.role, trade);

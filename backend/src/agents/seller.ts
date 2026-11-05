@@ -57,7 +57,8 @@ import { kindOf } from '../location/rules.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { actorSignalsFor } from './signals.js';
 import { saveActiveBids, saveActiveBidsConfirmed, saveActiveBidsSync, loadActiveBids } from '../db/activeBids.js';
-import { clearJudged, loadJudged, saveJudged } from '../db/sellerJudged.js';
+import { clearJudged, clearJudgedBySeller, loadJudged, saveJudged } from '../db/sellerJudged.js';
+import { forgetSeller } from './judgedSet.js';
 import { marketHeat, setResearchHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
@@ -2170,6 +2171,22 @@ export async function matchSellerNow(userAddress: string): Promise<number> {
   }
   logger.info({ userAddress, fits: fits.length, judged }, 'seller matched against open requests after a save');
   return judged;
+}
+
+/// The person changed their limits (view 52, re-plan): their seller agent
+/// judges these requests again on the next match. Returns how many it forgot.
+export async function forgetJudgedFor(userAddress: string, jobIds: readonly string[]): Promise<number> {
+  if (jobIds.length === 0) return 0;
+  const [seller] = await resolveSellerProfilesForUsers([userAddress]);
+  if (!seller) return 0;
+  clearJudgedBySeller(seller.address, jobIds);
+  return forgetSeller(evaluatedSellers, seller.address, jobIds);
+}
+
+/// Whether this person's seller agent holds an offer on the request now.
+export async function hasOfferFrom(userAddress: string, jobId: string): Promise<boolean> {
+  const [seller] = await resolveSellerProfilesForUsers([userAddress]);
+  return !!seller && activeBids.has(bidKey(jobId, seller.address));
 }
 
 /// Offers one open request to the sellers again. `fresh` forgets who already

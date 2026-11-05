@@ -89,6 +89,14 @@ export function summaryFor(
     }
     case 'agent.budget':
       return fill(c.agentBudget, { budget: str('budgetUsdc') });
+    case 'agent.brief':
+    case 'agent.note': {
+      // Written in the person's language by their agent (view 52, step 4): the first line, then how many more.
+      const raw = payload?.lines;
+      const lines = (Array.isArray(raw) ? (raw as unknown[]) : []).filter((l): l is string => typeof l === 'string' && l.length > 0);
+      if (!lines.length) return '';
+      return lines.length === 1 ? lines[0]! : fill(c.briefMore, { line: lines[0]!, count: String(lines.length - 1) });
+    }
     case 'agent.question.decided':
       return fill(c.questionDecided, { title: str('title') || c.researchYourRequest });
     case 'agent.research.failed': {

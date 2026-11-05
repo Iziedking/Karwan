@@ -873,6 +873,26 @@
       "body": "On an agent deal on Arc Testnet, Karwan's trust rules ask a person to confirm\nwith World ID only for one of four reasons: their first deal, a deal of 1,000\nUSDC or more, many deals from a new account in one day, or a link they sent\nearlier that was judged malicious.\n\nThe buyer confirms when choosing an offer. The seller confirms before escrow\nfunds, and escrow funds as soon as they pass. A person who already passed World\nID anywhere on Karwan is not asked again for a first deal.\n\nA price far from the market, a low score or a link judged only suspicious never\nasks for World ID. Replayed over 197 testnet deals, these rules asked on 55\ndeals, down from 97 under the earlier rules.\n\nOn testnet the check can be skipped so testing is never blocked. World ID is\nnot configured on mainnet, where escrow is not enabled yet."
     },
     {
+      "id": "your-agents-mandate-and-brief",
+      "title": "What your agent may do, and its morning brief",
+      "status": "shipping",
+      "updated": "2026-11-05",
+      "tags": [
+        "agents",
+        "mandate",
+        "brief",
+        "testnet"
+      ],
+      "path": "public/product/your-agents-mandate-and-brief.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/52-an-agent-that-works-for-you.md",
+          "date": "2026-11-05"
+        }
+      ],
+      "body": "Each person has one agent, and what it may do reads as one thing. Ask your\nassistant and it tells you: what your agent sells and from what lowest and usual\nprice, the most it spends on a new request, whether it makes offers on its own\nand asks you before any deal, asks you first about every request that fits, or\nagrees to a buyer's price inside your limits, how much it may spend a week on\npaid checks, the markets it watches, your goals, when your brief comes and your\nquiet hours.\n\nYou change one part at a time, and only through a card you confirm. The card\nshows the line before and after, and what the change does next: lowering your\nlowest price says how many requests you passed on this week it opens again.\nOnce you confirm, your agent acts at once. A lower price looks again at those\nrequests; moving away from asking first closes those questions and looks at the\nrequests again. A request's budget is fixed once it is posted, so a new buying\nlimit applies to new requests, and the card says which open ones ask for more.\nChanging limits moves no money; paying still needs you.\n\nYou can give your agent up to five goals in your own words, such as finding a\nlogo designer this week or selling 20 bags of rice this month. On the test\nnetwork goals are matched on their words, with no model.\n\nOnce a day, at 8:00 Lagos time unless you change it, your agent sends a short\nbrief built from your own data, with no model: new offers on your requests,\nquestions waiting on you and when the first decides itself, deals waiting on\nyou, up to three things it sees about how you trade, and a line for each goal.\nThere is no brief on a day with nothing to say. It goes to Telegram when you\nhave linked it, and otherwise to Karwan and by email. From 21:00 to 7:00 your\nagent sends nothing but a question's own reminder; a note it would have sent\nwaits for the brief. You can change the hours or turn them off.\n\nYour agent keeps a record of everything it told you for 30 days, so it never\nsends the same brief twice. Ask your assistant what your agent did today."
+    },
+    {
       "id": "your-karwan-record",
       "title": "Your Karwan record, set up on the way",
       "status": "roadmap",

@@ -114,6 +114,11 @@ export type KarwanEventType =
   | 'agent.weekly'
   /// A person's agents reached their weekly data budget and use free data (view 48, step 6).
   | 'agent.budget'
+  /// The person's morning brief and their agent's live note (view 52, step 4).
+  /// Personal: addressed by payload `user` (Telegram) and `sellerUser` (the app),
+  /// as the weekly line is.
+  | 'agent.brief'
+  | 'agent.note'
   | 'listing.matched'
   | 'listing.cancelled'
   | 'listing.expired'

@@ -15,6 +15,7 @@ import { offersRoutes } from './routes/offers.js';
 import { agentQuestionsRoutes } from './routes/agentQuestions.js';
 import { configureJobsReengagementShadow } from './routes/jobsReengagement.js';
 import { agentsRoutes } from './routes/agents.js';
+import { mandateRoutes } from './routes/mandate.js';
 import { eventsRoutes } from './routes/events.js';
 import { milestonesRoutes } from './routes/milestones.js';
 import { balancesRoutes } from './routes/balances.js';
@@ -208,6 +209,7 @@ import { startCreAutoPublisher } from './evidence/creAutoPublication.js';
 import { startTrendScout } from './agents/trendScout.js';
 import { startMarketWatcher } from './agents/marketWatcher.js';
 import { startAgentReporter } from './agents/agentReporter.js';
+import { startPersonAgent } from './agents/personAgentLive.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startDepositWatcher } from './circle/depositWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
@@ -461,6 +463,7 @@ for (const prefix of closedPrefixes({ legacyDeployed: KARWAN_CONTRACTS_DEPLOYED,
 app.route('/api/jobs', offersRoutes);
 app.route('/api/agent-questions', agentQuestionsRoutes);
 app.route('/api/jobs', jobsRoutes);
+app.route('/api/agents/mandate', mandateRoutes);
 app.route('/api/agents', agentsRoutes);
 app.route('/api/events', eventsRoutes);
 app.route('/api/milestones', milestonesRoutes);
@@ -837,6 +840,8 @@ function bootAgents() {
       stopFns.push(startMarketWatcher());
       // The weekly line on what agents spent (view 48, step 6).
       stopFns.push(startAgentReporter());
+      // Each person's morning brief and live notes (view 52, step 4).
+      stopFns.push(startPersonAgent());
     } else {
       appLogger.info('trend scout disabled via TREND_NUDGES_ENABLED');
     }

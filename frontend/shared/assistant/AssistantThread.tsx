@@ -643,6 +643,16 @@ async function runConfirmIntent(
       viewLabel: 'See how you deal',
     };
   }
+  if (action.intent === 'change_mandate') {
+    const p = action.payload as { patch: Record<string, unknown> };
+    const r = await api.changeMandate(p.patch, action.id);
+    return {
+      // The server's line, in the person's language, on what the change did.
+      successText: r.replan.line,
+      viewHref: '/profile/setup',
+      viewLabel: 'See your agent',
+    };
+  }
   if (action.intent === 'guarantee_put_up' || action.intent === 'guarantee_take_out' || action.intent === 'guarantee_cancel_take_out' || action.intent === 'guarantee_collect') {
     const p = action.payload as { amountUsdc: string; signer: 'karwan' | 'wallet' };
     const { step, done } = GUARANTEE_STEP[action.intent];
@@ -1443,7 +1453,7 @@ function ConfirmCard({
                     ? 'Marking…'
                     : action.intent === 'cancel_request' || action.intent === 'cancel_listing'
                       ? 'Cancelling…'
-                      : action.intent === 'save_setup' || action.intent === 'save_ways'
+                      : action.intent === 'save_setup' || action.intent === 'save_ways' || action.intent === 'change_mandate'
                         ? 'Saving…'
                       : action.intent === 'guarantee_put_up'
                         ? 'Putting up…'

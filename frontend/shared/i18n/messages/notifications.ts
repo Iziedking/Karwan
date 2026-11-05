@@ -9,7 +9,7 @@ export interface NotifyCopy {
   matchedSellerPrice: string; matchedSeller: string; matchedBuyerPrice: string; matchedBuyer: string;
   approvedSellerPrice: string; approvedSeller: string; approvedBuyerPrice: string; approvedBuyer: string;
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
-  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; agentWeekly: string; agentWeeklyLeft: string; agentBudget: string; researchFailed: string; researchFailedPaid: string; researchYourRequest: string; agentWeeklyInsight: string; agentWeeklyInsights: string; questionDecided: string; agentWeeklyQuestions: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
+  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; agentWeekly: string; agentWeeklyLeft: string; agentBudget: string; researchFailed: string; researchFailedPaid: string; researchYourRequest: string; agentWeeklyInsight: string; agentWeeklyInsights: string; questionDecided: string; agentWeeklyQuestions: string; briefMore: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
   recordNeededOffers: string; recordNeededDeal: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
@@ -54,6 +54,7 @@ const en: NotifyCopy = {
   agentWeeklyInsights: "Your agent has {count} things to tell you about how you trade. Ask it what it sees.",
   questionDecided: "You didn't answer about {title}, so your agent declined politely. You can still make an offer from the request page.",
   agentWeeklyQuestions: "Your agent asked you {asked} questions: you answered {answered}, and {byDefault} went its stated way with no answer.",
+  briefMore: '{line} {count} more in your brief.',
   watchRequests: '{count} new requests for {category}, as you asked your agent to watch.',
   watchPrice: '{category} deals now settle around {to} USDC (was {from}).',
   watchRising: 'Requests for {category} are rising this week.',
@@ -212,6 +213,7 @@ const fr: NotifyCopy = {
   agentWeeklyInsights: "Votre agent a {count} choses à vous dire sur votre façon d'échanger. Demandez-lui ce qu'il voit.",
   questionDecided: "Vous n'avez pas répondu au sujet de {title}, votre agent a donc décliné poliment. Vous pouvez encore faire une offre depuis la page de la demande.",
   agentWeeklyQuestions: "Votre agent vous a posé {asked} questions : vous avez répondu à {answered}, et {byDefault} ont suivi la réponse annoncée faute de réponse.",
+  briefMore: '{line} {count} de plus dans votre résumé.',
   watchRequests: '{count} nouvelles demandes pour {category}, comme vous l’avez demandé à votre agent.',
   watchPrice: 'Les accords en {category} se concluent maintenant autour de {to} USDC (contre {from}).',
   watchRising: 'Les demandes pour {category} augmentent cette semaine.',
@@ -370,6 +372,7 @@ const ar: NotifyCopy = {
   agentWeeklyInsights: "لدى وكيلك {count} أمور يخبرك بها عن طريقة تداولك. اسأله عمّا يراه.",
   questionDecided: "لم تُجب بشأن {title}، فاعتذر وكيلك بلطف. ما زال بإمكانك تقديم عرض من صفحة الطلب.",
   agentWeeklyQuestions: "طرح عليك وكيلك {asked} أسئلة: أجبت عن {answered}، و{byDefault} مضت كما أُعلن دون إجابة.",
+  briefMore: '{line} و{count} أخرى في ملخصك.',
   watchRequests: '{count} طلبات جديدة في {category}، كما طلبت من وكيلك أن يراقب.',
   watchPrice: 'صفقات {category} تُبرم الآن بنحو {to} USDC (كانت {from}).',
   watchRising: 'الطلبات على {category} في ازدياد هذا الأسبوع.',
@@ -528,6 +531,7 @@ const hi: NotifyCopy = {
   agentWeeklyInsights: "आपके एजेंट के पास आपके व्यापार के बारे में बताने के लिए {count} बातें हैं। उससे पूछें कि वह क्या देख रहा है।",
   questionDecided: "आपने {title} के बारे में जवाब नहीं दिया, इसलिए आपके एजेंट ने विनम्रता से मना कर दिया। आप अब भी अनुरोध पेज से पेशकश कर सकते हैं।",
   agentWeeklyQuestions: "आपके एजेंट ने आपसे {asked} सवाल पूछे: आपने {answered} का जवाब दिया, और {byDefault} बिना जवाब के बताए गए तरीके से तय हुए।",
+  briefMore: '{line} आपके सारांश में {count} और।',
   watchRequests: '{category} के {count} नए अनुरोध, जैसा आपने अपने एजेंट से देखने को कहा था।',
   watchPrice: '{category} के सौदे अब लगभग {to} USDC पर तय हो रहे हैं (पहले {from})।',
   watchRising: 'इस हफ़्ते {category} के अनुरोध बढ़ रहे हैं।',
@@ -686,6 +690,7 @@ const sw: NotifyCopy = {
   agentWeeklyInsights: "Wakala wako ana mambo {count} ya kukuambia kuhusu jinsi unavyofanya biashara. Muulize anachoona.",
   questionDecided: "Hukujibu kuhusu {title}, kwa hiyo wakala wako alikataa kwa adabu. Bado unaweza kutoa ofa kutoka ukurasa wa ombi.",
   agentWeeklyQuestions: "Wakala wako alikuuliza maswali {asked}: ulijibu {answered}, na {byDefault} yalienda kama ilivyosemwa bila jibu.",
+  briefMore: '{line} Mengine {count} kwenye muhtasari wako.',
   watchRequests: 'Maombi mapya {count} ya {category}, kama ulivyomwomba wakala wako aangalie.',
   watchPrice: 'Mikataba ya {category} sasa inafungwa karibu USDC {to} (ilikuwa {from}).',
   watchRising: 'Maombi ya {category} yanaongezeka wiki hii.',

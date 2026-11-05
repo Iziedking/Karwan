@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { channelsFor, reminderChannelsFor } from './notifyVia.js';
+import { briefChannelFor, channelsFor, reminderChannelsFor } from './notifyVia.js';
 
 /// "How should we reach you" (view 19), applied by the email and Telegram
 /// notifiers. Nobody is ever left with no channel.
@@ -32,6 +32,15 @@ test('both stays both', () => {
 test('the reminder goes to the one channel the first notice did not use (view 41)', () => {
   assert.deepEqual(reminderChannelsFor({ notifyVia: 'telegram' }, true), { email: true, telegram: false });
   assert.deepEqual(reminderChannelsFor({ notifyVia: 'email' }, true), { email: false, telegram: true });
+});
+
+test('briefChannelRules: Telegram when linked, else the app for a recent visitor, else email (view 52)', () => {
+  assert.deepEqual(briefChannelFor(undefined, true), { email: false, telegram: true });
+  assert.deepEqual(briefChannelFor({ notifyVia: 'both' }, true), { email: false, telegram: true });
+  assert.deepEqual(briefChannelFor({ notifyVia: 'email' }, true), { email: true, telegram: false });
+  assert.deepEqual(briefChannelFor(undefined, false), { email: true, telegram: false });
+  assert.deepEqual(briefChannelFor(undefined, false, true), { email: false, telegram: false });
+  assert.deepEqual(briefChannelFor({ notifyVia: 'telegram' }, false), { email: true, telegram: false });
 });
 
 test('with no second channel, or both already used, the reminder stays in the app', () => {

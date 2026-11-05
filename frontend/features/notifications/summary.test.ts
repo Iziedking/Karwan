@@ -11,6 +11,14 @@ test('a dispute says what can still happen, never that it is handled off-platfor
   assert.doesNotMatch(line, /off-platform/);
 });
 
+test('the bell shows the brief’s first line and how many more (view 52, step 4)', () => {
+  const lines = ['Logo: 2 new offers, the best 40 USDC.', '1 deal is waiting on you.', 'Your goal, rice: 3 requests fit, and your agent offered on 1.'];
+  assert.equal(summaryFor('agent.brief', { lines }, 'seller', en), 'Logo: 2 new offers, the best 40 USDC. 2 more in your brief.');
+  assert.equal(summaryFor('agent.note', { lines: ['Logo: 2 sellers charge less.'] }, 'seller', en), 'Logo: 2 sellers charge less.');
+  assert.equal(summaryFor('agent.brief', { lines: [] }, 'seller', en), '');
+  assert.match(summaryFor('agent.brief', { lines }, 'seller', notifyCopy.fr), /2 de plus dans votre résumé\.$/);
+});
+
 test('the seller is told to send the right link when the check holds their delivery', () => {
   assert.equal(
     summaryFor('deal.release.blocked', { detail: 'off-request' }, 'seller', en),

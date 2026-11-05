@@ -376,9 +376,17 @@ export interface SaveWaysConfirm extends ConfirmActionBase {
   payload: { ways: AgentWays };
 }
 
+/// One change to what the person's agent may do (view 52, step 3). Nothing
+/// changes until they confirm; the route then re-plans their open work.
+export interface ChangeMandateConfirm extends ConfirmActionBase {
+  intent: 'change_mandate';
+  payload: { patch: import('../agents/mandate.js').MandatePatch };
+}
+
 export type ConfirmAction =
   | SaveSetupConfirm
   | SaveWaysConfirm
+  | ChangeMandateConfirm
   | PostOfferConfirm
   | PostRequestConfirm
   | ReleaseConfirm
