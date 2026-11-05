@@ -58,6 +58,8 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 28 | [Photos on offers and deals](28-photos-on-listings.md) | Up to four photos on an offer, from the form or sent to the assistant on any channel; the first leads the market card; reviewed when reported | Approved, built for offers |
 | 27 | [Deals on the escrow family](27-deals-on-the-escrow-family.md) | New deals open on the escrow family deployed on testnet, one identity per person set up at the first money step, signed release, disputes with an appeal window, and getting paid early on the same deals | Draft |
 
+Generated, not a view: the [page to route map](page-route-map.md) lists, for every page, the backend routes its `api.*` calls reach and the guard on each. CI fails when a page calls a route that does not exist or a write with no guard and no stated reason.
+
 ## How to read a view
 
 - **Participants** across the top: people first, then Karwan systems, then outside providers.

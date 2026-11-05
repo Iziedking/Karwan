@@ -53,6 +53,9 @@ jobs:
       - name: Admin route inventory
         run: npm --prefix frontend run check:admin-routes
 
+      - name: Page to route map
+        run: npm --prefix frontend run check:page-routes
+
   cre:
     name: CRE workflow
     runs-on: ubuntu-latest
