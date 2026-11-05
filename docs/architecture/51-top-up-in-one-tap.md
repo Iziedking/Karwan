@@ -214,11 +214,27 @@ flowchart LR
 
 **When the build is checked**, each frame is compared with the running page at the same size before it counts as built, so the build and the drawing can't drift apart again.
 
+**The tab bar, owner's note the same day**
+
+- **New icons, one family.** One 24 px set, 1.75 stroke, rounded ends: a house, a shop front, a shield with a tick for protected deals, three bars for Finance.
+- **Profile is the person's photo**, a 24 px circle, with initials when there is none.
+- **The green fits the shape.** Recommended (A): the tab you are on fills its own icon in green, and the label turns bright and bold; the photo gets a thin green ring. Alternative (B): a small pill that hugs the icon, 44 by 28, instead of today's wide one.
+
+**The Agents tab, laid out like Balance**
+
+- **Same order as Balance:** the label, the big figure ("1.00 USDC a week"), then one green button in the spot Add money takes on Balance. Here it's **Change limit**, the only action.
+- **This week in one card,** like Held in your deals: "Spent this week 0.205 of 1.00", a thin bar, then "0.795 left" and what it paid for.
+- **What your agent spent lists spends only.** Money that arrived in an agent wallet shows on Balance in Recent, not here.
+- **When the limit can't load,** the tab says so with Try again, never a blank figure. On testnet today the figure is blank because `/api/money/agent-limit` answers 404: the new page went live before the server that feeds it.
+
+Drawn in Figma, section "Tab bar and Agents tab (view 51, fourth round)", Dark and Light: both tab bar options with each tab on, Money 20 (Agents), Money 21 (limit didn't load), Money 22 (Balance with the new tab bar).
+
 **Decisions for the owner (fourth round)**
 
 1. **Money's Add money opens the page too.** Recommended: yes, so there is one Add money everywhere and the side panel goes away. Alternative: Home opens the page and Money keeps a sheet.
 2. **What Withdraw counts.** Recommended: only what is ready, with Bring it here for the rest, so nothing moves without the person seeing it. Alternative: gather the Transfer balance and agent money on its own before sending, which adds a step that can fail.
 3. **Old routes.** Recommended: `/bridge?direction=in` and `?direction=out` open the new pages, so old links and the assistant's links keep working.
+4. **How the tab you are on shows.** Recommended: A, the green fills the icon itself. Alternative: B, a small pill that hugs the icon.
 
 ## Decisions for the owner
 
