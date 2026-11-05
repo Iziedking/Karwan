@@ -8,7 +8,6 @@ import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Hint } from '@/shared/components/Hint';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill } from '@/features/deals/workspace/presentation';
-import { formatAmount } from '../balanceModel';
 import { useAgentLimit } from '../hooks/useAgentLimit';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { RecentMoney } from './RecentMoney';
@@ -27,7 +26,7 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
   const one = t.moneyMove.one;
   const a = t.moneyPages.agent;
   const home = t.money.home;
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const balances = useMoneyBalances();
   const { limit, loading, failed, retry, save } = useAgentLimit();
   const [open, setOpen] = useState(false);
@@ -66,7 +65,7 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
           <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{a.withAgent}<Hint>{t.moneyPages.tips.agent}</Hint></span>
           <span data-agent-money className="block"><Price usdc={withAgent} size="hero" /></span>
           {limit ? (
-            <span data-agent-limit className="block text-[13px] font-medium text-[var(--ink-secondary)]">{fill(a.line, { limit: formatAmount(limit.weeklyUsdc, locale) })}</span>
+            <span data-agent-limit className="block text-[13px] font-medium text-[var(--ink-secondary)]">{money.fill(a.line, { limit: limit.weeklyUsdc }, {}, { exact: true })}</span>
           ) : null}
         </h1>
         <div data-agent-actions className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -83,14 +82,14 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
             <p className="flex items-center justify-between gap-3 text-[14px]">
               <span className="text-[var(--ink-secondary)]">{one.spentWeek}</span>
               <span dir="ltr" className="font-semibold tabular-nums text-[var(--ink)]">
-                {fill(a.spentOf, { spent: formatAmount(limit.spentUsdc, locale), limit: formatAmount(limit.weeklyUsdc, locale) })}
+                {money.fill(a.spentOf, { spent: limit.spentUsdc, limit: limit.weeklyUsdc }, {}, { exact: true })}
               </span>
             </p>
             <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-[var(--line)]">
               <div className="h-full rounded-full bg-[var(--ink)]" style={{ width: `${Math.round(spentShare * 100)}%` }} />
             </div>
             <p data-left-week className="text-[13px] font-medium text-[var(--ink-secondary)]">
-              {fill(a.leftLine, { left: formatAmount(limit.leftUsdc, locale), checks: String(limit.recordChecks), searches: String(limit.webSearches) })}
+              {money.fill(a.leftLine, { left: limit.leftUsdc }, { checks: String(limit.recordChecks), searches: String(limit.webSearches) }, { exact: true })}
             </p>
           </div>
         ) : failed ? (
@@ -127,6 +126,7 @@ function LimitSheet({ open, current, choices, saving, failed, onClose, onSave }:
 }) {
   const one = useTranslations().moneyMove.one;
   const { locale } = useLocale();
+  const money = useMoneyText();
   const titleId = useId();
   const [picked, setPicked] = useState(current);
 
@@ -150,7 +150,7 @@ function LimitSheet({ open, current, choices, saving, failed, onClose, onSave }:
               className={`flex min-h-[60px] w-full items-center gap-3 rounded-[var(--radius-card)] border bg-[var(--surface)] px-4 py-2 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${checked ? 'border-[var(--ink)]' : 'border-[var(--line)] hover:bg-[var(--raised)]'}`}
             >
               <span className="min-w-0 flex-1">
-                <span dir="ltr" className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatAmount(usdc, locale)} USDC</span>
+                <span dir="ltr" className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">{money.text(usdc, { exact: true })}</span>
                 <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">
                   {fill(one.about, { n: new Intl.NumberFormat(locale).format(Math.floor(usdc / RECORD_CHECK_USDC)) })}
                 </span>

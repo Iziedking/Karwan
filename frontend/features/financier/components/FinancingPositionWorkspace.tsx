@@ -10,6 +10,7 @@ import { Icon } from '@/shared/components/Icon';
 import { Sheet } from '@/features/deals/workspace/Sheet';
 import { FinancingChatPanel } from '@/features/chat/components/FinancingChatPanel';
 import type { PositionStatus } from '../positionStatus';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 type Status = PositionStatus;
 type Copy = ReturnType<typeof useTranslations>['financingWorkspace'];
@@ -51,6 +52,7 @@ export function FinancingPositionWorkspace(props: {
 }) {
   const fw = useTranslations().financingWorkspace;
   const fc = useTranslations().financingChat;
+  const money = useMoneyText();
   const [messagesOpen, setMessagesOpen] = useState(false);
   const pathname = usePathname();
   const auth = useAuth();
@@ -63,9 +65,9 @@ export function FinancingPositionWorkspace(props: {
     ? ['stepPo1', 'stepPo2', 'stepPo3', 'stepPo4']
     : ['stepFactoring1', 'stepFactoring2', 'stepFactoring3', 'stepFactoring4'];
   const rows: [string, string][] = [
-    [fw.amountFinanced, `${props.advanceUsdc} USDC`],
-    [fw.expectedRepayment, `${props.expectedReturnUsdc} USDC`],
-    ...(props.protectionUsdc ? [[fw.sellerProtectionReserved, `${props.protectionUsdc} USDC`] as [string, string]] : []),
+    [fw.amountFinanced, money.text(props.advanceUsdc)],
+    [fw.expectedRepayment, money.text(props.expectedReturnUsdc)],
+    ...(props.protectionUsdc ? [[fw.sellerProtectionReserved, money.text(props.protectionUsdc)] as [string, string]] : []),
     [fw.seller, sellerName],
     [fw.financier, financierName],
   ];

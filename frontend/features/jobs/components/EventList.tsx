@@ -4,7 +4,8 @@ import { useState } from 'react';
 import type { ChainEvent } from '@/core/api';
 import { hrefForEvent } from '@/features/activity/eventRouting';
 import { Tag, StatusDot } from '@/shared/components/Tag';
-import { shortHash, relativeTime, formatUsdc } from '@/shared/utils/format';
+import { shortHash, relativeTime } from '@/shared/utils/format';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { eventRuns } from '../eventRuns';
@@ -102,6 +103,7 @@ function scopeLabel(code: string, copy: Messages['eventList']['scopeLabels']): s
 function chipsFor(
   payload: Record<string, unknown>,
   copy: Messages['eventList'],
+  money: (usdc: string) => string,
 ): Chip[] {
   const out: Chip[] = [];
   const price = payload.priceUsdc ?? payload.agreedPriceUsdc ?? payload.toUsdc;
@@ -109,7 +111,7 @@ function chipsFor(
     out.push({
       key: 'price',
       label: copy.chipLabels.price,
-      value: `${formatUsdc(String(price), { withSuffix: false })} USDC`,
+      value: money(String(price)),
     });
   }
   const counter = payload.counterPriceUsdc ?? payload.counterPrice;
@@ -117,7 +119,7 @@ function chipsFor(
     out.push({
       key: 'counter',
       label: copy.chipLabels.counter,
-      value: `${formatUsdc(String(counter), { withSuffix: false })} USDC`,
+      value: money(String(counter)),
     });
   }
   if (payload.confidence != null) {
@@ -200,7 +202,7 @@ function chipsFor(
     out.push({
       key: 'amount',
       label: copy.chipLabels.amount,
-      value: `${payload.amountUsdc} USDC`,
+      value: money(String(payload.amountUsdc)),
     });
   }
   // Security Agent verdict on a delivery link. Only surfaced when the scan
@@ -275,6 +277,7 @@ export function EventList({
 }) {
   const { locale } = useLocale();
   const messages = useTranslations();
+  const money = useMoneyText();
   const el = messages.eventList;
   const [shown, setShown] = useState(pageSize ?? Number.POSITIVE_INFINITY);
   if (events.length === 0) {
@@ -324,7 +327,7 @@ export function EventList({
           const tone: Tone = EVENT_TONES[e.type] ?? 'system';
           const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
           const txHref = txExplorerHref(explorer, e.payload, txHash);
-          const chips = chipsFor(e.payload, el);
+          const chips = chipsFor(e.payload, el, money.text);
           const href = hrefForEvent(e);
           // Full message stays in backend logs. The scope chip
           // (added by chipsFor) gives users enough context to ask for
@@ -437,7 +440,7 @@ export function EventList({
 
   // Two rows fold only when everything a person reads on them is the same.
   const reads = (e: ChainEvent) =>
-    [e.type, e.actor, textKey(e.type, e.payload), ...chipsFor(e.payload, el).map((c) => `${c.label}:${c.value}`)].join('|');
+    [e.type, e.actor, textKey(e.type, e.payload), ...chipsFor(e.payload, el, money.text).map((c) => `${c.label}:${c.value}`)].join('|');
   const runs = collapseRepeats ? eventRuns(events, (a, b) => reads(a) === reads(b)) : events.map((item) => ({ item, repeat: 1 }));
   const visible = runs.slice(0, shown);
 
@@ -469,7 +472,7 @@ export function EventList({
             : 'muted';
         const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
         const txHref = txExplorerHref(explorer, e.payload, txHash);
-        const chips = chipsFor(e.payload, el);
+        const chips = chipsFor(e.payload, el, money.text);
         return (
           <li key={`${e.ts}-${i}`} className="slide-in py-3 ps-6 relative">
             <span className="absolute start-0 top-[14px]">

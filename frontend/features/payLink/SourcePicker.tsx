@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { formatAmount } from '@/features/money/balanceModel';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { cn } from '@/shared/utils/cn';
 import { fill } from '@/features/deals/workspace/presentation';
 import { CARD_CLASS } from '@/shared/components/Card';
@@ -80,11 +80,10 @@ export function SourcePicker<K extends ChainKey>({ listed, empty, selected, onSe
 }
 
 function Amount({ value, muted }: { value: number; muted: boolean }) {
-  const { locale } = useLocale();
+  const money = useMoneyText();
   return (
-    <span className={cn('shrink-0 text-end font-semibold tabular-nums', muted ? 'text-[14px] text-[var(--ink-secondary)]' : 'text-[17px] text-[var(--ink)]')}>
-      {formatAmount(value, locale)}
-      <span className="ms-1 text-[14px] font-medium text-[var(--ink-secondary)]">USDC</span>
+    <span dir="ltr" className={cn('shrink-0 text-end font-semibold tabular-nums', muted ? 'text-[14px] text-[var(--ink-secondary)]' : 'text-[15px] text-[var(--ink)]')}>
+      {money.text(value, { exact: true })}
     </span>
   );
 }

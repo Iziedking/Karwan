@@ -6,13 +6,17 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, emailAmount, emailFacts, emailHeading, emailNote, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
+import { brandedEmailHtml, emailFacts, emailHeading, emailNote, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
+import { emailPriceHero, emailPriceText } from './emailPrice.js';
 
 export interface DealCancelledEmailInput {
   /// Lower-cased recipient email address; the address the invite was keyed to.
   to: string;
   /// USDC amount the cancelled deal would have been, pre-formatted.
   dealAmountUsdc: string;
+  /// The amount in the currency the recipient reads prices in ("₦26,922"),
+  /// shown before the USDC. Omitted means USDC alone.
+  localAmount?: string;
   /// Buyer wallet shortened, same masking convention as the invite emails.
   inviterMasked: string;
   /// Optional free-text reason the buyer set on cancellation. Trimmed inline.
@@ -29,7 +33,7 @@ function cancelInnerHtml(input: DealCancelledEmailInput): string {
   if (input.reason) facts.push(['Reason', input.reason.slice(0, 280)]);
   return (
     emailHeading({ kicker: 'Deal cancelled', title: 'The deal you were invited to was withdrawn' }) +
-    emailAmount(input.dealAmountUsdc) +
+    emailPriceHero(input.dealAmountUsdc, input.localAmount) +
     emailText('The buyer withdrew it before you accepted. No money was put into escrow, so there is nothing for you to undo.') +
     emailFacts(facts)
   );
@@ -39,7 +43,7 @@ function cancelInnerHtml(input: DealCancelledEmailInput): string {
 export function dealCancelledHtml(input: DealCancelledEmailInput): string {
   return brandedEmailHtml({
     title: 'The deal you were invited to was withdrawn',
-    preheader: `${input.dealAmountUsdc} USDC deal withdrawn before you accepted.`,
+    preheader: `${emailPriceText(input.dealAmountUsdc, input.localAmount)} deal withdrawn before you accepted.`,
     inner: cancelInnerHtml(input) + (config.ARC_NETWORK === 'testnet' ? emailNote('Testnet activity uses test funds with no monetary value.') : ''),
     footerNote:
       'You can ignore the earlier invite link. Questions? Reply to this email.',
@@ -58,9 +62,9 @@ export async function sendDealCancelledEmail(
     return { delivered: false };
   }
   const html = dealCancelledHtml(input);
-  const subject = `Karwan deal cancelled (${input.dealAmountUsdc} USDC)`;
+  const subject = `Karwan deal cancelled (${emailPriceText(input.dealAmountUsdc, input.localAmount)})`;
   const lines = [
-    `${input.inviterMasked} withdrew the ${input.dealAmountUsdc} USDC deal you were invited to before you accepted it.`,
+    `${input.inviterMasked} withdrew the ${emailPriceText(input.dealAmountUsdc, input.localAmount)} deal you were invited to before you accepted it.`,
     '',
     'No money was put into escrow, so there is nothing for you to undo.',
   ];

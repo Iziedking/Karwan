@@ -12,7 +12,8 @@ import { moneySounds } from '@/shared/sound/moneySounds';
 import { usePersonRecord } from '@/shared/components/PersonRecord';
 import { cn } from '@/shared/utils/cn';
 import { fill } from '@/features/deals/workspace/presentation';
-import { formatAmount } from '@/features/money/balanceModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { Price } from '@/features/money/components/Price';
 import { ARC_CCTP, SOURCE_CHAINS, SOURCE_CHAIN_KEYS, type CctpChainKey } from '@/features/bridge/config';
 import { useBridges, type BridgeRecord } from '@/features/bridge/hooks/useBridge';
 import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/routePlan';
@@ -83,12 +84,7 @@ function cardState(status: DepositRequestPublic['status']) {
 }
 
 function Amount({ value }: { value: string | null }) {
-  return (
-    <p className="text-[56px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">
-      {value ?? '0'}
-      <span className="ms-1 text-[20px] font-medium tracking-normal text-[var(--ink-secondary)]"> USDC</span>
-    </p>
-  );
+  return <Price usdc={Number(value ?? 0)} size="hero" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.03em] text-[var(--ink)]" />;
 }
 
 function OwnRequest({ request }: { request: DepositRequestPublic }) {
@@ -126,6 +122,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   const copy = messages.payLink.pay;
   const activity = messages.activity;
   const { locale } = useLocale();
+  const money = useMoneyText();
   const router = useRouter();
   const auth = useAuth();
   // Signed in with email or passkey: pay from the Karwan account on Arc.
@@ -270,9 +267,9 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       downloadReceiptImage(
         {
           title: copy.receiptKind,
-          summary: `${fill(copy.paid, { amount: request.amountUsdc ?? '' })} ${fill(copy.paidTo, { name })}`,
+          summary: `${money.fill(copy.paid, { amount: request.amountUsdc })} ${fill(copy.paidTo, { name })}`,
           reference: null,
-          amount: request.amountUsdc ? `${request.amountUsdc} USDC` : null,
+          amount: request.amountUsdc ? money.text(request.amountUsdc, { exact: true }) : null,
           status: copy.paidBadge,
           date: paidDate,
           ...(arcHash ? { transaction: { label: copy.receiptRef, value: `${arcHash.slice(0, 8)}…${arcHash.slice(-4)}` } } : {}),
@@ -293,8 +290,8 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         <ReceiptCard
           status={{ label: copy.paidBadge, tone: 'done' }}
           kind={copy.receiptKind}
-          amount={request.amountUsdc ? `${request.amountUsdc} USDC` : null}
-          sentence={`${fill(copy.paid, { amount: request.amountUsdc ?? '' })} ${fill(copy.paidTo, { name })}`}
+          amount={request.amountUsdc ? money.text(request.amountUsdc, { exact: true }) : null}
+          sentence={`${money.fill(copy.paid, { amount: request.amountUsdc })} ${fill(copy.paidTo, { name })}`}
           rows={[
             { label: copy.receiptTo, value: name },
             ...(request.purpose ? [{ label: copy.receiptFor, value: request.purpose }] : []),
@@ -370,7 +367,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
             selected={method === 'account'}
             onSelect={() => setMethod('account')}
             title={copy.optBalance}
-            sub={arcBalance !== null ? fill(copy.accountBalance, { amount: formatAmount(arcBalance, locale) }) : undefined}
+            sub={arcBalance !== null ? money.fill(copy.accountBalance, { amount: arcBalance }, {}, { exact: true }) : undefined}
           />
         ) : (
           <PayOption icon="wallet" selected={method === 'wallet'} onSelect={() => setMethod('wallet')} title={copy.optWallet} sub={copy.optWalletSub} />
@@ -401,7 +398,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       />
       {owner && balance !== null ? (
         <p className={cn('mt-3 text-[14px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--ink-secondary)]')}>
-          {short ? fill(copy.notEnough, { chain: chainName(source) }) : fill(copy.walletOn, { chain: chainName(source), amount: formatAmount(balance, locale) })}
+          {short ? fill(copy.notEnough, { chain: chainName(source) }) : money.fill(copy.walletOn, { amount: balance }, { chain: chainName(source) }, { exact: true })}
         </p>
       ) : null}
       </>
@@ -409,7 +406,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       {viaAccount && auth.address && short && arcBalance !== null && !request.anyChain ? (
         <FundToPay
           owner={auth.address}
-          shortfall={formatAmount(Math.ceil((amount - arcBalance) * 100) / 100, locale)}
+          shortfall={Math.ceil((amount - arcBalance) * 100) / 100}
           name={name}
           onLanded={refetchBalance}
         />
@@ -417,7 +414,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       {declined ? <p role="status" className="mt-3 text-[14px] text-[var(--ink-secondary)] font-medium">{copy.connect}</p> : null}
 
       <button type="button" onClick={() => void pay()} disabled={!!owner && (short || amount <= 0)} className={cn(PRIMARY, 'mt-10')}>
-        {owner ? fill(copy.payCta, { amount: request.amountUsdc ?? '' }) : copy.connect}
+        {owner ? money.fill(copy.payCta, { amount: request.amountUsdc }, {}, { exact: true }) : copy.connect}
       </button>
       {!owner && !auth.isAuthenticated ? (
         <button

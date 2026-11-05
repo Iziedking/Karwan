@@ -164,6 +164,7 @@ import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { isSessionSelf, sessionAddress, viewerAddress, readSession } from '../auth/session.js';
 import { sendDealInviteEmail, formatExpiresLabel, formatWindowLabel } from '../emails/dealInvite.js';
+import { localAmountForEmail } from '../emails/emailPrice.js';
 import { sendDealUpdateEmail } from '../emails/dealUpdate.js';
 import { sendDealCancelledEmail } from '../emails/dealCancelled.js';
 import { scanDelivery } from '../security/sa-stub.js';
@@ -777,11 +778,11 @@ dealsRoutes.post('/direct', async (c) => {
       : undefined;
     if (resolvedEmailAddress && body.sellerEmail) {
       const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
-      void sendDealInviteEmail({
+      const inviteInput = {
         to: body.sellerEmail,
         claimUrl: `${base}/deals/${jobId}`,
         signInWallet: mask(resolvedEmailAddress),
-        signInVia: emailOwnerVia ?? 'wallet',
+        signInVia: (emailOwnerVia ?? 'wallet') as 'login' | 'wallet',
         dealAmountUsdc: body.dealAmountUsdc.toString(),
         inviterMasked: mask(body.buyerAddress),
         inviterName,
@@ -792,7 +793,8 @@ dealsRoutes.post('/direct', async (c) => {
           days: body.deadlineDays,
           hours: body.deadlineHours,
         }),
-      }).catch((err) => {
+      };
+      void localAmountForEmail(body.dealAmountUsdc.toString(), { address: resolvedEmailAddress, inviter: body.buyerAddress }).then((localAmount) => sendDealInviteEmail({ ...inviteInput, localAmount })).catch((err) => {
         logger.warn(
           { err: (err as Error).message, jobId },
           'deal notice email to a resolved owner failed',
@@ -800,7 +802,7 @@ dealsRoutes.post('/direct', async (c) => {
       });
     }
     if (inviteUrl && inviteExpiresAt) {
-      void sendDealInviteEmail({
+      const inviteInput = {
         to: pendingCounterparty.email,
         claimUrl: inviteUrl,
         dealAmountUsdc: body.dealAmountUsdc.toString(),
@@ -815,7 +817,8 @@ dealsRoutes.post('/direct', async (c) => {
           days: body.deadlineDays,
           hours: body.deadlineHours,
         }),
-      }).catch((err) => {
+      };
+      void localAmountForEmail(body.dealAmountUsdc.toString(), { email: pendingCounterparty.email, inviter: body.buyerAddress }).then((localAmount) => sendDealInviteEmail({ ...inviteInput, localAmount })).catch((err) => {
         logger.warn(
           { err: (err as Error).message, to: pendingCounterparty?.email, jobId },
           'deal invite email send threw',
@@ -1017,7 +1020,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
     const includeWindow =
       patch.acceptanceDeadlineUnix !== undefined ||
       patch.deadlineUnix !== undefined;
-    void sendDealUpdateEmail({
+    void localAmountForEmail(updated.dealAmountUsdc, { email: pendingEmail, inviter: deal.buyer }).then((localAmount) => sendDealUpdateEmail({
       to: pendingEmail,
       claimUrl,
       dealAmountUsdc: updated.dealAmountUsdc,
@@ -1034,7 +1037,8 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
             }),
           }
         : {}),
-    }).catch((err) => {
+      localAmount,
+    })).catch((err) => {
       logger.warn(
         { err: (err as Error).message, jobId, to: pendingEmail },
         'deal update email send threw',
@@ -5138,12 +5142,13 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     const pendingEmail = deal.pendingCounterparty?.email;
     if (pendingEmail) {
       const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
-      void sendDealCancelledEmail({
+      void localAmountForEmail(deal.dealAmountUsdc, { email: pendingEmail, inviter: deal.buyer }).then((localAmount) => sendDealCancelledEmail({
         to: pendingEmail,
         dealAmountUsdc: deal.dealAmountUsdc,
         inviterMasked: maskedInviter,
         reason,
-      }).catch((err) => {
+      localAmount,
+    })).catch((err) => {
         logger.warn(
           { err: (err as Error).message, jobId, to: pendingEmail },
           'deal cancel email send threw',

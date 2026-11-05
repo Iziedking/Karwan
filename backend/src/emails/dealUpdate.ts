@@ -7,7 +7,6 @@ import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
 import {
   brandedEmailHtml,
-  emailAmount,
   emailButton,
   emailFacts,
   emailHeading,
@@ -20,6 +19,7 @@ import {
   LOGO_BUFFER,
   LOGO_CID,
 } from './brand.js';
+import { emailPriceHero, emailPriceText } from './emailPrice.js';
 
 export interface DealUpdateEmailInput {
   /// Lower-cased recipient email address.
@@ -29,6 +29,9 @@ export interface DealUpdateEmailInput {
   claimUrl: string;
   /// USDC amount the deal is now set to (post-edit). Pre-formatted.
   dealAmountUsdc: string;
+  /// The amount in the currency the recipient reads prices in ("₦26,922"),
+  /// shown before the USDC. Omitted means USDC alone.
+  localAmount?: string;
   /// Buyer wallet shortened, same masking convention as the invite email.
   inviterMasked: string;
   /// Short list of human-readable fields that changed. Bullet-rendered so
@@ -57,7 +60,7 @@ function updateInnerHtml(input: DealUpdateEmailInput): string {
     : '';
   return (
     emailHeading({ kicker: 'Deal updated', title: 'The buyer changed the deal you were invited to' }) +
-    emailAmount(input.dealAmountUsdc) +
+    emailPriceHero(input.dealAmountUsdc, input.localAmount) +
     emailText('Check the new terms before you agree. Agreeing does not move any money. The buyer funds escrow afterwards.') +
     changes +
     emailFacts(facts) +
@@ -70,7 +73,7 @@ function updateInnerHtml(input: DealUpdateEmailInput): string {
 export function dealUpdateHtml(input: DealUpdateEmailInput): string {
   return brandedEmailHtml({
     title: 'The buyer changed the deal you were invited to',
-    preheader: `The deal is now ${input.dealAmountUsdc} USDC. Check the new terms before you agree.`,
+    preheader: `The deal is now ${emailPriceText(input.dealAmountUsdc, input.localAmount)}. Check the new terms before you agree.`,
     inner: updateInnerHtml(input) + (config.ARC_NETWORK === 'testnet' ? emailNote('Testnet activity uses test funds with no monetary value.') : ''),
     footerNote:
       'No longer want the deal? Ignore this email. Nothing is agreed until you sign in and accept.',
@@ -89,9 +92,9 @@ export async function sendDealUpdateEmail(
     return { delivered: false };
   }
   const html = dealUpdateHtml(input);
-  const subject = `Karwan deal updated (${input.dealAmountUsdc} USDC)`;
+  const subject = `Karwan deal updated (${emailPriceText(input.dealAmountUsdc, input.localAmount)})`;
   const lines = [
-    `${input.inviterMasked} adjusted the deal you were invited to. It is now ${input.dealAmountUsdc} USDC.`,
+    `${input.inviterMasked} adjusted the deal you were invited to. It is now ${emailPriceText(input.dealAmountUsdc, input.localAmount)}.`,
     '',
     `Review updated terms: ${input.claimUrl}`,
     '',

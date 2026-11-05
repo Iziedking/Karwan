@@ -5,6 +5,7 @@ import { api, type DepositRequestPublic } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { fill } from '@/features/deals/workspace/presentation';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { Qr, Watching } from '@/features/deposit/components/DepositCard';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { buttonClasses } from '@/shared/components/Button';
@@ -24,6 +25,7 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
 }) {
   const copy = useTranslations().payLink.pay;
   const deposit = useTranslations().deposit;
+  const money = useMoneyText();
   const client = useQueryClient();
   const [failed, setFailed] = useState(false);
   const [family, setFamily] = useState<'evm' | 'solana'>('evm');
@@ -104,7 +106,7 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
     <section className="mt-6">
       {state.phase === 'part' ? (
         <p role="status" className="mb-4 text-[15px] font-medium text-[var(--ink)]">
-          {fill(copy.partReceived, { got: state.got, total: state.total, left: state.sendUsdc })}
+          {money.fill(copy.partReceived, { total: state.total, left: state.sendUsdc }, { got: state.got }, { exact: true })}
         </p>
       ) : null}
       {receiving?.solana ? (
@@ -134,6 +136,7 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
           <div className="min-w-0 flex-1">
             <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{copy.sendExactly}</p>
             <p className="mt-1 text-[20px] font-semibold tabular-nums text-[var(--ink)]">{"sendUsdc" in state ? state.sendUsdc : ""} USDC</p>
+            {"sendUsdc" in state && money.hint(state.sendUsdc) ? <p data-local-hint className="text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{money.hint(state.sendUsdc)}</p> : null}
             <p className="mt-3 break-all text-[14px] font-medium tabular-nums text-[var(--ink)] select-all">{address}</p>
             <p className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{fill(copy.chainsLine, { chains: chains ?? '' })}</p>
           </div>

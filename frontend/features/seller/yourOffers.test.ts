@@ -10,7 +10,7 @@ test('Your offers reads like the Request list', () => {
   assert.doesNotMatch(list, /title=\{pl\.dismissTitle\}/, 'no browser tooltip on dismiss');
   assert.doesNotMatch(list, /role="link"/, 'each row is a real link');
   assert.match(list, /<Link\s/);
-  assert.match(list, /walletAmount\(/, 'amounts to the cent');
+  assert.match(list, /money\.text\(l\.askingPriceUsdc\)/, 'the price in the chosen currency, to the cent');
   assert.match(list, /rounded-full px-2\.5 py-0\.5 text-\[14px\] font-semibold/, 'status is a tinted label');
   assert.match(list, /<Icon name="chevron-right"[^>]*directional/);
   assert.match(list, /<Icon name="close"/);

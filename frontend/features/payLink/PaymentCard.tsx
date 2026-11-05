@@ -2,6 +2,7 @@
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { PersonRecord } from '@/shared/components/PersonRecord';
 import { fill } from '@/features/deals/workspace/presentation';
+import { Price } from '@/features/money/components/Price';
 import { PayLinkQr } from './ShareLink';
 
 export type PaymentCardState = 'open' | 'paid' | 'expired' | 'cancelled';
@@ -38,10 +39,7 @@ export function PaymentCard({ recipient, amount, purpose, state, expiresAt, paid
       <div className="mt-[22px]">
         <PersonRecord address={recipient} size={40} />
       </div>
-      <p dir="ltr" className="mt-[22px] flex items-baseline gap-2 text-start rtl:justify-end">
-        <span className="text-[52px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">{amount ?? '0'}</span>
-        <span className="text-[19px] font-semibold text-[var(--ink-secondary)]">USDC</span>
-      </p>
+      <Price usdc={Number(amount ?? 0)} size="hero" className="mt-[22px] text-start" figureClassName="text-[52px] font-semibold leading-none tracking-[-0.03em] text-[var(--ink)]" />
       {purpose ? <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">{fill(pay.forTemplate, { purpose })}</p> : null}
       <div className="mt-5 border-t border-[var(--line)] pt-[18px]">
         {state === 'open' && url ? (

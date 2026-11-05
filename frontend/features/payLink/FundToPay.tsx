@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill } from '@/features/deals/workspace/presentation';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { Qr, Watching } from '@/features/deposit/components/DepositCard';
 import { useDepositAddress, useFundsLanded } from '@/features/deposit/useDepositWatch';
 import { CARD_CLASS } from '@/shared/components/Card';
@@ -13,11 +13,12 @@ import { CARD_CLASS } from '@/shared/components/Card';
 /// only a send Karwan makes has a transaction it can check and mark Paid.
 export function FundToPay({ owner, shortfall, name, onLanded }: {
   owner: string;
-  shortfall: string;
+  shortfall: number;
   name: string;
   onLanded: () => void;
 }) {
   const copy = useTranslations().payLink.pay;
+  const money = useMoneyText();
   const deposit = useTranslations().deposit;
   const [copied, setCopied] = useState(false);
   const { supported, address, chains: evm } = useDepositAddress(owner);
@@ -34,7 +35,7 @@ export function FundToPay({ owner, shortfall, name, onLanded }: {
 
   return (
     <section className={`${CARD_CLASS} mt-8 p-5`}>
-      <h2 className="text-[17px] font-semibold text-[var(--ink)]">{fill(copy.fundTitle, { amount: shortfall, name })}</h2>
+      <h2 className="text-[17px] font-semibold text-[var(--ink)]">{money.fill(copy.fundTitle, { amount: shortfall }, { name }, { exact: true })}</h2>
       {supported === false ? (
         <p className="mt-2 text-[14px] text-[var(--ink-secondary)] font-medium">{deposit.unavailable}</p>
       ) : address ? (

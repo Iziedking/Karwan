@@ -1,13 +1,11 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { Button } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
-import { fill } from '@/features/deals/workspace/presentation';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
-import { formatAmount } from '../balanceModel';
 import { withdrawReady, type WithdrawDestination } from '../withdrawStart';
 
 /// Withdraw, first screen (view 44, P8): how much, and where it goes. A wallet
@@ -15,7 +13,7 @@ import { withdrawReady, type WithdrawDestination } from '../withdrawStart';
 /// someone on Karwan opens Send with the amount.
 export function WithdrawStart({ onWallet }: { onWallet: (amount: number, address: string) => void }) {
   const t = useTranslations().moneyPage;
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const router = useRouter();
   const { balance } = useMoneyBalances();
   const [amount, setAmount] = useState('');
@@ -79,8 +77,9 @@ export function WithdrawStart({ onWallet }: { onWallet: (amount: number, address
           />
           <span className="text-[19px] font-semibold text-[var(--ink-secondary)]">USDC</span>
         </span>
+        {money.hint(amount) ? <span data-local-hint className="mt-1 block text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{money.hint(amount)}</span> : null}
         <span id="withdraw-available" className={cn('mt-1.5 block text-[14px]', over ? 'font-semibold text-[var(--color-critical)]' : 'text-[var(--ink-secondary)]')}>
-          {over ? t.over : balance !== null ? fill(t.available, { amount: formatAmount(balance, locale) }) : ' '}
+          {over ? t.over : balance !== null ? money.fill(t.available, { amount: balance }, {}, { exact: true }) : ' '}
         </span>
       </label>
       <fieldset>
@@ -108,7 +107,7 @@ export function WithdrawStart({ onWallet }: { onWallet: (amount: number, address
         </label>
       ) : null}
       <Button type="button" size="lg" disabled={!check.ok} onClick={go} className="w-full">
-        {check.ok && destination === 'wallet' ? fill(t.withdrawCta, { amount: formatAmount(Number(amount), locale) }) : t.continueCta}
+        {check.ok && destination === 'wallet' ? money.fill(t.withdrawCta, { amount: Number(amount) }, {}, { exact: true }) : t.continueCta}
       </Button>
     </div>
   );

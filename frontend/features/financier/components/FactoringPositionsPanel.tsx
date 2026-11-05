@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type DirectDeal, type FactoringOffer } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { formatUsdc } from '@/shared/utils/format';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { cn } from '@/shared/utils/cn';
 import { LINK, SECONDARY } from '@/shared/ui/controls';
 import { stageOf } from '@/features/deals/components/DirectDealList';
@@ -48,6 +48,7 @@ function usePositions() {
 /// desk. Finished positions are in FactoringHistoryPanel, below the requests.
 export function FactoringPositionsPanel() {
   const t = useTranslations().financierDashboard.positions;
+  const money = useMoneyText();
   const offers = usePositions();
   const queryClient = useQueryClient();
   const { needsYou, active } = groupPositions(offers);
@@ -74,10 +75,7 @@ export function FactoringPositionsPanel() {
       </h2>
       {/* Nothing out means nothing to sum up. */}
       {summary.active > 0 || needsYou.length > 0 ? <p className="mt-1 text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">
-        {t.summary
-          .replace('{active}', String(summary.active))
-          .replace('{out}', formatUsdc(summary.outUsdc, { withSuffix: false }))
-          .replace('{back}', formatUsdc(summary.expectedUsdc, { withSuffix: false }))}
+        {money.fill(t.summary, { out: summary.outUsdc, back: summary.expectedUsdc }, { active: summary.active })}
         {needsYou.length > 0 ? ` · ${t.needsReview.replace('{count}', String(needsYou.length))}` : ''}
       </p> : null}
 
@@ -161,6 +159,7 @@ function PositionRow({ offer, deal, onPaid }: { offer: FactoringOffer; deal: Dir
   const copy = useTranslations();
   const t = copy.financierDashboard.positions;
   const stages = copy.pending.financed.stages;
+  const money = useMoneyText();
   const { locale } = useLocale();
   const status = offer.status as ShownStatus;
   const reference = dealReference(offer.invoiceId);
@@ -187,20 +186,20 @@ function PositionRow({ offer, deal, onPaid }: { offer: FactoringOffer; deal: Dir
         ) : null}
         <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">
           {status === 'defaulted' && offer.fromGuaranteeMicros
-            ? t.shortfall.replace('{amount}', formatUsdc((Number(offer.fromGuaranteeMicros) / 1e6).toString(), { withSuffix: false }))
+            ? money.fill(t.shortfall, { amount: Number(offer.fromGuaranteeMicros) / 1e6 })
             : t.detail[status]}
         </p>
         <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[14px]">
           <div className="flex gap-1.5">
             <dt className="text-[var(--ink-secondary)]">{t.advanced}</dt>
             <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--ink)]">
-              {formatUsdc(offer.offeredAdvanceUsdc, { withSuffix: false })} USDC
+              {money.text(offer.offeredAdvanceUsdc)}
             </dd>
           </div>
           <div className="flex gap-1.5">
             <dt className="text-[var(--ink-secondary)]">{finished ? t.received : t.expected}</dt>
             <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--ink)]">
-              {formatUsdc(offer.expectedReturnUsdc, { withSuffix: false })} USDC
+              {money.text(offer.expectedReturnUsdc)}
             </dd>
           </div>
         </dl>

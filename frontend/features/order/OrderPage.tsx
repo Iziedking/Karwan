@@ -23,6 +23,7 @@ import { samplePhoto, sellerLine } from '@/features/market/listingFacts';
 import { AddMoneyPanel } from './AddMoneyPanel';
 import { orderPhase, shortfallUsdc, spendableUsdc, type OrderQuoteError } from './orderModel';
 import { usePayOrder, type PaidIn } from './usePayOrder';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const PRIMARY = `w-full ${buttonClasses({ variant: 'primary', size: 'lg' })}`;
 const QUIET = `w-full ${buttonClasses({ variant: 'secondary', size: 'lg' })}`;
@@ -55,6 +56,7 @@ export function OrderPage({ listingId }: { listingId: string }) {
 function OrderReview({ listingId, address, circle }: { listingId: string; address: string; circle: boolean }) {
   const copy = useTranslations();
   const t = copy.orderFlow;
+  const money = useMoneyText();
   const shop = useTranslations().marketShop;
   const { locale } = useLocale();
   const { agents } = useActivation();
@@ -113,7 +115,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
   const firstName = listing?.seller?.name?.split(/\s+/)[0] || name;
 
   if (payOrder.paid && listing && quote) {
-    return <PaidInResult paid={payOrder.paid} name={firstName} amount={usd(quote.youPayUsdc)} tag={listing.seller?.tag ?? null} listingId={listing.id} />;
+    return <PaidInResult paid={payOrder.paid} name={firstName} amount={quote.youPayUsdc} tag={listing.seller?.tag ?? null} listingId={listing.id} />;
   }
 
   if (phase === 'changed' || phase === 'closed' || phase === 'own') {
@@ -137,9 +139,9 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
   }
 
   const held = !!quote?.waitsForSeller;
-  const youPay = quote ? usd(quote.youPayUsdc) : '';
+  const payUsdc = quote?.youPayUsdc ?? null;
   const short = quote && spendable !== null ? shortfallUsdc(quote.youPayUsdc, spendable) : '0';
-  const failure = outcome === 'failed' ? t.failed : outcome && typeof outcome === 'object' ? fill(t.totalChanged, { amount: usd(outcome.totalChanged) }) : null;
+  const failure = outcome === 'failed' ? t.failed : outcome && typeof outcome === 'object' ? money.fill(t.totalChanged, { amount: outcome.totalChanged }, {}, { exact: true }) : null;
 
   return (
     <main className="mx-auto w-full max-w-[560px] px-4 pb-16 pt-6 sm:px-6" data-order-page>
@@ -162,10 +164,10 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
       <section className={`${CARD_CLASS} mt-5 divide-y divide-[var(--line)] px-5 py-1`}>
         <Row label={t.delivery} value={deliverBy ? fill(t.deliverBy, { date: deliverBy }) : '…'} />
         <div className="py-1">
-          <Row label={t.price} value={quote ? `${usd(quote.priceUsdc)} USDC` : '…'} />
-          <Row label={t.fee} value={quote ? `${usd(quote.feeUsdc)} USDC` : '…'} />
+          <Row label={t.price} value={quote ? money.text(quote.priceUsdc, { exact: true }) : '…'} />
+          <Row label={t.fee} value={quote ? money.text(quote.feeUsdc, { exact: true }) : '…'} />
         </div>
-        <Row label={t.youPay} value={quote ? `${youPay} USDC` : '…'} strong />
+        <Row label={t.youPay} value={quote ? money.text(quote.youPayUsdc, { exact: true }) : '…'} strong />
       </section>
 
       <section className={`${CARD_CLASS} mt-4 flex gap-3 p-4`}>
@@ -192,14 +194,14 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
       <section className={`${CARD_CLASS} mt-4 px-5 py-4`} data-order-balance>
         <div className="flex items-baseline justify-between gap-4">
           <span className="text-[15px] text-[var(--ink-secondary)]">{t.balance}</span>
-          <span className="tabular-nums text-[15px] font-medium text-[var(--ink)]">{spendable === null ? '…' : `${usd(spendable)} USDC`}</span>
+          <span className="tabular-nums text-[15px] font-medium text-[var(--ink)]">{spendable === null ? '…' : money.text(spendable, { exact: true })}</span>
         </div>
         {phase === 'ready' || phase === 'paying' ? (
           <p className="mt-1 text-[14px] font-medium text-[var(--ink)]">{t.enough}</p>
         ) : phase === 'short' ? (
-          <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{fill(t.short, { amount: usd(short) })}</p>
+          <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{money.fill(t.short, { amount: short }, {}, { exact: true })}</p>
         ) : null}
-        {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{fill(t.arrived, { amount: usd(arrived) })}</p> : null}
+        {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{money.fill(t.arrived, { amount: arrived }, {}, { exact: true })}</p> : null}
       </section>
 
       {failure ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--ink)]">{failure}</p> : null}
@@ -229,7 +231,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
             onClick={() => { payOrder.clearOutcome(); setConfirming(true); }}
             className={PRIMARY}
           >
-            {phase === 'paying' ? fill(t.paying, { amount: youPay }) : fill(t.pay, { amount: youPay || '…' })}
+            {phase === 'paying' ? money.fill(t.paying, { amount: payUsdc }, {}, { exact: true }) : quote ? money.fill(t.pay, { amount: payUsdc }, {}, { exact: true }) : fill(t.pay, { amount: '…' })}
           </button>
         )}
       </div>
@@ -238,17 +240,17 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
 
       <FactsConfirmSheet
         open={confirming}
-        title={fill(t.confirmTitle, { amount: youPay })}
+        title={money.fill(t.confirmTitle, { amount: payUsdc }, {}, { exact: true })}
         rows={[
           [t.confirmFor, [listing?.title, name].filter(Boolean).join(', ')],
-          [t.amount, `${youPay} USDC`],
+          [t.amount, money.text(payUsdc, { exact: true })],
           [t.confirmFrom, t.balance],
-          ...(spendable !== null && quote ? [[t.leftAfter, `${usd(Math.max(0, spendable - Number(quote.youPayUsdc)))} USDC`] as [string, string]] : []),
+          ...(spendable !== null && quote ? [[t.leftAfter, money.text(Math.max(0, spendable - Number(quote.youPayUsdc)), { exact: true })] as [string, string]] : []),
           [t.confirmHeld, t.heldValue],
           [fill(t.confirmIf, { name }), t.ifValue],
         ]}
-        primaryLabel={fill(t.pay, { amount: youPay })}
-        busyLabel={fill(t.paying, { amount: youPay })}
+        primaryLabel={money.fill(t.pay, { amount: payUsdc }, {}, { exact: true })}
+        busyLabel={money.fill(t.paying, { amount: payUsdc }, {}, { exact: true })}
         quietLabel={t.notNow}
         busy={payOrder.busy}
         error={failure}
@@ -265,6 +267,7 @@ function PaidInResult({ paid, name, amount, tag, listingId }: { paid: PaidIn; na
   const copy = useTranslations();
   const t = copy.orderFlow;
   const dp = copy.dealPage;
+  const money = useMoneyText();
   const { locale } = useLocale();
   const at = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(paid.at);
   const reference = dealReference(paid.jobId);
@@ -275,7 +278,7 @@ function PaidInResult({ paid, name, amount, tag, listingId }: { paid: PaidIn; na
       </span>
       <div>
         <h1 className="text-[24px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink)]">{fill(t.paidTitle, { name })}</h1>
-        <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{fill(t.paidHeld, { amount })}</p>
+        <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{money.fill(t.paidHeld, { amount }, {}, { exact: true })}</p>
       </div>
       <div className={`${CARD_CLASS} p-5`}>
         <StepsTrack steps={[
@@ -287,7 +290,7 @@ function PaidInResult({ paid, name, amount, tag, listingId }: { paid: PaidIn; na
         <div className="mt-5 border-t border-[var(--line)] pt-1">
           <FactRows facts={[
             { label: dp.steps.paidIn, value: at },
-            { label: dp.amount, value: `${amount} USDC` },
+            { label: dp.amount, value: money.text(amount, { exact: true }) },
             ...(reference ? [{ label: dp.release.deal, value: <span dir="ltr">{reference}</span>, id: 'reference' }] : []),
           ]} />
         </div>

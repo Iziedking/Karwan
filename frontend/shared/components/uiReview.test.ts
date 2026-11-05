@@ -585,3 +585,36 @@ test('every price reads the same way: the chosen currency leads with USDC under 
   // A switch that is on is Karwan green.
   assert.match(source('../../features/profile/ui/ProfileUi.tsx'), /checked \? 'var\(--karwan-green\)'/);
 });
+
+test('the money sheets, Send, payment links, offers and the financier desk read in the chosen currency too (owner, 5 Nov 2026)', () => {
+  for (const file of [
+    '../../features/money/components/MoneySheet.tsx',
+    '../../features/money/components/SendFlow.tsx',
+    '../../features/money/components/AddMoneySheet.tsx',
+    '../../features/money/components/WithdrawFlow.tsx',
+    '../../features/money/components/WithdrawStart.tsx',
+    '../../features/money/components/AmountHero.tsx',
+    '../../features/guarantee/GuaranteeMove.tsx',
+    '../../features/payLink/PayRequestView.tsx',
+    '../../features/payLink/FundToPay.tsx',
+    '../../features/payLink/SourcePicker.tsx',
+    '../../features/cashout/CashoutView.tsx',
+    '../../features/offers/components/OfferPanel.tsx',
+    '../../features/offers/components/BuyerOffers.tsx',
+    '../../features/offers/components/AgentQuestionCard.tsx',
+    '../../features/jobs/components/OffersRoster.tsx',
+    '../../features/jobs/components/Shortlist.tsx',
+    '../../features/jobs/components/EventList.tsx',
+    '../../features/order/OrderPage.tsx',
+    '../../features/financier/components/FinancierDashboard.tsx',
+    '../../features/financier/components/FactoringPositionsPanel.tsx',
+    '../../features/financier/components/FinancingPositionWorkspace.tsx',
+    '../../features/financier/components/PaySeller.tsx',
+  ]) {
+    const code = source(file);
+    assert.match(code, /useMoneyText\(\)/, file);
+    assert.doesNotMatch(code, /\$\{format(Balance|Amount|Usdc)\([^`]*\)\} USDC`|\} USDC<\/(span|p|dd)>/, `${file}: no figure printed in USDC alone`);
+  }
+  // The exact USDC to send on another network stays exact, its worth under it.
+  assert.match(source('../../features/payLink/AnyChainPay.tsx'), /money\.hint\(state\.sendUsdc\)/);
+});

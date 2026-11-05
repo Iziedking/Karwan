@@ -5,7 +5,9 @@ import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { OfferRosterCopy } from '@/shared/i18n/messages/offerRoster';
-import { formatUsdc, shortAddress } from '@/shared/utils/format';
+import { shortAddress } from '@/shared/utils/format';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { Price } from '@/features/money/components/Price';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { cn } from '@/shared/utils/cn';
@@ -20,7 +22,6 @@ import { AgentWorldCheck } from './AgentWorldCheck';
 import { worldStepFrom } from '../agentWorldStep';
 
 const nameOf = (bid: BuyerBid) => bid.sellerDisplayName?.trim() || shortAddress(bid.seller);
-const price = (usdc: string | number) => formatUsdc(String(usdc), { withSuffix: false });
 
 /// The offers on a request: folded to one row of faces until asked, then a
 /// ranked list four at a time. Any offer opens a sheet where the buyer can
@@ -37,6 +38,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   onChosen: () => void;
 }) {
   const t = useTranslations();
+  const money = useMoneyText();
   const copy = t.offerRoster;
   const [open, setOpen] = useState(openInitially);
   const [page, setPage] = useState(1);
@@ -120,7 +122,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
               <span className="min-w-0 truncate text-[14px]">
                 <span className="font-semibold text-[var(--ink)]">{folded}</span>
                 {!pickSeller && range ? (
-                  <span className="text-[var(--ink-secondary)]"> · {fill(copy.range, { min: price(range.min), max: price(range.max) })}</span>
+                  <span className="text-[var(--ink-secondary)]"> · {money.fill(copy.range, { min: range.min, max: range.max })}</span>
                 ) : null}
               </span>
             </span>
@@ -180,7 +182,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
       <ConfirmSheet
         open={!!viewing && confirming}
         title={viewing ? fill(copy.confirmTitle, { name: nameOf(viewing) }) : ''}
-        consequence={viewing ? fill(copy.confirmBody, { name: nameOf(viewing), amount: price(viewing.priceUsdc) }) : ''}
+        consequence={viewing ? money.fill(copy.confirmBody, { amount: viewing.priceUsdc }, { name: nameOf(viewing) }) : ''}
         confirmLabel={t.requestFlow.accept}
         irreversible={false}
         busy={busy}
@@ -249,10 +251,7 @@ function OfferRow({ bid, pick, copy, onOpen }: { bid: BuyerBid; pick: boolean; c
           {by ? <span>{fill(copy.delivers, { date: by })}</span> : null}
         </span>
       </span>
-      <span className="shrink-0 text-end text-[16px] font-semibold tabular-nums text-[var(--ink)]">
-        {price(bid.priceUsdc)}
-        <span className="block text-[14px] font-medium text-[var(--ink-secondary)]">USDC</span>
-      </span>
+      <Price usdc={Number(bid.priceUsdc)} className="shrink-0 text-end text-[16px] font-semibold text-[var(--ink)]" />
     </button>
   );
 }
@@ -268,6 +267,7 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
   // Someone else's record is sealed (D30): their tier and reasons, never counts.
   const { data, sealed } = useReputation(bid.seller);
   const sr = useTranslations().sealedRecord;
+  const money = useMoneyText();
   const reasons = sealed ? reasonLabels(sealed.reasons, sr) : [];
   const level = fitLevel(bid.topicalMatch);
   const settled = data ? data.successCount + data.disputedCount + data.failedCount : null;
@@ -280,10 +280,7 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
           <ReputationBadge address={bid.seller} size="md" appearance="quiet" />
           {pick ? <p className="mt-0.5 text-[14px] font-semibold text-[var(--ink)]">{copy.pick}</p> : null}
         </div>
-        <p className="shrink-0 text-end text-[22px] font-semibold tabular-nums text-[var(--ink)]">
-          {price(bid.priceUsdc)}
-          <span className="block text-[14px] font-medium text-[var(--ink-secondary)]">USDC</span>
-        </p>
+        <Price usdc={Number(bid.priceUsdc)} className="shrink-0 text-end text-[22px] font-semibold text-[var(--ink)]" />
       </div>
       <dl className={cn('grid gap-2', data ? 'grid-cols-3' : 'grid-cols-1')}>
         {data ? (
@@ -322,7 +319,7 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
           onClick={onChoose}
           className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
         >
-          {fill(copy.choose, { name: nameOf(bid), amount: price(bid.priceUsdc) })}
+          {money.fill(copy.choose, { amount: bid.priceUsdc }, { name: nameOf(bid) })}
         </button>
       ) : null}
       {bid.sellerUserAddress ? (

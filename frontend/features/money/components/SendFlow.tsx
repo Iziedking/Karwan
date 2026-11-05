@@ -21,7 +21,8 @@ import { moneySounds } from '@/shared/sound/moneySounds';
 import { CHIP, PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import { fill } from '@/features/deals/workspace/presentation';
 import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
-import { formatAmount, formatBalance } from '../balanceModel';
+import { formatAmount } from '../balanceModel';
+import { useMoneyText } from '../hooks/useMoneyText';
 import { sendAvailable } from '../sendFromWhole';
 import { pressKey } from '../amountEntry';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
@@ -65,6 +66,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
   const t = messages.money;
   const flow = t.sendFlow;
   const { locale } = useLocale();
+  const money = useMoneyText();
   const auth = useAuth();
   const pathname = usePathname();
   const reduce = useHydratedReducedMotion();
@@ -194,6 +196,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
                 <span className="text-[64px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">{formatAmount(moved, locale)}</span>
                 <span className="text-[19px] font-semibold text-[var(--ink-secondary)]">USDC</span>
               </p>
+              {money.hint(moved) ? <p data-local-hint className="-mt-3 text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">{money.hint(moved)}</p> : null}
               <p className="text-[15px] font-medium text-[var(--ink-secondary)]">
                 {fill(state.kind === 'confirmed' ? flow.sentTo : flow.sendingTo, { name: toName })}
               </p>
@@ -204,7 +207,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
                   <dl className={`${CARD} px-5 text-[15px] tabular-nums`}>
                     <Row label={flow.to} value={toName} />
                     {note.trim() ? <Row label={flow.note} value={note.trim()} plain /> : null}
-                    <Row label={t.sheet.yourBalance} value={available === null ? '' : `${formatBalance(available, locale)} USDC`} />
+                    <Row label={t.sheet.yourBalance} value={available === null ? '' : money.text(available)} />
                     {state.reference ? <Row label={t.sheet.reference} value={state.reference} mono /> : null}
                   </dl>
                   <RecordDoneLine show={state.recordSetUp === true} />
@@ -343,7 +346,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
               <AmountHero id={amountId} label={t.sheet.amountLabel} value={typed} onChange={setTyped} keypad={keypad} inputRef={amountRef} />
             </div>
             <p className="mt-3 inline-flex items-center justify-center gap-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
-              {available === null ? ' ' : fill(t.sheet.available, { amount: formatBalance(available, locale) })}
+              {available === null ? ' ' : money.fill(t.sheet.available, { amount: available })}
               {available !== null ? <Hint side="bottom">{t.sheet.availableHint}</Hint> : null}
             </p>
             <div className="mt-5 flex justify-center gap-2">
@@ -373,7 +376,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
             ) : null}
             {blocker === 'short' && amount !== null && max !== null ? (
               <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 text-[14px] text-[var(--ink)]">
-                <span>{fill(t.sheet.short, { amount: formatAmount(shortfall(amount, max), locale) })}</span>
+                <span>{money.fill(t.sheet.short, { amount: shortfall(amount, max) }, {}, { exact: true })}</span>
                 <a href="/add" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">{t.sheet.addUsdc}</a>
               </p>
             ) : null}
@@ -395,6 +398,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
             <span className="text-[48px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">{formatAmount(amount ?? 0, locale)}</span>
             <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
           </p>
+          {money.hint(amount) ? <p data-local-hint className="text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">{money.hint(amount)}</p> : null}
         </div>
         <dl className={`${CARD} mt-6 bg-[var(--raised)] px-5 text-[15px]`}>
           <Row label={flow.to} value={toName} />
@@ -403,11 +407,11 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
           <Row label={flow.network} value="Arc" />
         </dl>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--ink)]">
-          {fill(paidTag ? t.sheet.consequenceSendTag : t.sheet.consequenceSend, { amount: formatAmount(amount ?? 0, locale), tag: paidTag?.tag ?? '' })}
+          {money.fill(paidTag ? t.sheet.consequenceSendTag : t.sheet.consequenceSend, { amount: amount ?? 0 }, { tag: paidTag?.tag ?? '' }, { exact: true })}
         </p>
         <p className="mt-1 text-[14px] font-medium text-[var(--color-warning)]">{t.sheet.sendIrreversible}</p>
         <button ref={confirmRef} type="button" onClick={send} disabled={blocker !== null} className={`${PRIMARY} mt-6 w-full gap-2`}>
-          {fill(t.sheet.ctaSend, { amount: formatAmount(amount ?? 0, locale) })}
+          {money.fill(t.sheet.ctaSend, { amount: amount ?? 0 }, {}, { exact: true })}
         </button>
       </ConfirmSheetShell>
 

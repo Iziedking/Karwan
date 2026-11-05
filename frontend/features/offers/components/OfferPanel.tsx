@@ -9,7 +9,7 @@ import { Button, buttonClasses } from '@/shared/components/Button';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { formatUsdc } from '@/shared/utils/format';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { splitRequestText } from '@/features/discovery/model';
 import { deliverByUnixFromDate, offerDefaults, offerErrorKey, type Offer } from '../model';
 import { lowerCheck, lowerErrorKey } from '../lowerOffer';
@@ -32,6 +32,7 @@ function shortDate(unix: number, locale: string): string {
 export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React.ReactNode }) {
   const all = useTranslations();
   const t = all.offers;
+  const money = useMoneyText();
   const opensNewTab = all.accountHome.opensNewTab;
   const { locale } = useLocale();
   const auth = useAuth();
@@ -110,7 +111,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
         <div className="flex items-center justify-between gap-4 py-4">
           <dt className="text-[15px] text-[var(--lp-text-sub)]">{t.budget}</dt>
           <dd className="text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">
-            {formatUsdc(view.request.budgetUsdc)}
+            {money.text(view.request.budgetUsdc)}
           </dd>
         </div>
         {quantityLine(all.requestPage, view.request.quantity, view.request.budgetUsdc) ? (
@@ -180,6 +181,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
 function OpenOffers({ offers }: { offers: OpenOffer[] }) {
   const { locale, t: all } = useLocale();
   const t = all.offers;
+  const money = useMoneyText();
   const shop = all.marketShop;
   return (
     <section aria-labelledby="open-offers" className="mt-8">
@@ -209,7 +211,7 @@ function OpenOffers({ offers }: { offers: OpenOffer[] }) {
                 </p>
               </div>
               <div className="shrink-0 text-end">
-                <p className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(o.priceUsdc)}</p>
+                <p className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.text(o.priceUsdc)}</p>
                 <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{t.deliverByOn.replace('{date}', shortDate(o.deliverByUnix, locale))}</p>
               </div>
             </div>
@@ -224,6 +226,7 @@ function OpenOffers({ offers }: { offers: OpenOffer[] }) {
 function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; onChange: () => Promise<void> }) {
   const all = useTranslations();
   const t = all.offers;
+  const money = useMoneyText();
   const m = all.offersThatMove;
   const { locale } = useLocale();
   const [busy, setBusy] = useState(false);
@@ -255,7 +258,7 @@ function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; on
     <div className="rounded-[20px] bg-[var(--lp-card)] p-6">
       <p className="text-[17px] font-medium text-[var(--lp-dark)]">{t.sent}</p>
       <p className="mt-1 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
-        {t.sentDetail.replace('{price}', formatUsdc(offer.priceUsdc, { withSuffix: false })).replace('{date}', shortDate(offer.deliverByUnix, locale))}
+        {money.fill(t.sentDetail, { price: offer.priceUsdc }).replace('{date}', shortDate(offer.deliverByUnix, locale))}
       </p>
       {lowering ? (
         <div className="mt-4 space-y-2">
@@ -319,6 +322,7 @@ function MakeOffer({
   trigger?: boolean;
 }) {
   const t = useTranslations().offers;
+  const money = useMoneyText();
   const titleId = useId();
   const priceId = useId();
   const dateId = useId();
@@ -386,6 +390,7 @@ function MakeOffer({
               onChange={(e) => setPrice(e.target.value)}
               className={`${field} tabular-nums`}
             />
+            {money.hint(price) ? <p data-local-hint className="mt-1.5 text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{money.hint(price)}</p> : null}
           </div>
           <div>
             <label htmlFor={dateId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">

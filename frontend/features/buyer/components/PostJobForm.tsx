@@ -39,6 +39,7 @@ import { walletAmount } from '@/features/balances/walletFormat';
 import { requestFunding } from '../requestFunding';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -171,6 +172,7 @@ export function PostJobForm() {
   const { locale } = useLocale();
   const t = useTranslations().postJob;
   const c = useTranslations().dealCreation;
+  const money = useMoneyText();
   const rf = useTranslations().requestFlow;
   const dt = useTranslations();
   const shopCopy = dt.marketShop;
@@ -784,7 +786,7 @@ export function PostJobForm() {
           deadlineUnit === 'min' ? { days: 0, hours: 0, minutes: Number(deadlineValue) } : deadlineUnit === 'hr' ? { days: 0, hours: Number(deadlineValue) } : { days: Number(deadlineValue), hours: 0 },
           { day: TERMS_COPY[locale].day, days: TERMS_COPY[locale].days, hr: dt.directDeal.preview.unitHr, min: dt.directDeal.preview.unitMin },
         ) },
-        { label: c.limit, value: `${authorisedPrice(Number(budget), tolerance)} USDC` },
+        { label: c.limit, value: money.text(authorisedPrice(Number(budget), tolerance)) },
         { label: c.payment, value: dealTerms.parts.map((part) => `${part.pct}%`).join(' / ') },
         { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.safeguards, value: trustedMatch ? c.securityHelp : c.none },

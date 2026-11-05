@@ -41,3 +41,18 @@ test('a deal email leads with the chosen currency and keeps the USDC beside it',
   assert.match(html, /₦26,922<span[^>]*>&nbsp;20\.00 USDC<\/span>/);
   assert.match(dealEventInnerHtml({ kicker: 'k', subject: 's', heading: 'h', body: 'b', amount: '20' }), /20\.00<span[^>]*>&nbsp;USDC<\/span>/);
 });
+
+test('an invite, update or cancel email leads with the chosen currency', async () => {
+  const { dealInviteHtml } = await import('../emails/dealInvite.js');
+  const { dealUpdateHtml } = await import('../emails/dealUpdate.js');
+  const { dealCancelledHtml } = await import('../emails/dealCancelled.js');
+  const { emailPriceText } = await import('../emails/emailPrice.js');
+  const base = { to: 'a@b.c', claimUrl: 'https://karwan.test/invite/x', dealAmountUsdc: '20', inviterMasked: '0x1…2', expiresLabel: 'Expires in 7 days', localAmount: '₦26,922' };
+  assert.equal(emailPriceText('20', '₦26,922'), '₦26,922 · 20.00 USDC');
+  assert.equal(emailPriceText('20'), '20.00 USDC');
+  assert.match(dealInviteHtml(base), /₦26,922<span[^>]*>&nbsp;20\.00 USDC<\/span>/);
+  assert.match(dealInviteHtml(base), /opened a ₦26,922 · 20\.00 USDC deal/);
+  assert.match(dealUpdateHtml({ ...base, changedLabels: ['Amount'] }), /now ₦26,922 · 20\.00 USDC/);
+  assert.match(dealCancelledHtml({ to: 'a@b.c', dealAmountUsdc: '20', inviterMasked: '0x1…2', localAmount: '₦26,922' }), /₦26,922<span[^>]*>&nbsp;20\.00 USDC<\/span>/);
+  assert.match(dealCancelledHtml({ to: 'a@b.c', dealAmountUsdc: '5', inviterMasked: '0x1…2' }), /5\.00<span[^>]*>&nbsp;USDC<\/span>/);
+});

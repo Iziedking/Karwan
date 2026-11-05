@@ -1,9 +1,12 @@
 'use client';
 import type { Ref } from 'react';
+import { useMoneyText } from '../hooks/useMoneyText';
 
 /// The amount, large and centred, with USDC beside it: the one figure a send
 /// or a request is about (view 50). It is a real input, typed on a computer;
-/// on a phone the keypad fills it and the system keyboard stays closed.
+/// on a phone the keypad fills it and the system keyboard stays closed. The
+/// amount moves in USDC exactly as typed; its worth in the chosen currency
+/// reads under it.
 export function AmountHero({ id, label, value, onChange, keypad, disabled, inputRef }: {
   id: string;
   label: string;
@@ -13,6 +16,7 @@ export function AmountHero({ id, label, value, onChange, keypad, disabled, input
   disabled?: boolean;
   inputRef?: Ref<HTMLInputElement>;
 }) {
+  const hint = useMoneyText().hint(value === '' ? null : Number(value));
   const size = value.length > 9 ? 'text-[40px]' : value.length > 6 ? 'text-[54px]' : 'text-[72px]';
   return (
     <div className="flex flex-col items-center">
@@ -33,6 +37,7 @@ export function AmountHero({ id, label, value, onChange, keypad, disabled, input
         />
         <span className="text-[19px] font-semibold text-[var(--ink-secondary)]">USDC</span>
       </div>
+      <p data-local-hint aria-live="polite" className="mt-2 min-h-[20px] text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">{hint}</p>
     </div>
   );
 }

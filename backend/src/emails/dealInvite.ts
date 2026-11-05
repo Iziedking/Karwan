@@ -6,7 +6,6 @@ import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
 import {
   brandedEmailHtml,
-  emailAmount,
   emailButton,
   emailFacts,
   emailHeading,
@@ -18,7 +17,7 @@ import {
   LOGO_BUFFER,
   LOGO_CID,
 } from './brand.js';
-import { formatEmailUsdc } from './dealEventEmail.js';
+import { emailPriceHero, emailPriceText } from './emailPrice.js';
 
 export interface DealInviteEmailInput {
   /// Lower-cased recipient email address. Same address the invite is keyed to.
@@ -27,6 +26,9 @@ export interface DealInviteEmailInput {
   claimUrl: string;
   /// USDC amount, pre-formatted as a string ("100", "100.5").
   dealAmountUsdc: string;
+  /// The amount in the currency the recipient reads prices in ("₦26,922"),
+  /// shown before the USDC. Omitted means USDC alone.
+  localAmount?: string;
   /// Buyer wallet shortened to "0xab12…cdef". A typoed invite should not
   /// reveal the full buyer address to the wrong recipient.
   inviterMasked: string;
@@ -92,7 +94,7 @@ function inviteInnerHtml(input: DealInviteEmailInput): string {
       kicker: input.signInWallet ? 'Deal waiting' : 'Deal to review',
       title: input.inviterName ? `${input.inviterName.split(' · ')[0]} opened a deal with you on Karwan` : 'Someone opened a deal with you on Karwan',
     }) +
-    emailAmount(formatEmailUsdc(input.dealAmountUsdc)) +
+    emailPriceHero(input.dealAmountUsdc, input.localAmount) +
     emailText('Agreeing does not move any money. After you agree, the buyer puts the money into escrow before work starts.') +
     wallet +
     emailFacts(facts) +
@@ -132,7 +134,7 @@ export function formatWindowLabel(opts: { days?: number; hours?: number }): stri
 export function dealInviteHtml(input: DealInviteEmailInput): string {
   return brandedEmailHtml({
     title: 'You have a Karwan deal to review',
-    preheader: `${from(input)} opened a ${formatEmailUsdc(input.dealAmountUsdc)} USDC deal with you.`,
+    preheader: `${from(input)} opened a ${emailPriceText(input.dealAmountUsdc, input.localAmount)} deal with you.`,
     inner: inviteInnerHtml(input) + (config.ARC_NETWORK === 'testnet' ? emailNote('Testnet activity uses test funds with no monetary value.') : ''),
     footerNote:
       "Not expecting this invite? Ignore the email. Nothing is agreed until you sign in and accept.",
@@ -151,7 +153,7 @@ export async function sendDealInviteEmail(
     return { delivered: false };
   }
   const html = dealInviteHtml(input);
-  const subject = `You have a Karwan deal to review (${formatEmailUsdc(input.dealAmountUsdc)} USDC)`;
+  const subject = `You have a Karwan deal to review (${emailPriceText(input.dealAmountUsdc, input.localAmount)})`;
   const signInLine = input.signInWallet
     ? input.signInVia === 'login'
       ? `Sign in with this email as usual. The deal is already addressed to your account ${input.signInWallet}.\n\n`
@@ -162,7 +164,7 @@ export async function sendDealInviteEmail(
       ? `Agree within: ${input.acceptanceLabel ?? 'Not set'}\nDeliver within: ${input.deliveryLabel ?? 'Open-ended'}\n\n`
       : '';
   const text =
-    `${from(input)} opened a Karwan deal with you for ${formatEmailUsdc(input.dealAmountUsdc)} USDC.\n\n` +
+    `${from(input)} opened a Karwan deal with you for ${emailPriceText(input.dealAmountUsdc, input.localAmount)}.\n\n` +
     (firstLine(input.what) ? `For: ${firstLine(input.what)}\n\n` : '') +
     `${input.signInWallet ? 'Open the deal' : 'Review the deal'}: ${input.claimUrl}\n\n` +
     signInLine +

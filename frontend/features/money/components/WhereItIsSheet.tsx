@@ -3,9 +3,8 @@ import { Price } from './Price';
 import { useId } from 'react';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Hint } from '@/shared/components/Hint';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill } from '@/features/deals/workspace/presentation';
-import { formatAmount, type BalancePart } from '../balanceModel';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { type BalancePart } from '../balanceModel';
 
 const CHIP =
   'inline-flex min-h-9 items-center rounded-full bg-[var(--raised)] px-3.5 text-[14px] font-medium text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
@@ -27,7 +26,7 @@ export function WhereItIsSheet({ open, total, parts, held, isWallet, onClose, on
 }) {
   const t = useTranslations();
   const one = t.moneyMove.one;
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const titleId = useId();
   const names: Record<BalancePart, { name: string; note: string }> = {
     ready: { name: one.ready, note: one.readyNote },
@@ -70,7 +69,7 @@ export function WhereItIsSheet({ open, total, parts, held, isWallet, onClose, on
         ))}
       </ul>
       {held > 0 ? (
-        <p className="mt-3 text-[13px] font-medium text-[var(--ink-muted)]">{fill(one.heldNote, { amount: formatAmount(held, locale) })}</p>
+        <p className="mt-3 text-[13px] font-medium text-[var(--ink-muted)]">{money.fill(one.heldNote, { amount: held }, {}, { exact: true })}</p>
       ) : null}
     </ConfirmSheetShell>
   );

@@ -12,7 +12,8 @@ import { ReceiptCard } from '@/features/receipt/ReceiptCard';
 import { downloadReceiptImage } from '@/features/activity/receiptPresentation';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { formatAmount } from '@/features/money/balanceModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { Price } from '@/features/money/components/Price';
 import { fill } from '@/features/deals/workspace/presentation';
 import { cn } from '@/shared/utils/cn';
 import { moneySounds } from '@/shared/sound/moneySounds';
@@ -97,7 +98,7 @@ function CashoutBody({ info, jobId }: { info: CashoutInfo; jobId: string }) {
 
 function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
   const copy = useTranslations().cashoutFlow;
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const ownWallet = info.accountKind === 'wallet';
   // Earnings sit on the deal's seller wallet for an email account, or already
   // in a wallet account's own wallet.
@@ -244,10 +245,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
   return (
     <section className="mt-6">
       <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.earnings}</p>
-      <p className="mt-2 text-[56px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">
-        {formatAmount(available, locale)}
-        <span className="ms-1 text-[20px] font-medium tracking-normal text-[var(--lp-text-sub)]"> USDC</span>
-      </p>
+      <Price usdc={available} size="hero" className="mt-2" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.03em] text-[var(--lp-dark)]" usdcClassName="text-[var(--lp-text-sub)]" />
       {sources.length > 1 ? (
         <div className="mt-6">
           <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.from}</p>
@@ -265,7 +263,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
                 )}
               >
                 {f === 'sellerAgent' ? copy.fromSeller : f === 'buyerAgent' ? copy.fromBuyer : copy.fromMain}
-                <span className="tabular-nums text-[var(--lp-text-sub)]">{formatAmount(balanceOf(f), locale)}</span>
+                <span className="tabular-nums text-[var(--lp-text-sub)]">{money.text(balanceOf(f), { exact: true })}</span>
               </button>
             ))}
           </div>
@@ -333,12 +331,12 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
             <span className="flex items-center justify-between text-[14px] font-medium text-[var(--lp-text-sub)]">
               {copy.amount}
               <button type="button" onClick={() => setAmountText(String(available))} className="min-h-9 px-1 font-semibold text-[var(--lp-dark)] underline underline-offset-4">
-                {fill(copy.max, { amount: formatAmount(available, locale) })}
+                {money.fill(copy.max, { amount: available }, {}, { exact: true })}
               </button>
             </span>
             <input value={amountText} onChange={(e) => setAmountText(e.target.value)} inputMode="decimal" dir="ltr" className={cn(FIELD, 'tabular-nums')} />
             {amountText && Number(amountText) > available + 1e-9 ? (
-              <span role="status" className="mt-1.5 block text-[14px] text-[var(--color-critical)]">{fill(copy.overBalance, { amount: formatAmount(available, locale) })}</span>
+              <span role="status" className="mt-1.5 block text-[14px] text-[var(--color-critical)]">{money.fill(copy.overBalance, { amount: available }, {}, { exact: true })}</span>
             ) : null}
           </label>
 
@@ -348,10 +346,10 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
             {signsOwnWallet && !account.address
               ? copy.connect
               : toBalance
-                ? fill(copy.moveCta, { amount: formatAmount(amountOk ? amount : available, locale) })
+                ? money.fill(copy.moveCta, { amount: amountOk ? amount : available }, {}, { exact: true })
                 : network === 'arc'
-                  ? fill(copy.sendCta, { amount: formatAmount(amountOk ? amount : available, locale) })
-                  : fill(copy.sendChainCta, { amount: formatAmount(amountOk ? amount : available, locale), chain: chainName(network) })}
+                  ? money.fill(copy.sendCta, { amount: amountOk ? amount : available }, {}, { exact: true })
+                  : money.fill(copy.sendChainCta, { amount: amountOk ? amount : available }, { chain: chainName(network) }, { exact: true })}
           </button>
           <p className="mt-3 text-center text-[14px] font-medium text-[var(--lp-text-sub)]">
             {toBalance || network === 'arc' ? copy.landsSeconds : copy.landsMinute}
@@ -424,8 +422,9 @@ function Receipt({ sent, jobId, chainName }: { sent: Sent; jobId: string; chainN
   const receipt = useTranslations().activity.myMoney;
   const { locale } = useLocale();
   const date = new Date(sent.at).toLocaleString(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const amount = `${formatAmount(sent.amount, locale)} USDC`;
-  const sentence = fill(copy.sentence, { amount: formatAmount(sent.amount, locale), to: sent.to });
+  const money = useMoneyText();
+  const amount = money.text(sent.amount, { exact: true });
+  const sentence = money.fill(copy.sentence, { amount: sent.amount }, { to: sent.to }, { exact: true });
   const verify = sent.network === 'arc' && sent.txHash ? ARC_CCTP.explorerTx(sent.txHash) : null;
   return (
     <section className="mt-6 space-y-6">

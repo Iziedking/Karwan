@@ -8,7 +8,7 @@ test('a request row says its state in a tinted label, its amount to the cent, an
   // A pale label carries the state on its own ground; no dot to squint at.
   assert.doesNotMatch(list, /size-2 rounded-full/);
   assert.match(list, /rounded-full px-2\.5 py-0\.5/);
-  assert.match(list, /walletAmount\(row\.amountUsdc\)/);
+  assert.match(list, /<Price usdc=\{Number\(row\.amountUsdc/, 'the amount in the chosen currency, USDC under it');
   assert.match(list, /<Icon name="chevron-right"/);
 });
 

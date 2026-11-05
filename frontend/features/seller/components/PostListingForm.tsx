@@ -15,7 +15,6 @@ import { SELLER_TOUR_ID, SELLER_STEPS } from '@/shared/guide/tours';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
 import Link from 'next/link';
-import { walletAmount } from '@/features/balances/walletFormat';
 import { CreationReview } from '@/features/deals/components/CreationReview';
 import { FoldRow } from '@/features/deals/components/FoldRow';
 import { Button, buttonClasses } from '@/shared/components/Button';
@@ -31,6 +30,7 @@ import { CategoryChips } from '@/features/market/components/CategoryChips';
 import type { CategoryId } from '@/features/market/marketModel';
 import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
 import { DealLinkPanel } from '@/features/market/components/DealLinkPanel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const READY_CHIPS = [1, 3, 7, 14] as const;
 const MAX_READY_DAYS = 180;
@@ -48,6 +48,7 @@ export function PostListingForm() {
   const pl = useTranslations().postListing;
   const t = useTranslations();
   const f = pl.flow;
+  const money = useMoneyText();
   const offer = t.offerFlow;
   const rf = t.requestFlow;
   const { locale } = useLocale();
@@ -390,7 +391,7 @@ export function PostListingForm() {
             </FoldRow>
             <FoldRow
               label={f.floor}
-              fact={typeof floorPrice === 'number' && floorPrice > 0 ? `${floorPrice} USDC` : offer.notSet}
+              fact={typeof floorPrice === 'number' && floorPrice > 0 ? money.text(floorPrice) : offer.notSet}
               open={floorOpen}
               onToggle={setFloorOpen}
             >
@@ -435,8 +436,8 @@ export function PostListingForm() {
               { label: pl.sectionWork.titleLabel, value: title.trim() },
               { label: pl.sectionWork.descriptionLabel, value: description.trim() },
               { label: f.charge, value: f.fixed },
-              { label: f.price, value: `${priceValue} USDC` },
-              ...(floorDropPct ? [{ label: f.floor, value: `${floorPrice} USDC` }] : []),
+              { label: f.price, value: money.text(priceValue) },
+              ...(floorDropPct ? [{ label: f.floor, value: money.text(floorPrice) }] : []),
               { label: f.readyIn, value: fill(f.readyInRow, readyInDays) },
               { label: f.openFor, value: fill(f.openForRow, openDays) },
               { label: t.dealCreation.payment, value: dealTerms.parts.map((part) => `${part.pct}%`).join(' / ') },
@@ -554,7 +555,7 @@ export function PostListingForm() {
                         <span className="line-clamp-2 break-words text-[15px] font-semibold leading-snug text-[var(--lp-workspace-ink)]">{l.title}</span>
                         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="text-[14px] font-medium tabular-nums text-[var(--lp-workspace-muted)]">
-                            {walletAmount(String(l.askingPriceUsdc)) ?? l.askingPriceUsdc} USDC
+                            {money.text(l.askingPriceUsdc)}
                           </span>
                           {/* A tinted label, like Request's: the state reads on its own ground. */}
                           <span

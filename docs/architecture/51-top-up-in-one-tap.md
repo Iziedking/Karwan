@@ -285,7 +285,9 @@ Drawn in Figma, section "One Money page and a tidy Profile (view 51, fifth round
 - **Switches that are on are Karwan green.**
 - **Emails and Telegram too.** Just before a deal email or a Telegram message goes out, each "N USDC" in it becomes "₦X · N USDC" for a person who chose naira (one step per channel, `backend/src/rates/localAmounts.ts`). The email's big amount leads in naira with the USDC beside it. With USDC chosen, or no fresh rate, the message goes as written.
 - **Profile:** Your record shows the deals completed and nothing more; Edit profile sits under the name so the handle and account kind read in full. On the trade record page the label takes the room and a figure never breaks onto two lines.
-- Still in USDC only, for a later pass: the money sheets' small print, the agent's weekly limit figures, Send, payment links, offers, the financier desk, and the deal invite, cancel and update emails.
+- **Every remaining surface.** The money sheets' small print, the agent's weekly limit figures, Add money, Send, Withdraw, the deal guarantee moves, payment links and cash-out, offers on a request, the order page, the financier desk, and the deal invite, update and cancel emails now read the same way. Buttons and sentences fill their price with `useMoneyText()` (`frontend/features/money/moneyText.ts`), which takes the placeholder and the USDC beside it in every language (Swahili puts USDC first).
+- **Typing an amount.** What you type stays in USDC, exactly. Its worth in your currency shows under it ("≈ ₦26,922"), on the confirm card and on the result. The exact USDC to send from another network stays exact, with its worth under it.
+- **Invite, update and cancel emails.** The recipient's own choice when the email already belongs to an account; for someone new to Karwan, the inviter's currency, the one the deal was priced in (`backend/src/emails/emailPrice.ts`).
 
 ## Decisions for the owner
 

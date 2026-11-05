@@ -3,7 +3,8 @@ import { useId, useState } from 'react';
 import { api, type AgentQuestion } from '@/core/api';
 import { Button } from '@/shared/components/Button';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill, questionLine, questionShape } from '../agentQuestionCard';
+import { questionLine, questionShape } from '../agentQuestionCard';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// The question a seller's agent asked them about this request (view 41): one
 /// card, three answers. Offer sends the suggested offer through the same route
@@ -23,6 +24,7 @@ export function AgentQuestionCard({
   onDone: () => Promise<void>;
 }) {
   const t = useTranslations().agentQuestions;
+  const money = useMoneyText();
   const titleId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +58,12 @@ export function AgentQuestionCard({
       <p id={titleId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">
         {t.cardTitle}
       </p>
-      <p className="mt-2 text-[18px] font-semibold leading-snug tabular-nums text-[var(--lp-dark)]">{questionLine(t, question)}</p>
+      <p className="mt-2 text-[18px] font-semibold leading-snug tabular-nums text-[var(--lp-dark)]">{questionLine(t, question, money.fill)}</p>
       <div className="mt-5 flex flex-wrap gap-3">
         {shape === 'request' ? (
           <>
             <Button size="lg" className="rounded-full" loading={busy} onClick={() => void offer()}>
-              {fill(t.offer, { price })}
+              {money.fill(t.offer, { price })}
             </Button>
             <Button size="lg" variant="outline" className="rounded-full" disabled={busy} onClick={() => onChangePrice(price)}>
               {t.changePrice}
@@ -79,7 +81,7 @@ export function AgentQuestionCard({
                 })
               }
             >
-              {fill(t.take, { their })}
+              {money.fill(t.take, { their })}
             </Button>
             <Button
               size="lg"
@@ -92,7 +94,7 @@ export function AgentQuestionCard({
                 })
               }
             >
-              {fill(t.hold, { price })}
+              {money.fill(t.hold, { price })}
             </Button>
           </>
         )}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { MoneyFrame } from '@/shared/components/MoneyFrame';
 import { buttonClasses } from '@/shared/components/Button';
 import { ChainLogo } from '@/shared/components/ChainLogo';
@@ -15,13 +15,13 @@ import { useBridges } from '@/features/bridge/hooks/useBridge';
 import { SOURCE_CHAINS, WITHDRAW_DEST_KEYS, type CctpChainKey } from '@/features/bridge/config';
 import { routeSpeed, stepForPhase } from '@/features/bridge/routePlan';
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
-import { formatAmount, formatBalance } from '../balanceModel';
 import { pressKey } from '../amountEntry';
 import { chipAmount, parseAmount } from '../moneySheetModel';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { shortAddr, withdrawCheck, withdrawSplit, withdrawTargets, ADDRESS_RE, type WithdrawStage, type WithdrawTarget } from '../withdrawFlow';
 import { AmountHero } from './AmountHero';
 import { Keypad } from './Keypad';
+import { useMoneyText } from '../hooks/useMoneyText';
 
 type DestKey = CctpChainKey | 'arc';
 
@@ -49,7 +49,7 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
   const mp = all.moneyPage;
   const sheetCopy = all.money.sheet;
   const entry = all.money.entry;
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const router = useRouter();
   const auth = useAuth();
   const { connector } = useAccount();
@@ -81,7 +81,6 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
   const destName = dest === 'arc' ? 'Arc' : SOURCE_CHAINS[dest].name;
   const amount = parseAmount(typed);
   const check = withdrawCheck({ address, amount, ready: split.ready });
-  const shown = amount !== null ? formatAmount(amount, locale) : '0';
   // The networks a withdrawal can reach; your own wallet is already on Arc, so it goes elsewhere.
   const destKeys: DestKey[] = target === 'ownWallet' ? [...WITHDRAW_DEST_KEYS] : ['arc', ...WITHDRAW_DEST_KEYS];
 
@@ -161,7 +160,7 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5 10 17.5 19 7" /></svg>
             </span>
             <div className="space-y-1.5">
-              <h1 id={titleId} role="status" className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]" dir="auto">{fill(w.sentTitle, { amount: formatAmount(sent.amount, locale) })}</h1>
+              <h1 id={titleId} role="status" className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]" dir="auto">{money.fill(w.sentTitle, { amount: sent.amount }, {}, { exact: true })}</h1>
               <p className="text-[15px] text-[var(--ink-secondary)]" dir="auto">{fill(w.sentLine, { address: shortAddr(sent.address), network: sent.network })}</p>
             </div>
             <dl className="divide-y divide-[var(--line)] rounded-[16px] bg-[var(--raised)] px-4 text-start">
@@ -254,22 +253,22 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
         ) : (
           <div className="space-y-4">
             <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} />
-            <p data-withdraw-ready className="text-center text-[14px] font-medium text-[var(--ink-secondary)]">{fill(w.ready, { amount: formatBalance(split.ready, locale) })}</p>
+            <p data-withdraw-ready className="text-center text-[14px] font-medium text-[var(--ink-secondary)]">{money.fill(w.ready, { amount: split.ready })}</p>
             <div className="flex justify-center gap-2">
               {(['quarter', 'half', 'max'] as const).map((chip) => (
                 <button key={chip} type="button" className={CHIP} disabled={split.ready <= 0} onClick={() => setTyped(String(chipAmount(split.ready, chip)))}>{sheetCopy[chip]}</button>
               ))}
             </div>
             {keypad ? <Keypad onKey={(key) => setTyped((v) => pressKey(v, key))} label={entry.keypad} backLabel={entry.back} /> : null}
-            {!check.ok && check.reason === 'over' ? <p className="text-center text-[14px] font-medium text-[var(--ink)]">{fill(sheetCopy.short, { amount: formatAmount((amount ?? 0) - split.ready, locale) })}</p> : null}
+            {!check.ok && check.reason === 'over' ? <p className="text-center text-[14px] font-medium text-[var(--ink)]">{money.fill(sheetCopy.short, { amount: (amount ?? 0) - split.ready }, {}, { exact: true })}</p> : null}
             {split.elsewhere > 0 ? (
               <p data-withdraw-elsewhere className="text-center text-[13px] font-medium text-[var(--ink-secondary)]">
-                {fill(w.elsewhere, { amount: formatBalance(split.elsewhere, locale) })}{' '}
+                {money.fill(w.elsewhere, { amount: split.elsewhere })}{' '}
                 <Link href="/account?where=1" className="font-semibold text-[var(--ink)] underline underline-offset-4">{w.bringIt}</Link>
               </p>
             ) : null}
             <button type="button" disabled={!check.ok} onClick={() => setReviewing(true)} className={buttonClasses({ size: 'lg', className: 'w-full' })}>
-              {amount !== null && amount > 0 ? fill(w.review, { amount: shown }) : sheetCopy.ctaNoAmount}
+              {amount !== null && amount > 0 ? money.fill(w.review, { amount: amount ?? 0 }, {}, { exact: true }) : sheetCopy.ctaNoAmount}
             </button>
           </div>
         )}
@@ -277,14 +276,14 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
 
       <FactsConfirmSheet
         open={reviewing}
-        title={fill(mp.reviewTitle, { amount: shown })}
+        title={money.fill(mp.reviewTitle, { amount: amount ?? 0 }, {}, { exact: true })}
         note={mp.cannotUndo}
         rows={[
           [mp.toLabel, address.trim()],
           [mp.networkLabel, destName],
         ]}
-        primaryLabel={fill(mp.withdrawCta, { amount: shown })}
-        busyLabel={fill(mp.withdrawing, { amount: shown })}
+        primaryLabel={money.fill(mp.withdrawCta, { amount: amount ?? 0 }, {}, { exact: true })}
+        busyLabel={money.fill(mp.withdrawing, { amount: amount ?? 0 }, {}, { exact: true })}
         quietLabel={mp.notNow}
         busy={sending}
         onConfirm={send}

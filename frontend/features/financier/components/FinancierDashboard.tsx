@@ -13,7 +13,7 @@ import { Band } from '@/shared/components/Bands';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { PageTour } from '@/shared/guide/PageTour';
 import { FINANCIER_DESK_TOUR_ID, FINANCIER_DESK_STEPS } from '@/shared/guide/tours';
-import { formatUsdc } from '@/shared/utils/format';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { cn } from '@/shared/utils/cn';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { chainErrorMessage } from '@/shared/utils/chainError';
@@ -137,10 +137,6 @@ function useDate() {
     (ms: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ms)),
     [locale],
   );
-}
-
-function usdc(value: string | number): string {
-  return `${formatUsdc(value, { withSuffix: false })} USDC`;
 }
 
 export function FinancierDashboard() {
@@ -435,6 +431,7 @@ function InvoiceRow({
   existingOffer: FactoringOffer | null;
   onOpenOffer: () => void;
 }) {
+  const money = useMoneyText();
   const receiptPending = existingOffer?.status === 'pending_receipt';
   const meta = sellerMeta(deal, t);
   return (
@@ -443,14 +440,14 @@ function InvoiceRow({
         <p dir="auto" className="truncate text-[16px] font-semibold text-[var(--ink)]">{sellerName(deal, t)}</p>
         {meta && <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">{meta}</p>}
         <p className="mt-3 text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
-          {usdc(deal.dealAmountUsdc)}
+          {money.text(deal.dealAmountUsdc)}
         </p>
         <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">
           {[
             t.open.timing[invoiceTiming(deal)],
             t.open.terms[termKey(deal.paymentTerms)],
             deal.factoringRequestedAdvanceUsdc
-              ? t.open.asksEarly.replace('{amount}', formatUsdc(deal.factoringRequestedAdvanceUsdc, { withSuffix: false }))
+              ? money.fill(t.open.asksEarly, { amount: deal.factoringRequestedAdvanceUsdc })
               : null,
           ]
             .filter(Boolean)
@@ -498,6 +495,7 @@ function OrderList({
   failed: boolean;
   onOpenFund: (deal: DirectDeal) => void;
 }) {
+  const money = useMoneyText();
   if (failed) return <p role="alert" className={cn(ALERT, 'mt-4')}>{t.po.loadError}</p>;
   if (available === null) return <ListSkeleton />;
   if (available.length === 0) return <EmptyState title={t.po.emptyTitle} body={t.po.emptyBody} />;
@@ -512,7 +510,7 @@ function OrderList({
               {meta && <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">{meta}</p>}
               <p className="mt-3 text-[14px] text-[var(--ink-secondary)]">{t.po.capitalRequested}</p>
               <p className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
-                {usdc(deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc)}
+                {money.text(deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc)}
               </p>
               <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">{t.po.repayOnPod}</p>
             </div>
@@ -567,6 +565,7 @@ function OfferSheet({
   onClose: () => void;
   onPosted: (offer: FactoringOffer) => void;
 }) {
+  const money = useMoneyText();
   const t = useTranslations().financierDashboard;
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
@@ -627,7 +626,7 @@ function OfferSheet({
       return;
     }
     if (belowSellerFloor) {
-      setError(t.offer.belowFloor.replace('{amount}', sellerFloor!.toFixed(2)));
+      setError(money.fill(t.offer.belowFloor, { amount: sellerFloor }));
       return;
     }
     setSubmitting(true);
@@ -687,7 +686,7 @@ function OfferSheet({
         <div>
           <p className={LABEL}>{t.offer.faceValue}</p>
           <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
-            {usdc(deal.dealAmountUsdc)}
+            {money.text(deal.dealAmountUsdc)}
           </p>
         </div>
 
@@ -762,17 +761,15 @@ function OfferSheet({
         </div>
 
         <dl className="space-y-3 border-t border-[var(--line)] pt-4">
-          <SheetRow label={t.offer.settlementAssigned} value={usdc(quote.settlementAssignedUsdc)} />
-          <SheetRow label={t.offer.youPayNow} value={usdc(quote.advanceUsdc)} strong />
-          <SheetRow label={t.offer.youReceiveOnSettlement} value={usdc(quote.settlementReturnUsdc)} strong />
-          <SheetRow label={t.offer.yourSpread} value={`+${usdc(quote.spreadUsdc)}`} />
-          {sellerFloor !== null ? <SheetRow label={t.offer.sellerFloor} value={usdc(sellerFloor)} /> : null}
+          <SheetRow label={t.offer.settlementAssigned} value={money.text(quote.settlementAssignedUsdc)} />
+          <SheetRow label={t.offer.youPayNow} value={money.text(quote.advanceUsdc)} strong />
+          <SheetRow label={t.offer.youReceiveOnSettlement} value={money.text(quote.settlementReturnUsdc)} strong />
+          <SheetRow label={t.offer.yourSpread} value={money.text(quote.spreadUsdc, { signed: true })} />
+          {sellerFloor !== null ? <SheetRow label={t.offer.sellerFloor} value={money.text(sellerFloor)} /> : null}
         </dl>
 
         <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)]">
-          {t.offer.fundingSummaryTemplate
-            .replace('{advance}', formatUsdc(quote.advanceUsdc, { withSuffix: false }))
-            .replace('{settlement}', formatUsdc(quote.settlementAssignedUsdc, { withSuffix: false }))}{' '}
+          {money.fill(t.offer.fundingSummaryTemplate, { advance: quote.advanceUsdc, settlement: quote.settlementAssignedUsdc })}{' '}
           {t.offer.openFor}
         </p>
 
@@ -783,16 +780,16 @@ function OfferSheet({
         ) : null}
         {belowSellerFloor ? (
           <p role="alert" className={ALERT}>
-            {t.offer.belowFloor.replace('{amount}', sellerFloor!.toFixed(2))}
+            {money.fill(t.offer.belowFloor, { amount: sellerFloor })}
           </p>
         ) : null}
         {shortfall && funding ? (
           <div role="status" className="rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-4">
             <p className="text-[15px] text-[var(--ink)]">
-              {t.offer.fundFirst.replace('{wallet}', formatUsdc(funding.walletUsdc, { withSuffix: false })).replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
+              {money.fill(t.offer.fundFirst, { wallet: funding.walletUsdc, amount: shortfall })}
             </p>
             <Link href="/add" className={cn(SECONDARY, 'mt-3 w-full')}>
-              {t.offer.fundFirstCta.replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
+              {money.fill(t.offer.fundFirstCta, { amount: shortfall })}
             </Link>
           </div>
         ) : null}
@@ -836,6 +833,7 @@ function FundSheet({
   onClose: () => void;
   onFunded: (line: POFinancingLine) => void;
 }) {
+  const money = useMoneyText();
   const t = useTranslations().financierDashboard;
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
@@ -1043,7 +1041,7 @@ function FundSheet({
       <div className="space-y-6 p-5 md:p-6">
         <div>
           <p className={LABEL}>{t.po.orderValue}</p>
-          <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">{usdc(deal.dealAmountUsdc)}</p>
+          <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">{money.text(deal.dealAmountUsdc)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -1126,9 +1124,9 @@ function FundSheet({
         </div>
 
         <dl className="space-y-3 border-t border-[var(--line)] pt-4">
-          <SheetRow label={t.po.sellerReceivesNow} value={usdc(principal)} />
-          <SheetRow label={t.po.youReceiveOnSettlement} value={usdc(repay)} strong />
-          <SheetRow label={t.po.yourSpread} value={`+${usdc(spread)}`} />
+          <SheetRow label={t.po.sellerReceivesNow} value={money.text(principal)} />
+          <SheetRow label={t.po.youReceiveOnSettlement} value={money.text(repay)} strong />
+          <SheetRow label={t.po.yourSpread} value={money.text(spread, { signed: true })} />
         </dl>
         <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)]">
           <span className="font-medium text-[var(--ink)]">{t.po.ifSettlementFallsShort}.</span>{' '}

@@ -6,7 +6,7 @@ import { api, type DepositRequestPublic, type RequestPage, type RequestPageResul
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { Icon } from '@/shared/components/Icon';
-import { walletAmount } from '@/features/balances/walletFormat';
+import { Price } from '@/features/money/components/Price';
 import { CARD_CLASS } from '@/shared/components/Card';
 
 /// Requests this account made and requests it paid, so neither disappears once
@@ -64,9 +64,7 @@ function Section({ title, rows, pages }: { title: string; rows: DepositRequestPu
               className="flex min-h-14 items-center justify-between gap-4 py-3 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
             >
               <span className="min-w-0">
-                <span className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">
-                  {walletAmount(row.amountUsdc) ?? '…'} <span className="text-[14px] font-medium text-[var(--ink-secondary)]">USDC</span>
-                </span>
+                <Price usdc={Number(row.amountUsdc ?? 0)} className="text-[15px] font-semibold text-[var(--ink)]" />
                 <span className="block truncate text-[14px] text-[var(--ink-secondary)] font-medium">
                   {[row.purpose, new Date(row.paidAt ?? row.createdAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' })].filter(Boolean).join(' · ')}
                 </span>

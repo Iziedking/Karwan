@@ -5,7 +5,7 @@ import { usePublicClient } from 'wagmi';
 import { api, ConfirmCancelled, type FactoringOffer } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
-import { formatUsdc } from '@/shared/utils/format';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { PRIMARY } from '@/shared/ui/controls';
 import { ARC_CHAIN_ID } from '@/features/profile/config';
 import { runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
@@ -16,6 +16,7 @@ import { runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
 export function PaySeller({ offer, onPaid }: { offer: FactoringOffer; onPaid: () => void }) {
   const tr = useTranslations();
   const t = tr.financierDashboard.positions;
+  const money = useMoneyText();
   const { locale } = useLocale();
   const ownWallet = useOwnWalletSend();
   const arc = usePublicClient({ chainId: ARC_CHAIN_ID });
@@ -49,7 +50,7 @@ export function PaySeller({ offer, onPaid }: { offer: FactoringOffer; onPaid: ()
         {t.paySeller}
       </button>
       <p className="text-[14px] tabular-nums text-[var(--ink-secondary)]">
-        {t.paySellerBy.replace('{amount}', formatUsdc(offer.offeredAdvanceUsdc, { withSuffix: false })).replace('{time}', by)}
+        {money.fill(t.paySellerBy, { amount: offer.offeredAdvanceUsdc }, { time: by })}
       </p>
       {note ? <p role="status" className="text-[14px] text-[var(--ink)]">{note}</p> : null}
     </div>

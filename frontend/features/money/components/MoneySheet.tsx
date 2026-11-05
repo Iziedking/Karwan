@@ -7,14 +7,14 @@ import { m } from 'motion/react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind, type AddressKind } from '@/shared/hooks/useAddressKind';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { MoneyCopy } from '@/shared/i18n/messages/money';
 import { MoneyFrame } from '@/shared/components/MoneyFrame';
 import { dur } from '@/shared/motion/tokens';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { fill } from '@/features/deals/workspace/presentation';
 import { planTopUp } from '@/features/bridge/routePlan';
-import { formatAmount, formatBalance } from '../balanceModel';
+import { useMoneyText } from '../hooks/useMoneyText';
 import { sendAvailable } from '../sendFromWhole';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { useMoneyMove } from '../hooks/useMoneyMove';
@@ -64,7 +64,7 @@ export interface MoneySheetProps {
 /// exactly what will happen, and the result lands in place.
 export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount, prefillRecipient, onDone, page = false, pageTitle }: MoneySheetProps) {
   const t = useTranslations().money;
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const auth = useAuth();
   const reduce = useHydratedReducedMotion();
   // The first view shows at once; later views fade in.
@@ -310,13 +310,13 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-y border-[var(--line)] py-4">
-          <Place label={t.sheet.from} name={fromName} amount={fromAmount} locale={locale} />
+          <Place label={t.sheet.from} name={fromName} amount={fromAmount} />
           {/* Which way the money goes is fixed by the button that opened the
               sheet; Top up and Withdraw are separate ways in. */}
           <span aria-hidden className="inline-grid size-11 place-items-center text-[var(--ink-secondary)]">
             <Icon name="arrow-right" size={20} directional />
           </span>
-          <Place label={t.sheet.to} name={toName} amount={toAmount} locale={locale} end />
+          <Place label={t.sheet.to} name={toName} amount={toAmount} end />
           {move === 'withdraw' && otherAgentAddress ? (
             <button
               type="button"
@@ -347,9 +347,10 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           />
           {' '}<span className="text-[15px] font-semibold text-[var(--ink-secondary)]">USDC</span>
         </div>
+        {money.hint(amount) ? <p data-local-hint className="mt-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{money.hint(amount)}</p> : null}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p className="inline-flex items-center gap-1.5 text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
-            {available === null ? ' ' : fill(t.sheet.available, { amount: formatBalance(available, locale) })}
+            {available === null ? ' ' : money.fill(t.sheet.available, { amount: available })}
             {available !== null && move === 'send' ? <Hint side="bottom">{t.sheet.availableHint}</Hint> : null}
           </p>
           <div className="flex gap-2">
@@ -377,14 +378,14 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         {state.kind === 'editing' ? (
           <m.div key="editing" {...fade} className="mt-6">
             <p className="text-[15px] leading-relaxed text-[var(--ink)]">
-              {fill(consequence, { amount: formatAmount(amount ?? 0, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
+              {money.fill(consequence, { amount: amount ?? 0 }, { tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() }, { exact: true })}
             </p>
             {move === 'send' ? (
               <p className="mt-2 text-[14px] font-medium text-[var(--color-warning)]">{t.sheet.sendIrreversible}</p>
             ) : null}
             {blocker === 'short' && amount !== null && max !== null ? (
               <p className="mt-3 flex flex-wrap items-center gap-x-3 text-[14px] text-[var(--ink)]">
-                <span>{fill(t.sheet.short, { amount: formatAmount(shortfall(amount, max), locale) })}</span>
+                <span>{money.fill(t.sheet.short, { amount: shortfall(amount, max) }, {}, { exact: true })}</span>
                 {move === 'topUp' && !topUpFromAgent && otherAgentAddress && (otherAgentBalance ?? 0) > 0 ? (
                   <button
                     type="button"
@@ -403,7 +404,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               </p>
             ) : null}
             <button type="button" onClick={press} disabled={blocker !== null} className={`${PRIMARY} mt-6 w-full gap-2`}>
-              {amount === null ? t.sheet.ctaNoAmount : fill(cta, { amount: formatAmount(amount, locale) })}
+              {amount === null ? t.sheet.ctaNoAmount : money.fill(cta, { amount }, {}, { exact: true })}
               {move === 'send' && amount !== null ? <Icon name="send" size={16} directional /> : null}
             </button>
           </m.div>
@@ -416,18 +417,18 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                 </svg>
               </span>
               <p className="text-[20px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
-                {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
+                {money.fill(doneLine, { amount: moved }, { tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() }, { exact: true })}
               </p>
             </div>
             <dl className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] px-5 text-[15px] tabular-nums">
               <div className="flex justify-between gap-3 border-b border-[var(--line)] py-3.5 last:border-b-0">
                 <dt className="text-[var(--ink-secondary)]">{t.sheet.yourBalance}</dt>
-                <dd className="font-medium text-[var(--ink)]">{balanceAfter === null ? '' : `${formatBalance(balanceAfter, locale)} USDC`}</dd>
+                <dd className="font-medium text-[var(--ink)]">{balanceAfter === null ? '' : money.text(balanceAfter)}</dd>
               </div>
               {move !== 'send' ? (
                 <div className="flex justify-between gap-3 border-b border-[var(--line)] py-3.5 last:border-b-0">
                   <dt className="text-[var(--ink-secondary)]">{agentName}</dt>
-                  <dd className="font-medium text-[var(--ink)]">{agentBalance === null ? '' : `${formatBalance(agentBalance, locale)} USDC`}</dd>
+                  <dd className="font-medium text-[var(--ink)]">{agentBalance === null ? '' : money.text(agentBalance)}</dd>
                 </div>
               ) : null}
               {state.reference ? (
@@ -491,18 +492,18 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   );
 }
 
-function Place({ label, name, amount, locale, end = false }: {
+function Place({ label, name, amount, end = false }: {
   label: string;
   name: string;
   amount: number | null;
-  locale: string;
   end?: boolean;
 }) {
+  const money = useMoneyText();
   return (
     <div className={end ? 'min-w-0 text-end' : 'min-w-0'}>
       <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{label}</p>
       <p className="truncate text-[15px] font-semibold text-[var(--ink)]">{name}</p>
-      <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">{amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}</p>
+      <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">{amount === null ? ' ' : money.text(amount)}</p>
     </div>
   );
 }

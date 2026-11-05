@@ -7,6 +7,7 @@ import { cn } from '@/shared/utils/cn';
 import { MAX_PARTS, composeTerms, evenSplit, termsIssues, type TermsDraft, type TermsPart } from './composeTerms';
 import { TERMS_COPY } from './termsCopy';
 import { termsBlocker, termsIssueText } from './termsBlocker';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 const REVIEW_CHOICES = [1, 3, 7, 14] as const;
 /// The most the Agreement escrow takes (30 days on chain); a buyer who needs
@@ -47,6 +48,7 @@ export function TermsBuilder({
   disabled?: boolean;
 }) {
   const { locale } = useLocale();
+  const money = useMoneyText();
   const t = TERMS_COPY[locale];
   const [customReview, setCustomReview] = useState(!REVIEW_CHOICES.includes(value.reviewWindowDays as (typeof REVIEW_CHOICES)[number]));
   const [reviewText, setReviewText] = useState(String(value.reviewWindowDays));
@@ -101,7 +103,7 @@ export function TermsBuilder({
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{partName(index)}</span>
                   {priceUsdc && priceUsdc > 0 ? (
-                    <span className="whitespace-nowrap text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{((priceUsdc * part.pct) / 100).toFixed(2)} USDC</span>
+                    <span className="whitespace-nowrap text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{money.text((priceUsdc * part.pct) / 100)}</span>
                   ) : null}
                 </span>
                 {value.parts.length === 1 ? null : <span className="flex w-24 shrink-0 items-center gap-1.5">

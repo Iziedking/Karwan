@@ -10,7 +10,7 @@ import { AmountHero } from '@/features/money/components/AmountHero';
 import { Keypad } from '@/features/money/components/Keypad';
 import { pressKey } from '@/features/money/amountEntry';
 import { chipAmount, parseAmount } from '@/features/money/moneySheetModel';
-import { formatAmount, formatBalance } from '@/features/money/balanceModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useGuarantee } from './useGuarantee';
 
 const fillIn = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_, k: string) => String(values[k] ?? ''));
@@ -22,6 +22,7 @@ const CHIP =
 /// keep it in. The result stays on the page until Done.
 export function GuaranteeMove({ step, onClose }: { step: GuaranteeStep; onClose: () => void }) {
   const { locale, t } = useLocale();
+  const money = useMoneyText();
   const g = t.moneyPages.guarantee;
   const c = t.dealGuarantee;
   const sheet = t.money.sheet;
@@ -43,9 +44,10 @@ export function GuaranteeMove({ step, onClose }: { step: GuaranteeStep; onClose:
   const amount = parseAmount(typed);
   const waitDays = data?.waitDays ?? 0;
   const readyOn = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(Date.now() + waitDays * 86_400_000));
-  const title = step === 'put_up' ? g.addTitle : step === 'take_out' ? g.withdrawTitle : step === 'collect' ? fillIn(c.sheets.collect.title, { amount: data?.comingBackUsdc ?? '0' }) : fillIn(c.sheets.cancel.title, { amount: data?.comingBackUsdc ?? '0' });
-  const shown = amount !== null ? formatAmount(amount, locale) : '0';
-  const cta = step === 'put_up' ? fillIn(g.addCta, { amount: shown }) : step === 'take_out' ? fillIn(g.withdrawCta, { amount: shown }) : step === 'collect' ? c.sheets.collect.confirm : c.sheets.cancel.confirm;
+  const title = step === 'put_up' ? g.addTitle : step === 'take_out' ? g.withdrawTitle : step === 'collect' ? money.fill(c.sheets.collect.title, { amount: data?.comingBackUsdc ?? 0 }) : money.fill(c.sheets.cancel.title, { amount: data?.comingBackUsdc ?? 0 });
+  const shown = { amount: amount ?? 0 };
+  const exact = { exact: true };
+  const cta = step === 'put_up' ? money.fill(g.addCta, shown, {}, exact) : step === 'take_out' ? money.fill(g.withdrawCta, shown, {}, exact) : step === 'collect' ? c.sheets.collect.confirm : c.sheets.cancel.confirm;
   const blocked = busy || !data || (withAmount && (amount === null || amount <= 0 || amount > source + 1e-9));
 
   async function confirm() {
@@ -53,8 +55,8 @@ export function GuaranteeMove({ step, onClose }: { step: GuaranteeStep; onClose:
     const outcome = await run(step, withAmount ? String(amount) : undefined);
     if (outcome.ok) {
       setDone(
-        step === 'put_up' ? fillIn(g.doneAdd, { amount: shown })
-          : step === 'take_out' ? fillIn(g.doneWithdraw, { amount: shown, date: readyOn })
+        step === 'put_up' ? money.fill(g.doneAdd, shown, {}, exact)
+          : step === 'take_out' ? money.fill(g.doneWithdraw, shown, { date: readyOn }, exact)
             : step === 'collect' ? c.done.collect : c.done.cancel,
       );
     } else if (!outcome.cancelled) setError(outcome.error);
@@ -77,7 +79,7 @@ export function GuaranteeMove({ step, onClose }: { step: GuaranteeStep; onClose:
             <>
               <AmountHero id={amountId} label={sheet.amountLabel} value={typed} onChange={setTyped} keypad={keypad} />
               <p className="text-center text-[14px] font-medium text-[var(--ink-secondary)]">
-                {step === 'put_up' ? fillIn(g.fromBalance, { amount: formatBalance(wallet, locale) }) : fillIn(g.readyLine, { amount: formatBalance(source, locale) })}
+                {step === 'put_up' ? money.fill(g.fromBalance, { amount: wallet }) : money.fill(g.readyLine, { amount: source })}
               </p>
               <div className="flex justify-center gap-2">
                 {(['quarter', 'half', 'max'] as const).map((chip) => (
@@ -90,7 +92,7 @@ export function GuaranteeMove({ step, onClose }: { step: GuaranteeStep; onClose:
               </p>
               {step === 'take_out' && Number(data?.comingBackUsdc ?? 0) > 0 ? (
                 <p data-restart className="text-center text-[13px] font-medium text-[var(--ink)]">
-                  {fillIn(c.sheets.takeOut.restart, { days: waitDays, total: (Number(data?.comingBackUsdc ?? 0) + (amount ?? 0)).toFixed(2) })}
+                  {money.fill(c.sheets.takeOut.restart, { total: Number(data?.comingBackUsdc ?? 0) + (amount ?? 0) }, { days: waitDays })}
                 </p>
               ) : null}
             </>

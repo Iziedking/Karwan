@@ -12,9 +12,8 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur } from '@/shared/motion/tokens';
-import { fill } from '@/features/deals/workspace/presentation';
 import { bridgeChainMeta, useBridges } from '@/features/bridge/hooks/useBridge';
-import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer, whereItIs } from '../balanceModel';
+import { formatBalance, heroAmount, homeState, movingTransfer, whereItIs } from '../balanceModel';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import type { AgentKey } from '../moneySheetModel';
 import { RecentMoney } from './RecentMoney';
@@ -34,6 +33,8 @@ import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
 import { Hint } from '@/shared/components/Hint';
 import { GuaranteeTab } from '@/features/guarantee/GuaranteeTab';
 import { ADD_HREF, WITHDRAW_HREF, agentMoveHref, moneyTab, type MoneyTab } from '../moneyRoutes';
+import { useMoneyText } from '../hooks/useMoneyText';
+import { Price } from './Price';
 
 
 const SECONDARY = buttonClasses({ variant: 'secondary' });
@@ -67,6 +68,7 @@ function MoneyHomeInner() {
   // The tab lives in the address, so Back and a shared link return to it.
   const tab: MoneyTab = moneyTab(params.get('tab'));
   const { locale } = useLocale();
+  const money = useMoneyText();
   const display = useDisplayCurrency();
   const reduce = useHydratedReducedMotion();
   const balances = useMoneyBalances();
@@ -104,10 +106,9 @@ function MoneyHomeInner() {
   const hero = heroAmount(facts);
   const moving = movingTransfer(bridges, Date.now());
   const movingText = moving
-    ? fill(moving.direction === 'out' ? t.home.movingOut : t.home.movingIn, {
-        amount: formatAmount(Number(moving.amountUsdc), locale),
+    ? money.fill(moving.direction === 'out' ? t.home.movingOut : t.home.movingIn, { amount: Number(moving.amountUsdc) }, {
         place: bridgeChainMeta(moving.sourceChainKey).name,
-      })
+      }, { exact: true })
     : null;
 
   return (
@@ -193,7 +194,7 @@ function MoneyHomeInner() {
                   <dl>
                     <div data-held-in-deals className="flex min-h-[52px] items-center justify-between gap-3 py-3 text-[15px] tabular-nums">
                       <dt className="text-[var(--ink-secondary)]">{mp.heldLabel}</dt>
-                      <dd className="font-medium text-[var(--ink)]">{formatAmount(Number(held), locale)} USDC</dd>
+                      <dd className="font-medium text-[var(--ink)]"><Price usdc={Number(held)} size="inline" /></dd>
                     </div>
                   </dl>
                 </div>
@@ -246,7 +247,6 @@ function MoneyHomeInner() {
 /// most held first, with the total under them (view 48).
 function HeldDealsCard() {
   const mp = useTranslations().moneyPage;
-  const { locale } = useLocale();
   const deals = useHeldDeals();
   if (deals.length === 0) return null;
   const total = deals.reduce((sum, d) => sum + Number(d.held), 0);
@@ -261,14 +261,14 @@ function HeldDealsCard() {
                 <span dir="auto" className="block truncate text-[15px] font-medium text-[var(--ink)]">{whatItIs(deal) || dealReference(deal.jobId)}</span>
                 <span dir="ltr" className="block text-[13px] tabular-nums text-[var(--ink-secondary)]">{dealReference(deal.jobId)}</span>
               </span>
-              <span className="shrink-0 text-[15px] font-medium tabular-nums text-[var(--ink)]">{formatAmount(Number(held), locale)}</span>
+              <Price usdc={Number(held)} className="shrink-0 text-end text-[15px] font-medium text-[var(--ink)]" />
             </Link>
           </li>
         ))}
       </ul>
       <p className="mt-3 flex items-center justify-between gap-3 px-5 text-[15px] tabular-nums">
         <span className="text-[var(--ink-secondary)]">{mp.totalHeld}</span>
-        <span className="font-semibold text-[var(--ink)]">{formatAmount(total, locale)} USDC</span>
+        <Price usdc={total} className="text-end font-semibold text-[var(--ink)]" />
       </p>
     </aside>
   );

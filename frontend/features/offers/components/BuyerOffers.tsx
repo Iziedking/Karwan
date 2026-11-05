@@ -9,7 +9,7 @@ import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { formatUsdc } from '@/shared/utils/format';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { budgetDifference, offerErrorKey, offerFundingTotal, orderOffers, topUpAmount, type Offer } from '../model';
 
 function sellerName(address: string): string {
@@ -28,6 +28,7 @@ function shortDate(unix: number, locale: string): string {
 export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: string }) {
   const t = useTranslations().offers;
   const { locale } = useLocale();
+  const mt = useMoneyText();
   const auth = useAuth();
   const money = useMoneyBalances();
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -123,7 +124,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
                 </span>
               )}
               <span className="shrink-0 text-[16px] font-medium tabular-nums text-[var(--ink)]">
-                {formatUsdc(offer.priceUsdc)}
+                {mt.text(offer.priceUsdc)}
               </span>
             </div>
             <p className="mt-1 text-[14px] text-[var(--ink-secondary)] font-medium">
@@ -139,7 +140,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
         ))}
       </ul>
       <Button variant={chosen ? 'outline' : undefined} size="lg" className="mt-5 w-full rounded-full" onClick={() => setChosen(top)}>
-        {t.review.replace('{price}', formatUsdc(top.priceUsdc, { withSuffix: false }))}
+        {mt.fill(t.review, { price: top.priceUsdc })}
       </Button>
       <p className="mt-3 text-center text-[14px] text-[var(--ink-secondary)] font-medium">{top.sellerBlock?.recommended ? t.agentPickLine : t.agentLine}</p>
 
@@ -152,15 +153,15 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
             {chosenTotal ? <>
             {/* The verified total, fee included, is the loudest number. */}
             <p className="text-[36px] font-medium leading-none tabular-nums text-[var(--ink)]">
-              {formatUsdc(chosenTotal)}
+              {mt.text(chosenTotal)}
             </p>
             {chosen.fundedUsdc && chosen.fundedUsdc !== chosen.priceUsdc ? (
               <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
-                {t.includesFee.replace('{price}', formatUsdc(chosen.priceUsdc, { withSuffix: false }))}
+                {mt.fill(t.includesFee, { price: chosen.priceUsdc })}
               </p>
             ) : null}
             <p className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">
-              {t.confirmBody.replace('{price}', formatUsdc(chosenTotal, { withSuffix: false }))}
+              {mt.fill(t.confirmBody, { price: chosenTotal })}
             </p>
             </> : <p role="alert" className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">{t.totalUnavailable}</p>}
             {diff ? <p className="text-[14px] text-[var(--color-warning)]">{t.aboveBudget.replace('{diff}', diff)}</p> : null}
@@ -171,7 +172,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
             ) : null}
             {error === 'topUp' && !funding && shortfall !== null && shortfall > 0 && money.agents?.buyer ? (
               <Button variant="outline" size="lg" className="w-full rounded-full" onClick={() => setFundingAmount(shortfall)}>
-                {t.topUpCta.replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
+                {mt.fill(t.topUpCta, { amount: shortfall })}
               </Button>
             ) : null}
             {fundingAmount !== null && money.agents?.buyer ? (
@@ -194,7 +195,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
             ) : null}
             {!funding && chosenTotal ? (
               <Button id={`${titleId}-accept`} size="lg" className="w-full rounded-full" loading={busy} onClick={() => void accept(chosen)}>
-                {t.accept.replace('{price}', formatUsdc(chosenTotal, { withSuffix: false }))}
+                {mt.fill(t.accept, { price: chosenTotal })}
               </Button>
             ) : null}
             {!chosenTotal ? <Button size="lg" className="w-full rounded-full" loading={busy} onClick={async () => { setBusy(true); await load(); setBusy(false); }}>{t.refreshTotal}</Button> : null}

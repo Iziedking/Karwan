@@ -19,8 +19,12 @@ function dayCount(copy: Pick<AgentQuestionsCopy, 'dayOne' | 'days'>, n: number |
   return n === 1 ? copy.dayOne : copy.days.replace('{n}', String(n));
 }
 
+/// Fills a sentence whose money values read in the person's currency.
+export type MoneyFill = (template: string, money: Record<string, string | number | null | undefined>, vars: Record<string, string>) => string;
+
 /// The sentence the card shows, from the question's facts and suggestion.
-export function questionLine(copy: AgentQuestionsCopy, q: AgentQuestion): string {
+/// With a money filler, every USDC amount reads in the chosen currency too.
+export function questionLine(copy: AgentQuestionsCopy, q: AgentQuestion, money?: MoneyFill): string {
   const limit = q.facts.limit;
   const values = {
     budget: q.facts.budgetUsdc ?? '',
@@ -41,5 +45,9 @@ export function questionLine(copy: AgentQuestionsCopy, q: AgentQuestion): string
     'last-price-passed': copy.counter,
     'price-above-cap': copy.counter,
   };
-  return fill(template[q.kind], values);
+  if (!money) return fill(template[q.kind], values);
+  const amounts: Record<string, string | null> = { budget: q.facts.budgetUsdc ?? null, price: q.suggested.priceUsdc ?? null, their: q.facts.theirPriceUsdc ?? null };
+  if (q.kind !== 'time' && limit != null) amounts.limit = String(limit);
+  const rest = Object.fromEntries(Object.entries(values).filter(([key]) => !(key in amounts) || amounts[key] === null));
+  return money(template[q.kind], amounts, rest);
 }

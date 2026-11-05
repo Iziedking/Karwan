@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { AgentQuestion } from '@/core/api';
 import { agentQuestionsCopy } from '@/shared/i18n/messages/agentQuestions';
 import { questionLine, questionShape } from './agentQuestionCard';
+import { fillMoney } from '../money/moneyText';
 
 const copy = agentQuestionsCopy.en;
 const base: AgentQuestion = {
@@ -39,5 +40,18 @@ test('the card line names the budget, the limit and the suggested answer', () =>
   assert.equal(
     questionLine(copy, { ...base, kind: 'counter-below-floor', facts: { budgetUsdc: '100', dueDays: 5, limit: 90, theirPriceUsdc: '85' }, suggested: { priceUsdc: '90', days: 5 } }),
     'The buyer offers 85 USDC. Your lowest is 90 USDC. Take it, or hold at 90 USDC?',
+  );
+});
+
+test('with a money filler, every amount in the line reads in the chosen currency', () => {
+  const money = (template: string, amounts: Record<string, string | number | null | undefined>, vars: Record<string, string>) =>
+    fillMoney(template, Object.fromEntries(Object.entries(amounts).map(([k, v]) => [k, v === null || v === undefined ? null : Number(v)])), 'NGN', 1346.11, 'en', vars);
+  assert.equal(
+    questionLine(copy, base, money),
+    'The budget is ₦107,689 · 80.00 USDC, under your lowest of ₦121,150 · 90.00 USDC. Offer ₦121,150 · 90.00 USDC?',
+  );
+  assert.equal(
+    questionLine(copy, { ...base, kind: 'time', facts: { budgetUsdc: '80', dueDays: 2, limit: 7 }, suggested: { priceUsdc: '80', days: 7 } }, money),
+    'It is due in 2 days. You usually take 7 days. Offer ₦107,689 · 80.00 USDC in 7 days?',
   );
 });

@@ -8,7 +8,8 @@ import { CARD_CLASS } from '@/shared/components/Card';
 import { FactRows } from '@/shared/components/FactRows';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ratingText } from '@/features/ratings/ratingText';
-import { formatUsdc } from '@/shared/utils/format';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { Price } from '@/features/money/components/Price';
 import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { rankedOffers, type RankedOffer } from '../rankedOffers';
@@ -19,7 +20,6 @@ import { AgentWorldCheck } from './AgentWorldCheck';
 import { worldStepFrom } from '../agentWorldStep';
 
 const POLL_MS = 6_000;
-const price = (usdc: number) => formatUsdc(String(usdc), { withSuffix: false });
 
 /// The shortlist for a request, or null when the backend does not run it, so
 /// the caller falls back to the plain offers list.
@@ -65,6 +65,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   onChosen: () => void;
 }) {
   const t = useTranslations();
+  const money = useMoneyText();
   const copy = t.shortlist;
   const roster = t.offerRoster;
   const rf = t.requestFlow;
@@ -148,7 +149,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
                   <span className="block truncate text-[13px] text-[var(--ink-secondary)]">{recordLine(e)}</span>
                 </span>
                 <span className="shrink-0 text-end">
-                  <span className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">{price(e.priceUsdc)} USDC</span>
+                  <Price usdc={e.priceUsdc} className="text-[15px] font-semibold text-[var(--ink)]" />
                   <span
                     {...(e.bestFit ? { 'data-best-fit': '' } : {})}
                     className={`block text-[13px] ${e.bestFit ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}
@@ -179,7 +180,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
         rows={choosing ? [
           [rf.confirmFor, choosing.offer],
           [rf.confirmTo, choosing.name],
-          [rf.confirmPrice, `${price(choosing.priceUsdc)} USDC`],
+          [rf.confirmPrice, money.text(choosing.priceUsdc)],
           [rf.confirmDelivers, choosing.deliveryDays === 1 ? rf.deliversInOne : fill(rf.deliversIn, { n: choosing.deliveryDays })],
           [rf.heldBy, rf.heldValue],
         ] : []}
@@ -239,10 +240,7 @@ function OfferDetails({ entry, place, canChoose, onClose, onChoose }: {
               </p>
             </div>
           </div>
-          <p className="mt-5 flex items-baseline gap-2 tabular-nums">
-            <span className="text-[34px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]">{price(entry.priceUsdc)}</span>
-            <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
-          </p>
+          <Price usdc={entry.priceUsdc} size="hero" className="mt-5" figureClassName="text-[34px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]" />
           {v.askedLine ? <p className={`mt-1 ${line}`}>{v.askedLine}</p> : null}
           <p className={`mt-1 text-[14px] ${entry.bestFit ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}>{rankLine(place, entry.bestFit, copy)}</p>
           <div className={`${CARD_CLASS} mt-4 px-5 py-1`}>

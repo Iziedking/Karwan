@@ -10,7 +10,7 @@ import { buttonClasses } from '@/shared/components/Button';
 import { Hint } from '@/shared/components/Hint';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { fill } from '@/features/deals/workspace/presentation';
 import { DepositCard } from '@/features/deposit/components/DepositCard';
@@ -20,7 +20,6 @@ import { useBridges } from '@/features/bridge/hooks/useBridge';
 import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/routePlan';
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
 import { gatewayDeposit, gatewayEstimateSpend, gatewaySpend } from '@/features/gateway/lib';
-import { formatAmount, formatBalance } from '../balanceModel';
 import { pressKey } from '../amountEntry';
 import { chipAmount, fromWalletPoolSpend, parseAmount } from '../moneySheetModel';
 import { topUpWithFees } from '../sendFromWhole';
@@ -30,6 +29,7 @@ import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { AmountHero } from './AmountHero';
 import { Keypad } from './Keypad';
 import { NetworkLogo } from './NetworkLogo';
+import { useMoneyText } from '../hooks/useMoneyText';
 
 export type AddSheetMode = 'add' | 'moveToBalance' | 'addToPool';
 type Step = 'pick' | 'amount' | 'exchange' | 'progress' | 'done' | 'landed';
@@ -69,7 +69,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
   const t = all.moneyMove;
   const sheetCopy = all.money.sheet;
   const entry = all.money.entry;
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const auth = useAuth();
   const account = useAccount();
   const chainId = useChainId();
@@ -144,7 +144,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
   const recordId = record?.id;
   useEffect(() => {
     if (!landed || !chosen || chosen.kind !== 'network' || amount === null) return;
-    onLanded?.(fill(t.home.added, { amount: formatAmount(amount, locale), network: chainName(chosen.chain) }));
+    onLanded?.(money.fill(t.home.added, { amount: amount }, { network: chainName(chosen.chain) }, { exact: true }));
     balances.refetch();
     // The card stays until the person presses Done (owner's test, 5 Nov 2026).
     setLandedCard({ amount, from: chainName(chosen.chain), seconds: record?.startedAt ? Math.max(1, Math.round((Date.now() - record.startedAt) / 1000)) : null, walletFee: true });
@@ -188,7 +188,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
       if (chosen.kind === 'network' && mode === 'addToPool') {
         if (chainId !== SOURCE_CHAINS[chosen.chain].chainId) await switchChainAsync({ chainId: SOURCE_CHAINS[chosen.chain].chainId });
         await gatewayDeposit({ provider: await provider(), amount: String(amount), chain: SOURCE_CHAINS[chosen.chain].appKit });
-        setDoneNote(fill(t.pool.onItsWay, { amount: formatAmount(amount, locale) }) + ' · ' + (readyIn(chosen.chain) === 'seconds' ? t.pool.readySeconds : t.pool.readyAbout15));
+        setDoneNote(money.fill(t.pool.onItsWay, { amount: amount }, {}, { exact: true }) + ' · ' + (readyIn(chosen.chain) === 'seconds' ? t.pool.readySeconds : t.pool.readyAbout15));
         balances.refetch();
         setStep('done');
         return;
@@ -209,13 +209,13 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
         const state = fromWalletPoolSpend({ txHash: spent.txHash });
         if (state.kind === 'confirmed') {
           moneySounds.outcome('success', { ids: [spent.txHash] });
-          onLanded?.(fill(t.home.added, { amount: formatAmount(amount, locale), network: t.pool.transferBalance }));
+          onLanded?.(money.fill(t.home.added, { amount: amount }, { network: t.pool.transferBalance }, { exact: true }));
           balances.refetch();
           setLandedCard({ amount, from: t.pool.transferBalance, seconds: null, walletFee: true });
           setStep('landed');
           return;
         }
-        setDoneNote(fill(t.pool.onItsWay, { amount: formatAmount(amount, locale) }));
+        setDoneNote(money.fill(t.pool.onItsWay, { amount: amount }, {}, { exact: true }));
         setStep('done');
       }
     } catch (error) {
@@ -224,7 +224,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
         setDeclined(true);
         setStep(chosen.kind === 'network' && mode !== 'addToPool' ? 'amount' : step);
       } else {
-        setDoneNote(fill(t.pool.onItsWay, { amount: formatAmount(amount, locale) }));
+        setDoneNote(money.fill(t.pool.onItsWay, { amount: amount }, {}, { exact: true }));
         setStep('done');
       }
     } finally {
@@ -238,8 +238,8 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
     amount === null
       ? sheetCopy.ctaNoAmount
       : mode === 'moveToBalance'
-        ? fill(t.pool.moveCta, { amount: formatAmount(amount, locale) })
-        : fill(t.add.cta, { amount: formatAmount(amount, locale) });
+        ? money.fill(t.pool.moveCta, { amount: amount }, {}, { exact: true })
+        : money.fill(t.add.cta, { amount: amount }, {}, { exact: true });
 
   const noWallet = !account.isConnected;
   const networkRow = (source: Extract<MoveSource, { kind: 'network' }>) => {
@@ -277,8 +277,8 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
       <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} />
       <p className="text-center text-[14px] font-medium text-[var(--ink-secondary)]" dir="auto">
         {source.kind === 'network'
-          ? fill(t.add.there, { amount: formatBalance(source.amount, locale), network: chainName(source.chain) })
-          : fill(sheetCopy.available, { amount: formatBalance(source.amount, locale) })}
+          ? money.fill(t.add.there, { amount: source.amount }, { network: chainName(source.chain) })
+          : money.fill(sheetCopy.available, { amount: source.amount })}
       </p>
       <div className="flex justify-center gap-2">
         {(['quarter', 'half', 'max'] as const).map((chip) => (
@@ -288,7 +288,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
         ))}
       </div>
       {keypad ? <Keypad onKey={(key) => setTyped((value) => pressKey(value, key))} label={entry.keypad} backLabel={entry.back} /> : null}
-      {over ? <p className="text-center text-[14px] font-medium text-[var(--ink)]">{fill(sheetCopy.short, { amount: formatAmount(amount! - source.amount, locale) })}</p> : null}
+      {over ? <p className="text-center text-[14px] font-medium text-[var(--ink)]">{money.fill(sheetCopy.short, { amount: amount! - source.amount }, {}, { exact: true })}</p> : null}
       {declined ? <p role="alert" className="text-center text-[14px] font-medium text-[var(--color-critical)]">{t.add.declined}</p> : null}
       <p className="text-center text-[13px] font-medium text-[var(--ink-muted)]">{source.kind === 'network' ? t.add.walletFee : t.pool.confirmOnce}</p>
       <button type="button" onClick={() => void submit()} disabled={blocked} aria-busy={busy} className={buttonClasses({ size: 'lg', className: 'w-full' })}>
@@ -319,7 +319,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
             <span className="block text-[15px] font-semibold text-[var(--ink)]">{t.pool.transferBalance}</span>
             <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{t.add.arrivesSeconds}</span>
           </span>
-          <span dir="ltr" className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatBalance(poolSource.amount, locale)}</span>
+          <span dir="ltr" className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">{money.text(poolSource.amount)}</span>
         </button>
       ) : null}
       <span className={`${LABEL} block pt-2`}>{t.add.otherWays}</span>
@@ -425,7 +425,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
             </span>
             <div className="space-y-1.5">
               <h2 id={titleId} role="status" className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]" dir="auto">
-                {fill(pages.added.title, { amount: formatAmount(landedCard.amount, locale) })}
+                {money.fill(pages.added.title, { amount: landedCard.amount }, {}, { exact: true })}
               </h2>
               <p className="text-[15px] text-[var(--ink-secondary)]">{fill(pages.added.fromLine, { network: landedCard.from })}</p>
             </div>
@@ -468,7 +468,7 @@ type Describe = (source: NetworkSource) => { name: string; sub: string };
 /// On a phone: the networks as cards in a row that swipes, the next one
 /// peeking in, with dots under them.
 function NetworkCards({ sources, describe, onPick, label }: { sources: NetworkSource[]; describe: Describe; onPick: (s: MoveSource) => void; label: string }) {
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   return (
@@ -501,7 +501,7 @@ function NetworkCards({ sources, describe, onPick, label }: { sources: NetworkSo
                 <span className="block text-[15px] font-semibold text-[var(--ink)]">{name}</span>
                 <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{sub}</span>
               </span>
-              <span dir="ltr" className="text-[14px] font-semibold tabular-nums text-[var(--ink)]">{formatBalance(source.amount, locale)} USDC</span>
+              <span dir="ltr" className="text-[14px] font-semibold tabular-nums text-[var(--ink)]">{money.text(source.amount)}</span>
             </button>
           );
         })}
@@ -528,7 +528,7 @@ function NetworkPicker({ sources, label, change, describe, open, setOpen, onPick
   setOpen: (open: boolean) => void;
   onPick: (s: MoveSource) => void;
 }) {
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const [current, setCurrent] = useState<NetworkSource>(sources[0]);
   const listId = useId();
   const { name, sub } = describe(current);
@@ -539,7 +539,7 @@ function NetworkPicker({ sources, label, change, describe, open, setOpen, onPick
           <NetworkLogo chain={current.chain} name={name} size={36} />
           <span className="min-w-0 flex-1">
             <span className="block text-[15px] font-semibold text-[var(--ink)]">{name}</span>
-            <span className="block text-[13px] font-medium text-[var(--ink-secondary)]"><span dir="ltr">{formatBalance(current.amount, locale)} USDC</span> · {sub}</span>
+            <span className="block text-[13px] font-medium text-[var(--ink-secondary)]"><span dir="ltr">{money.text(current.amount)}</span> · {sub}</span>
           </span>
         </button>
         {sources.length > 1 ? (
@@ -562,7 +562,7 @@ function NetworkPicker({ sources, label, change, describe, open, setOpen, onPick
                 >
                   <NetworkLogo chain={source.chain} name={d.name} size={24} />
                   <span className="flex-1 text-[14px] font-medium text-[var(--ink)]">{d.name}</span>
-                  <span dir="ltr" className="text-[14px] font-semibold tabular-nums text-[var(--ink)]">{formatBalance(source.amount, locale)}</span>
+                  <span dir="ltr" className="text-[14px] font-semibold tabular-nums text-[var(--ink)]">{money.text(source.amount)}</span>
                 </button>
               </li>
             );

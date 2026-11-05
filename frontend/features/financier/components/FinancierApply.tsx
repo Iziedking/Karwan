@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { financeDeskCopy } from '@/shared/i18n/messages/financeDesk';
 import { PageTour } from '@/shared/guide/PageTour';
 import { FINANCIER_APPLY_TOUR_ID, FINANCIER_APPLY_STEPS } from '@/shared/guide/tours';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 export interface FinancierEligibility {
   eligible: boolean;
@@ -36,6 +37,7 @@ export function FinancierApply({
   const { locale } = useLocale();
   const copy = financeDeskCopy[locale].apply;
   const tiers = useTranslations().financierDashboard.open.tier;
+  const money = useMoneyText();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const tier = tiers[eligibility.repTier.toLowerCase() as keyof typeof tiers] ?? eligibility.repTier;
@@ -51,7 +53,7 @@ export function FinancierApply({
     {
       label: copy.stake,
       ok: eligibility.stakeOk,
-      value: `${eligibility.stakeUsdc.toFixed(2)} USDC`,
+      value: money.text(eligibility.stakeUsdc),
       need: copy.stakeNeed,
       fix: { href: '/guarantee', label: copy.stakeFix },
     },
