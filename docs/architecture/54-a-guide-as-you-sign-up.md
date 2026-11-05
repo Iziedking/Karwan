@@ -49,7 +49,7 @@ A guide answers what you just did, in one line, the moment you do it: a pop-up t
 
 From About you on, the card is signed "Your agent" instead of "Karwan", the same handover the bubbles make today. Free text such as "what do you do" is read the way it is today (the "Reading that…" step). The card shows that reading as it arrives.
 
-**What it never does.** It never asks a question of its own and never blocks a button. Every line is about the step in front of you. The words live in the five languages like every other line, and the card follows the light and dark theme.
+**What it never does.** It never explains itself: no timer bar, no "tap to dismiss" hint, no caption about how it works. People find out by using it. It never asks a question of its own and never blocks a button. Every line is about the step in front of you. The words live in the five languages like every other line, and the card follows the light and dark theme.
 
 ## Country, under the tag
 
