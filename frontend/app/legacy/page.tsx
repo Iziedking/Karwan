@@ -16,7 +16,7 @@ import { PreviousEscrowDeals } from '@/features/deals/components/PreviousEscrowD
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { previousEscrowDeals } from '@/features/deals/previousEscrow';
 import { runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
-import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
+import { GUARANTEE_QUERY } from '@/features/guarantee/useGuarantee';
 import { Pager } from '@/shared/components/Pager';
 import { paged } from '@/shared/utils/paged';
 import { dealReference } from '@/features/deals/dealReference';

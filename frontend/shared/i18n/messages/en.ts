@@ -33,6 +33,7 @@ import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy, type ContestsCopy } from './contests';
 import { agentJobsCopy, type AgentJobsCopy } from './agentJobs';
 import { moneyMoveCopy, type MoneyMoveCopy } from './moneyMove';
+import { moneyPagesCopy, type MoneyPagesCopy } from './moneyPages';
 import { workCopy, type WorkCopy } from './work';
 import { offersThatMoveCopy, type OffersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy, type AgentQuestionsCopy } from './agentQuestions';
@@ -90,6 +91,7 @@ interface MessagesShape {
   contests: ContestsCopy;
   agentJobs: AgentJobsCopy;
   moneyMove: MoneyMoveCopy;
+  moneyPages: MoneyPagesCopy;
   work: WorkCopy;
   offersThatMove: OffersThatMoveCopy;
   agentQuestions: AgentQuestionsCopy;
@@ -5334,6 +5336,7 @@ export const en: MessagesShape = {
   contests: contestsCopy.en,
   agentJobs: agentJobsCopy.en,
   moneyMove: moneyMoveCopy.en,
+  moneyPages: moneyPagesCopy.en,
   work: workCopy.en,
   offersThatMove: offersThatMoveCopy.en,
   agentQuestions: agentQuestionsCopy.en,

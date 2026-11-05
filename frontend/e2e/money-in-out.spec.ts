@@ -40,18 +40,15 @@ test('Withdraw carries the amount and address into the out card, then asks once 
       return route.fulfill({ json: { id: 'b1', status: 'submitted' } });
     },
   });
-  await page.goto('/bridge?money=v1&direction=out');
-  await page.getByLabel('Amount').fill('25');
-  await page.getByRole('radio', { name: /A wallet or exchange/ }).click();
-  await page.getByLabel('Paste the address').fill(STRANGER);
+  // Withdraw is its own page (view 51, fourth round): where, then how much, then the review.
+  await page.goto('/withdraw');
+  await page.locator('[data-withdraw-target="otherWallet"]').click();
+  await page.getByPlaceholder('0x').fill(STRANGER);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.locator('[data-withdraw-flow]').getByLabel('Amount', { exact: true }).fill('25');
   expect(await accentControls(page)).toBe(1);
-  await page.getByRole('button', { name: /Withdraw 25/ }).click();
-
-  const out = page.locator('[data-guide="bridge-out"]');
-  await expect(out.locator('input[inputmode="decimal"]')).toHaveValue('25');
-  await expect(out.getByPlaceholder(/0x/)).toHaveValue(STRANGER);
   await page.screenshot({ path: info.outputPath('withdraw-card.png'), fullPage: true });
-  await out.getByRole('button', { name: 'Review', exact: true }).click();
+  await page.getByRole('button', { name: 'Review 25.00 USDC' }).click();
 
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByRole('heading', { name: /Withdraw 25 USDC\?/ })).toBeVisible();
@@ -68,12 +65,12 @@ test('Withdraw carries the amount and address into the out card, then asks once 
 test('Not now closes the review and nothing moves', async ({ page }) => {
   const sent: unknown[] = [];
   await serveMoney(page, { balances: funded, bridgeOut: async (route) => { sent.push(1); return route.fulfill({ json: {} }); } });
-  await page.goto('/bridge?money=v1&direction=out');
-  await page.getByLabel('Amount').fill('10');
-  await page.getByRole('radio', { name: /A wallet or exchange/ }).click();
-  await page.getByLabel('Paste the address').fill(STRANGER);
-  await page.getByRole('button', { name: /Withdraw 10/ }).click();
-  await page.locator('[data-guide="bridge-out"]').getByRole('button', { name: 'Review', exact: true }).click();
+  await page.goto('/withdraw');
+  await page.locator('[data-withdraw-target="otherWallet"]').click();
+  await page.getByPlaceholder('0x').fill(STRANGER);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.locator('[data-withdraw-flow]').getByLabel('Amount', { exact: true }).fill('10');
+  await page.getByRole('button', { name: 'Review 10.00 USDC' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Not now' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(sent).toEqual([]);

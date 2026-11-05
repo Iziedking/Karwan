@@ -30,6 +30,7 @@ import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { agentJobsCopy } from './agentJobs';
 import { moneyMoveCopy } from './moneyMove';
+import { moneyPagesCopy } from './moneyPages';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -88,6 +89,7 @@ export const sw: Messages = {
   contests: contestsCopy.sw,
   agentJobs: agentJobsCopy.sw,
   moneyMove: moneyMoveCopy.sw,
+  moneyPages: moneyPagesCopy.sw,
   work: workCopy.sw,
   offersThatMove: offersThatMoveCopy.sw,
   agentQuestions: agentQuestionsCopy.sw,

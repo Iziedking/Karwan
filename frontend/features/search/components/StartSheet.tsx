@@ -121,7 +121,7 @@ export function StartSheet({
         ) : mode === 'needsMoney' && plan.kind === 'needsMoney' ? (
           <>
             <p className="text-[15px] text-[var(--lp-dark)]">{fill(t.needsMoney, { amount: usdc(plan.shortfall) })}</p>
-            <Link href="/bridge?intent=add" className={PRIMARY}>{t.addMoney}</Link>
+            <Link href="/add" className={PRIMARY}>{t.addMoney}</Link>
           </>
         ) : mode === 'begin' ? (
           <button ref={primaryRef} type="button" className={PRIMARY} onClick={onBegin}>{label}</button>

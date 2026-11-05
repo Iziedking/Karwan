@@ -92,11 +92,11 @@ export function FirstTrade({ deals, dealsState, className }: {
         return (
           <div className="flex flex-wrap gap-2">
             <Link href="/profile/wallets" className={STEP_MOVE}>{t.steps.money.faucet}</Link>
-            <Link href="/bridge?direction=in" className={SECONDARY}>{t.steps.money.fromWallet}</Link>
+            <Link href="/add" className={SECONDARY}>{t.steps.money.fromWallet}</Link>
           </div>
         );
       }
-      return <Link href="/bridge?direction=in" className={STEP_MOVE}>{t.steps.money.action}</Link>;
+      return <Link href="/add" className={STEP_MOVE}>{t.steps.money.action}</Link>;
     }
     if (key === 'telegram') return <TelegramConnectButton address={me || undefined} tone="light" />;
     if (key === 'deal' && view.dealAction === 'paymentRequest') {

@@ -44,13 +44,15 @@ for(const locale of ['en','fr','ar','hi','sw'] as const){
   const m=messages[locale],g=m.dealGuarantee;await world(page,locale);let ready=false;const mutations:string[]=[];
   await page.route(API+'/api/guarantee',r=>r.fulfill({json:{available:true,hasRecord:true,inPlaceUsdc:'125',heldUsdc:'25',freeUsdc:'100',comingBackUsdc:'15',readyAt:Math.floor(Date.now()/1000)+7*86400,ready,previousUsdc:'0',waitDays:7}}));
   await page.route(API+'/api/guarantee/**',r=>{mutations.push(r.request().method());return r.fulfill({status:403,json:{error:'fixture prevents submission'}});});
-  await page.goto('/guarantee');await expect(page.getByText(m.moneyPage.freeRow,{exact:true})).toBeVisible();
-  await expect(page.getByText(g.rows.comingBack,{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:g.buttons.collect,exact:true})).toHaveCount(0);
-  await page.getByRole('button',{name:g.buttons.takeOut,exact:true}).click();const d=page.getByRole('dialog');
-  await expect(d.getByRole('heading')).toContainText('100');await expect(d.getByText(g.sheets.takeOut.restart.replace('{days}','7').replace('{total}','115.00'),{exact:true})).toBeVisible();
+  const p=m.moneyPages.guarantee;
+  await page.goto('/guarantee');await expect(page).toHaveURL(/\/account\?tab=guarantee$/);await expect(page.getByText(p.ready,{exact:true})).toBeVisible();
+  await expect(page.getByText(p.comingBack,{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:p.collect,exact:true})).toHaveCount(0);
+  await page.locator('[data-guarantee-actions]').getByRole('link',{name:p.withdraw,exact:true}).click();await expect(page).toHaveURL(/step=take_out/);
+  await expect(page.getByRole('heading',{name:p.withdrawTitle})).toBeVisible();await page.locator('[data-money-page]').getByLabel(m.money.sheet.amountLabel,{exact:true}).fill('100');
+  await expect(page.locator('[data-restart]')).toHaveText(g.sheets.takeOut.restart.replace('{days}','7').replace('{total}','115.00'));
   await sound(page);await page.screenshot({path:info.outputPath('withdrawal-wait-'+locale+'.png'),fullPage:true});
-  await d.getByRole('button',{name:g.sheets.notNow,exact:true}).click();ready=true;await page.reload();
-  await page.getByRole('button',{name:g.buttons.collect,exact:true}).click();await expect(page.getByRole('dialog').getByText(g.sheets.collect.body,{exact:true})).toBeVisible();
+  ready=true;await page.goto('/account?tab=guarantee');
+  await page.locator('[data-guarantee-actions]').getByRole('link',{name:p.collect,exact:true}).click();await expect(page.locator('[data-money-page]').getByText(g.sheets.collect.body.replace('{days}','7'),{exact:false})).toBeVisible();
   await sound(page);await page.screenshot({path:info.outputPath('collect-'+locale+'.png'),fullPage:true});expect(mutations).toEqual([]);
  });
  test('language audit missing offer total blocks payment until refreshed '+locale,async({page},info)=>{

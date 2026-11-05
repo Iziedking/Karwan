@@ -119,7 +119,7 @@ test('the daily limit says what can leave now and when more can, with nothing to
   await page.goto('/account');
   await page.getByRole('button', { name: /Where it is/ }).click();
   await page.getByRole('dialog').locator('[data-part="agent"]').getByRole('button', { name: 'Move to your wallet', exact: true }).click();
-  const sheet = page.getByRole('dialog');
+  const sheet = page.locator('[data-money-page]');
   await sheet.getByLabel('Amount').fill('60');
   await sheet.getByRole('button', { name: 'Withdraw 60.00 USDC' }).click();
   await expect(sheet).toContainText('Up to 500 USDC can leave your account in 24 hours. 20 USDC can leave now, and more from');
@@ -166,11 +166,11 @@ for (const theme of ['light', 'dark'] as const) {
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.getByRole('button', { name: /Where it is/ }).click();
     await page.getByRole('dialog').locator('[data-part="agent"]').getByRole('button', { name: 'Move to your wallet', exact: true }).click();
-    const sheet = page.getByRole('dialog');
+    const sheet = page.locator('[data-money-page]');
     await sheet.getByLabel('Amount').fill('10');
     await sheet.getByRole('button', { name: 'Withdraw 10.00 USDC' }).click();
     await expect(sheet).toContainText('Every payment out of your account is paused.');
     await expect(sheet.getByRole('button', { name: 'Resume with World ID' })).toBeVisible();
-    expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual([]);
+    expect((await new AxeBuilder({ page }).include('[data-money-page]').analyze()).violations).toEqual([]);
   });
 }

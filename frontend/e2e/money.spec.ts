@@ -10,10 +10,12 @@ async function agentPart(page: Page) {
   return page.getByRole('dialog').locator('[data-part="agent"]');
 }
 
+/// Topping up the agent is its own page (view 51, fifth round).
 async function openTopUp(page: Page) {
   await (await agentPart(page)).getByRole('button', { name: 'Add', exact: true }).click();
-  const sheet = page.getByRole('dialog');
-  await expect(sheet.getByRole('heading', { name: 'Top up buying agent' })).toBeVisible();
+  await expect(page).toHaveURL(/\/account\/agent\?move=topUp&agent=buyer$/);
+  const sheet = page.locator('[data-money-page]');
+  await expect(sheet.getByRole('heading', { name: 'Top up your agent' })).toBeVisible();
   return sheet;
 }
 
@@ -24,8 +26,8 @@ test('the balance is the loudest thing on the page, with one primary action', as
   await expect(heading).toContainText('Your balance');
   await expect(heading).toContainText('1,360.50');
   await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Add money', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Withdraw', exact: true })).toHaveAttribute('href', '/bridge?direction=out');
+  await expect(page.getByRole('link', { name: 'Add money', exact: true })).toHaveAttribute('href', '/add');
+  await expect(page.getByRole('link', { name: 'Withdraw', exact: true })).toHaveAttribute('href', '/withdraw');
   await expect(page.getByRole('link', { name: 'Send', exact: true })).toHaveAttribute('href', '/send');
   expect(await accentControls(page)).toBe(1);
 });
@@ -37,7 +39,7 @@ test('the ready dot is ink, not green, and Add money stays on one line on a phon
   await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
   const dot = await page.locator('[data-balance-dot]').evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(dot).not.toBe('rgb(175, 201, 91)');
-  const add = await page.locator('[data-money-actions]').getByRole('button', { name: 'Add money', exact: true }).evaluate((el) => {
+  const add = await page.locator('[data-money-actions]').getByRole('link', { name: 'Add money', exact: true }).evaluate((el) => {
     const r = document.createRange();
     r.selectNodeContents(el);
     // One rect per line of text.
@@ -166,8 +168,8 @@ test('a withdrawal brings money back to the balance', async ({ page }) => {
   });
   await page.goto('/account');
   await (await agentPart(page)).getByRole('button', { name: 'Move to your wallet', exact: true }).click();
-  const sheet = page.getByRole('dialog');
-  await expect(sheet.getByRole('heading', { name: 'Withdraw from buying agent' })).toBeVisible();
+  const sheet = page.locator('[data-money-page]');
+  await expect(sheet.getByRole('heading', { name: 'Withdraw from your agent' })).toBeVisible();
   await sheet.getByLabel('Amount').fill('20');
   await sheet.getByRole('button', { name: 'Withdraw 20.00 USDC' }).click();
   await expect(sheet).toContainText('20.00 USDC is back in your balance.');
@@ -192,7 +194,7 @@ test('a double press moves money once', async ({ page }) => {
   expect(calls).toBe(1);
 });
 
-test('the sheet cannot be dismissed while money is in flight', async ({ page }) => {
+test('the agent page cannot be left while money is in flight', async ({ page }) => {
   await serveMoney(page, {
     balances: funded,
     fundAgent: async (route) => {
@@ -204,24 +206,18 @@ test('the sheet cannot be dismissed while money is in flight', async ({ page }) 
   const sheet = await openTopUp(page);
   await sheet.getByLabel('Amount').fill('50');
   await sheet.getByRole('button', { name: 'Top up 50.00 USDC' }).click();
-  await page.keyboard.press('Escape');
-  await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Close', exact: true })).toBeDisabled();
+  await expect(sheet.getByRole('button', { name: 'Back', exact: true })).toBeDisabled();
   await expect(sheet).toContainText('50.00 USDC is with your buying agent.');
 });
 
-test('the sheet keeps focus inside and gives it back', async ({ page }) => {
+test('the agent page opens on its own, with no sheet, and Back returns to Money', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
-  const where = page.getByRole('button', { name: /Where it is/ });
-  await (await agentPart(page)).getByRole('button', { name: 'Add', exact: true }).click();
-  const sheet = page.getByRole('dialog');
-  await expect(sheet.getByLabel('Amount')).toBeFocused();
-  for (let i = 0; i < 12; i += 1) await page.keyboard.press('Tab');
-  expect(await page.evaluate(() => document.querySelector('[role="dialog"]')?.contains(document.activeElement))).toBe(true);
-  await page.keyboard.press('Escape');
-  await expect(sheet).toBeHidden();
-  await expect(where).toBeFocused();
+  const sheet = await openTopUp(page);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(sheet.getByLabel('Amount')).toBeVisible();
+  await sheet.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(page).toHaveURL(/\/account(\?|$)/);
 });
 
 test('the money home reads right to left in Arabic', async ({ page, context }) => {
@@ -245,7 +241,7 @@ for (const theme of ['light', 'dark'] as const) {
     expect(overflow).toBeLessThanOrEqual(0);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await openTopUp(page);
-    expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual([]);
+    expect((await new AxeBuilder({ page }).include('[data-money-page]').analyze()).violations).toEqual([]);
     expect(hydrationErrors()).toEqual([]);
   });
 }
@@ -343,30 +339,11 @@ test('an email account sends from its own wallet; a pool is never counted', asyn
   await expect(flow).not.toContainText('150.00');
 });
 
-test('add money has one Back: inside an answer it returns to the question', async ({ page }) => {
-  await serveMoney(page, { balances: funded });
-  // The live site shows the question first (money v1).
-  await page.goto('/bridge?direction=in&money=v1');
-  const back = page.getByRole('button', { name: 'Go back', exact: true }).filter({ visible: true });
-  const question = page.getByRole('heading', { name: 'How do you want to add money?' });
-  await expect(question).toBeVisible();
-  await expect(back).toHaveCount(1);
-
-  await page.getByRole('button', { name: /Send from an app or exchange/ }).click();
-  await expect(question).toHaveCount(0);
-  await expect(back).toHaveCount(1);
-  await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
-
-  await back.click();
-  await expect(question).toBeVisible();
-  await expect(page).toHaveURL(/\/bridge\?direction=in&money=v1/);
-});
-
 test('no page draws two Back controls', async ({ page }) => {
   test.setTimeout(180_000);
   await serveMoney(page, { balances: funded });
   const routes = [
-    '/account', '/bridge?direction=in', '/bridge?direction=in&money=v1', '/bridge?direction=out&money=v1', '/send', '/activity', '/profile', '/profile/wallets',
+    '/account', '/add', '/withdraw', '/account/agent?move=topUp&agent=buyer', '/account/guarantee?step=put_up', '/send', '/activity', '/profile', '/profile/wallets',
     '/profile/edit', '/settings', '/guarantee', '/financier', '/market', '/p2p/requests', '/p2p/offers', '/profile/open-deals',
   ];
   const backs = page.getByRole('link', { name: /^(←\s*)?Back\b/ }).or(page.getByRole('button', { name: /^(Go back|Back\b)/ })).filter({ visible: true });
@@ -404,34 +381,29 @@ test('the balance says what is held in your deals, and the agents fold under one
   await page.screenshot({ path: testInfo.outputPath('money-held.png'), fullPage: true });
 });
 
-test('withdraw starts with how much and where it goes (view 44, P8)', async ({ page }) => {
+test('withdraw asks where first; Someone on Karwan opens Send, and a wallet is reviewed before it moves', async ({ page }) => {
   await serveMoney(page, { balances: funded });
-  // Testnet serves the plain chooser page (the e2e build turns the newer page on).
-  await page.goto('/bridge?direction=out&money=v1');
-  const start = page.locator('[data-withdraw-start]');
-  await expect(start).toContainText('1,240.50 USDC available');
-  const amount = start.getByRole('textbox').first();
-  await amount.fill('5000');
-  await expect(start).toContainText('That is more than you have.');
-  await expect(start.getByRole('button', { name: 'Continue' })).toBeDisabled();
-  await amount.fill('50');
-  for (const name of [/A bank account/, /A card/]) {
-    const soon = start.getByRole('radio', { name });
-    await expect(soon).toBeDisabled();
-    await expect(soon).toContainText('Coming soon');
-    await expect(soon).toHaveAttribute('aria-checked', 'false');
+  await page.goto('/withdraw');
+  const flow = page.locator('[data-withdraw-flow]');
+  for (const name of ['A bank account', 'A card']) {
+    const soon = flow.locator('[aria-disabled]').filter({ hasText: name });
+    await expect(soon).toContainText('Soon');
   }
-  await start.getByRole('radio', { name: /Someone on Karwan/ }).click();
-  await start.getByRole('button', { name: 'Continue' }).click();
-  await expect(page).toHaveURL(/\/send\?amount=50$/);
+  await flow.locator('[data-withdraw-target="karwan"]').click();
+  await expect(page).toHaveURL(/\/send$/);
 
-  // Testnet serves the plain chooser page (the e2e build turns the newer page on).
-  await page.goto('/bridge?direction=out&money=v1');
-  await page.locator('[data-withdraw-start]').getByRole('textbox').first().fill('50');
-  await page.getByRole('radio', { name: /A wallet or exchange/ }).click();
+  await page.goto('/withdraw');
+  await page.locator('[data-withdraw-target="otherWallet"]').click();
   await page.getByPlaceholder('0x').fill('0x' + 'ab'.repeat(20));
-  await page.getByRole('button', { name: 'Withdraw 50.00 USDC' }).click();
-  await expect(page.locator('[data-withdraw-start]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  const amount = page.locator('[data-withdraw-flow]').getByLabel('Amount', { exact: true });
+  await amount.fill('5000');
+  await expect(page.locator('[data-withdraw-flow]')).toContainText('You need 3,759.50 USDC more.');
+  await amount.fill('50');
+  await page.getByRole('button', { name: 'Review 50.00 USDC' }).click();
+  const review = page.getByRole('dialog');
+  await expect(review).toContainText('0x' + 'ab'.repeat(20));
+  await expect(review.getByRole('button', { name: 'Withdraw 50.00 USDC' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
 

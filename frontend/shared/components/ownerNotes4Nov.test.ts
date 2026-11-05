@@ -12,9 +12,13 @@ import { requestFlowCopy } from '@/shared/i18n/messages/requestFlow';
 
 const source = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8');
 
-test('on a phone the tab you are on sits on a Karwan green pill', () => {
+test('on a phone the tab you are on fills its own icon in Karwan green, and Profile is your photo', () => {
   const nav = source('./WorkspaceBottomNav.tsx');
-  assert.match(nav, /item\.active && 'bg-\[var\(--action\)\] text-\[var\(--on-action\)\]'/);
+  // The green fits the shape, no pill around it (owner, 5 Nov 2026, option A).
+  assert.match(nav, /const green = 'var\(--karwan-green\)'/);
+  assert.match(nav, /fill=\{on && kind === 'fill' \? green : 'none'\}/);
+  assert.doesNotMatch(nav, /data-nav-pill|px-3\.5 py-0\.5/);
+  assert.match(nav, /<PersonAvatar address=\{auth\.address \?\? undefined\}/);
 });
 
 test('Add money is the green circle on Home, and the faucet drop has a touch of green', () => {
@@ -43,7 +47,7 @@ test('hours and minutes sit beside Pick a date, with no link to open them', () =
 test('a short top-up offers the other agent and opens Add USDC in a new tab', () => {
   const sheet = source('../../features/money/components/MoneySheet.tsx');
   assert.match(sheet, /setFromOtherAgent\(true\)/);
-  assert.match(sheet, /href="\/bridge\?intent=add" target="_blank" rel="noopener"/);
+  assert.match(sheet, /href="\/add" target="_blank" rel="noopener"/);
   assert.match(sheet, /move: 'withdraw',\s*agent: agent === 'buyer' \? 'seller' : 'buyer'/);
 });
 

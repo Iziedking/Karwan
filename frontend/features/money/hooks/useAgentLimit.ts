@@ -14,5 +14,5 @@ export function useAgentLimit() {
     mutationFn: (weeklyUsdc: number) => api.setAgentLimit(weeklyUsdc),
     onSuccess: (next: AgentLimit) => client.setQueryData(key, next),
   });
-  return { limit: query.data ?? null, loading: query.isLoading, save };
+  return { limit: query.data ?? null, loading: query.isLoading, failed: query.isError, retry: () => void query.refetch(), save };
 }

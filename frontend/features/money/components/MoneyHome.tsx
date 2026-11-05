@@ -1,5 +1,6 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { m } from 'motion/react';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -14,8 +15,7 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { bridgeChainMeta, useBridges } from '@/features/bridge/hooks/useBridge';
 import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer, whereItIs } from '../balanceModel';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
-import type { AgentKey, MoneyMove } from '../moneySheetModel';
-import { MoneySheet } from './MoneySheet';
+import type { AgentKey } from '../moneySheetModel';
 import { RecentMoney } from './RecentMoney';
 import { SavedAddresses } from '@/features/moneyOut/SavedAddresses';
 import { RecoveryRow } from '@/features/recovery/components/RecoveryRow';
@@ -26,14 +26,14 @@ import { whatItIs } from '@/features/deals/workspace/titleLine';
 import { dealReference } from '@/features/deals/dealReference';
 import { Segmented } from '@/shared/components/Segmented';
 import { AgentsTab } from './AgentsTab';
-import { AddMoneySheet, type AddSheetMode } from './AddMoneySheet';
 import { WhereItIsSheet } from './WhereItIsSheet';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { formatDisplay } from '../displayCurrency';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
+import { Hint } from '@/shared/components/Hint';
+import { GuaranteeTab } from '@/features/guarantee/GuaranteeTab';
+import { ADD_HREF, WITHDRAW_HREF, agentMoveHref, moneyTab, type MoneyTab } from '../moneyRoutes';
 
-type MoneyTab = 'balance' | 'agents';
-const TAB_KEY = 'karwan:money:tab';
 
 const SECONDARY = buttonClasses({ variant: 'secondary' });
 const QUIET =
@@ -44,7 +44,9 @@ export function MoneyHome() {
   const gate = useTranslations().profile.signInGate;
   return (
     <AuthGuard gateTag={gate.tag} gateBody={gate.body}>
-      <MoneyHomeInner />
+      <Suspense fallback={null}>
+        <MoneyHomeInner />
+      </Suspense>
     </AuthGuard>
   );
 }
@@ -56,54 +58,40 @@ function MoneyHomeInner() {
   const t = useTranslations().money;
   const mp = useTranslations().moneyPage;
   const mm = useTranslations().moneyMove;
+  const pages = useTranslations().moneyPages;
   const held = useHeldInDeals();
-  const [tab, setTab] = useState<MoneyTab>('balance');
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  // The tab lives in the address, so Back and a shared link return to it.
+  const tab: MoneyTab = moneyTab(params.get('tab'));
   const { locale } = useLocale();
   const display = useDisplayCurrency();
   const reduce = useHydratedReducedMotion();
   const balances = useMoneyBalances();
   const activation = useActivation();
   const { bridges } = useBridges();
-  const [sheet, setSheet] = useState<{ move: MoneyMove; agent: AgentKey } | null>(null);
   const [setupOpen, setSetupOpen] = useState(false);
-  const [addSheet, setAddSheet] = useState<AddSheetMode | null>(null);
-  const [landedNote, setLandedNote] = useState<string | null>(null);
-  const [whereOpen, setWhereOpen] = useState(false);
+  const [whereOpen, setWhereOpen] = useState(params.get('where') === '1');
   const isWallet = useAuth().method === 'web3';
 
-  // The landed note reads for five seconds, then leaves.
-  useEffect(() => {
-    if (!landedNote) return;
-    const timer = setTimeout(() => setLandedNote(null), 5000);
-    return () => clearTimeout(timer);
-  }, [landedNote]);
-
-  // The last tab is a per-device convenience; storage may be unavailable.
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(TAB_KEY) === 'agents') setTab('agents');
-    } catch {
-      /* private mode */
-    }
-  }, []);
   const chooseTab = useCallback((next: MoneyTab) => {
-    setTab(next);
-    try {
-      localStorage.setItem(TAB_KEY, next);
-    } catch {
-      /* private mode */
-    }
-  }, []);
+    const q = new URLSearchParams(params.toString());
+    if (next === 'balance') q.delete('tab'); else q.set('tab', next);
+    q.delete('where');
+    const rest = q.toString();
+    router.replace(rest ? `${pathname}?${rest}` : pathname, { scroll: false });
+  }, [params, pathname, router]);
 
   // One balance (view 51, third round): what sits with the agent counts too.
   const agents = (balances.buyer ?? 0) + (balances.seller ?? 0);
   const facts = { balance: balances.balance, pool: balances.pool, agents, loading: balances.loading, error: balances.error };
   const parts = whereItIs(facts);
   if (balances.activated && !parts.some((p) => p.part === 'agent')) parts.push({ part: 'agent', amount: 0 });
-  // The next sheet rises once Where it is has gone down, so only one is ever open.
-  const fromWhere = (open: () => void) => {
+  // Where it is closes, then the move opens as its own page.
+  const fromWhere = (href: string) => {
     setWhereOpen(false);
-    window.setTimeout(open, dur.sheet * 1000 + 40);
+    router.push(href);
   };
   const richerAgent: AgentKey = (balances.seller ?? 0) > (balances.buyer ?? 0) ? 'seller' : 'buyer';
   const state = homeState(facts);
@@ -120,16 +108,18 @@ function MoneyHomeInner() {
     <div className="product-surface mx-auto max-w-[1120px] px-4 pb-24 pt-6 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-10">
       <div className="min-w-0 max-w-[720px] divide-y divide-[var(--line)] [&>*]:py-8">
         <section aria-labelledby="money-balance" className="space-y-6">
-          {/* Balance and Agents behind one switch (view 51). */}
+          {/* Everything about money on one page: Balance, Agent, Deal guarantee (view 51, fifth round). */}
           <Segmented
-            label={mm.tabs.label}
+            label={pages.tabs.label}
             value={tab}
             onChange={chooseTab}
-            options={[{ value: 'balance', label: mm.tabs.balance }, { value: 'agents', label: mm.tabs.agents }]}
+            options={[{ value: 'balance', label: pages.tabs.balance }, { value: 'agent', label: pages.tabs.agent }, { value: 'guarantee', label: pages.tabs.guarantee }]}
             className="sm:max-w-[480px]"
           />
-          {tab === 'agents' ? (
-            <AgentsTab onSetUp={() => setSetupOpen(true)} />
+          {tab === 'agent' ? (
+            <AgentsTab onSetUp={() => setSetupOpen(true)} withAgent={agents} agent={richerAgent} />
+          ) : tab === 'guarantee' ? (
+            <GuaranteeTab />
           ) : state === 'loading' ? (
             <div aria-busy="true" className="space-y-4">
               <div className={`h-4 w-28 ${SOFT}`} />
@@ -146,7 +136,7 @@ function MoneyHomeInner() {
             <div className="space-y-5">
               <div className="flex items-start justify-between gap-3">
                 <h1 id="money-balance" className="space-y-1.5">
-                  <span className="block text-[13px] text-[var(--ink-secondary)]">{mm.one.yourBalance}</span>
+                  <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{mm.one.yourBalance}<Hint>{pages.tips.balance}</Hint></span>
                   <span className="flex items-baseline gap-2 tabular-nums" dir="ltr">
                     {/* Counts to a new value; under reduced motion it fades instead. */}
                     <m.span
@@ -183,9 +173,9 @@ function MoneyHomeInner() {
               {/* Add money is the one green button on the page (view 48). */}
               {/* On a phone Add money takes the full row, so no label wraps. */}
               <div data-money-actions className="grid grid-cols-2 gap-2 sm:max-w-[480px] sm:grid-cols-3 sm:gap-3 [&>a]:px-3 [&>a]:text-center [&>a]:leading-tight">
-                <button type="button" onClick={() => setAddSheet('add')} className={`col-span-2 sm:col-span-1 ${buttonClasses({ variant: 'primary', size: 'lg' })}`}>{mp.addMoney}</button>
+                <Link href={ADD_HREF} data-add-money className={`col-span-2 sm:col-span-1 ${buttonClasses({ variant: 'primary', size: 'lg' })}`}>{mp.addMoney}</Link>
                 <Link href="/send" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.send}</Link>
-                <Link href="/bridge?direction=out" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.withdraw}</Link>
+                <Link href={WITHDRAW_HREF} className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.withdraw}</Link>
               </div>
               {held && held !== '0' ? (
                 <div className={`${CARD_CLASS} px-5 lg:px-6`}>
@@ -215,20 +205,6 @@ function MoneyHomeInner() {
 
       <HeldDealsCard />
 
-      <AddMoneySheet
-        open={addSheet !== null}
-        mode={addSheet ?? 'add'}
-        onClose={() => setAddSheet(null)}
-        onLanded={(note) => setLandedNote(note)}
-      />
-      {landedNote ? (
-        <p role="status" data-landed-note className="fixed inset-x-4 bottom-6 z-40 mx-auto flex max-w-[360px] items-center gap-2.5 rounded-[14px] border border-[var(--line)] bg-[var(--raised)] px-4 py-3 text-[15px] font-medium text-[var(--ink)] shadow-[0_12px_32px_rgba(0,0,0,0.3)]">
-          <span aria-hidden className="grid size-[22px] shrink-0 place-items-center rounded-full bg-[var(--ink)] text-[var(--canvas)]">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-          </span>
-          {landedNote}
-        </p>
-      ) : null}
       <WhereItIsSheet
         open={whereOpen}
         total={hero}
@@ -236,16 +212,10 @@ function MoneyHomeInner() {
         held={Number(held ?? 0)}
         isWallet={isWallet}
         onClose={() => setWhereOpen(false)}
-        onMoveToBalance={() => { fromWhere(() => setAddSheet('moveToBalance')); }}
-        onAddToPool={() => { fromWhere(() => setAddSheet('addToPool')); }}
-        onAgentToWallet={() => { fromWhere(() => setSheet({ move: 'withdraw', agent: richerAgent })); }}
-        onAddToAgent={() => { fromWhere(() => setSheet({ move: 'topUp', agent: 'buyer' })); }}
-      />
-      <MoneySheet
-        open={sheet !== null}
-        onClose={() => setSheet(null)}
-        move={sheet?.move ?? 'topUp'}
-        agent={sheet?.agent ?? 'buyer'}
+        onMoveToBalance={() => fromWhere(`${ADD_HREF}?mode=moveToBalance`)}
+        onAddToPool={() => fromWhere(`${ADD_HREF}?mode=addToPool`)}
+        onAgentToWallet={() => fromWhere(agentMoveHref('withdraw', richerAgent))}
+        onAddToAgent={() => fromWhere(agentMoveHref('topUp', 'buyer'))}
       />
       <ActivationModal
         open={setupOpen}

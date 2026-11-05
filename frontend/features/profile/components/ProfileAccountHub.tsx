@@ -24,10 +24,11 @@ import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useAddPasskey } from '@/features/settings/components/SettingsBand';
 import { accountRows } from '../accountRows';
 import { useQuery } from '@tanstack/react-query';
-import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
+import { DisplayCurrencySection } from '@/features/settings/components/DisplayCurrencySection';
 import { recordSummary } from '../ownRecord';
 import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useTheme } from '@/shared/hooks/useTheme';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { LOCALE_NAMES } from '@/shared/i18n/locales';
 import { routeTitlesCopy } from '@/shared/i18n/messages/routeTitles';
 
@@ -47,8 +48,6 @@ export function ProfileAccountHub({
   const [photoError, setPhotoError] = useState('');
   const photoInput = useRef<HTMLInputElement>(null);
   const messages = useTranslations();
-  const guarantee = useQuery({ queryKey: GUARANTEE_QUERY, queryFn: () => api.guarantee(), enabled: DEALS_AVAILABLE });
-  const guaranteeInPlace = guarantee.data?.available && Number(guarantee.data.inPlaceUsdc) > 0 ? `${guarantee.data.inPlaceUsdc} USDC` : undefined;
   const router = useRouter();
   const nav = messages.nav;
   const businessCopy = messages.businessProfilePage;
@@ -117,7 +116,8 @@ export function ProfileAccountHub({
   const { preference, mounted } = useTheme();
   const themeNow = mounted ? preference : 'dark';
   const simple = messages.profile.simple;
-  const balanceFacts = { balance: money.balance, pool: money.pool, loading: money.loading, error: money.error };
+  const mpg = messages.moneyPages.profile;
+  const wideScreen = useMediaQuery('(min-width: 1024px)');
   const me = address.toLowerCase();
   const myRequests = useQuery({ queryKey: ['search', 'myRequests', me], queryFn: () => api.buyer(me).then((r) => r.jobs), enabled: DEALS_AVAILABLE && !!me, staleTime: 15_000 });
   const myListings = useQuery({ queryKey: ['trade-hub', 'listings', me], queryFn: () => api.listingsForSeller(me).then((r) => r.listings), enabled: DEALS_AVAILABLE && !!me, staleTime: 15_000 });
@@ -126,7 +126,9 @@ export function ProfileAccountHub({
     requests: myRequests.data ? count(openRequests(myRequests.data, Date.now()).length, pp.openRequestsOne, pp.openRequests) : undefined,
     offers: myListings.data ? count(liveOffers(myListings.data, Date.now()).length, pp.liveOffersOne, pp.liveOffers) : undefined,
   };
-  const agentTotal = money.buyer != null || money.seller != null ? (money.buyer ?? 0) + (money.seller ?? 0) : null;
+  // One figure for Money, the same one Money shows (view 51, fifth round).
+  const agentTotal = (money.buyer ?? 0) + (money.seller ?? 0);
+  const balanceFacts = { balance: money.balance, pool: money.pool, agents: agentTotal, loading: money.loading, error: money.error };
   const usdc = (value: number | null) => (value == null ? undefined : `${formatBalance(value, locale)} USDC`);
   // What setup already filled in, instead of "Set up" (accountRows.ts).
   const rows = accountRows(
@@ -182,47 +184,39 @@ export function ProfileAccountHub({
         </div>
       ) : null}
 
-      {/* On a phone the top bar has no room for it, so the assistant switch
-          leads the profile; on a wide screen it stays in the top bar. */}
-      {DEALS_AVAILABLE ? (
-        <div className="lg:hidden">
-          <RowGroup>
-            <ToggleRow
-              label={messages.assistantMode.use}
-              checked={false}
-              onChange={() => {
-                rememberReturn('/profile');
-                router.push('/assistant');
-              }}
-            />
-          </RowGroup>
-        </div>
-      ) : null}
-
       {DEALS_AVAILABLE && hasBusinessWorkspace ? (
         <RowGroup>
           <Row inline label={hub.workspaces}><WorkspaceSwitcher /></Row>
         </RowGroup>
       ) : null}
 
-      {/* The record in one line; every other line is on its own page (view 48, batch 9e). */}
+      {/* Your record and your money, one line each; Money holds the balance,
+          the agent and the guarantee (view 51, fifth round). */}
       <RowGroup>
         <Row label={pp.yourRecord} value={summary ?? undefined} href={`/credit-passport/${address}`} />
+        <Row label={mpg.money} value={usdc(heroAmount(balanceFacts))} href="/account" />
       </RowGroup>
 
-      {/* Buying, selling and the money in one group, so the app reads at a
-          glance (owner notes, 3 Nov 2026). */}
-      <RowGroup title={pp.tradeAndMoney}>
-        <Row label={pp.balance} value={usdc(heroAmount(balanceFacts))} href="/account" />
-        {DEALS_AVAILABLE ? <Row label={pp.withAgents} value={usdc(agentTotal)} href="/profile/agent-funds" /> : null}
-        {DEALS_AVAILABLE ? <Row label={messages.dealGuarantee.profile.dealGuarantee} value={guaranteeInPlace} href="/guarantee" /> : null}
-        {DEALS_AVAILABLE ? <Row label={pp.buying} value={trade.requests} href={marketViewHref('yours', 'requests')} /> : null}
-        {DEALS_AVAILABLE ? <Row label={pp.selling} value={trade.offers} href={marketViewHref('yours', 'offers')} /> : null}
-        {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} /> : null}
-        <Row label={hub.activityReceipts} href="/activity" />
-      </RowGroup>
+      {DEALS_AVAILABLE ? (
+        <RowGroup title={mpg.trading}>
+          <Row label={pp.buying} value={trade.requests} href={marketViewHref('yours', 'requests')} />
+          <Row label={pp.selling} value={trade.offers} href={marketViewHref('yours', 'offers')} />
+          <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} />
+          {/* On a computer the switch sits in the top bar, so it is not said twice. */}
+          {wideScreen ? null : (
+            <ToggleRow
+              label={mpg.assistant}
+              checked={false}
+              onChange={() => {
+                rememberReturn('/profile');
+                router.push('/assistant');
+              }}
+            />
+          )}
+        </RowGroup>
+      ) : null}
 
-      <RowGroup title={pp.accountAndSecurity}>
+      <RowGroup title={mpg.account}>
         <Row label={simple.contactTitle} value={rows.contact} href="/profile/contact" />
         <Row label={simple.walletsTitle} href="/profile/wallets" />
         {DEALS_AVAILABLE ? (
@@ -249,11 +243,14 @@ export function ProfileAccountHub({
         ) : null}
       </RowGroup>
 
-      {/* Language and Theme sit in the profile; Theme opens its own screen (view 48). */}
-      <RowGroup>
+      <RowGroup title={mpg.preferences}>
         <Row label={messages.settings.language} value={LOCALE_NAMES[locale]} href="/settings" />
         <Row label={messages.settings.theme} value={themeNow === 'light' ? messages.settings.themeLight : messages.settings.themeDark} href="/profile/theme" />
-        <Row label={nav.allSettings} href="/settings" />
+        <DisplayCurrencySection />
+        <Row label={mpg.moreSettings} href="/settings" />
+      </RowGroup>
+
+      <RowGroup>
         <Row label={nav.help} href="/how-it-works" />
       </RowGroup>
 

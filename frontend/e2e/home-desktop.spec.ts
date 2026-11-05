@@ -50,7 +50,7 @@ for (const locale of ['en', 'fr', 'sw'] as const) {
     await page.goto('/app');
     const moves = page.locator('[data-money-move]');
     await expect(moves).toHaveCount(4);
-    expect(await moves.evaluateAll((els) => els.map((el) => el.getAttribute('href')))).toEqual(['/bridge?direction=in', '/send', '/request', '/bridge?direction=out']);
+    expect(await moves.evaluateAll((els) => els.map((el) => el.getAttribute('href')))).toEqual(['/add', '/send', '/request', '/withdraw']);
     // Add money is the one green circle (owner notes, 4 Nov 2026).
     for (const [i, move] of (await moves.all()).entries()) {
       expect(await move.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), await move.innerText()).toBe(true);

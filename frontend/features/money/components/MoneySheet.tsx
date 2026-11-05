@@ -9,7 +9,7 @@ import { useAddressKind, type AddressKind } from '@/shared/hooks/useAddressKind'
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { MoneyCopy } from '@/shared/i18n/messages/money';
-import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { MoneyFrame } from '@/shared/components/MoneyFrame';
 import { dur } from '@/shared/motion/tokens';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -53,12 +53,16 @@ export interface MoneySheetProps {
   prefillRecipient?: string;
   /// Called when the person presses Done after a confirmed move.
   onDone?: () => void;
+  /// Shown as its own page (view 51, fifth round) rather than a sheet.
+  page?: boolean;
+  /// The page title, when it differs from the sheet's.
+  pageTitle?: string;
 }
 
 /// The one card for quick moves: agent top-up, agent withdrawal and a send to
 /// an Arc address. The amount is the loudest thing in it, the button says
 /// exactly what will happen, and the result lands in place.
-export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount, prefillRecipient, onDone }: MoneySheetProps) {
+export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount, prefillRecipient, onDone, page = false, pageTitle }: MoneySheetProps) {
   const t = useTranslations().money;
   const { locale } = useLocale();
   const auth = useAuth();
@@ -247,10 +251,10 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   }
 
   return (
-    <ConfirmSheetShell open={open} labelledBy={titleId} busy={busy} onClose={onClose} initialFocus={amountRef}>
+    <MoneyFrame page={page} open={open} labelledBy={titleId} busy={busy} onClose={onClose} initialFocus={amountRef}>
       <div className="flex items-start justify-between gap-4">
-        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--ink)]">{title}</h2>
-        <button
+        <h2 id={titleId} className={page ? 'text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]' : 'text-[20px] font-semibold text-[var(--ink)]'}>{page && pageTitle ? pageTitle : title}</h2>
+        {page ? null : <button
           type="button"
           onClick={onClose}
           disabled={busy}
@@ -258,7 +262,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           className="-me-2 -mt-2 inline-grid size-11 shrink-0 place-items-center rounded-full text-[var(--ink-secondary)] hover:text-[var(--ink)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           <span aria-hidden className="text-[22px] leading-none">×</span>
-        </button>
+        </button>}
       </div>
 
       {/* Once the money has moved, the form gives way to the result: a stale
@@ -388,7 +392,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                 ) : null}
                 {move !== 'withdraw' ? (
                   // A new tab, so whatever this sheet was opened from (a request half written) stays as it is.
-                  <a href="/bridge?intent=add" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+                  <a href="/add" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
                     {t.sheet.addUsdc}
                   </a>
                 ) : null}
@@ -479,7 +483,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       </AnimatePresence>
 
       <p role="status" aria-live="polite" className="sr-only">{state.kind === 'confirmed' ? t.sheet.confirmed : ''}</p>
-    </ConfirmSheetShell>
+    </MoneyFrame>
   );
 }
 

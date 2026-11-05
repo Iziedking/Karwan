@@ -10,6 +10,9 @@ export type RouteTitleKey =
   | 'b2b'
   | 'brand'
   | 'bridge'
+  | 'addMoney'
+  | 'withdrawMoney'
+  | 'agentMoney'
   | 'businessVerification'
   | 'buyer'
   | 'cashout'
@@ -90,6 +93,9 @@ const en: RouteTitleCopy = {
   b2b: 'Karwan for business',
   brand: 'Brand',
   bridge: 'Add or withdraw USDC',
+  addMoney: 'Add money',
+  withdrawMoney: 'Withdraw',
+  agentMoney: 'Your agent',
   businessVerification: 'Business verification',
   buyer: 'Buy',
   cashout: 'Cash out',
@@ -171,6 +177,9 @@ const ar: RouteTitleCopy = {
   b2b: 'Karwan للأعمال',
   brand: 'الهوية',
   bridge: 'إضافة USDC أو سحبه',
+  addMoney: 'إضافة مال',
+  withdrawMoney: 'سحب',
+  agentMoney: 'وكيلك',
   businessVerification: 'توثيق النشاط التجاري',
   buyer: 'شراء',
   cashout: 'سحب الأرباح',
@@ -252,6 +261,9 @@ const fr: RouteTitleCopy = {
   b2b: 'Karwan pour les entreprises',
   brand: 'Marque',
   bridge: 'Ajouter ou retirer des USDC',
+  addMoney: 'Ajouter de l’argent',
+  withdrawMoney: 'Retirer',
+  agentMoney: 'Votre agent',
   businessVerification: 'Vérification de l’entreprise',
   buyer: 'Acheter',
   cashout: 'Encaisser',
@@ -333,6 +345,9 @@ const hi: RouteTitleCopy = {
   b2b: 'व्यवसायों के लिए Karwan',
   brand: 'ब्रांड',
   bridge: 'USDC जोड़ें या निकालें',
+  addMoney: 'पैसा जोड़ें',
+  withdrawMoney: 'निकालें',
+  agentMoney: 'आपका एजेंट',
   businessVerification: 'व्यवसाय सत्यापन',
   buyer: 'खरीदें',
   cashout: 'कैश आउट',
@@ -414,6 +429,9 @@ const sw: RouteTitleCopy = {
   b2b: 'Karwan kwa biashara',
   brand: 'Chapa',
   bridge: 'Ongeza au toa USDC',
+  addMoney: 'Ongeza pesa',
+  withdrawMoney: 'Toa',
+  agentMoney: 'Wakala wako',
   businessVerification: 'Uthibitisho wa biashara',
   buyer: 'Nunua',
   cashout: 'Toa mapato',

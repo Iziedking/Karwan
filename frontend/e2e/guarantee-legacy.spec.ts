@@ -47,25 +47,23 @@ async function serveGuarantee(page: Page, steps: unknown[] = []) {
   });
 }
 
-test('Profile shows the deal guarantee with its amount; Earlier deals moved to the record page', async ({ page }) => {
+test('Profile shows one Money row; the deal guarantee lives on Money; Earlier deals moved to the record page', async ({ page }) => {
   await serveGuarantee(page);
   await page.goto('/profile');
-  const row = page.getByRole('link', { name: new RegExp(g.profile.dealGuarantee) });
-  await expect(row).toHaveAttribute('href', '/guarantee');
-  await expect(row).toContainText('125 USDC');
+  const money = page.getByRole('link', { name: new RegExp(`^${en.moneyPages.profile.money}`) });
+  await expect(money).toHaveAttribute('href', '/account');
+  await expect(page.getByRole('link', { name: new RegExp(g.profile.dealGuarantee) })).toHaveCount(0);
   await expect(page.getByRole('link', { name: g.profile.legacyContracts })).toHaveCount(0);
 });
 
 test('the old staking address opens the deal guarantee, with a quiet way to the previous contract', async ({ page }) => {
   await serveGuarantee(page);
   await page.goto('/stake');
-  await expect(page).toHaveURL(/\/guarantee$/);
+  await expect(page).toHaveURL(/\/account\?tab=guarantee$/);
   await expect(page.locator('[data-guaranteed]')).toContainText('125');
-  await expect(page.locator('[data-guaranteed]')).toContainText('USDC '+en.moneyPage.guaranteed);
-  // The guarantee is a money page: no score out of 1000 (view 44, P13).
+  await expect(page.locator('[data-guarantee-tab]')).toContainText(en.moneyPages.guarantee.inPlace);
+  // The guarantee is a part of Money: no score out of 1000 (view 44, P13).
   await expect(page.getByText(/\/ 1000/)).toHaveCount(0);
-  await page.getByText('What your guarantee does').click();
-  await expect(page.getByText(en.moneyPage.whatItDoesBody,{exact:true})).toBeVisible();
   await expect(page.getByText(g.previous.line.replace('{amount}', '40'))).toBeVisible();
   await expect(page.getByRole('link', { name: g.previous.link })).toHaveAttribute('href', '/legacy#previous-guarantee');
   await expect(page.getByText(/\b(stake|staking|vault|insurance)\b/i)).toHaveCount(0);
@@ -138,7 +136,7 @@ test('Profile sums your record up in one row that opens its own page (view 48, b
     await expect(page.getByRole('link', { name: new RegExp(`^${moved}`) })).toHaveCount(0);
   }
   // One Your agent row sits with trade and money (owner, 3 Nov 2026), and Where your record comes from has its own page.
-  const trade = page.locator('section').filter({ has: page.getByRole('heading', { name: p.tradeAndMoney, exact: true }) });
+  const trade = page.locator('section').filter({ has: page.getByRole('heading', { name: en.moneyPages.profile.trading, exact: true }) });
   await expect(page.getByRole('link', { name: new RegExp(`^${en.profile.simple.agentsTitle}`) })).toHaveCount(1);
   await expect(trade.getByRole('link', { name: new RegExp(`^${en.profile.simple.agentsTitle}`) })).toHaveCount(1);
   // Buying and selling sit with the money in one Trade and money group (owner notes, 3 Nov 2026).

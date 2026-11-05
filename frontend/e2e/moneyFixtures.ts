@@ -61,6 +61,8 @@ export interface MoneyWorld {
   method?: 'circle' | 'web3';
   /// What the agent may spend on checks this week; a POST changes it (view 51, third round).
   agentLimit?: { weeklyUsdc: number; spentUsdc: number; recordChecks: number; webSearches: number };
+  /// The Deal guarantee read on Money's third tab (view 51, fifth round).
+  guarantee?: { inPlaceUsdc: string; heldUsdc: string; freeUsdc: string; comingBackUsdc?: string; readyAt?: number | null; ready?: boolean; waitDays?: number };
 }
 
 /// Today's rates as the backend serves them in tests.
@@ -134,6 +136,10 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
       world.agentLimit = base;
       const choices = [...new Set([base.weeklyUsdc, 0.5, 1, 5])].sort((x, y) => x - y);
       return route.fulfill({ json: { ...base, leftUsdc: Math.max(0, Math.round((base.weeklyUsdc - base.spentUsdc) * 1e6) / 1e6), maxUsdc: 5, choices } });
+    }
+    if (path === '/api/guarantee') {
+      const g = world.guarantee;
+      return route.fulfill({ json: g ? { available: true, hasRecord: true, comingBackUsdc: '0', readyAt: null, ready: false, previousUsdc: '0', waitDays: 7, ...g } : { available: false } });
     }
     if (path === '/api/money/rates') {
       return route.fulfill({ json: world.rates ? { rates: world.rates, updatedAt: Date.now(), source: 'coingecko' } : { rates: {}, updatedAt: null, source: null } });

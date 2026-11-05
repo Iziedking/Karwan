@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-/// The Deal guarantee moved to /guarantee (view 37); old links still land there.
+/// The Deal guarantee lives on Money (view 51, fifth round); old links still land there.
 export default function StakePage() {
-  redirect('/guarantee');
+  redirect('/account?tab=guarantee');
 }

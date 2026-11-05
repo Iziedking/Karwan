@@ -79,10 +79,10 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             </p>
           )}
           <div className="mt-6 grid max-w-[420px] grid-cols-4 gap-2">
-            <QuickAction href="/bridge?direction=in" icon="add" green>{start.addMoney}</QuickAction>
+            <QuickAction href="/add" icon="add" green>{start.addMoney}</QuickAction>
             <QuickAction href="/send" icon="send">{home.send}</QuickAction>
             <QuickAction href="/request" icon="request">{translations.payLink.create.short}</QuickAction>
-            <QuickAction href="/bridge?direction=out" icon="withdraw">{home.withdraw}</QuickAction>
+            <QuickAction href="/withdraw" icon="withdraw">{home.withdraw}</QuickAction>
           </div>
         </m.div>
 

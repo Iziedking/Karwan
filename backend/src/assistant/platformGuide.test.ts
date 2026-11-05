@@ -248,8 +248,8 @@ test('the guide knows the request page and how a deal is paid (view 44, Batch 6)
 test('the guide describes money, withdrawing and the guarantee as money pages (view 44, Batch 7)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('account'), /held in your deals/);
-  assert.match(said('withdraw'), /Where should it go\?/);
-  assert.match(said('reputation'), /What your guarantee does/);
+  assert.match(said('withdraw'), /first where it goes/);
+  assert.match(said('reputation'), /the third part of Money/);
   assert.match(said('reputation'), /It shows no score/);
 });
 
@@ -257,7 +257,11 @@ test('the guide walks Add money and Withdraw as the new look shows them (view 48
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('deposit'), /pick From an exchange/);
   assert.match(said('deposit'), /says USDC only/);
-  assert.match(said('withdraw'), /the amount and address carry over/);
+  assert.match(said('withdraw'), /a Sent card that stays until Done/);
+  // Add money and Withdraw are pages, the same from Home and Money (view 51, fourth round).
+  assert.match(said('deposit'), /Add money is one page \(\/add\)/);
+  assert.match(said('account'), /an Added card stays until Done/);
+  assert.match(said('account'), /Balance, Agent and Deal guarantee/);
   assert.match(said('withdraw'), /Review opens the move once more/);
   assert.match(said('withdraw'), /Nothing moves before that/);
 });
@@ -369,7 +373,7 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /each deal with a pill that says where it stands/);
   assert.match(all, /Paid out, Refunded, Refunding, Cancelled or Split/);
   assert.match(all, /What buyers need as picture cards like Buy/);
-  assert.match(all, /One Trade and money group/);
+  assert.match(all, /one Money row shows the same one figure as Money/);
   assert.doesNotMatch(all, /sit under Selling/);
   assert.match(all, /starts folded under how many sellers offered, and Show your shortlist opens the order/);
   // A dispute reads as Karwan checking, with the support safety line (owner, 3 Nov 2026).

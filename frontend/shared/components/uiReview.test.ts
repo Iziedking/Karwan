@@ -100,11 +100,11 @@ test('profile photo is a user-initiated saved image with a generated fallback', 
   assert.match(hub, /type="file" accept="image\/jpeg,image\/png,image\/webp"/);
 });
 
-test('the deal guarantee page holds the guarantee card, and the old staking page only redirects', () => {
-  const page = source('../../app/guarantee/page.tsx');
-  assert.match(page, /<GuaranteeCard\s*\/>/);
-  const stake = source('../../app/stake/page.tsx');
-  assert.match(stake, /\/guarantee/);
+test('the deal guarantee lives on Money, and the old guarantee and staking pages only redirect there', () => {
+  for (const page of ['../../app/guarantee/page.tsx', '../../app/stake/page.tsx']) {
+    assert.match(source(page), /redirect\('\/account\?tab=guarantee'\)/, page);
+  }
+  assert.match(source('../../features/money/components/MoneyHome.tsx'), /<GuaranteeTab \/>/);
 });
 
 test('documentation returns to a useful internal destination', () => {
@@ -426,14 +426,14 @@ test('every balance surface offers Withdraw, the route out that works for every 
   for (const file of ['../../features/home/components/AccountHome.tsx', '../../features/money/components/MoneyHome.tsx']) {
     const src = source(file);
     assert.doesNotMatch(src, /intent=move/, file);
-    assert.match(src, /\/bridge\?direction=out"/, file);
+    assert.match(src, /\/withdraw"|WITHDRAW_HREF/, file);
     assert.match(src, /\.withdraw\b/, file);
   }
   // Home's money moves are four round buttons; Add money is the green one (owner, 3 and 4 Nov 2026).
   const home = source('../../features/home/components/AccountHome.tsx');
   assert.equal(home.match(/<QuickAction href=/g)?.length, 4);
   assert.match(home, /<QuickAction href="\/request"/);
-  assert.match(home, /<QuickAction href="\/bridge\?direction=in" icon="add" green>/);
+  assert.match(home, /<QuickAction href="\/add" icon="add" green>/);
   assert.doesNotMatch(home, /--lp-accent|--accent|variant: 'primary'/);
 });
 
@@ -493,12 +493,13 @@ test('profile says each thing once: one Your record row, Edit profile in the hea
   // Said elsewhere already: Deals has open deals, Home and Money ask for a payment.
   assert.doesNotMatch(hub, /hub\.openDeals|payLink\.create\.title/);
   assert.doesNotMatch(hub, /<RowGroup title=\{pp\.yourOffers\}>/);
-  // Buying, selling and the money sit in one Trade and money group (owner, 3 Nov 2026).
-  const trade = hub.slice(hub.indexOf('<RowGroup title={pp.tradeAndMoney}>'));
-  assert.ok(hub.includes('<RowGroup title={pp.tradeAndMoney}>'));
+  // Money is one row with one figure; the balance, the agent and the guarantee live on Money (view 51, fifth round).
+  assert.match(hub, /<Row label=\{mpg\.money\} value=\{usdc\(heroAmount\(balanceFacts\)\)\} href="\/account" \/>/);
+  for (const gone of ['pp.withAgents', 'dealGuarantee.profile', 'hub.activityReceipts', 'pp.tradeAndMoney']) assert.ok(!hub.includes(gone), gone);
+  const trade = hub.slice(hub.indexOf('<RowGroup title={mpg.trading}>'));
   const group = trade.slice(0, trade.indexOf('</RowGroup>'));
-  for (const piece of ['pp.balance', 'pp.withAgents', 'dealGuarantee', 'pp.buying', 'pp.selling', 'simple.agentsTitle', 'hub.activityReceipts']) assert.ok(group.includes(piece), piece);
-  assert.doesNotMatch(hub, /<RowGroup title=\{pp\.selling\}>|<RowGroup title=\{hub\.money\}>/);
+  for (const piece of ['pp.buying', 'pp.selling', 'simple.agentsTitle', 'mpg.assistant']) assert.ok(group.includes(piece), piece);
+  assert.match(hub, /<RowGroup title=\{mpg\.preferences\}>[\s\S]*<DisplayCurrencySection \/>/);
   // One agent row, not two that open the same page (owner, 3 Nov 2026).
   assert.equal(hub.split('simple.agentsTitle').length - 1, 1);
   assert.doesNotMatch(hub, /howAgentTrades/);

@@ -92,6 +92,7 @@ export function getProductBackHref(
   if (matchesRoute(pathname, '/invite')) return isAuthenticated ? home : '/';
   if (pathname === '/setup') return isAuthenticated ? '/profile' : '/start';
   if (pathname === '/assistant') return home;
+  if (pathname === '/add' || pathname === '/withdraw' || matchesRoute(pathname, '/account/agent') || matchesRoute(pathname, '/account/guarantee')) return '/account';
   if (matchesRoute(pathname, '/stake')) return dealsAvailable ? '/guarantee' : home;
   if (isPublicEditorialRoute(pathname)) return isAuthenticated ? home : '/';
 

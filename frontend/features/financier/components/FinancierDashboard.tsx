@@ -791,7 +791,7 @@ function OfferSheet({
             <p className="text-[15px] text-[var(--ink)]">
               {t.offer.fundFirst.replace('{wallet}', formatUsdc(funding.walletUsdc, { withSuffix: false })).replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
             </p>
-            <Link href="/bridge?direction=in" className={cn(SECONDARY, 'mt-3 w-full')}>
+            <Link href="/add" className={cn(SECONDARY, 'mt-3 w-full')}>
               {t.offer.fundFirstCta.replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
             </Link>
           </div>

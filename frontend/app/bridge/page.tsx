@@ -2,7 +2,8 @@
 import { WithdrawStart } from '@/features/money/components/WithdrawStart';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { bridgeRedirect } from '@/features/money/moneyRoutes';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { DepositCard } from '@/features/deposit/components/DepositCard';
@@ -75,6 +76,11 @@ export default function BridgePage() {
 function BridgePageContent() {
   const t = useTranslations().bridge;
   const params = useSearchParams();
+  const router = useRouter();
+  // Add money and Withdraw have their own pages now (view 51, fourth round).
+  const moved = bridgeRedirect(new URLSearchParams(params.toString()));
+  useEffect(() => { if (moved) router.replace(moved); }, [moved, router]);
+  if (moved) return <BridgePageFallback />;
   if (moneyV2Enabled(process.env.NEXT_PUBLIC_MONEY_V2, `?${params.toString()}`)) return <CrossChainPage />;
   const publicRecipient = params.get('recipient');
   const isPublicPayment = !!publicRecipient && /^0x[a-fA-F0-9]{40}$/.test(publicRecipient);

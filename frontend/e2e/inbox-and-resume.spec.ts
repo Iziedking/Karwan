@@ -39,7 +39,8 @@ test('an email account has no send from another network; its money is already on
 
 test('the deposit address reads on one line, never below 13px, never cut short', async ({ page }) => {
   await serveMoney(page, { balances: funded });
-  await page.goto('/bridge?direction=in');
+  await page.goto('/add');
+  await page.getByRole('button', { name: /From an exchange/ }).click();
   const address = page.locator('p[dir="ltr"]', { hasText: ME }).first();
   await expect(address).toBeVisible();
   const fit = await address.evaluate((el) => ({

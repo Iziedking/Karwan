@@ -374,7 +374,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
             {blocker === 'short' && amount !== null && max !== null ? (
               <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 text-[14px] text-[var(--ink)]">
                 <span>{fill(t.sheet.short, { amount: formatAmount(shortfall(amount, max), locale) })}</span>
-                <a href="/bridge?intent=add" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">{t.sheet.addUsdc}</a>
+                <a href="/add" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">{t.sheet.addUsdc}</a>
               </p>
             ) : null}
             <div className="mt-auto space-y-4 pt-8">

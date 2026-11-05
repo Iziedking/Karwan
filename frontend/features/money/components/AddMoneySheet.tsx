@@ -3,7 +3,9 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { erc20Abi } from 'viem';
 import { useAccount, useChainId, useReadContracts, useSwitchChain } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import Link from 'next/link';
+import { MoneyFrame } from '@/shared/components/MoneyFrame';
+import { ARC_NETWORK } from '@/core/arcNetwork';
 import { buttonClasses } from '@/shared/components/Button';
 import { Hint } from '@/shared/components/Hint';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -30,7 +32,8 @@ import { Keypad } from './Keypad';
 import { NetworkLogo } from './NetworkLogo';
 
 export type AddSheetMode = 'add' | 'moveToBalance' | 'addToPool';
-type Step = 'pick' | 'amount' | 'exchange' | 'progress' | 'done';
+type Step = 'pick' | 'amount' | 'exchange' | 'progress' | 'done' | 'landed';
+type Landed = { amount: number; from: string; seconds: number | null; walletFee: boolean };
 
 const ROW =
   'flex min-h-16 w-full items-center gap-3 rounded-[16px] border bg-[var(--raised)] px-3.5 text-start transition-colors duration-[var(--dur-press)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
@@ -52,13 +55,16 @@ const CARD_PATH = 'M3 6h18v13H3zM3 10.5h18';
 /// The one money sheet for adding (view 51): where the money is, then the
 /// amount, then progress in the same sheet. Also opens on the Transfer balance
 /// to move it to the balance, or to add to it from a network.
-export function AddMoneySheet({ open, mode, onClose, onLanded }: {
-  open: boolean;
+export function AddMoneySheet({ open = true, page = false, mode, onClose, onLanded }: {
+  open?: boolean;
+  /// Shown as its own page (view 51, fourth round) rather than a sheet.
+  page?: boolean;
   mode: AddSheetMode;
   onClose: () => void;
   /// Called with the note to show once money lands in the balance.
-  onLanded: (note: string) => void;
+  onLanded?: (note: string) => void;
 }) {
+  const pages = useTranslations().moneyPages;
   const all = useTranslations();
   const t = all.moneyMove;
   const sheetCopy = all.money.sheet;
@@ -73,6 +79,7 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
   const { bridges, startAppKitBridge, recheck } = useBridges();
   const wide = useMediaQuery('(min-width: 768px)');
   const keypad = useMediaQuery('(pointer: coarse)');
+  const inline = wide && mode === 'add';
   const titleId = useId();
   const amountId = useId();
   const inFlight = useRef(false);
@@ -85,6 +92,7 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
   const [since, setSince] = useState(0);
   const [doneNote, setDoneNote] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [landedCard, setLandedCard] = useState<Landed | null>(null);
 
   const owner = account.address;
   const reads = useReadContracts({
@@ -111,6 +119,7 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
     setDeclined(false);
     setBusy(false);
     setDoneNote(null);
+    setLandedCard(null);
     setPickerOpen(false);
     if (mode === 'moveToBalance') {
       setChosen({ kind: 'pool', amount: balances.pool });
@@ -135,11 +144,19 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
   const recordId = record?.id;
   useEffect(() => {
     if (!landed || !chosen || chosen.kind !== 'network' || amount === null) return;
-    onLanded(fill(t.home.added, { amount: formatAmount(amount, locale), network: chainName(chosen.chain) }));
+    onLanded?.(fill(t.home.added, { amount: formatAmount(amount, locale), network: chainName(chosen.chain) }));
     balances.refetch();
-    onClose();
+    // The card stays until the person presses Done (owner's test, 5 Nov 2026).
+    setLandedCard({ amount, from: chainName(chosen.chain), seconds: record?.startedAt ? Math.max(1, Math.round((Date.now() - record.startedAt) / 1000)) : null, walletFee: true });
+    setStep('landed');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [landed, recordId]);
+
+  // On a computer the richest network is picked at once, so the amount shows with it.
+  useEffect(() => {
+    if (open && inline && step === 'pick' && !chosen && networkSources[0]) pick(networkSources[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, inline, step, chosen, networkSources[0]?.chain]);
 
   function pick(source: MoveSource) {
     if (source.kind === 'exchange') {
@@ -150,7 +167,8 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
     setChosen(source);
     setTyped(String(chipAmount(source.amount, 'max')));
     setDeclined(false);
-    setStep('amount');
+    // On a computer the network, the amount and the button share one screen.
+    if (!(inline && source.kind === 'network')) setStep('amount');
   }
 
   async function provider() {
@@ -191,9 +209,10 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
         const state = fromWalletPoolSpend({ txHash: spent.txHash });
         if (state.kind === 'confirmed') {
           moneySounds.outcome('success', { ids: [spent.txHash] });
-          onLanded(fill(t.home.added, { amount: formatAmount(amount, locale), network: t.pool.transferBalance }));
+          onLanded?.(fill(t.home.added, { amount: formatAmount(amount, locale), network: t.pool.transferBalance }));
           balances.refetch();
-          onClose();
+          setLandedCard({ amount, from: t.pool.transferBalance, seconds: null, walletFee: true });
+          setStep('landed');
           return;
         }
         setDoneNote(fill(t.pool.onItsWay, { amount: formatAmount(amount, locale) }));
@@ -229,20 +248,115 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
       : (arrivesIn(source.chain) === 'seconds' ? t.add.arrivesSeconds : t.add.arrivesTwenty);
     return { name: chainName(source.chain), sub };
   };
+  // Back on a page steps back inside the flow first, then leaves it.
+  const stepBack = step === 'amount' && mode !== 'moveToBalance' && !inline;
+  const back = () => {
+    if (busy) return;
+    if (stepBack || step === 'exchange') { setStep('pick'); return; }
+    onClose();
+  };
+  const heading =
+    step === 'amount' && mode !== 'moveToBalance' && chosen?.kind === 'network'
+      ? fill(t.add.from, { network: chainName(chosen.chain) })
+      : step === 'amount' && chosen?.kind === 'pool' && mode === 'add'
+        ? t.pool.transferBalance
+        : step === 'exchange' ? t.add.exchange : title;
+
+  const amountBlock = (source: Exclude<MoveSource, { kind: 'exchange' }>) => (
+    <div data-add-amount className="space-y-4">
+      {mode === 'moveToBalance' ? (
+        <dl className="divide-y divide-[var(--line)] rounded-[16px] bg-[var(--raised)] px-4">
+          {[[t.pool.from, t.pool.transferBalance], [t.pool.to, t.pool.yourBalance], [t.pool.arrives, t.pool.inSeconds]].map(([k, v]) => (
+            <div key={k} className="flex min-h-11 items-center justify-between gap-3 text-[14px]">
+              <dt className="text-[var(--ink-secondary)]">{k}</dt>
+              <dd className="font-semibold text-[var(--ink)]">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} />
+      <p className="text-center text-[14px] font-medium text-[var(--ink-secondary)]" dir="auto">
+        {source.kind === 'network'
+          ? fill(t.add.there, { amount: formatBalance(source.amount, locale), network: chainName(source.chain) })
+          : fill(sheetCopy.available, { amount: formatBalance(source.amount, locale) })}
+      </p>
+      <div className="flex justify-center gap-2">
+        {(['quarter', 'half', 'max'] as const).map((chip) => (
+          <button key={chip} type="button" className={CHIP} disabled={source.amount <= 0} onClick={() => setTyped(String(chipAmount(source.amount, chip)))}>
+            {sheetCopy[chip]}
+          </button>
+        ))}
+      </div>
+      {keypad ? <Keypad onKey={(key) => setTyped((value) => pressKey(value, key))} label={entry.keypad} backLabel={entry.back} /> : null}
+      {over ? <p className="text-center text-[14px] font-medium text-[var(--ink)]">{fill(sheetCopy.short, { amount: formatAmount(amount! - source.amount, locale) })}</p> : null}
+      {declined ? <p role="alert" className="text-center text-[14px] font-medium text-[var(--color-critical)]">{t.add.declined}</p> : null}
+      <p className="text-center text-[13px] font-medium text-[var(--ink-muted)]">{source.kind === 'network' ? t.add.walletFee : t.pool.confirmOnce}</p>
+      <button type="button" onClick={() => void submit()} disabled={blocked} aria-busy={busy} className={buttonClasses({ size: 'lg', className: 'w-full' })}>
+        {cta}
+      </button>
+    </div>
+  );
+
+  const faucetLink = ARC_NETWORK === 'testnet' ? (
+    <Link href="/profile/wallets" className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] hover:underline">{pages.added.freeTest}</Link>
+  ) : null;
+
+  const otherWays = mode !== 'add' ? null : inline ? (
+    <p data-other-ways className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px]">
+      <span className="font-medium text-[var(--ink-muted)]">{pages.added.otherWays}</span>
+      {poolSource ? (
+        <button type="button" onClick={() => { setChosen(poolSource); setTyped(String(chipAmount(poolSource.amount, 'max'))); setStep('amount'); }} className="min-h-11 font-semibold text-[var(--ink)] hover:underline">{t.pool.transferBalance}</button>
+      ) : null}
+      <button type="button" onClick={() => pick({ kind: 'exchange' })} className="min-h-11 font-semibold text-[var(--ink)] hover:underline">{t.add.exchange}</button>
+      {faucetLink}
+    </p>
+  ) : (
+    <div className="space-y-2">
+      {poolSource ? (
+        <button type="button" onClick={() => pick(poolSource)} className={`${ROW} border-[var(--line)]`}>
+          <IconCircle path={TRANSFER_PATH} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold text-[var(--ink)]">{t.pool.transferBalance}</span>
+            <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{t.add.arrivesSeconds}</span>
+          </span>
+          <span dir="ltr" className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatBalance(poolSource.amount, locale)}</span>
+        </button>
+      ) : null}
+      <span className={`${LABEL} block pt-2`}>{t.add.otherWays}</span>
+      <button type="button" onClick={() => pick({ kind: 'exchange' })} className={`${ROW} border-[var(--line)]`}>
+        <IconCircle path={EXCHANGE_PATH} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-[var(--ink)]">{t.add.exchange}</span>
+          <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{t.add.exchangeNote}</span>
+        </span>
+        <span className="rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-semibold text-[var(--ink)]">{t.add.show}</span>
+      </button>
+      <div aria-disabled className={`${ROW} border-[var(--line)] opacity-50`}>
+        <IconCircle path={CARD_PATH} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-[var(--ink)]">{t.add.card}</span>
+          <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{t.add.soon}</span>
+        </span>
+      </div>
+      {faucetLink}
+    </div>
+  );
 
   return (
-    <ConfirmSheetShell open={open} labelledBy={titleId} busy={busy} onClose={onClose}>
+    <MoneyFrame page={page} open={open} labelledBy={titleId} busy={busy} onClose={page ? back : onClose}>
       <div data-add-money-sheet data-step={step} className="space-y-5">
-        {step === 'amount' && mode !== 'moveToBalance' ? (
+        {!page && stepBack ? (
           <button type="button" onClick={() => setStep('pick')} className="-ms-2 inline-flex min-h-11 items-center gap-1 rounded-[10px] px-2 text-[15px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)]">
             <span aria-hidden className="rtl:rotate-180">‹</span>
-            {chosen?.kind === 'network' ? fill(t.add.from, { network: chainName(chosen.chain) }) : chosen?.kind === 'pool' ? t.pool.transferBalance : t.add.title}
+            {heading}
           </button>
         ) : null}
-        <h2 id={titleId} className={`flex items-center gap-2 text-[20px] font-semibold text-[var(--ink)] ${step === 'amount' && mode !== 'moveToBalance' ? 'sr-only' : ''}`}>
-          {title}
-          {mode === 'addToPool' ? <Hint>{t.pool.addTip}</Hint> : null}
-        </h2>
+        {step !== 'landed' ? (
+          <h2 id={titleId} className={`flex items-center gap-2 font-semibold text-[var(--ink)] ${page ? 'text-[26px] tracking-[-0.02em]' : 'text-[20px]'} ${!page && stepBack ? 'sr-only' : ''}`}>
+            {page ? heading : title}
+            {mode === 'addToPool' ? <Hint>{t.pool.addTip}</Hint> : null}
+          </h2>
+        ) : null}
 
         {step === 'pick' ? (
           <div className="space-y-5">
@@ -269,82 +383,23 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
                 <NetworkCards sources={networkSources} describe={networkRow} onPick={pick} label={t.add.networks} />
               )}
             </div>
-            {mode === 'add' ? (
-              <div className="space-y-2">
-                {poolSource ? (
-                  <button type="button" onClick={() => pick(poolSource)} className={`${ROW} border-[var(--line)]`}>
-                    <IconCircle path={TRANSFER_PATH} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold text-[var(--ink)]">{t.pool.transferBalance}</span>
-                      <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{t.add.arrivesSeconds}</span>
-                    </span>
-                    <span dir="ltr" className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatBalance(poolSource.amount, locale)}</span>
-                  </button>
-                ) : null}
-                <span className={`${LABEL} block pt-2`}>{t.add.otherWays}</span>
-                <button type="button" onClick={() => pick({ kind: 'exchange' })} className={`${ROW} border-[var(--line)]`}>
-                  <IconCircle path={EXCHANGE_PATH} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold text-[var(--ink)]">{t.add.exchange}</span>
-                    <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{t.add.exchangeNote}</span>
-                  </span>
-                  <span className="rounded-full bg-[var(--surface)] px-3 py-1.5 text-[14px] font-semibold text-[var(--ink)]">{t.add.show}</span>
-                </button>
-                <div aria-disabled className={`${ROW} border-[var(--line)] opacity-50`}>
-                  <IconCircle path={CARD_PATH} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold text-[var(--ink)]">{t.add.card}</span>
-                    <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{t.add.soon}</span>
-                  </span>
-                </div>
-              </div>
-            ) : null}
+            {inline && chosen?.kind === 'network' ? amountBlock(chosen) : null}
+            {otherWays}
           </div>
         ) : null}
 
         {step === 'exchange' ? (
           <div className="space-y-4">
-            <button type="button" onClick={() => setStep('pick')} className="-ms-2 inline-flex min-h-11 items-center gap-1 rounded-[10px] px-2 text-[15px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)]">
-              <span aria-hidden className="rtl:rotate-180">‹</span>{t.add.exchange}
-            </button>
+            {!page ? (
+              <button type="button" onClick={() => setStep('pick')} className="-ms-2 inline-flex min-h-11 items-center gap-1 rounded-[10px] px-2 text-[15px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)]">
+                <span aria-hidden className="rtl:rotate-180">‹</span>{t.add.exchange}
+              </button>
+            ) : null}
             <DepositCard />
           </div>
         ) : null}
 
-        {step === 'amount' && chosen && chosen.kind !== 'exchange' ? (
-          <div className="space-y-4">
-            {mode === 'moveToBalance' ? (
-              <dl className="divide-y divide-[var(--line)] rounded-[16px] bg-[var(--raised)] px-4">
-                {[[t.pool.from, t.pool.transferBalance], [t.pool.to, t.pool.yourBalance], [t.pool.arrives, t.pool.inSeconds]].map(([k, v]) => (
-                  <div key={k} className="flex min-h-11 items-center justify-between gap-3 text-[14px]">
-                    <dt className="text-[var(--ink-secondary)]">{k}</dt>
-                    <dd className="font-semibold text-[var(--ink)]">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-            ) : null}
-            <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} />
-            <p className="text-center text-[14px] font-medium text-[var(--ink-secondary)]" dir="auto">
-              {chosen.kind === 'network'
-                ? fill(t.add.there, { amount: formatBalance(chosen.amount, locale), network: chainName(chosen.chain) })
-                : fill(sheetCopy.available, { amount: formatBalance(chosen.amount, locale) })}
-            </p>
-            <div className="flex justify-center gap-2">
-              {(['quarter', 'half', 'max'] as const).map((chip) => (
-                <button key={chip} type="button" className={CHIP} disabled={chosen.amount <= 0} onClick={() => setTyped(String(chipAmount(chosen.amount, chip)))}>
-                  {sheetCopy[chip]}
-                </button>
-              ))}
-            </div>
-            {keypad ? <Keypad onKey={(key) => setTyped((value) => pressKey(value, key))} label={entry.keypad} backLabel={entry.back} /> : null}
-            {over ? <p className="text-center text-[14px] font-medium text-[var(--ink)]">{fill(sheetCopy.short, { amount: formatAmount(amount! - chosen.amount, locale) })}</p> : null}
-            {declined ? <p role="alert" className="text-center text-[14px] font-medium text-[var(--color-critical)]">{t.add.declined}</p> : null}
-            <p className="text-center text-[13px] font-medium text-[var(--ink-muted)]">{chosen.kind === 'network' ? t.add.walletFee : t.pool.confirmOnce}</p>
-            <button type="button" onClick={() => void submit()} disabled={blocked} aria-busy={busy} className={buttonClasses({ size: 'lg', className: 'w-full' })}>
-              {cta}
-            </button>
-          </div>
-        ) : null}
+        {step === 'amount' && chosen && chosen.kind !== 'exchange' ? amountBlock(chosen) : null}
 
         {step === 'progress' && chosen?.kind === 'network' ? (
           <TransferProgress
@@ -363,17 +418,50 @@ export function AddMoneySheet({ open, mode, onClose, onLanded }: {
           />
         ) : null}
 
+        {step === 'landed' && landedCard ? (
+          <div data-added-card className="space-y-6 text-center">
+            <span aria-hidden className="mx-auto grid size-16 place-items-center rounded-full bg-[var(--raised)] text-[var(--ink)]">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5 10 17.5 19 7" /></svg>
+            </span>
+            <div className="space-y-1.5">
+              <h2 id={titleId} role="status" className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]" dir="auto">
+                {fill(pages.added.title, { amount: formatAmount(landedCard.amount, locale) })}
+              </h2>
+              <p className="text-[15px] text-[var(--ink-secondary)]">{fill(pages.added.fromLine, { network: landedCard.from })}</p>
+            </div>
+            <dl className="divide-y divide-[var(--line)] rounded-[16px] bg-[var(--raised)] px-4 text-start">
+              {([
+                [pages.added.from, landedCard.from],
+                [pages.added.to, pages.added.yourBalance],
+                ...(landedCard.seconds ? [[pages.added.took, fill(pages.added.seconds, { n: landedCard.seconds })]] : []),
+                ...(landedCard.walletFee ? [[pages.added.fee, pages.added.feeWallet]] : []),
+              ] as [string, string][]).map(([k, v]) => (
+                <div key={k} className="flex min-h-12 items-center justify-between gap-3 text-[14px]">
+                  <dt className="text-[var(--ink-secondary)]">{k}</dt>
+                  <dd className="font-semibold text-[var(--ink)]">{v}</dd>
+                </div>
+              ))}
+            </dl>
+            <Link href="/activity" className="inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--ink)] hover:underline">{pages.added.allActivity}</Link>
+            <div className="grid gap-2.5">
+              <button type="button" data-added-done onClick={onClose} className={buttonClasses({ size: 'lg', className: 'w-full' })}>{pages.added.done}</button>
+              {mode === 'add' ? (
+                <button type="button" onClick={() => { setLandedCard(null); setChosen(null); setTyped(''); setStep('pick'); }} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>{pages.added.addMore}</button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         {step === 'done' ? (
           <div className="space-y-4 text-center">
             <p role="status" className="text-[15px] font-medium text-[var(--ink)]">{doneNote}</p>
-            <button type="button" onClick={onClose} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>{t.add.close}</button>
+            <button type="button" onClick={onClose} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>{pages.added.done}</button>
           </div>
         ) : null}
       </div>
-    </ConfirmSheetShell>
+    </MoneyFrame>
   );
 }
-
 type NetworkSource = Extract<MoveSource, { kind: 'network' }>;
 type Describe = (source: NetworkSource) => { name: string; sub: string };
 
@@ -469,7 +557,7 @@ function NetworkPicker({ sources, label, change, describe, open, setOpen, onPick
               <li key={source.chain} role="option" aria-selected={source.chain === current.chain}>
                 <button
                   type="button"
-                  onClick={() => { setCurrent(source); setOpen(false); }}
+                  onClick={() => { setCurrent(source); setOpen(false); onPick(source); }}
                   className={`flex w-full items-center gap-2.5 px-3 py-2 text-start hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:bg-[var(--surface)] ${source.chain === current.chain ? 'bg-[var(--surface)]' : ''}`}
                 >
                   <NetworkLogo chain={source.chain} name={d.name} size={24} />

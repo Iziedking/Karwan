@@ -7,6 +7,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
+import { PersonAvatar } from './PersonAvatar';
 import { isMarketRoute } from './marketNav';
 import { DEALS_HREF, navHref, workspaceNavItems, type NavItemId } from './workspaceNav';
 import { cn } from '@/shared/utils/cn';
@@ -24,8 +25,7 @@ interface BottomNavItem {
   signal?: boolean;
 }
 
-/// The Figma tab icons (public/icons/nav), drawn as masks so they take the
-/// tab's text colour in either theme.
+/// The icon each tab uses (view 51, fourth round).
 const ICON: Record<NavItemId, IconName> = {
   home: 'home',
   market: 'market',
@@ -89,14 +89,17 @@ export function WorkspaceBottomNav() {
               item.active ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)] hover:text-[var(--ink-secondary)]',
             )}
           >
-            {/* The tab you are on sits on a Karwan green pill, so the place reads at a glance (owner notes, 4 Nov 2026). */}
-            <span
-              aria-hidden
-              data-nav-pill={item.active ? 'on' : undefined}
-              className={cn('relative rounded-full px-3.5 py-0.5 transition-colors duration-[var(--dur-fade)]', item.active && 'bg-[var(--action)] text-[var(--on-action)]')}
-            >
-              <NavIcon name={item.icon} />
-              {item.signal ? <ActionBeacon className="absolute -top-1 -end-1.5" /> : null}
+            {/* The tab you are on fills its own icon in Karwan green, so the green
+                fits the shape (owner, 5 Nov 2026, option A); Profile is your photo. */}
+            <span aria-hidden data-nav-on={item.active ? 'on' : undefined} className="relative grid h-7 w-11 place-items-center">
+              {item.icon === 'profile' ? (
+                <span className={cn('grid size-7 place-items-center rounded-full', item.active ? 'ring-2 ring-[var(--karwan-green)]' : '')}>
+                  <PersonAvatar address={auth.address ?? undefined} name={t.profile} size={item.active ? 22 : 24} />
+                </span>
+              ) : (
+                <NavIcon name={item.icon} on={item.active} />
+              )}
+              {item.signal ? <ActionBeacon className="absolute -top-0.5 end-1" /> : null}
             </span>
             <span className={cn('max-w-full truncate text-[13px] leading-[1.3]', item.active ? 'font-semibold' : 'font-medium')}>{item.label}</span>
           </Link>
@@ -106,13 +109,41 @@ export function WorkspaceBottomNav() {
   );
 }
 
-function NavIcon({ name }: { name: IconName }) {
-  const url = `url(/icons/nav/${name}.svg)`;
+/// One 24px family, 1.75 stroke, rounded ends: a house, a shop front, a shield
+/// with a tick for protected deals, three bars for Finance. A shape marked
+/// `fill` is filled when the tab is on; a `cut` line stays dark on top of it.
+const NAV_PATHS: Record<Exclude<IconName, 'profile'>, { d: string; kind: 'fill' | 'line' | 'cut' }[]> = {
+  home: [{ d: 'M4 10.2 12 4l8 6.2V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z', kind: 'fill' }],
+  market: [
+    { d: 'M4 9.5 5.5 4.5h13L20 9.5c0 1.5-1.2 2.5-2.67 2.5s-2.66-1-2.66-2.5c0 1.5-1.2 2.5-2.67 2.5s-2.67-1-2.67-2.5c0 1.5-1.2 2.5-2.66 2.5S4 11 4 9.5z', kind: 'fill' },
+    { d: 'M5.5 13.5V20h13v-6.5', kind: 'line' },
+    { d: 'M10 20v-4h4v4', kind: 'line' },
+  ],
+  deals: [
+    { d: 'M12 3.5 19 6v5.5c0 4.2-3 7.4-7 9-4-1.6-7-4.8-7-9V6z', kind: 'fill' },
+    { d: 'm9 12 2.2 2.2L15.5 10', kind: 'cut' },
+  ],
+  finance: [
+    { d: 'M4 20h16', kind: 'line' },
+    { d: 'M5.5 12.5h3V17h-3z', kind: 'fill' },
+    { d: 'M10.5 8.5h3V17h-3z', kind: 'fill' },
+    { d: 'M15.5 4.5h3V17h-3z', kind: 'fill' },
+  ],
+};
+
+function NavIcon({ name, on }: { name: Exclude<IconName, 'profile'>; on: boolean }) {
+  const green = 'var(--karwan-green)';
   return (
-    <span
-      data-nav-icon={name}
-      className="block size-6 bg-current"
-      style={{ maskImage: url, WebkitMaskImage: url, maskSize: '24px 24px', WebkitMaskSize: '24px 24px', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' }}
-    />
+    <svg data-nav-icon={name} width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      {NAV_PATHS[name].map(({ d, kind }) => (
+        <path
+          key={d}
+          d={d}
+          stroke={on ? (kind === 'cut' ? 'var(--surface)' : green) : 'currentColor'}
+          strokeWidth={on && kind === 'cut' ? 2.2 : undefined}
+          fill={on && kind === 'fill' ? green : 'none'}
+        />
+      ))}
+    </svg>
   );
 }
