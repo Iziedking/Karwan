@@ -31,6 +31,7 @@ export function configureMcp(input: { deps: McpDeps | null; verifier: AgentKitVe
 /// conversation does not call World for every message.
 const verified = new Map<string, { identity: AgentIdentity; until: number }>();
 const KEEP_MAX = 5_000;
+const MCP_STATEMENT = 'Verify this agent is backed by a person before it uses Karwan';
 
 async function identityFor(header: string, resourceUri: string): Promise<AgentIdentity | { status: 403 | 503; message: string; code: string }> {
   const key = createHash('sha256').update(header).digest('hex');
@@ -52,7 +53,7 @@ mcpRoutes.post('/', async (c) => {
   const resourceUri = canonicalAgentKitResourceUri(c.req.url, config.PUBLIC_API_BASE_URL);
   const header = c.req.header(AGENTKIT);
   if (!header) {
-    return c.json({ ...createAgentKitChallenge({ resourceUri, network: `eip155:${arcChain.id}` }), message: 'Sign this AgentKit challenge and send it in the agentkit header on every request.' }, 401);
+    return c.json({ ...createAgentKitChallenge({ resourceUri, network: `eip155:${arcChain.id}`, statement: MCP_STATEMENT }), message: 'Sign this AgentKit challenge and send it in the agentkit header on every request.' }, 401);
   }
   const identity = await identityFor(header, resourceUri);
   if ('status' in identity) return c.json({ error: identity.message, code: identity.code }, identity.status);

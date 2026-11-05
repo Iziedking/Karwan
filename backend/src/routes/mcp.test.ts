@@ -69,7 +69,8 @@ test('without an AgentKit proof nothing runs and the agent gets the challenge', 
   const a = app();
   const none = await post(a, rpc('tools/list', {}));
   assert.equal(none.status, 401);
-  assert.ok(((await none.json()) as { extensions?: unknown }).extensions);
+  const challenge = (await none.json()) as { extensions: { agentkit: { info: { statement: string } } } };
+  assert.equal(challenge.extensions.agentkit.info.statement, 'Verify this agent is backed by a person before it uses Karwan');
   const bad = await post(a, rpc('tools/list', {}), 'forged');
   assert.equal(bad.status, 403);
 });

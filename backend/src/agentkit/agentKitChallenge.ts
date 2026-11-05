@@ -30,6 +30,8 @@ export function canonicalAgentKitResourceUri(
 export function createAgentKitChallenge(input: {
   resourceUri: string;
   network: `eip155:${number}`;
+  /// What the agent is asked to sign. Research keeps the report sentence.
+  statement?: string;
   now?: Date;
   nonce?: string;
 }): AgentKitChallengeResponse {
@@ -50,7 +52,7 @@ export function createAgentKitChallenge(input: {
           issuedAt: now.toISOString(),
           expirationTime: new Date(now.getTime() + CHALLENGE_TTL_MS).toISOString(),
           resources: [resource.toString()],
-          statement: 'Verify this agent is backed by a person before granting a complimentary report',
+          statement: input.statement ?? 'Verify this agent is backed by a person before granting a complimentary report',
         },
         supportedChains: [
           { chainId: input.network, type: 'eip191' },
