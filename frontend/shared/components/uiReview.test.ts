@@ -557,7 +557,8 @@ test('an X photo is fetched with no referrer, since X refuses images asked for f
     // The other side's photo on deals, chat, pay links and passports.
     './PersonAvatar.tsx',
     './ProfileAvatar.tsx',
-    '../../features/payLink/PayRequestView.tsx',
+    // A person with their record: pay links, the payment card and Send (view 50).
+    './PersonRecord.tsx',
     '../../features/reputation/components/CreditPassport.tsx',
   ]) {
     const imgs = source(file).match(/<img\b[^>]*>/g) ?? [];
