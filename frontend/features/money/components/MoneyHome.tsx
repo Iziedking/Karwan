@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { m } from 'motion/react';
@@ -72,7 +72,11 @@ function MoneyHomeInner() {
   const activation = useActivation();
   const { bridges } = useBridges();
   const [setupOpen, setSetupOpen] = useState(false);
-  const [whereOpen, setWhereOpen] = useState(params.get('where') === '1');
+  const [whereOpen, setWhereOpen] = useState(false);
+  // ?where=1 (Withdraw's Bring it here) opens the sheet once the page is up, so
+  // it slides in as it does on a tap instead of mounting below the screen.
+  const whereAsked = params.get('where') === '1';
+  useEffect(() => { if (whereAsked) setWhereOpen(true); }, [whereAsked]);
   const isWallet = useAuth().method === 'web3';
 
   const chooseTab = useCallback((next: MoneyTab) => {

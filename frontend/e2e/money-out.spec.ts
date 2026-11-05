@@ -171,6 +171,8 @@ for (const theme of ['light', 'dark'] as const) {
     await sheet.getByRole('button', { name: 'Withdraw 10.00 USDC' }).click();
     await expect(sheet).toContainText('Every payment out of your account is paused.');
     await expect(sheet.getByRole('button', { name: 'Resume with World ID' })).toBeVisible();
+    // Read the colours once the notice has finished fading in.
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'));
     expect((await new AxeBuilder({ page }).include('[data-money-page]').analyze()).violations).toEqual([]);
   });
 }

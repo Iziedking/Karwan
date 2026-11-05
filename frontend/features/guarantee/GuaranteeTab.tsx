@@ -27,18 +27,23 @@ export function GuaranteeTab() {
   const view = guaranteeView(data);
   const day = (unix: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(unix * 1000));
 
+  // The page keeps its one heading while the guarantee loads, fails or is off.
+  const plainTitle = <h1 id="money-guarantee" className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{t.moneyPages.tabs.guarantee}<Hint>{tips.guarantee}</Hint></h1>;
   if (query.isError && !data) {
     return (
-      <div role="alert" className="space-y-3">
-        <p className="text-[15px] text-[var(--ink)]">{c.notAvailable}</p>
-        <button type="button" className={buttonClasses({ variant: 'secondary' })} onClick={() => void query.refetch()}>{c.refresh}</button>
+      <div className="space-y-3">
+        {plainTitle}
+        <div role="alert" className="space-y-3">
+          <p className="text-[15px] text-[var(--ink)]">{c.notAvailable}</p>
+          <button type="button" className={buttonClasses({ variant: 'secondary' })} onClick={() => void query.refetch()}>{c.refresh}</button>
+        </div>
       </div>
     );
   }
   if (!view || !data) {
-    return <div aria-busy="true" className="h-40 rounded-[16px] bg-[var(--raised)] motion-safe:animate-pulse" />;
+    return <div className="space-y-3">{plainTitle}<div aria-busy="true" className="h-40 rounded-[16px] bg-[var(--raised)] motion-safe:animate-pulse" /></div>;
   }
-  if (view.kind === 'off' || !data.available) return <p role="status" className="text-[15px] text-[var(--ink-secondary)]">{g.off}</p>;
+  if (view.kind === 'off' || !data.available) return <div className="space-y-3">{plainTitle}<p role="status" className="text-[15px] text-[var(--ink-secondary)]">{g.off}</p></div>;
 
   const comingBack = Number(data.comingBackUsdc);
   const rows: [string, string][] = [

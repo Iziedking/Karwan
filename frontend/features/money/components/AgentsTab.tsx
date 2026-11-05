@@ -30,10 +30,13 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
   const balances = useMoneyBalances();
   const { limit, loading, failed, retry, save } = useAgentLimit();
   const [open, setOpen] = useState(false);
+  // The page keeps its one heading while the agents load or wait to be set up.
+  const plainTitle = <h1 id="money-balance" className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{a.withAgent}<Hint>{t.moneyPages.tips.agent}</Hint></h1>;
 
   if (balances.activationLoading) {
     return (
       <div aria-busy="true" className="space-y-3">
+        {plainTitle}
         <div className={`h-12 w-56 ${SOFT}`} />
         <div className={`h-14 ${SOFT}`} />
         <div className={`h-14 ${SOFT}`} />
@@ -43,9 +46,12 @@ export function AgentsTab({ onSetUp, withAgent, agent }: { onSetUp: () => void; 
 
   if (!balances.activated) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--line)] py-4">
-        <p className="text-[15px] text-[var(--ink)]">{home.agentsNotSetUp}</p>
-        <button type="button" onClick={onSetUp} className={buttonClasses({ variant: 'secondary' })}>{home.setUpAgents}</button>
+      <div className="space-y-3">
+        {plainTitle}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--line)] py-4">
+          <p className="text-[15px] text-[var(--ink)]">{home.agentsNotSetUp}</p>
+          <button type="button" onClick={onSetUp} className={buttonClasses({ variant: 'secondary' })}>{home.setUpAgents}</button>
+        </div>
       </div>
     );
   }

@@ -51,13 +51,13 @@ test('Withdraw carries the amount and address into the out card, then asks once 
   await page.getByRole('button', { name: 'Review 25.00 USDC' }).click();
 
   const sheet = page.getByRole('dialog');
-  await expect(sheet.getByRole('heading', { name: /Withdraw 25 USDC\?/ })).toBeVisible();
+  await expect(sheet.getByRole('heading', { name: 'Withdraw 25.00 USDC?' })).toBeVisible();
   await expect(sheet).toContainText("This can't be undone.");
   await expect(sheet).toContainText('To');
   await expect(sheet).toContainText('Network');
   expect(sent).toEqual([]);
   await page.screenshot({ path: info.outputPath('withdraw-review.png'), fullPage: true });
-  await sheet.getByRole('button', { name: /Withdraw 25 USDC/ }).click();
+  await sheet.getByRole('button', { name: 'Withdraw 25.00 USDC' }).click();
   await expect.poll(() => sent.length).toBe(1);
   expect(JSON.stringify(sent[0])).toContain(STRANGER);
 });

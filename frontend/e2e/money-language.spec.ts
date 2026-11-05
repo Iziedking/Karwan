@@ -31,7 +31,9 @@ for(const locale of ['en','fr','ar','hi','sw'] as const){
   await expect(page.locator('html')).toHaveAttribute('dir',locale==='ar'?'rtl':'ltr');
   await page.getByRole('button',{name:new RegExp(m.moneyMove.one.whereItIs)}).click();
   await page.getByRole('dialog').locator('[data-part="agent"]').getByRole('button',{name:m.moneyMove.one.addToAgent,exact:true}).click();
-  const dialog=page.getByRole('dialog');await dialog.getByLabel(t.sheet.amountLabel,{exact:true}).fill('50');
+  // Topping up the agent is its own page (view 51, fifth round).
+  await expect(page).toHaveURL(/\/account\/agent\?move=topUp/);
+  const dialog=page.locator('[data-money-page]');await dialog.getByLabel(t.sheet.amountLabel,{exact:true}).fill('50');
   await dialog.getByRole('button',{name:t.sheet.ctaTopUp.replace('{amount}',fifty),exact:true}).click();
   await expect(dialog.getByText(t.sheet.slow,{exact:true})).toBeVisible();await expect(dialog.getByRole('button',{name:t.sheet.tryAgain,exact:true})).toHaveCount(0);
   await sound(page);await page.screenshot({path:info.outputPath('pending-'+locale+'.png'),fullPage:true});

@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import Link from 'next/link';
 import { Hint } from '@/shared/components/Hint';
-import { AnimatePresence, m } from 'motion/react';
+import { m } from 'motion/react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind, type AddressKind } from '@/shared/hooks/useAddressKind';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
@@ -67,6 +67,9 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const { locale } = useLocale();
   const auth = useAuth();
   const reduce = useHydratedReducedMotion();
+  // The first view shows at once; later views fade in.
+  const viewsMounted = useRef(false);
+  useEffect(() => { viewsMounted.current = true; }, []);
   const balances = useMoneyBalances();
   const { refetch } = balances;
   const { state, start, checkAgain, reset } = useMoneyMove();
@@ -189,12 +192,13 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const toAmount = move === 'withdraw' ? (withdrawToAgent ? otherAgentBalance : balances.balance) : agentBalance;
   const progress = sheetProgress(state);
   const stepLabel = { signed: t.sheet.stepSigned, sent: t.sheet.stepSent, confirmed: t.sheet.stepConfirmed };
+  // Each view fades in when it arrives and has no exit: a refusal that comes
+  // back inside one fade can never leave the progress view on screen.
   const fade = {
-    initial: { opacity: 0 },
+    initial: viewsMounted.current ? { opacity: 0 } : false,
     animate: { opacity: 1 },
-    exit: { opacity: 0 },
     transition: { duration: reduce ? dur.micro : dur.fast },
-  };
+  } as const;
 
   function press() {
     // A second press while the first is on its way does nothing. The button
@@ -369,7 +373,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       <p className="mt-4 text-[14px] text-[var(--ink-secondary)] font-medium">{t.sheet.timeSeconds}</p>
       </>)}
 
-      <AnimatePresence mode="wait" initial={false}>
+      <>
         {state.kind === 'editing' ? (
           <m.div key="editing" {...fade} className="mt-6">
             <p className="text-[15px] leading-relaxed text-[var(--ink)]">
@@ -480,7 +484,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             </div>
           </m.div>
         )}
-      </AnimatePresence>
+      </>
 
       <p role="status" aria-live="polite" className="sr-only">{state.kind === 'confirmed' ? t.sheet.confirmed : ''}</p>
     </MoneyFrame>

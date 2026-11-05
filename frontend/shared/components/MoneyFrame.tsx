@@ -25,7 +25,7 @@ export function MoneyFrame({ page, open = true, labelledBy, busy, onClose, initi
     );
   }
   return (
-    <section data-money-page aria-labelledby={labelledBy} className="mx-auto w-full max-w-[520px] px-4 pb-24 pt-4 sm:px-0 sm:pt-8">
+    <section data-money-page aria-labelledby={labelledBy} className="product-surface mx-auto w-full max-w-[520px] px-4 pb-24 pt-4 sm:px-0 sm:pt-8">
       <button
         type="button"
         data-own-back

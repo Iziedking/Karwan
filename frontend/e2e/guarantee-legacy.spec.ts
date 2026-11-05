@@ -65,7 +65,7 @@ test('the old staking address opens the deal guarantee, with a quiet way to the 
   // The guarantee is a part of Money: no score out of 1000 (view 44, P13).
   await expect(page.getByText(/\/ 1000/)).toHaveCount(0);
   await expect(page.getByText(g.previous.line.replace('{amount}', '40'))).toBeVisible();
-  await expect(page.getByRole('link', { name: g.previous.link })).toHaveAttribute('href', '/legacy#previous-guarantee');
+  await expect(page.getByRole('paragraph').getByRole('link', { name: g.previous.link })).toHaveAttribute('href', '/legacy#previous-guarantee');
   await expect(page.getByText(/\b(stake|staking|vault|insurance)\b/i)).toHaveCount(0);
 });
 

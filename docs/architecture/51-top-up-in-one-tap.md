@@ -44,7 +44,7 @@ flowchart LR
 The row on Money gains two quiet buttons:
 
 - **Move to balance:** the same sheet, opened on the Transfer balance row with the whole amount filled in. One signature, and it lands in seconds.
-- **Add to it:** the same sheet in "keep it where it is" mode. Pick a network and an amount, and the USDC is deposited into the Transfer balance on that network (App Kit `unifiedBalance.deposit`, which is already in `features/gateway/lib.ts`). The money stays in the person's own wallet's Gateway balance. Karwan never holds it.
+- **Add:** the same sheet in "keep it where it is" mode. Pick a network and an amount, and the USDC is deposited into the Transfer balance on that network (App Kit `unifiedBalance.deposit`, which is already in `features/gateway/lib.ts`). The money stays in the person's own wallet's Gateway balance. Karwan never holds it.
 
 Its spend side is already wired: Send and Withdraw use the Transfer balance when the Arc balance is short (views 22 and 50).
 
@@ -52,7 +52,7 @@ Its spend side is already wired: Send and Withdraw use the Transfer balance when
 
 From Circle's docs, read 5 Nov 2026 (logged in `docs/arc-circle-checks.md`):
 
-- **A Gateway deposit is spendable only after the source network finalises it.** That's about 0.5 seconds on Arc, around 8 seconds on Avalanche and Polygon, and **13 to 19 minutes on Base, Ethereum, Arbitrum and Optimism.** So "Add to it" from Base says "Ready to spend in about 15 minutes", and the row shows that amount as on its way until then.
+- **A Gateway deposit is spendable only after the source network finalises it.** That's about 0.5 seconds on Arc, around 8 seconds on Avalanche and Polygon, and **13 to 19 minutes on Base, Ethereum, Arbitrum and Optimism.** So Add from Base says "Ready to spend in about 15 minutes", and the row shows that amount as on its way until then.
 - **CCTP Fast from Base or Ethereum lands on Arc in about 8 to 20 seconds.** So for "I want money in my balance now", the plain top-up is faster than going through the Transfer balance.
 - **The Transfer balance pays off later:** once a deposit has finalised, every spend from it is instant, to any network, in any amount up to the total.
 
@@ -229,7 +229,7 @@ flowchart LR
 
 Drawn in Figma, section "Tab bar and Agents tab (view 51, fourth round)", Dark and Light: both tab bar options with each tab on, Money 20 (Agents), Money 21 (limit didn't load), Money 22 (Balance with the new tab bar).
 
-**Owner's picks, 5 Nov 2026:** tab bar option A (the green fills the icon). The guarantee button says **Add**, not "Add to it".
+**Owner's picks, 5 Nov 2026:** tab bar option A (the green fills the icon). The Transfer balance button says **Add**, not "Add to it", the same word as the agent and guarantee buttons.
 
 ## Fifth round: one Money page, a tidy Profile, 5 Nov 2026
 

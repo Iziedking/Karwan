@@ -209,7 +209,7 @@ test('a wallet account moves its Transfer balance from Where it is, on its own p
   await expect(flow).toContainText('In seconds');
   await expect(page.getByRole('button', { name: 'Move 105.54 USDC' })).toBeVisible();
   await page.goto('/account?where=1');
-  await page.getByRole('dialog').locator('[data-part="transfer"]').getByRole('button', { name: 'Add to it' }).click();
+  await page.getByRole('dialog').locator('[data-part="transfer"]').getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page).toHaveURL(/\/add\?mode=addToPool$/);
   await expect(page.getByRole('heading', { name: 'Add to Transfer balance' })).toBeVisible();
 });
