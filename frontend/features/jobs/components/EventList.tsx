@@ -47,6 +47,7 @@ const EVENT_TONES: Record<string, 'buyer' | 'seller' | 'system' | 'error'> = {
   'escrow.milestone.released': 'buyer',
   'escrow.settled': 'system',
   'agent.skipped': 'seller',
+  'agent.link-needed': 'seller',
   'agent.declined': 'error',
   'agent.error': 'error',
   'agent.fallback': 'system',
@@ -346,7 +347,7 @@ export function EventList({
                 const sub =
                   e.type === 'agent.decision' || e.type === 'agent.fallback'
                     ? e.payload?.reasoning
-                    : e.type === 'agent.skipped' || e.type === 'agent.declined'
+                    : e.type === 'agent.skipped' || e.type === 'agent.declined' || e.type === 'agent.link-needed'
                       ? e.payload?.detail
                       : undefined;
                 return typeof sub === 'string' && sub ? (

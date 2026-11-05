@@ -85,3 +85,25 @@ test('the lines never use an em dash and always end in a question the buttons an
     assert.match(line!, /\?$/);
   }
 });
+
+test('asking the same thing again says nothing; a new suggested answer is told once more (view 52, step 0)', async () => {
+  const job = '0x' + 'cd'.repeat(32);
+  const told: string[] = [];
+  const off = bus.subscribe((e) => {
+    if ((e.type === 'agent.suggestion' || e.type === 'agent.question.waiting') && String(e.payload?.jobId) === job) told.push(e.type);
+  });
+  const ask = (priceUsdc: string) => askOwner({
+    owner: SELLER, side: 'seller', jobId: job, kind: 'price-below-floor', title: 'Logo',
+    budgetUsdc: '12', dueDays: 3, limit: 20, suggested: { priceUsdc, days: 3 }, counterpartUser: BUYER,
+  });
+  try {
+    await ask('20');
+    await ask('20');
+    await ask('20');
+    assert.deepEqual(told, ['agent.suggestion', 'agent.question.waiting']);
+    await ask('18');
+    assert.deepEqual(told, ['agent.suggestion', 'agent.question.waiting', 'agent.suggestion']);
+  } finally {
+    off();
+  }
+});

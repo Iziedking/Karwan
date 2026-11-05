@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { getQuestion, openQuestionsFor, type AgentQuestion } from '../db/agentQuestions.js';
-import { closeQuestion } from '../agents/agentQuestion.js';
+import { closeQuestion, decideTime } from '../agents/agentQuestion.js';
 import { getBrief } from '../db/briefs.js';
 
 /// What a person's agent is asking them (view 41). Identity is the signed
@@ -48,6 +48,11 @@ agentQuestionsRoutes.post('/:id/answer', async (c) => {
   }
   const q = await getQuestion(c.req.param('id'));
   if (!q || q.owner !== me.toLowerCase()) return c.json({ error: 'No such question.', code: 'not_found' }, 404);
+  if (q.state === 'answered' && q.answer?.by === 'default') {
+    // The default ran first (view 52, step 2): say so, and keep the door open.
+    const at = q.decideAt ?? q.updatedAt;
+    return c.json({ error: `Already decided: no answer came by ${decideTime(at)}, so your agent declined politely. You can still make an offer from the request page.`, code: 'decided' }, 409);
+  }
   if (q.state !== 'input-required') return c.json({ error: 'This question has already been answered or has closed.', code: 'closed' }, 409);
 
   const counterpart = (q.side === 'seller' ? getBrief(q.jobId)?.postedBy : null) ?? null;

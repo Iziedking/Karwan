@@ -132,6 +132,22 @@ export const matchingPresentationFixtures: readonly MatchingPresentationFixture[
     }),
   },
   {
+    name: 'an agent that needs linking still brings the link prompt',
+    state: 'paused_needs_approval',
+    input: {
+      viewerRole: 'seller',
+      events: [event('agent.link-needed', 200, { reason: 'agent-not-linked', seller: '0xseller' })],
+    },
+    expected: expected('paused_needs_approval', {
+      tone: 'attention',
+      nextActor: 'seller',
+      viewerMustAct: true,
+      action: 'review_reserve',
+      reason: 'agent-not-linked',
+      sourceEventType: 'agent.link-needed',
+    }),
+  },
+  {
     name: 'request reopens for materially new bids',
     state: 'reengagement_scheduled',
     input: {

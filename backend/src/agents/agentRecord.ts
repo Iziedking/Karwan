@@ -16,6 +16,9 @@ export interface AgentRecord {
   spend: Array<{ at: number; usd: number; kind: SpendKind }>;
   lastWeeklyAt?: number;
   lastBudgetNoticeAt?: number;
+  /// What the agent told the person about how they trade (view 52): the key,
+  /// when, and the number it turned on. Kept 30 days.
+  insightsSent?: Array<{ key: string; at: number; value: number }>;
 }
 
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
@@ -37,6 +40,11 @@ export function canSpend(r: AgentRecord, priceUsd: number, now: number): boolean
 
 export function addSpend(r: AgentRecord, usd: number, kind: SpendKind, now: number): AgentRecord {
   return { ...r, spend: [...thisWeek(r, now), { at: now, usd, kind }] };
+}
+
+/// The weekly message may go out: it is on and a week has passed since the last.
+export function weeklyWindowOpen(r: AgentRecord, now: number): boolean {
+  return r.weeklyReport && (r.lastWeeklyAt === undefined || now - r.lastWeeklyAt >= WEEK_MS);
 }
 
 /// The weekly line, when it is due: on, a week since the last one, and

@@ -35,7 +35,7 @@ export function notificationKind(type: string): NotificationKind {
 /// per request) and the record reminder. Null for anything else.
 export function sellerNudge(type: string, payload: Record<string, unknown> | undefined, ts: number): { id: string; href: string } | null {
   if (type === 'trend.match') return { id: `trend.match-${ts}`, href: '/market' };
-  if (type === 'agent.weekly' || type === 'agent.budget') return { id: `${type}-${ts}`, href: '/profile/setup' };
+  if (type === 'agent.weekly' || type === 'agent.budget' || type === 'agent.research.failed') return { id: `${type}-${ts}`, href: '/profile/setup' };
   if (type === 'market.watch') return { id: `market.watch-${String(payload?.watchId ?? '')}-${ts}`, href: '/market' };
   if (type === 'agent.suggestion') {
     const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
@@ -44,6 +44,10 @@ export function sellerNudge(type: string, payload: Record<string, unknown> | und
   if (type === 'offer.request-changed') {
     const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
     return jobId ? { id: `offer.request-changed-${jobId}-${ts}`, href: `/jobs/${jobId}` } : null;
+  }
+  if (type === 'agent.question.decided') {
+    const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
+    return jobId ? { id: `agent.question.decided-${jobId}`, href: `/jobs/${jobId}` } : null;
   }
   // The record reminder: to the deal it is about, or to the assistant, which sets the record up.
   if (type === 'record.setup_needed') {

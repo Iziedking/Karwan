@@ -25,7 +25,16 @@ type TgKey =
   | 'dealCancelled'
   | 'dealDeliveredToBuyer'
   | 'dealDeliveredToSeller'
-  | 'openInKarwan';
+  | 'openInKarwan'
+  | 'researchFailed'
+  | 'researchFailedPaid'
+  | 'insight.testnetBudget'
+  | 'insight.missedByPrice'
+  | 'insight.budgetBelowBand'
+  | 'insight.cheaperBetterSellers'
+  | 'insight.slowRequest'
+  | 'insight.heading'
+  | 'insight.questions';
 
 const en: Record<TgKey, string> = {
   'cancelProposedFromOther.mutual':
@@ -57,6 +66,15 @@ const en: Record<TgKey, string> = {
   'dealDeliveredToSeller':
     '*You marked the deal delivered*. The buyer review window is open.',
   'openInKarwan': 'Open in Karwan',
+  'insight.questions': "Your agent asked you {asked} questions: you answered {answered}, and {byDefault} went its stated way with no answer.",
+  'insight.testnetBudget': "*{title}*: this is the test network, where deals settled at {low} to {high} USDC. Lower your budget from {budget} to {suggested} USDC to land a deal faster.",
+  'insight.missedByPrice': "You missed {count} requests this week because your lowest price, {lowest} USDC, was above what buyers offered. They offered around {median} USDC.",
+  'insight.budgetBelowBand': "*{title}*: deals like this settled at {low} to {high} USDC. Your budget is {budget} USDC; {low} USDC would reach more sellers.",
+  'insight.cheaperBetterSellers': "*{title}*: {count} sellers with a record as good as this one charge less than {price} USDC, from {lowest} USDC.",
+  'insight.slowRequest': "*{title}* has had no offer for a day. Sellers on similar requests asked for about {usualDays} days; yours allows {days}.",
+  'insight.heading': "*What your agent sees:*",
+  'researchFailed': "*Research for {title} didn't finish.* Your agent carried on with Karwan's own prices.",
+  'researchFailedPaid': "*Research for {title} didn't finish*, and {amount} USDC was spent on it. Your agent carried on with Karwan's own prices.",
 };
 
 const ar: Partial<Record<TgKey, string>> = {
@@ -89,6 +107,15 @@ const ar: Partial<Record<TgKey, string>> = {
   'dealDeliveredToSeller':
     '*لقد علّمت الصفقة كتم التسليم*. نافذة مراجعة المشتري مفتوحة.',
   'openInKarwan': 'افتح في كروان',
+  'insight.questions': "طرح عليك وكيلك {asked} أسئلة: أجبت عن {answered}، و{byDefault} مضت كما أُعلن دون إجابة.",
+  'insight.testnetBudget': "*{title}*: هذه شبكة الاختبار، وقد أُبرمت الصفقات فيها بين {low} و{high} USDC. خفّض ميزانيتك من {budget} إلى {suggested} USDC لتُبرم صفقة أسرع.",
+  'insight.missedByPrice': "فاتتك {count} طلبات هذا الأسبوع لأن أدنى سعر لديك، {lowest} USDC، كان أعلى مما عرضه المشترون. عرضوا نحو {median} USDC.",
+  'insight.budgetBelowBand': "*{title}*: أُبرمت صفقات مثل هذه بين {low} و{high} USDC. ميزانيتك {budget} USDC؛ و{low} USDC ستصل إلى بائعين أكثر.",
+  'insight.cheaperBetterSellers': "*{title}*: {count} بائعين بسجل لا يقل عن هذا يطلبون أقل من {price} USDC، بدءًا من {lowest} USDC.",
+  'insight.slowRequest': "*{title}* لم يتلقَّ أي عرض منذ يوم. طلب البائعون في طلبات مشابهة نحو {usualDays} أيام؛ وطلبك يسمح بـ{days}.",
+  'insight.heading': "*ما يراه وكيلك:*",
+  'researchFailed': "*لم يكتمل البحث عن {title}.* واصل وكيلك بأسعار كروان نفسها.",
+  'researchFailedPaid': "*لم يكتمل البحث عن {title}*، وأُنفق عليه {amount} USDC. واصل وكيلك بأسعار كروان نفسها.",
 };
 
 const fr: Partial<Record<TgKey, string>> = {
@@ -121,6 +148,15 @@ const fr: Partial<Record<TgKey, string>> = {
   'dealDeliveredToSeller':
     "*Vous avez marqué la transaction comme livrée*. La fenêtre d'examen acheteur est ouverte.",
   'openInKarwan': 'Ouvrir dans Karwan',
+  'insight.questions': "Votre agent vous a posé {asked} questions : vous avez répondu à {answered}, et {byDefault} ont suivi la réponse annoncée faute de réponse.",
+  'insight.testnetBudget': "*{title}* : c'est le réseau de test, où les transactions se sont conclues entre {low} et {high} USDC. Baissez votre budget de {budget} à {suggested} USDC pour conclure plus vite.",
+  'insight.missedByPrice': "Vous avez manqué {count} demandes cette semaine car votre prix le plus bas, {lowest} USDC, dépassait ce que les acheteurs proposaient. Ils proposaient environ {median} USDC.",
+  'insight.budgetBelowBand': "*{title}* : les transactions de ce type se sont conclues entre {low} et {high} USDC. Votre budget est de {budget} USDC ; {low} USDC toucherait plus de vendeurs.",
+  'insight.cheaperBetterSellers': "*{title}* : {count} vendeurs avec un historique aussi bon demandent moins de {price} USDC, à partir de {lowest} USDC.",
+  'insight.slowRequest': "*{title}* n'a reçu aucune offre depuis un jour. Pour des demandes similaires, les vendeurs ont demandé environ {usualDays} jours ; la vôtre en laisse {days}.",
+  'insight.heading': "*Ce que voit votre agent :*",
+  'researchFailed': "*La recherche pour {title} n'a pas abouti.* Votre agent a continué avec les prix de Karwan.",
+  'researchFailedPaid': "*La recherche pour {title} n'a pas abouti*, et {amount} USDC y ont été dépensés. Votre agent a continué avec les prix de Karwan.",
 };
 
 const hi: Partial<Record<TgKey, string>> = {
@@ -153,6 +189,15 @@ const hi: Partial<Record<TgKey, string>> = {
   'dealDeliveredToSeller':
     '*आपने सौदा डिलीवर चिह्नित किया*। खरीदार समीक्षा विंडो खुली है।',
   'openInKarwan': 'Karwan में खोलें',
+  'insight.questions': "आपके एजेंट ने आपसे {asked} सवाल पूछे: आपने {answered} का जवाब दिया, और {byDefault} बिना जवाब के बताए गए तरीके से तय हुए।",
+  'insight.testnetBudget': "*{title}*: यह टेस्ट नेटवर्क है, जहाँ सौदे {low} से {high} USDC में हुए। जल्दी सौदा पाने के लिए अपना बजट {budget} से घटाकर {suggested} USDC करें।",
+  'insight.missedByPrice': "इस हफ़्ते आपसे {count} अनुरोध छूट गए क्योंकि आपकी सबसे कम कीमत, {lowest} USDC, खरीदारों की पेशकश से ज़्यादा थी। उन्होंने लगभग {median} USDC की पेशकश की।",
+  'insight.budgetBelowBand': "*{title}*: ऐसे सौदे {low} से {high} USDC में हुए। आपका बजट {budget} USDC है; {low} USDC से ज़्यादा विक्रेता मिलेंगे।",
+  'insight.cheaperBetterSellers': "*{title}*: इतने ही अच्छे रिकॉर्ड वाले {count} विक्रेता {price} USDC से कम लेते हैं, {lowest} USDC से शुरू।",
+  'insight.slowRequest': "*{title}* पर एक दिन से कोई पेशकश नहीं आई। मिलते-जुलते अनुरोधों पर विक्रेताओं ने लगभग {usualDays} दिन माँगे; आपका अनुरोध {days} दिन देता है।",
+  'insight.heading': "*आपका एजेंट क्या देख रहा है:*",
+  'researchFailed': "*{title} के लिए खोज पूरी नहीं हुई।* आपका एजेंट Karwan की अपनी कीमतों के साथ आगे बढ़ा।",
+  'researchFailedPaid': "*{title} के लिए खोज पूरी नहीं हुई*, और इस पर {amount} USDC खर्च हुए। आपका एजेंट Karwan की अपनी कीमतों के साथ आगे बढ़ा।",
 };
 
 const sw: Partial<Record<TgKey, string>> = {
@@ -185,6 +230,15 @@ const sw: Partial<Record<TgKey, string>> = {
   'dealDeliveredToSeller':
     '*Umeashiria mkataba kuwa umewasilishwa*. Dirisha la mapitio la mnunuzi limefunguliwa.',
   'openInKarwan': 'Fungua katika Karwan',
+  'insight.questions': "Wakala wako alikuuliza maswali {asked}: ulijibu {answered}, na {byDefault} yalienda kama ilivyosemwa bila jibu.",
+  'insight.testnetBudget': "*{title}*: huu ni mtandao wa majaribio, ambapo mikataba ilifungwa kwa {low} hadi {high} USDC. Punguza bajeti yako kutoka {budget} hadi {suggested} USDC ili kupata mkataba haraka.",
+  'insight.missedByPrice': "Ulikosa maombi {count} wiki hii kwa sababu bei yako ya chini kabisa, {lowest} USDC, ilikuwa juu ya walichotoa wanunuzi. Walitoa karibu {median} USDC.",
+  'insight.budgetBelowBand': "*{title}*: mikataba kama huu ilifungwa kwa {low} hadi {high} USDC. Bajeti yako ni {budget} USDC; {low} USDC ingewafikia wauzaji wengi zaidi.",
+  'insight.cheaperBetterSellers': "*{title}*: wauzaji {count} wenye rekodi nzuri kama hii wanatoza chini ya {price} USDC, kuanzia {lowest} USDC.",
+  'insight.slowRequest': "*{title}* haijapata ofa kwa siku moja. Wauzaji kwenye maombi yanayofanana waliomba karibu siku {usualDays}; lako linaruhusu {days}.",
+  'insight.heading': "*Anachoona wakala wako:*",
+  'researchFailed': "*Utafiti wa {title} haukukamilika.* Wakala wako aliendelea kwa bei za Karwan zenyewe.",
+  'researchFailedPaid': "*Utafiti wa {title} haukukamilika*, na {amount} USDC zilitumika. Wakala wako aliendelea kwa bei za Karwan zenyewe.",
 };
 
 const TABLES: Record<UserLocale, Partial<Record<TgKey, string>>> = {

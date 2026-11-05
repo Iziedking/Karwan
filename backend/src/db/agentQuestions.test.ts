@@ -71,10 +71,40 @@ test('closing a request expires its open questions; questions past 24 hours expi
   assert.equal(listedLater.some((q) => q.id === old.id), false);
 });
 
-test('a reminder is due once, 30 minutes after the question, and never after an answer', async () => {
+test('a reminder is due once, 30 minutes before the default runs, and never after an answer (view 52)', async () => {
   const q = await putQuestion({ ...base, jobId: '0x' + '34'.repeat(32), now: T + 20_000 });
-  assert.equal((await dueReminders(T + 20_000 + 29 * 60_000)).some((r) => r.id === q.id), false);
-  assert.equal((await dueReminders(T + 20_000 + 31 * 60_000)).some((r) => r.id === q.id), true);
-  await markReminded(q.id, T + 20_000 + 31 * 60_000);
-  assert.equal((await dueReminders(T + 20_000 + 40 * 60_000)).some((r) => r.id === q.id), false);
+  const decideAt = q.decideAt!;
+  assert.equal(decideAt, T + 20_000 + 24 * 3_600_000);
+  assert.equal((await dueReminders(T + 20_000 + 31 * 60_000)).some((r) => r.id === q.id), false);
+  assert.equal((await dueReminders(decideAt - 31 * 60_000)).some((r) => r.id === q.id), false);
+  assert.equal((await dueReminders(decideAt - 29 * 60_000)).some((r) => r.id === q.id), true);
+  await markReminded(q.id, decideAt - 29 * 60_000);
+  assert.equal((await dueReminders(decideAt - 10 * 60_000)).some((r) => r.id === q.id), false);
+});
+
+test('every question but the near match says no by default, decided a day on or when the request closes (view 52)', async () => {
+  const { defaultFor, decideAtFor } = await import('./agentQuestions.js');
+  for (const kind of ['price-below-floor', 'time', 'ask-first', 'no-way', 'counter-below-floor'] as const) assert.equal(defaultFor(kind), 'no');
+  assert.equal(defaultFor('price-above-cap'), null);
+  assert.equal(decideAtFor(1_000), 1_000 + 24 * 3_600_000);
+  assert.equal(decideAtFor(1_000, 5_000), 5_000);
+  assert.equal(decideAtFor(1_000, 500), 1_000 + 24 * 3_600_000);
+  const q = await putQuestion({ ...base, jobId: '0x' + '56'.repeat(32), closesAt: T + 60_000 + 3_600_000, now: T + 60_000 });
+  assert.equal(q.defaultChoice, 'no');
+  assert.equal(q.decideAt, T + 60_000 + 3_600_000);
+});
+
+test('the default runs once, even across two sweeps or a restart, and never after an answer (view 52)', async () => {
+  const { dueDefaults, decideByDefault } = await import('./agentQuestions.js');
+  const q = await putQuestion({ ...base, jobId: '0x' + '78'.repeat(32), now: T + 70_000 });
+  assert.equal((await dueDefaults(q.decideAt! - 1)).some((d) => d.id === q.id), false);
+  assert.equal((await dueDefaults(q.decideAt!)).some((d) => d.id === q.id), true);
+  const first = await decideByDefault(q.id, q.decideAt!);
+  assert.deepEqual(first?.answer, { choice: 'no', by: 'default' });
+  assert.equal(await decideByDefault(q.id, q.decideAt! + 1), null);
+  assert.equal((await dueDefaults(q.decideAt! + 60_000)).some((d) => d.id === q.id), false);
+
+  const answered = await putQuestion({ ...base, jobId: '0x' + '9a'.repeat(32), now: T + 80_000 });
+  await answerQuestion(answered.id, OWNER, { choice: 'yes' }, T + 81_000);
+  assert.equal(await decideByDefault(answered.id, answered.decideAt!), null);
 });

@@ -196,3 +196,32 @@ test('a kept read is used again even when the request\'s checks are used up', as
   const r = await acquireRecordRead(req, h.deps);
   assert.equal(r.reused, true);
 });
+
+test('research that fails tells its owner once per request, and the caller still gets the error (view 52, step 0)', async () => {
+  const { acquireResearch } = await import('./dataGate.js');
+  const told: PaidEvent[] = [];
+  const failing = {
+    cachedAngles: () => new Set<string>(),
+    pay: async () => Promise.reject(new Error('synthesis timed out')),
+    emit: (e: PaidEvent) => told.push(e),
+  };
+  const ask = () => acquireResearch({ payerAgent: '0xAgent', forAccount: '0xFailOwner', keywords: ['logo'], focus: 'negotiation', ref: '0xfailreq', actor: 'seller' }, failing);
+  await assert.rejects(ask(), /synthesis timed out/);
+  await assert.rejects(ask(), /synthesis timed out/);
+  assert.equal(told.length, 1);
+  assert.equal(told[0]!.type, 'agent.research.failed');
+  assert.equal(told[0]!.actor, 'seller');
+  assert.deepEqual(told[0]!.payload, { kind: 'research', user: '0xFailOwner', ref: '0xfailreq', focus: 'negotiation' });
+});
+
+test('a short balance is not told as a research failure', async () => {
+  const { tellResearchFailed } = await import('./dataGate.js');
+  const told: PaidEvent[] = [];
+  const sent = tellResearchFailed(
+    { payerAgent: '0xA', forAccount: '0xShort', keywords: [], focus: 'demand', ref: '0xr' },
+    new Error('reads balance not yet credited (available 0 USDC)'),
+    (e) => told.push(e),
+  );
+  assert.equal(sent, false);
+  assert.equal(told.length, 0);
+});

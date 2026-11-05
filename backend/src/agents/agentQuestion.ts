@@ -28,6 +28,14 @@ export interface AskInput {
 }
 
 export async function askOwner(input: AskInput, now = Date.now()): Promise<AgentQuestion> {
+  // The agent re-judges a request on the sweep and after a restart. Asking the
+  // same thing again updates the row and says nothing (view 52, step 0); only a
+  // new question, or one whose suggested answer changed, reaches the person.
+  const before = await openFor(input.owner.toLowerCase(), input.jobId.toLowerCase());
+  const isNew = !before
+    || before.kind !== input.kind
+    || before.suggested.priceUsdc !== input.suggested.priceUsdc
+    || before.suggested.days !== input.suggested.days;
   const q = await putQuestion({
     owner: input.owner,
     side: input.side,
@@ -45,7 +53,7 @@ export async function askOwner(input: AskInput, now = Date.now()): Promise<Agent
     now,
   });
   const owner = input.owner.toLowerCase();
-  if (input.notify !== false) bus.emitEvent({
+  if (isNew && input.notify !== false) bus.emitEvent({
     type: 'agent.suggestion',
     actor: input.side,
     payload: {
@@ -60,9 +68,10 @@ export async function askOwner(input: AskInput, now = Date.now()): Promise<Agent
       priceUsdc: input.suggested.priceUsdc,
       days: input.suggested.days,
       ...(input.theirPriceUsdc ? { theirPriceUsdc: input.theirPriceUsdc } : {}),
+      ...(q.defaultChoice ? { defaultChoice: q.defaultChoice, decideAt: q.decideAt } : {}),
     },
   });
-  if (input.counterpartUser) {
+  if (!before && input.counterpartUser) {
     bus.emitEvent({
       type: 'agent.question.waiting',
       actor: input.side,
@@ -103,6 +112,29 @@ export async function closeQuestionOnOffer(sellerUser: string, jobId: string, pr
 }
 
 const dayWord = (d: number) => `${d} ${d === 1 ? 'day' : 'days'}`;
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/// The time a question is decided, as people read it: 6 Nov, 18:00 UTC.
+export function decideTime(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+}
+
+/// What happens without an answer, said with every question (view 52, step 2).
+/// Null for a question with no default (the buyer's near match, older ones).
+export function defaultLine(p: Record<string, unknown> | undefined): string | null {
+  const at = Number(p?.decideAt);
+  if (p?.defaultChoice !== 'no' || !Number.isFinite(at) || at <= 0) return null;
+  return `If you don't answer by ${decideTime(at)}, your agent will decline politely.`;
+}
+
+/// The line when the default ran: the person did not answer in time.
+export function decidedLine(p: Record<string, unknown> | undefined): string {
+  const title = typeof p?.title === 'string' && p.title ? p.title : 'the request';
+  return `You didn't answer about ${title}, so your agent declined politely. You can still make an offer from the request page.`;
+}
 
 /// The sentence the email, Telegram and the bell share, from the event payload.
 export function questionLine(p: Record<string, unknown> | undefined): string | null {

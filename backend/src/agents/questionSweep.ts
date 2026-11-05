@@ -1,7 +1,8 @@
 import { bus, type KarwanEvent } from '../events.js';
 import { logger } from '../logger.js';
 import { closeBuyerQuestion } from './agentQuestion.js';
-import { dueReminders, expireQuestionsForJob, markReminded, type AgentQuestion } from '../db/agentQuestions.js';
+import { decideByDefault, dueDefaults, dueReminders, expireQuestionsForJob, markReminded, type AgentQuestion } from '../db/agentQuestions.js';
+import { getBrief } from '../db/briefs.js';
 
 const SWEEP_INTERVAL_MS = 60_000;
 
@@ -31,9 +32,53 @@ export function reminderEvent(q: AgentQuestion): Omit<KarwanEvent, 'ts'> {
       ...q.facts,
       priceUsdc: q.suggested.priceUsdc,
       days: q.suggested.days,
+      ...(q.defaultChoice ? { defaultChoice: q.defaultChoice, decideAt: q.decideAt } : {}),
       reminder: true,
     },
   };
+}
+
+/// The kinds the seller answers on a live counter; No ends that negotiation.
+const COUNTER_KINDS: ReadonlySet<AgentQuestion['kind']> = new Set(['counter-below-floor', 'last-price-passed']);
+
+export interface DefaultDeps {
+  due(now: number): Promise<AgentQuestion[]>;
+  decide(id: string, now: number): Promise<AgentQuestion | null>;
+  /// The same step pressing No on a counter question runs.
+  counterNo(jobId: string, sellerUser: string): Promise<unknown>;
+  emit(e: Omit<KarwanEvent, 'ts'>): void;
+}
+
+const liveDefaultDeps: DefaultDeps = {
+  due: (now) => dueDefaults(now),
+  decide: (id, now) => decideByDefault(id, now),
+  counterNo: async (jobId, sellerUser) => (await import('./seller.js')).answerCounterQuestion(jobId, sellerUser, { choice: 'no' }),
+  emit: (e) => bus.emitEvent(e),
+};
+
+/// Questions nobody answered in time get their stated default, once (view 52,
+/// step 2): the same as pressing No, then the person is told and the other
+/// side's "checking" line clears. Returns how many ran.
+export async function runDefaults(now: number, deps: DefaultDeps = liveDefaultDeps): Promise<number> {
+  let ran = 0;
+  for (const due of await deps.due(now)) {
+    const q = await deps.decide(due.id, now);
+    if (!q) continue;
+    ran += 1;
+    if (q.side === 'seller' && COUNTER_KINDS.has(q.kind)) {
+      await deps.counterNo(q.jobId, q.owner).catch((err: Error) => logger.warn({ jobId: q.jobId, err: err.message }, 'default no on a counter failed'));
+    }
+    deps.emit({
+      type: 'agent.question.decided',
+      actor: q.side,
+      payload: { ...(q.side === 'seller' ? { sellerUser: q.owner } : { buyerUser: q.owner }), jobId: q.jobId, questionId: q.id, kind: q.kind, title: q.title, choice: q.answer?.choice ?? 'no' },
+    });
+    const counterpart = q.side === 'seller' ? getBrief(q.jobId)?.postedBy : null;
+    if (counterpart) {
+      deps.emit({ type: 'agent.question.waiting', actor: q.side, payload: { buyerUser: counterpart.toLowerCase(), jobId: q.jobId, checking: null } });
+    }
+  }
+  return ran;
 }
 
 export function startQuestionSweep(): () => void {
@@ -47,6 +92,7 @@ export function startQuestionSweep(): () => void {
         await markReminded(q.id, now);
         bus.emitEvent(reminderEvent(q));
       }
+      await runDefaults(now);
     } catch (err) {
       logger.warn({ err: (err as Error).message }, 'agent question sweep failed');
     } finally {

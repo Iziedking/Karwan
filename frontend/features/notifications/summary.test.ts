@@ -127,3 +127,40 @@ test('an agent topping up its data balance says the money moved, and the weekly 
   );
 });
 
+
+test('research the agent paid for that did not finish says so, with the amount when one was spent (view 52, step 0)', () => {
+  assert.equal(
+    summaryFor('agent.research.failed', { title: 'Logo design' }, null, en),
+    "Research for Logo design didn't finish. Your agent carried on with Karwan's own prices.",
+  );
+  assert.equal(
+    summaryFor('agent.research.failed', { title: 'Logo design', amountUsd: 0.009 }, null, en),
+    "Research for Logo design didn't finish, and 0.009 USDC was spent on it. Your agent carried on with Karwan's own prices.",
+  );
+  assert.equal(summaryFor('agent.research.failed', {}, null, en), "Research for your request didn't finish. Your agent carried on with Karwan's own prices.");
+});
+
+test('the weekly line says how many things the agent has to tell, and drops the spend line when nothing was spent (view 52, step 1)', () => {
+  assert.equal(
+    summaryFor('agent.weekly', { totalUsdc: 0, recordChecks: 0, webSearches: 0, insights: [{ kind: 'missed-by-price' }, { kind: 'slow-request' }] }, null, en),
+    'Your agent has 2 things to tell you about how you trade. Ask it what it sees.',
+  );
+  assert.equal(
+    summaryFor('agent.weekly', { totalUsdc: 0.005, recordChecks: 1, webSearches: 0, checkPriceUsdc: 0.005, insights: [{ kind: 'missed-by-price' }] }, null, en),
+    'Your agents spent 0.005 USDC on data this week: 1 record checks at 0.005 USDC each and 0 web searches. Your agent has one thing to tell you about how you trade. Ask it what it sees.',
+  );
+});
+
+test('a question nobody answered in time says the agent declined politely (view 52, step 2)', () => {
+  assert.equal(
+    summaryFor('agent.question.decided', { title: 'Logo', choice: 'no' }, 'seller', en),
+    "You didn't answer about Logo, so your agent declined politely. You can still make an offer from the request page.",
+  );
+});
+
+test('the weekly line counts the questions and how they ended', () => {
+  assert.equal(
+    summaryFor('agent.weekly', { totalUsdc: 0, questions: { asked: 4, answered: 1, byDefault: 3 } }, null, en),
+    'Your agent asked you 4 questions: you answered 1, and 3 went its stated way with no answer.',
+  );
+});

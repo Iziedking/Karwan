@@ -79,6 +79,7 @@ export const AUCTION_INTERNAL_TYPES: ReadonlySet<KarwanEventType> = new Set<Karw
   'counter.evaluated',
   'counter.response.submitted',
   'agent.skipped',
+  'agent.link-needed',
   'agent.declined',
   'agent.decision',
   'negotiation.attempt-ended',

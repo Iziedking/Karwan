@@ -78,10 +78,24 @@ export function summaryFor(
       // The price of a check and what is left of the data balance (owner, 5 Nov 2026).
       const line = fill(c.agentWeekly, { total: str('totalUsdc'), records: str('recordChecks'), price: str('checkPriceUsdc') || '0.005', searches: str('webSearches') });
       const left = str('dataBalanceUsdc');
-      return left ? `${line} ${fill(c.agentWeeklyLeft, { left })}` : line;
+      const spend = Number(payload?.totalUsdc) > 0 ? (left ? `${line} ${fill(c.agentWeeklyLeft, { left })}` : line) : '';
+      // What the agent sees (view 52, step 1): the count here, the sentences in the assistant.
+      const told = payload?.insights;
+      const count = Array.isArray(told) ? told.length : 0;
+      const tips = count ? fill(count === 1 ? c.agentWeeklyInsight : c.agentWeeklyInsights, { count: String(count) }) : '';
+      const q = payload?.questions as { asked?: number; answered?: number; byDefault?: number } | undefined;
+      const asked = q?.asked ? fill(c.agentWeeklyQuestions, { asked: String(q.asked), answered: String(q.answered ?? 0), byDefault: String(q.byDefault ?? 0) }) : '';
+      return [spend, asked, tips].filter(Boolean).join(' ') || line;
     }
     case 'agent.budget':
       return fill(c.agentBudget, { budget: str('budgetUsdc') });
+    case 'agent.question.decided':
+      return fill(c.questionDecided, { title: str('title') || c.researchYourRequest });
+    case 'agent.research.failed': {
+      const title = str('title') || c.researchYourRequest;
+      const amount = str('amountUsd');
+      return amount ? fill(c.researchFailedPaid, { title, amount }) : fill(c.researchFailed, { title });
+    }
     case 'market.watch': {
       const id = str('category') as keyof NotifyCopy['categories'];
       const values = { category: c.categories[id] ?? str('categoryName'), count: str('count'), from: str('fromUsdc'), to: str('toUsdc') };

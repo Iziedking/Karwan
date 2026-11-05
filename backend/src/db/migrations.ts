@@ -1470,6 +1470,18 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    // Every question the agent asks states what happens without an answer and
+    // by when, and that default happens once (view 52, step 2).
+    version: 57,
+    name: 'agent_question_defaults',
+    sql: `
+      ALTER TABLE agent_questions_v1 ADD COLUMN default_choice TEXT;
+      ALTER TABLE agent_questions_v1 ADD COLUMN default_price_usdc TEXT;
+      ALTER TABLE agent_questions_v1 ADD COLUMN decide_at BIGINT;
+      CREATE INDEX agent_questions_decide ON agent_questions_v1 (state, decide_at) WHERE state = 'input-required';
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

@@ -10,6 +10,15 @@ export function channelsFor(settings: Pick<UserSettings, 'notifyVia'> | undefine
   return { email: true, telegram: true };
 }
 
+/// An agent question and its one reminder go out on one channel (view 52,
+/// step 2): the one the person chose, and when they chose both, Telegram if
+/// linked (agentic first), else email. The bell and the assistant always show it.
+export function questionChannelFor(settings: Pick<UserSettings, 'notifyVia'> | undefined, hasTelegram: boolean): { email: boolean; telegram: boolean } {
+  const via = channelsFor(settings, hasTelegram);
+  if (via.email && via.telegram) return hasTelegram ? { email: false, telegram: true } : { email: true, telegram: false };
+  return via;
+}
+
 /// The one reminder of an agent question (view 41) goes to the first channel,
 /// Telegram then email, that the first notice did not use and that the person
 /// has. When the first notice already used both, the reminder stays in the app

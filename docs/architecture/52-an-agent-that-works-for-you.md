@@ -234,3 +234,13 @@ flowchart TB
 4. **What happens without an answer.** The agent states a default with every question and keeps it; for a price below the person's floor the default is a polite no.
 5. **Step 0 first.** The counts are corrected before any insight is shown.
 6. **One agent per person, on two wallets.** Buying and selling are two modes of one agent; a buying wallet and a selling wallet sit behind it.
+
+## Status
+
+| Part | State |
+|---|---|
+| View approved | Done, 5 Nov 2026 |
+| Step 0: true counts, one notice per question, research failures told | Built 5 Nov 2026, not deployed |
+| Step 1: five insights in the weekly message and on request (`whats_my_agent_seeing`) | Built 5 Nov 2026, not deployed |
+| Step 2: every question states its default and deadline, one channel, one reminder, the default runs once | Built 5 Nov 2026, not deployed |
+| Steps 3 to 7 | Not started |

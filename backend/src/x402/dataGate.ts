@@ -1,9 +1,11 @@
 import { READ_DETAIL_TTL_MS, keptReadFor, readsForRef, type RecordReadReceipt } from '../db/recordReads.js';
 import { listDealsForAddress } from '../db/deals.js';
+import { getBrief } from '../db/briefs.js';
+import { requestTitle } from '../agents/bidOutcome.js';
 import { bus, type KarwanEvent } from '../events.js';
 import { countsFor, type RecordCounts } from '../reputation/recordRead.js';
 import type { SignedRecordRead } from '../verification/recordReadSignature.js';
-import { paidRecordRead, paidResearch, type PaidRecordRead } from './buyerClient.js';
+import { paidRecordRead, paidResearch, READS_BALANCE_EMPTY, type PaidRecordRead } from './buyerClient.js';
 import { cachedAnglesFor, type MarketRead } from './externalClient.js';
 import { quoteResearch, type ResearchFocus, type ResearchQuote } from './researchPricing.js';
 import { PAID_READS_PER_REQUEST, RECORD_READ_PRICE_USDC, type ReadPurpose } from './recordReadGate.js';
@@ -187,6 +189,35 @@ export interface ResearchDeps {
   budget?: DataBudget;
 }
 
+const RESEARCH_FAILURE_QUIET_MS = 24 * 3_600_000;
+const researchFailureTold = new Map<string, number>();
+
+/// Research that did not finish, told to the person once per request a day.
+/// A short balance is not a failure: it has its own "add money" notice.
+export function tellResearchFailed(req: ResearchRequest, err: unknown, emit: (e: PaidEvent) => void, now = Date.now()): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  if (message.startsWith(READS_BALANCE_EMPTY)) return false;
+  const key = `${req.forAccount.toLowerCase()}|${req.ref.toLowerCase()}`;
+  const last = researchFailureTold.get(key);
+  if (last !== undefined && now - last < RESEARCH_FAILURE_QUIET_MS) return false;
+  researchFailureTold.set(key, now);
+  const paid = Number((err as { amountUsd?: unknown } | null)?.amountUsd);
+  const title = requestTitle(getBrief(req.ref)?.briefText);
+  emit({
+    type: 'agent.research.failed',
+    actor: req.actor ?? 'buyer',
+    payload: {
+      kind: 'research',
+      user: req.forAccount,
+      ref: req.ref,
+      focus: req.focus,
+      ...(title ? { title } : {}),
+      ...(Number.isFinite(paid) && paid > 0 ? { amountUsd: paid } : {}),
+    },
+  });
+  return true;
+}
+
 /// The exact price before anything runs, so the agent can tell its person.
 export function researchQuote(keywords: string[], focus: ResearchFocus, cached = cachedAnglesFor): ResearchQuote {
   return quoteResearch(focus, cached(keywords));
@@ -201,7 +232,15 @@ export async function acquireResearch(
 ): Promise<{ read: MarketRead; quote: ResearchQuote; amountUsd: number }> {
   const quote = quoteResearch(req.focus, deps.cachedAngles(req.keywords));
   await withinBudget(deps.budget, req.forAccount, quote.totalUsdc);
-  const r = await deps.pay(req.payerAgent, { keywords: req.keywords, focus: req.focus, ref: req.ref, forAccount: req.forAccount, priceUsd: quote.totalUsdc });
+  let r: Awaited<ReturnType<ResearchDeps['pay']>>;
+  try {
+    r = await deps.pay(req.payerAgent, { keywords: req.keywords, focus: req.focus, ref: req.ref, forAccount: req.forAccount, priceUsd: quote.totalUsdc });
+  } catch (err) {
+    // The caller carries on with Karwan's own prices; the person hears once per
+    // request that the research did not finish (view 52, step 0).
+    tellResearchFailed(req, err, deps.emit);
+    throw err;
+  }
   if (r.amountUsd > 0) await deps.budget?.spent(req.forAccount, r.amountUsd, 'research');
   if (r.amountUsd > 0) {
     deps.emit({

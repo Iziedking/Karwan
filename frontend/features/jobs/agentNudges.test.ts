@@ -40,6 +40,11 @@ test('seller answers and passes read as the other side', () => {
   assert.equal(agentNudgeFor(ev('agent.skipped', { reason: 'x' }, 'seller'), copy)?.text, "A seller's agent passed on this request");
 });
 
+test('an agent that offered but needs linking never reads as a pass', () => {
+  assert.equal(agentNudgeFor(ev('agent.link-needed', { reason: 'agent-not-linked' }, 'seller'), copy), null);
+  assert.equal(agentNudgeFor(ev('agent.skipped', { reason: 'agent-not-linked', offering: true }, 'seller'), copy), null);
+});
+
 test('events without a payload, and types with no nudge, stay quiet', () => {
   assert.equal(agentNudgeFor(ev('bid.submitted', {}, 'seller'), copy), null);
   assert.equal(agentNudgeFor(ev('job.posted'), copy), null);

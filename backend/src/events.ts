@@ -129,9 +129,15 @@ export type KarwanEventType =
   | 'agent.funded'
   | 'agent.withdrawal'
   | 'agent.skipped'
+  /// An unlinked seller's agent offered and must be linked before it can be
+  /// chosen (view 52, step 0). Not a pass: the agent did offer.
+  | 'agent.link-needed'
   /// "Ask me first": the selling agent found a request that fits and asks its
   /// owner instead of offering. Party: `sellerUser` only (agents/suggestion.ts).
   | 'agent.suggestion'
+  /// A question went unanswered and its stated default ran (view 52, step 2).
+  /// Party: the `sellerUser` or `buyerUser` who was asked.
+  | 'agent.question.decided'
   /// The other side's agent is asking its person (view 41). Carries no price,
   /// limit or name; party: the `buyerUser` or `sellerUser` it is shown to.
   | 'agent.question.waiting'

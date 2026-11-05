@@ -487,6 +487,11 @@ export const agentQuestions = pgTable('agent_questions_v1', {
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
   updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   remindedAt: bigint('reminded_at', { mode: 'number' }),
+  /// What happens without an answer, and when (view 52, step 2). Null on
+  /// questions asked before 5 Nov 2026 and on the buyer's near match.
+  defaultChoice: text('default_choice'),
+  defaultPriceUsdc: text('default_price_usdc'),
+  decideAt: bigint('decide_at', { mode: 'number' }),
 });
 
 export const recordReads = pgTable(

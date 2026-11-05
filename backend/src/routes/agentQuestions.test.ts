@@ -89,3 +89,14 @@ test('change without a price is refused', async () => {
   const q = await ask('a5', 'no-way');
   assert.equal((await post(q.id, { choice: 'change' })).status, 400);
 });
+
+test('an answer after the default ran says it was already decided, and when (view 52, step 2)', async () => {
+  const { decideByDefault } = await import('../db/agentQuestions.js');
+  const q = await ask('a6', 'no-way');
+  await decideByDefault(q.id, q.decideAt!);
+  const res = await post(q.id, { choice: 'yes' });
+  assert.equal(res.status, 409);
+  const body = (await res.json()) as { error: string; code: string };
+  assert.equal(body.code, 'decided');
+  assert.match(body.error, /^Already decided: no answer came by .+ UTC, so your agent declined politely\./);
+});

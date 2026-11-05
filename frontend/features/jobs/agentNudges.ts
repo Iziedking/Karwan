@@ -56,7 +56,9 @@ export function agentNudgeFor(e: ChainEvent, copy: AgentNudgesCopy): Omit<AgentN
       return amount ? theirs(reason ? `${fill(copy.sellerAnswered, { amount })} “${reason}”` : fill(copy.sellerAnswered, { amount })) : null;
     }
     case 'agent.skipped':
-      return e.actor === 'seller' && Object.keys(p).length > 0 ? theirs(copy.sellerPassed) : null;
+      // Before 5 Nov 2026 an unlinked agent that still offered was logged as a
+      // skip with `offering: true`; it did not pass (view 52, step 0).
+      return e.actor === 'seller' && Object.keys(p).length > 0 && p.offering !== true ? theirs(copy.sellerPassed) : null;
     case 'bid.scored': {
       const amount = str(p.priceUsdc);
       return amount ? mine(fill(copy.scored, { amount })) : null;

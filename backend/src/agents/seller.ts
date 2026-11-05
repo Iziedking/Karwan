@@ -1217,12 +1217,13 @@ async function judgeAndOffer(profile: SellerProfile, job: JobContext) {
     const link = await sellerLinkFor(suiteFundingEnabled() ? 'suite' : null, seller.address, linkOwner.userAddress);
     if (blocksOffer(link)) {
       logger.info({ jobId: job.jobId, seller: seller.address, link: link.kind }, 'seller agent not linked to its owner: offering, marked must link');
-      // Same event as before, so the seller still gets the link prompt on Stake.
+      // The agent offers, so this is not a pass (view 52, step 0): its own
+      // event, which still brings the seller the link prompt on Stake.
       bus.emitEvent({
-        type: 'agent.skipped',
+        type: 'agent.link-needed',
         jobId: job.jobId,
         actor: 'seller',
-        payload: { seller: seller.address, reason: 'agent-not-linked', detail: SELLER_LINK_DETAIL, offering: true },
+        payload: { seller: seller.address, reason: 'agent-not-linked', detail: SELLER_LINK_DETAIL },
       });
     }
   }

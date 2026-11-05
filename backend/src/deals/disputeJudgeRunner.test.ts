@@ -41,6 +41,17 @@ test('with both statements in, the judge proposes and a reviewer is told', async
   assert.equal(calls.notified, 1);
 });
 
+test('with no model answering, the dispute still reaches a reviewer, marked judge unavailable', async () => {
+  const { calls, deps: d } = deps({ generate: async () => { throw new Error('every provider failed'); } });
+  const deal = { ...base, disputeStatements: { buyer: st, seller: st } } as DirectDeal;
+  assert.equal(await runDisputeJudge(deal, H, d, { windowMs: 48 * H }), 'proposed');
+  const patch = calls.patched[0] as { judgeProposal: { rule?: string; confidence: string; status: string } };
+  assert.equal(patch.judgeProposal.rule, 'judge-unavailable');
+  assert.equal(patch.judgeProposal.confidence, 'inconclusive');
+  assert.equal(patch.judgeProposal.status, 'awaiting-review');
+  assert.equal(calls.notified, 1);
+});
+
 test('a silent seller gets the rule, without asking the model', async () => {
   const { calls, deps: d } = deps();
   const deal = { ...base, disputeStatements: { buyer: st } } as DirectDeal;

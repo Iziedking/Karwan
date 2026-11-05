@@ -1,7 +1,10 @@
 import { bus, type KarwanEvent } from '../events.js';
 import { config } from '../config.js';
-import { channelsFor, reminderChannelsFor } from '../channels/notifyVia.js';
+import { channelsFor, questionChannelFor } from '../channels/notifyVia.js';
 import { getDeal } from '../db/deals.js';
+import { getBrief } from '../db/briefs.js';
+import { requestTitle } from '../agents/bidOutcome.js';
+import { insightLine, type InsightLineInput } from '../intelligence/insightText.js';
 import { getProfile, type UserLocale } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
 import { sendTelegramMessage, telegramEnabled } from './bot.js';
@@ -14,7 +17,7 @@ import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financia
 import { walletPlainName } from '../money/observedDeposit.js';
 import { personNames, shortAddress } from '../channels/personName.js';
 import { outOfRangeLine, rangeOf } from '../agents/outOfRange.js';
-import { questionLine } from '../agents/agentQuestion.js';
+import { decidedLine, defaultLine, questionLine } from '../agents/agentQuestion.js';
 import {
   deliverableNoun,
   startPhrase,
@@ -98,6 +101,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 export const RELEVANT = new Set([
   'work.update',
   'agent.suggestion',
+  'agent.question.decided',
   'offer.request-changed',
   'deal.review.ending',
   'record.setup_needed',
@@ -159,6 +163,7 @@ export const RELEVANT = new Set([
   'market.watch',
   'agent.weekly',
   'agent.budget',
+  'agent.research.failed',
   'chat.message',
   'bridge.minted',
   'bridge.error',
@@ -283,10 +288,10 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const financiers = await financiersOfDeal(e.jobId).catch(() => []);
     return [...out, ...financiers.map((f) => ({ address: f.financier, role: 'financier', href: f.href }))];
   }
-  if (e.type === 'agent.suggestion' && e.payload?.buyerUser) {
+  if ((e.type === 'agent.suggestion' || e.type === 'agent.question.decided') && e.payload?.buyerUser) {
     return [{ address: (e.payload.buyerUser as string).toLowerCase(), role: 'buyer' }];
   }
-  if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed' || e.type === 'offer.request-changed') {
+  if (e.type === 'agent.suggestion' || e.type === 'agent.question.decided' || e.type === 'record.setup_needed' || e.type === 'offer.request-changed') {
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'seller' }] : [];
   }
@@ -352,7 +357,7 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     return seller ? [{ address: seller, role: 'self' }] : [];
   }
   // A watch the person set on their agent saw a change (view 48, step 5).
-  if (e.type === 'market.watch' || e.type === 'agent.weekly' || e.type === 'agent.budget') {
+  if (e.type === 'market.watch' || e.type === 'agent.weekly' || e.type === 'agent.budget' || e.type === 'agent.research.failed') {
     const owner = (e.payload?.user as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'self' }] : [];
   }
@@ -472,7 +477,7 @@ Keep it, lower it or withdraw it.`,
         return withLink(`*${e.payload?.reminder ? 'Reminder: your agent is waiting on you.' : 'Your agent has a question for you.'}*${title ? `
 ${title}` : ''}
 ${asked}
-Nothing is sent until you answer.`, jobUrl(e.payload?.jobId as string | undefined));
+${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payload?.jobId as string | undefined));
       }
       if (role !== 'seller') return null;
       const title = (e.payload?.title as string | undefined) ?? '';
@@ -551,7 +556,32 @@ Nothing is sent until you answer.`, jobUrl(e.payload?.jobId as string | undefine
         Number(p.webSearches) ? `${p.webSearches} web search${Number(p.webSearches) === 1 ? '' : 'es'}` : '',
       ].filter(Boolean);
       const left = p.dataBalanceUsdc !== undefined ? ` ${p.dataBalanceUsdc} USDC is left in their data balance.` : '';
-      return withLink(`*Your agents spent ${p.totalUsdc} USDC on data this week*${parts.length ? `: ${parts.join(' and ')}` : ''}. Their weekly budget is ${p.budgetUsdc} USDC.${left}`, yourAgentUrl());
+      const spend = Number(p.totalUsdc) > 0
+        ? `*Your agents spent ${p.totalUsdc} USDC on data this week*${parts.length ? `: ${parts.join(' and ')}` : ''}. Their weekly budget is ${p.budgetUsdc} USDC.${left}`
+        : '';
+      // What the agent sees about how the person trades (view 52, step 1).
+      const seen = (Array.isArray(p.insights) ? (p.insights as InsightLineInput[]) : [])
+        .map((i) => insightLine(i, locale))
+        .filter((l): l is string => Boolean(l));
+      const tips = seen.length ? `${tg('insight.heading', locale)}\n${seen.map((l) => `• ${l}`).join('\n')}` : '';
+      const q = p.questions as { asked?: number; answered?: number; byDefault?: number } | undefined;
+      const asked = q?.asked ? tg('insight.questions', locale, { asked: String(q.asked), answered: String(q.answered ?? 0), byDefault: String(q.byDefault ?? 0) }) : '';
+      return withLink([spend, asked, tips].filter(Boolean).join('\n\n'), yourAgentUrl());
+    }
+    case 'agent.question.decided': {
+      if (role !== (e.payload?.buyerUser ? 'buyer' : 'seller')) return null;
+      return withLink(decidedLine(e.payload), jobUrl(e.payload?.jobId as string | undefined));
+    }
+    case 'agent.research.failed': {
+      // Only a person's own research has a `user`; platform research tells nobody.
+      const p = e.payload ?? {};
+      const ref = typeof p.ref === 'string' ? p.ref : undefined;
+      const title = (typeof p.title === 'string' && p.title) || (ref ? requestTitle(getBrief(ref)?.briefText) : null) || 'your request';
+      const amount = Number(p.amountUsd);
+      const text = Number.isFinite(amount) && amount > 0
+        ? tg('researchFailedPaid', locale, { title, amount: String(amount) })
+        : tg('researchFailed', locale, { title });
+      return withLink(text, jobUrl(ref));
     }
     case 'agent.budget': {
       const p = e.payload ?? {};
@@ -1075,8 +1105,8 @@ export function startTelegramNotifier(): () => void {
         const profile = await getProfile(r.address);
         if (profile?.settings?.notificationsMuted) continue;
         if (!channelsFor(profile?.settings, true).telegram) continue;
-        // The one reminder of an agent question goes to the next channel only (view 41).
-        if (e.type === 'agent.suggestion' && e.payload?.reminder === true && !reminderChannelsFor(profile?.settings, true).telegram) continue;
+        // An agent question, its reminder and its outcome go out on one channel (view 52).
+        if ((e.type === 'agent.question.decided' || (e.type === 'agent.suggestion' && e.payload?.questionId)) && !questionChannelFor(profile?.settings, true).telegram) continue;
         const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
         const summary = r.role === 'financier' ? financierSummaryFor(e, r.href, locale) : summaryFor(e, r.role, locale, { names, counterparty: r.counterparty });
         if (!summary) continue;

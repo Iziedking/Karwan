@@ -144,6 +144,10 @@ export const NOTIFY_TYPES = new Set([
   // The weekly line on what the viewer's agents spent, and their budget reached (view 48, step 6).
   'agent.weekly',
   'agent.budget',
+  // Research the viewer's own agent paid for did not finish (view 52, step 0).
+  'agent.research.failed',
+  // A question went unanswered and its stated default ran (view 52, step 2).
+  'agent.question.decided',
   // "Ask me first": the viewer's own agent found a request (no jobId on the event).
   'agent.suggestion',
   // The buyer changed a request the viewer offered on by hand (view 35).
@@ -213,6 +217,8 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'market.watch': 'seller', // a watch the viewer set, addressed to them
   'agent.weekly': 'seller', // the viewer's own agents, addressed to them
   'agent.budget': 'seller',
+  'agent.research.failed': 'seller',
+  'agent.question.decided': 'seller',
   'agent.suggestion': 'seller', // ask me first: the seller decides on the offer
   'offer.request-changed': 'seller', // the seller keeps, lowers or withdraws their offer
   'record.setup_needed': 'seller', // the seller sets up their Karwan record

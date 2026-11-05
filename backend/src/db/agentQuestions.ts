@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, gt, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, isNull, lte } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { agentQuestions } from './schema.js';
 
@@ -26,6 +26,8 @@ export interface QuestionAnswer {
   choice: 'yes' | 'change' | 'no';
   priceUsdc?: string;
   days?: number;
+  /// Set when no answer came and the stated default ran (view 52, step 2).
+  by?: 'default';
 }
 
 export interface AgentQuestion {
@@ -43,12 +45,33 @@ export interface AgentQuestion {
   createdAt: number;
   updatedAt: number;
   remindedAt: number | null;
+  /// What happens without an answer, and when (view 52, step 2). Null on
+  /// older questions and on the buyer's near match, which has its own card.
+  defaultChoice: 'no' | null;
+  defaultPriceUsdc: string | null;
+  decideAt: number | null;
 }
 
 /// eBay lets an offer wait 24 hours; so does a question.
 export const QUESTION_TTL_MS = 24 * 3_600_000;
 /// One reminder, inside the first hour (view 41).
 export const QUESTION_REMIND_AFTER_MS = 30 * 60_000;
+/// The one reminder comes this long before the default runs (view 52, step 2).
+export const QUESTION_REMIND_BEFORE_MS = 30 * 60_000;
+
+/// What happens when no answer comes: every kind but the buyer's near match,
+/// which keeps its own card and expiry, is declined politely, as pressing No.
+export function defaultFor(kind: QuestionKind): 'no' | null {
+  return kind === 'price-above-cap' ? null : 'no';
+}
+
+/// When the default runs: a day after asking, or when the request closes if sooner.
+export function decideAtFor(createdAt: number, closesAt?: number | null): number {
+  const day = createdAt + QUESTION_TTL_MS;
+  return closesAt && closesAt > createdAt ? Math.min(day, closesAt) : day;
+}
+
+const endsAt = (q: Pick<AgentQuestion, 'createdAt' | 'decideAt'>) => q.decideAt ?? q.createdAt + QUESTION_TTL_MS;
 
 const mem = new Map<string, AgentQuestion>();
 
@@ -60,9 +83,12 @@ const fromRow = (row: typeof agentQuestions.$inferSelect): AgentQuestion => ({
   facts: (row.facts ?? {}) as Record<string, unknown>,
   suggested: (row.suggested ?? {}) as AgentQuestion['suggested'],
   answer: (row.answer ?? null) as QuestionAnswer | null,
+  defaultChoice: row.defaultChoice === 'no' ? 'no' : null,
+  defaultPriceUsdc: row.defaultPriceUsdc ?? null,
+  decideAt: row.decideAt ?? null,
 });
 
-const live = (q: AgentQuestion, now: number) => q.state === 'input-required' && q.createdAt + QUESTION_TTL_MS > now;
+const live = (q: AgentQuestion, now: number) => q.state === 'input-required' && endsAt(q) > now;
 
 export async function openFor(owner: string, jobId: string): Promise<AgentQuestion | null> {
   if (!pgEnabled) {
@@ -86,6 +112,8 @@ export async function putQuestion(input: {
   suggested: AgentQuestion['suggested'];
   mandateVersion: number;
   now?: number;
+  /// When the request closes, so the default never runs after it (view 52).
+  closesAt?: number | null;
 }): Promise<AgentQuestion> {
   const now = input.now ?? Date.now();
   const owner = input.owner.toLowerCase();
@@ -108,6 +136,9 @@ export async function putQuestion(input: {
         createdAt: now,
         updatedAt: now,
         remindedAt: null,
+        defaultChoice: defaultFor(input.kind),
+        defaultPriceUsdc: null,
+        decideAt: decideAtFor(now, input.closesAt),
       };
   if (!pgEnabled) {
     mem.set(q.id, q);
@@ -166,6 +197,22 @@ export async function recentAnsweredFor(owner: string, limit = 50): Promise<Agen
   return rows.map(fromRow);
 }
 
+/// Every question this person was asked since a time, in any state (view 52:
+/// what the agent tells them about the requests they missed).
+export async function questionsSince(owner: string, since: number): Promise<AgentQuestion[]> {
+  const o = owner.toLowerCase();
+  if (!pgEnabled) {
+    return [...mem.values()].filter((q) => q.owner === o && q.createdAt >= since).sort((a, b) => b.createdAt - a.createdAt);
+  }
+  const rows = await db()
+    .select()
+    .from(agentQuestions)
+    .where(and(eq(agentQuestions.owner, o), gte(agentQuestions.createdAt, since)))
+    .orderBy(desc(agentQuestions.createdAt))
+    .limit(500);
+  return rows.map(fromRow);
+}
+
 /// Null when the question is not this person's, already answered or expired.
 export async function answerQuestion(id: string, owner: string, answer: QuestionAnswer, now = Date.now()): Promise<AgentQuestion | null> {
   const q = await getQuestion(id);
@@ -203,15 +250,52 @@ export async function expireQuestionsForJob(jobId: string, now = Date.now()): Pr
   return rows.length;
 }
 
+/// The one reminder: 30 minutes before the default runs for a question that
+/// has one (view 52), 30 minutes after asking for an older one (view 41).
+export function reminderDue(q: Pick<AgentQuestion, 'createdAt' | 'decideAt' | 'remindedAt'>, now: number): boolean {
+  if (q.remindedAt !== null) return false;
+  const at = q.decideAt !== null ? q.decideAt - QUESTION_REMIND_BEFORE_MS : q.createdAt + QUESTION_REMIND_AFTER_MS;
+  return now >= Math.max(at, q.createdAt);
+}
+
 export async function dueReminders(now = Date.now()): Promise<AgentQuestion[]> {
-  const cutoff = now - QUESTION_REMIND_AFTER_MS;
   const rows = !pgEnabled
-    ? [...mem.values()].filter((q) => q.remindedAt === null && q.createdAt <= cutoff)
+    ? [...mem.values()].filter((q) => q.state === 'input-required' && q.remindedAt === null)
     : (await db()
         .select()
         .from(agentQuestions)
-        .where(and(eq(agentQuestions.state, 'input-required'), isNull(agentQuestions.remindedAt), lte(agentQuestions.createdAt, cutoff)))).map(fromRow);
-  return rows.filter((q) => live(q, now));
+        .where(and(eq(agentQuestions.state, 'input-required'), isNull(agentQuestions.remindedAt)))).map(fromRow);
+  return rows.filter((q) => live(q, now) && reminderDue(q, now));
+}
+
+/// Questions whose time to decide has come, with a default to run.
+export async function dueDefaults(now = Date.now()): Promise<AgentQuestion[]> {
+  const rows = !pgEnabled
+    ? [...mem.values()].filter((q) => q.state === 'input-required' && q.defaultChoice !== null && q.decideAt !== null && q.decideAt <= now)
+    : (await db()
+        .select()
+        .from(agentQuestions)
+        .where(and(eq(agentQuestions.state, 'input-required'), lte(agentQuestions.decideAt, now)))).map(fromRow);
+  return rows.filter((q) => q.defaultChoice !== null);
+}
+
+/// Runs the default once: the question moves from waiting to answered only if
+/// it is still waiting, so two sweeps, or a sweep after a restart, never both act.
+export async function decideByDefault(id: string, now = Date.now()): Promise<AgentQuestion | null> {
+  const q = !pgEnabled ? mem.get(id) ?? null : await getQuestion(id);
+  if (!q || q.state !== 'input-required' || q.defaultChoice === null) return null;
+  const answer: QuestionAnswer = { choice: q.defaultChoice, by: 'default' };
+  if (!pgEnabled) {
+    const done = { ...q, state: 'answered' as const, answer, updatedAt: now };
+    mem.set(id, done);
+    return done;
+  }
+  const rows = await db()
+    .update(agentQuestions)
+    .set({ state: 'answered', answer, updatedAt: now })
+    .where(and(eq(agentQuestions.id, id), eq(agentQuestions.state, 'input-required')))
+    .returning();
+  return rows[0] ? fromRow(rows[0]) : null;
 }
 
 export async function markReminded(id: string, now = Date.now()): Promise<void> {
