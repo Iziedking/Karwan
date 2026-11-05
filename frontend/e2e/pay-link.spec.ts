@@ -57,7 +57,7 @@ test('a payment link opens its own page: who asks, how much, Arc first, one butt
   await mockApi(page);
   await page.goto(`/deposit/request/${TOKEN}`);
   await expect(page.getByText('Kingizie', { exact: true })).toBeVisible();
-  await expect(page.getByText('@izieking · ESTABLISHED · 20 deals')).toBeVisible();
+  await expect(page.getByText('@izieking · 20 deals', { exact: true })).toBeVisible();
   await expect(page.getByText(copy.pay.forTemplate.replace('{purpose}', 'Logo, first draft'))).toBeVisible();
   const chips = page.getByRole('radiogroup', { name: copy.pay.payFrom }).getByRole('radio');
   await expect(chips.first()).toHaveText(copy.pay.arc);
@@ -74,11 +74,12 @@ test('a payment link opens its own page: who asks, how much, Arc first, one butt
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
 
-test('a sealed record shows the requester tier, never a deal count', async ({ page }) => {
+test('a sealed record shows the requester tag alone, no deal count and no tier', async ({ page }) => {
   await mockApi(page, { reputation: { sealed: true, address: SELLER, displayName: 'Kingizie', tag: 'izieking', tier: 'ESTABLISHED', reasons: ['HAS_COMPLETED_DEALS'], memberSince: null } });
   await page.goto(`/deposit/request/${TOKEN}`);
-  await expect(page.getByText('@izieking · Reputation level Established')).toBeVisible();
+  await expect(page.getByText('@izieking', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\d+ deals/)).toHaveCount(0);
+  await expect(page.getByText(/Established/i)).toHaveCount(0);
 });
 
 test('a paid request says so, and the requester sees their own link to share', async ({ page }) => {
