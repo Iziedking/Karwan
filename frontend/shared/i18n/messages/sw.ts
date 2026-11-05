@@ -4014,7 +4014,7 @@ export const sw: Messages = {
     },
     agentsNotCreated: 'Wakala hawajaundwa: Washa ili uandae wakala wako mnunuzi na muuzaji.',
     unavailable: "Haipatikani",
-    faucetHint: "Pata USDC hunakili anwani ya pochi na kufungua faucet ya Circle. Chagua Arc Testnet, bandika anwani kisha dai.",
+    faucetHint: "Pata USDC hutuma USDC 20 za majaribio kwenye pochi. USDC za majaribio za leo zikiisha, hunakili anwani na kufungua faucet ya Circle.",
     faucetButton: {
       idle: 'Pata USDC',
       busy: 'Inafungua',
@@ -4034,6 +4034,7 @@ export const sw: Messages = {
     },
     notes: {
       faucetCopied: 'Anwani imenakiliwa. Kwenye faucet ya Circle, chagua Arc Testnet kisha bandika kupata USDC.',
+      faucetSent: "USDC 20 za majaribio zinakuja. Zitaonekana hapa ndani ya dakika moja.",
       faucetFallbackTemplate: 'Kwenye faucet ya Circle, chagua Arc Testnet kisha bandika {addr} kupata USDC.',
       gasRequestedTemplate: 'Gesi ya {chain} na USDC zimeombwa. Hufika ndani ya dakika moja hivi, kisha jaribu daraja tena.',
     },

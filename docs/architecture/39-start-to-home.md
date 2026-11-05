@@ -37,7 +37,7 @@ The balance is the top line of the page, not a card: the amount, the active trad
 
 ## Test USDC on Home
 
-On testnet the full-width "Get free test USDC" strip is gone. A drop sits in the top corner of Home, opposite the greeting. Hovering or focusing it shows the same words with Claim; on a phone a tap opens the card. Claim opens the wallets page with the faucet, as the strip did. On mainnet nothing shows there.
+On testnet the full-width "Get free test USDC" strip is gone. A drop sits in the top corner of Home, opposite the greeting. Hovering or focusing it shows the same words with Claim; on a phone a tap opens the card. Claim opens the wallets page with the faucet, as the strip did. There, Get USDC sends 20 test USDC straight to the wallet; when the day's few claims are used up, it copies the address and opens Circle's faucet instead. New accounts get no test USDC at sign-up, so the claims go to people who ask. On mainnet nothing shows there.
 
 ## Privacy notice
 

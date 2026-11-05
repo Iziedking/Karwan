@@ -4,6 +4,7 @@ import { logger } from '../logger.js';
 import { getUserByAddress } from '../db/users.js';
 import { developerWallets } from './sdkCompat.js';
 import { ARC } from '../chain/client.js';
+import { faucetPath, type DripReason } from './faucetPath.js';
 
 const { initiateDeveloperControlledWalletsClient } = developerWallets;
 
@@ -324,12 +325,7 @@ export async function provisionUserBridgeWallet(
 }
 
 const FAUCET_URL = 'https://api.circle.com/v1/faucet/drips';
-/// Circle's faucet API (/v1/faucet/drips) returns 403 Forbidden for these chains
-/// (verified 2026-05-24): they are dispensed only through the web faucet at
-/// faucet.circle.com. Notably ARC-TESTNET, so the signup auto-drip never worked.
-/// We skip the API call for these and signal the caller to point users at the web
-/// faucet instead, rather than firing a guaranteed 403.
-const WEB_FAUCET_ONLY = new Set<string>(['ARC-TESTNET', 'ETH-SEPOLIA']);
+/// Which chains drip from the API, and which not at sign-up: see faucetPath.ts.
 export const WEB_FAUCET_URL = 'https://faucet.circle.com';
 
 export interface DripOptions {
@@ -342,6 +338,9 @@ export interface DripOptions {
   native?: boolean;
   /// Request USDC. Defaults true.
   usdc?: boolean;
+  /// 'signup' for the drip a new account gets unasked; Arc skips it so the
+  /// day's drips go to people who ask. Defaults to 'request'.
+  reason?: DripReason;
 }
 
 export interface DripResult {
@@ -354,7 +353,7 @@ export interface DripResult {
 
 /// Best-effort testnet drip from Circle's public faucet to a wallet, so a new
 /// user's wallet is usable immediately without hunting for a faucet (Circle
-/// drips ~20 USDC and a little native gas per address per 2h). Auto-skips unless
+/// drips 20 USDC per request, ten requests a day for the whole developer account). Auto-skips unless
 /// the Circle key is a testnet key, so it's a no-op on mainnet. Returns a result
 /// so a user-triggered refuel can report success vs a rate limit; signup /
 /// activation callers ignore it (fire-and-forget) so the faucet never blocks them.
@@ -369,11 +368,11 @@ export async function dripTestnetUsdc(address: string, opts: DripOptions = {}): 
   const wantUsdc = opts.usdc ?? true;
   const wantNative = opts.native ?? false;
   if (!wantUsdc && !wantNative) return { ok: false, detail: 'nothing requested' };
-  // Circle's API faucet 403s these chains; they're web-faucet-only. Don't fire a
-  // call we know will fail. Surface the web faucet so the UI can link users to it.
-  if (WEB_FAUCET_ONLY.has(blockchain)) {
+  const path = faucetPath(blockchain, opts.reason ?? 'request');
+  if (path === 'web') {
     return { ok: false, detail: `Use the web faucet at ${WEB_FAUCET_URL} for ${blockchain}.` };
   }
+  if (path === 'skip') return { ok: false, detail: 'no drip at sign-up on this chain' };
   try {
     const res = await fetch(FAUCET_URL, {
       method: 'POST',

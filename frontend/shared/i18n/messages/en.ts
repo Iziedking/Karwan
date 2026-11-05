@@ -3710,6 +3710,7 @@ interface MessagesShape {
     };
     notes: {
       faucetCopied: string;
+      faucetSent: string;
       faucetFallbackTemplate: string;
       gasRequestedTemplate: string;
     };
@@ -9347,7 +9348,7 @@ export const en: MessagesShape = {
     },
     agentsNotCreated: 'Agent wallets not ready: Activate to create your buyer and seller agents.',
     unavailable: "Unavailable",
-    faucetHint: "Get USDC copies the wallet address and opens Circle's faucet. Choose Arc Testnet, paste it and claim.",
+    faucetHint: "Get USDC sends 20 test USDC to the wallet. When today's test USDC has run out, it copies the address and opens Circle's faucet.",
     faucetButton: {
       idle: 'Get USDC',
       busy: 'Opening',
@@ -9367,6 +9368,7 @@ export const en: MessagesShape = {
     },
     notes: {
       faucetCopied: "Address copied. On Circle's faucet, choose Arc Testnet and paste it to get USDC.",
+      faucetSent: "20 test USDC is on its way. It shows here in a minute.",
       faucetFallbackTemplate: "On Circle's faucet, choose Arc Testnet and paste {addr} to get USDC.",
       gasRequestedTemplate: '{chain} gas and USDC requested. It lands in about a minute, then retry the bridge.',
     },

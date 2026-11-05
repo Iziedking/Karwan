@@ -4017,7 +4017,7 @@ export const fr: Messages = {
     },
     agentsNotCreated: 'Agents non créés: Activez pour provisionner vos agents acheteur et vendeur.',
     unavailable: "Indisponible",
-    faucetHint: "Obtenir des USDC copie l'adresse du portefeuille et ouvre le faucet de Circle. Choisissez Arc Testnet, collez-la et réclamez.",
+    faucetHint: "Obtenir des USDC envoie 20 USDC de test au portefeuille. Si les USDC de test du jour sont épuisés, l'adresse est copiée et le faucet de Circle s'ouvre.",
     faucetButton: {
       idle: 'Obtenir USDC',
       busy: 'Ouverture',
@@ -4037,6 +4037,7 @@ export const fr: Messages = {
     },
     notes: {
       faucetCopied: "Adresse copiée. Sur le faucet Circle, choisissez Arc Testnet et collez-la pour obtenir de l'USDC.",
+      faucetSent: "20 USDC de test sont en route. Ils s'affichent ici dans une minute.",
       faucetFallbackTemplate: "Sur le faucet Circle, choisissez Arc Testnet et collez {addr} pour obtenir de l'USDC.",
       gasRequestedTemplate: 'Gaz et USDC {chain} demandés. Cela arrive en une minute environ, puis réessayez le pont.',
     },

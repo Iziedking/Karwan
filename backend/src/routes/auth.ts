@@ -599,7 +599,7 @@ authRoutes.post('/register/verify', async (c) => {
 
   // Seed the new account's identity wallet with testnet USDC (fire-and-forget,
   // testnet-only) so it's spendable right away without a faucet hunt.
-  void dripTestnetUsdc(identity.address);
+  void dripTestnetUsdc(identity.address, { reason: 'signup' });
 
   setSessionCookie(c, {
     address: identity.address,
@@ -814,7 +814,7 @@ authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
     }
     // Seed the new account's identity wallet with testnet USDC (fire-and-forget,
     // testnet-only) so it's spendable right away without a faucet hunt.
-    void dripTestnetUsdc(identity.address);
+    void dripTestnetUsdc(identity.address, { reason: 'signup' });
   }
 
   setSessionCookie(c, {

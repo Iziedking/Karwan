@@ -315,7 +315,7 @@ activationRoutes.post(
       {
         error: 'faucet request failed',
         detail: rateLimited
-          ? 'The faucet is rate-limited for this wallet (about 20 USDC and gas per 2 hours). Wait and try again, or send testnet ETH to the bridge wallet directly.'
+          ? 'Test funds are limited to a few requests a day. Try again tomorrow, or send testnet ETH to the bridge wallet directly.'
           : drip.detail ?? 'Could not reach the faucet just now. Try again in a moment.',
         address: bridge.address,
         blockchain,
@@ -371,7 +371,7 @@ activationRoutes.post(
       {
         error: 'faucet request failed',
         detail: rateLimited
-          ? 'The faucet is rate-limited for this wallet (about 20 USDC per 2 hours). Try again later.'
+          ? 'Test USDC is limited to a few requests a day. Try again tomorrow, or claim from faucet.circle.com.'
           : drip.detail ?? 'Could not reach the faucet just now. Try again in a moment.',
         target: body.target,
         address: target,
@@ -420,8 +420,8 @@ activationRoutes.post(
     usdc: true,
   });
   if (!drip.ok) {
-    // The faucet caps ~20 USDC per address, per chain, per 2h, plus per-key/IP
-    // limits. Over-quota comes back as 429 or a 403 {"code":3,"message":
+    // The faucet API allows ten drips a day for the whole developer account,
+    // plus per-address limits. Over-quota comes back as 429 or a 403 {"code":3,"message":
     // "Forbidden"}. Map both to one clear line instead of leaking raw JSON.
     const declined =
       drip.status === 429 ||
@@ -431,7 +431,7 @@ activationRoutes.post(
       {
         error: 'faucet request failed',
         detail: declined
-          ? 'The faucet declined this request. It allows about 20 USDC per chain every 2 hours. Wait and retry, or claim from faucet.circle.com.'
+          ? 'Test USDC is limited to a few requests a day. Try again tomorrow, or claim from faucet.circle.com.'
           : drip.detail ?? 'Could not reach the faucet just now. Try again in a moment.',
         chain: body.chain,
       },

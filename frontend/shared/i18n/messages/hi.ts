@@ -4015,7 +4015,7 @@ export const hi: Messages = {
     },
     agentsNotCreated: 'एजेंट्स नहीं बने: अपने खरीदार और विक्रेता एजेंट तैयार करने के लिए सक्रिय करें.',
     unavailable: "उपलब्ध नहीं",
-    faucetHint: "USDC पाएं बटन वॉलेट पता कॉपी करता है और Circle का faucet खोलता है। Arc Testnet चुनें, पता पेस्ट करें और क्लेम करें।",
+    faucetHint: "USDC पाएं बटन वॉलेट में 20 टेस्ट USDC भेजता है। आज के टेस्ट USDC खत्म हो गए हों तो यह पता कॉपी करता है और Circle का faucet खोलता है।",
     faucetButton: {
       idle: 'USDC लें',
       busy: 'खुल रहा है',
@@ -4035,6 +4035,7 @@ export const hi: Messages = {
     },
     notes: {
       faucetCopied: 'पता कॉपी हो गया. Circle के faucet पर Arc Testnet चुनें और USDC पाने के लिए पेस्ट करें.',
+      faucetSent: "20 टेस्ट USDC आ रहे हैं। एक मिनट में यहां दिखेंगे।",
       faucetFallbackTemplate: 'Circle के faucet पर Arc Testnet चुनें और USDC पाने के लिए {addr} पेस्ट करें.',
       gasRequestedTemplate: '{chain} गैस और USDC का अनुरोध किया गया. लगभग एक मिनट में आ जाएगा, फिर ब्रिज दोबारा चलाएं.',
     },

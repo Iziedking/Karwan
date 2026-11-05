@@ -188,7 +188,7 @@ export function moneyTools(address: string, actions: AssistantAction[], deps: Mo
 
     propose_test_usdc: tool({
       description:
-        "Testnet only. Prepare a card to get free test USDC from Circle's faucet: to their wallet, buying agent or selling agent on Arc, or (chain set) to their own wallet on another test network to try bringing money in. About 20 USDC per wallet every 2 hours.",
+        "Testnet only. Prepare a card to get free test USDC from Circle's faucet: to their wallet, buying agent or selling agent on Arc, or (chain set) to their own wallet on another test network to try bringing money in. 20 USDC a claim, a few claims a day across Karwan; when they run out, point them to faucet.circle.com.",
       inputSchema: z.object({
         to: z.enum(['wallet', 'buying_agent', 'selling_agent']).default('wallet'),
         chain: z.enum(CCTP_CHAIN_KEYS).optional().describe('Another test network, for their own wallet there.'),

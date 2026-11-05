@@ -4017,7 +4017,7 @@ export const ar: Messages = {
     },
     agentsNotCreated: 'الوكلاء غير مُنشأين: فعّل الحساب لتجهيز وكيلي المشتري والبائع.',
     unavailable: "غير متاح",
-    faucetHint: "يؤدي الحصول على USDC إلى نسخ عنوان المحفظة وفتح صنبور Circle. اختر Arc Testnet والصق العنوان ثم اطلب.",
+    faucetHint: "يرسل الحصول على USDC مبلغ 20 USDC تجريبية إلى المحفظة. إذا نفدت USDC التجريبية لهذا اليوم، ينسخ العنوان ويفتح صنبور Circle.",
     faucetButton: {
       idle: 'احصل على USDC',
       busy: 'يفتح',
@@ -4037,6 +4037,7 @@ export const ar: Messages = {
     },
     notes: {
       faucetCopied: 'تم نسخ العنوان. في صنبور Circle، اختر Arc Testnet والصقه للحصول على USDC.',
+      faucetSent: "20 USDC تجريبية في الطريق. ستظهر هنا خلال دقيقة.",
       faucetFallbackTemplate: 'في صنبور Circle، اختر Arc Testnet والصق {addr} للحصول على USDC.',
       gasRequestedTemplate: 'تم طلب غاز {chain} و USDC. يصل خلال دقيقة تقريبا، ثم أعد محاولة الجسر.',
     },

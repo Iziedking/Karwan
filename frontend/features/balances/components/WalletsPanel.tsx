@@ -8,6 +8,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { walletAmount } from '../walletFormat';
+import { claimTestUsdc } from '../claimTestUsdc';
 
 type Overview = Awaited<ReturnType<typeof api.walletOverview>>;
 type WalletsCopy = Messages['walletsPanel'];
@@ -208,15 +209,23 @@ export function WalletsPanel({ address }: { address?: string }) {
     if (!addr) return;
     setFaucetBusy(target);
     setNote(null);
-    try {
-      await navigator.clipboard?.writeText(addr);
-      markCopied(addr);
-      // Say what to do on the faucet page, which opens in a new tab.
+    const result = await claimTestUsdc({
+      request: () => api.faucet(addr, target),
+      copy: async () => {
+        if (!navigator.clipboard) throw new Error('no clipboard');
+        await navigator.clipboard.writeText(addr);
+        markCopied(addr);
+      },
+      openFaucet: () => window.open('https://faucet.circle.com', '_blank', 'noopener,noreferrer'),
+    });
+    if (result === 'sent') {
+      setNote(wp.notes.faucetSent);
+      refresh();
+    } else if (result === 'copied') {
       setNote(wp.notes.faucetCopied);
-    } catch {
+    } else {
       setNote(wp.notes.faucetFallbackTemplate.replace('{addr}', short(addr)));
     }
-    window.open('https://faucet.circle.com', '_blank', 'noopener,noreferrer');
     setFaucetBusy(null);
   };
 
