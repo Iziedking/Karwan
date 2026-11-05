@@ -241,7 +241,8 @@ The owner's note: everything about money folds into one page, Money, and Profile
 
 - **One switch at the top: Balance, Agent, Deal guarantee.** Each part has the same layout: a label with an info tip, the big figure, the green button with the other actions beside it, one card, then its own list.
   - **Balance:** "Your balance" 5,890.33 USDC, Where it is. **Add money**, Send, Withdraw. Held in your deals. Recent.
-  - **Agent:** "Your agent can spend" 1.00 USDC a week. **Change limit**. This week, with its bar. What your agent spent.
+  - **Agent:** "With your agent" 1,763.50 USDC, with the line "Part of your balance. Spends up to 1.00 USDC a week on checks." Actions: **Top up**, Withdraw, Change limit. This week, with its bar. What your agent spent. The owner asked for Top up and Withdraw here on 5 Nov. That replaces the third round's "no agent balance": agent money shows on its own tab and still counts in Your balance.
+  - **Agent Top up and Withdraw are pages like Add money.** Top up draws from your balance. Withdraw moves the money to your wallet in seconds; a deal the agent already started keeps what it needs.
   - **Deal guarantee:** 500.00 USDC in place, not counted in your balance. **Add**, Withdraw. Earns, Holding for deals, Ready to withdraw. Earnings on your guarantee.
 - **The info tips say what each part is**, in one or two lines:
   - Your balance: "Money you can spend now: your wallet, your Transfer balance and anything still with your agent."
@@ -261,14 +262,14 @@ The owner's note: everything about money folds into one page, Money, and Profile
 - **Trading:** Buying, Selling, Your agent, and the assistant switch (moved here from the top).
 - **Account:** Contact, Wallets, Business profile, Passkey, Account recovery.
 - **Preferences:** Language, Theme, Show amounts in, More settings.
-- **Then:** Help and how it works, Sign out.
+- **Then:** Help and how it works. Sign out stays as it is today: a full-width outlined button, with "Terms · Privacy notice" under it.
 - **Gone from Profile:**
   - **Activity and receipts:** Money's lists open every receipt, and All activity sits under them.
   - **The workspace switcher, when you have only one workspace:** it only repeated your name.
 
 **Market pages with Previous and Next.** Market is a board of buy and sell ads. Under the ads: Previous, "Page 2 of 6", Next. Previous is dimmed on page 1 and Next on the last page. The page number stays in the address, so Back returns to the same page. This replaces "Show more". Market's files are open in another session (view 53), so this lands after it.
 
-Drawn in Figma, section "One Money page and a tidy Profile (view 51, fifth round)", Dark and Light: Money 30 to 35, Profile 1, and the Market pagination.
+Drawn in Figma, section "One Money page and a tidy Profile (view 51, fifth round)", Dark and Light: Money 30 to 37, Profile 1, and the Market pagination.
 
 **Decisions for the owner (fourth round)**
 
