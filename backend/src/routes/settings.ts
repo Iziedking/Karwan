@@ -29,6 +29,8 @@ export const settingsSchema = z.object({
     tradesAs: z.enum(['self', 'business']).optional(),
     /// How we reach you (view 19); the notifiers read it through channelsFor.
     notifyVia: z.enum(['telegram', 'email', 'both']).optional(),
+    /// Deals from agents outside Karwan (view 15).
+    acceptsOutsideAgents: z.boolean().optional(),
   }),
 });
 

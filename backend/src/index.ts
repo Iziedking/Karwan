@@ -185,6 +185,11 @@ import { startExampleKeeper } from './marketplace/marketSeed/keepOpen.js';
 import { startFamilyFinancingRunner } from './money/familyFinancingRunner.js';
 import { contestPorts, contests as contestsCore } from './contests/contestsLive.js';
 import { startContestRunner } from './contests/contestRunner.js';
+import { agentJobs } from './agentJobs/agentJobsLive.js';
+import { startAgentJobRunner } from './agentJobs/agentJobRunner.js';
+import { createAgentJobRoutes } from './routes/agentJobs.js';
+import { configureMcp, mcpRoutes } from './routes/mcp.js';
+import { liveMcpDeps } from './mcp/live.js';
 import { work as workCore } from './work/workLive.js';
 import { startWorkRunner } from './work/workRunner.js';
 import { createWorkRoutes } from './routes/work.js';
@@ -564,6 +569,9 @@ if (contestsCore) {
     },
   }));
 }
+// Outside agents over MCP, and their jobs on the job escrow (view 15); testnet only.
+if (agentJobs) app.route('/api/agent-jobs', createAgentJobRoutes({ core: agentJobs, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
+app.route('/mcp', mcpRoutes);
 // Hourly work and monthly retainers on the time escrow (view 32); off where it is not set.
 if (workCore) app.route('/api/work', createWorkRoutes({ core: workCore, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
 // Hourly work posted to the market, ranked by the hirer's agent (view 32).
@@ -757,6 +765,7 @@ function bootAgents() {
     stopFns.push(startExampleKeeper());
     stopFns.push(startFamilyFinancingRunner());
     stopFns.push(startContestRunner(contestsCore));
+    stopFns.push(startAgentJobRunner(agentJobs));
     stopFns.push(startWorkRunner(workCore, workRequests));
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'factoring watcher not started');
@@ -929,26 +938,37 @@ async function boot() {
       'World AgentBook verification remains unavailable because boot requirements are missing',
     );
   }
+  const agentKitVerifier = agentKitConfigured
+    ? createAgentKitVerifier({
+        provider: createWorldAgentBookProvider({
+          worldRpcUrl: config.AGENTKIT_WORLD_RPC_URL,
+          signatureRpcUrls: {
+            [ARC.caip2]: ARC.rpcUrls[0],
+            ...(config.AGENTKIT_WORLD_RPC_URL
+              ? { 'eip155:480': config.AGENTKIT_WORLD_RPC_URL }
+              : {}),
+          },
+        }),
+        humanKeySecret: agentKitHumanKeySecret as string,
+      })
+    : null;
   const disableAgentKitResearch = configureAgentKitResearch({
     enabled: agentKitConfigured,
-    ...(agentKitConfigured
+    ...(agentKitVerifier
       ? {
-          verifier: createAgentKitVerifier({
-            provider: createWorldAgentBookProvider({
-              worldRpcUrl: config.AGENTKIT_WORLD_RPC_URL,
-              signatureRpcUrls: {
-                [ARC.caip2]: ARC.rpcUrls[0],
-                ...(config.AGENTKIT_WORLD_RPC_URL
-                  ? { 'eip155:480': config.AGENTKIT_WORLD_RPC_URL }
-                  : {}),
-              },
-            }),
-            humanKeySecret: agentKitHumanKeySecret as string,
-          }),
+          verifier: agentKitVerifier,
           allowanceStore: new PostgresResearchAllowanceStore(postgresExecutor(), withPostgresTransaction),
         }
       : {}),
   });
+  // The same AgentKit check guards the Karwan MCP for outside agents (view 15).
+  if (agentKitVerifier && agentJobs) {
+    const mcpDeps = await liveMcpDeps().catch((err) => {
+      appLogger.warn({ err: (err as Error).message }, 'karwan mcp not started');
+      return null;
+    });
+    stopFns.push(configureMcp({ deps: mcpDeps, verifier: mcpDeps ? agentKitVerifier : null }));
+  }
   if (agentKitConfigured) {
     appLogger.info(
       { agentBook: 'world-chain', verificationNetwork: `eip155:${arcChain.id}` },

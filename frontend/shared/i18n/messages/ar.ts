@@ -29,6 +29,7 @@ import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { agentJobsCopy } from './agentJobs';
+import { agentJobsCopy } from './agentJobs';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -84,6 +85,7 @@ export const ar: Messages = {
   moneyPage: moneyPageCopy.ar,
   profilePage: profilePageCopy.ar,
   dealGuarantee: dealGuaranteeCopy.ar,
+  agentJobs: agentJobsCopy.ar,
   contests: contestsCopy.ar,
   agentJobs: agentJobsCopy.ar,
   work: workCopy.ar,

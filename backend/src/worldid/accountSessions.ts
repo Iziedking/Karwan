@@ -58,6 +58,11 @@ export function createWorldAccountSessions(input: {
   };
 
   return {
+    /// The saved session, or null before enrolment.
+    async session(wallet: string): Promise<string | null> {
+      return (await input.transaction((tx) => savedSession(tx, wallet.toLowerCase()))) ?? null;
+    },
+
     async request(wallet: string, purpose: AccountCheckPurpose): Promise<SessionRequest> {
       wallet = wallet.toLowerCase();
       return input.transaction(async (tx) => {

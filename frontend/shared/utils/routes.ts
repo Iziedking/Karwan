@@ -27,6 +27,9 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
     '/start',
     '/waitlist',
     '/recover',
+    // The person behind an outside agent has no Karwan account (view 15).
+    '/pair',
+    '/agent-jobs/release',
   ].some((route) => matchesRoute(pathname, route));
 }
 
@@ -77,6 +80,7 @@ export function getProductBackHref(
   if (matchesRoute(pathname, '/financier') && pathname !== '/financier') return dealsAvailable ? '/financier' : home;
   if (matchesRoute(pathname, '/messages') && pathname !== '/messages') return '/messages';
   if (matchesRoute(pathname, '/work') || matchesRoute(pathname, '/contests')) return dealsAvailable ? '/market' : home;
+  if (matchesRoute(pathname, '/agent-jobs') && !matchesRoute(pathname, '/agent-jobs/release')) return pathname === '/agent-jobs' ? home : '/agent-jobs';
   if (matchesRoute(pathname, '/developers') && pathname !== '/developers') return '/developers';
   if (matchesRoute(pathname, '/newsletter') && pathname !== '/newsletter') return '/newsletter';
   if (matchesRoute(pathname, '/terms') && pathname !== '/terms') return '/terms';
@@ -192,6 +196,8 @@ const DEAL_ROUTES = [
   '/profile/open-deals',
   '/profile/agent-funds',
   '/profile/business',
+  '/agent-jobs',
+  '/pair',
 ];
 
 export const WALLET_HOME = '/account';

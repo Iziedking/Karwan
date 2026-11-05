@@ -32,7 +32,10 @@ import { bindingTypedData, createSuiteIdentity, KIND, registryAbi } from '../ide
 import { guaranteeVaultAbi } from '../chain/guaranteeVault.js';
 import { financeableAbi, tradeFinanceAbi, vaultReservationAbi } from '../chain/tradeFinance.js';
 import type { FactoringOffer } from '../db/factoring.js';
-import { awardCall, contestPayouts, enterCall, openBountyCalls, proveAwarded, proveEntered, proveOpened, proveRefunded, refundCall } from '../chain/jobEscrow.js';
+import {
+  AGENT_JOB_TERMS, awardCall, completeCall, confirmRejectionCall, contestPayouts, createJobCall, enterCall, fundJobCalls, openBountyCalls, proveAwarded, proveCompleted,
+  proveCreated, proveEntered, proveFunded as proveJobFunded, proveOpened, proveRefunded, proveSubmitted as proveJobSubmitted, refundCall, rejectCall, releaseCall, setBudgetCall, submitCall as submitJobCall, withHalfFee,
+} from '../chain/jobEscrow.js';
 import {
   acceptCall, applyFallbackCall, approveCall, buildTimeTerms, cancelOfferCall, closeCall, fundCalls, grossOf, objectCall, offerCalls, payFor,
   proveAccepted, proveApproved, proveCancelled, proveClosed, proveFunded, proveObjected, proveOffered, proveSettled, proveSubmitted,
@@ -949,6 +952,84 @@ async function hourlyRun(): Promise<void> {
   check('an offer nobody accepted is taken back in full', back === lapsed.total && gone.state === 4, `${back} back, state ${gone.state}`);
 }
 
+/// Outside-agent jobs on the job escrow (views 15 and 40): the outside agent's
+/// wallet is the client, a selling agent the provider, Karwan's reviewer key
+/// the evaluator. Four jobs: completed when the person is happy, paid by
+/// silence when the review ends, a rejection nobody disputed returned in full,
+/// and a missed deadline refunded. Every amount is checked to the unit.
+async function agentJobRun(): Promise<void> {
+  const hubAbi = parseAbi([
+    'struct OpeningConfig { bool open; uint16 feeBps; address feeRecipient; uint128 perDealCap; uint128 highValue; address reviewSafe; address seniorSafe; address autoArbiter; uint16 yieldBps; }',
+    'function openingConfig(address family, address asset) view returns (OpeningConfig)',
+  ]);
+  const jobs = D.jobs!;
+  const cfg = await pub.readContract({ address: D.hub!, abi: hubAbi, functionName: 'openingConfig', args: [jobs, USDC] });
+  check('the hub opens the job escrow for USDC', cfg.open, `fee ${cfg.feeBps} bps, cap ${cfg.perDealCap}`);
+  if (!cfg.open) return;
+  const acct: Record<string, LocalAccount> = {};
+  for (const id of ['agent', 'seller-agent', 'reviewer', 'anyone']) {
+    acct[id] = privateKeyToAccount(generatePrivateKey());
+    await anvil.setBalance({ address: acct[id]!.address, value: 2_000n * 10n ** 18n });
+  }
+  const send = async (id: string, call: { to: Hex; data: Hex }) => {
+    const hash = await createWalletClient({ account: acct[id]!, chain, transport: http(RPC) }).sendTransaction({ to: call.to, data: call.data, account: acct[id]!, chain });
+    const receipt = await pub.waitForTransactionReceipt({ hash });
+    if (receipt.status !== 'success') throw new Error(`agent job call reverted (${hash})`);
+    return receipt;
+  };
+  const balance = (who: Hex) => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [who] });
+  const agent = acct['agent']!.address;
+  const provider = acct['seller-agent']!.address;
+  const evaluator = acct['reviewer']!.address;
+  const budget = 110_000_000n;
+  const fee = (budget * BigInt(cfg.feeBps)) / 10_000n;
+  const net = budget - (fee - fee / 2n);
+  const funded = withHalfFee(budget, cfg.feeBps);
+
+  // The calls the MCP hands the agent, in the order it sends them.
+  const openJob = async (description: string, days: number) => {
+    const expiredAt = BigInt(await chainNow()) + BigInt(days * DAY);
+    const id = proveCreated(await send('agent', createJobCall({ jobs, provider, evaluator, expiredAt, description })), { jobs, client: agent, provider, evaluator });
+    await send('agent', setBudgetCall(jobs, id, budget));
+    const [approve, fund] = fundJobCalls({ jobs, usdc: USDC, jobId: id, budget, feeBps: cfg.feeBps });
+    await send('agent', approve!);
+    proveJobFunded(await send('agent', fund!), { jobs, jobId: id, client: agent, budget });
+    return id;
+  };
+  const deliver = async (id: bigint, n: number) => {
+    const deliverable = `0x${n.toString(16).padStart(64, '0')}` as Hex;
+    proveJobSubmitted(await send('seller-agent', submitJobCall(jobs, id, deliverable)), { jobs, jobId: id, provider, deliverable });
+  };
+
+  const happy = await openJob('Logo for a bakery in Kano', 7);
+  check('the outside agent funds a job: the work and half the fee', funded === budget + fee / 2n, `job ${happy}, ${funded} in`);
+  await deliver(happy, 1);
+  let before = await balance(provider);
+  const done = await send('reviewer', completeCall(jobs, happy, `0x${'01'.repeat(32)}` as Hex));
+  let paid = proveCompleted(done, { jobs, jobId: happy, provider });
+  check('the person is happy: the reviewer completes and the seller gets the work less half the fee', paid === net && (await balance(provider)) - before === net, `${paid} paid (want ${net}), tx ${done.transactionHash}`);
+
+  const silent = await openJob('A menu design', 7);
+  await deliver(silent, 2);
+  await warp(AGENT_JOB_TERMS.reviewWindow + 60);
+  before = await balance(provider);
+  paid = proveCompleted(await send('anyone', releaseCall(jobs, silent)), { jobs, jobId: silent, provider });
+  check('the person says nothing: when the review ends anyone releases and the seller is paid', paid === net && (await balance(provider)) - before === net, `${paid} paid`);
+
+  const unhappy = await openJob('A shop sign', 7);
+  await deliver(unhappy, 3);
+  await send('reviewer', rejectCall(jobs, unhappy, `0x${'02'.repeat(32)}` as Hex));
+  await warp(3 * DAY + 60);
+  before = await balance(agent);
+  const back = proveRefunded(await send('anyone', confirmRejectionCall(jobs, unhappy)), { jobs, jobId: unhappy, client: agent });
+  check('the person is not happy and the seller does not dispute in 3 days: the agent gets everything back', back === funded && (await balance(agent)) - before === funded, `${back} back (want ${funded})`);
+
+  const late = await openJob('A flyer', 2);
+  await warp(2 * DAY + 60);
+  const refunded = proveRefunded(await send('agent', refundCall(jobs, late)), { jobs, jobId: late, client: agent });
+  check('the seller misses the deadline: the agent claims everything back', refunded === funded, `${refunded} back (want ${funded})`);
+}
+
 async function main(): Promise<void> {
   console.log(`suite fork e2e, ${phase}, block ${await pub.getBlockNumber()}`);
   await parity();
@@ -957,6 +1038,7 @@ async function main(): Promise<void> {
   if (phase === 'financing') await financingRun();
   if (phase === 'contest') await contestRun();
   if (phase === 'hourly') await hourlyRun();
+  if (phase === 'agentjob') await agentJobRun();
   console.log(failed === 0 ? 'all checks passed' : `${failed} check(s) failed`);
   process.exit(failed === 0 ? 0 : 1);
 }

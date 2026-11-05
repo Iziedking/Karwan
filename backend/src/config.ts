@@ -700,6 +700,9 @@ const envSchema = z.object({
   KARWAN_SUITE_JOBS_ADDR: optionalAddr,
   /// The family's time escrow: hourly work and monthly retainers (view 32).
   KARWAN_SUITE_TIME_ADDR: optionalAddr,
+  /// Karwan's reviewer on outside-agent jobs: completes or rejects only after
+  /// the paired person answers (view 15). Unset, the Karwan MCP stays off.
+  KARWAN_JOB_EVALUATOR_KEY: z.preprocess(blankToUndefined, z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
   /// Where requests, offers and counters are kept (view 40): Karwan's records,
   /// or 'chain' to go back to the old request board.
   MARKET_BOARD: z.preprocess(blankToUndefined, z.enum(['karwan', 'chain']).default('karwan')),

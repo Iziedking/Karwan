@@ -32,6 +32,8 @@ export interface UserSettings {
   notifyVia?: 'telegram' | 'email' | 'both';
   /// When they finished the setup conversation after activation.
   setupDoneAt?: number;
+  /// Deals from agents outside Karwan (view 15). Absent means on.
+  acceptsOutsideAgents?: boolean;
 }
 
 /// What a person told the setup conversation they want Karwan to do (view 19).

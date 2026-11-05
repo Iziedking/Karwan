@@ -7,7 +7,7 @@ Track T1, find and agree, roadmap item T1.2 (choose the kind of deal): the two k
 Read from the code and from Arc Testnet on 29 Oct 2026.
 
 - **The job escrow holds nothing.** It is on Arc Testnet, registered with the hub and open for USDC (fee 1%, no yield), and not one job has been created on it. Nothing in the app knows its address.
-- **Two kinds of deal cannot be started.** "Best logo, three places" has no form, no card and no assistant tool. An outside agent has no way in at all: the Karwan MCP server in view 15 does not exist yet.
+- **Two kinds of deal cannot be started.** "Best logo, three places" has no form, no card and no assistant tool. An outside agent had no way in at all: the Karwan MCP server in view 15 did not exist yet (built 5 Nov 2026).
 - **Every market post goes through the old request board.** Posting a request, every offer, every counter and every reply is a transaction on the board from before the family. It is older than its own source code: posting returns nothing, so Karwan works out the request's number itself, and a second offer from the same seller overwrites the first. A post fails whenever that transaction fails, and the buyer's and sellers' agents learn about each other only by reading the board's events back from the chain.
 - **The money is already on the family.** An agreed market deal funds on the agreement escrow (view 27). The board carries only the conversation before it.
 
@@ -230,6 +230,6 @@ That is 8 days of work and 5 days left, so part 4 waits until after 3 Nov (decis
 | Job escrow on Arc Testnet | Deployed and registered 23 Oct 2026, unused |
 | Requests and offers in Karwan's records | Built 29 Oct 2026, not deployed: posts, offers, counters, replies and accepts go to Karwan's records under the old board's rules and request numbers; `MARKET_BOARD=chain` goes back to the old board |
 | Contests | Built 29 Oct 2026, not deployed: web, assistant and Telegram; on an Arc fork at block 69,622,450 a 300 USDC contest paid its three winners 149.25, 89.55 and 59.70 exactly with 3.00 to the fee recipient, and a contest nobody picked came back in full, 50.25 |
-| Karwan MCP server and its tools | Planned (view 15) |
-| Pairing with World ID, release link, evaluator | Planned (view 15) |
+| Karwan MCP server and its tools | Built 5 Nov 2026, not deployed (view 15). On an Arc fork at block 70,780,914 four jobs ran to the unit: 110 USDC of work funded with 110.55; the happy person's job and the silent one each paid the seller 109.45; a rejection nobody disputed and a missed deadline each came back in full, 110.55 |
+| Pairing with World ID, release link, evaluator | Built 5 Nov 2026, not deployed (view 15). The reviewer is a key Karwan holds, `KARWAN_JOB_EVALUATOR_KEY`; Karwan sends `release` once a review ends in silence and `confirmRejection` once a rejection goes undisputed for 3 days |
 | World AgentKit proof of a human | Built (`backend/src/agentkit`) |

@@ -8,8 +8,15 @@ It builds on the record (view 06), portable reputation (view 13) and the escrow 
 
 - **Matching runs inside Karwan.** An outside agent gets people, tiers, reasons, prices and delivery times. It never receives a score, counts or outcomes (decision D23).
 - **Reads from outside need the person's yes.** `check_person` returns the public view unless the person turned on "Let agents outside Karwan check my record".
-- **One human behind every agent.** Each outside agent proves it acts for one real, unique person with World AgentKit, and the person pairs with Karwan once with World ID. Limits are per human.
+- **One human behind every agent.** Each outside agent proves it acts for one real, unique person with World AgentKit, and the person pairs with Karwan once with World ID. A verified person has no extra caps; the job escrow's own cap per deal still applies (owner, 5 Nov 2026). On testnet World ID is the whole check; on mainnet pairing adds identity checks.
 - **Only the person releases.** Outside-agent deals use the job escrow with Karwan as evaluator, so the agent's wallet cannot pay the seller. Karwan completes the job only after the person confirms they are happy, or when the review window ends in silence, as on every Karwan deal.
+
+## How an agent connects
+
+- **Endpoint:** `https://api.karwan.site/mcp`, MCP over Streamable HTTP with no sessions. Every message is a POST.
+- **Who it acts for:** every request carries a World AgentKit proof in the `agentkit` header. A request without one gets `401` with the challenge to sign.
+- **Paying:** `find_counterparty` and `check_person` answer first with the x402 payment they need. The agent pays from a Circle Gateway balance on Arc Testnet and sends the signed payment in `_meta["x402/payment"]`. A refused call is never settled.
+- **Deals:** the deal tools never sign anything. They return the exact calls for the agent's own wallet to send, and read each one back from Arc.
 
 ## Participants
 
@@ -62,7 +69,7 @@ sequenceDiagram
   MCP-->>OA: up to 5 people: tag, tier, reasons, price, delivery
 ```
 
-When no live offer covers the need, the agent calls `post_request` instead. That posts a real request for the person, sellers' agents bid on it, and the agent follows it with `deal_status`. Posting makes the person a poster, so the agents of people on that request may read their record (view 13).
+Later, when no seller fits, the agent will call `post_request` to post a real request for the person, so sellers' agents bid on it. Posting needs a Karwan account to post under, and the person behind an outside agent has only their World ID, so `post_request` waits until those people can hold one.
 
 ## Open and fund a protected deal
 
@@ -132,7 +139,7 @@ sequenceDiagram
 |---|---|---|
 | `find_counterparty` | 0.10 USDC | the outside agent, with x402 |
 | `check_person` | 0.005 USDC, the same as a record read inside Karwan (owner, 3 Nov 2026) | the outside agent, with x402 |
-| `open_protected_deal`, `fund_deal`, `deal_status`, `request_release`, `open_dispute`, `post_request` | free | the Karwan deal fee applies to the deal |
+| `open_protected_deal`, `fund_deal`, `deal_status`, `request_release`, `open_dispute` | free | the Karwan deal fee applies to the deal |
 
 ## What fails where
 
@@ -140,8 +147,8 @@ sequenceDiagram
 |---|---|---|
 | Open | The person has not paired yet | The agent gets a pairing link; nothing is opened until the person verifies |
 | Any call | The AgentKit proof is missing or invalid | Refused before any payment |
-| Any call | The person's per-human limit is reached | Refused with when it resets |
 | Find | The x402 payment does not settle | No matches are returned and nothing is charged |
+| Any paid call | Karwan refuses it | The refusal comes back as an error and the payment is not settled |
 | Open | The seller turned off deals from outside agents | That seller is never offered; opening a deal with them is refused |
 | Fund | The wallet holds less than the quote | `fund_deal` answers with the amount still needed |
 | Release | The person never answers | Reminder before the window ends; the seller is paid at its end |
@@ -153,9 +160,10 @@ sequenceDiagram
 | Step | Status |
 |---|---|
 | World AgentKit proof of a human behind an agent | Built (`backend/src/agentkit`) |
-| Job escrow with an evaluator | Built in the contract suite, not deployed |
-| Karwan MCP server and its tools | Planned |
-| Pairing with World ID | Planned |
-| Release confirmation link and evaluator completion | Planned |
-| Seller switch for outside-agent deals | Planned |
+| Job escrow with an evaluator | Deployed on Arc Testnet at `0xEA06b70c0808c2ad9b6316758407284fdAD9D550` (23 Oct 2026) |
+| Karwan MCP server and its seven tools, at `https://api.karwan.site/mcp` | Built 5 Nov 2026, not deployed. Needs Karwan's reviewer key on the server |
+| Pairing with World ID | Built 5 Nov 2026, not deployed: a World ID session, saved once, proved again on every answer |
+| Release confirmation link and evaluator completion | Built 5 Nov 2026, not deployed. Proved on an Arc fork at block 70,780,914: completed, paid by silence, rejected and refunded, and refunded after a missed deadline, every amount to the unit |
+| Seller switch for outside-agent deals | Built 5 Nov 2026, not deployed: Settings, on unless turned off |
+| `post_request` | Not built: needs a Karwan account for the person behind the agent |
 | x402 payments | Built for record reads; nanopayments run on Arc Testnet only, so this view is testnet only until Circle supports a mainnet chain |

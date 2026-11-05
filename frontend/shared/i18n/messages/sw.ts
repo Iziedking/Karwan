@@ -29,6 +29,7 @@ import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { agentJobsCopy } from './agentJobs';
+import { agentJobsCopy } from './agentJobs';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -84,6 +85,7 @@ export const sw: Messages = {
   moneyPage: moneyPageCopy.sw,
   profilePage: profilePageCopy.sw,
   dealGuarantee: dealGuaranteeCopy.sw,
+  agentJobs: agentJobsCopy.sw,
   contests: contestsCopy.sw,
   agentJobs: agentJobsCopy.sw,
   work: workCopy.sw,

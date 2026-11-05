@@ -68,9 +68,9 @@ export function redactErrorUrls<T>(err: T, urls: readonly string[]): T {
   return err;
 }
 
-const PLATFORM_KEY_ENV = ['SUITE_CHECKER_KEYS', 'SUITE_ARBITER_KEY', 'SUITE_ISSUER_KEY'] as const;
+const PLATFORM_KEY_ENV = ['SUITE_CHECKER_KEYS', 'SUITE_ARBITER_KEY', 'SUITE_ISSUER_KEY', 'KARWAN_JOB_EVALUATOR_KEY'] as const;
 
-/// The hex bodies of Karwan's checker, arbiter and issuer keys, so a log line
+/// The hex bodies of Karwan's checker, arbiter, issuer and job reviewer keys, so a log line
 /// loses them however they are spelled.
 export function platformKeySecrets(env: Record<string, string | undefined>): string[] {
   const out = new Set<string>();

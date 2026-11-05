@@ -1446,6 +1446,30 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    // Outside-agent jobs on the job escrow: World ID pairings, the jobs, and
+    // the one-time links a person answers (views 15 and 40).
+    version: 56,
+    name: 'agent_jobs',
+    sql: `
+      CREATE TABLE agent_pairings (
+        human_key_digest TEXT PRIMARY KEY,
+        world_session_id TEXT NOT NULL UNIQUE,
+        data JSONB NOT NULL
+      );
+      CREATE TABLE agent_jobs (
+        ref TEXT PRIMARY KEY,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX agent_jobs_status ON agent_jobs ((data->>'status'));
+      CREATE INDEX agent_jobs_seller ON agent_jobs (lower(data->>'sellerAccount'));
+      CREATE UNIQUE INDEX agent_jobs_chain ON agent_jobs ((data->>'chainId')) WHERE data ? 'chainId';
+      CREATE TABLE agent_tokens (
+        hash TEXT PRIMARY KEY,
+        data JSONB NOT NULL
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

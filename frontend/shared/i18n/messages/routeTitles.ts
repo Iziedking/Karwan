@@ -61,6 +61,10 @@ export type RouteTitleKey =
   | 'settings'
   | 'guarantee'
   | 'contest'
+  | 'agentJobs'
+  | 'agentJob'
+  | 'agentRelease'
+  | 'agentPair'
   | 'runContest'
   | 'work'
   | 'hireByHour'
@@ -139,6 +143,10 @@ const en: RouteTitleCopy = {
   settings: 'Settings',
   guarantee: 'Deal guarantee',
   contest: 'Contest',
+  agentJobs: 'Deals from outside agents',
+  agentJob: 'Deal from an outside agent',
+  agentRelease: 'Review the work',
+  agentPair: 'Verify for your agent',
   runContest: 'Run a contest',
   work: 'Hourly work',
   hireByHour: 'Hire by the hour',
@@ -216,6 +224,10 @@ const ar: RouteTitleCopy = {
   settings: 'الإعدادات',
   guarantee: 'ضمان الصفقة',
   contest: 'مسابقة',
+  agentJobs: 'صفقات من وكلاء خارجيين',
+  agentJob: 'صفقة من وكيل خارجي',
+  agentRelease: 'راجع العمل',
+  agentPair: 'تحقّق لوكيلك',
   runContest: 'أطلق مسابقة',
   work: 'عمل بالساعة',
   hireByHour: 'التوظيف بالساعة',
@@ -293,6 +305,10 @@ const fr: RouteTitleCopy = {
   settings: 'Paramètres',
   guarantee: 'Garantie de transaction',
   contest: 'Concours',
+  agentJobs: 'Accords d’agents extérieurs',
+  agentJob: 'Accord d’un agent extérieur',
+  agentRelease: 'Vérifier le travail',
+  agentPair: 'Vérifier pour votre agent',
   runContest: 'Lancer un concours',
   work: "Travail à l'heure",
   hireByHour: "Embaucher à l'heure",
@@ -370,6 +386,10 @@ const hi: RouteTitleCopy = {
   settings: 'सेटिंग्स',
   guarantee: 'डील गारंटी',
   contest: 'प्रतियोगिता',
+  agentJobs: 'बाहरी एजेंटों से सौदे',
+  agentJob: 'बाहरी एजेंट से सौदा',
+  agentRelease: 'काम की समीक्षा करें',
+  agentPair: 'अपने एजेंट के लिए सत्यापित करें',
   runContest: 'प्रतियोगिता चलाएँ',
   work: 'घंटे के हिसाब से काम',
   hireByHour: 'घंटे के हिसाब से काम पर रखें',
@@ -447,6 +467,10 @@ const sw: RouteTitleCopy = {
   settings: 'Mipangilio',
   guarantee: 'Dhamana ya mpango',
   contest: 'Shindano',
+  agentJobs: 'Mipango ya mawakala wa nje',
+  agentJob: 'Mpango wa wakala wa nje',
+  agentRelease: 'Kagua kazi',
+  agentPair: 'Thibitisha kwa wakala wako',
   runContest: 'Endesha shindano',
   work: 'Kazi ya saa',
   hireByHour: 'Ajiri kwa saa',

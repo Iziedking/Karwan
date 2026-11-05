@@ -198,6 +198,12 @@ export function SettingsBand() {
           onChange={(v) => save({ publicPassport: v })}
         />
         <PublishDealsRows settings={settings} save={save} />
+        <ToggleRow
+          label={t.agentJobs.setting.label}
+          note={t.agentJobs.setting.hint}
+          checked={settings.acceptsOutsideAgents !== false}
+          onChange={(v) => save({ acceptsOutsideAgents: v })}
+        />
       </RowGroup>
 
       <AssistantMemoryRows />
