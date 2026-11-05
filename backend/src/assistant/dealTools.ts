@@ -622,6 +622,35 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
         }),
     }),
 
+    public_offers_on_request: tool({
+      description:
+        "Read any request on the open market and every offer on it, as anyone sees them (view 53): the seller by name and record, price, delivery date, note, whether a person or their agent made it, which one the buyer chose, and whether the request is open, in negotiation or agreed. Anyone may ask, signed in or not. Use for 'what offers does that request have', 'what are people offering on it', 'what price are sellers asking'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The request id.') }),
+      execute: async ({ jobId }) =>
+        guarded('public_offers_on_request', async () => {
+          const view = await viewOffers(address, jobId);
+          if (!view.request) return { error: 'That request is not on the market: it ended, was cancelled or expired.' };
+          return {
+            state: view.request.state ?? 'open',
+            budgetUsdc: view.request.budgetUsdc,
+            offers: view.public.map((o) => ({
+              seller: o.seller?.name ?? 'A Karwan seller',
+              ...(o.seller?.tag ? { sellerTag: `@${o.seller.tag}` } : {}),
+              verified: o.seller?.verified ?? false,
+              priceUsdc: o.priceUsdc,
+              deliverBy: new Date(o.deliverByUnix * 1000).toISOString().slice(0, 10),
+              ...(o.note ? { note: o.note } : {}),
+              by: o.kind === 'agent' ? 'their agent' : 'the seller',
+              ...(o.chosen ? { chosen: true } : {}),
+            })),
+            link: `/jobs/${jobId}`,
+            next: view.public.length
+              ? 'List them cheapest first with who made each. Say which one was chosen if any.'
+              : 'No offers yet. A seller can make one with propose_make_offer.',
+          };
+        }),
+    }),
+
     propose_make_offer: tool({
       description:
         "Prepare a confirm card for a SELLER to make their own offer on someone else's open request: a price in USDC, how many days to deliver, and a short note to the buyer (280 characters at most). It replaces any bid their agent made there. Use for 'offer 120 on that request', 'I can do it for 80 in 5 days'.",

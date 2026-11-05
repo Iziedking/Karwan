@@ -56,15 +56,46 @@ test('a rule failure keeps its code', async () => {
   assert.equal(((await r.json()) as { code: string }).code, 'BAD_PRICE');
 });
 
-test('public read shows only the count', async () => {
+test('a visitor reads every offer by seller name, with no address, score or leeway (view 53)', async () => {
   __resetDirectOffersForTest();
   await post(`/${JOB}/offers`, body);
   signedIn = null;
-  const r = (await (await offersRoutes.request(`/${JOB}/offers`)).json()) as { count: number; offers: unknown[]; role: string };
+  __test.setDeps({
+    ...deps,
+    publicRequest: () => ({
+      briefText: 'Logo', budgetUsdc: '300', deadlineUnix: 2_000_000, state: 'negotiating', chosenSeller: '0xother',
+      bids: [{ sellerUser: '0xother', priceUsdc: '250', deadlineUnix: 1_600_000 }],
+    }),
+    sellerSummaries: async (users) => new Map(users.map((u) => [u, { name: u === '0xseller' ? 'Ada' : 'Bola', tag: null, verified: true, rating: null as never, country: null }])),
+  });
+  const raw = await (await offersRoutes.request(`/${JOB}/offers`)).text();
+  const r = JSON.parse(raw) as {
+    count: number; offers: unknown[]; role: string;
+    request: { state: string; chosenSeller?: unknown; bids?: unknown };
+    public: Array<{ kind: string; priceUsdc: string; note: string | null; chosen: boolean; seller: { name: string } }>;
+  };
+  __test.setDeps(deps);
+  signedIn = '0xseller';
   assert.equal(r.count, 1);
   assert.deepEqual(r.offers, []);
   assert.equal(r.role, 'visitor');
+  assert.equal(r.request.state, 'negotiating');
+  assert.equal('chosenSeller' in r.request || 'bids' in r.request, false);
+  assert.deepEqual(r.public.map((o) => [o.seller.name, o.kind, o.priceUsdc, o.note, o.chosen]), [
+    ['Bola', 'agent', '250', null, true],
+    ['Ada', 'hand', '280', 'Three routes.', false],
+  ]);
+  assert.equal(/0xseller|0xother|sagent/.test(raw), false);
+});
+
+test('without a public request there is no public list', async () => {
+  __resetDirectOffersForTest();
+  await post(`/${JOB}/offers`, body);
+  signedIn = null;
+  const r = (await (await offersRoutes.request(`/${JOB}/offers`)).json()) as { public: unknown[]; request: unknown };
   signedIn = '0xseller';
+  assert.deepEqual(r.public, []);
+  assert.equal(r.request, null);
 });
 
 test('seller cannot accept; buyer can', async () => {

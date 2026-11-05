@@ -1249,6 +1249,22 @@ export interface MarketplaceBrief {
   poster?: ListingSeller | null;
   /// The market category read from the request's words; null when none fits.
   category?: string | null;
+  /// Where it stands on the open market (view 53). Absent reads as open.
+  state?: RequestMarketState;
+}
+
+export type RequestMarketState = 'open' | 'negotiating' | 'agreed';
+
+/// One offer on a request as anyone reads it (view 53): the seller by name,
+/// the price, delivery date and note, by hand or by their agent.
+export interface OpenOffer {
+  id: string;
+  kind: 'hand' | 'agent';
+  priceUsdc: string;
+  deliverByUnix: number;
+  note: string | null;
+  chosen: boolean;
+  seller: ListingSeller | null;
 }
 
 export type ListingStatus = 'open' | 'matched' | 'cancelled' | 'expired';
@@ -3051,7 +3067,9 @@ export const api = {
       count: number;
       offers: Offer[];
       role: 'buyer' | 'seller' | 'visitor';
-      request: { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null } | null;
+      request: { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null; state?: RequestMarketState } | null;
+      /// Every offer on the request, for everyone (view 53).
+      public?: OpenOffer[];
       /// Who posted the request, when their passport is public.
       poster?: { address: string; name: string | null; handle: string | null } | null;
     }>(`/api/jobs/${jobId}/offers`),

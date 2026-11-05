@@ -3,7 +3,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { TaskEntryLink } from '@/shared/components/TaskEntryLink';
 import { signInHref } from '@/shared/auth/signInHref';
-import { api, ApiError, type AgentQuestion } from '@/core/api';
+import { api, ApiError, type AgentQuestion, type OpenOffer } from '@/core/api';
+import { ratingText } from '@/features/ratings/ratingText';
 import { Button, buttonClasses } from '@/shared/components/Button';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -62,8 +63,11 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
 
   const { title, body } = splitRequestText(view.request.briefText);
   const mine = view.offers[0];
+  const open = view.public ?? [];
+  const state = view.request.state ?? 'open';
+  const total = view.public ? open.length : view.count;
   const countLabel =
-    view.count === 0 ? t.countNone : view.count === 1 ? t.countOne : t.countMany.replace('{n}', String(view.count));
+    total === 0 ? t.countNone : total === 1 ? t.countOne : t.countMany.replace('{n}', String(total));
 
   return (
     <main className="mx-auto w-full max-w-[720px] px-4 py-10 sm:py-14">
@@ -119,6 +123,10 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
           <dd className="text-[15px] text-[var(--lp-dark)]">{shortDate(view.request.deadlineUnix, locale)}</dd>
         </div>
         <div className="flex items-center justify-between gap-4 py-4">
+          <dt className="text-[15px] text-[var(--lp-text-sub)]">{t.stateLabel}</dt>
+          <dd data-request-state={state} className="text-[15px] font-medium text-[var(--lp-dark)]">{t.states[state]}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-4">
           <dt className="text-[15px] text-[var(--lp-text-sub)]">{t.offersLabel}</dt>
           <dd className="text-[15px] text-[var(--lp-dark)]">{countLabel}</dd>
         </div>
@@ -128,8 +136,12 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
         </div>
       </dl>
 
+      {open.length ? <OpenOffers offers={open} /> : null}
+
       <div className="mt-8">
-        {view.role === 'visitor' ? (
+        {state !== 'open' && !mine ? (
+          <p className="rounded-[20px] bg-[var(--lp-card)] px-6 py-4 text-[15px] text-[var(--lp-text-sub)]">{t.closedFor[state]}</p>
+        ) : view.role === 'visitor' ? (
           <TaskEntryLink href={signInHref(`/jobs/${encodeURIComponent(jobId)}`)} className={buttonClasses({ size: 'lg', className: 'w-full rounded-full' })}>
             {t.signIn}
           </TaskEntryLink>
@@ -160,6 +172,52 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
         )}
       </div>
     </main>
+  );
+}
+
+/// Every offer on the request, as anyone sees it (view 53): who, their rating,
+/// the price, when, and their note. Cheapest first, the chosen one marked.
+function OpenOffers({ offers }: { offers: OpenOffer[] }) {
+  const { locale, t: all } = useLocale();
+  const t = all.offers;
+  const shop = all.marketShop;
+  return (
+    <section aria-labelledby="open-offers" className="mt-8">
+      <h2 id="open-offers" className="text-[18px] font-medium text-[var(--lp-dark)]">{t.openOffersTitle}</h2>
+      <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{t.openOffersLine}</p>
+      <ul className="mt-4 divide-y divide-[var(--lp-border-light)] rounded-[20px] bg-[var(--lp-card)] px-6">
+        {offers.map((o) => (
+          <li key={o.id} data-open-offer={o.kind} className="py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="flex min-w-0 items-center gap-1 text-[15px] font-medium text-[var(--lp-dark)]">
+                  <span dir="auto" className="truncate">
+                    {o.seller?.tag ? `@${o.seller.tag}` : o.seller?.name ?? t.aSeller}
+                  </span>
+                  {o.seller?.verified ? (
+                    <span className="shrink-0" role="img" aria-label={shop.verified}>
+                      <Icon name="badge-check" size={16} />
+                    </span>
+                  ) : null}
+                  {o.chosen ? (
+                    <span className="ms-1 shrink-0 rounded-full bg-[var(--lp-dark)] px-2 py-0.5 text-[13px] font-medium text-[var(--lp-card)]">{t.chosen}</span>
+                  ) : null}
+                </p>
+                <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
+                  {ratingText(o.seller?.rating ?? { kind: 'new', count: 0 }, all.ratings, locale)}
+                  {o.kind === 'agent' ? ` · ${t.byAgent}` : ''}
+                </p>
+              </div>
+              <div className="shrink-0 text-end">
+                <p className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(o.priceUsdc)}</p>
+                <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{t.deliverByOn.replace('{date}', shortDate(o.deliverByUnix, locale))}</p>
+              </div>
+            </div>
+            {o.note ? <p dir="auto" className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{o.note}</p> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

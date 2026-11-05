@@ -15,6 +15,8 @@ export interface MarketShopCopy {
   results: string;
   protected: string;
   samplePhoto: string;
+  /// A request matched or agreed stays on the market, marked (view 53).
+  requestStates: { negotiating: string; agreed: string };
   usdc: string;
   someone: string;
   verified: string;
@@ -83,6 +85,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     results: 'Results',
     protected: 'Protected',
     samplePhoto: 'Sample photo',
+    requestStates: { negotiating: 'In negotiation', agreed: 'Agreed' },
     usdc: 'USDC',
     someone: 'A Karwan seller',
     verified: 'Verified',
@@ -147,6 +150,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     results: 'Résultats',
     protected: 'Protégé',
     samplePhoto: 'Photo d’exemple',
+    requestStates: { negotiating: 'En négociation', agreed: 'Accord conclu' },
     usdc: 'USDC',
     someone: 'Un vendeur Karwan',
     verified: 'Vérifié',
@@ -211,6 +215,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     results: 'النتائج',
     protected: 'محمي',
     samplePhoto: 'صورة توضيحية',
+    requestStates: { negotiating: 'قيد التفاوض', agreed: 'تم الاتفاق' },
     usdc: 'USDC',
     someone: 'بائع على Karwan',
     verified: 'موثَّق',
@@ -275,6 +280,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     results: 'नतीजे',
     protected: 'सुरक्षित',
     samplePhoto: 'नमूना फ़ोटो',
+    requestStates: { negotiating: 'बातचीत में', agreed: 'सहमति हो गई' },
     usdc: 'USDC',
     someone: 'Karwan का एक विक्रेता',
     verified: 'सत्यापित',
@@ -339,6 +345,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     results: 'Matokeo',
     protected: 'Imelindwa',
     samplePhoto: 'Picha ya mfano',
+    requestStates: { negotiating: 'Kwenye mazungumzo', agreed: 'Imekubaliwa' },
     usdc: 'USDC',
     someone: 'Muuzaji wa Karwan',
     verified: 'Amethibitishwa',

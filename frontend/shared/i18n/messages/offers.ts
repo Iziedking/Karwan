@@ -43,6 +43,15 @@ export interface OffersCopy {
   postedBy: string;
   moneyHeld: string;
   activateLink: string;
+  /// The open market (view 53): where the request stands and every offer on it.
+  stateLabel: string;
+  states: { open: string; negotiating: string; agreed: string };
+  openOffersTitle: string;
+  openOffersLine: string;
+  byAgent: string;
+  chosen: string;
+  aSeller: string;
+  closedFor: { negotiating: string; agreed: string };
   errors: {
     ownRequest: string;
     closed: string;
@@ -71,7 +80,7 @@ const en: OffersCopy = {
   note: 'Note to the buyer',
   notePlaceholder: 'What you will deliver and when',
   noteCount: '{n} of 280',
-  explainer: 'The buyer sees your record next to your offer. If they accept, the money is held before you start.',
+  explainer: "Your offer is public: everyone sees it with your name and record. If the buyer accepts, the money is held before you start.",
   send: 'Send offer',
   sending: 'Sending',
   sent: 'Offer sent',
@@ -105,6 +114,14 @@ const en: OffersCopy = {
   postedBy: 'Posted by',
   moneyHeld: 'Held before work starts',
   activateLink: 'Set it up',
+  stateLabel: 'Where it stands',
+  states: { open: 'Open', negotiating: 'In negotiation', agreed: 'Agreed' },
+  openOffersTitle: 'Offers on this request',
+  openOffersLine: 'Anyone can see these offers. Cheapest first.',
+  byAgent: 'By their agent',
+  chosen: 'Chosen',
+  aSeller: 'A Karwan seller',
+  closedFor: { negotiating: 'The buyer is agreeing terms with a seller. New offers are closed.', agreed: 'The buyer agreed a deal. New offers are closed.' },
   errors: {
     ownRequest: 'This is your own request.',
     closed: 'This request is closed.',
@@ -133,7 +150,7 @@ const ar: OffersCopy = {
   note: 'ملاحظة للمشتري',
   notePlaceholder: 'ما الذي ستسلّمه ومتى',
   noteCount: '{n} من 280',
-  explainer: 'يرى المشتري سجلك بجانب عرضك. إذا قبل، تُحجز الأموال قبل أن تبدأ.',
+  explainer: "عرضك علني: يراه الجميع مع اسمك وسجلك. إذا قبل المشتري، تُحجز الأموال قبل أن تبدأ.",
   send: 'أرسل العرض',
   sending: 'جارٍ الإرسال',
   sent: 'تم إرسال العرض',
@@ -167,6 +184,14 @@ const ar: OffersCopy = {
   postedBy: 'نشره',
   moneyHeld: 'تُحجز قبل بدء العمل',
   activateLink: 'فعّله الآن',
+  stateLabel: 'الحالة',
+  states: { open: 'مفتوح', negotiating: 'قيد التفاوض', agreed: 'تم الاتفاق' },
+  openOffersTitle: 'العروض على هذا الطلب',
+  openOffersLine: 'يمكن لأي شخص رؤية هذه العروض. الأرخص أولًا.',
+  byAgent: 'من وكيله',
+  chosen: 'تم اختياره',
+  aSeller: 'بائع على Karwan',
+  closedFor: { negotiating: 'يتفق المشتري على الشروط مع بائع. العروض الجديدة مغلقة.', agreed: 'اتفق المشتري على صفقة. العروض الجديدة مغلقة.' },
   errors: {
     ownRequest: 'هذا طلبك أنت.',
     closed: 'هذا الطلب مغلق.',
@@ -195,7 +220,7 @@ const fr: OffersCopy = {
   note: "Note pour l'acheteur",
   notePlaceholder: 'Ce que vous livrez et quand',
   noteCount: '{n} sur 280',
-  explainer: "L'acheteur voit votre historique à côté de votre offre. S'il accepte, l'argent est bloqué avant que vous commenciez.",
+  explainer: "Votre offre est publique : tout le monde la voit avec votre nom et votre historique. Si l’acheteur accepte, l’argent est bloqué avant que vous commenciez.",
   send: "Envoyer l'offre",
   sending: 'Envoi',
   sent: 'Offre envoyée',
@@ -229,6 +254,14 @@ const fr: OffersCopy = {
   postedBy: 'Publié par',
   moneyHeld: 'Bloqué avant le début du travail',
   activateLink: 'Le configurer',
+  stateLabel: 'Où elle en est',
+  states: { open: 'Ouverte', negotiating: 'En négociation', agreed: 'Accord conclu' },
+  openOffersTitle: 'Offres sur cette demande',
+  openOffersLine: 'Tout le monde peut voir ces offres. La moins chère d’abord.',
+  byAgent: 'Par son agent',
+  chosen: 'Choisie',
+  aSeller: 'Un vendeur Karwan',
+  closedFor: { negotiating: 'L’acheteur fixe les conditions avec un vendeur. Les nouvelles offres sont fermées.', agreed: 'L’acheteur a conclu un accord. Les nouvelles offres sont fermées.' },
   errors: {
     ownRequest: "C'est votre propre demande.",
     closed: 'Cette demande est fermée.',
@@ -257,7 +290,7 @@ const hi: OffersCopy = {
   note: 'खरीदार के लिए नोट',
   notePlaceholder: 'आप क्या और कब देंगे',
   noteCount: '280 में से {n}',
-  explainer: 'खरीदार आपके ऑफ़र के साथ आपका रिकॉर्ड देखता है। अगर वे स्वीकार करते हैं, तो काम शुरू होने से पहले पैसा रोक लिया जाता है।',
+  explainer: "आपका ऑफ़र सार्वजनिक है: हर कोई इसे आपके नाम और रिकॉर्ड के साथ देखता है। अगर खरीदार स्वीकार करता है, तो काम शुरू होने से पहले पैसा रोक लिया जाता है।",
   send: 'ऑफ़र भेजें',
   sending: 'भेजा जा रहा है',
   sent: 'ऑफ़र भेजा गया',
@@ -291,6 +324,14 @@ const hi: OffersCopy = {
   postedBy: 'पोस्ट करने वाले',
   moneyHeld: 'काम शुरू होने से पहले रोका जाता है',
   activateLink: 'सेट करें',
+  stateLabel: 'स्थिति',
+  states: { open: 'खुला', negotiating: 'बातचीत में', agreed: 'सहमति हो गई' },
+  openOffersTitle: 'इस अनुरोध पर ऑफ़र',
+  openOffersLine: 'ये ऑफ़र कोई भी देख सकता है। सबसे सस्ता पहले।',
+  byAgent: 'उनके एजेंट से',
+  chosen: 'चुना गया',
+  aSeller: 'Karwan विक्रेता',
+  closedFor: { negotiating: 'खरीदार एक विक्रेता के साथ शर्तें तय कर रहा है। नए ऑफ़र बंद हैं।', agreed: 'खरीदार ने सौदा तय कर लिया है। नए ऑफ़र बंद हैं।' },
   errors: {
     ownRequest: 'यह आपका अपना अनुरोध है।',
     closed: 'यह अनुरोध बंद है।',
@@ -319,7 +360,7 @@ const sw: OffersCopy = {
   note: 'Ujumbe kwa mnunuzi',
   notePlaceholder: 'Utakachowasilisha na lini',
   noteCount: '{n} kati ya 280',
-  explainer: 'Mnunuzi anaona rekodi yako karibu na ofa yako. Akikubali, pesa inashikiliwa kabla hujaanza.',
+  explainer: "Ofa yako ni ya wazi: kila mtu anaiona pamoja na jina na rekodi yako. Mnunuzi akikubali, pesa inashikiliwa kabla hujaanza.",
   send: 'Tuma ofa',
   sending: 'Inatuma',
   sent: 'Ofa imetumwa',
@@ -353,6 +394,14 @@ const sw: OffersCopy = {
   postedBy: 'Imewekwa na',
   moneyHeld: 'Inashikiliwa kabla kazi haijaanza',
   activateLink: 'Iweke sasa',
+  stateLabel: 'Hali yake',
+  states: { open: 'Wazi', negotiating: 'Kwenye mazungumzo', agreed: 'Imekubaliwa' },
+  openOffersTitle: 'Ofa kwenye ombi hili',
+  openOffersLine: 'Mtu yeyote anaweza kuona ofa hizi. Ya bei nafuu kwanza.',
+  byAgent: 'Kupitia wakala wake',
+  chosen: 'Imechaguliwa',
+  aSeller: 'Muuzaji wa Karwan',
+  closedFor: { negotiating: 'Mnunuzi anakubaliana masharti na muuzaji. Ofa mpya zimefungwa.', agreed: 'Mnunuzi amekubali mpango. Ofa mpya zimefungwa.' },
   errors: {
     ownRequest: 'Hili ni ombi lako mwenyewe.',
     closed: 'Ombi hili limefungwa.',

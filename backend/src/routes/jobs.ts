@@ -16,7 +16,6 @@ import {
   listMatchProposalsForUser,
   approveAgentMatch,
   declineAgentMatch,
-  getMarketplaceBriefs,
   cancelBriefByBuyer,
   proceedAgentNearMiss,
   chooseAgentOffer,
@@ -72,6 +71,7 @@ import { listDirectOffers } from '../db/directOffers.js';
 import { requestTitle } from '../agents/bidOutcome.js';
 import { attachPosters } from '../listings/posters.js';
 import { liveSellerSummaries } from '../listings/sellerSummary.js';
+import { publicRequests, type PublicRequestRow } from '../market/publicRequests.js';
 
 const addrSchema = z
   .string()
@@ -229,30 +229,23 @@ jobsRoutes.get('/', async (c) => {
   return c.json(getBuyerSnapshot(agents.buyerAddress));
 });
 
-/// Open buyer briefs packaged for the marketplace surface. Public; we mask
-/// the buyer address so a crawler can't enumerate wallets. A brief leaves the
-/// market the moment it is spoken for: getMarketplaceBriefs already drops
-/// finalized/funded/cancelled/expired in-memory state, and here we also drop any
-/// brief that carries an active (non-declined) match proposal or a created deal,
-/// so a matched brief can never linger as "awaiting bids".
+/// Requests on the open market (view 53), public. Open ones first, then those
+/// in negotiation, then agreed ones for 7 days, each with its state. The buyer
+/// address is masked so a crawler can't enumerate wallets.
 jobsRoutes.get('/marketplace', async (c) => {
   function mask(addr: string): string {
     return /^0x[a-fA-F0-9]{40}$/.test(addr)
       ? `${addr.slice(0, 6)}…${addr.slice(-4)}`
       : addr;
   }
-  const candidates = getMarketplaceBriefs();
-  const out: Array<MarketplaceBrief & { buyer: string; offerCount: number; category: CategoryId | null }> = [];
+  const candidates = await publicRequests();
+  const out: Array<MarketplaceBrief & { buyer: string; offerCount: number; category: CategoryId | null; state: PublicRequestRow['state'] }> = [];
   const offerCounts = await countLiveDirectOffers(
     candidates.map((b) => b.jobId),
     Math.floor(Date.now() / 1000),
   );
-  for (const b of candidates) {
+  for (const { finalized: _f, escrowFunded: _e, bids: _b, chosenSeller: _c, ...b } of candidates) {
     if (prohibitedReason(b.briefText)) continue;
-    const proposal = await getMatchProposal(b.jobId);
-    if (proposal && !proposal.declinedAt) continue;
-    const deal = await getDeal(b.jobId);
-    if (deal) continue;
     // The category from the request's words, so the Sell side can show a matching sample picture.
     out.push({ ...b, buyer: mask(b.buyer), offerCount: offerCounts.get(b.jobId) ?? 0, category: inferCategory(b.briefText) });
   }

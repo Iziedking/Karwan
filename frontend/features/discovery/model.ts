@@ -38,6 +38,8 @@ export interface DiscoveryCard {
   seller: ListingSeller | null;
   readyInDays?: number;
   deliveryKind?: 'goods' | 'in_person' | 'remote';
+  /// A request's place on the open market (view 53). Absent reads as open.
+  requestState?: 'open' | 'negotiating' | 'agreed';
 }
 
 export interface DiscoveryFilters {
@@ -103,6 +105,7 @@ export function buildDiscoveryCards(
         category: (CATEGORY_IDS as readonly string[]).includes(brief.category ?? '') ? (brief.category as CategoryId) : null,
         seller: brief.poster ?? null,
         bidsCount: brief.bidsCount + (brief.offerCount ?? 0),
+        requestState: brief.state ?? 'open',
       } satisfies DiscoveryCard;
     });
 

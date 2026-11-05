@@ -156,6 +156,7 @@ import { logger } from '../logger.js';
 import { bridgeSourceHolders } from './bridgeInventory.js';
 import { readDepositAddresses } from '../money/depositAddresses.js';
 import { searchMarket } from './marketSearch.js';
+import { publicRequests } from '../market/publicRequests.js';
 import { listOpenListings } from '../db/listings.js';
 import { getMarketplaceBriefs } from '../agents/buyer.js';
 import { getMatchProposal } from '../db/matchProposals.js';
@@ -1943,7 +1944,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         try {
           const now = Date.now();
           const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && !prohibitedReason(l.title, l.description, l.terms)));
-          const requests = await withBuyerLocations(getMarketplaceBriefs().filter((r) => !prohibitedReason(r.briefText)));
+          // Every request the open market shows (view 53), with where it stands.
+          const placed = (await publicRequests()).filter((r) => !prohibitedReason(r.briefText));
+          const stateOf = new Map(placed.map((r) => [r.jobId, r.state]));
+          const requests = await withBuyerLocations(placed.map(({ bids: _b, chosenSeller: _c, ...r }) => r));
           const near = await locationOf(address);
           const ranked = searchMarket({ query, kind, maxPriceUsdc, excludeSeller: address, limit: 10, near }, offers, requests);
           const results: Array<Record<string, unknown>> = [];
@@ -1958,10 +1962,9 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
                 readyInDays: hit.readyInDays ?? null, link: `/listings/${hit.id}`,
               });
             } else {
-              // A request already matched or turned into a deal is no longer open.
-              if ((await getDeal(hit.jobId).catch(() => null)) || (await getMatchProposal(hit.jobId).catch(() => null))?.approvedAt) continue;
               results.push({
                 kind: 'request', jobId: hit.jobId, title: hit.title, budgetUsdc: hit.budgetUsdc,
+                state: stateOf.get(hit.jobId) ?? 'open',
                 due: new Date(hit.dueUnix * 1000).toISOString().slice(0, 10), link: `/jobs/${hit.jobId}`,
               });
             }
@@ -1980,7 +1983,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             searched: { offers: kind !== 'requests' ? offers.length : 0, requests: kind !== 'offers' ? requests.length : 0 },
             next: results.length === 0
               ? (kind === 'requests' ? 'No open request matches. Suggest posting an offer at /seller so buyers find them.' : 'No open offer matches. Suggest posting a request at /buyer so seller agents bid.')
-              : 'Show these with their price and who posted them. The buttons open each one.',
+              : 'Show these with their price and who posted them; say when a request is in negotiation or agreed. The buttons open each one.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant search_market failed');

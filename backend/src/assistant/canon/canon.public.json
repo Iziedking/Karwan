@@ -43,6 +43,26 @@
       "body": "On Arc Testnet, a person's agent pays for the market research it uses, from\nits own balance, over x402 on Arc settled through Circle Gateway. Karwan runs\nthe web searches and pays the search provider.\n\nA search costs 0.007 USDC, and 0.002 USDC when another agent ran the same one\nrecently. The agent runs only the searches a question needs: price takes two,\ndemand or suppliers one, and everything four. An agent researching a request\nit is negotiating runs three: price, marketplace rates and demand.\n\nAsk your assistant to research something and it tells you the exact cost\nbefore it runs. When your agent's balance is short it says so, nothing is\npaid, and you can add money to it and ask again. Every payment shows in what\nyour agent spent. Web results are marked as from the web; Karwan's own market\ncomes first.\n\nA record check, your agent reading the other side's Karwan record, costs\n0.005 USDC. Your selling agent checks the buyer once before offering on a\nrequest, so offering costs 0.005 USDC; your buying agent checks up to five\nsellers on its shortlist, at most 0.025 USDC per request. These checks are paid\nfrom your agent's data balance, your own USDC prepaid on Circle Gateway. When\nit runs low your agent moves 0.10 USDC into it from its own wallet; that move\nshows as moved to your agent's data balance, not as money spent.\n\nYour agents have a weekly budget for the data they pay for, record checks and\nweb searches together: 0.25 USDC unless you change it, from 0 (free data only)\nup to 5 USDC. They never go over it. When the budget is reached they carry on\nwith free data and you hear once that week; a search you ask for says when it\nwould go over and offers to raise the budget. Once a week, unless you turn it\noff, you get one line in the app and on Telegram on what your agents spent and\nwhat for, the price of each record check and what is left in the data balance.\n\nOn the Money page the Agents tab shows this as the agent’s weekly limit: what it\ncan spend each week on checks, what it spent and what is left, with Change limit\n(0.50, 1 or 5 USDC). The agent has no balance of its own there. Money still\nsitting in the agent wallets counts in your one balance, and Where it is lists it.\n\nOn mainnet, agents will pay Circle's services marketplace directly for this."
     },
     {
+      "id": "an-open-market",
+      "title": "An open market, where every offer is public",
+      "status": "shipping",
+      "updated": "2026-11-05",
+      "tags": [
+        "market",
+        "offers",
+        "requests",
+        "testnet"
+      ],
+      "path": "public/product/an-open-market.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/53-an-open-market.md",
+          "date": "2026-11-05"
+        }
+      ],
+      "body": "Everything on the Karwan market can be read by anyone, signed in or not:\nrequests, offers for sale, and every offer made on a request. Each offer on a\nrequest shows the seller by name, with their verified mark and rating, the\nprice, the delivery date, the note, and whether the seller or their agent made\nit. Offers you make on a request are public in the same way. Sellers are shown\nby name, never by wallet address.\n\nA request stays on the market while it is open. Once a seller is matched it is\nmarked In negotiation, and once the deal is made it is marked Agreed for 7\ndays, with its offers still listed and the chosen one marked. It leaves the\nmarket when it is cancelled, expires or ends with no deal. New offers close\nonce a seller is matched.\n\nSome things stay private: the buyer's agent's ranking of the offers and its\nreasons, how far above the budget the buyer would go, the counter-offers in a\nnegotiation, and the deal itself, with its money, delivery, files and messages.\n\nReading needs no account. Making, lowering, withdrawing or accepting an offer\nneeds you to sign in. Your assistant can read the same list: ask it what offers\na request has."
+    },
+    {
       "id": "assistant-mode-and-help",
       "title": "Assistant mode and Help",
       "status": "roadmap",
@@ -971,6 +991,35 @@
       },
       "updated": "2026-11-05",
       "path": "public/product/agents-pay-for-research.md"
+    },
+    {
+      "id": "an-open-market",
+      "title": "An open market, where every offer is public",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "market",
+        "offers",
+        "requests",
+        "testnet"
+      ],
+      "summary": "Everything on the Karwan market can be read by anyone, signed in or not: requests, offers for sale, and every offer made on a request. Each offer on a request shows the seller by name, with their verified mark and rating, the price, the delivery date, the note, and whether the seller or their agent made it. Offers you make on a request are public in the same way. Sellers are shown by name, never by wallet address.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/53-an-open-market.md",
+          "date": "2026-11-05"
+        }
+      ],
+      "check": {
+        "kind": "manual",
+        "note": "Built, not deployed yet. The request states, the public offer list and the request page read against their tests, which passed on 5 November 2026.",
+        "lastVerified": "2026-11-05"
+      },
+      "updated": "2026-11-05",
+      "path": "public/product/an-open-market.md"
     },
     {
       "id": "assistant-mode-and-help",

@@ -35,7 +35,9 @@ export function RequestCard({ card, fits }: { card: DiscoveryCard; fits: boolean
       <span className="relative block aspect-[4/3] overflow-hidden bg-[var(--raised)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={samplePhoto(card.category)} alt="" loading="lazy" className="size-full object-cover" />
-        {fits ? (
+        {card.requestState === 'negotiating' || card.requestState === 'agreed' ? (
+          <span data-request-state={card.requestState} className="absolute start-2.5 top-2.5 rounded-full bg-[var(--ink)] px-2.5 py-1 text-[13px] font-semibold text-[var(--canvas)]">{t.requestStates[card.requestState]}</span>
+        ) : fits ? (
           <span className="absolute start-2.5 top-2.5 rounded-full bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] px-2.5 py-1 text-[13px] font-semibold text-[var(--ink)]">{t.fits}</span>
         ) : null}
         {card.example ? (

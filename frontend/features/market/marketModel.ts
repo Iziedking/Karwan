@@ -26,8 +26,9 @@ export function buyCards(
   return { fresh: all.slice(0, FRESH), all };
 }
 
-/// Sell: what buyers need, the requests that fit you first. Signed out,
-/// nothing is marked.
+/// Sell: what buyers need. Open requests come before those in negotiation,
+/// then agreed ones (view 53); within each, the requests that fit you first.
+/// Signed out, nothing is marked.
 export function sellRequests(
   cards: readonly DiscoveryCard[],
   fits: ReadonlySet<string> | null,
@@ -35,5 +36,7 @@ export function sellRequests(
   return cards
     .filter((card) => card.side === 'request')
     .map((card) => ({ ...card, fits: !!fits?.has(card.id.toLowerCase()) }))
-    .sort((a, b) => Number(b.fits) - Number(a.fits) || newest(a, b));
+    .sort((a, b) => STATE_ORDER[a.requestState ?? 'open'] - STATE_ORDER[b.requestState ?? 'open'] || Number(b.fits) - Number(a.fits) || newest(a, b));
 }
+
+const STATE_ORDER = { open: 0, negotiating: 1, agreed: 2 } as const;

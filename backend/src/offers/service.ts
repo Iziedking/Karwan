@@ -20,7 +20,10 @@ import {
   upsertMatchProposal,
   type MatchProposal,
 } from '../db/matchProposals.js';
-import { approveAgentMatch, getBuyerJob, getMarketplaceBriefs } from '../agents/buyer.js';
+import { approveAgentMatch, getBuyerJob } from '../agents/buyer.js';
+import { publicRequestOf } from '../market/publicRequests.js';
+import { publicOffers, type PublicOffer } from '../market/requestState.js';
+import { liveSellerSummaries, type ListingSeller } from '../listings/sellerSummary.js';
 import { abandonBid, submitDirectOfferBid } from '../agents/seller.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
@@ -36,7 +39,21 @@ import { logger } from '../logger.js';
 
 type JobView = { budgetUsdc: string; deadlineUnix: number; open: boolean; termsHash: string; buyerAgent: string };
 type Wallets = { userAddress: string; sellerWalletId?: string; sellerAddress?: string; buyerAddress?: string };
-export type PublicRequest = { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null };
+export type PublicRequest = {
+  briefText: string;
+  budgetUsdc: string;
+  deadlineUnix: number;
+  quantity?: { count: number; unit: string | null } | null;
+  /// Where it stands on the open market (view 53). Absent reads as open.
+  state?: 'open' | 'negotiating' | 'agreed';
+  /// The seller holding the match, for the chosen mark. Never sent to a client.
+  chosenSeller?: string | null;
+  /// Agent bids on it, for the public list. Never sent to a client as is.
+  bids?: Array<{ sellerUser: string | null; priceUsdc: string; deadlineUnix: number }>;
+};
+/// One offer on a request as anyone may read it (view 53): the seller by name,
+/// never an address, and no scores, counters or leeway.
+export type OpenOfferView = Omit<PublicOffer, 'sellerUser'> & { seller: ListingSeller | null };
 export type OfferViewerRole = 'buyer' | 'seller' | 'visitor';
 /// What the buyer sees: the offer plus the exact amount that leaves their wallet.
 /// Who the seller is, sealed (view 32): never a score or a count.
@@ -55,8 +72,8 @@ export type OfferDeps = {
   upsertProposal: (p: MatchProposal) => Promise<MatchProposal>;
   deleteProposal: (jobId: string) => Promise<void>;
   approve: typeof approveAgentMatch;
-  /// What the market already shows publicly about an open request.
-  publicRequest: (jobId: string) => PublicRequest | null;
+  /// What the open market shows about a request (view 53).
+  publicRequest: (jobId: string) => PublicRequest | null | Promise<PublicRequest | null>;
   /// Withdraws the seller agent's own negotiation on a request, so a seller's
   /// own offer replaces it. Returns false when the agent had no bid there.
   withdrawAgentBid: (jobId: string, sellerAgent: string) => boolean;
@@ -67,6 +84,8 @@ export type OfferDeps = {
   prepareRecord?: (sellerUser: string) => Promise<void>;
   /// The buyer's agent ranks the sellers who offered (view 32).
   sellerBlocks?: (jobId: string, offers: readonly DirectOffer[]) => Promise<SealedSeller[]>;
+  /// Sellers by name and record, for the public list.
+  sellerSummaries?: (users: string[]) => Promise<Map<string, ListingSeller | null>>;
 };
 
 const low = (s: string) => s.toLowerCase();
@@ -94,10 +113,13 @@ export const defaultDeps: OfferDeps = {
   upsertProposal: upsertMatchProposal,
   deleteProposal: deleteMatchProposal,
   approve: approveAgentMatch,
-  publicRequest: (jobId) => {
-    const b = getMarketplaceBriefs().find((m) => m.jobId === jobId);
-    return b ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null } : null;
+  publicRequest: async (jobId) => {
+    const b = await publicRequestOf(jobId);
+    return b
+      ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null, state: b.state, chosenSeller: b.chosenSeller, bids: b.bids }
+      : null;
   },
+  sellerSummaries: liveSellerSummaries,
   withdrawAgentBid: abandonBid,
   fundedUsdc: async (priceUsdc) => {
     const { fundedAmount } = computeFunding(parseUnits(priceUsdc, 6), await getEscrowFeeBps());
@@ -294,18 +316,36 @@ export async function acceptOffer(
 }
 
 /// The buyer sees every live offer with the amount it would take from their
-/// wallet, a seller sees only their own, and everyone else sees how many there
-/// are. The public request rides along so a seller who is not yet a party can
-/// read what they are offering on.
+/// wallet, and a seller sees their own to manage it. Everyone, signed in or not,
+/// reads the public list (view 53): every hand offer and agent bid with the
+/// seller by name, price, delivery date and note, and the request's state.
 export async function viewOffers(
   viewer: string | null,
   jobId: string,
   deps: OfferDeps = defaultDeps,
-): Promise<{ count: number; offers: BuyerOfferView[]; role: OfferViewerRole; request: PublicRequest | null }> {
+): Promise<{
+  count: number;
+  offers: BuyerOfferView[];
+  role: OfferViewerRole;
+  request: Omit<PublicRequest, 'chosenSeller' | 'bids'> | null;
+  public: OpenOfferView[];
+}> {
   const now = deps.now();
-  const live = (await listDirectOffers(jobId)).filter((o) => o.state === 'pending' && o.lapsesAt > now);
+  const all = await listDirectOffers(jobId);
+  const live = all.filter((o) => o.state === 'pending' && o.lapsesAt > now);
   const brief = deps.brief(jobId);
-  const request = deps.publicRequest(jobId);
+  const found = await deps.publicRequest(jobId);
+  let request: Omit<PublicRequest, 'chosenSeller' | 'bids'> | null = null;
+  let open: OpenOfferView[] = [];
+  if (found) {
+    const { chosenSeller = null, bids = [], ...shown } = found;
+    request = shown;
+    const merged = publicOffers(all, bids, chosenSeller, now);
+    const people = merged.length && deps.sellerSummaries
+      ? await deps.sellerSummaries([...new Set(merged.map((o) => o.sellerUser))]).catch(() => new Map<string, ListingSeller | null>())
+      : new Map<string, ListingSeller | null>();
+    open = merged.map(({ sellerUser, ...o }) => ({ ...o, seller: people.get(sellerUser) ?? null }));
+  }
   const v = viewer ? low(viewer) : null;
   if (v && brief && low(brief.postedBy) === v) {
     const [funded, blocks] = await Promise.all([
@@ -316,8 +356,8 @@ export async function viewOffers(
       const hit = blocks.find((b) => low(b.sellerAgent) === low(o.sellerAgent));
       return { ...o, fundedUsdc: funded[i], ...(hit ? { sellerBlock: blockOf(hit) } : {}) };
     });
-    return { count: live.length, offers, role: 'buyer', request };
+    return { count: live.length, offers, role: 'buyer', request, public: open };
   }
-  if (v) return { count: live.length, offers: live.filter((o) => o.sellerUser === v), role: 'seller', request };
-  return { count: live.length, offers: [], role: 'visitor', request };
+  if (v) return { count: live.length, offers: live.filter((o) => o.sellerUser === v), role: 'seller', request, public: open };
+  return { count: live.length, offers: [], role: 'visitor', request, public: open };
 }

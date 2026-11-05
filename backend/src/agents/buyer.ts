@@ -4982,8 +4982,24 @@ export interface MarketplaceBrief {
 /// stage (escrow-funded, finalized via accept, cancelled, expired). Buyer
 /// address is returned full; consumer masks for display.
 export function getMarketplaceBriefs(): MarketplaceBrief[] {
+  return getRequestRows()
+    .filter((r) => !r.finalized && !r.escrowFunded)
+    .map(({ finalized: _f, escrowFunded: _e, bids: _b, ...brief }) => brief);
+}
+
+/// Every request that has not been cancelled or expired, open or not, with
+/// what the open market needs to place it (view 53): whether it is finalized
+/// or funded, and each agent bid's seller, price and delivery date. No scores,
+/// counters or leeway. Newest first.
+export function getRequestRows(): Array<
+  MarketplaceBrief & {
+    finalized: boolean;
+    escrowFunded: boolean;
+    bids: Array<{ sellerUser: string | null; priceUsdc: string; deadlineUnix: number }>;
+  }
+> {
   return [...jobs.values()]
-    .filter((s) => !s.finalized && !s.escrowFunded && !s.cancelledAt && !s.expired)
+    .filter((s) => !s.cancelledAt && !s.expired)
     .map((s) => {
       const brief = getBrief(s.jobId);
       return {
@@ -4998,6 +5014,13 @@ export function getMarketplaceBriefs(): MarketplaceBrief[] {
         tradeLane: brief?.tradeLane ?? 'service',
         partyKind: brief?.partyKind ?? 'person',
         example: Boolean(brief?.seedKey),
+        finalized: !!s.finalized,
+        escrowFunded: !!s.escrowFunded,
+        bids: [...s.bids.values()].map((b) => ({
+          sellerUser: b.sellerUserAddress ?? null,
+          priceUsdc: b.priceUsdc,
+          deadlineUnix: b.deadlineUnix,
+        })),
       };
     })
     .sort((a, b) => b.postedAt - a.postedAt);

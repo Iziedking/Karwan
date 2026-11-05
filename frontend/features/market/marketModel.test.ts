@@ -67,3 +67,12 @@ test('requests that fit you come first and say so; signed out nothing is marked'
   assert.deepEqual(sellRequests(cards, new Set(['0xr2'])).map((c) => [c.id, c.fits]), [['0xr2', true], ['0xr1', false], ['0xr3', false]]);
   assert.ok(sellRequests(cards, null).every((c) => !c.fits));
 });
+
+test('open requests come before those in negotiation, then agreed ones, even when those fit (view 53)', () => {
+  const cards = [
+    card('0xa', { side: 'request', postedAt: 9, requestState: 'agreed' }),
+    card('0xn', { side: 'request', postedAt: 8, requestState: 'negotiating' }),
+    card('0xo', { side: 'request', postedAt: 1 }),
+  ];
+  assert.deepEqual(sellRequests(cards, new Set(['0xa', '0xn'])).map((c) => c.id), ['0xo', '0xn', '0xa']);
+});
