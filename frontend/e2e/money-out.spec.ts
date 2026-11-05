@@ -99,9 +99,11 @@ test('a send to a new address says so and offers to add it with World ID, for ex
   });
   await page.goto('/send');
   const sheet = page.getByRole('region', { name: 'Send USDC' });
-  await sheet.getByLabel('Amount').fill('25');
   await sheet.getByLabel('Send to').fill(STRANGER);
-  await sheet.getByRole('button', { name: 'Send 25.00 USDC' }).click();
+  await sheet.getByRole('button', { name: 'Continue', exact: true }).click();
+  await sheet.getByLabel('Amount').fill('25');
+  await sheet.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Send 25.00 USDC' }).click();
 
   await expect(sheet).toContainText('This address is new to your account. Add it with your World ID and it can receive money 24 hours later.');
   await expect(sheet).not.toContainText('Nothing moved');

@@ -1,13 +1,17 @@
 'use client';
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { AmountHero } from '@/features/money/components/AmountHero';
+import { Keypad } from '@/features/money/components/Keypad';
+import { pressKey } from '@/features/money/amountEntry';
 import { ProfileFrame } from '@/features/profile/ui/ProfileUi';
 import { Button } from '@/shared/components/Button';
-import { fill } from '@/features/deals/workspace/presentation';
 import { ShareLink } from './ShareLink';
+import { PaymentCard } from './PaymentCard';
 import { PayLinkHistory } from './PayLinkHistory';
 
 const WEEK_MINUTES = 7 * 24 * 60;
@@ -17,7 +21,11 @@ const FIELD = 'mt-2 block w-full rounded-[var(--radius-input)] border border-[va
 /// Ask anyone for USDC with a link. Any account, email or wallet; the money
 /// lands in the account that made the link.
 export function CreatePayLink() {
-  const { create: copy, pay } = useTranslations().payLink;
+  const messages = useTranslations();
+  const { create: copy } = messages.payLink;
+  const entry = messages.money.entry;
+  const keypad = useMediaQuery('(pointer: coarse)');
+  const amountId = useId();
   const { address } = useAuth();
   const { profile } = useUserProfile();
   const [amount, setAmount] = useState('');
@@ -25,6 +33,7 @@ export function CreatePayLink() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
 
   const valid = /^\d+(?:\.\d{1,6})?$/.test(amount.trim()) && Number(amount) > 0;
   const me = profile?.handle ? `@${profile.handle}` : address ? `${address.slice(0, 6)}…${address.slice(-4)}` : '';
@@ -37,6 +46,7 @@ export function CreatePayLink() {
     try {
       const { request } = await api.createDepositRequest({ amountUsdc: amount.trim(), purpose: purpose.trim() || undefined, ttlMinutes: WEEK_MINUTES });
       setUrl(`${window.location.origin}/deposit/request/${request.requestId}`);
+      setExpiresAt(request.expiresAt ?? Date.now() + WEEK_MINUTES * 60_000);
     } catch {
       setError(true);
     } finally {
@@ -48,10 +58,9 @@ export function CreatePayLink() {
     <ProfileFrame title={url ? copy.ready : copy.title}>
       {url ? (
         <div className="space-y-6">
-          <p className="-mt-3 text-[15px] text-[var(--ink-secondary)]">
-            {[`${amount} USDC`, purpose.trim() ? fill(pay.forTemplate, { purpose: purpose.trim() }) : null].filter(Boolean).join(' · ')}
-          </p>
-          <ShareLink url={url} />
+          <p className="-mt-3 text-[15px] text-[var(--ink-secondary)]">{copy.directNote}</p>
+          {address ? <PaymentCard recipient={address} amount={amount.trim()} purpose={purpose.trim() || null} state="open" expiresAt={expiresAt} url={url} /> : null}
+          <ShareLink url={url} compact />
           <button
             type="button"
             onClick={() => {
@@ -67,20 +76,9 @@ export function CreatePayLink() {
       ) : (
         <form onSubmit={(event) => void create(event)} className="space-y-6" aria-busy={busy}>
           <p className="-mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{copy.directNote}</p>
-          <label className="block">
-            <span className={LABEL}>{copy.amount}</span>
-            <span className="mt-1 flex items-baseline gap-2">
-              <input
-                inputMode="decimal"
-                autoFocus
-                value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
-                placeholder="0"
-                className="w-full bg-transparent text-[34px] font-semibold tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
-              />
-              <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
-            </span>
-          </label>
+          <div className="py-4">
+            <AmountHero id={amountId} label={copy.amount} value={amount} onChange={setAmount} keypad={keypad} />
+          </div>
           <label className="block">
             <span className={LABEL}>{copy.forLabel}</span>
             <input
@@ -96,6 +94,7 @@ export function CreatePayLink() {
             <p className={FIELD}>{me ? `${copy.yourAccount} · ${me}` : copy.yourAccount}</p>
           </div>
           <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{copy.lasts}</p>
+          {keypad ? <Keypad onKey={(key) => setAmount((typed) => pressKey(typed, key))} disabled={busy} label={entry.keypad} backLabel={entry.back} /> : null}
           {error ? <p role="alert" className="text-[14px] text-[var(--color-critical)]">{copy.error}</p> : null}
           <Button type="submit" size="lg" className="w-full" disabled={!valid} loading={busy} loadingLabel={copy.creating}>
             {copy.create}

@@ -6,7 +6,8 @@ import { CARD_CLASS } from '@/shared/components/Card';
 
 /// The link, a copy button, the phone's share sheet when there is one, and a QR
 /// code for someone standing next to you.
-export function ShareLink({ url }: { url: string }) {
+/// `compact` leaves out the link and the QR when a payment card above already shows them.
+export function ShareLink({ url, compact = false }: { url: string; compact?: boolean }) {
   const copy = useTranslations().payLink.create;
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
@@ -24,8 +25,8 @@ export function ShareLink({ url }: { url: string }) {
 
   return (
     <div className="space-y-5">
-      <p className={`${CARD_CLASS} break-all px-5 py-4 text-[15px] text-[var(--ink)] select-all`}>{url}</p>
-      <PayLinkQr value={url} label={copy.qrAlt} />
+      {compact ? null : <p className={`${CARD_CLASS} break-all px-5 py-4 text-[15px] text-[var(--ink)] select-all`}>{url}</p>}
+      {compact ? null : <PayLinkQr value={url} label={copy.qrAlt} />}
       <div className="flex flex-col gap-2">
         <button type="button" onClick={() => void copyLink()} className={buttonClasses({ size: 'lg', className: 'w-full' })} aria-live="polite">
           {copied ? copy.copied : copy.copy}
@@ -40,7 +41,7 @@ export function ShareLink({ url }: { url: string }) {
   );
 }
 
-export function PayLinkQr({ value, label }: { value: string; label: string }) {
+export function PayLinkQr({ value, label, size = 180 }: { value: string; label: string; size?: number }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -49,7 +50,7 @@ export function PayLinkQr({ value, label }: { value: string; label: string }) {
       try {
         const QR = await import('qrcode');
         if (cancelled || !ref.current || !value) return;
-        await QR.toCanvas(ref.current, value, { margin: 1, width: 180, errorCorrectionLevel: 'M', color: { dark: '#0A0A0BFF', light: '#FFFFFFFF' } });
+        await QR.toCanvas(ref.current, value, { margin: 1, width: size, errorCorrectionLevel: 'M', color: { dark: '#0A0A0BFF', light: '#FFFFFFFF' } });
       } catch {
         if (!cancelled) setFailed(true);
       }
@@ -57,11 +58,11 @@ export function PayLinkQr({ value, label }: { value: string; label: string }) {
     return () => {
       cancelled = true;
     };
-  }, [value]);
+  }, [value, size]);
   if (failed || !value) return null;
   return (
-    <div className="inline-block rounded-[var(--radius-card)] border border-[var(--line)] bg-white p-3">
-      <canvas ref={ref} aria-label={label} role="img" width={180} height={180} />
+    <div className={`inline-block shrink-0 border border-[var(--line)] bg-white ${size < 120 ? 'rounded-[10px] p-1.5' : 'rounded-[var(--radius-card)] p-3'}`}>
+      <canvas ref={ref} aria-label={label} role="img" width={size} height={size} />
     </div>
   );
 }

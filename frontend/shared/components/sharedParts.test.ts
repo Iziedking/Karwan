@@ -72,7 +72,7 @@ test('Money has one green button, Add money, and no other green (view 48)', () =
   assert.match(money, /buttonClasses\(\{ variant: 'primary', size: 'lg' \}\)\}`\}>\{mp\.addMoney\}/);
   // The ready dot beside the balance is ink, not green (3 Nov 2026).
   assert.doesNotMatch(money, /--color-positive/);
-  for (const file of ['../../features/money/components/MoneyHome.tsx', '../../features/money/components/RecentMoney.tsx', '../../features/money/components/MoneySheet.tsx']) {
+  for (const file of ['../../features/money/components/MoneyHome.tsx', '../../features/money/components/RecentMoney.tsx', '../../features/money/components/MoneySheet.tsx', '../../features/money/components/SendFlow.tsx', '../../features/payLink/PaymentCard.tsx']) {
     assert.doesNotMatch(source(file), /--lp-accent|--lp-accent-on-light|--hero-from|--hero-to/, file);
   }
   // Activity says which way money went with its sign, never a colour.

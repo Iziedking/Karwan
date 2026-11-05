@@ -1,5 +1,9 @@
 export interface MoneyCopy {
   sendPage: { gateBody: string };
+  /// The amount keypad on a phone (view 50).
+  entry: { keypad: string; back: string };
+  /// Send as its own page: who, amount, confirm, receipt (view 50).
+  sendFlow: { next: string; change: string; confirmTitle: string; to: string; network: string; sendingTo: string; sentTo: string; leave: string };
   home: {
     balanceLabel: string;
     staleBalance: string;
@@ -170,6 +174,8 @@ export interface MoneyCopy {
 export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
   en: {
     sendPage: { gateBody: 'Sign in to send USDC to a Karwan tag or an Arc address.' },
+    entry: { keypad: 'Amount keypad', back: 'Delete' },
+    sendFlow: { next: 'Continue', change: 'Change', confirmTitle: 'Check and send', to: 'To', network: 'Network', sendingTo: 'Sending to {name}', sentTo: 'Sent to {name}', leave: 'You can leave this screen. It finishes on its own.' },
     home: {
       staleBalance: "Last loaded balance. Refresh to check the current amount.",
       balanceLabel: "Available balance",
@@ -324,6 +330,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
   },
   ar: {
     sendPage: { gateBody: 'سجّل الدخول لإرسال USDC إلى اسم على Karwan أو عنوان على Arc.' },
+    entry: { keypad: 'لوحة أرقام المبلغ', back: 'حذف' },
+    sendFlow: { next: 'متابعة', change: 'تغيير', confirmTitle: 'راجِع وأرسِل', to: 'إلى', network: 'الشبكة', sendingTo: 'جارٍ الإرسال إلى {name}', sentTo: 'أُرسل إلى {name}', leave: 'يمكنك مغادرة هذه الشاشة. سيكتمل الإرسال وحده.' },
     home: {
       staleBalance: "آخر رصيد تم تحميله. حدّث للتحقق من المبلغ الحالي.",
       balanceLabel: "الرصيد المتاح",
@@ -478,6 +486,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
   },
   fr: {
     sendPage: { gateBody: 'Connectez-vous pour envoyer des USDC à un tag Karwan ou à une adresse Arc.' },
+    entry: { keypad: 'Clavier du montant', back: 'Effacer' },
+    sendFlow: { next: 'Continuer', change: 'Modifier', confirmTitle: 'Vérifier et envoyer', to: 'À', network: 'Réseau', sendingTo: 'Envoi à {name}', sentTo: 'Envoyé à {name}', leave: "Vous pouvez quitter cet écran. L'envoi se termine tout seul." },
     home: {
       staleBalance: "Dernier solde chargé. Actualisez pour vérifier le montant actuel.",
       balanceLabel: "Solde disponible",
@@ -632,6 +642,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
   },
   hi: {
     sendPage: { gateBody: 'Karwan टैग या Arc पते पर USDC भेजने के लिए साइन इन करें।' },
+    entry: { keypad: 'राशि का कीपैड', back: 'मिटाएँ' },
+    sendFlow: { next: 'आगे बढ़ें', change: 'बदलें', confirmTitle: 'जाँचें और भेजें', to: 'किसे', network: 'नेटवर्क', sendingTo: '{name} को भेजा जा रहा है', sentTo: '{name} को भेजा गया', leave: 'आप यह स्क्रीन छोड़ सकते हैं। यह अपने आप पूरा हो जाएगा।' },
     home: {
       staleBalance: "पिछली बार लोड किया गया शेष। वर्तमान राशि जाँचने के लिए रीफ़्रेश करें।",
       balanceLabel: "उपलब्ध शेष",
@@ -786,6 +798,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
   },
   sw: {
     sendPage: { gateBody: 'Ingia ili kutuma USDC kwa tagi ya Karwan au anwani ya Arc.' },
+    entry: { keypad: 'Vitufe vya kiasi', back: 'Futa' },
+    sendFlow: { next: 'Endelea', change: 'Badilisha', confirmTitle: 'Kagua na utume', to: 'Kwa', network: 'Mtandao', sendingTo: 'Inatuma kwa {name}', sentTo: 'Imetumwa kwa {name}', leave: 'Unaweza kuondoka kwenye skrini hii. Itakamilika yenyewe.' },
     home: {
       staleBalance: "Salio lililopakiwa mara ya mwisho. Onyesha upya ili kuangalia kiasi cha sasa.",
       balanceLabel: "Salio linalopatikana",

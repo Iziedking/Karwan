@@ -269,7 +269,10 @@ test('9d: a new link is ready with Copy link as its one green button', async ({ 
   await page.getByPlaceholder(copy.create.forPlaceholder).fill('Logo, first draft');
   await page.getByRole('button', { name: copy.create.create }).click();
   await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
-  await expect(page.getByText(`120 USDC · ${copy.pay.forTemplate.replace('{purpose}', 'Logo, first draft')}`)).toBeVisible();
+  const card = page.locator('[data-payment-card="open"]');
+  await expect(card).toContainText('120');
+  await expect(card).toContainText(copy.pay.forTemplate.replace('{purpose}', 'Logo, first draft'));
+  await expect(card.getByRole('img', { name: copy.create.qrAlt })).toBeVisible();
   expect(await greenControls(page)).toEqual([copy.create.copy]);
   await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('ready.png'), fullPage: true });

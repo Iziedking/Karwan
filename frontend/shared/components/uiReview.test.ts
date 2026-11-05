@@ -438,8 +438,8 @@ test('every balance surface offers Withdraw, the route out that works for every 
 });
 
 test('Send says what Available counts, so it is never read as a wrong balance', () => {
-  const sheet = source('../../features/money/components/MoneySheet.tsx');
-  assert.match(sheet, /t\.sheet\.available[\s\S]{0,400}<Hint[^>]*>\{t\.sheet\.availableHint\}<\/Hint>/);
+  const send = source('../../features/money/components/SendFlow.tsx');
+  assert.match(send, /t\.sheet\.available[\s\S]{0,400}<Hint[^>]*>\{t\.sheet\.availableHint\}<\/Hint>/);
 });
 
 test('Back sits on the content column: a page frame draws its own and the shell steps aside', () => {

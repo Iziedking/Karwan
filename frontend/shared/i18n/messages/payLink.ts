@@ -94,6 +94,9 @@ export interface PayLinkCopy {
     joinTitle: string;
     joinBody: string;
     joinCta: string;
+    /// The payment card (view 50).
+    cardScan: string;
+    cardPaidOn: string;
   };
 }
 
@@ -193,6 +196,8 @@ const en: PayLinkCopy = {
     joinTitle: "Get paid the same way",
     joinBody: "Requests, protected deals and one balance on Arc.",
     joinCta: "Create your account",
+    cardScan: "Scan or open the link",
+    cardPaidOn: "Paid {date}",
   },
 };
 
@@ -292,6 +297,8 @@ const fr: PayLinkCopy = {
     joinTitle: "Soyez payé de la même façon",
     joinBody: "Demandes, transactions protégées et un seul solde sur Arc.",
     joinCta: "Créer votre compte",
+    cardScan: "Scannez ou ouvrez le lien",
+    cardPaidOn: "Payé le {date}",
   },
 };
 
@@ -391,6 +398,8 @@ const ar: PayLinkCopy = {
     joinTitle: "احصل على أموالك بالطريقة نفسها",
     joinBody: "طلبات وصفقات محمية ورصيد واحد على Arc.",
     joinCta: "أنشئ حسابك",
+    cardScan: "امسح الرمز أو افتح الرابط",
+    cardPaidOn: "دُفع في {date}",
   },
 };
 
@@ -490,6 +499,8 @@ const hi: PayLinkCopy = {
     joinTitle: "इसी तरह भुगतान पाएँ",
     joinBody: "अनुरोध, सुरक्षित सौदे और Arc पर एक बैलेंस।",
     joinCta: "अपना खाता बनाएँ",
+    cardScan: "स्कैन करें या लिंक खोलें",
+    cardPaidOn: "{date} को भुगतान हुआ",
   },
 };
 
@@ -589,6 +600,8 @@ const sw: PayLinkCopy = {
     joinTitle: "Lipwa kwa njia hiyo hiyo",
     joinBody: "Maombi, mikataba iliyolindwa na salio moja kwenye Arc.",
     joinCta: "Fungua akaunti yako",
+    cardScan: "Changanua au fungua kiungo",
+    cardPaidOn: "Imelipwa {date}",
   },
 };
 

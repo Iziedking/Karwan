@@ -249,7 +249,7 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
-test('send is its own page and finds a person by Karwan tag before paying', async ({ page }) => {
+test('send is its own page: who, then the amount, then a confirm sheet (view 50)', async ({ page }) => {
   await serveMoney(page, {
     balances: funded,
     tags: {
@@ -258,24 +258,48 @@ test('send is its own page and finds a person by Karwan tag before paying', asyn
     },
   });
   await page.goto('/send');
-  const sheet = page.getByRole('region', { name: 'Send USDC' });
+  const flow = page.getByRole('region', { name: 'Send USDC' });
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await sheet.getByLabel('Amount').fill('25');
-  const to = sheet.getByLabel('Send to');
+  const to = flow.getByLabel('Send to');
+  const next = flow.getByRole('button', { name: 'Continue', exact: true });
 
   await to.fill('@nobody');
-  await expect(sheet).toContainText('No one on Karwan uses @nobody.');
-  await expect(sheet.getByRole('button', { name: 'Send 25.00 USDC' })).toBeDisabled();
+  await expect(flow).toContainText('No one on Karwan uses @nobody.');
+  await expect(next).toBeDisabled();
 
   await to.fill('@me');
-  await expect(sheet).toContainText('That is your own tag.');
-  await expect(sheet.getByRole('button', { name: 'Send 25.00 USDC' })).toBeDisabled();
+  await expect(flow).toContainText('That is your own tag.');
+  await expect(next).toBeDisabled();
 
   await to.fill('@ada');
-  await expect(sheet).toContainText('Ada Obi · @ada');
-  await expect(sheet).not.toContainText('0x2222');
+  await expect(flow).toContainText('Ada Obi · @ada');
+  await expect(flow).not.toContainText('0x2222');
+  await next.click();
+
+  await expect(flow).toContainText('Ada Obi');
+  await flow.getByLabel('Amount').fill('25');
+  await flow.getByRole('button', { name: 'Continue', exact: true }).click();
+  const sheet = page.getByRole('dialog');
   await expect(sheet).toContainText('25.00 USDC goes to @ada.');
+  await expect(sheet).toContainText("A send can't be undone.");
   await expect(sheet.getByRole('button', { name: 'Send 25.00 USDC' })).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test('a link that names the person opens on the amount, with the keypad on a touch screen (view 50)', async ({ page }, testInfo) => {
+  await serveMoney(page, { balances: funded, tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } } });
+  await page.goto('/send?to=@ada');
+  const flow = page.getByRole('region', { name: 'Send USDC' });
+  const amount = flow.getByLabel('Amount');
+  await expect(amount).toBeVisible();
+  const keypad = flow.getByRole('group', { name: 'Amount keypad' });
+  if (testInfo.project.name === 'phone') {
+    for (const key of ['1', '2', '.', '5']) await keypad.getByRole('button', { name: key, exact: true }).click();
+    await keypad.getByRole('button', { name: 'Delete' }).click();
+    await expect(amount).toHaveValue('12.');
+  } else {
+    await expect(keypad).toHaveCount(0);
+  }
 });
 
 test('an email account sends from its own wallet; a pool is never counted', async ({ page }) => {
@@ -284,10 +308,10 @@ test('an email account sends from its own wallet; a pool is never counted', asyn
     pool: 50,
     tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } },
   });
-  await page.goto('/send');
-  const sheet = page.getByRole('region', { name: 'Send USDC' });
-  await expect(sheet).toContainText('Available 100.00 USDC');
-  await expect(sheet).not.toContainText('150.00');
+  await page.goto('/send?to=@ada');
+  const flow = page.getByRole('region', { name: 'Send USDC' });
+  await expect(flow).toContainText('Available 100.00 USDC');
+  await expect(flow).not.toContainText('150.00');
 });
 
 test('add money has one Back: inside an answer it returns to the question', async ({ page }) => {

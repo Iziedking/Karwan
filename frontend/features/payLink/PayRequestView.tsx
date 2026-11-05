@@ -1,16 +1,15 @@
 'use client';
-import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { erc20Abi } from 'viem';
 import { useAccount, useChainId, useReadContract, useReadContracts, useSwitchChain } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { api, type DepositRequestPublic, type Reputation, type SealedReputation, profilePhotoOf } from '@/core/api';
+import { api, type DepositRequestPublic } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { moneySounds } from '@/shared/sound/moneySounds';
-import { WalletAvatar } from '@/shared/components/WalletAvatar';
+import { usePersonRecord } from '@/shared/components/PersonRecord';
 import { cn } from '@/shared/utils/cn';
 import { fill } from '@/features/deals/workspace/presentation';
 import { formatAmount } from '@/features/money/balanceModel';
@@ -19,8 +18,8 @@ import { useBridges, type BridgeRecord } from '@/features/bridge/hooks/useBridge
 import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/routePlan';
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
 import { requestViewState } from '@/features/deposit/requestViewState';
-import { isSealedReputation } from '@/features/reputation/sealed';
 import { ShareLink } from './ShareLink';
+import { PaymentCard } from './PaymentCard';
 import { FundToPay } from './FundToPay';
 import { AnyChainPay } from './AnyChainPay';
 import { afterPaid } from './chainPayState';
@@ -78,44 +77,9 @@ export function PayRequestView({ token }: { token: string }) {
   );
 }
 
-function useRequester(recipient: string) {
-  const profile = useQuery({ queryKey: ['profile', recipient], queryFn: () => api.getProfile(recipient), staleTime: 60_000 });
-  const reputation = useQuery({ queryKey: ['reputation', recipient], queryFn: () => api.reputation(recipient), staleTime: 60_000 });
-  const p = profile.data?.profile;
-  const name = p?.handle ? `@${p.handle}` : p?.displayName?.trim() || `${recipient.slice(0, 6)}…${recipient.slice(-4)}`;
-  return { profile: p, name, reputation: reputation.data };
-}
-
-function Requester({ recipient }: { recipient: string }) {
-  const TIER_LABEL = useTierLabels();
-  const t = useTranslations();
-  const copy = t.payLink.pay;
-  const { profile, name, reputation } = useRequester(recipient);
-  const [failed, setFailed] = useState(false);
-  const photo = profilePhotoOf(profile);
-  const sealed: SealedReputation | null = reputation && isSealedReputation(reputation) ? reputation : null;
-  const open: Reputation | null = reputation && !isSealedReputation(reputation) ? reputation : null;
-  const settled = open?.successCount ?? 0;
-  const recordLine = sealed
-    ? sealed.tier === 'NEW' ? copy.recordNew : `${t.sealedRecord.tier} ${TIER_LABEL[sealed.tier]}`
-    : settled > 0 && open?.tier ? fill(copy.record, { tier: open.tier, n: settled }) : copy.recordNew;
-  return (
-    <div className="flex items-center gap-3">
-      {photo && !failed ? (
-        <img src={photo} referrerPolicy="no-referrer" alt="" width={48} height={48} className="size-12 rounded-full object-cover" onError={() => setFailed(true)} />
-      ) : (
-        <WalletAvatar address={recipient} size={48} />
-      )}
-      <div className="min-w-0">
-        <p className="truncate text-[16px] font-semibold text-[var(--ink)]">{profile?.displayName?.trim() || name}</p>
-        <p className="truncate text-[14px] text-[var(--ink-secondary)] font-medium">
-          {[profile?.handle ? `@${profile.handle}` : null, recordLine]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
-      </div>
-    </div>
-  );
+/// The card's state for a request's status.
+function cardState(status: DepositRequestPublic['status']) {
+  return status === 'matched' ? 'paid' : status === 'expired' ? 'expired' : status === 'cancelled' ? 'cancelled' : 'open';
 }
 
 function Amount({ value }: { value: string | null }) {
@@ -142,17 +106,17 @@ function OwnRequest({ request }: { request: DepositRequestPublic }) {
       <div data-own-back className="-ms-2 empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} fallbackHref="/request" />
       </div>
-      <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{copy.tag}</p>
-      <Amount value={request.amountUsdc} />
-      {request.purpose ? <p className="text-[15px] text-[var(--ink)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
+      <PaymentCard
+        recipient={request.recipientAddress}
+        amount={request.amountUsdc}
+        purpose={request.purpose}
+        state={cardState(request.status)}
+        expiresAt={request.expiresAt}
+        paidAt={request.paidAt}
+        url={request.status === 'open' ? url : null}
+      />
       <p className="text-[15px] text-[var(--ink-secondary)]">{request.status === 'matched' ? copy.paidAlready : request.status === 'expired' ? copy.expired : request.status === 'cancelled' ? copy.cancelled : copy.yours}</p>
-      {paidOn ? (
-        <dl className="flex justify-between gap-3 border-y border-[var(--line)] py-3.5 text-[15px] tabular-nums">
-          <dt className="text-[var(--ink-secondary)]">{copy.receiptDate}</dt>
-          <dd className="font-medium text-[var(--ink)]">{paidOn}</dd>
-        </dl>
-      ) : null}
-      {request.status === 'open' ? <ShareLink url={url} /> : null}
+      {request.status === 'open' ? <ShareLink url={url} compact /> : null}
     </section>
   );
 }
@@ -175,7 +139,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   const { switchChainAsync } = useSwitchChain();
   const { openConnectModal } = useConnectModal();
   const { bridges, startAppKitBridge, startWeb3ArcSend, startArcSend, recheck } = useBridges();
-  const { name } = useRequester(request.recipientAddress);
+  const { name } = usePersonRecord(request.recipientAddress);
   const recipient = request.recipientAddress as `0x${string}`;
   const amount = Number(request.amountUsdc ?? 0);
   const owner = viaAccount ? (auth.address as `0x${string}`) : account.address;
@@ -364,9 +328,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   if (request.status !== 'open' && request.status !== 'matched') {
     return (
       <section className="space-y-4">
-        <Requester recipient={request.recipientAddress} />
-        <Amount value={request.amountUsdc} />
-        <p className="text-[15px] text-[var(--ink-secondary)]">{request.status === 'expired' ? copy.expired : copy.cancelled}</p>
+        <PaymentCard recipient={request.recipientAddress} amount={request.amountUsdc} purpose={request.purpose} state={cardState(request.status)} />
       </section>
     );
   }
@@ -397,14 +359,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
 
   return (
     <section>
-      <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{copy.tag}</p>
-      <div className="mt-5">
-        <Requester recipient={request.recipientAddress} />
-      </div>
-      <div className="mt-7">
-        <Amount value={request.amountUsdc} />
-      </div>
-      {request.purpose ? <p className="mt-3 text-[15px] text-[var(--ink)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
+      <PaymentCard recipient={request.recipientAddress} amount={request.amountUsdc} purpose={request.purpose} state="open" expiresAt={request.expiresAt} />
 
       <p data-direct-payment className="mt-4 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{fill(copy.directPayment, { name })}</p>
       <p className="mt-8 text-[14px] text-[var(--ink-secondary)] font-medium">{copy.payWith}</p>
@@ -478,7 +433,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       <LoginModal open={signingIn} onClose={() => setSigningIn(false)} postAuthHref={null} />
       {method !== 'chain' ? (
       <p className="mt-3 text-center text-[14px] text-[var(--ink-secondary)] font-medium">
-        {[source === 'arc' ? copy.arrivesArc : copy.arrivesOther, fill(copy.expires, { date: new Date(request.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })].join(' · ')}
+        {source === 'arc' ? copy.arrivesArc : copy.arrivesOther}
       </p>
       ) : null}
     </section>

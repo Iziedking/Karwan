@@ -1,8 +1,7 @@
 'use client';
-import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Hint } from '@/shared/components/Hint';
 import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -11,7 +10,6 @@ import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotio
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { MoneyCopy } from '@/shared/i18n/messages/money';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
-import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { dur } from '@/shared/motion/tokens';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -55,15 +53,12 @@ export interface MoneySheetProps {
   prefillRecipient?: string;
   /// Called when the person presses Done after a confirmed move.
   onDone?: () => void;
-  /// 'page' renders the same card as a page of its own (the send page), with
-  /// no drawer, no backdrop and no close button.
-  layout?: 'sheet' | 'page';
 }
 
 /// The one card for quick moves: agent top-up, agent withdrawal and a send to
 /// an Arc address. The amount is the loudest thing in it, the button says
 /// exactly what will happen, and the result lands in place.
-export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount, prefillRecipient, onDone, layout = 'sheet' }: MoneySheetProps) {
+export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount, prefillRecipient, onDone }: MoneySheetProps) {
   const t = useTranslations().money;
   const { locale } = useLocale();
   const auth = useAuth();
@@ -252,14 +247,10 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   }
 
   return (
-    <Frame layout={layout} open={open} labelledBy={titleId} busy={busy} onClose={onClose} initialFocus={amountRef}>
+    <ConfirmSheetShell open={open} labelledBy={titleId} busy={busy} onClose={onClose} initialFocus={amountRef}>
       <div className="flex items-start justify-between gap-4">
-        {layout === 'page' ? (
-          <h1 id={titleId} className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{title}</h1>
-        ) : (
-          <h2 id={titleId} className="text-[20px] font-semibold text-[var(--ink)]">{title}</h2>
-        )}
-        {layout === 'page' ? null : <button
+        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--ink)]">{title}</h2>
+        <button
           type="button"
           onClick={onClose}
           disabled={busy}
@@ -267,7 +258,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           className="-me-2 -mt-2 inline-grid size-11 shrink-0 place-items-center rounded-full text-[var(--ink-secondary)] hover:text-[var(--ink)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           <span aria-hidden className="text-[22px] leading-none">×</span>
-        </button>}
+        </button>
       </div>
 
       {/* Once the money has moved, the form gives way to the result: a stale
@@ -488,36 +479,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       </AnimatePresence>
 
       <p role="status" aria-live="polite" className="sr-only">{state.kind === 'confirmed' ? t.sheet.confirmed : ''}</p>
-    </Frame>
-  );
-}
-
-/// The drawer, or the same content as a page of its own. The page keeps the
-/// drawer's first-focus behaviour so the amount is ready to type.
-function Frame({ layout, children, initialFocus, ...sheet }: {
-  layout: 'sheet' | 'page';
-  open: boolean;
-  labelledBy: string;
-  busy: boolean;
-  onClose: () => void;
-  initialFocus: RefObject<HTMLInputElement | null>;
-  children: ReactNode;
-}) {
-  const pathname = usePathname();
-  const { isAuthenticated } = useAuth();
-  useEffect(() => {
-    if (layout === 'page') initialFocus.current?.focus();
-  }, [layout, initialFocus]);
-  if (layout === 'sheet') return <ConfirmSheetShell {...sheet} initialFocus={initialFocus}>{children}</ConfirmSheetShell>;
-  return (
-    <section aria-labelledby={sheet.labelledBy} className="mx-auto w-full max-w-[560px] pb-10 pt-2 sm:px-4 sm:pb-14">
-      {/* Back sits on the form's column, not at the page edge. */}
-      <div data-own-back className="-ms-2 mb-4 empty:hidden">
-        <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} />
-      </div>
-      {/* The form sits on one card, as in the drawer. */}
-      <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6">{children}</div>
-    </section>
+    </ConfirmSheetShell>
   );
 }
 
