@@ -56,7 +56,7 @@ export function OrderPage({ listingId }: { listingId: string }) {
 function OrderReview({ listingId, address, circle }: { listingId: string; address: string; circle: boolean }) {
   const copy = useTranslations();
   const t = copy.orderFlow;
-  const money = useMoneyText();
+  const mt = useMoneyText();
   const shop = useTranslations().marketShop;
   const { locale } = useLocale();
   const { agents } = useActivation();
@@ -141,7 +141,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
   const held = !!quote?.waitsForSeller;
   const payUsdc = quote?.youPayUsdc ?? null;
   const short = quote && spendable !== null ? shortfallUsdc(quote.youPayUsdc, spendable) : '0';
-  const failure = outcome === 'failed' ? t.failed : outcome && typeof outcome === 'object' ? money.fill(t.totalChanged, { amount: outcome.totalChanged }, {}, { exact: true }) : null;
+  const failure = outcome === 'failed' ? t.failed : outcome && typeof outcome === 'object' ? mt.fill(t.totalChanged, { amount: outcome.totalChanged }, {}, { exact: true }) : null;
 
   return (
     <main className="mx-auto w-full max-w-[560px] px-4 pb-16 pt-6 sm:px-6" data-order-page>
@@ -164,10 +164,10 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
       <section className={`${CARD_CLASS} mt-5 divide-y divide-[var(--line)] px-5 py-1`}>
         <Row label={t.delivery} value={deliverBy ? fill(t.deliverBy, { date: deliverBy }) : '…'} />
         <div className="py-1">
-          <Row label={t.price} value={quote ? money.text(quote.priceUsdc, { exact: true }) : '…'} />
-          <Row label={t.fee} value={quote ? money.text(quote.feeUsdc, { exact: true }) : '…'} />
+          <Row label={t.price} value={quote ? mt.text(quote.priceUsdc, { exact: true }) : '…'} />
+          <Row label={t.fee} value={quote ? mt.text(quote.feeUsdc, { exact: true }) : '…'} />
         </div>
-        <Row label={t.youPay} value={quote ? money.text(quote.youPayUsdc, { exact: true }) : '…'} strong />
+        <Row label={t.youPay} value={quote ? mt.text(quote.youPayUsdc, { exact: true }) : '…'} strong />
       </section>
 
       <section className={`${CARD_CLASS} mt-4 flex gap-3 p-4`}>
@@ -194,14 +194,14 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
       <section className={`${CARD_CLASS} mt-4 px-5 py-4`} data-order-balance>
         <div className="flex items-baseline justify-between gap-4">
           <span className="text-[15px] text-[var(--ink-secondary)]">{t.balance}</span>
-          <span className="tabular-nums text-[15px] font-medium text-[var(--ink)]">{spendable === null ? '…' : money.text(spendable, { exact: true })}</span>
+          <span className="tabular-nums text-[15px] font-medium text-[var(--ink)]">{spendable === null ? '…' : mt.text(spendable, { exact: true })}</span>
         </div>
         {phase === 'ready' || phase === 'paying' ? (
           <p className="mt-1 text-[14px] font-medium text-[var(--ink)]">{t.enough}</p>
         ) : phase === 'short' ? (
-          <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{money.fill(t.short, { amount: short }, {}, { exact: true })}</p>
+          <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{mt.fill(t.short, { amount: short }, {}, { exact: true })}</p>
         ) : null}
-        {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{money.fill(t.arrived, { amount: arrived }, {}, { exact: true })}</p> : null}
+        {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{mt.fill(t.arrived, { amount: arrived }, {}, { exact: true })}</p> : null}
       </section>
 
       {failure ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--ink)]">{failure}</p> : null}
@@ -231,7 +231,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
             onClick={() => { payOrder.clearOutcome(); setConfirming(true); }}
             className={PRIMARY}
           >
-            {phase === 'paying' ? money.fill(t.paying, { amount: payUsdc }, {}, { exact: true }) : quote ? money.fill(t.pay, { amount: payUsdc }, {}, { exact: true }) : fill(t.pay, { amount: '…' })}
+            {phase === 'paying' ? mt.fill(t.paying, { amount: payUsdc }, {}, { exact: true }) : quote ? mt.fill(t.pay, { amount: payUsdc }, {}, { exact: true }) : fill(t.pay, { amount: '…' })}
           </button>
         )}
       </div>
@@ -240,17 +240,17 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
 
       <FactsConfirmSheet
         open={confirming}
-        title={money.fill(t.confirmTitle, { amount: payUsdc }, {}, { exact: true })}
+        title={mt.fill(t.confirmTitle, { amount: payUsdc }, {}, { exact: true })}
         rows={[
           [t.confirmFor, [listing?.title, name].filter(Boolean).join(', ')],
-          [t.amount, money.text(payUsdc, { exact: true })],
+          [t.amount, mt.text(payUsdc, { exact: true })],
           [t.confirmFrom, t.balance],
-          ...(spendable !== null && quote ? [[t.leftAfter, money.text(Math.max(0, spendable - Number(quote.youPayUsdc)), { exact: true })] as [string, string]] : []),
+          ...(spendable !== null && quote ? [[t.leftAfter, mt.text(Math.max(0, spendable - Number(quote.youPayUsdc)), { exact: true })] as [string, string]] : []),
           [t.confirmHeld, t.heldValue],
           [fill(t.confirmIf, { name }), t.ifValue],
         ]}
-        primaryLabel={money.fill(t.pay, { amount: payUsdc }, {}, { exact: true })}
-        busyLabel={money.fill(t.paying, { amount: payUsdc }, {}, { exact: true })}
+        primaryLabel={mt.fill(t.pay, { amount: payUsdc }, {}, { exact: true })}
+        busyLabel={mt.fill(t.paying, { amount: payUsdc }, {}, { exact: true })}
         quietLabel={t.notNow}
         busy={payOrder.busy}
         error={failure}

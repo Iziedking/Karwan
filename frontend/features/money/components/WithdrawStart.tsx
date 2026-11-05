@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { withdrawReady, type WithdrawDestination } from '../withdrawStart';
+import { useMoneyText } from '../hooks/useMoneyText';
 
 /// Withdraw, first screen (view 44, P8): how much, and where it goes. A wallet
 /// or exchange carries the amount and address into the existing out rail;

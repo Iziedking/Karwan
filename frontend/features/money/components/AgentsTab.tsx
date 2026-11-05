@@ -13,6 +13,7 @@ import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { RecentMoney } from './RecentMoney';
 import { agentMoveHref } from '../moneyRoutes';
 import type { AgentKey } from '../moneySheetModel';
+import { useMoneyText } from '../hooks/useMoneyText';
 
 const SOFT = 'bg-[var(--raised)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 const RECORD_CHECK_USDC = 0.005;

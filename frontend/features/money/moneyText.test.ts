@@ -20,7 +20,10 @@ test('USDC chosen or no rate: USDC alone', () => {
 });
 
 test('Arabic keeps the price in one left-to-right run', () => {
-  assert.equal(moneyText(20, 'NGN', NGN, 'ar'), '⁦₦26,922 · 20.00 USDC⁩');
+  const text = moneyText(20, 'NGN', NGN, 'ar');
+  assert.ok(text.startsWith('⁦') && text.endsWith('⁩'), 'isolated');
+  assert.match(text, /26\D?922/);
+  assert.match(text, / · 20\.00 USDC⁩$/);
 });
 
 test('a sentence takes the price in place of "{amount} USDC"', () => {

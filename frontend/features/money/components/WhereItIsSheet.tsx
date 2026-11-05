@@ -5,6 +5,7 @@ import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { type BalancePart } from '../balanceModel';
+import { useMoneyText } from '../hooks/useMoneyText';
 
 const CHIP =
   'inline-flex min-h-9 items-center rounded-full bg-[var(--raised)] px-3.5 text-[14px] font-medium text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
