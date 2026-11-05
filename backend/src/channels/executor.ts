@@ -35,6 +35,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
       ...(p.where ? { where: p.where } : {}),
       ...(p.agreeForMe === true ? { agreeForMe: true } : {}),
       ...(p.quantity ? { quantity: p.quantity } : {}),
+      ...(p.visibility === 'agents' ? { visibility: 'agents' } : {}),
     },
   }),
   release_milestone: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/release`, body: { caller: p.caller } }),

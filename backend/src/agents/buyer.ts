@@ -4975,6 +4975,9 @@ export interface MarketplaceBrief {
   partyKind?: 'person' | 'business';
   /// Seeded example stock rather than a real person's request.
   example: boolean;
+  /// Who can see it (view 53). A private request is never shown to people
+  /// browsing; seller agents still match it.
+  visibility?: 'market' | 'agents';
 }
 
 /// Open buyer briefs, packaged for the public marketplace surface. Strips
@@ -5014,6 +5017,7 @@ export function getRequestRows(): Array<
         tradeLane: brief?.tradeLane ?? 'service',
         partyKind: brief?.partyKind ?? 'person',
         example: Boolean(brief?.seedKey),
+        visibility: brief?.visibility === 'agents' ? ('agents' as const) : ('market' as const),
         finalized: !!s.finalized,
         escrowFunded: !!s.escrowFunded,
         bids: [...s.bids.values()].map((b) => ({

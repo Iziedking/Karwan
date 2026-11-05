@@ -41,7 +41,7 @@ export function networkTools(address: string) {
           const now = Date.now();
           const enabled = config.VERIFIED_NETWORK_ONLY;
           if (side === 'sellers') {
-            const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && !prohibitedReason(l.title, l.description, l.terms)));
+            const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && l.visibility !== 'agents' && !prohibitedReason(l.title, l.description, l.terms)));
             const near = await locationOf(address);
             const hits = searchMarket({ query: need, kind: 'offers', maxPriceUsdc: budgetUsdc, excludeSeller: address, limit: 15, near, where: near ? { scope: 'near' } : undefined }, offers, []);
             const people = [];
@@ -65,7 +65,7 @@ export function networkTools(address: string) {
             return { count: people.length, people, next: people.length ? 'Offer to ask their agent about price, timeline or terms.' : 'No verified seller fits yet. Offer to post a request so verified sellers can offer.' };
           }
 
-          const briefs = await withBuyerLocations(getMarketplaceBriefs().filter((b) => !prohibitedReason(b.briefText)));
+          const briefs = await withBuyerLocations(getMarketplaceBriefs().filter((b) => b.visibility !== 'agents' && !prohibitedReason(b.briefText)));
           const hits = searchMarket({ query: need, kind: 'requests', limit: 15, near: await locationOf(address) }, [], briefs);
           const customers = [];
           for (const hit of hits) {

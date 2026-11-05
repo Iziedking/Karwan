@@ -50,6 +50,8 @@ export type PublicRequest = {
   chosenSeller?: string | null;
   /// Agent bids on it, for the public list. Never sent to a client as is.
   bids?: Array<{ sellerUser: string | null; priceUsdc: string; deadlineUnix: number }>;
+  /// A private request (view 53): only the buyer and sellers who offered see it.
+  visibility?: 'market' | 'agents';
 };
 /// One offer on a request as anyone may read it (view 53): the seller by name,
 /// never an address, and no scores, counters or leeway.
@@ -116,7 +118,7 @@ export const defaultDeps: OfferDeps = {
   publicRequest: async (jobId) => {
     const b = await publicRequestOf(jobId);
     return b
-      ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null, state: b.state, chosenSeller: b.chosenSeller, bids: b.bids }
+      ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null, state: b.state, chosenSeller: b.chosenSeller, bids: b.bids, visibility: b.visibility }
       : null;
   },
   sellerSummaries: liveSellerSummaries,
@@ -335,10 +337,18 @@ export async function viewOffers(
   const live = all.filter((o) => o.state === 'pending' && o.lapsesAt > now);
   const brief = deps.brief(jobId);
   const found = await deps.publicRequest(jobId);
-  let request: Omit<PublicRequest, 'chosenSeller' | 'bids'> | null = null;
+  const v = viewer ? low(viewer) : null;
+  const isBuyer = !!v && !!brief && low(brief.postedBy) === v;
+  let request: Omit<PublicRequest, 'chosenSeller' | 'bids' | 'visibility'> | null = null;
   let open: OpenOfferView[] = [];
-  if (found) {
-    const { chosenSeller = null, bids = [], ...shown } = found;
+  if (found?.visibility === 'agents') {
+    // A private request (view 53): no public list, and its words only for the
+    // buyer and a seller who offered on it by hand or through their agent.
+    const { chosenSeller: _c, bids = [], visibility: _v, ...shown } = found;
+    const offeredOn = !!v && (all.some((o) => low(o.sellerUser) === v) || bids.some((b) => b.sellerUser?.toLowerCase() === v));
+    request = isBuyer || offeredOn ? shown : null;
+  } else if (found) {
+    const { chosenSeller = null, bids = [], visibility: _v, ...shown } = found;
     request = shown;
     const merged = publicOffers(all, bids, chosenSeller, now);
     const people = merged.length && deps.sellerSummaries
@@ -346,8 +356,7 @@ export async function viewOffers(
       : new Map<string, ListingSeller | null>();
     open = merged.map(({ sellerUser, ...o }) => ({ ...o, seller: people.get(sellerUser) ?? null }));
   }
-  const v = viewer ? low(viewer) : null;
-  if (v && brief && low(brief.postedBy) === v) {
+  if (isBuyer) {
     const [funded, blocks] = await Promise.all([
       Promise.all(live.map((o) => deps.fundedUsdc(o.priceUsdc))),
       deps.sellerBlocks && live.length ? deps.sellerBlocks(jobId, live).catch(() => [] as SealedSeller[]) : Promise.resolve([] as SealedSeller[]),

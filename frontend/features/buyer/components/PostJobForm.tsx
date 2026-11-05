@@ -38,6 +38,7 @@ import { useReportDealAmount } from '@/features/balances/dealAmount';
 import { walletAmount } from '@/features/balances/walletFormat';
 import { requestFunding } from '../requestFunding';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
+import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -172,6 +173,7 @@ export function PostJobForm() {
   const c = useTranslations().dealCreation;
   const rf = useTranslations().requestFlow;
   const dt = useTranslations();
+  const shopCopy = dt.marketShop;
   const [reviewing, setReviewing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
@@ -241,6 +243,7 @@ export function PostJobForm() {
   // above price and gates bids on the seller's free stake covering the deal's
   // insurance reservation. For higher-value or one-shot deals.
   const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
+  const [who, setWho] = useState<WhoCanSeeChoice>('market');
   const [optionsOpen, setOptionsOpen] = useState(initialTrustedMatch || initialTolerance != null);
   // The agreement as checkable parts. A ?milestones= link seeds its split.
   const [terms, setTerms] = useState<TermsDraft>(() =>
@@ -340,6 +343,7 @@ export function PostJobForm() {
         deadlineSeconds: deadlineToSeconds(deadlineValue, deadlineUnit),
         negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
         trustedMatch,
+        ...visibilityOf(who),
         // The parts the buyer set in the terms; guarded valid by `disabled`.
         milestonePcts: dealTerms.parts.map((part) => part.pct),
         terms: agreementText,
@@ -821,8 +825,13 @@ export function PostJobForm() {
         )}
       </CreationReview> : null}
 
+      <WhoCanSee side="request" value={who} onChange={setWho} />
+      {who === 'link' ? (
+        <Link href="/buyer?mode=direct#new-deal" className="inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--ink)] underline underline-offset-4">{shopCopy.whoCanSee.linkCta}</Link>
+      ) : null}
+
       {/* SUBMIT: Post request, checked once more, then Finding sellers while it posts (view 48). */}
-      <div className="space-y-3 border-t border-[var(--line)] pt-5">
+      <div className="space-y-3 border-t border-[var(--line)] pt-5" hidden={who === 'link'}>
         <Button
           type="submit"
           data-guide="buyer-submit"

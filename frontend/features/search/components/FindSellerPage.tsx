@@ -20,6 +20,7 @@ import { requestTitle } from '../requestTitle';
 import { requestLineState } from '../requestView';
 import { LINE_COPY } from '../requestLineCopy';
 import { StartSheet } from './StartSheet';
+import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
 
 
 /// The personal buyer desk: say what you need, the most you will pay and when,
@@ -27,6 +28,7 @@ import { StartSheet } from './StartSheet';
 /// money when it has to, in one sheet that says so before it happens.
 export function FindSellerPage() {
   const t = useTranslations().search;
+  const shopCopy = useTranslations().marketShop;
   const router = useRouter();
   const auth = useAuth();
   const activation = useActivation();
@@ -41,6 +43,7 @@ export function FindSellerPage() {
   const [room, setRoom] = useState('');
   const [split, setSplit] = useState('');
   const [proven, setProven] = useState(false);
+  const [who, setWho] = useState<WhoCanSeeChoice>('market');
   const [tried, setTried] = useState(false);
   const [open, setOpen] = useState(false);
   const start = useStartRun();
@@ -122,6 +125,7 @@ export function FindSellerPage() {
         negotiationMaxIncreasePct: roomN ?? undefined,
         trustedMatch: proven || undefined,
         milestonePcts: splitPcts ?? undefined,
+        ...visibilityOf(who),
       },
       plan.moveUsdc && plan.source ? { amount: plan.moveUsdc, source: plan.source } : null,
     );
@@ -189,7 +193,12 @@ export function FindSellerPage() {
               </div>
             ) : null}
           </div>
-          <button type="button" className={`${PRIMARY} w-full sm:w-auto`} onClick={onStart}>{t.find.start}</button>
+          <WhoCanSee side="request" value={who} onChange={setWho} />
+          {who === 'link' ? (
+            <Link href="/buyer?mode=direct#new-deal" className={`${PRIMARY} inline-flex w-full items-center justify-center sm:w-auto`}>{shopCopy.whoCanSee.linkCta}</Link>
+          ) : (
+            <button type="button" className={`${PRIMARY} w-full sm:w-auto`} onClick={onStart}>{t.find.start}</button>
+          )}
           <div>
             <Link href="/buyer?mode=direct" className={LINK}>{t.find.direct}</Link>
           </div>

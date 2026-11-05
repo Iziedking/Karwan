@@ -29,6 +29,8 @@ import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 import { OfferPhotosField } from '@/features/listings/components/OfferPhotosField';
 import { CategoryChips } from '@/features/market/components/CategoryChips';
 import type { CategoryId } from '@/features/market/marketModel';
+import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
+import { DealLinkPanel } from '@/features/market/components/DealLinkPanel';
 
 const READY_CHIPS = [1, 3, 7, 14] as const;
 const MAX_READY_DAYS = 180;
@@ -70,6 +72,7 @@ export function PostListingForm() {
   const [description, setDescription] = useState(search.get('description') ?? '');
   // Optional: left empty, the market reads a category from the words.
   const [category, setCategory] = useState<CategoryId | null>(null);
+  const [who, setWho] = useState<WhoCanSeeChoice>('market');
   const [price, setPrice] = useState<number | ''>(initialPrice ?? '');
   const [floorPrice, setFloorPrice] = useState<number | ''>(
     initialPrice != null && initialTolerance != null && initialTolerance > 0
@@ -153,6 +156,7 @@ export function PostListingForm() {
       const r = await api.postListing({
         ...(photos.length ? { photos } : {}),
         ...(category ? { category } : {}),
+        ...visibilityOf(who),
         sellerUser: address,
         title: title.trim(),
         description: description.trim(),
@@ -464,7 +468,10 @@ export function PostListingForm() {
           </div>
         )}
 
-        <div className="space-y-3 border-t border-[var(--line)] pt-5">
+        <WhoCanSee side="offer" value={who} onChange={setWho} />
+        {who === 'link' ? <DealLinkPanel start="link" /> : null}
+
+        <div className="space-y-3 border-t border-[var(--line)] pt-5" hidden={who === 'link'}>
           <Button
             type="submit"
             data-guide="seller-submit"

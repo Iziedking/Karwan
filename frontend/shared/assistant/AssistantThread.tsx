@@ -394,7 +394,7 @@ async function runConfirmIntent(
     return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
   }
   if (action.intent === 'post_request') {
-    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number };
+    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number; visibility?: 'agents' };
     const r = await api.postJob({
       posterAddress: p.posterAddress,
       brief: p.brief,
@@ -403,6 +403,7 @@ async function runConfirmIntent(
       // date); the route's deadlineDays field is integer-only, so always send
       // the seconds shape, clamped to the route's own bounds (60s..90d).
       deadlineSeconds: Math.min(90 * 86_400, Math.max(60, Math.round(p.deadlineDays * 86_400))),
+      ...(p.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
     });
     return {
       successText: 'Request posted. Your agent is finding developers now.',

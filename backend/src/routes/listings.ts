@@ -104,6 +104,8 @@ const createSchema = z.object({
   /// Add the photos the seller sent to the assistant in the last hour. Set by
   /// the assistant's confirm card, never by the form.
   heldPhotos: z.boolean().optional(),
+  /// Who can see it (view 53): the market, or only buyer agents and anyone with the link.
+  visibility: z.enum(['market', 'agents']).optional(),
 });
 
 /// Every photo decoded and checked before anything is saved.
@@ -192,7 +194,8 @@ export function configureListingMatchingEngineShadow(
 /// matched, so the page reads only the offers it shows.
 listingsRoutes.get('/', async (c) => {
   // Rows that describe a trade Karwan does not support stay off the market.
-  const all = listAllListings().filter((l) => !prohibitedReason(l.title, l.description, l.terms));
+  // A private offer (view 53) is never on the market; buyer agents and its link still reach it.
+  const all = listAllListings().filter((l) => l.visibility !== 'agents' && !prohibitedReason(l.title, l.description, l.terms));
   const page = marketPageQuery.safeParse(c.req.query());
   if (!page.success) return c.json({ error: 'invalid market page' }, 400);
   const picked = page.data.limit === undefined
@@ -522,6 +525,7 @@ listingsRoutes.post('/', async (c) => {
     category: body.category,
     tradeLane: deriveLane(sellerAccountType),
     partyKind: sellerAccountType,
+    ...(body.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
   });
   const now = Date.now();
   const held = body.heldPhotos ? offerPhotos.takeHeld(body.sellerUser.toLowerCase(), now) : [];

@@ -3,6 +3,8 @@ import { useId, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT, FIELD, PRIMARY } from '@/shared/ui/controls';
 import { DETAILS_MAX, TITLE_MAX, offerErrors } from '../formRules';
+import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
+import { DealLinkPanel } from '@/features/market/components/DealLinkPanel';
 
 export interface OfferDraft {
   title: string;
@@ -10,6 +12,8 @@ export interface OfferDraft {
   askingPriceUsdc: number;
   negotiationMaxDecreasePct?: number;
   ttlDays: number;
+  /// Private (view 53): buyer agents and its link only, never on the market.
+  visibility?: 'agents';
 }
 
 /// What the seller offers, from what price, and how long it stays up. Posting
@@ -22,6 +26,7 @@ export function OfferForm({ onSubmit }: { onSubmit: (draft: OfferDraft) => void 
   const [price, setPrice] = useState('');
   const [room, setRoom] = useState('');
   const [ttl, setTtl] = useState('30');
+  const [who, setWho] = useState<WhoCanSeeChoice>('market');
   const [tried, setTried] = useState(false);
   const priceN = Number(price);
   const roomN = room.trim() === '' ? null : Number(room);
@@ -44,6 +49,7 @@ export function OfferForm({ onSubmit }: { onSubmit: (draft: OfferDraft) => void 
       askingPriceUsdc: priceN,
       negotiationMaxDecreasePct: roomN ?? undefined,
       ttlDays: ttlN,
+      ...visibilityOf(who),
     });
   };
 
@@ -85,7 +91,12 @@ export function OfferForm({ onSubmit }: { onSubmit: (draft: OfferDraft) => void 
         </div>
         {err('room')}
       </div>
-      <button type="button" className={`${PRIMARY} w-full sm:w-auto`} onClick={submit}>{t.submit}</button>
+      <WhoCanSee side="offer" value={who} onChange={setWho} />
+      {who === 'link' ? (
+        <DealLinkPanel start="link" />
+      ) : (
+        <button type="button" className={`${PRIMARY} w-full sm:w-auto`} onClick={submit}>{t.submit}</button>
+      )}
     </div>
   );
 }

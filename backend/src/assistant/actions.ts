@@ -65,6 +65,8 @@ export interface PostOfferPayload {
   category?: CategoryId;
   /// Add the photos the seller sent in chat in the last hour (view 28).
   heldPhotos?: boolean;
+  /// Who can see it (view 53): only buyer agents and anyone with its link.
+  visibility?: 'agents';
 }
 
 export interface PostRequestPayload {
@@ -83,6 +85,8 @@ export interface PostRequestPayload {
   /// How many, when the person said a count (view 41). Missing means the
   /// server reads the brief for one.
   quantity?: { count: number; unit: string | null };
+  /// Who can see it (view 53): only seller agents, never on the market.
+  visibility?: 'agents';
 }
 
 export interface ReleaseMilestonePayload {
@@ -643,6 +647,8 @@ export interface BuildPostOfferInput {
   category?: CategoryId;
   /// How many photos the seller has sent in chat for this offer, if any.
   heldPhotos?: number;
+  /// Private (view 53): never on the market; buyer agents and its link still reach it.
+  private?: boolean;
 }
 
 /// Build a validated post-offer confirm card, or an `{ error }` the tool hands
@@ -697,9 +703,11 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
     ...(input.deliveryKind ? { deliveryKind: input.deliveryKind } : {}),
     ...(input.category ? { category: input.category } : {}),
     ...(input.heldPhotos ? { heldPhotos: true } : {}),
+    ...(input.private ? { visibility: 'agents' as const } : {}),
   };
   if (input.category) fields.push({ label: 'Category', value: CATEGORY_NAMES[input.category] });
   if (input.heldPhotos) fields.push({ label: 'Photos', value: String(input.heldPhotos) });
+  fields.push({ label: 'Who can see it', value: input.private ? 'Only buyer agents and people you send the link. Never on the market.' : 'Everyone on the market' });
 
   return {
     kind: 'confirm',
@@ -736,6 +744,8 @@ export interface BuildPostRequestInput {
   agreeForMe?: boolean;
   /// How many, when the person said a count (view 41).
   quantity?: { count: number; unit: string | null };
+  /// Private (view 53): only seller agents see it, never on the market.
+  private?: boolean;
 }
 
 /// Build a post-request (buyer desk) confirm card, or an `{ error }` the tool
@@ -782,6 +792,10 @@ export function buildPostRequestConfirm(
         ? 'On: your agent agrees with the seller it recommends, within budget. You tap once to lock the money.'
         : 'Off: you choose from the shortlist',
     },
+    {
+      label: 'Who can see it',
+      value: i.private ? 'Only seller agents. Never on the market.' : 'Everyone on the market, with every offer on it',
+    },
   ];
   return {
     kind: 'confirm',
@@ -799,6 +813,7 @@ export function buildPostRequestConfirm(
       ...(i.where ? { where: i.where } : {}),
       ...(i.agreeForMe ? { agreeForMe: true } : {}),
       ...(quantity ? { quantity } : {}),
+      ...(i.private ? { visibility: 'agents' as const } : {}),
     },
     confirmLabel: 'Post request',
     cancelLabel: 'Not now',

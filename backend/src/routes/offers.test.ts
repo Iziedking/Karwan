@@ -115,3 +115,34 @@ test('seller withdraws their own offer', async () => {
   assert.equal((await post(`/${JOB}/offers/${offer.id}/withdraw`)).status, 200);
   assert.equal((await post(`/${JOB}/offers/${offer.id}/withdraw`)).status, 409);
 });
+
+test('a private request shows no public list, and its words only to the buyer and a seller who offered (view 53)', async () => {
+  __resetDirectOffersForTest();
+  await post(`/${JOB}/offers`, body);
+  __test.setDeps({
+    ...deps,
+    publicRequest: () => ({
+      briefText: 'Private logo', budgetUsdc: '300', deadlineUnix: 2_000_000, state: 'open', visibility: 'agents',
+      bids: [{ sellerUser: '0xagentseller', priceUsdc: '250', deadlineUnix: 1_600_000 }],
+    }),
+    sellerSummaries: async (users) => new Map(users.map((u) => [u, null])),
+  });
+  const read = async (who: string | null) => {
+    signedIn = who;
+    return (await (await offersRoutes.request(`/${JOB}/offers`)).json()) as { role: string; request: { briefText: string } | null; public: unknown[] };
+  };
+  const visitor = await read(null);
+  const stranger = await read('0xstranger');
+  const handSeller = await read('0xseller');
+  const agentSeller = await read('0xagentseller');
+  const buyer = await read('0xbuyer');
+  __test.setDeps(deps);
+  signedIn = '0xseller';
+  assert.equal(visitor.request, null);
+  assert.equal(stranger.request, null);
+  assert.equal(handSeller.request?.briefText, 'Private logo');
+  assert.equal(agentSeller.request?.briefText, 'Private logo');
+  assert.equal(buyer.request?.briefText, 'Private logo');
+  for (const r of [visitor, stranger, handSeller, agentSeller, buyer]) assert.deepEqual(r.public, []);
+  assert.equal('visibility' in (buyer.request ?? {}), false);
+});

@@ -72,6 +72,9 @@ export interface Listing {
   /// until it is settled, cancelled or never paid (view 44). Internal; never in
   /// a public read.
   orderJobId?: string;
+  /// Who can see it (view 53): on the market (absent), or only buyer agents
+  /// and anyone with its link.
+  visibility?: 'market' | 'agents';
 }
 
 // Listings are off-chain and have no chain event to reseed from, so without
@@ -142,6 +145,7 @@ export function createListing(
     termsDraft: input.termsDraft,
     deliveryKind: input.deliveryKind,
     category: input.category,
+    ...(input.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
   };
   store.set(id, listing);
   persist();

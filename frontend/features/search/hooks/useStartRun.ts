@@ -16,6 +16,8 @@ export type PostInput =
       negotiationMaxIncreasePct?: number;
       trustedMatch?: boolean;
       milestonePcts?: number[];
+      /// Private (view 53): only seller agents, never on the market.
+      visibility?: 'agents';
     }
   | {
       kind: 'offer';
@@ -24,6 +26,8 @@ export type PostInput =
       askingPriceUsdc: number;
       negotiationMaxDecreasePct?: number;
       ttlDays: number;
+      /// Private (view 53): buyer agents and its link only, never on the market.
+      visibility?: 'agents';
     };
 
 type Move = { amount: number; source: 'balance' | 'pool' } | null;

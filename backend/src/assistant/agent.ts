@@ -1943,7 +1943,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         if (refused) return { refused: true, category: refused.category, message: refused.message, next: 'Tell the user this plainly in one or two sentences and do not suggest other places to get it.' };
         try {
           const now = Date.now();
-          const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && !prohibitedReason(l.title, l.description, l.terms)));
+          const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && l.visibility !== 'agents' && !prohibitedReason(l.title, l.description, l.terms)));
           // Every request the open market shows (view 53), with where it stands.
           const placed = (await publicRequests()).filter((r) => !prohibitedReason(r.briefText));
           const stateOf = new Map(placed.map((r) => [r.jobId, r.state]));
@@ -2109,7 +2109,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           const offered = new Set(
             wallets?.sellerAddress ? getSellerSnapshot(wallets.sellerAddress).activeBids.map((b) => b.jobId) : [],
           );
-          const requests = getMarketplaceBriefs().map((b) => ({
+          const requests = getMarketplaceBriefs().filter((b) => b.visibility !== 'agents').map((b) => ({
             jobId: b.jobId,
             briefText: b.briefText,
             budgetUsdc: b.budgetUsdc,
@@ -2550,6 +2550,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         ttlDays: z.number().min(0.0006).max(90).optional().describe('Optional: how many days the offer stays open. Defaults to 30.'),
         deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional().describe('goods (physical items to deliver), in_person (work done at a place), or remote (done online). Ask only if unclear.'),
         category: z.enum(CATEGORY_IDS).optional().describe('The market category the offer belongs in, when it clearly fits one. Leave it out when unsure; the market reads one from the words.'),
+        private: z.boolean().optional().describe('True only when they want it private: never on the market or in search; buyer agents still find it and anyone they send the link can open it. Off means everyone on the market sees it. If they want to sell to one person they already agreed with, use share_my_deal_link instead.'),
       }),
       execute: async (args) => {
         // Pre-flight the SAME preconditions the listings route enforces, so the
@@ -2586,6 +2587,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         where: z.object({ scope: z.enum(['near', 'country', 'anywhere']), country: z.string().length(2).optional() }).optional().describe('Where the buyer wants it done, for goods or in-person work only: near (near them), country (a two-letter country), or anywhere. Ask "near you, or anywhere?" once when unclear. Never for remote work.'),
         agreeForMe: z.boolean().optional().describe('True when they want Agree for me: the agent agrees with the seller it recommends, within budget, and they tap once to lock the money. Off unless they said yes.'),
         quantity: z.object({ count: z.number().int().min(1).max(100_000), unit: z.string().max(40).nullable() }).optional().describe('How many they need and the word for it when they said a count ("3 pairs" -> {count: 3, unit: "pairs"}). Leave out when they did not say one; the server reads the brief.'),
+        private: z.boolean().optional().describe('True only when they want the request private: never on the market; only seller agents see it and match it, and only the sellers who offer see its words. Off means it is on the market with every offer on it public. If they already agreed with one person, start a direct deal with them instead (start_protected_deal); it is never on the market.'),
       }),
       execute: async (args) => {
         // Pre-flight the SAME preconditions the jobs route enforces so the card
@@ -2627,6 +2629,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           ...(args.where && args.deliveryKind !== 'remote' ? { where: { ...args.where, ...(args.where.country ? { country: args.where.country.toUpperCase() } : {}) } } : {}),
           ...(args.agreeForMe ? { agreeForMe: true } : {}),
           ...(args.quantity ? { quantity: args.quantity } : {}),
+          ...(args.private ? { private: true } : {}),
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);

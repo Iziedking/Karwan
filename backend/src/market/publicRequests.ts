@@ -44,7 +44,8 @@ const ORDER: Record<PublicRequestRow['state'], number> = { open: 0, negotiating:
 
 /// Open first, then in negotiation, then agreed; newest first within each.
 export async function publicRequests(deps: PublicRequestDeps = livePublicRequestDeps): Promise<PublicRequestRow[]> {
-  const placed = await Promise.all(deps.rows().map((row) => place(row, deps)));
+  // A private request (view 53) is never on the market.
+  const placed = await Promise.all(deps.rows().filter((row) => row.visibility !== 'agents').map((row) => place(row, deps)));
   return placed
     .filter((r): r is PublicRequestRow => r !== null)
     .sort((a, b) => ORDER[a.state] - ORDER[b.state] || b.postedAt - a.postedAt);

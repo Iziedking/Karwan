@@ -144,6 +144,8 @@ const postJobSchema = z
     /** "Agree for me" (view 30): the agent may agree with the seller it
      *  recommends, within budget; locking the money still waits for the buyer. */
     agreeForMe: z.boolean().optional(),
+    /** Who can see it (view 53): the market, or only seller agents. */
+    visibility: z.enum(['market', 'agents']).optional(),
     /** Per-brief milestone split the buyer stated in the request ("30% then
      *  70%"). Percentages must sum to 100. Overrides the buyer profile default
      *  at escrow funding. One part (100) is a single payment; both escrows
@@ -494,6 +496,7 @@ ${body.terms}` : body.brief));
     terms: body.terms,
     reviewWindowDays: body.reviewWindowDays,
     trustedMatch: body.trustedMatch === true,
+    ...(body.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
     tradeLane: deriveJobLane(posterAccountType, body.tradeType),
     partyKind: posterAccountType,
     tradeType: body.tradeType,

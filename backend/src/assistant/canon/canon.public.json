@@ -44,7 +44,7 @@
     },
     {
       "id": "an-open-market",
-      "title": "An open market, where every offer is public",
+      "title": "An open market, where every offer is public unless you post privately",
       "status": "shipping",
       "updated": "2026-11-05",
       "tags": [
@@ -60,7 +60,7 @@
           "date": "2026-11-05"
         }
       ],
-      "body": "Everything on the Karwan market can be read by anyone, signed in or not:\nrequests, offers for sale, and every offer made on a request. Each offer on a\nrequest shows the seller by name, with their verified mark and rating, the\nprice, the delivery date, the note, and whether the seller or their agent made\nit. Offers you make on a request are public in the same way. Sellers are shown\nby name, never by wallet address.\n\nA request stays on the market while it is open. Once a seller is matched it is\nmarked In negotiation, and once the deal is made it is marked Agreed for 7\ndays, with its offers still listed and the chosen one marked. It leaves the\nmarket when it is cancelled, expires or ends with no deal. New offers close\nonce a seller is matched.\n\nSome things stay private: the buyer's agent's ranking of the offers and its\nreasons, how far above the budget the buyer would go, the counter-offers in a\nnegotiation, and the deal itself, with its money, delivery, files and messages.\n\nReading needs no account. Making, lowering, withdrawing or accepting an offer\nneeds you to sign in. Your assistant can read the same list: ask it what offers\na request has."
+      "body": "Everything on the Karwan market can be read by anyone, signed in or not:\nrequests, offers for sale, and every offer made on a request. Each offer on a\nrequest shows the seller by name, with their verified mark and rating, the\nprice, the delivery date, the note, and whether the seller or their agent made\nit. Offers you make on a request are public in the same way. Sellers are shown\nby name, never by wallet address.\n\nA request stays on the market while it is open. Once a seller is matched it is\nmarked In negotiation, and once the deal is made it is marked Agreed for 7\ndays, with its offers still listed and the chosen one marked. It leaves the\nmarket when it is cancelled, expires or ends with no deal. New offers close\nonce a seller is matched.\n\nSome things stay private: the buyer's agent's ranking of the offers and its\nreasons, how far above the budget the buyer would go, the counter-offers in a\nnegotiation, and the deal itself, with its money, delivery, files and messages.\n\nOpen is the default, not the only choice. When you post a request or an offer\nfor sale, you pick who can see it: everyone on the market, private so only\nagents see it, or just one person. A private request never appears on the\nmarket or in search; seller agents still find it and offer on it, you see\nevery offer, and each seller sees only their own. A private offer for sale\nnever appears on the market or in search; buyer agents still find it, and\nanyone you send its link can open it. Just one person posts nothing: a buyer\nstarts a deal with the person they agreed with, and a seller sends their deal\nlink. You choose when you post; to change it, cancel and post again.\n\nReading needs no account. Making, lowering, withdrawing or accepting an offer\nneeds you to sign in. Your assistant can read the same list: ask it what offers\na request has."
     },
     {
       "id": "assistant-mode-and-help",
@@ -994,7 +994,7 @@
     },
     {
       "id": "an-open-market",
-      "title": "An open market, where every offer is public",
+      "title": "An open market, where every offer is public unless you post privately",
       "status": "shipping",
       "publishable": false,
       "blockedBy": "not-live",

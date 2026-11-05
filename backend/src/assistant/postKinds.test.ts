@@ -81,3 +81,25 @@ test('an offer from the assistant can carry its market category, and only one fr
   const none = buildPostOfferConfirm({ caller: ADA, title: 'Logo design', description: 'Logos in three days', askingPriceUsdc: 60 });
   assert.ok(!('error' in none) && none.payload.category === undefined);
 });
+
+test('a private request and a private offer say so on the card and reach the routes as private (view 53)', async () => {
+  const calls: Array<{ path: string; body: unknown }> = [];
+  const execute = createExecutor({
+    call: async (_a, _m, path, body) => {
+      calls.push({ path, body });
+      return { status: 200, json: path === '/api/jobs' ? { jobId: '0x1' } : { listing: { id: 'lst_1' } } };
+    },
+  });
+  const request = buildPostRequestConfirm({ caller: ADA, brief: 'A quiet logo job', budgetUsdc: 80, deadlineDays: 5, private: true });
+  const offer = buildPostOfferConfirm({ caller: ADA, title: 'Logo design', description: 'A clean logo in three days.', askingPriceUsdc: 60, private: true });
+  const open = buildPostRequestConfirm({ caller: ADA, brief: 'An open logo job', budgetUsdc: 80, deadlineDays: 5 });
+  assert.ok(!('error' in request) && !('error' in offer) && !('error' in open));
+  assert.match(request.fields.find((f) => f.label === 'Who can see it')?.value ?? '', /Only seller agents/);
+  assert.match(offer.fields.find((f) => f.label === 'Who can see it')?.value ?? '', /Never on the market/);
+  assert.equal((open.payload as PostRequestPayload).visibility, undefined);
+  assert.equal((offer.payload as PostOfferPayload).visibility, 'agents');
+  await execute({ address: ADA }, request);
+  await execute({ address: ADA }, offer);
+  assert.equal((calls.find((c) => c.path === '/api/jobs')?.body as Record<string, unknown>).visibility, 'agents');
+  assert.equal((calls.find((c) => c.path === '/api/listings')?.body as Record<string, unknown>).visibility, 'agents');
+});

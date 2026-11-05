@@ -59,3 +59,10 @@ test('one request is found by id in any case, and an ended one is not found', as
   assert.equal(await publicRequestOf('declined', deps), null);
   assert.equal(await publicRequestOf('missing', deps), null);
 });
+
+test('a private request is never on the market, but is still found by id for the people who may see it', async () => {
+  const priv = { ...row('secret', 20), visibility: 'agents' as const };
+  const withPrivate: PublicRequestDeps = { ...deps, rows: () => [...deps.rows(), priv] };
+  assert.equal((await publicRequests(withPrivate)).some((r) => r.jobId === 'secret'), false);
+  assert.equal((await publicRequestOf('secret', withPrivate))?.visibility, 'agents');
+});

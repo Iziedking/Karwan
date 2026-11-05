@@ -17,6 +17,20 @@ export interface MarketShopCopy {
   samplePhoto: string;
   /// A request matched or agreed stays on the market, marked (view 53).
   requestStates: { negotiating: string; agreed: string };
+  /// Who can see what you post (view 53).
+  whoCanSee: {
+    label: string;
+    market: string;
+    marketRequest: string;
+    marketOffer: string;
+    agents: string;
+    agentsRequest: string;
+    agentsOffer: string;
+    link: string;
+    linkRequest: string;
+    linkOffer: string;
+    linkCta: string;
+  };
   usdc: string;
   someone: string;
   verified: string;
@@ -86,6 +100,19 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Protected',
     samplePhoto: 'Sample photo',
     requestStates: { negotiating: 'In negotiation', agreed: 'Agreed' },
+    whoCanSee: {
+      label: 'Who can see it',
+      market: 'Everyone on the market',
+      marketRequest: 'Listed on the market. Anyone can see it and every offer on it.',
+      marketOffer: 'Listed on the market for anyone to find.',
+      agents: 'Private: only agents',
+      agentsRequest: 'Never on the market. Seller agents still find it, and only the sellers who offer see it.',
+      agentsOffer: 'Never on the market. Buyer agents still find it, and anyone you send the link can open it.',
+      link: 'Just one person',
+      linkRequest: 'You already agreed with someone. Start a deal with them; nothing is posted.',
+      linkOffer: 'You already agreed with someone. Send them your deal link; nothing is posted.',
+      linkCta: 'Start a deal with them',
+    },
     usdc: 'USDC',
     someone: 'A Karwan seller',
     verified: 'Verified',
@@ -151,6 +178,19 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Protégé',
     samplePhoto: 'Photo d’exemple',
     requestStates: { negotiating: 'En négociation', agreed: 'Accord conclu' },
+    whoCanSee: {
+      label: 'Qui peut le voir',
+      market: 'Tout le monde sur le marché',
+      marketRequest: 'Sur le marché. Tout le monde voit la demande et chaque offre reçue.',
+      marketOffer: 'Sur le marché, visible par tous.',
+      agents: 'Privé : agents seulement',
+      agentsRequest: 'Jamais sur le marché. Les agents vendeurs la trouvent, et seuls les vendeurs qui font une offre la voient.',
+      agentsOffer: 'Jamais sur le marché. Les agents acheteurs la trouvent, et toute personne à qui vous envoyez le lien peut l’ouvrir.',
+      link: 'Une seule personne',
+      linkRequest: 'Vous êtes déjà d’accord avec quelqu’un. Lancez un accord avec cette personne ; rien n’est publié.',
+      linkOffer: 'Vous êtes déjà d’accord avec quelqu’un. Envoyez-lui votre lien d’accord ; rien n’est publié.',
+      linkCta: 'Lancer un accord avec elle',
+    },
     usdc: 'USDC',
     someone: 'Un vendeur Karwan',
     verified: 'Vérifié',
@@ -216,6 +256,19 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'محمي',
     samplePhoto: 'صورة توضيحية',
     requestStates: { negotiating: 'قيد التفاوض', agreed: 'تم الاتفاق' },
+    whoCanSee: {
+      label: 'من يمكنه رؤيته',
+      market: 'الجميع في السوق',
+      marketRequest: 'معروض في السوق. يمكن لأي شخص رؤيته ورؤية كل عرض عليه.',
+      marketOffer: 'معروض في السوق ليجده أي شخص.',
+      agents: 'خاص: للوكلاء فقط',
+      agentsRequest: 'لا يظهر في السوق أبدًا. يجده وكلاء البائعين، ولا يراه إلا البائعون الذين يقدّمون عروضًا.',
+      agentsOffer: 'لا يظهر في السوق أبدًا. يجده وكلاء المشترين، ويمكن لأي شخص ترسل له الرابط فتحه.',
+      link: 'شخص واحد فقط',
+      linkRequest: 'اتفقت مع شخص بالفعل. ابدأ صفقة معه؛ لا يُنشر شيء.',
+      linkOffer: 'اتفقت مع شخص بالفعل. أرسل له رابط صفقتك؛ لا يُنشر شيء.',
+      linkCta: 'ابدأ صفقة معه',
+    },
     usdc: 'USDC',
     someone: 'بائع على Karwan',
     verified: 'موثَّق',
@@ -281,6 +334,19 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'सुरक्षित',
     samplePhoto: 'नमूना फ़ोटो',
     requestStates: { negotiating: 'बातचीत में', agreed: 'सहमति हो गई' },
+    whoCanSee: {
+      label: 'इसे कौन देख सकता है',
+      market: 'बाज़ार में सभी',
+      marketRequest: 'बाज़ार में दिखता है। कोई भी इसे और इस पर हर ऑफ़र देख सकता है।',
+      marketOffer: 'बाज़ार में दिखता है, कोई भी ढूँढ सकता है।',
+      agents: 'निजी: केवल एजेंट',
+      agentsRequest: 'कभी बाज़ार में नहीं। विक्रेता एजेंट इसे ढूँढते हैं, और केवल ऑफ़र देने वाले विक्रेता इसे देखते हैं।',
+      agentsOffer: 'कभी बाज़ार में नहीं। खरीदार एजेंट इसे ढूँढते हैं, और जिसे आप लिंक भेजें वह इसे खोल सकता है।',
+      link: 'सिर्फ़ एक व्यक्ति',
+      linkRequest: 'आप किसी से पहले ही सहमत हैं। उनके साथ सौदा शुरू करें; कुछ भी पोस्ट नहीं होता।',
+      linkOffer: 'आप किसी से पहले ही सहमत हैं। उन्हें अपना सौदा लिंक भेजें; कुछ भी पोस्ट नहीं होता।',
+      linkCta: 'उनके साथ सौदा शुरू करें',
+    },
     usdc: 'USDC',
     someone: 'Karwan का एक विक्रेता',
     verified: 'सत्यापित',
@@ -346,6 +412,19 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Imelindwa',
     samplePhoto: 'Picha ya mfano',
     requestStates: { negotiating: 'Kwenye mazungumzo', agreed: 'Imekubaliwa' },
+    whoCanSee: {
+      label: 'Nani anaweza kuona',
+      market: 'Kila mtu sokoni',
+      marketRequest: 'Iko sokoni. Mtu yeyote anaiona pamoja na kila ofa juu yake.',
+      marketOffer: 'Iko sokoni ili mtu yeyote aipate.',
+      agents: 'Binafsi: mawakala tu',
+      agentsRequest: 'Haiwi sokoni kamwe. Mawakala wa wauzaji wanaipata, na wauzaji wanaotoa ofa tu ndio wanaiona.',
+      agentsOffer: 'Haiwi sokoni kamwe. Mawakala wa wanunuzi wanaipata, na yeyote utakayemtumia kiungo anaweza kuifungua.',
+      link: 'Mtu mmoja tu',
+      linkRequest: 'Tayari mmekubaliana na mtu. Anzisha mpango naye; hakuna kinachowekwa.',
+      linkOffer: 'Tayari mmekubaliana na mtu. Mtumie kiungo chako cha mpango; hakuna kinachowekwa.',
+      linkCta: 'Anzisha mpango naye',
+    },
     usdc: 'USDC',
     someone: 'Muuzaji wa Karwan',
     verified: 'Amethibitishwa',

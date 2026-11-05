@@ -3236,6 +3236,8 @@ export const api = {
     terms?: string;
     termsDraft?: ListingTermsDraft;
     category?: string;
+    /// Who can see it (view 53): only buyer agents and anyone with the link.
+    visibility?: 'market' | 'agents';
   }) =>
     json<{ listing: Listing }>('/api/listings', {
       method: 'POST',
@@ -3844,6 +3846,8 @@ export const api = {
       budgetUsdc: number;
       negotiationMaxIncreasePct?: number;
       trustedMatch?: boolean;
+      /// Who can see it (view 53): only seller agents, never on the market.
+      visibility?: 'market' | 'agents';
       // Per-brief milestone split stated in the request ("30% then 70%").
       // Percentages sum to 100; overrides the buyer profile default at funding.
       milestonePcts?: number[];

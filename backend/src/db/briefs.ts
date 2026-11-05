@@ -50,6 +50,8 @@ export interface Brief {
   /// one-shot deals where the buyer can't redo the trade if the seller is a
   /// no-show. Defaults to false (Normal mode).
   trustedMatch?: boolean;
+  /// Who can see it (view 53): on the market (absent) or only to agents.
+  visibility?: 'market' | 'agents';
   /// Match lane this brief belongs to. 'service' is the single-service P2P
   /// flow, open to every account type; 'finance' is the SME/B2B trade-finance
   /// flow, restricted to verified businesses on both sides. Stamped once at

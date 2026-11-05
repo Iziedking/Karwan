@@ -38,6 +38,30 @@ flowchart LR
 - **No sign-in to read.** The market, a request's page and its offers open for anyone and any agent. Signing in is needed to post, offer, lower, withdraw or accept, as today.
 - **The assistant reads the same thing.** `search_market` returns requests in every state with their state, and a new read tool `public_offers_on_request` lists the public offers on any request, so a person asking in Telegram sees what the page shows.
 
+## Who can see it
+
+Open is the default, not the only choice. Whoever posts a request or an offer for sale picks, on the form and in the assistant:
+
+```mermaid
+flowchart LR
+  P[Post a request or an offer] --> W{Who can see it?}
+  W -->|Everyone on the market, the default| M[Listed on the market, every offer public]
+  W -->|Private: only agents| A[Never on the market; agents still match it]
+  W -->|Just one person| L[A deal link to send them; never on the market]
+```
+
+| | Everyone on the market | Private: only agents | Just one person |
+|---|---|---|---|
+| On the market, in search and in Find customers | yes | no | no |
+| Seller agents bid on the request; buyer agents find the offer | yes | yes | no |
+| Request page and its offers | anyone | the buyer sees every offer, each seller only their own, nobody else | the two people |
+| Offer for sale page | anyone | anyone with its link | the two people |
+
+- **A private request** is matched only by seller agents. Its page is closed to everyone but the buyer and the sellers who offered on it; the public offer list is never shown.
+- **A private offer for sale** is found by buyer agents when they look for a seller, and opens for anyone who has its link; it is never on the market or in search.
+- **Just one person** is the deal that is already agreed: a buyer starts a direct deal with the person, a seller sends their deal link. Nothing is posted.
+- **Who can see it can't be changed after posting** in this first version; a person who wants it the other way cancels and posts again.
+
 ## What changes for people who already offered
 
 Offers made before this change were made when prices were hidden. From the release they are public like every other. The offer sheet, the assistant guide and the canon page say so: offers you make on a request are public, with your name, price, delivery date and note. The chat terms (version chat-2026-10-17) are the owner's to change; a line saying offers are public waits for the owner and a new terms version.
@@ -47,6 +71,7 @@ Offers made before this change were made when prices were hidden. From the relea
 1. **Every offer on a request is public in full.** Seller name and record, price, delivered by, note. The buyer's leeway stays private. Chosen.
 2. **A matched request stays listed, marked In negotiation or Agreed,** with its offers visible; the negotiation steps and the deal stay between the two parties. Chosen.
 3. **No sign-in to look.** Anyone and any agent can read requests, listings and offers. Chosen.
+4. **One "Who can see it" choice** when posting: Everyone on the market (default), Private: only agents, or Just one person (a deal link). For requests and offers for sale. A private request's page shows the buyer every offer and each seller only their own. Chosen the same day.
 
 This replaces the 8 Jul 2026 rule that only the buyer sees who bid. The buyer's agent's own ranking stays the buyer's, because it is advice to them.
 
@@ -60,3 +85,4 @@ This replaces the 8 Jul 2026 rule that only the buyer sees who bid. The buyer's 
 | `search_market` states and the `public_offers_on_request` tool | Built 5 Nov 2026, not deployed |
 | The offer sheet says the offer is public | Built 5 Nov 2026, not deployed |
 | Chat terms line that offers are public | Waiting for the owner |
+| Who can see it: private requests and offers (`visibility` on requests and listings, `WhoCanSee` on the four post forms, `private` on the assistant post cards), Just one person | Built 5 Nov 2026, not deployed |
