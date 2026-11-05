@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fillMoney, localHint, moneyText } from './moneyText';
+import { fillMoney, localHint, localiseFigures, moneyText } from './moneyText';
 
 /// Prices as text (view 54): one figure in the chosen currency; USDC only
 /// when USDC is chosen or there is no fresh rate.
@@ -46,4 +46,13 @@ test('a sentence takes the price in place of "{amount} USDC"', () => {
 test('a typed amount shows its local worth, or nothing', () => {
   assert.equal(localHint(20, 'NGN', NGN, 'en'), '≈ ₦26,922');
   assert.equal(localHint(20, 'USDC', null, 'en'), null);
+});
+
+test('a recorded sentence says each figure in the chosen currency', () => {
+  const naira = (n: number) => moneyText(n, 'NGN', NGN, 'en');
+  assert.equal(localiseFigures('Received 500 USDC from @ada', naira), 'Received ₦673,055 from @ada');
+  assert.equal(localiseFigures('Imepokea USDC 1,250.5 kutoka @ada', naira), `Imepokea ${naira(1250.5)} kutoka @ada`);
+  assert.equal(localiseFigures('Paid 12.40 USDC and 3 USDC', naira), `Paid ${naira(12.4)} and ${naira(3)}`);
+  assert.equal(localiseFigures('Money secured and protection activated', naira), 'Money secured and protection activated');
+  assert.equal(localiseFigures('Received 500 USDC', (n) => moneyText(n, 'USDC', null, 'en')), 'Received 500.00 USDC');
 });

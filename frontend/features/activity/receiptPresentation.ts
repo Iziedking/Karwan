@@ -80,7 +80,7 @@ export function readableMovementText(value: string): string {
     .replace(/\bpolygonAmoy\b/g, 'Polygon Amoy')
     .replace(/\bavalancheFuji\b/g, 'Avalanche Fuji')
     .replace(/\bunichainSepolia\b/g, 'Unichain Sepolia')
-    .replace(/Escrow funded and protection activated/gi, 'USDC secured and protection activated');
+    .replace(/Escrow funded and protection activated/gi, 'Money secured and protection activated');
 }
 
 function escapeSvg(value: string): string {

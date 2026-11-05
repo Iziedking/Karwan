@@ -114,7 +114,8 @@ The steps, their order and the three-part bar stay as they are. The questions Ab
 - **The guide.** `Nudge` in `features/setup/StartParts.tsx` is now the pop-up. It sits beside the form from 1240px wide (the form is centred, so narrower screens have no open space beside it) and drops in under the header below that. The agent's read-back of a price in About you stays in the page, because the person checks it before going on.
 - **Country.** `CountrySelect` sits under the tag line; the browser's region is picked first. `POST /api/signup` takes `country`, and the new account gets that location and, for a supported currency, Show amounts in. A country without one stores no currency, so it reads in USDC and takes a currency added later. The assistant's `set_location` and the Telegram interview set the currency the same way, only when none was chosen.
 - **Telegram.** The interview asks where you are right after the goals, the first question it asks after you are in, rather than before them.
-- **Not done.** Receipts do not yet carry a separate "Settled N USDC" row, and the titles the server writes for money movements ("Received 500 USDC" on a Recent row) still name USDC; the amount beside them reads in your currency.
+- **Recorded sentences.** The server writes a movement's sentence once, in USDC ("Received 500 USDC"). The Activity statement, the Recent rows, the receipt and the notifications (bell and toasts) pass it through `useMoneyText().line`, which says each figure in your currency ("Received ₦673,055"). The statement's amount column and its repeat line ("3 times, ₦26,922 each") read the same way.
+- **Not done.** Receipts do not yet carry a separate "Settled N USDC" row.
 
 ## Status
 

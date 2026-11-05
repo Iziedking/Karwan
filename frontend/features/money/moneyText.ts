@@ -64,3 +64,15 @@ export function localHint(usdc: number, currency: DisplayCurrency, rate: number 
   const local = formatLocal(usdc, currency, rate, locale);
   return local ? `≈ ${local}` : null;
 }
+
+const USDC_FIGURE = /USDC[  ]?([+\-−]?\d[\d,]*(?:\.\d+)?)|([+\-−]?\d[\d,]*(?:\.\d+)?)[  ]?USDC/g;
+
+/// A sentence written at record time, "Received 500 USDC from @ada", with each
+/// figure said in the chosen currency: "Received ₦673,055 from @ada". Swahili's
+/// "USDC 500" is taken too. With USDC chosen the figure keeps its USDC.
+export function localiseFigures(text: string, format: (usdc: number) => string): string {
+  return text.replace(USDC_FIGURE, (whole, lead: string | undefined, trail: string | undefined) => {
+    const n = Number((lead ?? trail ?? '').replace(/,/g, '').replace(/−/, '-'));
+    return Number.isFinite(n) ? format(n) : whole;
+  });
+}

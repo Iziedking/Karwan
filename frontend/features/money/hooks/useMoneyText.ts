@@ -1,7 +1,7 @@
 'use client';
 import { useCallback } from 'react';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { fillMoney, localHint, moneyText, usdcFigure, type MoneyTextOptions } from '../moneyText';
+import { fillMoney, localHint, localiseFigures, moneyText, usdcFigure, type MoneyTextOptions } from '../moneyText';
 import { useDisplayCurrency } from './useDisplayCurrency';
 
 /// A figure from the API ("20.5", 20.5, "" or null) as a number, or null.
@@ -55,5 +55,12 @@ export function useMoneyText(defaults: MoneyTextOptions = {}) {
     [locale, compact, exact],
   );
 
-  return { text, fill, hint, usdc, currency };
+  /// A recorded sentence, every "N USDC" in it said in the chosen currency.
+  const line = useCallback(
+    (sentence: string, options?: MoneyTextOptions): string =>
+      localiseFigures(sentence, (n) => moneyText(n, currency, rate, locale, { compact, exact, ...options })),
+    [currency, rate, locale, compact, exact],
+  );
+
+  return { text, fill, hint, usdc, line, currency };
 }

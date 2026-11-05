@@ -13,6 +13,7 @@ import { explorerFor } from '@/features/activity/components/MyMoneyLedger';
 import { isAgentMovement } from '../agentMovements';
 import { formatLocal } from '../displayCurrency';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
+import { useMoneyText } from '../hooks/useMoneyText';
 
 type Item = Awaited<ReturnType<typeof api.myActivity>>['items'][number];
 
@@ -36,6 +37,7 @@ export function RecentMoney({ agentsOnly = false }: { agentsOnly?: boolean } = {
   const texts = ledgerCopy.text;
   const { locale } = useLocale();
   const { currency, rate } = useDisplayCurrency();
+  const mt = useMoneyText();
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<PortableReceiptItem | null>(null);
@@ -100,7 +102,7 @@ export function RecentMoney({ agentsOnly = false }: { agentsOnly?: boolean } = {
             const direction = ledgerDirection(item.kind);
             const signed = item.amountUsdc ? Number(item.amountUsdc) * (direction === 'out' ? -1 : 1) : null;
             const local = signed !== null && direction !== 'flat' ? formatLocal(signed, currency, rate, locale, true) : null;
-            const line = ledgerLine(item, texts);
+            const line = mt.line(ledgerLine(item, texts));
             return (
               <li key={item.id}>
                 <button

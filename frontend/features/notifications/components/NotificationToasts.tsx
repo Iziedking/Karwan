@@ -8,6 +8,7 @@ import {
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
 import { KindIcon } from './KindIcon';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import type { Messages } from '@/shared/i18n/messages';
 
 interface ActiveToast extends AppNotification {
@@ -24,6 +25,7 @@ const MAX_VISIBLE = 3;
 export function NotificationToasts() {
   const [toasts, setToasts] = useState<ActiveToast[]>([]);
   const router = useRouter();
+  const mt = useMoneyText();
   const trToast = useTranslations().notifications.toast;
   const toastLabels = trToast.labels;
   // Setup is not interrupted; what arrives meanwhile is still in the bell.
@@ -81,7 +83,7 @@ export function NotificationToasts() {
             <KindIcon type={t.type} />
             <span className="min-w-0">
               <span className="block text-[14px] font-semibold text-[var(--lp-text-sub)]">{labelFor(t.type, toastLabels)}</span>
-              <span className="mt-0.5 block text-[14px] font-medium leading-snug">{t.summary}</span>
+              <span className="mt-0.5 block text-[14px] font-medium leading-snug">{mt.line(t.summary)}</span>
             </span>
             <span className="sr-only">{trToast.openAction}</span>
           </button>

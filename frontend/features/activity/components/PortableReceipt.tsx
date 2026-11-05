@@ -73,7 +73,7 @@ export function PortableReceipt({
     : undefined;
   // The same sentence the ledger row shows, so a recipient reads "Received",
   // not the sender's "Sent" written at record time.
-  const line = ledgerLine(item, copy.text);
+  const line = money.line(ledgerLine(item, copy.text));
   const data = useMemo<ReceiptExportData>(
     () => ({
       title: copy.receiptTitle,

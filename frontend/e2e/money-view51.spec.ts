@@ -118,11 +118,21 @@ test('with naira chosen only the block balance shows USDC; Recent amounts read i
   await expect(heading).toContainText('₦1,831,383');
   await expect(page.locator('[data-balance-usdc]')).toHaveText('1,360.50 USDC');
   await expect(page.locator('[data-recent-row]').first()).toContainText('+₦673,055');
-  await expect(page.locator('[data-recent-row]').first()).not.toContainText('+500.00 USDC');
+  await expect(page.locator('[data-recent-row]').first()).not.toContainText('USDC');
   // Every price reads the same way (owner, 5 Nov 2026): the Agent tab too.
   await page.goto('/account?tab=agent');
   await expect(page.locator('[data-agent-money]')).toContainText('₦');
   await expect(page.locator('[data-agent-money] [data-price-usdc]')).toHaveText(/^[0-9,.]+ USDC$/);
+});
+
+test('with naira chosen the activity statement reads in naira alone', async ({ page }) => {
+  await serveMoney(page, { balances: funded, rates: RATES, settings: { displayCurrency: 'NGN' } });
+  await page.goto('/activity');
+  const row = page.locator('[data-ledger-day] li').first();
+  await expect(row.locator('[data-ledger-amount]')).toContainText('+₦673,055');
+  await expect(row).not.toContainText('USDC');
+  await row.getByRole('button').click();
+  await expect(page.getByRole('dialog')).not.toContainText('500 USDC');
 });
 
 test('with no fresh rate everything reads in USDC', async ({ page }) => {

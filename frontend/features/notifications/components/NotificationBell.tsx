@@ -12,11 +12,13 @@ import { relativeTime } from '@/shared/utils/format';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { requestPageRefresh } from '@/shared/utils/pageRefresh';
 import { KindIcon } from './KindIcon';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import Link from 'next/link';
 import { useMessageInbox } from '@/features/messages/useMessageInbox';
 
 export function NotificationBell() {
   const { locale } = useLocale();
+  const mt = useMoneyText();
   const { isAuthenticated: isConnected } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const all = useTranslations();
@@ -139,7 +141,7 @@ export function NotificationBell() {
                             <span className="min-w-0 flex-1">
                               {group.read ? null : <span className="sr-only">{t.unread}: </span>}
                               <span className={`block text-[14px] leading-snug ${group.read ? 'font-medium text-[var(--ink-secondary)]' : 'font-semibold text-[var(--ink)]'}`}>
-                                {n.summary}
+                                {mt.line(n.summary)}
                               </span>
                               <span className="mt-1 block text-[14px] font-medium text-[var(--ink-muted)]">
                                 {relativeTime(n.ts, locale)}

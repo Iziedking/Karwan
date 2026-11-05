@@ -19,6 +19,7 @@ import {
 import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
 import { Icon } from '@/shared/components/Icon';
 import { CARD_CLASS } from '@/shared/components/Card';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// The user's own money, as a statement: one list, grouped by day, each
 /// movement said once with its amount in its own column.
@@ -104,6 +105,19 @@ export function MyMoneyLedger({
 } = {}) {
   const { locale, t: translations } = useLocale();
   const t = translations.activity.myMoney;
+  const mt = useMoneyText();
+  // One currency on the statement (view 54): the amount, the title and the
+  // repeat count all read in the chosen currency.
+  const amountOf = useCallback(
+    (item: Item): string | null => {
+      if (!ledgerAmountLabel(item.amountUsdc, item.kind)) return null;
+      const direction = ledgerDirection(item.kind);
+      const value = Number(item.amountUsdc);
+      return direction === 'flat' ? mt.text(value) : mt.text(direction === 'out' ? -value : value, { signed: true });
+    },
+    [mt.text],
+  );
+  const titleOf = useCallback((item: Item) => mt.line(ledgerTitle(item, t.kind, t.text)), [mt.line, t.kind, t.text]);
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [filter, setFilter] = useState<LedgerFilter>('all');
@@ -117,9 +131,9 @@ export function MyMoneyLedger({
     // Compare what the row shows, so rows that read the same merge in every
     // locale, not just English.
     const keyOf = (item: Item) =>
-      [ledgerTitle(item, t.kind, t.text), ledgerContext(item), ledgerAmountLabel(item.amountUsdc, item.kind), item.status, Math.floor(item.ts / 60_000)].join('|');
+      [titleOf(item), ledgerContext(item), amountOf(item), item.status, Math.floor(item.ts / 60_000)].join('|');
     return collapse(filterByDirection(items, filter), keyOf);
-  }, [items, filter, t.kind, t.text]);
+  }, [items, filter, titleOf, amountOf]);
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageStart = (safePage - 1) * PAGE_SIZE;
@@ -239,9 +253,9 @@ export function MyMoneyLedger({
                   </h3>
                   <ul className={`${CARD_CLASS} divide-y divide-[var(--line)] px-2`}>
                     {day.rows.map(({ item, repeat }) => {
-                      const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
+                      const amount = amountOf(item);
                       const direction = ledgerDirection(item.kind);
-                      const title = ledgerTitle(item, t.kind, t.text);
+                      const title = titleOf(item);
                       const context = ledgerContext(item);
                       const statusColor = ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending;
                       return (
@@ -292,7 +306,7 @@ export function MyMoneyLedger({
                                     {' · '}
                                     <bdi>
                                       {amount
-                                        ? t.repeatedEach.replace('{n}', String(repeat)).replace('{amount}', amount.replace(/^[+\-−]\s?/, ''))
+                                        ? t.repeatedEach.replace('{n}', String(repeat)).replace('{amount}', mt.text(item.amountUsdc))
                                         : t.repeated.replace('{n}', String(repeat))}
                                     </bdi>
                                   </>
@@ -304,7 +318,7 @@ export function MyMoneyLedger({
                                 data-ledger-amount
                                 className="whitespace-nowrap text-end text-[15px] font-semibold tabular-nums text-[var(--ink)]"
                               >
-                                {amount}
+                                <bdi dir="ltr">{amount}</bdi>
                               </span>
                             ) : (
                               <span />
