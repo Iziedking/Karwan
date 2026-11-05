@@ -17,6 +17,12 @@ export interface DeliveryCardCopy {
   linksReal: string;
   trackingFitsTemplate: string;
   match: { aligned: string; partial: string; mismatch: string; unknown: string };
+  /// The delivery check could not run (view 43): what each side does instead.
+  checkNotRunBuyer: string;
+  checkNotRunSeller: string;
+  checkAgain: string;
+  checking: string;
+  stillNotRun: string;
   earlier: string;
   heldShort: string;
   documents: string;
@@ -71,6 +77,11 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       mismatch: 'It does not match what you asked for.',
       unknown: 'It could not be compared with your request.',
     },
+    checkNotRunBuyer: "Karwan couldn't check this delivery against your request. Open the work and check it yourself before you release. You can ask for changes.",
+    checkNotRunSeller: "Karwan couldn't check your delivery against the request yet, so the buyer reviews it themselves. Nothing is wrong with your delivery.",
+    checkAgain: 'Check again',
+    checking: 'Checking…',
+    stillNotRun: 'It still could not run. Karwan tries again on its own in a few minutes.',
     earlier: 'Earlier deliveries',
     heldShort: 'Held for a safety check',
     documents: 'Documents',
@@ -123,6 +134,11 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       mismatch: 'La livraison ne correspond pas à votre demande.',
       unknown: 'La livraison n’a pas pu être comparée à votre demande.',
     },
+    checkNotRunBuyer: 'Karwan n’a pas pu comparer cette livraison à votre demande. Ouvrez le travail et vérifiez-le vous-même avant de payer. Vous pouvez demander des modifications.',
+    checkNotRunSeller: 'Karwan n’a pas encore pu comparer votre livraison à la demande, donc l’acheteur la vérifie lui-même. Votre livraison n’a aucun problème.',
+    checkAgain: 'Vérifier à nouveau',
+    checking: 'Vérification…',
+    stillNotRun: 'La vérification n’a toujours pas pu se faire. Karwan réessaie seul dans quelques minutes.',
     earlier: 'Livraisons précédentes',
     heldShort: 'Retenu pour un contrôle de sécurité',
     documents: 'Documents',
@@ -175,6 +191,11 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       mismatch: 'التسليم لا يطابق ما طلبته.',
       unknown: 'تعذّرت مقارنة التسليم بطلبك.',
     },
+    checkNotRunBuyer: 'لم يتمكن Karwan من مقارنة هذا التسليم بطلبك. افتح العمل وتحقق منه بنفسك قبل الدفع. يمكنك طلب تعديلات.',
+    checkNotRunSeller: 'لم يتمكن Karwan بعد من مقارنة تسليمك بالطلب، لذا يراجعه المشتري بنفسه. لا مشكلة في تسليمك.',
+    checkAgain: 'تحقق مرة أخرى',
+    checking: 'جارٍ التحقق…',
+    stillNotRun: 'ما زال التحقق غير ممكن. يعيد Karwan المحاولة تلقائيًا خلال دقائق.',
     earlier: 'تسليمات سابقة',
     heldShort: 'محجوز لفحص أمني',
     documents: 'المستندات',
@@ -227,6 +248,11 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       mismatch: 'डिलीवरी आपके अनुरोध से मेल नहीं खाती।',
       unknown: 'डिलीवरी की आपके अनुरोध से तुलना नहीं हो सकी।',
     },
+    checkNotRunBuyer: 'Karwan इस डिलीवरी की आपके अनुरोध से जाँच नहीं कर सका। भुगतान से पहले काम खोलकर खुद जाँचें। आप बदलाव माँग सकते हैं।',
+    checkNotRunSeller: 'Karwan अभी आपकी डिलीवरी की अनुरोध से जाँच नहीं कर सका, इसलिए खरीदार खुद देखता है। आपकी डिलीवरी में कोई कमी नहीं है।',
+    checkAgain: 'फिर से जाँचें',
+    checking: 'जाँच हो रही है…',
+    stillNotRun: 'जाँच अब भी नहीं हो सकी। Karwan कुछ मिनट में खुद फिर कोशिश करता है।',
     earlier: 'पिछली डिलीवरी',
     heldShort: 'सुरक्षा जाँच के लिए रोका गया',
     documents: 'दस्तावेज़',
@@ -279,6 +305,11 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       mismatch: 'Uwasilishaji haulingani na ulichoomba.',
       unknown: 'Uwasilishaji haukuweza kulinganishwa na ombi lako.',
     },
+    checkNotRunBuyer: 'Karwan haikuweza kulinganisha uwasilishaji huu na ombi lako. Fungua kazi uikague mwenyewe kabla ya kulipa. Unaweza kuomba mabadiliko.',
+    checkNotRunSeller: 'Karwan bado haijaweza kulinganisha uwasilishaji wako na ombi, kwa hiyo mnunuzi anaukagua mwenyewe. Hakuna tatizo na uwasilishaji wako.',
+    checkAgain: 'Kagua tena',
+    checking: 'Inakagua…',
+    stillNotRun: 'Bado haikuweza kukagua. Karwan itajaribu tena yenyewe baada ya dakika chache.',
     earlier: 'Uwasilishaji wa awali',
     heldShort: 'Umezuiwa kwa ukaguzi wa usalama',
     documents: 'Nyaraka',

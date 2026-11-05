@@ -3,6 +3,7 @@ import { generateObject } from 'ai';
 import { verifierModel } from '../llm/client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { extractUrls } from './extractUrls.js';
+import { logger } from '../logger.js';
 
 /// The SecurityAgent's "did they deliver the right thing" check, distinct from
 /// the link-safety scan ("is the link dangerous"). It reasons over the seller's
@@ -47,8 +48,10 @@ export async function verifyDeliverable(input: {
       }),
     );
     return { verdict: object.verdict, reason: object.reason.trim().slice(0, 240) };
-  } catch {
-    // Never block a delivery on a model failure; warn-not-assure.
+  } catch (err) {
+    // Never block a delivery on a model failure; warn-not-assure. Logged, so a
+    // missing verdict can be traced to the provider that failed.
+    logger.warn({ err: (err as Error).message }, 'delivery check: no model answered');
     return { verdict: 'unknown', reason: '' };
   }
 }

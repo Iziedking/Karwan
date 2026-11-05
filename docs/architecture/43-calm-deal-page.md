@@ -33,6 +33,14 @@ flowchart TD
 - **The financier hears when a seller takes their offer.** A financier who pays from their own wallet now gets an alert (bell, email, Telegram) with the amount and the 24-hour deadline, as `factoring.awaiting_financier`. Before, nothing fired until money moved.
 - **The position page knows every state.** Pay the seller, Repaid and Closed read as they are instead of Pending, and the seller and financier show by name, not address.
 
+## Decided by the owner, 5 Nov 2026: when the delivery check cannot run
+
+Karwan's delivery check compares what the seller delivered with what was agreed, using a language model. When every model provider fails, there is no verdict.
+
+- **It tries again.** A missing verdict is retried in the background a few minutes later, and either side can ask for Check again on the deal page or from the assistant.
+- **It says so honestly.** Until a check runs, the delivery shows "Karwan couldn't check this delivery against your request. Open the work and check it yourself before you release." Automatic release waits for the buyer, and the seller is not asked to fix anything.
+- **On-chain checks are separate.** Chainlink CRE checks on chain are not live yet, and deals are opened without an on-chain checker; the page and the assistant never imply otherwise.
+
 ## Where it lives
 
 | Piece | Code |

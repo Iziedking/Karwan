@@ -18,6 +18,9 @@ export type ActivityKind =
   | 'deposit'
   | 'withdraw'
   | 'agent_topup'
+  /// An agent moving its own USDC into its data balance on Gateway, which pays
+  /// for record checks (view 48). The person's money either way, so no sign.
+  | 'data_balance'
   | 'gateway_deposit'
   | 'gateway_fund_agent'
   | 'gateway_cash_out'

@@ -56,6 +56,12 @@ function milestoneCount(deal: DirectDeal): number {
   return deal.firstReleasePct >= 100 ? 1 : 2;
 }
 
+/// When Karwan's delivery check could not run, both sides hear it plainly.
+export const CHECK_NOT_RUN = {
+  buyer: "Karwan couldn't check this delivery against your request. Open the work and check it yourself before you release. You can ask for changes, or ask me to check again.",
+  seller: "Karwan couldn't check your delivery against the request yet, so the buyer reviews it themselves. Nothing is wrong with your delivery. You can ask me to check again.",
+} as const;
+
 /// What the assistant may tell one side about the delivery: the same facts as
 /// the deal page's Delivery card, under the same rules.
 export function deliveryForAssistant(deal: DirectDeal, viewer: 'buyer' | 'seller'): Record<string, unknown> | null {
@@ -82,6 +88,10 @@ export function deliveryForAssistant(deal: DirectDeal, viewer: 'buyer' | 'seller
         }
       : null,
     ...(viewer === 'buyer' && !held && deal.deliveryMatch ? { matchesRequest: deal.deliveryMatch } : {}),
+    // No verdict: both sides hear it plainly, the same as the deal page (view 43, 5 Nov 2026).
+    ...(!held && deal.deliveryMatch?.verdict === 'unknown'
+      ? { deliveryCheck: { ran: false, canCheckAgain: true, say: CHECK_NOT_RUN[viewer] } }
+      : {}),
     earlierDeliveries: Math.max(0, history.length - 1),
     documents: (deal.documentRefs ?? []).map((d) => ({ kind: d.kind, label: d.label ?? null })),
   };

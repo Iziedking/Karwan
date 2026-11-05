@@ -37,14 +37,32 @@ export function DeliveryCard({ deal, viewerIsBuyer, caller, onChanged }: {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkNote, setCheckNote] = useState<string | null>(null);
   const card = deliveryCard(deal, viewerIsBuyer);
   if (!card) return null;
   const date = (ms: number) => formatDealDate(ms, locale);
   const checks = [
     ...(card.links.length ? [t.linksReal] : []),
     ...(card.shipment ? [fill(t.trackingFitsTemplate, { carrier: card.shipment.carrierName })] : []),
-    ...(card.match ? [t.match[card.match.verdict]] : []),
+    ...(card.match && card.match.verdict !== 'unknown' ? [t.match[card.match.verdict]] : []),
   ];
+  // The check could not run: said plainly to both sides, never ticked as a check (view 43).
+  const notRun = deal.deliveryMatch?.verdict === 'unknown' && !card.held && deal.tradeType !== 'goods';
+
+  async function checkAgain() {
+    if (!caller) return;
+    setBusy(true);
+    setCheckNote(null);
+    try {
+      const r = await api.checkDeliveryAgain(deal.jobId, caller);
+      if (r.status === 'still-unknown') setCheckNote(t.stillNotRun);
+      else onChanged();
+    } catch {
+      setCheckNote(t.stillNotRun);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function copyNumber(value: string) {
     try {
@@ -161,6 +179,19 @@ export function DeliveryCard({ deal, viewerIsBuyer, caller, onChanged }: {
             ))}
           </ul>
           {card.match?.reason ? <p dir="auto" className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{card.match.reason}</p> : null}
+        </div>
+      ) : null}
+
+      {notRun ? (
+        <div data-check-not-run className="space-y-2">
+          <p className={heading}>{t.checked}</p>
+          <p className="text-[14px] leading-relaxed text-[var(--lp-dark)]">{viewerIsBuyer ? t.checkNotRunBuyer : t.checkNotRunSeller}</p>
+          {caller ? (
+            <button type="button" disabled={busy} onClick={() => void checkAgain()} className={outlineButton}>
+              {busy ? t.checking : t.checkAgain}
+            </button>
+          ) : null}
+          {checkNote ? <p role="status" className="text-[13px] font-medium text-[var(--lp-text-sub)]">{checkNote}</p> : null}
         </div>
       ) : null}
 

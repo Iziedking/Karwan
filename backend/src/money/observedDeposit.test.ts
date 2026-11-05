@@ -4,6 +4,7 @@ import {
   observedArcDepositOperationKey,
   observedArcDepositSummary,
   observedArcTransferOperationKey,
+  isDataBalanceTopUp,
   observedArcTransferSummary,
   walletPlainName,
 } from './observedDeposit.js';
@@ -53,3 +54,17 @@ test('observed transfer keys and summaries distinguish agent outflows', () => {
     '200 USDC moved into your buying agent',
   );
 });
+
+test('an agent topping up its own data balance on Gateway is a move, not money that left (view 48, 5 Nov 2026)', async () => {
+  const { ARC } = await import('../chain/client.js');
+  const gateway = ARC.contracts.gatewayWallet;
+  assert.equal(isDataBalanceTopUp({ walletRole: 'sellerAgent', destinationAddress: gateway.toLowerCase() }), true);
+  assert.equal(isDataBalanceTopUp({ walletRole: 'buyerAgent', destinationAddress: gateway }), true);
+  assert.equal(isDataBalanceTopUp({ walletRole: 'identity', destinationAddress: gateway }), false, 'a person’s own Gateway deposit is not the data balance');
+  assert.equal(isDataBalanceTopUp({ walletRole: 'sellerAgent', destinationAddress: '0x0000000000000000000000000000000000000001' }), false);
+  assert.equal(
+    observedArcTransferSummary({ amountMicros: 100_000n, walletRole: 'sellerAgent', kind: 'agent_funding', toDataBalance: true }),
+    "0.1 USDC moved to your selling agent's data balance",
+  );
+});
+

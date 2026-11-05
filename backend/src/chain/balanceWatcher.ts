@@ -7,6 +7,7 @@ import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 import {
+  isDataBalanceTopUp,
   observedArcDepositOperationKey,
   recordObservedArcTransfer,
   walletPlainName,
@@ -280,6 +281,7 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
 
     if (sender) {
       if (!rememberTransfer(`debit:${dedupeKey}`)) continue;
+      const toDataBalance = isDataBalanceTopUp({ walletRole: observedRole(sender.role), destinationAddress: to });
       if (notifyable) bus.emitEvent({
         type: 'wallet.debited',
         actor: 'platform',
@@ -291,6 +293,7 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
           amountUsdc: amountUsdc.toFixed(6),
           to,
           txHash,
+          ...(toDataBalance ? { toDataBalance: true } : {}),
         },
       });
 
@@ -318,7 +321,8 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
                 sourceAddress: sender.address,
                 destinationAddress: to,
                 walletRole: observedRole(sender.role),
-                kind: 'cash_out',
+                kind: toDataBalance ? 'agent_funding' : 'cash_out',
+                ...(toDataBalance ? { toDataBalance: true } : {}),
               });
             })
             .then((movement) => {
@@ -326,7 +330,7 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
               return appendActivity({
                 id: `arc-debit:${dedupeKey}`,
                 address: sender.owner,
-                kind: 'withdraw',
+                kind: toDataBalance ? 'data_balance' : 'withdraw',
                 summary: movement.summary,
                 amountUsdc: amountExact,
                 txHash,

@@ -12,6 +12,11 @@ export type ReadPurpose = 'shortlist' | 'bid' | 'question';
 /// What an agent pays for one Karwan record read (owner, 3 Nov 2026).
 export const RECORD_READ_PRICE_USDC = 0.005;
 
+/// Paid checks one account may make on one request (owner, 5 Nov 2026): a
+/// seller checks the buyer once before offering, 0.005 USDC; a buyer checks up
+/// to five sellers on its shortlist, at most 0.025 USDC.
+export const PAID_READS_PER_REQUEST = { bid: 1, shortlist: 5 } as const;
+
 export function recordReadGate(input: {
   subjectExists: boolean;
   readerAccount: string | null;

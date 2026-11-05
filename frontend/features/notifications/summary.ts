@@ -25,6 +25,7 @@ const PAUSE_KEYS: Record<string, keyof NotifyCopy['pausedWhy']> = {
   'terms-changed': 'termsChanged',
   'delivery-replaced': 'deliveryReplaced',
   'link-unverifiable': 'linkUnverifiable',
+  'check-not-run': 'checkNotRun',
 };
 
 /// The bell's one line for an event, in the reader's language, from the same
@@ -73,8 +74,12 @@ export function summaryFor(
       return str('reason') === 'deal' ? c.recordNeededDeal : c.recordNeededOffers;
     case 'trend.match':
       return pick(c.trendKeyword, c.trend, { keyword: str('keyword') });
-    case 'agent.weekly':
-      return fill(c.agentWeekly, { total: str('totalUsdc'), records: str('recordChecks'), searches: str('webSearches') });
+    case 'agent.weekly': {
+      // The price of a check and what is left of the data balance (owner, 5 Nov 2026).
+      const line = fill(c.agentWeekly, { total: str('totalUsdc'), records: str('recordChecks'), price: str('checkPriceUsdc') || '0.005', searches: str('webSearches') });
+      const left = str('dataBalanceUsdc');
+      return left ? `${line} ${fill(c.agentWeeklyLeft, { left })}` : line;
+    }
     case 'agent.budget':
       return fill(c.agentBudget, { budget: str('budgetUsdc') });
     case 'market.watch': {
@@ -177,7 +182,9 @@ export function summaryFor(
       if (type === 'wallet.credited' && str('bridgeId') && str('chainName')) {
         return fill(c.creditedMoving, { amount: trimUsdc(str('amountUsdc') || '0'), chain: str('chainName') });
       }
-      return fill(type === 'wallet.credited' ? c.credited : c.debited, { amount: trimUsdc(str('amountUsdc') || '0'), label });
+      // An agent's top-up of its own data balance is a move, not money that left (view 48).
+      const debit = str('toDataBalance') ? c.debitedDataBalance : c.debited;
+      return fill(type === 'wallet.credited' ? c.credited : debit, { amount: trimUsdc(str('amountUsdc') || '0'), label });
     }
     case 'vault.deposit':
       return fill(c.staked, { amount: trimUsdc(str('amountUsdc') || '0') });

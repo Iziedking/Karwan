@@ -547,10 +547,11 @@ Nothing is sent until you answer.`, jobUrl(e.payload?.jobId as string | undefine
     case 'agent.weekly': {
       const p = e.payload ?? {};
       const parts = [
-        Number(p.recordChecks) ? `${p.recordChecks} record check${Number(p.recordChecks) === 1 ? '' : 's'}` : '',
+        Number(p.recordChecks) ? `${p.recordChecks} record check${Number(p.recordChecks) === 1 ? '' : 's'}${p.checkPriceUsdc ? ` at ${p.checkPriceUsdc} USDC each` : ''}` : '',
         Number(p.webSearches) ? `${p.webSearches} web search${Number(p.webSearches) === 1 ? '' : 'es'}` : '',
       ].filter(Boolean);
-      return withLink(`*Your agents spent ${p.totalUsdc} USDC on data this week*${parts.length ? `: ${parts.join(' and ')}` : ''}. Their weekly budget is ${p.budgetUsdc} USDC.`, yourAgentUrl());
+      const left = p.dataBalanceUsdc !== undefined ? ` ${p.dataBalanceUsdc} USDC is left in their data balance.` : '';
+      return withLink(`*Your agents spent ${p.totalUsdc} USDC on data this week*${parts.length ? `: ${parts.join(' and ')}` : ''}. Their weekly budget is ${p.budgetUsdc} USDC.${left}`, yourAgentUrl());
     }
     case 'agent.budget': {
       const p = e.payload ?? {};
@@ -849,8 +850,9 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const debited = (e.payload?.amountUsdc as string | undefined) ?? '0';
       const label = plainWallet(e.payload?.walletRole);
       const debit = trimUsdcLabel(debited);
+      // An agent's top-up of its own data balance is a move, not money that left (view 48).
       return withLink(
-        `*${debit} USDC* left your ${label}.`,
+        e.payload?.toDataBalance ? `*${debit} USDC* moved to your ${label}'s data balance, for the record checks it pays for.` : `*${debit} USDC* left your ${label}.`,
         null,
       );
     }
@@ -1030,7 +1032,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       // Hourly work names its own page; posted work names the request's.
       const path = e.payload?.path as string | undefined;
       const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
-      const url = path && base && /^\/work\/requests\/wr_[A-Za-z0-9_-]{1,40}$/.test(path) ? `${base}${path}` : workUrl(e.payload?.workId as string | undefined);
+      const url = path && base && /^\/(work\/requests\/wr|agent-jobs\/aj)_[A-Za-z0-9_-]{1,40}$/.test(path) ? `${base}${path}` : workUrl(e.payload?.workId as string | undefined);
       return withLink(String(e.payload?.text ?? ''), url);
     }
     case 'rating.revealed':

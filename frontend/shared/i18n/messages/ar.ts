@@ -28,6 +28,7 @@ import { moneyPageCopy } from './moneyPage';
 import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
+import { agentJobsCopy } from './agentJobs';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -84,6 +85,7 @@ export const ar: Messages = {
   profilePage: profilePageCopy.ar,
   dealGuarantee: dealGuaranteeCopy.ar,
   contests: contestsCopy.ar,
+  agentJobs: agentJobsCopy.ar,
   work: workCopy.ar,
   offersThatMove: offersThatMoveCopy.ar,
   agentQuestions: agentQuestionsCopy.ar,
@@ -857,6 +859,7 @@ export const ar: Messages = {
         bridge: "أُرسل إلى شبكة أخرى",
         agent_seed: "أضافه Karwan",
         agent_topup: "شحن حساب التداول",
+        data_balance: "شحن رصيد البيانات",
         agent_funding: "تمويل حساب التداول",
         agent_spend: "دفعه وكيلك",
         gateway_deposit: "أُضيف إلى الرصيد",
@@ -3332,7 +3335,7 @@ export const ar: Messages = {
       waitingBody: "لديه حتى {time}. إن لم يدفع حتى ذلك الوقت، لا يُحجز شيء ويمكنك قبول عرض آخر.",
       errRequest: "لم يُرسل الطلب. حاول مرة أخرى.",
     },
-    checkPaused: { title: "الدفع متوقف مؤقتًا", stays: "تبقى أموالك في الضمان حتى يتم حل الأمر.", saw: "ما الذي رصده الفحص", noWallet: "لا يمكن تشغيل الإفراج التلقائي لهذه الصفقة. أفرج عن الدفعة بنفسك من هنا.", reasons: { "security-hold": "تم الإبلاغ عن رابط التسليم على أنه غير آمن، لذلك هو مخفي عنك.", "off-request": "وجد الفحص أن التسليم لا يطابق ما طلبته.", "evidence-mismatch": "دليل التسليم لا يطابق الشروط المتفق عليها.", "check-pending": "لم يُرجع الفحص التلقائي نتيجة بعد.", "check-expired": "انتهت صلاحية نتيجة الفحص قبل الإفراج عن الدفعة.", "terms-changed": "تغيرت الشروط بعد إجراء الفحص، لذا يجب إعادته.", "delivery-replaced": "تم إرسال تسليم أحدث، لذا يجب إعادة الفحص.", "link-unverifiable": "تعذر فتح رابط التسليم لفحصه." }, sellerHold: "تم الإبلاغ عن رابط التسليم الخاص بك على أنه غير آمن وهو مخفي عن المشتري. أرسل رابطًا مصححًا.", sellerOff: "وجد الفحص أن تسليمك قد لا يطابق الطلب. أرسل الرابط الصحيح.", sendNewLink: "أرسل رابط تسليم جديدًا", askPerson: "رابطي آمن. اطلب من شخص التحقق", supportMessage: "تم الإبلاغ عن رابط التسليم في {path} على أنه غير آمن، لكنه آمن. يرجى التحقق منه.", reviewChecking: "شخص من Karwan يتحقق من رابطك.", reviewUnsafe: "تحقق دعم Karwan من رابطك وأبقاه محظورًا. أرسل رابط تسليم جديدًا.", reviewedSafe: "تحقق منه دعم Karwan." },
+    checkPaused: { title: "الدفع متوقف مؤقتًا", stays: "تبقى أموالك في الضمان حتى يتم حل الأمر.", saw: "ما الذي رصده الفحص", noWallet: "لا يمكن تشغيل الإفراج التلقائي لهذه الصفقة. أفرج عن الدفعة بنفسك من هنا.", reasons: { "security-hold": "تم الإبلاغ عن رابط التسليم على أنه غير آمن، لذلك هو مخفي عنك.", "off-request": "وجد الفحص أن التسليم لا يطابق ما طلبته.", "evidence-mismatch": "دليل التسليم لا يطابق الشروط المتفق عليها.", "check-pending": "لم يُرجع الفحص التلقائي نتيجة بعد.", "check-expired": "انتهت صلاحية نتيجة الفحص قبل الإفراج عن الدفعة.", "terms-changed": "تغيرت الشروط بعد إجراء الفحص، لذا يجب إعادته.", "delivery-replaced": "تم إرسال تسليم أحدث، لذا يجب إعادة الفحص.", "link-unverifiable": "تعذر فتح رابط التسليم لفحصه.", "check-not-run": "لم يتمكن Karwan من مقارنة هذا التسليم بالطلب. يتحقق منه المشتري قبل الدفع." }, sellerHold: "تم الإبلاغ عن رابط التسليم الخاص بك على أنه غير آمن وهو مخفي عن المشتري. أرسل رابطًا مصححًا.", sellerOff: "وجد الفحص أن تسليمك قد لا يطابق الطلب. أرسل الرابط الصحيح.", sendNewLink: "أرسل رابط تسليم جديدًا", askPerson: "رابطي آمن. اطلب من شخص التحقق", supportMessage: "تم الإبلاغ عن رابط التسليم في {path} على أنه غير آمن، لكنه آمن. يرجى التحقق منه.", reviewChecking: "شخص من Karwan يتحقق من رابطك.", reviewUnsafe: "تحقق دعم Karwan من رابطك وأبقاه محظورًا. أرسل رابط تسليم جديدًا.", reviewedSafe: "تحقق منه دعم Karwan." },
     checkLive: { checking: "جارٍ فحص التسليم", checkingBody: "يقارن وكيل الحماية التسليم بالطلب. ينتظر الدفع النتيجة.", passed: "اجتاز التسليم الفحص", passedBuyer: "راجع العمل، ثم حرّر الدفع.", passedSeller: "يراجع {name} العمل بعد ذلك.", unverified: "تعذّر فحص الرابط", unverifiedBuyer: "راجع العمل بنفسك قبل تحرير الدفع.", unverifiedSeller: "يراجع {name} العمل بنفسه." },
     protection: { title: "الحماية في هذه الصفقة", escrow: "الأموال محفوظة في الضمان حتى الإفراج", you: "أنت تتحقق عبر World ID", buyer: "المشتري يتحقق عبر World ID", seller: "البائع يتحقق عبر World ID", reasons: { first_deal: "أول صفقة", large_deal: "صفقة كبيرة", fast_new_account: "صفقات جديدة كثيرة اليوم", flagged_link_before: "رابط مُبلَّغ عنه سابقًا" }, stake: 'لدى البائع ضمان صفقة بنسبة {pct}%', github: "التسليم يُفحص على GitHub", offMarket: "السعر أعلى بكثير من الصفقات المماثلة", belowMarket: "السعر أقل بكثير من الصفقات المماثلة" , cashOut: "سحب الأرباح" },
     simple: {

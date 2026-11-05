@@ -13,6 +13,8 @@ const cases = [
   [{ evidenceReceipt: { state: 'stale-delivery' as const } }, 'delivery-replaced'],
   [{ evidenceReceipt: { state: 'read-unavailable' as const } }, 'check-pending'],
   [{ verificationStatus: 'unverifiable' as const }, 'link-unverifiable'],
+  // A check that could not run is not the link's fault (view 43, 5 Nov 2026).
+  [{ deliveryMatch: { verdict: 'unknown' as const } }, 'check-not-run'],
 ] as const;
 
 test('every paused release gets a reason, and a clean delivery gets none', () => {

@@ -25,6 +25,15 @@ export interface ObservedArcDepositInput {
 
 export interface ObservedArcTransferInput extends ObservedArcDepositInput {
   kind?: ObservedArcTransferKind;
+  /// The agent moved USDC into its own data balance on Gateway (view 48, 5 Nov).
+  toDataBalance?: boolean;
+}
+
+/// An agent's transfer to the Gateway Wallet contract funds the person's own
+/// prepaid balance for paid record checks and research (x402 `depositFor`),
+/// so it is a move between their own places, not money that left.
+export function isDataBalanceTopUp(input: { walletRole: ObservedWalletRole; destinationAddress: string }): boolean {
+  return input.walletRole !== 'identity' && input.destinationAddress.toLowerCase() === ARC.contracts.gatewayWallet.toLowerCase();
 }
 
 /**
@@ -57,10 +66,11 @@ export function observedArcDepositSummary(input: Pick<ObservedArcDepositInput, '
 }
 
 export function observedArcTransferSummary(
-  input: Pick<ObservedArcTransferInput, 'amountMicros' | 'walletRole' | 'kind'>,
+  input: Pick<ObservedArcTransferInput, 'amountMicros' | 'walletRole' | 'kind' | 'toDataBalance'>,
 ): string {
   const amount = formatUsdcMicros(input.amountMicros);
   const wallet = walletPlainName(input.walletRole);
+  if (input.toDataBalance) return `${amount} USDC moved to your ${wallet}'s data balance`;
   if (input.kind === 'cash_out') return `${amount} USDC left your ${wallet}`;
   if (input.kind === 'agent_funding') return `${amount} USDC moved into your ${wallet}`;
   return `${amount} USDC arrived in your ${wallet}`;

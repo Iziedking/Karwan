@@ -9,7 +9,7 @@ export interface NotifyCopy {
   matchedSellerPrice: string; matchedSeller: string; matchedBuyerPrice: string; matchedBuyer: string;
   approvedSellerPrice: string; approvedSeller: string; approvedBuyerPrice: string; approvedBuyer: string;
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
-  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; agentWeekly: string; agentBudget: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
+  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; agentWeekly: string; agentWeeklyLeft: string; agentBudget: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
   recordNeededOffers: string; recordNeededDeal: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
@@ -23,14 +23,14 @@ export interface NotifyCopy {
   pausedWhy: {
     securityHoldSeller: string; securityHold: string; offRequestSeller: string; offRequest: string;
     evidenceMismatch: string; checkPending: string; checkExpired: string; termsChanged: string;
-    deliveryReplaced: string; linkUnverifiable: string; fallback: string;
+    deliveryReplaced: string; linkUnverifiable: string; checkNotRun: string; fallback: string;
   };
   fundInsufficient: string; releasedSeller: string; released: string; reviewStarted: string;
   deadlineSoon: string; reviewEnding: string; deadlinePassed: string; deadlinePassedSeller: string; deadlinePassedAsked: string; deadlinePassedAskedSeller: string; extensionWaiting: string; extensionWaitingSeller: string; heartbeat: string; autoReleasedSeller: string; autoReleased: string; settled: string;
   disputed: string; resolved: string; resolvedRefund: string; resolvedSeller: string; resolvedSplit: string;
   cancelled: string; cancelProposedReason: string; cancelProposed: string; cancelDeclined: string;
   extensionAskedOne: string; extensionAskedMany: string; extensionApproved: string; extensionDeclined: string; statementGivenBuyer: string; statementGivenSeller: string; statementDue: string;
-  credited: string; creditedMoving: string; debited: string; wallets: { wallet: string; buyerAgent: string; sellerAgent: string };
+  credited: string; creditedMoving: string; debited: string; debitedDataBalance: string; wallets: { wallet: string; buyerAgent: string; sellerAgent: string };
   staked: string; cooldownStartedAmount: string; cooldownStarted: string; cooldownCancelledAmount: string;
   cooldownCancelled: string; claimedAmount: string; claimed: string; cooldownDoneAmount: string; cooldownDone: string;
   cashedOut: string; factoringRequested: string; factoringFundingNeeded: string; factoringOfferedAt: string; factoringOffered: string;
@@ -44,7 +44,8 @@ export interface NotifyCopy {
 }
 
 const en: NotifyCopy = {
-  agentWeekly: 'Your agents spent {total} USDC on data this week: {records} record checks and {searches} web searches.',
+  agentWeekly: 'Your agents spent {total} USDC on data this week: {records} record checks at {price} USDC each and {searches} web searches.',
+  agentWeeklyLeft: '{left} USDC is left in their data balance.',
   agentBudget: 'Your agents reached their {budget} USDC data budget for this week and are using free data.',
   watchRequests: '{count} new requests for {category}, as you asked your agent to watch.',
   watchPrice: '{category} deals now settle around {to} USDC (was {from}).',
@@ -114,6 +115,7 @@ const en: NotifyCopy = {
     termsChanged: 'the terms changed after the check ran',
     deliveryReplaced: 'a newer delivery has to be checked',
     linkUnverifiable: 'the delivery link could not be opened to check it',
+    checkNotRun: "Karwan couldn't check the delivery against the request, so the buyer reviews it themselves",
     fallback: 'automatic release cannot run for this deal',
   },
   fundInsufficient: 'Your buying agent needs USDC to fund escrow. Top it up from your profile.',
@@ -151,6 +153,7 @@ const en: NotifyCopy = {
   credited: '{amount} USDC arrived in your {label}.',
   creditedMoving: '{amount} USDC arrived on {chain}. Moving it to your balance.',
   debited: '{amount} USDC left your {label}.',
+  debitedDataBalance: "{amount} USDC moved to your {label}'s data balance.",
   wallets: { wallet: 'balance', buyerAgent: 'buying agent', sellerAgent: 'selling agent' },
   staked: 'Put up {amount} USDC as a deal guarantee.',
   cooldownStartedAmount: 'Cooldown started on {amount} USDC. Claimable in 3 days.',
@@ -192,7 +195,8 @@ const en: NotifyCopy = {
 };
 
 const fr: NotifyCopy = {
-  agentWeekly: 'Vos agents ont dépensé {total} USDC en données cette semaine : {records} vérifications de dossier et {searches} recherches web.',
+  agentWeekly: 'Vos agents ont dépensé {total} USDC en données cette semaine : {records} vérifications de dossier à {price} USDC chacune et {searches} recherches web.',
+  agentWeeklyLeft: 'Il reste {left} USDC dans leur solde de données.',
   agentBudget: 'Vos agents ont atteint leur budget de données de {budget} USDC cette semaine et utilisent des données gratuites.',
   watchRequests: '{count} nouvelles demandes pour {category}, comme vous l’avez demandé à votre agent.',
   watchPrice: 'Les accords en {category} se concluent maintenant autour de {to} USDC (contre {from}).',
@@ -262,6 +266,7 @@ const fr: NotifyCopy = {
     termsChanged: 'les conditions ont changé après la vérification',
     deliveryReplaced: 'une livraison plus récente doit être vérifiée',
     linkUnverifiable: 'le lien de livraison n’a pas pu être ouvert pour être vérifié',
+    checkNotRun: 'Karwan n’a pas pu comparer la livraison à la demande, donc l’acheteur la vérifie lui-même',
     fallback: 'la libération automatique ne peut pas s’exécuter pour cette transaction',
   },
   fundInsufficient: 'Votre agent acheteur a besoin d’USDC pour financer le séquestre. Approvisionnez-le depuis votre profil.',
@@ -299,6 +304,7 @@ const fr: NotifyCopy = {
   credited: '{amount} USDC sont arrivés sur votre {label}.',
   creditedMoving: '{amount} USDC sont arrivés sur {chain}. Nous les transférons sur votre solde.',
   debited: '{amount} USDC ont quitté votre {label}.',
+  debitedDataBalance: '{amount} USDC ont été placés dans le solde de données de votre {label}.',
   wallets: { wallet: 'solde', buyerAgent: 'agent acheteur', sellerAgent: 'agent vendeur' },
   staked: '{amount} USDC déposés en garantie de transaction.',
   cooldownStartedAmount: 'Période d’attente lancée sur {amount} USDC. Récupérable dans 3 jours.',
@@ -340,7 +346,8 @@ const fr: NotifyCopy = {
 };
 
 const ar: NotifyCopy = {
-  agentWeekly: 'أنفق وكلاؤك {total} USDC على البيانات هذا الأسبوع: {records} فحوص سجلات و{searches} عمليات بحث على الويب.',
+  agentWeekly: 'أنفق وكلاؤك {total} USDC على البيانات هذا الأسبوع: {records} فحوص سجلات بسعر {price} USDC لكل فحص و{searches} عمليات بحث على الويب.',
+  agentWeeklyLeft: 'تبقّى {left} USDC في رصيد بياناتهم.',
   agentBudget: 'بلغ وكلاؤك ميزانية البيانات البالغة {budget} USDC لهذا الأسبوع ويستخدمون بيانات مجانية.',
   watchRequests: '{count} طلبات جديدة في {category}، كما طلبت من وكيلك أن يراقب.',
   watchPrice: 'صفقات {category} تُبرم الآن بنحو {to} USDC (كانت {from}).',
@@ -410,6 +417,7 @@ const ar: NotifyCopy = {
     termsChanged: 'تغيرت الشروط بعد الفحص',
     deliveryReplaced: 'يجب فحص تسليم أحدث',
     linkUnverifiable: 'تعذّر فتح رابط التسليم لفحصه',
+    checkNotRun: 'لم يتمكن Karwan من مقارنة التسليم بالطلب، لذا يراجعه المشتري بنفسه',
     fallback: 'لا يمكن تشغيل الإفراج التلقائي لهذه الصفقة',
   },
   fundInsufficient: 'يحتاج وكيل الشراء إلى USDC لتمويل الضمان. اشحنه من ملفك الشخصي.',
@@ -447,6 +455,7 @@ const ar: NotifyCopy = {
   credited: 'وصلت {amount} USDC إلى {label}.',
   creditedMoving: 'وصلت {amount} USDC على {chain}. ننقلها إلى رصيدك.',
   debited: 'خرجت {amount} USDC من {label}.',
+  debitedDataBalance: 'نُقلت {amount} USDC إلى رصيد بيانات {label}.',
   wallets: { wallet: 'رصيدك', buyerAgent: 'وكيل الشراء', sellerAgent: 'وكيل البيع' },
   staked: 'وُضع {amount} USDC كضمان للصفقة.',
   cooldownStartedAmount: 'بدأت فترة الانتظار على {amount} USDC. قابلة للاسترداد خلال 3 أيام.',
@@ -488,7 +497,8 @@ const ar: NotifyCopy = {
 };
 
 const hi: NotifyCopy = {
-  agentWeekly: 'आपके एजेंटों ने इस हफ़्ते डेटा पर {total} USDC खर्च किए: {records} रिकॉर्ड जाँच और {searches} वेब खोज।',
+  agentWeekly: 'आपके एजेंटों ने इस हफ़्ते डेटा पर {total} USDC खर्च किए: {price} USDC प्रति जाँच की दर से {records} रिकॉर्ड जाँच और {searches} वेब खोज।',
+  agentWeeklyLeft: 'उनके डेटा बैलेंस में {left} USDC बचे हैं।',
   agentBudget: 'आपके एजेंट इस हफ़्ते {budget} USDC के डेटा बजट तक पहुँच गए हैं और मुफ़्त डेटा इस्तेमाल कर रहे हैं।',
   watchRequests: '{category} के {count} नए अनुरोध, जैसा आपने अपने एजेंट से देखने को कहा था।',
   watchPrice: '{category} के सौदे अब लगभग {to} USDC पर तय हो रहे हैं (पहले {from})।',
@@ -558,6 +568,7 @@ const hi: NotifyCopy = {
     termsChanged: 'जाँच के बाद शर्तें बदल गईं',
     deliveryReplaced: 'एक नई डिलीवरी की जाँच होनी है',
     linkUnverifiable: 'डिलीवरी लिंक जाँच के लिए नहीं खुल सका',
+    checkNotRun: 'Karwan डिलीवरी की अनुरोध से जाँच नहीं कर सका, इसलिए खरीदार खुद देखता है',
     fallback: 'इस डील के लिए स्वचालित रिलीज़ नहीं चल सकती',
   },
   fundInsufficient: 'एस्क्रो फ़ंड करने के लिए आपके ख़रीद एजेंट को USDC चाहिए। अपनी प्रोफ़ाइल से टॉप अप करें।',
@@ -595,6 +606,7 @@ const hi: NotifyCopy = {
   credited: '{amount} USDC आपके {label} में आए।',
   creditedMoving: '{amount} USDC {chain} पर आए। हम इन्हें आपके बैलेंस में ला रहे हैं।',
   debited: '{amount} USDC आपके {label} से गए।',
+  debitedDataBalance: '{amount} USDC आपके {label} के डेटा बैलेंस में गए।',
   wallets: { wallet: 'बैलेंस', buyerAgent: 'ख़रीद एजेंट', sellerAgent: 'बिक्री एजेंट' },
   staked: '{amount} USDC डील गारंटी के रूप में रखे।',
   cooldownStartedAmount: '{amount} USDC पर कूलडाउन शुरू हुआ। 3 दिन में निकाल सकते हैं।',
@@ -636,7 +648,8 @@ const hi: NotifyCopy = {
 };
 
 const sw: NotifyCopy = {
-  agentWeekly: 'Mawakala wako walitumia USDC {total} kwa data wiki hii: ukaguzi wa rekodi {records} na utafutaji wa mtandaoni {searches}.',
+  agentWeekly: 'Mawakala wako walitumia USDC {total} kwa data wiki hii: ukaguzi wa rekodi {records} kwa USDC {price} kila mmoja na utafutaji wa mtandaoni {searches}.',
+  agentWeeklyLeft: 'USDC {left} zimebaki kwenye salio lao la data.',
   agentBudget: 'Mawakala wako wamefikia bajeti yao ya data ya USDC {budget} wiki hii na wanatumia data ya bure.',
   watchRequests: 'Maombi mapya {count} ya {category}, kama ulivyomwomba wakala wako aangalie.',
   watchPrice: 'Mikataba ya {category} sasa inafungwa karibu USDC {to} (ilikuwa {from}).',
@@ -706,6 +719,7 @@ const sw: NotifyCopy = {
     termsChanged: 'masharti yalibadilika baada ya ukaguzi',
     deliveryReplaced: 'uwasilishaji mpya unapaswa kukaguliwa',
     linkUnverifiable: 'kiungo cha uwasilishaji hakikuweza kufunguliwa ili kukaguliwa',
+    checkNotRun: 'Karwan haikuweza kulinganisha uwasilishaji na ombi, kwa hiyo mnunuzi anaukagua mwenyewe',
     fallback: 'utoaji wa kiotomatiki hauwezi kufanyika kwa mpango huu',
   },
   fundInsufficient: 'Wakala wako wa kununua anahitaji USDC ili kufadhili escrow. Muongezee kutoka kwenye wasifu wako.',
@@ -743,6 +757,7 @@ const sw: NotifyCopy = {
   credited: 'USDC {amount} zimeingia kwenye {label} yako.',
   creditedMoving: 'USDC {amount} zimefika kwenye {chain}. Tunazihamishia kwenye salio lako.',
   debited: 'USDC {amount} zimetoka kwenye {label} yako.',
+  debitedDataBalance: 'USDC {amount} zimehamishiwa kwenye salio la data la {label} yako.',
   wallets: { wallet: 'salio', buyerAgent: 'wakala wa kununua', sellerAgent: 'wakala wa kuuza' },
   staked: 'Umeweka dhamana ya {amount} USDC.',
   cooldownStartedAmount: 'Muda wa kusubiri umeanza kwa {amount} USDC. Inaweza kudaiwa baada ya siku 3.',

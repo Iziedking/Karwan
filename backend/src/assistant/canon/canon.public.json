@@ -26,7 +26,7 @@
       "id": "agents-pay-for-research",
       "title": "Your agent pays for its own research",
       "status": "shipping",
-      "updated": "2026-11-03",
+      "updated": "2026-11-05",
       "tags": [
         "agents",
         "x402",
@@ -40,7 +40,7 @@
           "date": "2026-11-03"
         }
       ],
-      "body": "On Arc Testnet, a person's agent pays for the market research it uses, from\nits own balance, over x402 on Arc settled through Circle Gateway. Karwan runs\nthe web searches and pays the search provider.\n\nA search costs 0.007 USDC, and 0.002 USDC when another agent ran the same one\nrecently. The agent runs only the searches a question needs: price takes two,\ndemand or suppliers one, and everything four. An agent researching a request\nit is negotiating runs three: price, marketplace rates and demand.\n\nAsk your assistant to research something and it tells you the exact cost\nbefore it runs. When your agent's balance is short it says so, nothing is\npaid, and you can add money to it and ask again. Every payment shows in what\nyour agent spent. Web results are marked as from the web; Karwan's own market\ncomes first.\n\nYour agents have a weekly budget for the data they pay for, record checks and\nweb searches together: 0.25 USDC unless you change it, from 0 (free data only)\nup to 5 USDC. They never go over it. When the budget is reached they carry on\nwith free data and you hear once that week; a search you ask for says when it\nwould go over and offers to raise the budget. Once a week, unless you turn it\noff, you get one line in the app and on Telegram on what your agents spent and\nwhat for.\n\nOn mainnet, agents will pay Circle's services marketplace directly for this."
+      "body": "On Arc Testnet, a person's agent pays for the market research it uses, from\nits own balance, over x402 on Arc settled through Circle Gateway. Karwan runs\nthe web searches and pays the search provider.\n\nA search costs 0.007 USDC, and 0.002 USDC when another agent ran the same one\nrecently. The agent runs only the searches a question needs: price takes two,\ndemand or suppliers one, and everything four. An agent researching a request\nit is negotiating runs three: price, marketplace rates and demand.\n\nAsk your assistant to research something and it tells you the exact cost\nbefore it runs. When your agent's balance is short it says so, nothing is\npaid, and you can add money to it and ask again. Every payment shows in what\nyour agent spent. Web results are marked as from the web; Karwan's own market\ncomes first.\n\nA record check, your agent reading the other side's Karwan record, costs\n0.005 USDC. Your selling agent checks the buyer once before offering on a\nrequest, so offering costs 0.005 USDC; your buying agent checks up to five\nsellers on its shortlist, at most 0.025 USDC per request. These checks are paid\nfrom your agent's data balance, your own USDC prepaid on Circle Gateway. When\nit runs low your agent moves 0.10 USDC into it from its own wallet; that move\nshows as moved to your agent's data balance, not as money spent.\n\nYour agents have a weekly budget for the data they pay for, record checks and\nweb searches together: 0.25 USDC unless you change it, from 0 (free data only)\nup to 5 USDC. They never go over it. When the budget is reached they carry on\nwith free data and you hear once that week; a search you ask for says when it\nwould go over and offers to raise the budget. Once a week, unless you turn it\noff, you get one line in the app and on Telegram on what your agents spent and\nwhat for, the price of each record check and what is left in the data balance.\n\nOn mainnet, agents will pay Circle's services marketplace directly for this."
     },
     {
       "id": "assistant-mode-and-help",
@@ -219,7 +219,7 @@
       "id": "delivery-proof",
       "title": "What counts as delivery",
       "status": "shipping",
-      "updated": "2026-10-30",
+      "updated": "2026-11-05",
       "tags": [
         "delivery",
         "goods",
@@ -232,7 +232,7 @@
           "date": "2026-10-26"
         }
       ],
-      "body": "Delivery has to be against something the buyer can check, and what that is\ndepends on the kind of deal.\n\nAnyone can sell goods on Karwan, a person or a business. When the deal is made\nthe seller says how the item reaches the buyer: shipped, with a carrier and\ntracking number at delivery, or handed over in person, with the buyer's\none-time handover code. The kind of deal, one payment, stages or goods, is\nsaved on the deal, and the escrow follows it.\n\nWork, such as a design, writing, code or a video, is delivered as a link to the\nwork, with a short note. The link has to point to a real site before the\ndelivery is accepted. Every link is checked for safety; one the check holds is\nhidden from the buyer and never paid for, not even when the buyer's review time\nends, until a person at Karwan clears it or the seller sends another link.\n\nSeparately from links, the security agent screens each match when it is funded.\nA match it holds shows Held for a look on the deal, with one shared line and\nonly the lines meant for that side. The money stays in escrow and release\nfollows the deal’s own rules; nothing is blocked. Either person can ask a\nperson at Karwan to check from that card, and a person at Karwan clears the\nhold with a reason, after which both see one line in the deal chat. A person\nat Karwan can also review an earlier delivery link, or one on a closed deal,\nfor the record: clearing it takes the offence off the seller and changes\nnothing for the money.\n\nGoods sent with a courier are delivered with the carrier and the tracking\nnumber. Karwan builds the tracking link for DHL, FedEx, UPS and the main\nshipping lines. For local couriers, such as GIG Logistics, Kwik, NIPOST,\nAramex, Emirates Post, Delhivery, India Post and Bosta, the seller adds the\ncourier's tracking page. The buyer confirms when the goods arrive, which\nstarts their review. Confirming arrival does not pay the seller.\n\nGoods handed over in person end with a handover code. The buyer opens the deal\nand shows a six-digit code only once they hold the item, and the seller enters\nit. The code works once, counts as the item arriving, and starts the buyer's\nreview, so the buyer can still raise a problem they find later. Five wrong\ntries lock the code for 15 minutes, and asking for a new code cancels the old\none.\n\nGoods worth more than 50 USDC are delivered with a photo of the item. Any\ndelivery can carry up to four photos, added on the deal page or sent to the\nassistant with a caption like \"delivered\" or \"packed\".\n\nBoth sides see every delivery on the deal page: the links to open, where the\ngoods are, what Karwan checked, the photos and the deliveries before this one.\nThe assistant answers \"where is my order\" from the same record.\n\nKarwan does not inspect goods or judge the quality of work, and it does not\nread the courier's own tracking status yet. What it requires is that each\ndelivery is specific, on the record and fingerprinted on chain with the\ndelivery."
+      "body": "Delivery has to be against something the buyer can check, and what that is\ndepends on the kind of deal.\n\nAnyone can sell goods on Karwan, a person or a business. When the deal is made\nthe seller says how the item reaches the buyer: shipped, with a carrier and\ntracking number at delivery, or handed over in person, with the buyer's\none-time handover code. The kind of deal, one payment, stages or goods, is\nsaved on the deal, and the escrow follows it.\n\nWork, such as a design, writing, code or a video, is delivered as a link to the\nwork, with a short note. The link has to point to a real site before the\ndelivery is accepted. Every link is checked for safety; one the check holds is\nhidden from the buyer and never paid for, not even when the buyer's review time\nends, until a person at Karwan clears it or the seller sends another link.\n\nKarwan also compares the delivery with what was agreed, using a language\nmodel. When that check cannot run, the deal says so in plain words: Karwan\ncouldn't check the delivery, the buyer checks the work before releasing, and\nautomatic release waits for them. Nothing is wrong with the seller's delivery\nbecause of it. Karwan tries the check again a few minutes later, and either side\ncan ask for Check again on the deal page or from the assistant. Checks run on\nchain by Chainlink CRE are not live yet.\n\nSeparately from links, the security agent screens each match when it is funded.\nA match it holds shows Held for a look on the deal, with one shared line and\nonly the lines meant for that side. The money stays in escrow and release\nfollows the deal’s own rules; nothing is blocked. Either person can ask a\nperson at Karwan to check from that card, and a person at Karwan clears the\nhold with a reason, after which both see one line in the deal chat. A person\nat Karwan can also review an earlier delivery link, or one on a closed deal,\nfor the record: clearing it takes the offence off the seller and changes\nnothing for the money.\n\nGoods sent with a courier are delivered with the carrier and the tracking\nnumber. Karwan builds the tracking link for DHL, FedEx, UPS and the main\nshipping lines. For local couriers, such as GIG Logistics, Kwik, NIPOST,\nAramex, Emirates Post, Delhivery, India Post and Bosta, the seller adds the\ncourier's tracking page. The buyer confirms when the goods arrive, which\nstarts their review. Confirming arrival does not pay the seller.\n\nGoods handed over in person end with a handover code. The buyer opens the deal\nand shows a six-digit code only once they hold the item, and the seller enters\nit. The code works once, counts as the item arriving, and starts the buyer's\nreview, so the buyer can still raise a problem they find later. Five wrong\ntries lock the code for 15 minutes, and asking for a new code cancels the old\none.\n\nGoods worth more than 50 USDC are delivered with a photo of the item. Any\ndelivery can carry up to four photos, added on the deal page or sent to the\nassistant with a caption like \"delivered\" or \"packed\".\n\nBoth sides see every delivery on the deal page: the links to open, where the\ngoods are, what Karwan checked, the photos and the deliveries before this one.\nThe assistant answers \"where is my order\" from the same record.\n\nKarwan does not inspect goods or judge the quality of work, and it does not\nread the courier's own tracking status yet. What it requires is that each\ndelivery is specific, on the record and fingerprinted on chain with the\ndelivery."
     },
     {
       "id": "deposit-and-withdraw",
@@ -929,7 +929,7 @@
         "note": "Built, not deployed yet. Prices and search sizes read against the research pricing and its tests, which passed on 3 November 2026.",
         "lastVerified": "2026-11-03"
       },
-      "updated": "2026-11-03",
+      "updated": "2026-11-05",
       "path": "public/product/agents-pay-for-research.md"
     },
     {
@@ -1179,7 +1179,7 @@
         "note": "Goods deliveries are refused without a carrier and tracking reference or the buyer's handover code.",
         "lastVerified": ""
       },
-      "updated": "2026-10-30",
+      "updated": "2026-11-05",
       "path": "public/product/delivery-proof.md"
     },
     {
@@ -1206,7 +1206,7 @@
         "note": "Returns at most two DISTINCT addresses and no Circle blockchain code, so the chain vocabulary cannot reach a user.",
         "lastVerified": ""
       },
-      "updated": "2026-11-04",
+      "updated": "2026-11-05",
       "path": "public/product/deposit-and-withdraw.md"
     },
     {
@@ -1521,6 +1521,29 @@
       "check": null,
       "updated": "2026-09-01",
       "path": "public/product/open-trade-finance-roadmap.md"
+    },
+    {
+      "id": "outside-agents",
+      "title": "Deals from agents outside Karwan",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "market",
+        "testnet"
+      ],
+      "summary": "An agent that lives outside Karwan, such as Claude, ChatGPT or a company's own bot, can work for one person through the Karwan MCP server at https://api.karwan.site/mcp. Every request carries a World AgentKit proof that one real person stands behind the agent.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/15-outside-agents.md",
+          "date": "2026-11-05"
+        }
+      ],
+      "check": null,
+      "updated": "2026-11-05",
+      "path": "public/product/outside-agents.md"
     },
     {
       "id": "passport-sharing",

@@ -28,6 +28,7 @@ import { moneyPageCopy } from './moneyPage';
 import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
+import { agentJobsCopy } from './agentJobs';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -84,6 +85,7 @@ export const fr: Messages = {
   profilePage: profilePageCopy.fr,
   dealGuarantee: dealGuaranteeCopy.fr,
   contests: contestsCopy.fr,
+  agentJobs: agentJobsCopy.fr,
   work: workCopy.fr,
   offersThatMove: offersThatMoveCopy.fr,
   agentQuestions: agentQuestionsCopy.fr,
@@ -857,6 +859,7 @@ export const fr: Messages = {
         bridge: "Envoyé vers un autre réseau",
         agent_seed: "Ajouté par Karwan",
         agent_topup: "Recharge du compte de trading",
+        data_balance: "Recharge du solde de données",
         agent_funding: "Compte de trading approvisionné",
         agent_spend: "Payé par votre agent",
         gateway_deposit: "Ajouté au solde",
@@ -3332,7 +3335,7 @@ export const fr: Messages = {
       waitingBody: "Il a jusqu’à {time}. S’il ne paie pas d’ici là, rien n’est retenu et vous pouvez prendre une autre offre.",
       errRequest: "La demande n’a pas été envoyée. Réessayez.",
     },
-    checkPaused: { title: "Le paiement est en pause", stays: "Votre argent reste en séquestre jusqu’à la résolution.", saw: "Ce que la vérification a vu", noWallet: "La libération automatique ne peut pas s’exécuter pour ce deal. Libérez le paiement vous-même ici.", reasons: { "security-hold": "Le lien de livraison a été signalé comme dangereux, il vous est donc masqué.", "off-request": "La vérification a trouvé que la livraison ne correspond pas à votre demande.", "evidence-mismatch": "Les preuves de livraison ne correspondent pas aux conditions convenues.", "check-pending": "La vérification automatique n’a pas encore donné de résultat.", "check-expired": "Le résultat de la vérification a expiré avant la libération du paiement.", "terms-changed": "Les conditions ont changé après la vérification, elle doit donc être refaite.", "delivery-replaced": "Une livraison plus récente a été envoyée, la vérification doit donc être refaite.", "link-unverifiable": "Le lien de livraison n’a pas pu être ouvert pour la vérification." }, sellerHold: "Votre lien de livraison a été signalé comme dangereux et est masqué à l’acheteur. Envoyez un lien corrigé.", sellerOff: "La vérification indique que votre livraison ne correspond peut-être pas à la demande. Envoyez le bon lien.", sendNewLink: "Envoyer un nouveau lien de livraison", askPerson: "Mon lien est sûr. Demander une vérification", supportMessage: "Mon lien de livraison sur {path} a été signalé comme dangereux, mais il est sûr. Merci de le vérifier.", reviewChecking: "Une personne de Karwan vérifie votre lien.", reviewUnsafe: "Le support Karwan a vérifié votre lien et l'a gardé bloqué. Envoyez un nouveau lien de livraison.", reviewedSafe: "Vérifié par le support Karwan." },
+    checkPaused: { title: "Le paiement est en pause", stays: "Votre argent reste en séquestre jusqu’à la résolution.", saw: "Ce que la vérification a vu", noWallet: "La libération automatique ne peut pas s’exécuter pour ce deal. Libérez le paiement vous-même ici.", reasons: { "security-hold": "Le lien de livraison a été signalé comme dangereux, il vous est donc masqué.", "off-request": "La vérification a trouvé que la livraison ne correspond pas à votre demande.", "evidence-mismatch": "Les preuves de livraison ne correspondent pas aux conditions convenues.", "check-pending": "La vérification automatique n’a pas encore donné de résultat.", "check-expired": "Le résultat de la vérification a expiré avant la libération du paiement.", "terms-changed": "Les conditions ont changé après la vérification, elle doit donc être refaite.", "delivery-replaced": "Une livraison plus récente a été envoyée, la vérification doit donc être refaite.", "link-unverifiable": "Le lien de livraison n’a pas pu être ouvert pour la vérification.", "check-not-run": "Karwan n’a pas pu comparer cette livraison à la demande. L’acheteur la vérifie avant le paiement." }, sellerHold: "Votre lien de livraison a été signalé comme dangereux et est masqué à l’acheteur. Envoyez un lien corrigé.", sellerOff: "La vérification indique que votre livraison ne correspond peut-être pas à la demande. Envoyez le bon lien.", sendNewLink: "Envoyer un nouveau lien de livraison", askPerson: "Mon lien est sûr. Demander une vérification", supportMessage: "Mon lien de livraison sur {path} a été signalé comme dangereux, mais il est sûr. Merci de le vérifier.", reviewChecking: "Une personne de Karwan vérifie votre lien.", reviewUnsafe: "Le support Karwan a vérifié votre lien et l'a gardé bloqué. Envoyez un nouveau lien de livraison.", reviewedSafe: "Vérifié par le support Karwan." },
     checkLive: { checking: "Vérification de la livraison", checkingBody: "Un agent de contrôle la compare à la demande. Le paiement attend le résultat.", passed: "Livraison vérifiée", passedBuyer: "Examinez le travail, puis libérez le paiement.", passedSeller: "{name} examine le travail ensuite.", unverified: "Le lien n’a pas pu être vérifié", unverifiedBuyer: "Examinez le travail vous-même avant de libérer le paiement.", unverifiedSeller: "{name} examine le travail lui-même." },
     protection: { title: "Protection de cette transaction", escrow: "Argent bloqué sous séquestre jusqu’à la libération", you: "Vous vérifiez avec World ID", buyer: "L’acheteur vérifie avec World ID", seller: "Le vendeur vérifie avec World ID", reasons: { first_deal: "première transaction", large_deal: "transaction importante", fast_new_account: "beaucoup de nouvelles transactions aujourd’hui", flagged_link_before: "un lien signalé au dossier" }, stake: 'Le vendeur détient une garantie de transaction de {pct} %', github: "Livraison vérifiée sur GitHub", offMarket: "Le prix est bien au-dessus des transactions similaires", belowMarket: "Le prix est bien en dessous des transactions similaires" , cashOut: "Encaisser" },
     simple: {

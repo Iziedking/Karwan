@@ -12,7 +12,9 @@ export type DeliveryCheckDetail =
   | 'check-expired'
   | 'terms-changed'
   | 'delivery-replaced'
-  | 'link-unverifiable';
+  | 'link-unverifiable'
+  /// The delivery check gave no verdict: every model provider failed (view 43).
+  | 'check-not-run';
 
 type CheckInput = Parameters<typeof releaseBlockReasonForDelivery>[0];
 
@@ -28,7 +30,8 @@ export function deliveryCheckDetail(input: CheckInput): DeliveryCheckDetail | nu
   if (state === 'stale-terms') return 'terms-changed';
   if (state === 'stale-delivery') return 'delivery-replaced';
   if (state === 'unavailable' || state === 'read-unavailable') return 'check-pending';
-  if (input.verificationStatus === 'unverifiable' || input.deliveryMatch?.verdict === 'unknown') return 'link-unverifiable';
+  if (input.verificationStatus === 'unverifiable') return 'link-unverifiable';
+  if (input.deliveryMatch?.verdict === 'unknown') return 'check-not-run';
   return null;
 }
 
@@ -41,6 +44,7 @@ const BUYER: Record<DeliveryCheckDetail, string> = {
   'terms-changed': 'The terms changed after the check ran, so it has to run again.',
   'delivery-replaced': 'A newer delivery was submitted, so the check has to run again.',
   'link-unverifiable': 'The delivery link could not be opened to check it.',
+  'check-not-run': "Karwan couldn't check the delivery against the request, so the buyer reviews it themselves before release.",
 };
 
 const SELLER: Record<DeliveryCheckDetail, string> = {

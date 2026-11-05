@@ -28,6 +28,7 @@ import { moneyPageCopy } from './moneyPage';
 import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
+import { agentJobsCopy } from './agentJobs';
 import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
@@ -84,6 +85,7 @@ export const hi: Messages = {
   profilePage: profilePageCopy.hi,
   dealGuarantee: dealGuaranteeCopy.hi,
   contests: contestsCopy.hi,
+  agentJobs: agentJobsCopy.hi,
   work: workCopy.hi,
   offersThatMove: offersThatMoveCopy.hi,
   agentQuestions: agentQuestionsCopy.hi,
@@ -855,6 +857,7 @@ export const hi: Messages = {
         bridge: "दूसरे नेटवर्क पर भेजा",
         agent_seed: "Karwan ने जोड़ा",
         agent_topup: "ट्रेड खाता टॉप अप",
+        data_balance: "डेटा बैलेंस टॉप अप",
         agent_funding: "ट्रेड खाता फ़ंड किया",
         agent_spend: "आपके एजेंट ने भुगतान किया",
         gateway_deposit: "बैलेंस में जोड़ा",
@@ -3330,7 +3333,7 @@ export const hi: Messages = {
       waitingBody: "उनके पास {time} तक का समय है। तब तक भुगतान न करें तो कुछ नहीं रुकता और आप दूसरा ऑफ़र ले सकते हैं।",
       errRequest: "अनुरोध नहीं भेजा गया। फिर से कोशिश करें।",
     },
-    checkPaused: { title: "भुगतान रुका हुआ है", stays: "इसके हल होने तक आपका पैसा एस्क्रो में रहता है।", saw: "जांच ने क्या देखा", noWallet: "इस डील के लिए स्वचालित रिलीज़ नहीं चल सकती। यहां से खुद भुगतान रिलीज़ करें।", reasons: { "security-hold": "डिलीवरी लिंक को असुरक्षित बताया गया है, इसलिए यह आपसे छिपा है।", "off-request": "जांच में पाया गया कि डिलीवरी आपकी मांग से मेल नहीं खाती।", "evidence-mismatch": "डिलीवरी का प्रमाण तय शर्तों से मेल नहीं खाता।", "check-pending": "स्वचालित जांच का नतीजा अभी नहीं आया है।", "check-expired": "भुगतान रिलीज़ होने से पहले जांच का नतीजा समाप्त हो गया।", "terms-changed": "जांच के बाद शर्तें बदलीं, इसलिए इसे फिर से चलाना होगा।", "delivery-replaced": "नई डिलीवरी भेजी गई है, इसलिए जांच फिर से चलानी होगी।", "link-unverifiable": "जांच के लिए डिलीवरी लिंक नहीं खुल सका।" }, sellerHold: "आपके डिलीवरी लिंक को असुरक्षित बताया गया है और यह खरीदार से छिपा है। सही लिंक भेजें।", sellerOff: "जाँच में पाया गया कि आपकी डिलीवरी शायद अनुरोध से मेल नहीं खाती। सही लिंक भेजें।", sendNewLink: "नया डिलीवरी लिंक भेजें", askPerson: "मेरा लिंक सुरक्षित है। किसी व्यक्ति से जाँच करवाएँ", supportMessage: "{path} पर मेरा डिलीवरी लिंक असुरक्षित बताया गया, पर वह सुरक्षित है। कृपया इसकी जाँच करें।", reviewChecking: "Karwan का एक व्यक्ति आपका लिंक जाँच रहा है।", reviewUnsafe: "Karwan सपोर्ट ने आपका लिंक जाँचा और उसे रोके रखा। नया डिलीवरी लिंक भेजें।", reviewedSafe: "Karwan सपोर्ट द्वारा जाँचा गया।" },
+    checkPaused: { title: "भुगतान रुका हुआ है", stays: "इसके हल होने तक आपका पैसा एस्क्रो में रहता है।", saw: "जांच ने क्या देखा", noWallet: "इस डील के लिए स्वचालित रिलीज़ नहीं चल सकती। यहां से खुद भुगतान रिलीज़ करें।", reasons: { "security-hold": "डिलीवरी लिंक को असुरक्षित बताया गया है, इसलिए यह आपसे छिपा है।", "off-request": "जांच में पाया गया कि डिलीवरी आपकी मांग से मेल नहीं खाती।", "evidence-mismatch": "डिलीवरी का प्रमाण तय शर्तों से मेल नहीं खाता।", "check-pending": "स्वचालित जांच का नतीजा अभी नहीं आया है।", "check-expired": "भुगतान रिलीज़ होने से पहले जांच का नतीजा समाप्त हो गया।", "terms-changed": "जांच के बाद शर्तें बदलीं, इसलिए इसे फिर से चलाना होगा।", "delivery-replaced": "नई डिलीवरी भेजी गई है, इसलिए जांच फिर से चलानी होगी।", "link-unverifiable": "जांच के लिए डिलीवरी लिंक नहीं खुल सका।", "check-not-run": "Karwan इस डिलीवरी की अनुरोध से जाँच नहीं कर सका। भुगतान से पहले खरीदार इसे जाँचता है।" }, sellerHold: "आपके डिलीवरी लिंक को असुरक्षित बताया गया है और यह खरीदार से छिपा है। सही लिंक भेजें।", sellerOff: "जाँच में पाया गया कि आपकी डिलीवरी शायद अनुरोध से मेल नहीं खाती। सही लिंक भेजें।", sendNewLink: "नया डिलीवरी लिंक भेजें", askPerson: "मेरा लिंक सुरक्षित है। किसी व्यक्ति से जाँच करवाएँ", supportMessage: "{path} पर मेरा डिलीवरी लिंक असुरक्षित बताया गया, पर वह सुरक्षित है। कृपया इसकी जाँच करें।", reviewChecking: "Karwan का एक व्यक्ति आपका लिंक जाँच रहा है।", reviewUnsafe: "Karwan सपोर्ट ने आपका लिंक जाँचा और उसे रोके रखा। नया डिलीवरी लिंक भेजें।", reviewedSafe: "Karwan सपोर्ट द्वारा जाँचा गया।" },
     checkLive: { checking: "डिलीवरी की जाँच हो रही है", checkingBody: "एक गार्ड एजेंट इसे अनुरोध से मिला रहा है। भुगतान नतीजे का इंतज़ार करता है।", passed: "डिलीवरी जाँच पास हुई", passedBuyer: "काम देखें, फिर भुगतान जारी करें।", passedSeller: "अब {name} काम देखेंगे।", unverified: "लिंक की जाँच नहीं हो सकी", unverifiedBuyer: "भुगतान जारी करने से पहले काम ख़ुद देखें।", unverifiedSeller: "{name} काम ख़ुद देखेंगे।" },
     protection: { title: "इस डील पर सुरक्षा", escrow: "रिलीज़ तक पैसा एस्क्रो में रखा है", you: "आप World ID से सत्यापित करते हैं", buyer: "खरीदार World ID से सत्यापित करता है", seller: "विक्रेता World ID से सत्यापित करता है", reasons: { first_deal: "पहली डील", large_deal: "बड़ी डील", fast_new_account: "आज कई नई डील", flagged_link_before: "रिकॉर्ड पर एक फ़्लैग किया गया लिंक" }, stake: 'विक्रेता के पास {pct}% डील गारंटी है', github: "डिलीवरी GitHub पर जाँची जाती है", offMarket: "कीमत मिलती-जुलती डील से काफ़ी ज़्यादा है", belowMarket: "कीमत मिलती-जुलती डील से काफ़ी कम है" , cashOut: "कैश आउट" },
     simple: {

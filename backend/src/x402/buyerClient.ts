@@ -98,6 +98,15 @@ export async function ensureX402Wallet(record: AgentWallets): Promise<X402Wallet
 
 /// Available Gateway balance (USD) for a depositor on the active Arc network. Gateway
 /// returns no row for an address that never deposited; treat that as zero.
+/// What is left in a person's data balance: their agent's prepaid Gateway
+/// balance that pays for record checks and research (view 48). Null when the
+/// agent never funded one or Gateway cannot be read.
+export async function dataBalanceUsd(owner: string): Promise<number | null> {
+  const record = await getAgentWallets(owner.toLowerCase()).catch(() => null);
+  if (!record?.x402Wallet) return null;
+  return gatewayAvailableUsd(record.x402Wallet.address).catch(() => null);
+}
+
 export async function gatewayAvailableUsd(depositor: string): Promise<number> {
   const res = await fetch(`${GATEWAY_API}/balances`, {
     method: 'POST',

@@ -70,6 +70,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/deals/direct/:/delay-appeal': { by: 'assistant', via: 'delay_appeal' },
   'POST /api/deals/direct/:/delay-appeal-respond': { by: 'assistant', via: 'answer_delay_appeal' },
   'POST /api/deals/direct/:/still-reviewing': { by: 'assistant', via: 'still_reviewing' },
+  'POST /api/deals/direct/:/delivery-check': { by: 'assistant', via: 'check_delivery_again' },
   'POST /api/deals/direct/:/cancel': { by: 'assistant', via: 'take_back_deal' },
   'POST /api/deals/direct/:/edit': { by: 'assistant', via: 'change_deal_terms' },
   'POST /api/deals/direct/:/counter': { by: 'assistant', via: 'change_deal_terms' },

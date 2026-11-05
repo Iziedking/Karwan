@@ -1,4 +1,4 @@
-import { READ_DETAIL_TTL_MS, keptReadFor, type RecordReadReceipt } from '../db/recordReads.js';
+import { READ_DETAIL_TTL_MS, keptReadFor, readsForRef, type RecordReadReceipt } from '../db/recordReads.js';
 import { listDealsForAddress } from '../db/deals.js';
 import { bus, type KarwanEvent } from '../events.js';
 import { countsFor, type RecordCounts } from '../reputation/recordRead.js';
@@ -6,7 +6,7 @@ import type { SignedRecordRead } from '../verification/recordReadSignature.js';
 import { paidRecordRead, paidResearch, type PaidRecordRead } from './buyerClient.js';
 import { cachedAnglesFor, type MarketRead } from './externalClient.js';
 import { quoteResearch, type ResearchFocus, type ResearchQuote } from './researchPricing.js';
-import { RECORD_READ_PRICE_USDC, type ReadPurpose } from './recordReadGate.js';
+import { PAID_READS_PER_REQUEST, RECORD_READ_PRICE_USDC, type ReadPurpose } from './recordReadGate.js';
 import { addSpend, budgetNoticeDue, canSpend, spentThisWeek, type SpendKind } from '../agents/agentRecord.js';
 import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
 
@@ -46,6 +46,7 @@ export interface DataBudget {
 }
 
 export const BUDGET_REACHED = 'weekly data budget reached';
+export const REQUEST_READS_USED = 'record checks for this request used';
 
 async function withinBudget(budget: DataBudget | undefined, owner: string, priceUsd: number): Promise<void> {
   if (!budget || (await budget.fits(owner, priceUsd))) return;
@@ -60,6 +61,8 @@ export interface DataGateDeps {
   emit(e: PaidEvent): void;
   now(): number;
   budget?: DataBudget;
+  /// Paid checks this account already made on this request.
+  paidOnRequest?(forAccount: string, ref: string): Promise<number>;
 }
 
 const inFlight = new Map<string, Promise<GatedRecordRead>>();
@@ -82,6 +85,10 @@ async function acquire(req: RecordReadRequest, deps: DataGateDeps): Promise<Gate
   const kept = await reusable(req, deps);
   if (kept) {
     return { read: kept.read, reused: true, amountUsd: 0, transaction: null, receipt: { amountUsd: kept.kept.priceUsdc, transaction: kept.kept.paymentTx } };
+  }
+  const limit = (PAID_READS_PER_REQUEST as Partial<Record<ReadPurpose, number>>)[req.purpose];
+  if (limit !== undefined && deps.paidOnRequest && (await deps.paidOnRequest(req.forAccount, req.ref)) >= limit) {
+    throw new Error(`${REQUEST_READS_USED}: nothing was paid`);
   }
   await withinBudget(deps.budget, req.forAccount, RECORD_READ_PRICE_USDC);
   const r = await deps.pay(req);
@@ -155,6 +162,7 @@ export const liveBudget: DataBudget = {
 
 export const liveDeps: DataGateDeps = {
   kept: keptReadFor,
+  paidOnRequest: async (forAccount, ref) => (await readsForRef(ref, forAccount)).count,
   countsNow: async (subject) => countsFor(await listDealsForAddress(subject), subject),
   pay: (r) => paidRecordRead(r.payerAgent, r.subject, { purpose: r.purpose, ref: r.ref, forAccount: r.forAccount }),
   emit: (e) => bus.emitEvent(e),

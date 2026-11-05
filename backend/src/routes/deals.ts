@@ -1,5 +1,6 @@
 import { releaseLeg } from '../deals/payoutLeg.js';
 import { MAX_REVIEW_DAYS, reviewHasStarted } from '../deals/reviewClock.js';
+import { recheckDelivery, scheduleRecheck } from '../deals/deliveryRecheck.js';
 import { approvedDeadline, sellerMayAskMoreTime } from '../deals/deliveryDeadline.js';
 import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { SELLER_LINK_DETAIL, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
@@ -3418,6 +3419,8 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     evidenceManualReview: undefined,
   });
   if (!recordedDelivery) return c.json({ error: 'The delivery changed while this submission was being saved. Refresh the deal before submitting again.', code: 'STALE_DELIVERY' }, 409);
+  // No verdict (every model provider failed): try again in a few minutes (view 43, 5 Nov 2026).
+  if (deliveryMatch?.verdict === 'unknown') scheduleRecheck(jobId);
   // Cancel only the previous request. A recovery worker may already have
   // published the new revision after the delivery was saved above.
   if (deal.creDeliveryRequest) {
@@ -4365,6 +4368,27 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
 /// Buyer tips that they are still reviewing the work. Each tip adds a fixed
 /// extension to the final-release window rather than pausing the timer, capped
 /// at DEAL_MAX_REVIEW_EXTENSIONS.
+/// Check again: either side asks Karwan to run the delivery check that gave
+/// no verdict (view 43, owner 5 Nov 2026). Moves no money.
+dealsRoutes.post('/direct/:jobId/delivery-check', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const caller = body.caller.toLowerCase();
+  if (caller !== deal.buyer && caller !== deal.seller) return c.json({ error: 'only the buyer or the seller can ask for this' }, 403);
+  const result = await recheckDelivery(jobId);
+  return c.json(result);
+});
+
 dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);

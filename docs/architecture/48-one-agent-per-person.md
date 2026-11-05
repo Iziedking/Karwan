@@ -72,6 +72,12 @@ flowchart LR
   CHK --> RW
 ```
 
+## Decided by the owner, 5 Nov 2026: what a match costs
+
+- **One record check is 0.005 USDC.** A seller's agent checks the buyer's record once for each request it offers on: 0.005 USDC per request. A buyer's agent checks up to five sellers on its shortlist: at most 0.025 USDC per request. The data gate refuses a sixth paid check on one request, and a second for the seller.
+- **The data balance is the person's own money.** Paid checks settle from a small prepaid balance on Circle Gateway that belongs to the person's agent. When it runs low the agent moves 0.10 USDC into it from its own wallet. That move is shown as "0.1 USDC moved to your selling agent's data balance", never as money that left.
+- **The weekly line says it plainly:** what the agents spent, how many record checks at 0.005 USDC each, how many web searches, and what is left in the data balance. The assistant answers "what did my agent spend" with the same figures.
+
 ## The parts
 
 | Part | Job | Where it lives |

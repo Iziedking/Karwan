@@ -115,3 +115,15 @@ test('a financier paying from their own wallet is told the seller took their off
     'The seller took your offer. Pay them 185 USDC within 24 hours.',
   );
 });
+
+test('an agent topping up its data balance says the money moved, and the weekly line gives the price and what is left (view 48)', () => {
+  assert.equal(
+    summaryFor('wallet.debited', { amountUsdc: '0.100000', walletRole: 'sellerAgent', toDataBalance: true }, 'seller', en),
+    "0.1 USDC moved to your selling agent's data balance.",
+  );
+  assert.equal(
+    summaryFor('agent.weekly', { totalUsdc: 0.01, recordChecks: 2, webSearches: 0, checkPriceUsdc: 0.005, dataBalanceUsdc: 0.084 }, null, en),
+    'Your agents spent 0.01 USDC on data this week: 2 record checks at 0.005 USDC each and 0 web searches. 0.084 USDC is left in their data balance.',
+  );
+});
+

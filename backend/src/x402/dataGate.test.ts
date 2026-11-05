@@ -164,3 +164,35 @@ test('research over the budget is refused before anything runs', async () => {
   );
   assert.equal(ran, false);
 });
+
+test('one match costs a seller one check at 0.005 USDC, a buyer at most five (owner, 5 Nov 2026)', async () => {
+  const { RECORD_READ_PRICE_USDC, PAID_READS_PER_REQUEST } = await import('./recordReadGate.js');
+  assert.equal(RECORD_READ_PRICE_USDC, 0.005);
+  assert.deepEqual(PAID_READS_PER_REQUEST, { bid: 1, shortlist: 5 });
+  assert.equal(RECORD_READ_PRICE_USDC * PAID_READS_PER_REQUEST.bid, 0.005);
+  assert.equal(RECORD_READ_PRICE_USDC * PAID_READS_PER_REQUEST.shortlist, 0.025);
+});
+
+test('a check past the request\'s limit is refused before anything is paid', async () => {
+  const seller = harness();
+  seller.deps.paidOnRequest = async () => 1;
+  await assert.rejects(acquireRecordRead(req, seller.deps), /record checks for this request used/);
+  assert.equal(seller.pays(), 0);
+
+  const buyer = harness();
+  let used = 4;
+  buyer.deps.paidOnRequest = async () => used;
+  const shortlist = { ...req, purpose: 'shortlist' as const, subject: '0xSeller5' };
+  await acquireRecordRead(shortlist, buyer.deps);
+  assert.equal(buyer.pays(), 1, 'the fifth is paid');
+  used = 5;
+  await assert.rejects(acquireRecordRead({ ...shortlist, subject: '0xSeller6' }, buyer.deps), /record checks for this request used/);
+  assert.equal(buyer.pays(), 1, 'the sixth is not');
+});
+
+test('a kept read is used again even when the request\'s checks are used up', async () => {
+  const h = harness({ kept: keptRead(counts(3)) });
+  h.deps.paidOnRequest = async () => 1;
+  const r = await acquireRecordRead(req, h.deps);
+  assert.equal(r.reused, true);
+});
