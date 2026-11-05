@@ -12,6 +12,7 @@
   },
   "paths": {
     "backend/src/agents/": "T1",
+    "backend/src/intelligence/": "T1",
     "backend/src/marketplace/": "T1",
     "backend/src/matching/": "T1",
     "backend/src/negotiation/": "T1",
