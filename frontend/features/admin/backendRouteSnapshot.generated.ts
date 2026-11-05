@@ -154,6 +154,8 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/agent-questions/:id/answer" },
   { method: "GET", path: "/api/agents/buyer" },
   { method: "POST", path: "/api/agents/extract-deal" },
+  { method: "GET", path: "/api/agents/mandate" },
+  { method: "POST", path: "/api/agents/mandate" },
   { method: "GET", path: "/api/agents/seller" },
   { method: "POST", path: "/api/agents/seller/bids/abandon" },
   { method: "GET", path: "/api/agents/status" },
