@@ -3,6 +3,9 @@ import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, m } from 'motion/react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/core/api';
+import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import { Hint } from '@/shared/components/Hint';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
@@ -49,9 +52,13 @@ const CARD = 'rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(-
 /// Send, as its own page (view 50): who, then the amount large with a keypad
 /// on a phone, then a confirm sheet over it, then progress and the receipt
 /// under the same amount. The checks and the move are MoneySheet's, unchanged.
-export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
+/// The longest note a send carries; the server keeps the same limit.
+const NOTE_MAX = 120;
+
+export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose }: {
   prefillRecipient?: string;
   prefillAmount?: number;
+  prefillNote?: string;
   onClose: () => void;
 }) {
   const messages = useTranslations();
@@ -69,6 +76,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
   const confirmId = useId();
   const amountId = useId();
   const recipientId = useId();
+  const noteId = useId();
   const amountRef = useRef<HTMLInputElement | null>(null);
   const confirmRef = useRef<HTMLButtonElement | null>(null);
   const announced = useRef<SheetState['kind'] | null>(null);
@@ -79,6 +87,10 @@ export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
   const [recipient, setRecipient] = useState(prefillRecipient ?? '');
   const [typed, setTyped] = useState(prefillAmount ? String(prefillAmount) : '');
   const [pressed, setPressed] = useState<number | null>(null);
+  const [note, setNote] = useState((prefillNote ?? '').slice(0, NOTE_MAX));
+  const [noting, setNoting] = useState(!!prefillNote);
+  const recent = useQuery({ queryKey: ['recent-people'], queryFn: () => api.recentPeople(), enabled: auth.isAuthenticated, staleTime: 60_000 });
+  const people = recent.data?.people ?? [];
 
   useEffect(() => {
     if (announced.current === state.kind) return;
@@ -148,6 +160,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
       recipient: paidTag ? (paidTag.address as `0x${string}`) : recipientCheck.normalized ?? undefined,
       source: 'balance',
       walletBalance: balances.balance,
+      ...(note.trim() ? { note: note.trim() } : {}),
     });
   }
 
@@ -190,6 +203,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
                 <>
                   <dl className={`${CARD} px-5 text-[15px] tabular-nums`}>
                     <Row label={flow.to} value={toName} />
+                    {note.trim() ? <Row label={flow.note} value={note.trim()} plain /> : null}
                     <Row label={t.sheet.yourBalance} value={available === null ? '' : `${formatBalance(available, locale)} USDC`} />
                     {state.reference ? <Row label={t.sheet.reference} value={state.reference} mono /> : null}
                   </dl>
@@ -285,6 +299,26 @@ export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
                 </div>
               ) : null}
             </div>
+            {people.length > 0 && input.kind === 'empty' ? (
+              <div className="mt-6">
+                <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{flow.recent}</p>
+                <ul className="-mx-1 mt-3 flex gap-4 overflow-x-auto px-1 pb-1">
+                  {people.map((person) => (
+                    <li key={person.address} className="shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setRecipient(`@${person.tag}`)}
+                        className="flex w-16 flex-col items-center gap-2 rounded-[14px] py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
+                      >
+                        <PersonAvatar address={person.address} name={person.displayName} size={56} />
+                        <span className="w-full truncate text-center text-[13px] font-medium text-[var(--ink)]">{person.displayName.split(' ')[0]}</span>
+                        <span className="sr-only">@{person.tag}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {walletSigned ? (
               <Link
                 href={fromOtherNetworkHref(sendTo && recipientStatus === 'ok' ? sendTo : null, amount)}
@@ -318,7 +352,25 @@ export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
                   {t.sheet[chip]}
                 </button>
               ))}
+              {noting ? null : (
+                <button type="button" className={CHIP} onClick={() => setNoting(true)}>{flow.addNote}</button>
+              )}
             </div>
+            {noting ? (
+              <div className="mt-5">
+                <label htmlFor={noteId} className="sr-only">{flow.note}</label>
+                <input
+                  id={noteId}
+                  value={note}
+                  onChange={(event) => setNote(event.target.value.slice(0, NOTE_MAX))}
+                  maxLength={NOTE_MAX}
+                  autoFocus={!prefillNote}
+                  placeholder={flow.notePlaceholder}
+                  autoComplete="off"
+                  className="min-h-12 w-full rounded-full border border-[var(--line)] bg-[var(--surface)] px-5 text-center text-[15px] text-[var(--ink)] placeholder:text-[var(--ink-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
+                />
+              </div>
+            ) : null}
             {blocker === 'short' && amount !== null && max !== null ? (
               <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 text-[14px] text-[var(--ink)]">
                 <span>{fill(t.sheet.short, { amount: formatAmount(shortfall(amount, max), locale) })}</span>
@@ -347,6 +399,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
         <dl className={`${CARD} mt-6 bg-[var(--raised)] px-5 text-[15px]`}>
           <Row label={flow.to} value={toName} />
           <Row label={t.sheet.from} value={t.sheet.yourBalance} />
+          {note.trim() ? <Row label={flow.note} value={note.trim()} plain /> : null}
           <Row label={flow.network} value="Arc" />
         </dl>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--ink)]">
@@ -363,11 +416,11 @@ export function SendFlow({ prefillRecipient, prefillAmount, onClose }: {
   );
 }
 
-function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function Row({ label, value, mono = false, plain = false }: { label: string; value: string; mono?: boolean; plain?: boolean }) {
   return (
     <div className="flex justify-between gap-3 border-b border-[var(--line)] py-3.5 last:border-b-0">
       <dt className="text-[var(--ink-secondary)]">{label}</dt>
-      <dd dir="ltr" className={mono ? 'mono text-[13px] tracking-[0.04em] text-[var(--ink)]' : 'font-medium text-[var(--ink)]'}>{value}</dd>
+      <dd dir={plain ? 'auto' : 'ltr'} className={plain ? 'min-w-0 text-end font-medium text-[var(--ink)] [overflow-wrap:anywhere]' : mono ? 'mono text-[13px] tracking-[0.04em] text-[var(--ink)]' : 'font-medium text-[var(--ink)]'}>{value}</dd>
     </div>
   );
 }

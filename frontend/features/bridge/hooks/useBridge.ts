@@ -1625,7 +1625,7 @@ export function useBridges() {
   /// synthetic 'arc' key so it shows up in the activity list and history modal
   /// alongside real bridges.
   const startArcSend = useCallback(
-    async (input: { amountUsdc: number; recipient: `0x${string}`; userAddress: string }) => {
+    async (input: { amountUsdc: number; recipient: `0x${string}`; userAddress: string; note?: string }) => {
       const id = `arc-send-${input.userAddress}-${Date.now()}`;
       const now = Date.now();
       const record: BridgeRecord = {
@@ -1644,6 +1644,7 @@ export function useBridges() {
           recipient: input.recipient,
           amountUsdc: input.amountUsdc,
           bridgeId: id,
+          ...(input.note ? { note: input.note } : {}),
         });
         patch(id, (b) => ({
           ...b,
@@ -1828,7 +1829,7 @@ export function useBridges() {
   /// custodial startArcSend, used when a wallet-account seller cashes their own
   /// Arc balance out to another Arc address.
   const startWeb3ArcSend = useCallback(
-    async (input: { amountUsdc: number; recipient: `0x${string}`; userAddress: string }) => {
+    async (input: { amountUsdc: number; recipient: `0x${string}`; userAddress: string; note?: string }) => {
       if (!isConnected || !address || !walletClient || !arcClient) return;
       const id = `arc-send-${input.userAddress}-${Date.now()}`;
       const now = Date.now();
@@ -1905,6 +1906,7 @@ export function useBridges() {
             burnTxHash: hash,
             mintTxHash: hash,
             direction: 'out',
+            ...(input.note ? { note: input.note } : {}),
           })
           .catch(() => {
             /* history/activity is best-effort */

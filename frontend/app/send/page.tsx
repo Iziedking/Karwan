@@ -19,11 +19,13 @@ function SendPageContent() {
   const router = useRouter();
   const to = useSearchParams().get('to') ?? undefined;
   const amount = Number(useSearchParams().get('amount'));
+  const note = useSearchParams().get('note') ?? undefined;
   return (
     <AuthGuard gateTag={t.sheet.titleSend} gateBody={t.sendPage.gateBody}>
       <SendFlow
         prefillRecipient={to}
         prefillAmount={Number.isFinite(amount) && amount > 0 ? amount : undefined}
+        prefillNote={note}
         onClose={() => router.push('/account')}
       />
     </AuthGuard>

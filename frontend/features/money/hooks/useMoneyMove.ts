@@ -36,6 +36,8 @@ export interface MoveRequest {
   amount: number;
   /// Send only: the checked Arc recipient.
   recipient?: `0x${string}`;
+  /// Send only: a note to the person paid, kept with the send (view 50).
+  note?: string;
   /// Withdraw only: where the agent's USDC goes. Defaults to the account itself.
   toAddress?: `0x${string}`;
   /// Top-up only: where planTopUp said the money comes from.
@@ -177,7 +179,7 @@ export function useMoneyMove() {
             return;
           }
         }
-        const input = { amountUsdc: request.amount, recipient: request.recipient, userAddress: auth.address };
+        const input = { amountUsdc: request.amount, recipient: request.recipient, userAddress: auth.address, ...(request.note ? { note: request.note } : {}) };
         await (walletSigned ? startWeb3ArcSend(input) : startArcSend(input));
         refreshMoney();
         return;

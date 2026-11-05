@@ -12,11 +12,15 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { chainLabel, depositWalletsByChainKey } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
 import { getProfile } from '../db/profiles.js';
+import { recentRecipients } from '../money/recentPeople.js';
 import {
   mergeMovementLedger,
   transferCounterparty,
   type PersonalLedgerItem,
 } from './activityMovementLedger.js';
+
+/// How many recent people Send shows.
+const RECENT_PEOPLE = 8;
 
 export const activityRoutes = new Hono();
 
@@ -278,6 +282,26 @@ export function dropRoutedDeposits<T extends { kind: string; refId?: string }>(
 ///
 /// Session-scoped and never `?address=`: this is the user's full financial
 /// history, the most sensitive read in the app.
+/// The people this account sent money to, newest first (view 50): only those
+/// with a Karwan tag, since a person is never shown by a bare address.
+activityRoutes.get('/recent-people', async (c) => {
+  const address = sessionAddress(c);
+  if (!address) return c.json({ error: 'unauthorized' }, 401);
+  const [movements, wallets] = await Promise.all([
+    listMoneyMovementsForAddress(address, 200),
+    getAgentWallets(address).catch(() => null),
+  ]);
+  const own = new Set([wallets?.buyerAddress, wallets?.sellerAddress].filter((a): a is string => !!a));
+  const candidates = recentRecipients(movements, address, own).slice(0, 16);
+  const profiles = await Promise.all(candidates.map((party) => getProfile(party).catch(() => null)));
+  const people = candidates
+    .map((party, i) => ({ party, profile: profiles[i] }))
+    .filter(({ profile }) => !!profile?.handle)
+    .slice(0, RECENT_PEOPLE)
+    .map(({ party, profile }) => ({ address: party, tag: profile!.handle!, displayName: profile!.displayName?.trim() || profile!.handle! }));
+  return c.json({ people });
+});
+
 activityRoutes.get('/me', async (c) => {
   const address = sessionAddress(c);
   if (!address) return c.json({ error: 'unauthorized' }, 401);

@@ -267,6 +267,12 @@ export function MyMoneyLedger({
                               <span className="mt-0.5 block line-clamp-2 break-words text-[14px] text-[var(--ink-secondary)] font-medium tabular-nums">
                                 {/* Each part isolated, so in right to left the dots fall between them. */}
                                 <bdi>{timeLabel(item.ts)}</bdi>
+                                {item.note ? (
+                                  <>
+                                    {' · '}
+                                    <bdi>{item.note}</bdi>
+                                  </>
+                                ) : null}
                                 {context ? (
                                   <>
                                     {' · '}

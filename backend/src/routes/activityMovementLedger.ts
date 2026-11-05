@@ -13,6 +13,8 @@ export interface PersonalLedgerItem {
   jobId: string | null;
   status: 'done' | 'pending' | 'failed';
   movementState: MoneyMovement['state'] | null;
+  /// A send's note, on the sender's and the receiver's row alike (view 50).
+  note?: string;
 }
 
 function statusFor(state: MoneyMovement['state']): PersonalLedgerItem['status'] {
@@ -160,6 +162,7 @@ export function movementToPersonalLedgerItem(
     jobId: movement.jobId ?? null,
     status: statusFor(movement.state),
     movementState: movement.state,
+    ...(movement.note && (kind === 'transfer_in' || kind === 'transfer_out') ? { note: movement.note } : {}),
   };
 }
 

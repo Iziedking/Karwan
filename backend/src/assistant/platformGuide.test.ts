@@ -93,6 +93,9 @@ test('send and payment-link buttons carry only validated values', () => {
   assert.ok(!('error' in send));
   assert.equal(new URL(send.href, 'https://k.test').searchParams.get('to'), '@ada_designs');
   assert.equal(new URL(send.href, 'https://k.test').searchParams.get('amount'), '5');
+  const noted = buildNavigateAction({ destination: 'send', to: '@ada', amountUsdc: 5, note: '  Logo,\n first draft‮ ' });
+  assert.ok(!('error' in noted));
+  assert.equal(new URL(noted.href, 'https://k.test').searchParams.get('note'), 'Logo, first draft');
   const unsafe = buildNavigateAction({ destination: 'send', to: '../admin', amountUsdc: -1 });
   assert.ok(!('error' in unsafe) && unsafe.href === '/send');
   assert.ok('error' in buildNavigateAction({ destination: 'payment_link', token: '../../admin' }));

@@ -302,6 +302,34 @@ test('a link that names the person opens on the amount, with the keypad on a tou
   }
 });
 
+test('recent people start a send, and a note goes with it to the server (view 50)', async ({ page }) => {
+  const ADA = '0x2222222222222222222222222222222222222222';
+  let body: Record<string, unknown> | null = null;
+  await serveMoney(page, {
+    balances: funded,
+    tags: { ada: { displayName: 'Ada Obi', address: ADA } },
+    recentPeople: [{ address: ADA, tag: 'ada', displayName: 'Ada Obi' }],
+    arcSend: async (route) => {
+      body = route.request().postDataJSON();
+      await route.fulfill({ json: { ok: true, txHash: `0x${'ab'.repeat(32)}`, explorerUrl: 'https://x.test', reference: 'KWN-7Q2D-PX4M-ABCD', movementState: 'completed' } });
+    },
+  });
+  await page.goto('/send');
+  const flow = page.getByRole('region', { name: 'Send USDC' });
+  await expect(flow).toContainText('Recent');
+  await flow.getByRole('button', { name: /@ada/ }).click();
+  await expect(flow.getByLabel('Send to')).toHaveValue('@ada');
+  await flow.getByRole('button', { name: 'Continue', exact: true }).click();
+  await flow.getByLabel('Amount').fill('25');
+  await flow.getByRole('button', { name: 'Add a note' }).click();
+  await flow.getByLabel('Note').fill('  Logo, first draft ');
+  await flow.getByRole('button', { name: 'Continue', exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText('Logo, first draft');
+  await sheet.getByRole('button', { name: 'Send 25.00 USDC' }).click();
+  await expect.poll(() => body?.note).toBe('Logo, first draft');
+});
+
 test('an email account sends from its own wallet; a pool is never counted', async ({ page }) => {
   await serveMoney(page, {
     balances: { ...funded, [ME.toLowerCase()]: 100 },

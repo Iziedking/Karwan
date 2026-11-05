@@ -218,6 +218,12 @@ test('a send reads as sent for the sender and received for the recipient', () =>
   assert.equal(recipientRow.kind, 'transfer_in');
   assert.deepEqual(recipientRow.params, { t: 'received', amount: '100', who: '@ada' });
   assert.equal(recipientRow.refId, 'KWN-3KPH-3EA6-DQWC');
+  assert.equal(senderRow.note, undefined);
+
+  // A send's note reads the same on both sides (view 50).
+  const noted = { ...sent, note: 'Logo, first draft' };
+  assert.equal(movementToPersonalLedgerItem(noted, buyer, names).note, 'Logo, first draft');
+  assert.equal(movementToPersonalLedgerItem(noted, seller, names).note, 'Logo, first draft');
 });
 
 function bridgeMovement(opts: { initiatedBy: string; recipient: string; inbound: boolean }) {

@@ -3,6 +3,7 @@
 // that the escrow pays out to. The cashout page picks one of these as the
 // source; both are Circle DCWs we already control. Cross-chain withdraws
 // go through /api/bridge/circle-bridge-out.
+import { cleanNote } from '../money/sendNote.js';
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -70,6 +71,8 @@ const arcSendSchema = z.object({
   /// The client's local record id, so the recorded bridge shares it and the
   /// frontend doesn't render a duplicate row when it merges /bridge/list.
   bridgeId: z.string().min(1).optional(),
+  /// A note to the person paid (view 50), kept with the send.
+  note: z.string().max(400).optional(),
 });
 
 export const cashoutRoutes = new Hono();
@@ -428,6 +431,7 @@ cashoutRoutes.post('/arc-send', async (c) => {
     initiatedBy: session.address,
     recipient: body.recipient,
     summary: `Sent ${body.amountUsdc} USDC to ${body.recipient.toLowerCase()}`,
+    note: cleanNote(body.note),
   });
   const existingLeg = movement.legs.find(
     (leg) => leg.attempt === movement.attempt && leg.key === 'arc_transfer',

@@ -31,6 +31,24 @@ flowchart LR
 - **Nothing about the money changes.** The same checks run before a send (tag or address, enough money, a contract address warned), the same double-press guard holds, and slow, failed, rejected and guarded sends read as before.
 - **Five languages, reduced motion.** Every word is in English, French, Arabic, Hindi and Swahili, Arabic reads right to left, numerals stay left to right, and with reduced motion nothing slides.
 
+## Notes and recent people
+
+Added 5 Nov 2026 at the owner's ask.
+
+```mermaid
+flowchart LR
+  R[Recent: people you sent to, by tag] -->|tap| A2[Amount]
+  A2 --> N[Add a note, up to 120 characters]
+  N --> C2[Confirm shows the note]
+  C2 --> M[(The send's record keeps the note)]
+  M --> S[Sender's activity and receipt]
+  M --> T[Receiver's activity and receipt]
+```
+
+- **A note travels with the send.** It is optional, plain text, at most 120 characters, and kept with the send's own record, so the sender and the receiver both read it in their activity and on the receipt. It is never written to the chain.
+- **Recent people come from your own sends.** Send opens with the people you sent to most recently, newest first, read from your own completed sends. Only people with a Karwan tag are listed; a send to a bare address is never shown as a person.
+- **The assistant does the same.** Asked to send with a note ("send @ada 20 for the logo"), it opens the send screen with the person, the amount and the note filled in, and the person confirms there.
+
 ## What stays as it was
 
 - Topping up and withdrawing from an agent keep their own drawer.

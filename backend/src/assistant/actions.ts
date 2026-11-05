@@ -1,3 +1,4 @@
+import { cleanNote } from '../money/sendNote.js';
 import type { CreateDirectDealBody } from '../deals/createSchema.js';
 import { dealReference } from '../deals/reference.js';
 import type { AgentWays } from '../agents/ways.js';
@@ -464,7 +465,7 @@ interface DestSpec {
   label: string;
   /// Build the href from validated params, or null when a required param is
   /// missing/invalid (the caller turns that into an error for the model).
-  build: (p: { jobId?: string; address?: string; rail?: string; to?: string; amountUsdc?: number; token?: string; listingId?: string; terms?: string }) => string | null;
+  build: (p: { jobId?: string; address?: string; rail?: string; to?: string; amountUsdc?: number; note?: string; token?: string; listingId?: string; terms?: string }) => string | null;
 }
 
 /// jobIds are on-chain-derived (0x…) or synthetic (job-…); allow only a safe
@@ -498,6 +499,8 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
       const amount = safeAmount(p.amountUsdc);
       if (to) params.set('to', `@${to}`);
       if (amount) params.set('amount', amount);
+      const note = cleanNote(p.note);
+      if (note) params.set('note', note);
       const query = params.toString();
       return query ? `/send?${query}` : '/send';
     },
@@ -592,6 +595,8 @@ export interface BuildNavigateInput {
   /// Karwan tag for send.
   to?: string;
   amountUsdc?: number;
+  /// A note to the person paid, for send (view 50).
+  note?: string;
   /// Payment link id for payment_link.
   token?: string;
   /// Offer id for offer.
@@ -607,7 +612,7 @@ export interface BuildNavigateInput {
 export function buildNavigateAction(input: BuildNavigateInput): NavigateAction | { error: string } {
   const spec = DESTINATIONS[input.destination];
   if (!spec) return { error: `Unknown destination "${input.destination}".` };
-  const href = spec.build({ jobId: input.jobId, address: input.address, rail: input.rail, to: input.to, amountUsdc: input.amountUsdc, token: input.token, listingId: input.listingId, terms: input.terms });
+  const href = spec.build({ jobId: input.jobId, address: input.address, rail: input.rail, to: input.to, amountUsdc: input.amountUsdc, note: input.note, token: input.token, listingId: input.listingId, terms: input.terms });
   if (!href) {
     const need = input.destination === 'open_deal' || input.destination === 'request' ? 'deal or request id' : input.destination === 'payment_link' ? 'payment link id' : input.destination === 'offer' ? 'offer id' : 'address';
     return { error: `That destination needs a valid ${need}.` };

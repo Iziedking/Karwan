@@ -354,6 +354,8 @@ export interface UserSettings {
   notifyVia?: 'telegram' | 'email' | 'both';
   /// When they finished the setup conversation after activation.
   setupDoneAt?: number;
+  /// Deals from agents outside Karwan (view 15); absent means on.
+  acceptsOutsideAgents?: boolean;
 }
 
 export type WorkspaceKind = 'personal' | 'business';
@@ -955,7 +957,7 @@ export interface DirectDeal {
   /// Which check paused the release; both parties see it.
   /// A person at Karwan checked the flagged link (view 21). Only where it stands, never their notes.
   deliveryReviewState?: { state: 'checking' | 'safe' | 'unsafe' };
-  releaseBlockedDetail?: 'security-hold' | 'off-request' | 'evidence-mismatch' | 'check-pending' | 'check-expired' | 'terms-changed' | 'delivery-replaced' | 'link-unverifiable';
+  releaseBlockedDetail?: 'security-hold' | 'off-request' | 'evidence-mismatch' | 'check-pending' | 'check-expired' | 'terms-changed' | 'delivery-replaced' | 'link-unverifiable' | 'check-not-run';
   /// The required delivery check stalled long enough for the buyer to review
   /// the delivery themselves, and whether they already chose to.
   evidenceManualReviewAvailable?: boolean;
@@ -4973,7 +4975,7 @@ export const api = {
     ),
   /// Instant same-chain Arc send: USDC.transfer from the signed-in user's
   /// Karwan identity wallet to any Arc address. No CCTP, settles in one step.
-  cashoutArcSend: (input: { recipient: string; amountUsdc: number; bridgeId?: string }) =>
+  cashoutArcSend: (input: { recipient: string; amountUsdc: number; bridgeId?: string; note?: string }) =>
     json<{
       ok: true;
       txHash: string;
@@ -4983,6 +4985,12 @@ export const api = {
     }>(
       '/api/cashout/arc-send',
       { method: 'POST', body: JSON.stringify(input) },
+    ),
+  /// Check again: run the delivery check that gave no verdict (view 43).
+  checkDeliveryAgain: (jobId: string, caller: string) =>
+    json<{ status: 'checked' | 'not-needed' | 'still-unknown'; verdict?: string }>(
+      `/api/deals/direct/${jobId}/delivery-check`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
     ),
   stillReviewing: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
@@ -5273,11 +5281,15 @@ export const api = {
   /// first, merged from the activity log and the bridge store by the backend.
   /// Session-scoped, so no address argument. Distinct from the /activity
   /// network feed, which is an anonymized pulse and shows nobody's amounts.
+  /// People this account sent money to, newest first, by tag (view 50).
+  recentPeople: () => json<{ people: Array<{ address: string; tag: string; displayName: string }> }>('/api/activity/recent-people'),
   myActivity: (limit = 100) =>
     json<{
       items: Array<{
         id: string;
         ts: number;
+        /// A send's note, for the sender and the receiver alike (view 50).
+        note?: string;
         kind: string;
         summary: string;
         params?: Record<string, string> | null;
@@ -5301,6 +5313,7 @@ export const api = {
     burnTxHash?: string;
     mintTxHash?: string;
     direction?: 'in' | 'out';
+    note?: string;
   }) =>
     json<{
       ok: boolean;
@@ -6047,7 +6060,41 @@ export const api = {
       '/api/business/profile',
       { method: 'POST', body: JSON.stringify(body) },
     ),
+  /// Deals opened by agents outside Karwan (view 15). The pair and release
+  /// calls need no sign-in: the link and the person's World ID are the check.
+  agentPairRequest: (token: string) => json<{ request: WorldSessionRequest }>(`/api/agent-jobs/pair/${encodeURIComponent(token)}`),
+  agentPair: (token: string, result: Record<string, unknown>) =>
+    json<{ ok: true }>(`/api/agent-jobs/pair/${encodeURIComponent(token)}`, { method: 'POST', body: JSON.stringify({ result }) }),
+  agentRelease: (token: string) => json<AgentReleaseView>(`/api/agent-jobs/release/${encodeURIComponent(token)}`),
+  agentReleaseRequest: (token: string) =>
+    json<{ request: WorldSessionRequest }>(`/api/agent-jobs/release/${encodeURIComponent(token)}/check`, { method: 'POST' }),
+  agentReleaseAnswer: (token: string, result: Record<string, unknown>, happy: boolean, note?: string) =>
+    json<{ ok: true; status: string }>(`/api/agent-jobs/release/${encodeURIComponent(token)}`, { method: 'POST', body: JSON.stringify({ result, happy, note }) }),
+  agentJobsMine: () => json<{ jobs: AgentJobView[] }>('/api/agent-jobs/mine'),
+  agentJob: (ref: string) => json<{ job: AgentJobView }>(`/api/agent-jobs/${encodeURIComponent(ref)}`),
+  agentJobDelivered: (ref: string, note: string) =>
+    json<{ job: AgentJobView }>(`/api/agent-jobs/${encodeURIComponent(ref)}/delivered`, { method: 'POST', body: JSON.stringify({ note }) }),
+  agentJobDispute: (ref: string, clause: string) =>
+    json<{ job: AgentJobView }>(`/api/agent-jobs/${encodeURIComponent(ref)}/dispute`, { method: 'POST', body: JSON.stringify({ clause }) }),
 };
+export interface AgentReleaseView {
+  seller: string;
+  work: string;
+  amountUsdc: string;
+  deliveryNote: string;
+  reviewEnds?: number;
+}
+export interface AgentJobView {
+  ref: string;
+  status: 'created' | 'funded' | 'submitted' | 'completed' | 'rejected' | 'disputed' | 'refunded' | 'expired';
+  work: string;
+  amountUsdc: string;
+  deadline: number;
+  reviewEndsAt: number | null;
+  rejectedAt: number | null;
+  unhappyNote: string | null;
+  disputeBy: number | null;
+}
 
 export type VerificationState =
   | { status: 'unverified' }

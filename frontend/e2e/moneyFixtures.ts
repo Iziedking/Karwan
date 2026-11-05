@@ -47,6 +47,8 @@ export interface MoneyWorld {
   events?: () => string;
   /// Same-chain send from the account's own wallet.
   arcSend?: (route: Route) => Promise<void>;
+  /// The people Send lists as recent (view 50).
+  recentPeople?: Array<{ address: string; tag: string; displayName: string }>;
   /// USDC pooled in Gateway under the sign-in address. Only a wallet account counts it.
   pool?: number;
   /// Every /api/money-out/* call: status, World ID checks, remove, pause.
@@ -116,6 +118,7 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
       return route.fulfill({ json: { balance: { address: ME, confirmed: (world.pool ?? 0).toFixed(6), pending: '0', chains: [], fetchedAt: 0 } } });
     }
     if (path === '/api/activity/me') return route.fulfill({ json: { items: world.activity ?? recentActivity } });
+    if (path === '/api/activity/recent-people') return route.fulfill({ json: { people: world.recentPeople ?? [] } });
     if (path === '/api/bridge/list') return route.fulfill({ json: { bridges: [] } });
     if (path === '/api/deposit/address') {
       return route.fulfill({

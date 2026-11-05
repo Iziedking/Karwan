@@ -106,6 +106,8 @@ export interface MoneyMovement {
   initiatedBy: string;
   participants: MoneyMovementParty[];
   summary: string;
+  /// A send's note to the person paid (view 50), read by both sides.
+  note?: string;
   nextActor: MoneyMovementActor;
   expectedArrivalAt?: number;
   jobId?: string;
@@ -125,6 +127,7 @@ export interface CreateMoneyMovementInput {
   initiatedBy: string;
   participants: MoneyMovementParty[];
   summary: string;
+  note?: string;
   nextActor?: MoneyMovementActor;
   expectedArrivalAt?: number;
   jobId?: string;
@@ -261,6 +264,7 @@ export function createMoneyMovement(
     initiatedBy: normalizeAddress(input.initiatedBy),
     participants,
     summary: input.summary.trim(),
+    ...(input.note ? { note: input.note } : {}),
     nextActor: input.nextActor ?? 'karwan',
     ...(input.expectedArrivalAt ? { expectedArrivalAt: input.expectedArrivalAt } : {}),
     ...(input.jobId ? { jobId: input.jobId.toLowerCase() } : {}),

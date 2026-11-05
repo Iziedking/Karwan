@@ -1,3 +1,4 @@
+import { cleanNote } from '../money/sendNote.js';
 import { recordedBridgeMintedPayload } from '../money/bridgeEvents.js';
 import { randomUUID } from 'node:crypto';
 import { Hono, type Context } from 'hono';
@@ -277,6 +278,8 @@ const recordSchema = z.object({
   /// elsewhere, e.g. a web3 self-signed Arc-to-Arc cash-out that has no backend
   /// relay to persist it otherwise).
   direction: z.enum(['in', 'out']).optional(),
+  /// A same-chain send's note to the person paid (view 50).
+  note: z.string().max(400).optional(),
 });
 
 bridgeRoutes.post('/record', async (c) => {
@@ -395,6 +398,7 @@ bridgeRoutes.post('/record', async (c) => {
         : direction === 'out'
           ? `Sent ${amountUsdc} USDC from Arc to ${chainLabel(body.sourceChainKey)}`
           : await inboundSummary({ amountUsdc, chain: chainLabel(body.sourceChainKey), owner: ownerAddress, recipient: body.mintRecipient }),
+      note: sameChain ? cleanNote(body.note) : null,
     });
     movement = ensured.movement;
     if (movement.amountMicros !== amountMicros.toString()) {

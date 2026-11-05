@@ -25,6 +25,7 @@ import { systemPromptFor } from './knowledge.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
 import { deliveryForAssistant } from '../deals/deliveryHistoryView.js';
+import { recheckDelivery } from '../deals/deliveryRecheck.js';
 import { deliveryNeeds } from '../deals/deliveryProofRules.js';
 import { deliveryPhotos } from '../deals/deliveryPhotos.js';
 import { CARRIERS } from '../deals/carriers.js';
@@ -40,7 +41,8 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { BUDGET_REACHED, acquireResearch, researchQuote } from '../x402/dataGate.js';
 import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
 import { MAX_WEEKLY_BUDGET_USDC, spentThisWeek } from '../agents/agentRecord.js';
-import { READS_BALANCE_EMPTY } from '../x402/buyerClient.js';
+import { PAID_READS_PER_REQUEST, RECORD_READ_PRICE_USDC } from '../x402/recordReadGate.js';
+import { dataBalanceUsd, READS_BALANCE_EMPTY } from '../x402/buyerClient.js';
 import { researchFocusSchema } from '../x402/researchPricing.js';
 import { offerPhotos } from '../listings/photos.js';
 import { listActivityForAddress } from '../db/activityLog.js';
@@ -481,6 +483,20 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           logger.warn({ err: (err as Error).message }, 'assistant get_deal_status failed');
           return { error: 'Could not read that deal right now. Try again shortly.' };
         }
+      },
+    }),
+
+    check_delivery_again: tool({
+      description:
+        "Run Karwan's delivery check again on ONE of the user's own deals, when get_deal_status says deliveryCheck.ran is false (the check could not run). Either side may ask. Moves no money and needs no confirmation.",
+      inputSchema: z.object({ jobId: z.string().min(1).max(120).describe('The deal id (jobId).') }),
+      execute: async ({ jobId }) => {
+        const deal = await getDeal(jobId).catch(() => null);
+        if (!deal || !canViewDeal(deal, address)) return { error: 'That deal is not one of yours.' };
+        const result = await recheckDelivery(jobId).catch(() => ({ status: 'still-unknown' as const }));
+        if (result.status === 'checked') return { ran: true, verdict: result.verdict, next: 'Say the check ran and give its result in plain words; matchesRequest detail is for the buyer only.' };
+        if (result.status === 'not-needed') return { ran: false, next: 'Say there is nothing to check again: the delivery already has a result, or nothing has been delivered.' };
+        return { ran: false, next: 'Say the check still could not run, that the buyer reviews the delivery themselves, and that Karwan tries again on its own in a few minutes.' };
       },
     }),
 
@@ -2163,7 +2179,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     get_my_agent: tool({
       description:
-        "The user's agent: its weekly budget for the data it pays for (record checks and web research), what it spent in the last 7 days and on what, whether the weekly spend line is on, and the market watches it runs. Use it when the user asks what their agent did, spent or is watching.",
+        "The user's agent: its weekly budget for the data it pays for (record checks and web research), what it spent in the last 7 days and on what, the price of one record check and what one request costs, what is left in its data balance, whether the weekly spend line is on, and the market watches it runs. Use it when the user asks what their agent did, spent or is watching, or what a match costs.",
       inputSchema: z.object({}),
       execute: async () => {
         const now = Date.now();
@@ -2175,6 +2191,15 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           spentThisWeekUsdc: spentThisWeek(record, now),
           recordChecks: week.filter((s) => s.kind === 'record').length,
           webSearches: week.filter((s) => s.kind === 'research').length,
+          // What a match costs (owner, 5 Nov 2026): one check before offering on a
+          // request, up to five when choosing between sellers.
+          recordCheckPriceUsdc: RECORD_READ_PRICE_USDC,
+          perRequestUsdc: {
+            offeringOnARequest: RECORD_READ_PRICE_USDC * PAID_READS_PER_REQUEST.bid,
+            postingARequestAtMost: RECORD_READ_PRICE_USDC * PAID_READS_PER_REQUEST.shortlist,
+          },
+          dataBalanceUsdc: await dataBalanceUsd(address).catch(() => null),
+          dataBalanceNote: 'The data balance is the user’s own USDC, prepaid on Circle Gateway for these checks. When it runs low the agent moves 0.10 USDC into it from its own wallet; that move is not a charge.',
           weeklyLine: record.weeklyReport ? 'on' : 'off',
           watches: watches.map((w) => ({ id: w.id, kind: w.kind, category: CATEGORY_NAMES[w.category] })),
         };
@@ -2338,8 +2363,9 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       inputSchema: z.object({
         tag: z.string().max(40),
         amountUsdc: z.number().positive().max(1_000_000),
+        note: z.string().max(120).optional().describe('Optional note to the person paid, in the user’s words, such as what it is for. Both see it.'),
       }),
-      execute: async ({ tag, amountUsdc }) => {
+      execute: async ({ tag, amountUsdc, note }) => {
         const check = checkKarwanTag(tag.replace(/^@/, ''));
         if (!check.ok) return { ok: true, sendable: false, reason: 'That is not a valid Karwan tag.' };
         try {
@@ -2362,6 +2388,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             destination: 'send',
             to: found.tag,
             amountUsdc,
+            note,
             label: `Review sending ${amountUsdc} USDC to @${found.tag}`,
             description: `To ${found.displayName}. You confirm on the next screen.`,
           });

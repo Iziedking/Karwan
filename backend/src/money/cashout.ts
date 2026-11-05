@@ -24,6 +24,7 @@ export interface CashoutMovementInput {
   initiatedBy: string;
   recipient: string;
   summary: string;
+  note?: string | null;
   jobId?: string;
 }
 
@@ -40,6 +41,7 @@ export async function ensureCashoutMovement(
       { address: input.recipient, role: 'recipient' },
     ],
     summary: input.summary,
+    ...(input.note ? { note: input.note } : {}),
     nextActor: 'karwan',
     ...(input.jobId ? { jobId: input.jobId } : {}),
   });

@@ -16,6 +16,7 @@ export interface BridgeMovementInput {
   recipient: string;
   summary: string;
   sourceAddress?: string;
+  note?: string | null;
 }
 
 export async function ensureBridgeMovement(
@@ -36,6 +37,7 @@ export async function ensureBridgeMovement(
     initiatedBy: input.initiatedBy,
     participants,
     summary: input.summary,
+    ...(input.note ? { note: input.note } : {}),
     nextActor: 'karwan',
   });
 }

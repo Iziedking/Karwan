@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { ReceiptCard } from '@/features/receipt/ReceiptCard';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { buttonClasses } from '@/shared/components/Button';
 import {
   downloadReceiptImage,
@@ -25,6 +26,8 @@ export interface PortableReceiptItem {
   txHash: string | null;
   chain: string | null;
   status: 'done' | 'pending' | 'failed';
+  /// A send's note, read the same by sender and receiver (view 50).
+  note?: string;
 }
 
 export function PortableReceipt({
@@ -48,6 +51,7 @@ export function PortableReceipt({
   canShare?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const noteLabel = useTranslations().money.sendFlow.note;
   const [mounted, setMounted] = useState(false);
   /// Which export is in flight. The work happens a frame after the press, so
   /// without this the button would look inert for that frame.
@@ -71,7 +75,7 @@ export function PortableReceipt({
   const data = useMemo<ReceiptExportData>(
     () => ({
       title: copy.receiptTitle,
-      summary: line,
+      summary: item.note ? `${line} · ${noteLabel}: ${item.note}` : line,
       reference,
       amount: item.amountUsdc ? `${item.amountUsdc} USDC` : null,
       status,
@@ -89,7 +93,7 @@ export function PortableReceipt({
       verifyUrl: proofHref ?? undefined,
       footnote: ARC_NETWORK === 'testnet' ? copy.receiptTestnet : undefined,
     }),
-    [copy, date, item.amountUsdc, item.status, line, network, proofHref, reference, status, transaction],
+    [copy, date, item.amountUsdc, item.note, item.status, line, network, noteLabel, proofHref, reference, status, transaction],
   );
 
   useEffect(() => {
@@ -151,6 +155,7 @@ export function PortableReceipt({
           amount={item.amountUsdc ? `${item.amountUsdc} USDC` : null}
           sentence={line}
           rows={[
+            ...(item.note ? [{ label: noteLabel, value: item.note }] : []),
             { label: copy.receiptDate, value: date },
             ...(network ? [{ label: copy.receiptNetwork, value: network }] : []),
             { label: copy.receiptReference, value: reference ?? copy.receiptReferenceNone, mono: Boolean(reference) },
