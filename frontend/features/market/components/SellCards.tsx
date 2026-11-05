@@ -100,7 +100,7 @@ function OwnOffer({ listing }: { listing: Listing }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" loading="lazy" onError={() => own && setFailed(own)} className="aspect-[4/3] w-full rounded-[10px] bg-[var(--raised)] object-cover" />
       <span dir="auto" className="mt-1.5 block truncate text-[13px] font-medium text-[var(--ink)]">{listing.title}</span>
-      <Price usdc={Number(listing.askingPriceUsdc)} className="text-[13px] text-[var(--ink-secondary)]" usdcClassName="text-[12px]" />
+      <Price usdc={Number(listing.askingPriceUsdc)} className="text-[13px] text-[var(--ink-secondary)]" />
     </Link>
   );
 }

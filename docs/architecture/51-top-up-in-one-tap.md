@@ -283,7 +283,9 @@ Drawn in Figma, section "One Money page and a tidy Profile (view 51, fifth round
 - **Every price reads the same way.** With a currency chosen under Show amounts in, it leads and the USDC figure sits under it (or beside it inside a line of text). One component draws it everywhere: Home, the Balance, Agent and Deal guarantee tabs, Where it is, Recent, the market's offer and request cards, the deals list and the deal page. Money still moves in USDC, and amounts you type stay in USDC.
 - **Money is one centred column**, wider than before, with Back on the column. The deals holding money sit beside it on a computer only when there are some.
 - **Switches that are on are Karwan green.**
-- Still in USDC only, for a later pass: the money sheets' small print, the agent's weekly limit figures, Send, payment links, offers and the financier desk.
+- **Emails and Telegram too.** Just before a deal email or a Telegram message goes out, each "N USDC" in it becomes "₦X · N USDC" for a person who chose naira (one step per channel, `backend/src/rates/localAmounts.ts`). The email's big amount leads in naira with the USDC beside it. With USDC chosen, or no fresh rate, the message goes as written.
+- **Profile:** Your record shows the deals completed and nothing more; Edit profile sits under the name so the handle and account kind read in full. On the trade record page the label takes the room and a figure never breaks onto two lines.
+- Still in USDC only, for a later pass: the money sheets' small print, the agent's weekly limit figures, Send, payment links, offers, the financier desk, and the deal invite, cancel and update emails.
 
 ## Decisions for the owner
 

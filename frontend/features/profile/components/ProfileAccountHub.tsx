@@ -26,7 +26,6 @@ import { accountRows } from '../accountRows';
 import { useQuery } from '@tanstack/react-query';
 import { DisplayCurrencySection } from '@/features/settings/components/DisplayCurrencySection';
 import { recordSummary } from '../ownRecord';
-import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { LOCALE_NAMES } from '@/shared/i18n/locales';
@@ -55,9 +54,7 @@ export function ProfileAccountHub({
   const pp = messages.profilePage;
   // Your own record in one line (view 44, P9); the page behind it holds the rest.
   const record = useQuery({ queryKey: ['karwan-record', profile.handle], queryFn: () => api.record(profile.handle!), enabled: !!profile.handle, retry: false });
-  const tierLabels = useTierLabels();
   const summary = recordSummary(record.data, {
-    tier: (tier) => tierLabels[tier as keyof typeof tierLabels] ?? tier,
     newHere: pp.newHere,
     completed: pp.completed,
     completedOne: pp.completedOne,
@@ -168,12 +165,13 @@ export function ProfileAccountHub({
           </PhotoMenu>
           <span className="min-w-0">
             <span className="line-clamp-2 break-words text-[20px] leading-tight">{displayName}</span>
-            <span className="block truncate text-[14px] font-normal tracking-normal text-[var(--ink-secondary)]">
+            <span className="block break-words text-[14px] font-normal tracking-normal text-[var(--ink-secondary)]">
               {[profile.handle ? `@${profile.handle}` : contact, business ? hub.businessAccount : hub.personalAccount].join(' · ')}
             </span>
+            {/* Under the name, so the handle and account kind read in full on a phone (owner, 5 Nov 2026). */}
+            <Link href="/profile/edit" className="mt-2 inline-flex min-h-9 items-center rounded-full border border-[var(--line-strong)] px-3.5 text-[14px] font-semibold tracking-normal text-[var(--ink)] transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">{hub.editProfile}</Link>
           </span>
         </span>
-        <Link href="/profile/edit" className="ms-auto inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--line-strong)] px-4 text-[14px] font-semibold tracking-normal text-[var(--ink)] transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">{hub.editProfile}</Link>
         </>
       }
     >

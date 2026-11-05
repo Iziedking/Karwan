@@ -3,6 +3,7 @@
 // subject, heading, body, and CTA per event and this renders + ships it inside
 // the shared brand shell. Falls back to a log-only no-op when RESEND_API_KEY
 // isn't set.
+
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
@@ -22,6 +23,9 @@ export interface DealEventEmailInput {
   /// The USDC amount this event is about, as a plain decimal string. Shown as
   /// the largest line when present.
   amount?: string;
+  /// The same amount in the currency the person chose, "₦26,885". When set it
+  /// leads and the USDC figure sits beside it.
+  localAmount?: string;
   /// Optional CTA button label + absolute URL. Omitted together when the
   /// event has no useful destination (e.g. a decline).
   ctaLabel?: string;
@@ -41,7 +45,7 @@ export function formatEmailUsdc(amount: string): string {
 export function dealEventInnerHtml(input: Omit<DealEventEmailInput, 'to'>): string {
   return (
     emailHeading({ kicker: input.kicker, title: input.heading }) +
-    (input.amount ? emailAmount(formatEmailUsdc(input.amount)) : '') +
+    (input.amount ? (input.localAmount ? emailAmount(input.localAmount, `${formatEmailUsdc(input.amount)} USDC`) : emailAmount(formatEmailUsdc(input.amount))) : '') +
     emailText(input.body) +
     (input.facts?.length ? emailFacts(input.facts) : '') +
     (input.ctaLabel && input.ctaUrl ? emailButton(input.ctaLabel, input.ctaUrl) : '')
@@ -68,7 +72,7 @@ export async function sendDealEventEmail(input: DealEventEmailInput): Promise<bo
   const html = dealEventHtml(input);
   const textLines = [
     input.heading,
-    ...(input.amount ? ['', `${formatEmailUsdc(input.amount)} USDC`] : []),
+    ...(input.amount ? ['', input.localAmount ? `${input.localAmount} · ${formatEmailUsdc(input.amount)} USDC` : `${formatEmailUsdc(input.amount)} USDC`] : []),
     '',
     input.body,
     ...(config.ARC_NETWORK === 'testnet' ? ['', 'Testnet activity uses test funds with no monetary value.'] : []),

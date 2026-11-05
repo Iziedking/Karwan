@@ -129,7 +129,8 @@ test('Profile sums your record up in one row that opens its own page (view 48, b
   const p = en.profilePage;
   const record = page.getByRole('link', { name: new RegExp(`^${p.yourRecord}`) });
   await expect(record).toHaveAttribute('href', `/credit-passport/${ME}`);
-  await expect(record).toContainText(`Established · ${p.completed.replace('{n}', '23')}`);
+  await expect(record).toContainText(p.completed.replace('{n}', '23'));
+  await expect(record).not.toContainText('Established');
   // Every other record line lives on the record page now.
   await expect(page.locator('[data-record-stats]')).toHaveCount(0);
   for (const moved of [p.share, p.publicView, 'Where your record comes from']) {

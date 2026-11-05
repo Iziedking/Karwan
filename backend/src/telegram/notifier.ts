@@ -1,4 +1,6 @@
 import { bus, type KarwanEvent } from '../events.js';
+import { localiseUsdcText } from '../rates/localAmounts.js';
+import { readUsdcRates } from '../rates/usdcRates.js';
 import { config } from '../config.js';
 import { briefChannelFor, channelsFor, questionChannelFor } from '../channels/notifyVia.js';
 import { getDeal } from '../db/deals.js';
@@ -1126,7 +1128,9 @@ export function startTelegramNotifier(): () => void {
         const buttons = summary.url
           ? [{ text: tg('openInKarwan', locale), url: summary.url }]
           : undefined;
-        await sendTelegramMessage(link.chatId, summary.text, buttons);
+        // Prices read in the currency the person chose, with the USDC beside it.
+        const text = localiseUsdcText(summary.text, profile?.settings?.displayCurrency, await readUsdcRates(), locale);
+        await sendTelegramMessage(link.chatId, text, buttons);
       }
     } catch (err) {
       logger.warn({ err: (err as Error).message, type: e.type }, 'telegram notifier error');

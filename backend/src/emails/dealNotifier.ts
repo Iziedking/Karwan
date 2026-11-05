@@ -9,6 +9,8 @@
 // Each email goes to a recipient's VERIFIED contact email only, and respects
 // the same notificationsMuted toggle the Telegram path honors. No-op when
 // RESEND_API_KEY is unset.
+import { formatLocalAmount, localiseUsdcText } from '../rates/localAmounts.js';
+import { readUsdcRates } from '../rates/usdcRates.js';
 import { deliveryCheckReason, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
 import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financial/dealFinanciers.js';
 import { bus, type KarwanEvent } from '../events.js';
@@ -1113,11 +1115,22 @@ export function startEmailNotifier(): () => void {
         if (!content) continue;
         const contextId = e.jobId ?? (e.type.startsWith('rating.') ? e.payload?.dealId as string | undefined : undefined);
         const context = r.role === 'buyer' || r.role === 'seller' || e.type.startsWith('rating.') ? await dealContext(contextId, r.address) : null;
+        // Prices read in the currency the person chose, with the USDC beside it.
+        const currency = profile.settings?.displayCurrency;
+        const rates = await readUsdcRates();
+        const locale = profile.settings?.locale ?? 'en';
+        const local = (text: string) => localiseUsdcText(text, currency, rates, locale);
+        const amount = amountFor(e) ?? (e.type === 'deal.disputed' ? context?.amount : undefined);
         await sendDealEventEmail({
           to: profile.email,
           ...content,
-          amount: amountFor(e) ?? (e.type === 'deal.disputed' ? context?.amount : undefined),
-          ...(context?.facts.length ? { facts: context.facts } : {}),
+          kicker: local(content.kicker),
+          subject: local(content.subject),
+          heading: local(content.heading),
+          body: local(content.body),
+          amount,
+          ...(amount ? { localAmount: formatLocalAmount(Number(amount), currency, rates, locale) ?? undefined } : {}),
+          ...(context?.facts.length ? { facts: context.facts.map(([label, value]) => [label, local(value)] as [string, string]) } : {}),
         });
       }
     } catch (err) {

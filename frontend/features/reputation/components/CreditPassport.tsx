@@ -1,4 +1,5 @@
 'use client';
+import { Price } from '@/features/money/components/Price';
 import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useEffect, useState } from 'react';
 import { api, type Reputation, type UserProfile, profilePhotoOf } from '@/core/api';
@@ -7,7 +8,6 @@ import { shortAddress } from '@/shared/utils/format';
 import { skillDateLabel, skillLabel } from '../skillCredentials';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { BackButton } from '@/shared/components/BackButton';
-import { walletAmount } from '@/features/balances/walletFormat';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
@@ -211,6 +211,9 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
 
   const more = yourAgentCopy[locale as keyof typeof yourAgentCopy] ?? yourAgentCopy.en;
   const ROW = 'flex min-h-12 items-center justify-between gap-4 py-3 text-[15px]';
+  // On a phone the label takes the room and the figure never breaks (owner, 5 Nov 2026).
+  const LABEL = 'min-w-0 flex-1 text-[var(--ink-secondary)]';
+  const VALUE = 'shrink-0 whitespace-nowrap text-end font-semibold tabular-nums text-[var(--ink)]';
 
   return (
     <Shell>
@@ -261,23 +264,23 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
       <div className={`${CARD_CLASS} mt-3 divide-y divide-[var(--line)] px-5`}>
         <dl className="divide-y divide-[var(--line)]">
           <div className={ROW}>
-            <dt className="text-[var(--ink-secondary)]">{pc.volume}</dt>
-            <dd className="font-semibold tabular-nums text-[var(--ink)]">{`${walletAmount(String(volume)) ?? trimUsdc(String(volume))} USDC`}</dd>
+            <dt className={LABEL}>{pc.volume}</dt>
+            <dd className={VALUE}><Price usdc={Number(volume)} className="items-end" /></dd>
           </div>
           {counterparties != null ? (
             <div className={ROW}>
-              <dt className="text-[var(--ink-secondary)]">{pc.counterparties}</dt>
-              <dd className="font-semibold tabular-nums text-[var(--ink)]">{counterparties}</dd>
+              <dt className={LABEL}>{pc.counterparties}</dt>
+              <dd className={VALUE}>{counterparties}</dd>
             </div>
           ) : null}
           <div className={ROW}>
-            <dt className="text-[var(--ink-secondary)]">{pc.stake}</dt>
-            <dd className="font-semibold tabular-nums text-[var(--ink)]">{`${walletAmount(guaranteeUsdc) ?? trimUsdc(guaranteeUsdc)} USDC`}</dd>
+            <dt className={LABEL}>{pc.stake}</dt>
+            <dd className={VALUE}><Price usdc={Number(guaranteeUsdc)} className="items-end" /></dd>
           </div>
           {lastDealAt ? (
             <div className={ROW}>
-              <dt className="text-[var(--ink-secondary)]">{pc.lastDeal}</dt>
-              <dd className="font-semibold text-[var(--ink)]">{dateLabel(lastDealAt)}</dd>
+              <dt className={LABEL}>{pc.lastDeal}</dt>
+              <dd className={VALUE}>{dateLabel(lastDealAt)}</dd>
             </div>
           ) : null}
         </dl>
@@ -384,14 +387,6 @@ function TermBar({ label, value }: { label: string; value: number }) {
       </div>
     </div>
   );
-}
-
-/// Drop trailing zeros from a USDC string: "200.200000" -> "200.2", "50.00" -> "50".
-function trimUsdc(raw: string): string {
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return raw;
-  if (Number.isInteger(n)) return n.toString();
-  return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
 /// SME company + repayment behavior surface. Top-level component (per

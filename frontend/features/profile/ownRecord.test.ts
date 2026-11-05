@@ -29,10 +29,10 @@ test('your record says what you have done, or that you are new', () => {
   );
 });
 
-test('Profile sums the record up in one line: the level and the deals done (view 48, batch 9e)', () => {
-  const words = { tier: (t: string) => (t === 'ESTABLISHED' ? 'Established' : t), newHere: 'New on Karwan', completed: '{n} deals completed', completedOne: '1 deal completed' };
+test('Profile sums the record up in one line: the deals done, no level or write-up (owner, 5 Nov 2026)', () => {
+  const words = { newHere: 'New on Karwan', completed: '{n} deals completed', completedOne: '1 deal completed' };
   assert.equal(recordSummary(undefined, words), null);
   assert.equal(recordSummary(read(), words), 'New on Karwan');
-  assert.equal(recordSummary(read({ counts: { completed: 23, onTimeRate: 96, disputesLost: 0 } }), words), 'Established · 23 deals completed');
-  assert.equal(recordSummary(read({ counts: { completed: 1, onTimeRate: null, disputesLost: 0 } }), words), 'Established · 1 deal completed');
+  assert.equal(recordSummary(read({ counts: { completed: 23, onTimeRate: 96, disputesLost: 0 } }), words), '23 deals completed');
+  assert.equal(recordSummary(read({ counts: { completed: 1, onTimeRate: null, disputesLost: 0 } }), words), '1 deal completed');
 });
