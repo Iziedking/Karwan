@@ -14,7 +14,8 @@ test('the owner view retains back navigation, grouped amounts and a drawn chevro
   const passport = read('./CreditPassport.tsx');
   assert.match(passport, /data-own-back/);
   assert.doesNotMatch(passport, /⌄/);
-  assert.match(passport, /walletAmount\(String\(volume\)\)/);
+  // Amounts read in the chosen currency with grouped USDC under them (owner, 5 Nov 2026).
+  assert.match(passport, /<Price usdc=\{Number\(volume\)\}/);
   // Responsive label fit is verified in the production browser suite.
   assert.doesNotMatch(read('../../../shared/components/BackButton.tsx'), /h-9 px-2\.5/);
 });
