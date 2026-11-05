@@ -14,6 +14,7 @@ export function ProductBackLink({
   shell = false,
   fallbackHref,
   onBack,
+  disabled = false,
 }: {
   pathname: string | null;
   isAuthenticated: boolean;
@@ -26,6 +27,8 @@ export function ProductBackLink({
   shell?: boolean;
   /// A step inside the page goes back to the page's previous step first.
   onBack?: () => void;
+  /// While money is on its way, Back waits.
+  disabled?: boolean;
 }) {
   const href = getProductBackHref(pathname, isAuthenticated, DEALS_AVAILABLE) ?? fallbackHref ?? null;
   const t = useTranslations();
@@ -36,6 +39,7 @@ export function ProductBackLink({
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => {
         if (onBack) {
           onBack();
@@ -47,7 +51,7 @@ export function ProductBackLink({
       aria-label={t.nav.backAria}
       data-shell-back={shell ? '' : undefined}
       className={cn(
-        'group relative z-10 inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+        'group relative z-10 inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:pointer-events-none disabled:opacity-40',
         className,
       )}
     >

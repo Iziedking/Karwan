@@ -206,7 +206,7 @@ test('the agent page cannot be left while money is in flight', async ({ page }) 
   const sheet = await openTopUp(page);
   await sheet.getByLabel('Amount').fill('50');
   await sheet.getByRole('button', { name: 'Top up 50.00 USDC' }).click();
-  await expect(sheet.getByRole('button', { name: 'Back', exact: true })).toBeDisabled();
+  await expect(sheet.getByRole('button', { name: 'Go back', exact: true })).toBeDisabled();
   await expect(sheet).toContainText('50.00 USDC is with your buying agent.');
 });
 
@@ -216,7 +216,7 @@ test('the agent page opens on its own, with no sheet, and Back returns to Money'
   const sheet = await openTopUp(page);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(sheet.getByLabel('Amount')).toBeVisible();
-  await sheet.getByRole('button', { name: 'Back', exact: true }).click();
+  await sheet.getByRole('button', { name: 'Go back', exact: true }).click();
   await expect(page).toHaveURL(/\/account(\?|$)/);
 });
 

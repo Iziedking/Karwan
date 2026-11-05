@@ -86,3 +86,4 @@ This replaces the 8 Jul 2026 rule that only the buyer sees who bid. The buyer's 
 | The offer sheet says the offer is public | Built 5 Nov 2026, not deployed |
 | Chat terms line that offers are public | Waiting for the owner |
 | Who can see it: private requests and offers (`visibility` on requests and listings, `WhoCanSee` on the four post forms, `private` on the assistant post cards), Just one person | Built 5 Nov 2026, not deployed |
+| Buy side: New on Karwan shows eight offers (two full rows of four on a computer, four rows of two on a phone); See all pages through twelve at a time with Previous and Next instead of Show more (owner, 5 Nov 2026) | Built 5 Nov 2026, not deployed |

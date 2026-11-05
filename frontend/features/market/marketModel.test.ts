@@ -28,16 +28,16 @@ const card = (id: string, o: Partial<DiscoveryCard> = {}): DiscoveryCard => ({
   ...o,
 });
 
-test('real offers come before examples, newest first, six of them fresh', () => {
+test('real offers come before examples, newest first, eight of them fresh', () => {
   const cards = [
-    ...Array.from({ length: 7 }, (_, i) => card(`r${i}`, { postedAt: i })),
+    ...Array.from({ length: 9 }, (_, i) => card(`r${i}`, { postedAt: i })),
     card('e1', { example: true, postedAt: 100 }),
     card('e2', { example: true, postedAt: 99 }),
   ];
   const { fresh, all } = buyCards(cards, { q: '', category: 'all', scope: 'all' });
-  assert.deepEqual(fresh.map((c) => c.id), ['r6', 'r5', 'r4', 'r3', 'r2', 'r1']);
+  assert.deepEqual(fresh.map((c) => c.id), ['r8', 'r7', 'r6', 'r5', 'r4', 'r3', 'r2', 'r1']);
   assert.deepEqual(all.slice(-2).map((c) => c.id), ['e1', 'e2']);
-  assert.equal(all.length, 9);
+  assert.equal(all.length, 11);
 });
 
 test('a category and a search narrow the offers; requests never show on Buy', () => {

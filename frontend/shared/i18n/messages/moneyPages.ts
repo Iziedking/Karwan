@@ -2,8 +2,9 @@
 /// the card that stays until Done, one Money page with Balance, Agent and Deal
 /// guarantee, and the tidy Profile. Explanations sit behind info tips.
 export interface MoneyPagesCopy {
-  back: string;
   tabs: { label: string; balance: string; agent: string; guarantee: string };
+  /// From an exchange, for an account that signs with its own wallet.
+  walletDeposit: string;
   tips: { balance: string; agent: string; guarantee: string };
   added: {
     title: string;
@@ -101,7 +102,7 @@ export interface MoneyPagesCopy {
 }
 
 const en: MoneyPagesCopy = {
-  back: 'Back',
+  walletDeposit: 'Send USDC to your wallet address. On {arc} it lands in your balance. On another network it shows under From your wallet.',
   tabs: { label: 'Money', balance: 'Balance', agent: 'Agent', guarantee: 'Deal guarantee' },
   tips: {
     balance: 'Money you can spend now: your wallet, your Transfer balance and anything still with your agent.',
@@ -204,7 +205,7 @@ const en: MoneyPagesCopy = {
 };
 
 const fr: MoneyPagesCopy = {
-  back: 'Retour',
+  walletDeposit: "Envoyez des USDC à l'adresse de votre portefeuille. Sur {arc}, ils arrivent dans votre solde. Sur un autre réseau, ils apparaissent sous Depuis votre portefeuille.",
   tabs: { label: 'Argent', balance: 'Solde', agent: 'Agent', guarantee: 'Garantie de transaction' },
   tips: {
     balance: 'L’argent que vous pouvez dépenser maintenant : votre portefeuille, votre solde de transfert et ce qui reste chez votre agent.',
@@ -307,7 +308,7 @@ const fr: MoneyPagesCopy = {
 };
 
 const ar: MoneyPagesCopy = {
-  back: 'رجوع',
+  walletDeposit: 'أرسل USDC إلى عنوان محفظتك. على {arc} تصل إلى رصيدك. على شبكة أخرى تظهر تحت من محفظتك.',
   tabs: { label: 'المال', balance: 'الرصيد', agent: 'الوكيل', guarantee: 'ضمان الصفقة' },
   tips: {
     balance: 'المال الذي يمكنك إنفاقه الآن: محفظتك ورصيد التحويل وما بقي لدى وكيلك.',
@@ -410,7 +411,7 @@ const ar: MoneyPagesCopy = {
 };
 
 const hi: MoneyPagesCopy = {
-  back: 'वापस',
+  walletDeposit: 'अपने वॉलेट पते पर USDC भेजें। {arc} पर यह आपके शेष में आता है। किसी दूसरे नेटवर्क पर यह आपके वॉलेट से के नीचे दिखता है।',
   tabs: { label: 'पैसा', balance: 'शेष', agent: 'एजेंट', guarantee: 'सौदा गारंटी' },
   tips: {
     balance: 'वह पैसा जो आप अभी खर्च कर सकते हैं: आपका वॉलेट, आपका ट्रांसफ़र शेष और जो आपके एजेंट के पास बचा है।',
@@ -513,7 +514,7 @@ const hi: MoneyPagesCopy = {
 };
 
 const sw: MoneyPagesCopy = {
-  back: 'Rudi',
+  walletDeposit: 'Tuma USDC kwenye anwani ya pochi yako. Kwenye {arc} inaingia kwenye salio lako. Kwenye mtandao mwingine inaonekana chini ya Kutoka kwenye pochi yako.',
   tabs: { label: 'Pesa', balance: 'Salio', agent: 'Wakala', guarantee: 'Dhamana ya mkataba' },
   tips: {
     balance: 'Pesa unayoweza kutumia sasa: pochi yako, salio lako la uhamisho na chochote kilichobaki kwa wakala wako.',

@@ -32,7 +32,7 @@ flowchart LR
 |---|---|---|---|
 | Transfer balance | web3 wallets that have one | spent to the Arc wallet, one signature in the browser | seconds |
 | Each network where the connected wallet holds USDC (Base, Ethereum, Arbitrum, Solana …) | any account with a browser wallet connected, email accounts included | CCTP Fast to the person's Arc address, which is the route already built | about 8 to 20 seconds |
-| An exchange or another app | everyone | the deposit address for any network, with Copy | when it arrives |
+| An exchange or another app | everyone | an email account: the deposit address for any network; a wallet account: its own wallet address (on Arc it lands in the balance, on another network it shows under From your wallet). Copy on both | when it arrives |
 | Card | everyone, shown as soon | nothing to press | |
 
 - **The richest row goes first and is already selected,** so the usual top-up is: Add money, then the button.

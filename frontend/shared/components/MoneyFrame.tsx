@@ -1,7 +1,8 @@
 'use client';
 import type { ReactNode, RefObject } from 'react';
 import { ConfirmSheetShell } from './ConfirmSheetShell';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { usePathname } from 'next/navigation';
+import { ProductBackLink } from './ProductBackLink';
 
 /// Where a money flow shows (view 51, fourth round). As a page it sits in one
 /// centred column with Back at the top, the same on a phone and a computer, so
@@ -16,7 +17,7 @@ export function MoneyFrame({ page, open = true, labelledBy, busy, onClose, initi
   initialFocus?: RefObject<HTMLElement | null>;
   children: ReactNode;
 }) {
-  const back = useTranslations().moneyPages.back;
+  const pathname = usePathname();
   if (!page) {
     return (
       <ConfirmSheetShell open={open} labelledBy={labelledBy} busy={busy} onClose={onClose} initialFocus={initialFocus}>
@@ -26,16 +27,9 @@ export function MoneyFrame({ page, open = true, labelledBy, busy, onClose, initi
   }
   return (
     <section data-money-page aria-labelledby={labelledBy} className="product-surface mx-auto w-full max-w-[520px] px-4 pb-24 pt-4 sm:px-0 sm:pt-8">
-      <button
-        type="button"
-        data-own-back
-        onClick={onClose}
-        disabled={busy}
-        className="-ms-2 mb-4 inline-flex min-h-11 items-center gap-1.5 rounded-[10px] px-2 text-[15px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
-      >
-        <span aria-hidden className="rtl:rotate-180">‹</span>
-        {back}
-      </button>
+      <div data-own-back className="-ms-2 mb-4">
+        <ProductBackLink pathname={pathname} isAuthenticated onBack={onClose} disabled={busy} />
+      </div>
       {children}
     </section>
   );

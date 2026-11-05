@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DiscoveryScope } from '@/features/discovery/model';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { OpenContests } from '@/features/contests/components/OpenContests';
@@ -21,7 +21,7 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import type { MarketShopCopy } from '@/shared/i18n/messages/marketShop';
 import { cn } from '@/shared/utils/cn';
 import { shouldAskTradesAs } from '../entryQuestion';
-import { FRESH, buyCards, sellRequests, type CategoryId } from '../marketModel';
+import { FRESH, PAGE_SIZE, buyCards, sellRequests, type CategoryId } from '../marketModel';
 import { parseMarketQuery, marketHref, marketViewHref, type MarketSide, type MarketView, type YoursList } from '../marketQuery';
 import { useMarketOffers, useMarketRequests, useRequestFits, type MarketSource } from '../useMarketData';
 import { BuySellSwitch } from './BuySellSwitch';
@@ -32,7 +32,6 @@ import { RequestCard, YourOffersStrip } from './SellCards';
 import { StartTradeSheet } from './StartTradeSheet';
 import { YourTrades } from './YourTrades';
 
-const STEP = 12;
 /// The most offers one page asks for (backend/src/marketplace/marketPage.ts).
 const MARKET_PAGE_MAX = 240;
 
@@ -134,20 +133,28 @@ function BuySide({
   const t = messages.marketShop;
   const { isAuthenticated } = useAuth();
   const [seeAll, setSeeAll] = useState(false);
-  const [shown, setShown] = useState(STEP);
+  const [page, setPage] = useState(1);
+  const sectionRef = useRef<HTMLElement>(null);
   const [startOpen, setStartOpen] = useState(false);
   const narrowed = category !== 'all' || q.trim() !== '' || scope === 'business';
   const full = narrowed || seeAll;
-  const offers = useMarketOffers({ q, category, scope, limit: full ? shown : FRESH });
+  const upTo = Math.min(page * PAGE_SIZE, MARKET_PAGE_MAX);
+  const offers = useMarketOffers({ q, category, scope, limit: full ? upTo : FRESH });
   // The server already narrowed the page; narrowing again costs nothing and
   // keeps the page right against a server that sends every offer.
   const { fresh, all } = useMemo(() => buyCards(offers.cards, { q, category, scope }), [offers.cards, q, category, scope]);
   const matched = offers.total ?? all.length;
-  const visible = full ? all.slice(0, shown) : fresh;
+  const visible = full ? all.slice((page - 1) * PAGE_SIZE, upTo) : fresh;
+  const hasNext = full && matched > upTo && upTo < MARKET_PAGE_MAX;
+  const pager = messages.listingsBrowse.pager;
+  const turn = (next: number) => {
+    setPage(next);
+    sectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
   const loading = offers.loading;
   const title = category !== 'all' ? t.categories[category] : q.trim() ? t.results : t.newOnKarwan;
 
-  useEffect(() => setShown(STEP), [q, category, scope, seeAll]);
+  useEffect(() => setPage(1), [q, category, scope, seeAll]);
 
   return (
     <>
@@ -170,7 +177,7 @@ function BuySide({
 
       {offers.failed ? <Notice failed={['offers']} retry={offers.retry} t={t} /> : null}
 
-      <section aria-labelledby="market-buy-heading" data-guide="market-new" aria-busy={offers.refreshing} className="mt-7">
+      <section ref={sectionRef} aria-labelledby="market-buy-heading" data-guide="market-new" aria-busy={offers.refreshing} className="mt-7 scroll-mt-20">
         <div className="flex min-h-11 items-center justify-between gap-3">
           <h2 id="market-buy-heading" className="text-[17px] font-semibold text-[var(--ink)]">{title}</h2>
           {!full && matched > fresh.length ? (
@@ -180,18 +187,26 @@ function BuySide({
           ) : null}
         </div>
         {loading ? (
-          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 xl:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="aspect-[4/3] w-full rounded-[var(--radius-card)]" />)}
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-6 lg:grid-cols-4">
+            {Array.from({ length: FRESH }, (_, i) => i).map((i) => <Skeleton key={i} className="aspect-[4/3] w-full rounded-[var(--radius-card)]" />)}
           </div>
         ) : visible.length > 0 ? (
           <>
-            <ul className="mt-3 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 xl:grid-cols-4">
+            <ul data-market-offers className="mt-3 grid grid-cols-2 gap-x-3 gap-y-6 lg:grid-cols-4">
               {visible.map((card) => <li key={card.id}><ListingCard card={card} /></li>)}
             </ul>
-            {full && matched > shown && shown < MARKET_PAGE_MAX ? (
-              <button type="button" onClick={() => setShown((n) => n + STEP)} className={cn(buttonClasses({ variant: 'outline', size: 'sm' }), 'mt-4')}>
-                {messages.dealsPage.showMore}
-              </button>
+            {full && (page > 1 || hasNext) ? (
+              <nav aria-label={pager.label} data-market-pager className="mt-6 flex items-center justify-between gap-3">
+                <button type="button" disabled={page === 1} onClick={() => turn(page - 1)} className={cn(buttonClasses({ variant: 'outline', size: 'sm' }), 'disabled:opacity-40')}>
+                  {pager.previous}
+                </button>
+                <p className="text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
+                  {pager.range.replace('{from}', String((page - 1) * PAGE_SIZE + 1)).replace('{to}', String((page - 1) * PAGE_SIZE + visible.length)).replace('{total}', String(matched))}
+                </p>
+                <button type="button" disabled={!hasNext} onClick={() => turn(page + 1)} className={cn(buttonClasses({ variant: 'outline', size: 'sm' }), 'disabled:opacity-40')}>
+                  {pager.next}
+                </button>
+              </nav>
             ) : null}
           </>
         ) : (

@@ -395,7 +395,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
                 <span aria-hidden className="rtl:rotate-180">‹</span>{t.add.exchange}
               </button>
             ) : null}
-            <DepositCard />
+            {isWallet && auth.address ? <WalletDeposit address={auth.address} /> : <DepositCard />}
           </div>
         ) : null}
 
@@ -569,6 +569,33 @@ function NetworkPicker({ sources, label, change, describe, open, setOpen, onPick
           })}
         </ul>
       ) : null}
+    </div>
+  );
+}
+
+/// A wallet account has no deposit address of its own on the server: its
+/// wallet address takes USDC on Arc and on every other network listed here.
+function WalletDeposit({ address }: { address: string }) {
+  const all = useTranslations();
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2200);
+    } catch {
+      // The address is on screen in full; nothing to fix if the clipboard says no.
+    }
+  };
+  return (
+    <div data-wallet-deposit className="space-y-4 rounded-[16px] bg-[var(--raised)] p-5">
+      <p className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">
+        {fill(all.moneyPages.walletDeposit, { arc: ARC_NETWORK === 'testnet' ? 'Arc Testnet' : 'Arc' })}
+      </p>
+      <p dir="ltr" className="break-all font-mono text-[15px] font-semibold text-[var(--ink)]">{address}</p>
+      <button type="button" onClick={() => void copy()} className={buttonClasses({ size: 'lg', className: 'w-full' })}>
+        {copied ? all.deposit.copied : all.deposit.copy}
+      </button>
     </div>
   );
 }

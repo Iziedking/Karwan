@@ -13,11 +13,11 @@ const messages = { en, ar };
 const SELLER = '0x5555555555555555555555555555555555555555';
 type Theme = 'light' | 'dark';
 type Locale = 'en' | 'ar';
-type World = { signedOut?: boolean; empty?: boolean; offersDown?: boolean; fits?: string[]; mine?: Listing[] };
+type World = { signedOut?: boolean; empty?: boolean; offersDown?: boolean; fits?: string[]; mine?: Listing[]; more?: number };
 
 const ada: ListingSeller = { name: 'Ada Obi', tag: 'ada', verified: true, rating: { kind: 'rated', value: 4.8, count: 23 }, country: 'NG' };
 
-function marketData() {
+function marketData(more = 0) {
   const now = Date.now();
   const expiresAt = now + 7 * 86_400_000;
   const offer = (id: string, title: string, price: number, ago: number, over: Partial<Listing> = {}): Listing => ({
@@ -36,6 +36,9 @@ function marketData() {
     offer('rice', 'Bag of parboiled rice, 25 kg', 45, 5000, { category: 'farm', readyInDays: 3, deliveryKind: 'goods' }),
     offer('photos', 'Product photos for your shop, 20 shots', 60, 6000, { category: 'design', readyInDays: 2 }),
     offer('fridge', 'Fridge, 2 doors, used 1 year', 180, 7000, { category: 'home' }),
+    offer('shoes', 'Leather sandals, made to measure', 35, 8000, { category: 'fashion', deliveryKind: 'goods' }),
+    offer('lessons', 'Maths lessons for secondary school', 20, 9000, { category: 'lessons' }),
+    ...Array.from({ length: more }, (_, i) => offer(`more-${i}`, `Handmade item ${i + 1}`, 10 + i, 20_000 + i * 1000, { category: 'home' })),
     offer('example-new', 'Example stock that is newest', 99, 10, { category: 'design', example: true }),
   ];
   const briefs: MarketplaceBrief[] = [
@@ -49,7 +52,7 @@ function marketData() {
 async function open(page: Page, { theme = 'light', locale = 'en', route = '/market', world = {} }:
   { theme?: Theme; locale?: Locale; route?: string; world?: World } = {}) {
   const hydrationErrors = watchHydration(page);
-  const data = marketData();
+  const data = marketData(world.more);
   const fitsCalls: string[] = [];
   await page.context().addCookies([{ name: 'karwan-locale', value: locale, domain: '127.0.0.1', path: '/' }]);
   await page.addInitScript(value => {
@@ -105,8 +108,8 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['dark', 'ar']] 
       t.categories.farm, t.categories.home, t.categories.lessons, t.categories.repairs, t.categories.rentals,
     ]);
     await expect(page.getByRole('heading', { level: 2, name: t.newOnKarwan })).toBeVisible();
-    // Six fresh cards, real ones first: the newer example is not among them.
-    await expect(cards(page)).toHaveCount(6);
+    // Eight fresh cards, two full rows of four, real ones first: the newer example is not among them.
+    await expect(cards(page)).toHaveCount(8);
     await expect(cards(page).filter({ hasText: 'Example stock' })).toHaveCount(0);
     const logo = cards(page).first();
     await expect(logo).toContainText('Logo and brand kit');
@@ -147,9 +150,31 @@ test('the market carries no green: the picked chip is ink, cards are photos, the
 test('See all lists every offer, examples last and marked', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: en.marketShop.seeAll }).click();
-  await expect(cards(page)).toHaveCount(8);
+  await expect(cards(page)).toHaveCount(10);
   await expect(cards(page).last()).toContainText(en.marketShop.example);
   await expect(cards(page).last()).not.toContainText(en.marketShop.samplePhoto);
+  // Ten fit on one page: no Previous and Next.
+  await expect(page.locator('[data-market-pager]')).toHaveCount(0);
+});
+
+test('See all pages through twelve offers at a time with Previous and Next', async ({ page }) => {
+  await open(page, { world: { more: 20 } });
+  const pager = en.listingsBrowse.pager;
+  const nav = page.getByRole('navigation', { name: pager.label });
+  await page.getByRole('button', { name: en.marketShop.seeAll }).click();
+  await expect(cards(page)).toHaveCount(12);
+  await expect(nav).toContainText('1 to 12 of 30');
+  await expect(nav.getByRole('button', { name: pager.previous })).toBeDisabled();
+  await nav.getByRole('button', { name: pager.next }).click();
+  await expect(cards(page)).toHaveCount(12);
+  await expect(nav).toContainText('13 to 24 of 30');
+  await nav.getByRole('button', { name: pager.next }).click();
+  await expect(cards(page)).toHaveCount(6);
+  await expect(nav).toContainText('25 to 30 of 30');
+  await expect(nav.getByRole('button', { name: pager.next })).toBeDisabled();
+  await nav.getByRole('button', { name: pager.previous }).click();
+  await expect(nav).toContainText('13 to 24 of 30');
+  await expect(page.getByRole('button', { name: en.dealsPage.showMore })).toHaveCount(0);
 });
 
 test('a category narrows the offers and the address keeps it', async ({ page }) => {
@@ -170,7 +195,7 @@ test('a search with no match says so and offers the way to ask', async ({ page }
   await expect(cards(page)).toHaveCount(0);
   await expect(page.getByRole('link', { name: en.marketShop.postNeed })).toHaveAttribute('href', '/buyer');
   await page.getByRole('button', { name: en.marketShop.clear }).click();
-  await expect(cards(page)).toHaveCount(6);
+  await expect(cards(page)).toHaveCount(8);
 });
 
 test('Sell shows what buyers need, the requests that fit you first', async ({ page }, testInfo) => {
@@ -233,7 +258,7 @@ test('offers that fail to load say so, and Try again brings them back', async ({
   await expect(page.getByRole('status').filter({ hasText: en.marketShop.loadError })).toBeVisible();
   world.offersDown = false;
   await page.getByRole('button', { name: en.marketShop.retry }).click();
-  await expect(cards(page)).toHaveCount(6);
+  await expect(cards(page)).toHaveCount(8);
 });
 
 test('an empty market invents nothing and offers the way to ask', async ({ page }) => {
@@ -246,5 +271,5 @@ test('an empty market invents nothing and offers the way to ask', async ({ page 
 test('signed out, /listings lands on the market', async ({ page }) => {
   await open(page, { route: '/listings', world: { signedOut: true } });
   await expect(page).toHaveURL(/\/market$/);
-  await expect(cards(page)).toHaveCount(6);
+  await expect(cards(page)).toHaveCount(8);
 });

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { RATES, funded, recentActivity, serveMoney } from './moneyFixtures';
+import { ME, RATES, funded, recentActivity, serveMoney } from './moneyFixtures';
 import { noProtocolWords } from './instantTopUpFixtures';
 
 /// View 51: Money is one page with Balance, Agent and Deal guarantee; Add money
@@ -147,7 +147,7 @@ test('add money is its own page, the same from Home and Money, with no bridge wo
   await page.getByRole('button', { name: /From an exchange/ }).click();
   await expect(page.locator('[data-add-money-sheet]')).toContainText('Base Sepolia');
   // Back steps out of the exchange address first, then leaves.
-  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await page.getByRole('button', { name: 'Go back', exact: true }).click();
   await expect(page.getByRole('button', { name: /Connect a wallet/ })).toBeVisible();
 });
 
@@ -230,4 +230,15 @@ test('add money reads right to left in Arabic, with numerals left to right', asy
   await expect(page.getByRole('heading', { level: 1 }).locator('[dir="ltr"]').first()).toContainText('1,360.50');
   await page.getByRole('link', { name: 'إضافة مال', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'إضافة مال' })).toBeVisible();
+});
+
+test('a wallet account adding from an exchange sees its own wallet address, never a wait', async ({ page }) => {
+  await serveMoney(page, { balances: funded, method: 'web3' });
+  await page.goto('/add');
+  await page.getByRole('button', { name: /From an exchange/ }).click();
+  const card = page.locator('[data-wallet-deposit]');
+  await expect(card).toContainText(ME);
+  await expect(card).toContainText('On Arc Testnet it lands in your balance.');
+  await expect(card.getByRole('button', { name: 'Copy address' })).toBeVisible();
+  await expect(page.getByText('Deposits are being set up for your account.', { exact: false })).toHaveCount(0);
 });

@@ -124,23 +124,23 @@ export const SELLER_STEPS: TourStep[] = [
   },
 ];
 
-/// Deal guarantee tour (view 37).
-export const STAKE_TOUR_ID = 'guarantee-v1';
+/// Deal guarantee tour, on Money's Deal guarantee tab (view 51, fifth round).
+export const STAKE_TOUR_ID = 'guarantee-v2';
 export const STAKE_STEPS: TourStep[] = [
   {
     title: 'Your deal guarantee',
-    body: 'Money you set aside to protect your buyers. Put it up, take it out or collect it here.',
+    body: 'Money you set aside to protect your buyers. It is not counted in your balance.',
     target: 'guarantee',
   },
   {
-    title: 'Your yield',
-    body: 'The guarantee earns at the USYC rate, paid by Karwan on testnet. Claim it here.',
-    target: 'stake-your-yield',
+    title: 'Add or withdraw',
+    body: 'Add draws from your balance. Withdraw waits the waiting days, then Collect brings it back.',
+    target: 'guarantee-actions',
   },
   {
-    title: 'Network reserve',
-    body: 'Review the reserve and the distribution record.',
-    target: 'stake-network-yield',
+    title: 'What it earns',
+    body: 'It earns at the USYC rate. What it holds for deals and what is ready to withdraw are here too.',
+    target: 'guarantee-facts',
   },
 ];
 

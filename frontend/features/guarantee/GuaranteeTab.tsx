@@ -1,4 +1,6 @@
 'use client';
+import { PageTour } from '@/shared/guide/PageTour';
+import { STAKE_STEPS, STAKE_TOUR_ID } from '@/shared/guide/tours';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
@@ -55,7 +57,8 @@ export function GuaranteeTab() {
   ];
 
   return (
-    <div data-guarantee-tab className="space-y-5">
+    <div data-guarantee-tab data-guide="guarantee" className="space-y-5">
+      <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
       <h1 id="money-guarantee" className="space-y-1.5">
         <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{t.moneyPages.tabs.guarantee}<Hint>{tips.guarantee}</Hint></span>
         <span className="flex items-baseline gap-2 tabular-nums" dir="ltr">
@@ -64,13 +67,13 @@ export function GuaranteeTab() {
         </span>
         <span className="block text-[13px] font-medium text-[var(--ink-secondary)]">{g.notCounted}</span>
       </h1>
-      <div data-guarantee-actions className="grid grid-cols-2 gap-2 sm:max-w-[480px] sm:gap-3">
+      <div data-guarantee-actions data-guide="guarantee-actions" className="grid grid-cols-2 gap-2 sm:max-w-[480px] sm:gap-3">
         <Link href={guaranteeStepHref('put_up')} className={buttonClasses({ size: 'lg' })}>{g.add}</Link>
         {Number(data.freeUsdc) > 0 ? <Link href={guaranteeStepHref('take_out')} className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{g.withdraw}</Link> : null}
         {comingBack > 0 && data.ready ? <Link href="/account/guarantee?step=collect" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{g.collect}</Link> : null}
         {comingBack > 0 ? <Link href="/account/guarantee?step=cancel" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{g.cancel}</Link> : null}
       </div>
-      <dl className={`${CARD_CLASS} divide-y divide-[var(--line)] px-5`}>
+      <dl data-guide="guarantee-facts" className={`${CARD_CLASS} divide-y divide-[var(--line)] px-5`}>
         {rows.map(([k, v]) => (
           <div key={k} className="flex min-h-[52px] items-center justify-between gap-3 py-3 text-[15px] tabular-nums">
             <dt className="text-[var(--ink-secondary)]">{k}</dt>
