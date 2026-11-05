@@ -229,6 +229,47 @@ flowchart LR
 
 Drawn in Figma, section "Tab bar and Agents tab (view 51, fourth round)", Dark and Light: both tab bar options with each tab on, Money 20 (Agents), Money 21 (limit didn't load), Money 22 (Balance with the new tab bar).
 
+**Owner's picks, 5 Nov 2026:** tab bar option A (the green fills the icon). The guarantee button says **Add**, not "Add to it".
+
+## Fifth round: one Money page, a tidy Profile, 5 Nov 2026
+
+The owner's note: everything about money folds into one page, Money, and Profile stops repeating it.
+
+**What is wrong today.** Profile lists Balance (837.90, the sign-in wallet only), With your agents (704.68) and Deal guarantee (500) as three rows, while Money shows one total (1,542.59). The Deal guarantee has its own page at `/guarantee`. Money things live in three places and show three different numbers.
+
+**Money is the one page that handles money**
+
+- **One switch at the top: Balance, Agent, Deal guarantee.** Each part has the same layout: a label with an info tip, the big figure, the green button with the other actions beside it, one card, then its own list.
+  - **Balance:** "Your balance" 5,890.33 USDC, Where it is. **Add money**, Send, Withdraw. Held in your deals. Recent.
+  - **Agent:** "Your agent can spend" 1.00 USDC a week. **Change limit**. This week, with its bar. What your agent spent.
+  - **Deal guarantee:** 500.00 USDC in place, not counted in your balance. **Add**, Withdraw. Earns, Holding for deals, Ready to withdraw. Earnings on your guarantee.
+- **The info tips say what each part is**, in one or two lines:
+  - Your balance: "Money you can spend now: your wallet, your Transfer balance and anything still with your agent."
+  - Your agent can spend: "What your agent may spend each week on record checks and finding sellers. Deals always wait for your OK."
+  - Deal guarantee: "Money you set aside to protect your buyers. It earns while it sits. A deal can hold part of it until the deal ends. It isn't counted in your balance."
+- **Guarantee Add and Withdraw are pages like Add money,** with the amount, keypad and one button:
+  - Add draws from your balance.
+  - Withdraw shows the date it can be collected (the contract's waiting period, read live). Once collected, it comes back to your balance.
+- **`/guarantee` opens Money on Deal guarantee.** Earlier deals and Legacy contracts stay reachable from the guarantee list.
+
+**Profile, one list with no repeats**
+
+- **Top:** photo, name, @tag, Edit.
+- **Two rows that lead somewhere:**
+  - **Your record**, with its one-line summary.
+  - **Money**, with the one figure, "Balance, agent, guarantee". This replaces the three money rows.
+- **Trading:** Buying, Selling, Your agent, and the assistant switch (moved here from the top).
+- **Account:** Contact, Wallets, Business profile, Passkey, Account recovery.
+- **Preferences:** Language, Theme, Show amounts in, More settings.
+- **Then:** Help and how it works, Sign out.
+- **Gone from Profile:**
+  - **Activity and receipts:** Money's lists open every receipt, and All activity sits under them.
+  - **The workspace switcher, when you have only one workspace:** it only repeated your name.
+
+**Market pages with Previous and Next.** Market is a board of buy and sell ads. Under the ads: Previous, "Page 2 of 6", Next. Previous is dimmed on page 1 and Next on the last page. The page number stays in the address, so Back returns to the same page. This replaces "Show more". Market's files are open in another session (view 53), so this lands after it.
+
+Drawn in Figma, section "One Money page and a tidy Profile (view 51, fifth round)", Dark and Light: Money 30 to 35, Profile 1, and the Market pagination.
+
 **Decisions for the owner (fourth round)**
 
 1. **Money's Add money opens the page too.** Recommended: yes, so there is one Add money everywhere and the side panel goes away. Alternative: Home opens the page and Money keeps a sheet.
