@@ -24,7 +24,7 @@ flowchart LR
 ## Rules the screens keep
 
 - **The amount is the loudest thing.** It is entered large and centred, with a number keypad on a phone. On a computer the same figure is typed. The amount does not leave the screen while the money moves.
-- **A person comes with their record.** Wherever someone is named as the one paying or being paid, their tag and their record sit beside the name, read from the same record the market shows. A sealed record shows only its tier.
+- **A person comes with their record.** Wherever someone is named as the one paying or being paid, their tag and how many deals they settled sit beside the name, read from the same record the market shows. The tier stays on the profile and record pages, where its name has room (owner, 5 Nov 2026). A sealed record shows only its tier.
 - **Confirm says exactly what happens.** The sheet names who receives it, from where, and that a send cannot be undone. The button carries the amount.
 - **One card for a request.** The card holds the requester, the amount, what it is for, the QR and link, and when it expires. The payer sees the same card; once paid it reads Paid with the date and the reference.
 - **Green is only for the one button to press.** Cards are one neutral style.

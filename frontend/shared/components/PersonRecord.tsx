@@ -2,9 +2,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, profilePhotoOf, type Reputation, type SealedReputation } from '@/core/api';
-import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { isSealedReputation } from '@/features/reputation/sealed';
-import { fill } from '@/features/deals/workspace/presentation';
+import { personRecordLine } from './personRecordLine';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 
@@ -19,11 +18,11 @@ export function usePersonRecord(address: string, known?: { name?: string; tag?: 
 }
 
 /// A person with their record beside the name, wherever money goes to or
-/// comes from (view 50). A sealed record shows only its tier. `known` is what
+/// comes from (view 50): the tag and how many deals, the tier only on the
+/// profile and record pages. `known` is what
 /// a tag lookup already said, used until the profile loads, so a person is
 /// never shown by their wallet address.
 export function PersonRecord({ address, size = 48, known }: { address: string; size?: number; known?: { name?: string; tag?: string } }) {
-  const tiers = useTierLabels();
   const t = useTranslations();
   const copy = t.payLink.pay;
   const { profile, name, tag, displayName, reputation } = usePersonRecord(address, known);
@@ -31,10 +30,7 @@ export function PersonRecord({ address, size = 48, known }: { address: string; s
   const photo = profilePhotoOf(profile);
   const sealed: SealedReputation | null = reputation && isSealedReputation(reputation) ? reputation : null;
   const open: Reputation | null = reputation && !isSealedReputation(reputation) ? reputation : null;
-  const settled = open?.successCount ?? 0;
-  const recordLine = sealed
-    ? sealed.tier === 'NEW' ? copy.recordNew : `${t.sealedRecord.tier} ${tiers[sealed.tier]}`
-    : settled > 0 && open?.tier ? fill(copy.record, { tier: open.tier, n: settled }) : copy.recordNew;
+  const recordLine = personRecordLine(sealed ? { sealed } : open ? { open } : null, copy);
   return (
     <div className="flex min-w-0 items-center gap-3">
       {photo && !failed ? (

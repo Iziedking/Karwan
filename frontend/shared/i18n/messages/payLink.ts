@@ -31,6 +31,7 @@ export interface PayLinkCopy {
     directPayment: string;
     forTemplate: string;
     record: string;
+    recordOne: string;
     recordNew: string;
     payFrom: string;
     otherChains: string;
@@ -132,7 +133,8 @@ const en: PayLinkCopy = {
     tag: 'Payment request',
     directPayment: "Payment goes directly to {name}, outside deal escrow.",
     forTemplate: 'For: {purpose}',
-    record: '{tier} · {n} deals',
+    record: '{n} deals',
+    recordOne: '1 deal',
     recordNew: 'New on Karwan',
     payFrom: 'Pay from',
     otherChains: "{n} other chains",
@@ -233,7 +235,8 @@ const fr: PayLinkCopy = {
     tag: 'Demande de paiement',
     directPayment: "Le paiement va directement à {name}, hors séquestre d’un accord.",
     forTemplate: 'Pour : {purpose}',
-    record: '{tier} · {n} transactions',
+    record: '{n} transactions',
+    recordOne: '1 transaction',
     recordNew: 'Nouveau sur Karwan',
     payFrom: 'Payer depuis',
     otherChains: "{n} autres chaînes",
@@ -334,7 +337,8 @@ const ar: PayLinkCopy = {
     tag: 'طلب دفع',
     directPayment: "يصل المبلغ مباشرة إلى {name}، خارج ضمان الصفقات.",
     forTemplate: 'مقابل: {purpose}',
-    record: '{tier} · {n} صفقة',
+    record: '{n} صفقة',
+    recordOne: 'صفقة واحدة',
     recordNew: 'جديد على Karwan',
     payFrom: 'ادفع من',
     otherChains: "{n} شبكات أخرى",
@@ -435,7 +439,8 @@ const hi: PayLinkCopy = {
     tag: 'भुगतान अनुरोध',
     directPayment: "भुगतान सीधे {name} को जाता है, सौदे के एस्क्रो में नहीं।",
     forTemplate: 'किसके लिए: {purpose}',
-    record: '{tier} · {n} डील',
+    record: '{n} डील',
+    recordOne: '1 डील',
     recordNew: 'Karwan पर नया',
     payFrom: 'यहाँ से भुगतान करें',
     otherChains: "{n} अन्य चेन",
@@ -536,7 +541,8 @@ const sw: PayLinkCopy = {
     tag: 'Ombi la malipo',
     directPayment: "Malipo yanaenda moja kwa moja kwa {name}, nje ya escrow ya makubaliano.",
     forTemplate: 'Kwa ajili ya: {purpose}',
-    record: '{tier} · mipango {n}',
+    record: 'mipango {n}',
+    recordOne: 'mpango 1',
     recordNew: 'Mpya kwenye Karwan',
     payFrom: 'Lipa kutoka',
     otherChains: "Minyororo mingine {n}",
