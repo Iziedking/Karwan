@@ -101,6 +101,49 @@ Second round, same day:
 - **Agent spending is accounted for.** The Agents tab lists what each agent spent and on what (a record check, finding sellers, a top-up), and each line opens its receipt like any other.
 - **Desktop and both themes.** Every screen is drawn for a phone and a computer, in dark and light, from the same colour variables.
 
+## Third round: one balance, 5 Nov 2026
+
+Proposed after the owner's note: agent money is only needed when a deal or a record check asks for it, not as a place to keep money. Money showed three totals (your balance, what the agents hold, the Transfer balance), and people asked which one was theirs.
+
+**What people see**
+
+- **Your balance, one figure.** Everything they own that is free to spend: the sign-in wallet, anything still sitting in the buying and selling wallets, and a wallet account's Transfer balance. Each is read on its own first (view 52), then added. A tap on the figure opens **Where it is**, the same parts as lines.
+- **Held in your deals, one quiet line under it.** Not counted, because it can't be spent until the deal ends.
+- **No agent balance anywhere.** The Agents tab becomes what the agent may spend and what it spent:
+  - "Your agent can spend up to 1 USDC a week on checks", with **Change**.
+  - Spent this week, then each spend (a record check, finding sellers, research) opening its receipt.
+- **Agent Top up and Withdraw go away.** Nothing needs filling.
+
+```mermaid
+flowchart LR
+  B[Your balance] -->|exactly what a check costs, within the weekly limit| BW[Buying wallet]
+  B -->|the deal amount, when you confirm the deal| BW
+  BW --> D[The deal or the check]
+  SW[Selling wallet] -->|earnings, as soon as a deal pays out| B
+```
+
+**How money reaches the agent**
+
+| Moment | Email or passkey account | Wallet account |
+|---|---|---|
+| A record check or research | Karwan moves the exact cost from the sign-in wallet to the buying wallet, within the weekly limit, as agent top-ups already work | The buying wallet takes the exact cost with `transferFrom`, from an approval the person signed once, capped at the weekly limit |
+| Locking a deal | The deal amount moves in the same confirmation that locks it | The same confirmation, signed in their wallet |
+| A deal pays the seller | Earnings move from the selling wallet to the balance straight away | The same |
+| Money already in an agent wallet today | Counted in the balance at once, then moved back to the sign-in wallet | The same |
+
+- **The limit is the person's.** Raising it is confirmed outside the agent's reach (view 52): a tap in the app for an email account, a new approval signed in their own wallet for a wallet account.
+- **No money moves without the person** (unchanged): every deal is still confirmed by them. The weekly limit covers only checks and research.
+- **On the test network** Circle's spending limits aren't available, so the limit is Karwan's check in code plus, for wallet accounts, the approval cap.
+
+**The assistant** answers "how much do I have" with the one figure and Where it is, and "what did my agent spend" with the weekly limit and the spends. Changing the limit is a card.
+
+**Decisions for the owner (third round)**
+
+1. **Count agent money and the Transfer balance in the one figure.** Recommended: yes, with Where it is one tap away. Alternative: count only the sign-in wallet and list the rest.
+2. **The default weekly limit for checks.** Recommended: 1 USDC (200 record checks at 0.005).
+3. **Move leftover agent money back on its own.** Recommended: yes, and selling earnings land in the balance as soon as a deal pays out.
+4. **Keep the Balance and Agents switch.** Recommended: yes, with Agents showing the limit and the spending, so people still have one place to see what their agent did.
+
 Live rates need a source. A rates provider is picked in the spec, and checked the same way as Circle (docs, a read-only call, logged before code). Until a rate is fresh, the screen shows USDC rather than an old figure.
 
 ## Decisions for the owner
