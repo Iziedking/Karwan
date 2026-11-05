@@ -65,7 +65,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   onChosen: () => void;
 }) {
   const t = useTranslations();
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const copy = t.shortlist;
   const roster = t.offerRoster;
   const rf = t.requestFlow;

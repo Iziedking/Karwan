@@ -28,7 +28,7 @@ function shortDate(unix: number, locale: string): string {
 export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: string }) {
   const t = useTranslations().offers;
   const { locale } = useLocale();
-  const mt = useMoneyText();
+  const mt = useMoneyText({ compact: true });
   const auth = useAuth();
   const money = useMoneyBalances();
   const [offers, setOffers] = useState<Offer[]>([]);

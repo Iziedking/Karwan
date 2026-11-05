@@ -267,9 +267,9 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       downloadReceiptImage(
         {
           title: copy.receiptKind,
-          summary: `${money.fill(copy.paid, { amount: request.amountUsdc })} ${fill(copy.paidTo, { name })}`,
+          summary: `${money.fill(copy.paid, { amount: request.amountUsdc }, {}, { compact: true })} ${fill(copy.paidTo, { name })}`,
           reference: null,
-          amount: request.amountUsdc ? money.text(request.amountUsdc, { exact: true }) : null,
+          amount: request.amountUsdc ? money.text(request.amountUsdc, { compact: true }) : null,
           status: copy.paidBadge,
           date: paidDate,
           ...(arcHash ? { transaction: { label: copy.receiptRef, value: `${arcHash.slice(0, 8)}…${arcHash.slice(-4)}` } } : {}),
@@ -290,8 +290,8 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         <ReceiptCard
           status={{ label: copy.paidBadge, tone: 'done' }}
           kind={copy.receiptKind}
-          amount={request.amountUsdc ? money.text(request.amountUsdc, { exact: true }) : null}
-          sentence={`${money.fill(copy.paid, { amount: request.amountUsdc })} ${fill(copy.paidTo, { name })}`}
+          amount={request.amountUsdc ? money.text(request.amountUsdc, { compact: true }) : null}
+          sentence={`${money.fill(copy.paid, { amount: request.amountUsdc }, {}, { compact: true })} ${fill(copy.paidTo, { name })}`}
           rows={[
             { label: copy.receiptTo, value: name },
             ...(request.purpose ? [{ label: copy.receiptFor, value: request.purpose }] : []),
@@ -414,7 +414,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       {declined ? <p role="status" className="mt-3 text-[14px] text-[var(--ink-secondary)] font-medium">{copy.connect}</p> : null}
 
       <button type="button" onClick={() => void pay()} disabled={!!owner && (short || amount <= 0)} className={cn(PRIMARY, 'mt-10')}>
-        {owner ? money.fill(copy.payCta, { amount: request.amountUsdc }, {}, { exact: true }) : copy.connect}
+        {owner ? money.fill(copy.payCta, { amount: request.amountUsdc }, {}, { compact: true }) : copy.connect}
       </button>
       {!owner && !auth.isAuthenticated ? (
         <button

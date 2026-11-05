@@ -48,7 +48,7 @@ export function PostListingForm() {
   const pl = useTranslations().postListing;
   const t = useTranslations();
   const f = pl.flow;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const offer = t.offerFlow;
   const rf = t.requestFlow;
   const { locale } = useLocale();

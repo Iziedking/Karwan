@@ -431,7 +431,7 @@ function InvoiceRow({
   existingOffer: FactoringOffer | null;
   onOpenOffer: () => void;
 }) {
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const receiptPending = existingOffer?.status === 'pending_receipt';
   const meta = sellerMeta(deal, t);
   return (
@@ -495,7 +495,7 @@ function OrderList({
   failed: boolean;
   onOpenFund: (deal: DirectDeal) => void;
 }) {
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   if (failed) return <p role="alert" className={cn(ALERT, 'mt-4')}>{t.po.loadError}</p>;
   if (available === null) return <ListSkeleton />;
   if (available.length === 0) return <EmptyState title={t.po.emptyTitle} body={t.po.emptyBody} />;
@@ -565,7 +565,7 @@ function OfferSheet({
   onClose: () => void;
   onPosted: (offer: FactoringOffer) => void;
 }) {
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().financierDashboard;
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
@@ -833,7 +833,7 @@ function FundSheet({
   onClose: () => void;
   onFunded: (line: POFinancingLine) => void;
 }) {
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const t = useTranslations().financierDashboard;
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();

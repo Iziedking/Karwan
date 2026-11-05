@@ -38,7 +38,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   onChosen: () => void;
 }) {
   const t = useTranslations();
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const copy = t.offerRoster;
   const [open, setOpen] = useState(openInitially);
   const [page, setPage] = useState(1);
@@ -267,7 +267,7 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
   // Someone else's record is sealed (D30): their tier and reasons, never counts.
   const { data, sealed } = useReputation(bid.seller);
   const sr = useTranslations().sealedRecord;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const reasons = sealed ? reasonLabels(sealed.reasons, sr) : [];
   const level = fitLevel(bid.topicalMatch);
   const settled = data ? data.successCount + data.disputedCount + data.failedCount : null;

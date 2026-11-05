@@ -51,7 +51,7 @@ for(const locale of ['en','fr','ar','hi','sw'] as const){
   await expect(page.getByText(p.comingBack,{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:p.collect,exact:true})).toHaveCount(0);
   await page.locator('[data-guarantee-actions]').getByRole('link',{name:p.withdraw,exact:true}).click();await expect(page).toHaveURL(/step=take_out/);
   await expect(page.getByRole('heading',{name:p.withdrawTitle})).toBeVisible();await page.locator('[data-money-page]').getByLabel(m.money.sheet.amountLabel,{exact:true}).fill('100');
-  await expect(page.locator('[data-restart]')).toHaveText(g.sheets.takeOut.restart.replace('{days}','7').replace('{total}','115.00'));
+  await expect(page.locator('[data-restart]')).toHaveText(g.sheets.takeOut.restart.replace('{days}','7').replace('{total}',new Intl.NumberFormat(locale,{minimumFractionDigits:2,maximumFractionDigits:2}).format(115)));
   await sound(page);await page.screenshot({path:info.outputPath('withdrawal-wait-'+locale+'.png'),fullPage:true});
   ready=true;await page.goto('/account?tab=guarantee');
   await page.locator('[data-guarantee-actions]').getByRole('link',{name:p.collect,exact:true}).click();await expect(page.locator('[data-money-page]').getByText(g.sheets.collect.body.replace('{days}','7'),{exact:false})).toBeVisible();

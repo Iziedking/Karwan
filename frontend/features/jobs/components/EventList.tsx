@@ -277,7 +277,7 @@ export function EventList({
 }) {
   const { locale } = useLocale();
   const messages = useTranslations();
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const el = messages.eventList;
   const [shown, setShown] = useState(pageSize ?? Number.POSITIVE_INFINITY);
   if (events.length === 0) {

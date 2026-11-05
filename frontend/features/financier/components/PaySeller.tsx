@@ -16,7 +16,7 @@ import { runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
 export function PaySeller({ offer, onPaid }: { offer: FactoringOffer; onPaid: () => void }) {
   const tr = useTranslations();
   const t = tr.financierDashboard.positions;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const { locale } = useLocale();
   const ownWallet = useOwnWalletSend();
   const arc = usePublicClient({ chainId: ARC_CHAIN_ID });

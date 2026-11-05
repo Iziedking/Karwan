@@ -32,7 +32,7 @@ function shortDate(unix: number, locale: string): string {
 export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React.ReactNode }) {
   const all = useTranslations();
   const t = all.offers;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const opensNewTab = all.accountHome.opensNewTab;
   const { locale } = useLocale();
   const auth = useAuth();
@@ -181,7 +181,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
 function OpenOffers({ offers }: { offers: OpenOffer[] }) {
   const { locale, t: all } = useLocale();
   const t = all.offers;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const shop = all.marketShop;
   return (
     <section aria-labelledby="open-offers" className="mt-8">
@@ -226,7 +226,7 @@ function OpenOffers({ offers }: { offers: OpenOffer[] }) {
 function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; onChange: () => Promise<void> }) {
   const all = useTranslations();
   const t = all.offers;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const m = all.offersThatMove;
   const { locale } = useLocale();
   const [busy, setBusy] = useState(false);
@@ -322,7 +322,7 @@ function MakeOffer({
   trigger?: boolean;
 }) {
   const t = useTranslations().offers;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const titleId = useId();
   const priceId = useId();
   const dateId = useId();

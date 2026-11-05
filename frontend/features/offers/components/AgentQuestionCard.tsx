@@ -24,7 +24,7 @@ export function AgentQuestionCard({
   onDone: () => Promise<void>;
 }) {
   const t = useTranslations().agentQuestions;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const titleId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

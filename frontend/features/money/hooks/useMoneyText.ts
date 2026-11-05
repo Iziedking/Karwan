@@ -13,16 +13,18 @@ function toNumber(value: number | string | null | undefined): number | null {
 }
 
 /// Prices as text in the person's chosen currency, with the USDC beside it.
-export function useMoneyText() {
+/// `defaults` sets the screen's own USDC style; a call can still override it.
+export function useMoneyText(defaults: MoneyTextOptions = {}) {
+  const { compact, exact, signed } = defaults;
   const { locale } = useLocale();
   const { currency, rate } = useDisplayCurrency();
 
   const text = useCallback(
     (usdc: number | string | null | undefined, options?: MoneyTextOptions): string => {
       const n = toNumber(usdc);
-      return n === null ? '' : moneyText(n, currency, rate, locale, options);
+      return n === null ? '' : moneyText(n, currency, rate, locale, { compact, exact, signed, ...options });
     },
-    [currency, rate, locale],
+    [currency, rate, locale, compact, exact, signed],
   );
 
   const fill = useCallback(
@@ -31,9 +33,9 @@ export function useMoneyText() {
       for (const [key, value] of Object.entries(money)) {
         numbers[key] = toNumber(value);
       }
-      return fillMoney(template, numbers, currency, rate, locale, vars, options);
+      return fillMoney(template, numbers, currency, rate, locale, vars, { compact, exact, signed, ...options });
     },
-    [currency, rate, locale],
+    [currency, rate, locale, compact, exact, signed],
   );
 
   const hint = useCallback(

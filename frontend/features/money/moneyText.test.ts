@@ -19,11 +19,18 @@ test('USDC chosen or no rate: USDC alone', () => {
   assert.equal(moneyText(20, 'NGN', null, 'en'), '20.00 USDC');
 });
 
-test('Arabic keeps the price in one left-to-right run', () => {
+test('Arabic reads the same figures, with Latin digits and no hidden marks', () => {
   const text = moneyText(20, 'NGN', NGN, 'ar');
-  assert.ok(text.startsWith('⁦') && text.endsWith('⁩'), 'isolated');
+  assert.doesNotMatch(text, /[⁦-⁩]/);
   assert.match(text, /26\D?922/);
-  assert.match(text, / · 20\.00 USDC⁩$/);
+  assert.match(text, / · 20\.00 USDC$/);
+});
+
+test('each screen keeps its own USDC style', () => {
+  assert.equal(moneyText(96, 'USDC', null, 'en', { compact: true }), '96 USDC');
+  assert.equal(moneyText(96.5, 'NGN', NGN, 'en', { compact: true }), '₦129,900 · 96.5 USDC');
+  assert.equal(fillMoney('{spent} of {limit}', { spent: 0.205, limit: 1 }, 'USDC', null, 'en', {}, { exact: true }), '0.205 of 1.00');
+  assert.equal(fillMoney('{spent} of {limit}', { spent: 1, limit: 5 }, 'NGN', NGN, 'en'), '₦1,346 · 1.00 USDC of ₦6,731 · 5.00 USDC');
 });
 
 test('a sentence takes the price in place of "{amount} USDC"', () => {

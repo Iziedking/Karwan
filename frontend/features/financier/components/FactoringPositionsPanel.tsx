@@ -48,7 +48,7 @@ function usePositions() {
 /// desk. Finished positions are in FactoringHistoryPanel, below the requests.
 export function FactoringPositionsPanel() {
   const t = useTranslations().financierDashboard.positions;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const offers = usePositions();
   const queryClient = useQueryClient();
   const { needsYou, active } = groupPositions(offers);
@@ -159,7 +159,7 @@ function PositionRow({ offer, deal, onPaid }: { offer: FactoringOffer; deal: Dir
   const copy = useTranslations();
   const t = copy.financierDashboard.positions;
   const stages = copy.pending.financed.stages;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const { locale } = useLocale();
   const status = offer.status as ShownStatus;
   const reference = dealReference(offer.invoiceId);

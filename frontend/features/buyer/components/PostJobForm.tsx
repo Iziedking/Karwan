@@ -172,7 +172,7 @@ export function PostJobForm() {
   const { locale } = useLocale();
   const t = useTranslations().postJob;
   const c = useTranslations().dealCreation;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const rf = useTranslations().requestFlow;
   const dt = useTranslations();
   const shopCopy = dt.marketShop;

@@ -612,7 +612,7 @@ test('the money sheets, Send, payment links, offers and the financier desk read 
     '../../features/financier/components/PaySeller.tsx',
   ]) {
     const code = source(file);
-    assert.match(code, /useMoneyText\(\)/, file);
+    assert.match(code, /useMoneyText\(/, file);
     assert.doesNotMatch(code, /\$\{format(Balance|Amount|Usdc)\([^`]*\)\} USDC`|\} USDC<\/(span|p|dd)>/, `${file}: no figure printed in USDC alone`);
   }
   // The exact USDC to send on another network stays exact, its worth under it.

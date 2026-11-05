@@ -106,7 +106,7 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
     <section className="mt-6">
       {state.phase === 'part' ? (
         <p role="status" className="mb-4 text-[15px] font-medium text-[var(--ink)]">
-          {money.fill(copy.partReceived, { total: state.total, left: state.sendUsdc }, { got: state.got }, { exact: true })}
+          {money.fill(copy.partReceived, { total: state.total, left: state.sendUsdc }, { got: state.got }, { compact: true })}
         </p>
       ) : null}
       {receiving?.solana ? (

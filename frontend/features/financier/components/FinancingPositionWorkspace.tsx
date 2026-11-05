@@ -52,7 +52,7 @@ export function FinancingPositionWorkspace(props: {
 }) {
   const fw = useTranslations().financingWorkspace;
   const fc = useTranslations().financingChat;
-  const money = useMoneyText();
+  const money = useMoneyText({ compact: true });
   const [messagesOpen, setMessagesOpen] = useState(false);
   const pathname = usePathname();
   const auth = useAuth();
