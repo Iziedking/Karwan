@@ -277,7 +277,7 @@ test('send is its own page: who, then the amount, then a confirm sheet (view 50)
   await next.click();
 
   await expect(flow).toContainText('Ada Obi');
-  await flow.getByLabel('Amount').fill('25');
+  await flow.getByLabel('Amount', { exact: true }).fill('25');
   await flow.getByRole('button', { name: 'Continue', exact: true }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toContainText('25.00 USDC goes to @ada.');
@@ -290,7 +290,7 @@ test('a link that names the person opens on the amount, with the keypad on a tou
   await serveMoney(page, { balances: funded, tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } } });
   await page.goto('/send?to=@ada');
   const flow = page.getByRole('region', { name: 'Send USDC' });
-  const amount = flow.getByLabel('Amount');
+  const amount = flow.getByLabel('Amount', { exact: true });
   await expect(amount).toBeVisible();
   const keypad = flow.getByRole('group', { name: 'Amount keypad' });
   if (testInfo.project.name === 'phone') {
@@ -320,7 +320,7 @@ test('recent people start a send, and a note goes with it to the server (view 50
   await flow.getByRole('button', { name: /@ada/ }).click();
   await expect(flow.getByLabel('Send to')).toHaveValue('@ada');
   await flow.getByRole('button', { name: 'Continue', exact: true }).click();
-  await flow.getByLabel('Amount').fill('25');
+  await flow.getByLabel('Amount', { exact: true }).fill('25');
   await flow.getByRole('button', { name: 'Add a note' }).click();
   await flow.getByLabel('Note').fill('  Logo, first draft ');
   await flow.getByRole('button', { name: 'Continue', exact: true }).click();

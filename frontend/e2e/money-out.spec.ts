@@ -101,7 +101,7 @@ test('a send to a new address says so and offers to add it with World ID, for ex
   const sheet = page.getByRole('region', { name: 'Send USDC' });
   await sheet.getByLabel('Send to').fill(STRANGER);
   await sheet.getByRole('button', { name: 'Continue', exact: true }).click();
-  await sheet.getByLabel('Amount').fill('25');
+  await sheet.getByLabel('Amount', { exact: true }).fill('25');
   await sheet.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Send 25.00 USDC' }).click();
 
