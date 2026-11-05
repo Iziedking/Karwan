@@ -1,6 +1,6 @@
 # 52 · An agent that works for you
 
-T1 (find and agree), continuing roadmap item T1.8, with T6 (channels) for the brief and the questions and T5 (money) for the wallet limits. It builds on [view 41](41-agents-that-always-answer.md) (agents that always answer), [view 45](45-your-agent.md) (your agent, set up on one page) and [view 48](48-one-agent-per-person.md) (one agent per person). Raised by the owner on 5 Nov 2026 after an audit of how the agents work today: "Karwan agents is the different point. If it can not make the difference, then we have no unique point for the product." Direction approved the same day, with one agent per person on two wallets and the larger model on mainnet only; the other decisions below are open.
+T1 (find and agree), continuing roadmap item T1.8, with T6 (channels) for the brief and the questions and T5 (money) for the wallet limits. It builds on [view 41](41-agents-that-always-answer.md) (agents that always answer), [view 45](45-your-agent.md) (your agent, set up on one page) and [view 48](48-one-agent-per-person.md) (one agent per person). Raised by the owner on 5 Nov 2026 after an audit of how the agents work today: "Karwan agents is the different point. If it can not make the difference, then we have no unique point for the product." Approved by the owner the same day, with every decision as recommended.
 
 ## What is hard today
 
@@ -225,10 +225,11 @@ flowchart TB
 | 6 | The weekly report with deals landed, money saved and advice taken | step 4 |
 | 7 | Circle spending limits on every agent wallet on mainnet, set by the person | mainnet |
 
-## Decisions for the owner
+## Decided by the owner, 5 Nov 2026
 
-1. **Which model for judgement.** Decided by the owner, 5 Nov 2026: the strongest model on mainnet only, paid for by what Karwan earns from x402 data reads; the fast model everywhere on the test network; code for every number. Open: the daily cost cap per person on mainnet. Recommended: the cap starts at what an active agent's data reads bring in a day.
-2. **Where the brief goes.** Telegram first, then the website; email only for people who use neither. Recommended: yes.
-3. **How many insights a day.** At most three, ranked by how much they would change the outcome. Recommended: yes.
-4. **What happens without an answer.** The agent states a default with every question and keeps it; for a price below the person's floor the default is a polite no. Recommended: yes.
-5. **Step 0 first.** Correct the counts before any insight is shown. Recommended: yes.
+1. **Which model for judgement.** The strongest model on mainnet only, paid for by what Karwan earns from x402 data reads; the fast model everywhere on the test network; code for every number. The daily cost cap per person on mainnet starts at what an active agent's data reads bring in a day.
+2. **Where the brief goes.** Telegram first, then the website; email only for people who use neither.
+3. **How many insights a day.** At most three, ranked by how much they would change the outcome.
+4. **What happens without an answer.** The agent states a default with every question and keeps it; for a price below the person's floor the default is a polite no.
+5. **Step 0 first.** The counts are corrected before any insight is shown.
+6. **One agent per person, on two wallets.** Buying and selling are two modes of one agent; a buying wallet and a selling wallet sit behind it.
