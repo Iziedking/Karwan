@@ -255,7 +255,7 @@ test('the guide describes money, withdrawing and the guarantee as money pages (v
 
 test('the guide walks Add money and Withdraw as the new look shows them (view 48, batch 9a)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
-  assert.match(said('deposit'), /pick Send from an app or exchange/);
+  assert.match(said('deposit'), /pick From an exchange/);
   assert.match(said('deposit'), /says USDC only/);
   assert.match(said('withdraw'), /the amount and address carry over/);
   assert.match(said('withdraw'), /Review opens the move once more/);
