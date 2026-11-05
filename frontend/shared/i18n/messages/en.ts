@@ -32,7 +32,6 @@ import { profilePageCopy, type ProfilePageCopy } from './profilePage';
 import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy, type ContestsCopy } from './contests';
 import { agentJobsCopy, type AgentJobsCopy } from './agentJobs';
-import { agentJobsCopy, type AgentJobsCopy } from './agentJobs';
 import { workCopy, type WorkCopy } from './work';
 import { offersThatMoveCopy, type OffersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy, type AgentQuestionsCopy } from './agentQuestions';
@@ -87,7 +86,6 @@ interface MessagesShape {
   moneyPage: MoneyPageCopy;
   profilePage: ProfilePageCopy;
   dealGuarantee: DealGuaranteeCopy;
-  agentJobs: AgentJobsCopy;
   contests: ContestsCopy;
   agentJobs: AgentJobsCopy;
   work: WorkCopy;
@@ -5330,7 +5328,6 @@ export const en: MessagesShape = {
   requestFlow: requestFlowCopy.en,
   moneyPage: moneyPageCopy.en,
   profilePage: profilePageCopy.en,
-  agentJobs: agentJobsCopy.en,
   dealGuarantee: dealGuaranteeCopy.en,
   contests: contestsCopy.en,
   agentJobs: agentJobsCopy.en,
