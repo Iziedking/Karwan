@@ -25,7 +25,7 @@ test('Add money is the green circle on Home, and the faucet drop has a touch of 
 });
 
 test('Transfer balance says what it is behind an info tip, in every language', () => {
-  assert.match(source('../../features/money/components/MoneyHome.tsx'), /<Hint>\{t\.home\.gatewayBalanceHint\}<\/Hint>/);
+  assert.match(source('../../features/money/components/WhereItIsSheet.tsx'), /<Hint>\{t\.money\.home\.gatewayBalanceHint\}<\/Hint>/);
   for (const [locale, copy] of Object.entries(moneyCopy)) {
     assert.ok(copy.home.gatewayBalanceHint.length > 20, locale);
     assert.ok(copy.sheet.useOther.includes('{name}'), locale);

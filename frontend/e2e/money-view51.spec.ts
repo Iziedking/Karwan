@@ -136,13 +136,12 @@ test('a wallet account moves its Transfer balance from Where it is', async ({ pa
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Add to Transfer balance' })).toBeVisible();
 });
 
-test('an email account has no Transfer balance buttons', async ({ page }) => {
+test('an email account has no Transfer balance part and no Transfer balance buttons', async ({ page }) => {
   await serveMoney(page, { balances: funded, pool: 105.54 });
   await page.goto('/account');
   await page.getByRole('button', { name: /Where it is/ }).click();
-  const card = page.getByRole('dialog').locator('[data-part="transfer"]');
-  await expect(card).toContainText('105.54');
-  await expect(card.getByRole('button', { name: 'Move to balance' })).toHaveCount(0);
+  await expect(page.getByRole('dialog').locator('[data-part="transfer"]')).toHaveCount(0);
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Move to balance' })).toHaveCount(0);
 });
 
 test('add money reads right to left in Arabic, with numerals left to right', async ({ page }) => {

@@ -173,6 +173,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/gateway/deposit': { by: 'page', why: 'Pooling for spending on other networks stays on the bridge page; the assistant speaks of one balance (one-wallet rule).' },
   'POST /api/bridge/:/recheck': { by: 'assistant', via: 'recheck_money_move' },
   'POST /api/bridge/circle-bridge/:/resume': { by: 'assistant', via: 'recheck_money_move' },
+  'POST /api/money/agent-limit': { by: 'assistant', via: 'set_agent_budget' },
   'POST /api/money/intents': UNUSED,
   'POST /api/money/intents/:/retry': { by: 'assistant', via: 'retry_money_move' },
   'POST /api/money/intents/:/cancel': { by: 'assistant', via: 'cancel_money_move' },

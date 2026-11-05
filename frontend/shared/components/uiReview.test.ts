@@ -507,7 +507,9 @@ test('profile says each thing once: one Your record row, Edit profile in the hea
 test('money is one balance on Arc: a transfer balance line, no list of other networks, amounts in the chosen currency', () => {
   const money = source('../../features/money/components/MoneyHome.tsx');
   assert.doesNotMatch(money, /useChainBalances|money-networks|CHAIN_META/);
-  assert.match(money, /data-gateway-balance[\s\S]{0,300}t\.home\.gatewayBalance/);
+  // One balance (view 51, third round): the Transfer balance is a part in Where it is.
+  assert.match(source('../../features/money/components/WhereItIsSheet.tsx'), /transfer: \{ name: one\.transfer/);
+  assert.match(money, /whereItIs\(facts\)/);
   assert.match(money, /formatDisplay\(/);
   assert.doesNotMatch(money, /t\.home\.localCurrencySoon|ProofOnArc/);
   assert.equal(en.money.home.gatewayBalance, 'Transfer balance');
