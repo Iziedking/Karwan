@@ -5,6 +5,7 @@ import { loadInputs } from '../reputation/signals.js';
 import { compute } from '../reputation/engine.js';
 import { TIER_BREAKPOINTS } from '../reputation/config.js';
 import { vault } from '../chain/contracts.js';
+import { readGuaranteeForStake, type GuaranteeForStake } from '../reputation/stakeGuarantee.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -67,6 +68,15 @@ export interface FinancierEligibility {
   reasons: string[];
 }
 
+/// What the desk counts as skin in the game: the free part of the Deal
+/// guarantee (put up, less what is held or coming back) plus what is still free
+/// on the previous vault. A read that failed adds nothing; the check is read
+/// only when at least one source answered, so a failure never passes the gate.
+export function deskStake(oldVaultUsdc: number | null, guarantee: GuaranteeForStake | null | 'failed'): { stakeUsdc: number; stakeRead: boolean } {
+  const fromGuarantee = guarantee && guarantee !== 'failed' ? Math.max(0, guarantee.inPlaceUsdc - guarantee.heldUsdc) : 0;
+  return { stakeUsdc: (oldVaultUsdc ?? 0) + fromGuarantee, stakeRead: oldVaultUsdc !== null || guarantee !== 'failed' };
+}
+
 /// Compute the live eligibility breakdown for an address. Best-effort on each
 /// signal: a failed read fails that check (never passes it), so the gate is
 /// fail-closed. Tenure comes from the profile's createdAt (the canonical signup
@@ -80,16 +90,21 @@ export async function financierEligibility(address: string): Promise<FinancierEl
   const tenureDays = Math.max(0, Math.floor((Date.now() - createdAt) / MS_PER_DAY));
   const tenureOk = tenureDays >= config.FINANCIER_MIN_TENURE_DAYS;
 
-  // Stake (fail-closed on a read error)
-  let stakeUsdc = 0;
-  let stakeRead = false;
-  try {
-    const freeWei = (await vault.read.freeStakeOf([addr as `0x${string}`])) as bigint;
-    stakeUsdc = Number(formatUnits(freeWei, 6));
-    stakeRead = true;
-  } catch (err) {
-    logger.warn({ address: addr, err: (err as Error).message }, 'financier stake read failed');
-  }
+  // Stake: the Deal guarantee plus anything still free on the previous vault.
+  const [oldVault, guarantee] = await Promise.all([
+    (vault.read.freeStakeOf([addr as `0x${string}`]) as Promise<bigint>).then(
+      (wei) => Number(formatUnits(wei, 6)),
+      (err: Error) => {
+        logger.warn({ address: addr, err: err.message }, 'financier previous vault read failed');
+        return null;
+      },
+    ),
+    readGuaranteeForStake(addr).catch((err: Error): 'failed' => {
+      logger.warn({ address: addr, err: err.message }, 'financier guarantee read failed');
+      return 'failed';
+    }),
+  ]);
+  const { stakeUsdc, stakeRead } = deskStake(oldVault, guarantee);
   const stakeOk = stakeRead && stakeUsdc > 0;
 
   // Reputation (>= COLD)
@@ -111,7 +126,7 @@ export async function financierEligibility(address: string): Promise<FinancierEl
     );
   }
   if (!stakeOk) {
-    reasons.push('Stake some USDC in the vault first (skin in the game).');
+    reasons.push('Put up a Deal guarantee first.');
   }
   if (!repOk) {
     reasons.push('Reach at least the COLD reputation tier through settled deals.');
