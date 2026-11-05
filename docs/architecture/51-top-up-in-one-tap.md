@@ -289,6 +289,48 @@ Drawn in Figma, section "One Money page and a tidy Profile (view 51, fifth round
 - **Typing an amount.** What you type stays in USDC, exactly. Its worth in your currency shows under it ("≈ ₦26,922"), on the confirm card and on the result. The exact USDC to send from another network stays exact, with its worth under it.
 - **Invite, update and cancel emails.** The recipient's own choice when the email already belongs to an account; for someone new to Karwan, the inviter's currency, the one the deal was priced in (`backend/src/emails/emailPrice.ts`).
 
+## Seventh round: one currency per figure, and your country picks it, 5 Nov 2026 (proposed, not built)
+
+Owner: "other currencies should strictly be on that currency, no USDC pegging beside each money view. Only block balances can have the USDC view." And: "Allow country choice as an extra step on sign up. Any country currency not yet supported defaults to USDC. You default to your country's currency upon sign up, changeable in settings."
+
+**One rule for every figure.**
+
+| Where | With naira chosen | With USDC chosen |
+|---|---|---|
+| A block balance: Your balance, Home's total, With your agent, Deal guarantee | ₦228,557 big, 170.00 USDC under it | 170.00 USDC |
+| Everything else: rows, cards, prices, buttons, sentences, offers, the desk, receipts, emails, Telegram | ₦228,557 | 170.00 USDC |
+
+So the Deal guarantee rows read "Holding for deals ₦0" and "Ready to withdraw ₦228,557"; a market card reads "₦129,224"; a button reads "Add ₦26,922".
+
+**Where the USDC still shows, because it is what moves.** Three places only, each because a person must see the exact figure that leaves their wallet:
+
+1. Typing an amount: you type in USDC, with "≈ ₦26,922" under it (as now).
+2. The confirm card before money moves: one line, "Moves 20.00 USDC".
+3. Paying from another network: "Send exactly 20.00 USDC" stays, since that is what the other wallet must send.
+
+A receipt keeps the amount in your currency, and one row "Settled 20.00 USDC" for the record.
+
+**Country at sign-up.** About you on `/start` opens with one new question before the goals, *Where are you based?*: a searchable country list, the country found from the browser's region already picked. Saving it writes the country (the same field `set_location` uses, so matching and the public country read it) and sets Show amounts in to that country's currency:
+
+| Country | Currency |
+|---|---|
+| Nigeria | NGN |
+| United States | USD |
+| Euro area countries | EUR |
+| United Kingdom | GBP |
+| China | CNY |
+| India | INR |
+| United Arab Emirates | AED |
+| Kenya | KES |
+| Benin, Burkina Faso, Côte d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo | XOF |
+| Anywhere else | USDC |
+
+A currency added later becomes the default for its countries from then on. The person changes it any time under Show amounts in. Changing the country later does not move the currency they already picked.
+
+**Every channel does the same.** The Telegram interview asks where you are first instead of last, and saves the currency the same way. The assistant's `set_location` sets the currency only when the person never chose one. Accounts made before this keep what they have.
+
+**What a person can do that is new:** nothing new; the country and the currency already exist. The default is new, and the guide and canon say so.
+
 ## Decisions for the owner
 
 1. **Default route for a top-up from Base, Ethereum or Arbitrum.** Recommended: straight to Arc (seconds), with Add to Transfer balance as the separate action. The alternative is to send every top-up into the Transfer balance, which makes most top-ups wait about 15 minutes.
