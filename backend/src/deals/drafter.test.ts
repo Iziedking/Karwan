@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { draftDeal, repairParts, ruleParts } from './drafter.js';
+import { draftDeal, partsAgreement, repairParts, ruleParts } from './drafter.js';
 
 /// Say it, and the deal is drafted (view 56): rules first, the model only for
 /// nuance, the contract rules decide, and it never blocks.
@@ -80,4 +80,13 @@ test('goods and a count are read from the words', async () => {
 test('the title is the brief, short', async () => {
   const d = await draftDeal({ brief: "Six aso-ebi outfits for my sister's wedding. Measurements first, then sewing." }, {});
   assert.equal(d.title, "Six aso-ebi outfits for my sister's wedding");
+});
+
+test('the agreement for drafted parts names every milestone, the proof and the time to check', () => {
+  const text = partsAgreement([{ pct: 30, what: 'Sketches' }, { pct: 70, what: 'Final files' }], { due: true });
+  assert.match(text, /released in 2 milestones:/);
+  assert.match(text, /• Milestone 1, 30%: Sketches\n• Milestone 2, 70%: Final files/);
+  assert.match(text, /Time to check: 3 days/);
+  assert.match(text, /^Late:/m);
+  assert.doesNotMatch(partsAgreement([{ pct: 50, what: 'a' }, { pct: 50, what: 'b' }], { due: false }), /^Late:/m);
 });

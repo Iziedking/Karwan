@@ -83,3 +83,23 @@ test('before the terms are complete it checks who the person is and says what is
   const nobody = (await tools.start_protected_deal.execute!({ who: '@nobody_here' }, call)) as { error?: string };
   assert.match(nobody.error ?? '', /No Karwan account/);
 });
+
+test('words that describe stages split the payment by them when no split was given (view 56)', async () => {
+  await upsertProfile({ address: BOLA, role: 'seller', displayName: 'Bola Ade', handle: 'bola_designs' } as never);
+  const actions: AssistantAction[] = [];
+  const tools = directDealTools(ADA, actions, undefined, fee);
+  const out = (await tools.start_protected_deal.execute!(
+    { who: '@bola_designs', what: 'Brand kit. Three logo sketches first, then the final files.', amountUsdc: 200, deliverInDays: 7 },
+    call,
+  )) as { ok?: boolean; error?: string };
+  assert.equal(out.ok, true, out.error);
+  const payload = (actions[0] as Extract<AssistantAction, { kind: 'confirm' }>).payload as { milestonePcts?: number[]; terms: string };
+  assert.deepEqual(payload.milestonePcts, [30, 70]);
+  assert.match(payload.terms, /Paid in parts:\n30%: /);
+  const given: AssistantAction[] = [];
+  await directDealTools(ADA, given, undefined, fee).start_protected_deal.execute!(
+    { who: '@bola_designs', what: 'Brand kit. Three logo sketches first, then the final files.', amountUsdc: 200, payments: [100] },
+    call,
+  );
+  assert.equal(((given[0] as Extract<AssistantAction, { kind: 'confirm' }>).payload as { milestonePcts?: number[] }).milestonePcts, undefined);
+});

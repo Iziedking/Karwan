@@ -1,3 +1,4 @@
+import { partsLines, ruleParts } from '../deals/drafter.js';
 import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -99,7 +100,7 @@ export function directDealTools(address: string, actions: AssistantAction[], con
   return {
     start_protected_deal: tool({
       description:
-        "Build a protected deal with someone the user names (Karwan tag, email or wallet address) and show one card with every term; on Confirm the deal is sent and the seller is asked to accept. No money moves until they accept and the user confirms payment with pay_into_escrow. Call it as soon as the user names the person, even before the terms are known: it checks who they are and returns what is still missing. Ask only for what is missing, one short question at a time: what it is for, the amount, and when it is due. Then say the defaults in one line (one payment on delivery, 24 hours for them to accept) and ask if they want to change any, split the payment, require stake, or add goods terms. Never guess an answer the user did not give. For a calendar date pass deliverBy and never convert it yourself. If the user changes a term, call this again; the new card replaces the old one.",
+        "Build a protected deal with someone the user names (Karwan tag, email or wallet address) and show one card with every term; on Confirm the deal is sent and the seller is asked to accept. No money moves until they accept and the user confirms payment with pay_into_escrow. Call it as soon as the user names the person, even before the terms are known: it checks who they are and returns what is still missing. Ask only for what is missing, one short question at a time: what it is for, the amount, and when it is due. Then say the defaults in one line (one payment on delivery, or the parts the words describe when they name stages like first and then, and 24 hours for them to accept) and ask if they want to change any, split the payment, require stake, or add goods terms. Never guess an answer the user did not give. For a calendar date pass deliverBy and never convert it yourself. If the user changes a term, call this again; the new card replaces the old one.",
       inputSchema: z.object({
         who: z.string().min(2).max(120).describe('Karwan tag like @ada, an email, or a 0x wallet address.'),
         what: z.string().min(3).max(4000).optional().describe('What the deal is for, in the words both sides agreed.'),
@@ -129,6 +130,19 @@ export function directDealTools(address: string, actions: AssistantAction[], con
             return { ok: true, seller: seller.label, missing };
           }
           const answers = { ...rest, what: what!, amountUsdc: amountUsdc! };
+          // View 56: words that describe stages split the payment by them,
+          // unless the user already gave the split. Rules only, no model call.
+          if (!answers.payments?.length) {
+            const drafted = ruleParts(answers.what);
+            const lines = `
+
+Paid in parts:
+${partsLines(drafted)}`;
+            if (drafted.length > 1 && answers.what.length + lines.length <= 4000) {
+              answers.payments = drafted.map((part) => part.pct);
+              answers.what = `${answers.what.trim()}${lines}`;
+            }
+          }
           if ('number' in seller) {
             const me = personName(await getProfile(address).catch(() => null), 'Someone');
             const invited = await messageNumber(seller.number, {

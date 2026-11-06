@@ -115,8 +115,8 @@ Hourly and recurring deals (T1.2 later), changing a deal after it is sent (today
 | Part | State |
 |---|---|
 | This view | Approved 6 Nov 2026 |
-| Shared drafter and its endpoint | Not started |
-| One screen for request, offer and direct deal | Not started |
+| Shared drafter and its endpoint | Built |
+| One screen for request, offer and direct deal | Built: each drafts its parts on Review; Pay in parts shows only once there are parts |
 | Attach on requests and direct deals | Not started (offers already have photos) |
 | Market check before posting | Not started |
-| Assistant tools on the drafter | Not started |
+| Assistant tools on the drafter | Built: post request and post offer cards carry the drafted parts; a direct deal splits by the stages its words name when no split was given (rules only) |

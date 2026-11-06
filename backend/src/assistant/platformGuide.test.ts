@@ -208,6 +208,9 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   assert.match(steps, /Pay in parts/);
   // View 56: the words become the parts; no milestone setup on the form.
   assert.match(steps, /Prepare my request reads the words into the parts/);
+  const selling = PLATFORM_GUIDE.flatMap((entry) => entry.steps).join(' ');
+  assert.match(selling, /Review reads the title and description into the parts the offer is paid in/);
+  assert.match(selling, /cards show Paid in with each part/);
   assert.match(steps, /Finding sellers/);
   assert.doesNotMatch(steps, /in three steps/);
   // View 48 batch 7: the record's three facts and one ask, and the Theme screen from Profile.
@@ -336,7 +339,7 @@ test('the guide reads Activity and its receipt as the new look shows them (view 
 test('the guide walks Post an offer and Start a deal as one screen (view 48, batch 9b)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('sell'), /The form is one screen/);
-  assert.match(said('sell'), /Lowest you accept and Pay in parts open in place/);
+  assert.match(said('sell'), /Lowest you accept open in place/);
   assert.match(said('sell'), /Publish offer posts it/);
   assert.match(said('direct'), /What will be delivered/);
   assert.match(said('direct'), /Review shows the deal once more/);

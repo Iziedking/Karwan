@@ -103,3 +103,28 @@ test('a private request and a private offer say so on the card and reach the rou
   assert.equal((calls.find((c) => c.path === '/api/jobs')?.body as Record<string, unknown>).visibility, 'agents');
   assert.equal((calls.find((c) => c.path === '/api/listings')?.body as Record<string, unknown>).visibility, 'agents');
 });
+
+test('a request said in stages carries its drafted parts and an agreement that names them (view 56)', () => {
+  const parts = [{ pct: 30, what: 'Three logo sketches' }, { pct: 70, what: 'Final logo files' }];
+  const card = buildPostRequestConfirm({ caller: ADA, brief: 'A logo: three sketches first, then the final files', budgetUsdc: 150, deadlineDays: 14, parts });
+  assert.ok(!('error' in card));
+  const p = card.payload as PostRequestPayload;
+  assert.deepEqual(p.milestonePcts, [30, 70]);
+  assert.match(p.terms ?? '', /• Milestone 1, 30%: Three logo sketches/);
+  assert.match(p.terms ?? '', /• Milestone 2, 70%: Final logo files/);
+  assert.deepEqual(card.fields.find((f) => f.label === 'Paid in'), { label: 'Paid in', value: '30%: Three logo sketches\n70%: Final logo files' });
+  const one = buildPostRequestConfirm({ caller: ADA, brief: 'A website', budgetUsdc: 300, deadlineDays: 14, parts: [{ pct: 100, what: 'A website' }] });
+  assert.ok(!('error' in one));
+  assert.equal((one.payload as PostRequestPayload).milestonePcts, undefined);
+  assert.equal(one.fields.some((f) => f.label === 'Paid in'), false);
+});
+
+test('an offer said in stages carries its drafted parts as its terms (view 56)', () => {
+  const parts = [{ pct: 30, what: 'Two concepts' }, { pct: 70, what: 'Final files' }];
+  const card = buildPostOfferConfirm({ caller: ADA, title: 'Logo design', description: 'Two concepts first, then the final files', askingPriceUsdc: 60, parts });
+  assert.ok(!('error' in card));
+  const p = card.payload as PostOfferPayload;
+  assert.deepEqual(p.termsDraft?.parts, parts);
+  assert.equal(p.termsDraft?.proof, 'link');
+  assert.deepEqual(card.fields.find((f) => f.label === 'Paid in'), { label: 'Paid in', value: '30%: Two concepts\n70%: Final files' });
+});

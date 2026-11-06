@@ -88,6 +88,8 @@ export function PostListingForm() {
   const [terms, setTerms] = useState<TermsDraft>(DEFAULT_TERMS);
   // One screen (view 48, 9b): the less common settings open in place.
   const [inParts, setInParts] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [drafted, setDrafted] = useState(false);
   const [openForOpen, setOpenForOpen] = useState(false);
   const [floorOpen, setFloorOpen] = useState(floorPrice !== '');
   const [photos, setPhotos] = useState<string[]>([]);
@@ -146,6 +148,28 @@ export function PostListingForm() {
   const agreementText = composeTerms(dealTerms, { priceUsdc: priceValue, dueLabel: null }, TERMS_COPY[locale].text);
   const wordsMissing = stepOneBlocker(title, description, offer);
   const ready = !wordsMissing && !!priceValue && !floorInvalid && readyValid && termsIssues(dealTerms).length === 0;
+
+  // View 56: the words become the parts the contract protects. A draft that
+  // fails or finds one part keeps one payment, as before.
+  async function prepare() {
+    if (!inParts) {
+      setPreparing(true);
+      try {
+        const words = [title.trim(), description.trim()].filter(Boolean).join('. ').slice(0, 500);
+        const { draft } = await api.dealDraft(words);
+        if (draft.parts.length > 1) {
+          setTerms((current) => ({ ...current, parts: draft.parts }));
+          setInParts(true);
+          setDrafted(true);
+        }
+      } catch {
+        /* one payment, as before */
+      } finally {
+        setPreparing(false);
+      }
+    }
+    setReviewing(true);
+  }
 
   async function publish() {
     if (!address || !priceValue || !readyValid || submitting) return;
@@ -238,7 +262,7 @@ export function PostListingForm() {
         onSubmit={(e) => {
           e.preventDefault();
           if (reviewing) void publish();
-          else if (ready) setReviewing(true);
+          else if (ready) void prepare();
         }}
         className="space-y-6"
       >
@@ -395,6 +419,7 @@ export function PostListingForm() {
                 <MoneyInput value={floorPrice} onChange={(usdc) => setFloorPrice(usdc ?? '')} />
               </Field>
             </FoldRow>
+            {inParts ? (
             <FoldRow
               label={rf.payInParts}
               fact={inParts ? terms.parts.map((part) => `${part.pct}%`).join(' / ') : offer.onePayment}
@@ -404,6 +429,7 @@ export function PostListingForm() {
             >
               <TermsBuilder value={terms} onChange={setTerms} priceUsdc={priceValue} dueLabel={null} disabled={submitting} />
             </FoldRow>
+            ) : null}
           </div>
           {floorInvalid ? (
             <p role="alert" className="text-[14px] font-medium text-[var(--ink)]">{f.floorTooLow}</p>
@@ -426,10 +452,11 @@ export function PostListingForm() {
               ...(floorDropPct ? [{ label: f.floor, value: money.text(floorPrice) }] : []),
               { label: f.readyIn, value: fill(f.readyInRow, readyInDays) },
               { label: f.openFor, value: fill(f.openForRow, openDays) },
-              { label: t.dealCreation.payment, value: dealTerms.parts.map((part) => `${part.pct}%`).join(' / ') },
+              { label: t.dealCreation.payment, value: dealTerms.parts.length > 1 ? dealTerms.parts.map((part) => rf.partLine.replace('{pct}', String(part.pct)).replace('{what}', part.what)).join('\n') : '100%' },
               { label: TERMS_COPY[locale].agreement, value: agreementText },
             ]}
           >
+            {drafted ? <p data-drafted className="mb-2 text-[var(--ink-secondary)]">{rf.drafted}</p> : null}
             <p>{f.next}</p>
           </CreationReview>
         ) : null}
@@ -465,7 +492,7 @@ export function PostListingForm() {
             data-guide="seller-submit"
             size="lg"
             disabled={!reviewing && !ready}
-            loading={submitting}
+            loading={submitting || preparing}
             loadingLabel={f.publishing}
             className="w-full sm:w-auto"
           >

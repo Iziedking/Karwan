@@ -60,3 +60,9 @@ test('a direct deal names what is delivered in its own box when it is one paymen
 test('the fold label exists in every language', () => {
   for (const [locale, copy] of Object.entries(requestFlowCopy)) assert.ok(copy.payInParts.length > 3, locale);
 });
+
+test('an offer drafts its parts from the words on Review, and Pay in parts shows only once there are parts (view 56)', () => {
+  assert.match(offer, /api\.dealDraft\(words\)/);
+  assert.match(offer, /\{inParts \? \(\s*<FoldRow\s+label=\{rf\.payInParts\}/);
+  assert.match(offer, /data-drafted/);
+});

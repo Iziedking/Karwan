@@ -31,7 +31,8 @@ test('Post an offer is one screen with one green button, and fits a phone', asyn
   await signedIn(page, 'seller');
   await page.goto('/seller');
   await expect(page.locator('[data-guide="seller-price"] input')).toBeVisible();
-  await expect(page.locator('[data-pay-in-parts]')).toBeVisible();
+  // View 56: no milestone setup until the words make parts.
+  await expect(page.locator('[data-pay-in-parts]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: en.dealCreation.review, exact: true })).toBeVisible();
   expect(await greenControls(page)).toEqual([en.dealCreation.review]);
   expect(await noSidewaysScroll(page)).toBe(true);

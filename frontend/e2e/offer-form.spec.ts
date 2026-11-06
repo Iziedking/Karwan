@@ -19,8 +19,13 @@ async function signedIn(page: Page, role: 'seller' | 'buyer') {
   await page.route(`${API}/api/listings/mine**`, route => route.fulfill({ json: { listings: [] } }));
 }
 
-test('an offer is one screen: price, ready-in time, and the floor and terms open in place (view 48, 9b)', async ({ page }) => {
+test('an offer is one screen: price, ready-in time, the floor in place, and its parts drafted from the words (views 48, 56)', async ({ page }) => {
   await signedIn(page, 'seller');
+  let draftedFrom = '';
+  await page.route(`${API}/api/deals/draft`, async route => {
+    draftedFrom = (route.request().postDataJSON() as { brief: string }).brief;
+    return route.fulfill({ json: { draft: { title: 'Logo design', parts: [{ pct: 30, what: 'Three logo sketches to choose from' }, { pct: 70, what: 'Logo in SVG and PNG' }], tradeType: 'service', quantity: null, source: 'rules' } } });
+  });
   let posted: Record<string, unknown> | null = null;
   await page.route(`${API}/api/listings`, async route => {
     if (route.request().method() !== 'POST') return route.fallback();
@@ -33,7 +38,9 @@ test('an offer is one screen: price, ready-in time, and the floor and terms open
   const review = page.getByRole('button', { name: en.dealCreation.review, exact: true });
   await expect(review).toBeDisabled();
   await page.locator('[data-guide="seller-listing"] input').fill('Logo design for small shops');
-  await page.locator('[data-guide="seller-listing"] textarea').fill('A logo in SVG and PNG with two rounds of changes.');
+  await page.locator('[data-guide="seller-listing"] textarea').fill('Three logo sketches first, then the logo in SVG and PNG.');
+  // No milestone setup on the form (view 56): the words carry it.
+  await expect(page.locator('[data-pay-in-parts]')).toHaveCount(0);
   // The seller can place the offer in a market category (view 44).
   const design = page.getByRole('group', { name: en.marketShop.categoriesLabel }).getByRole('button', { name: en.marketShop.categories.design });
   await design.click();
@@ -51,13 +58,10 @@ test('an offer is one screen: price, ready-in time, and the floor and terms open
   await expect(review).toBeDisabled();
   await page.locator('[data-guide="seller-floor"] input').fill('80');
 
-  await page.locator('[data-pay-in-parts] summary').click();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
-  // Every deal starts as one milestone; a second is added on purpose.
-  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Logo in SVG and PNG');
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('30');
   await review.click();
+  expect(draftedFrom).toBe('Logo design for small shops. Three logo sketches first, then the logo in SVG and PNG.');
+  await expect(page.locator('[data-drafted]')).toHaveText(requestFlowCopy.en.drafted);
+  await expect(page.getByRole('region').locator('dd').filter({ hasText: '30%: Three logo sketches to choose from' }).first()).toBeVisible();
   await expect(page.getByText(f.readyInRow.replace('{n}', '5'), { exact: true })).toBeVisible();
   expect(posted).toBeNull();
   await page.getByRole('button', { name: f.publish }).click();
@@ -78,8 +82,9 @@ test('an offer is one screen: price, ready-in time, and the floor and terms open
   expect(String((posted as unknown as { terms: string }).terms)).toContain(': Logo in SVG and PNG');
 });
 
-test('an offer left as one payment posts one milestone named by its title', async ({ page }) => {
+test('an offer whose words make one part posts one milestone named by its title', async ({ page }) => {
   await signedIn(page, 'seller');
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ json: { draft: { title: 'Menu photos', parts: [{ pct: 100, what: 'Menu photos' }], tradeType: 'service', quantity: null, source: 'rules' } } }));
   let posted: Record<string, unknown> | null = null;
   await page.route(`${API}/api/listings`, async route => {
     if (route.request().method() !== 'POST') return route.fallback();
@@ -92,6 +97,7 @@ test('an offer left as one payment posts one milestone named by its title', asyn
   await page.locator('[data-guide="seller-price"] input').fill('200');
   await page.getByRole('button', { name: f.days.replace('{n}', '3'), exact: true }).click();
   await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
+  await expect(page.locator('[data-drafted]')).toHaveCount(0);
   await page.getByRole('button', { name: f.publish }).click();
   await expect.poll(() => posted).not.toBeNull();
   expect(posted).toMatchObject({ askingPriceUsdc: 200, readyInDays: 3, termsDraft: { parts: [{ pct: 100, what: 'Menu photos' }] } });

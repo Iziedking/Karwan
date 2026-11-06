@@ -394,7 +394,7 @@ async function runConfirmIntent(
     return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
   }
   if (action.intent === 'post_request') {
-    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number; visibility?: 'agents' };
+    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number; visibility?: 'agents'; milestonePcts?: number[]; terms?: string };
     const r = await api.postJob({
       posterAddress: p.posterAddress,
       brief: p.brief,
@@ -404,6 +404,9 @@ async function runConfirmIntent(
       // the seconds shape, clamped to the route's own bounds (60s..90d).
       deadlineSeconds: Math.min(90 * 86_400, Math.max(60, Math.round(p.deadlineDays * 86_400))),
       ...(p.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
+      // Parts drafted from the brief (view 56), and the agreement naming them.
+      ...(p.milestonePcts && p.milestonePcts.length > 1 ? { milestonePcts: p.milestonePcts } : {}),
+      ...(p.terms ? { terms: p.terms } : {}),
     });
     return {
       successText: 'Request posted. Your agent is finding developers now.',

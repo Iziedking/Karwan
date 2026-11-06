@@ -1,3 +1,4 @@
+import { DRAFT_REVIEW_DAYS, partsAgreement, partsLines, type DraftPart } from '../deals/drafter.js';
 import { cleanNote } from '../money/sendNote.js';
 import type { CreateDirectDealBody } from '../deals/createSchema.js';
 import { dealReference } from '../deals/reference.js';
@@ -67,6 +68,8 @@ export interface PostOfferPayload {
   heldPhotos?: boolean;
   /// Who can see it (view 53): only buyer agents and anyone with its link.
   visibility?: 'agents';
+  /// Parts drafted from the words (view 56), when they describe stages.
+  termsDraft?: { conditions: string[]; proof: 'link'; parts: DraftPart[]; reviewWindowDays: number };
 }
 
 export interface PostRequestPayload {
@@ -87,6 +90,9 @@ export interface PostRequestPayload {
   quantity?: { count: number; unit: string | null };
   /// Who can see it (view 53): only seller agents, never on the market.
   visibility?: 'agents';
+  /// Parts drafted from the brief (view 56), and the agreement naming them.
+  milestonePcts?: number[];
+  terms?: string;
 }
 
 export interface ReleaseMilestonePayload {
@@ -649,6 +655,8 @@ export interface BuildPostOfferInput {
   heldPhotos?: number;
   /// Private (view 53): never on the market; buyer agents and its link still reach it.
   private?: boolean;
+  /// Parts drafted from the words (view 56). One part means one payment.
+  parts?: DraftPart[];
 }
 
 /// Build a validated post-offer confirm card, or an `{ error }` the tool hands
@@ -704,7 +712,11 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
     ...(input.category ? { category: input.category } : {}),
     ...(input.heldPhotos ? { heldPhotos: true } : {}),
     ...(input.private ? { visibility: 'agents' as const } : {}),
+    ...(input.parts && input.parts.length > 1
+      ? { termsDraft: { conditions: [], proof: 'link' as const, parts: input.parts, reviewWindowDays: DRAFT_REVIEW_DAYS } }
+      : {}),
   };
+  if (input.parts && input.parts.length > 1) fields.push({ label: 'Paid in', value: partsLines(input.parts) });
   if (input.category) fields.push({ label: 'Category', value: CATEGORY_NAMES[input.category] });
   if (input.heldPhotos) fields.push({ label: 'Photos', value: String(input.heldPhotos) });
   fields.push({ label: 'Who can see it', value: input.private ? 'Only buyer agents and people you send the link. Never on the market.' : 'Everyone on the market' });
@@ -746,6 +758,8 @@ export interface BuildPostRequestInput {
   quantity?: { count: number; unit: string | null };
   /// Private (view 53): only seller agents see it, never on the market.
   private?: boolean;
+  /// Parts drafted from the brief (view 56). One part means paid at once.
+  parts?: DraftPart[];
 }
 
 /// Build a post-request (buyer desk) confirm card, or an `{ error }` the tool
@@ -778,6 +792,7 @@ export function buildPostRequestConfirm(
     i.deadlineLabel ??
     (days >= 1 ? `${roundedDays} day${roundedDays === 1 ? '' : 's'}` : `${Math.round(days * 24 * 60)} min`);
   const quantity = i.quantity ?? readQuantity(brief);
+  const staged = i.parts && i.parts.length > 1 ? i.parts : null;
   const fields: { label: string; value: string }[] = [
     { label: 'You need', value: brief.length > 140 ? `${brief.slice(0, 137)}…` : brief },
     { label: 'Budget', value: `${i.budgetUsdc} USDC` },
@@ -785,6 +800,7 @@ export function buildPostRequestConfirm(
       ? [{ label: 'How many', value: `${quantityWords(quantity)}, ${i.budgetUsdc} USDC for all, about ${perItemUsdc(i.budgetUsdc, quantity.count)} USDC each` }]
       : []),
     { label: 'Deadline', value: deadlineLabel },
+    ...(staged ? [{ label: 'Paid in', value: partsLines(staged) }] : []),
     { label: 'Matching', value: 'Your agent compares matching sellers and offers' },
     {
       label: 'Agree for me',
@@ -814,6 +830,7 @@ export function buildPostRequestConfirm(
       ...(i.agreeForMe ? { agreeForMe: true } : {}),
       ...(quantity ? { quantity } : {}),
       ...(i.private ? { visibility: 'agents' as const } : {}),
+      ...(staged ? { milestonePcts: staged.map((p) => p.pct), terms: partsAgreement(staged, { due: true }) } : {}),
     },
     confirmLabel: 'Post request',
     cancelLabel: 'Not now',

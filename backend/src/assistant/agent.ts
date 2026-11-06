@@ -2,6 +2,8 @@
 /// No tool directly executes a money action. The direct Anthropic model is the
 /// only provider allowed to receive private tool results or chat history.
 
+import { draftDeal } from '../deals/drafter.js';
+import { modelSplit } from '../routes/dealDraft.js';
 import { locationOf, withBuyerLocations, withSellerLocations } from '../location/live.js';
 import { getBrief, listAllBriefs } from '../db/briefs.js';
 import { randomUUID } from 'node:crypto';
@@ -2574,10 +2576,12 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           return { error: 'They need a seller profile first. Offer a button to the seller desk (destination "new_offer").' };
         }
         const heldPhotos = offerPhotos.heldCount(address, Date.now());
-        const built = buildPostOfferConfirm({ caller: address, ...args, ...(heldPhotos ? { heldPhotos } : {}) });
+        // View 56: words that describe stages become the parts it is paid in.
+        const { parts } = await draftDeal({ brief: `${args.title}. ${args.description}`.slice(0, 500) }, { split: modelSplit });
+        const built = buildPostOfferConfirm({ caller: address, ...args, ...(heldPhotos ? { heldPhotos } : {}), parts });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-        return { ok: true, shown: built.title };
+        return { ok: true, shown: built.title, ...(parts.length > 1 ? { paidInParts: parts, note: 'Say in one line the offer is paid in these parts, each when its part is delivered.' } : {}) };
       },
     }),
 
@@ -2628,9 +2632,12 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         if (deadlineDays === undefined) {
           return { error: 'Ask them for a deadline: a calendar date (pass deadlineDate) or how many days from now (deadlineDays).' };
         }
+        // View 56: a brief that describes stages becomes the parts it is paid in.
+        const { parts } = await draftDeal({ brief: args.brief }, { split: modelSplit });
         const built = buildPostRequestConfirm({
           caller: address,
           brief: args.brief,
+          parts,
           budgetUsdc: args.budgetUsdc,
           deadlineDays,
           ...(args.deadlineDate ? { deadlineLabel: `by ${args.deadlineDate.trim()}` } : {}),
@@ -2642,7 +2649,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-        return { ok: true, shown: built.title, note: 'Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_fund_agent) or send them to add money.' };
+        return { ok: true, shown: built.title, ...(parts.length > 1 ? { paidInParts: parts } : {}), note: 'When paidInParts is there, say in one line the request is paid in those parts, each when its part is delivered, and that they can change them on the request page. Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_fund_agent) or send them to add money.' };
       },
     }),
 

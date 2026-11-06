@@ -110,3 +110,24 @@ export async function draftDeal(
   }
   return { ...base, parts: ruled, source: 'rules' };
 }
+
+/// Days the buyer has to check each delivery when the words set none: the
+/// same as the forms (TermsBuilder DEFAULT_TERMS).
+export const DRAFT_REVIEW_DAYS = 3;
+
+/// The agreement text for drafted parts, in the words the forms write
+/// (frontend composeTerms, English), so a request posted from chat reads like
+/// one posted from the page.
+export function partsAgreement(parts: readonly DraftPart[], opts: { due: boolean }): string {
+  return [
+    `Payment: locked when the deal is funded and released in ${parts.length} milestones:`,
+    ...parts.map((p, i) => `• Milestone ${i + 1}, ${p.pct}%: ${p.what}`),
+    'Proof of delivery: a link to the work.',
+    `Time to check: ${DRAFT_REVIEW_DAYS} days after each delivery. If the buyer does not reply in that time, that part is paid to the seller.`,
+    'The buyer can ask once for more time to check.',
+    ...(opts.due ? ['Late: if nothing is delivered by the deadline, unpaid parts return to the buyer.'] : []),
+  ].join('\n');
+}
+
+/// The card row for drafted parts: one line per part.
+export const partsLines = (parts: readonly DraftPart[]) => parts.map((p) => `${p.pct}%: ${p.what}`).join('\n');
