@@ -18,7 +18,7 @@ test('Home has no Telegram card; Telegram is linked from Contact on Profile', as
   await expect(page.getByRole('heading', { name: 'Telegram' })).toHaveCount(0);
 });
 
-test('asking on Home opens assistant mode with the question sent, not Help', async ({ page }) => {
+test('asking on Home opens Help with the question sent and stays on Home (owner, 6 Nov 2026)', async ({ page }, testInfo) => {
   await serveHome(page, true);
   const asked: string[] = [];
   await page.route(`${API}/api/assistant/**`, (route) => {
@@ -28,16 +28,20 @@ test('asking on Home opens assistant mode with the question sent, not Help', asy
       asked.push(body.messages.at(-1)?.content ?? '');
       return route.fulfill({ json: { reply: 'Tell me what you sell.' } });
     }
-    if (path === '/api/assistant/conversations' && route.request().method() === 'GET') return route.fulfill({ json: { conversations: [{ id: 'old', title: 'Old chat', updatedAt: 1 }] } });
-    return route.fulfill({ json: { conversation: { id: 'c1', title: 'Chat', updatedAt: 2, messages: [] } } });
+    return route.fulfill({ json: {} });
   });
   await page.goto('/app');
+  // The assistant card and the next step card are lit the same way, with a mark beside the title.
+  await expect(page.locator('[data-lit-card]')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Check a deal' })).toBeVisible();
+  await page.locator('[data-lit-card]').first().screenshot({ path: testInfo.outputPath('next-step-card.png') });
+  await page.locator('[data-lit-card]').last().screenshot({ path: testInfo.outputPath('assistant-card.png') });
   await page.getByRole('button', { name: 'Post my offer' }).click();
-  await expect(page).toHaveURL(/\/assistant$/);
-  await expect(page.getByText('Post my offer', { exact: true })).toBeVisible();
-  await expect(page.getByText('Tell me what you sell.')).toBeVisible();
+  const help = page.getByRole('dialog');
+  await expect(help).toBeVisible();
+  await expect(help.getByText('Tell me what you sell.')).toBeVisible();
+  await expect(page).toHaveURL(/\/app$/);
   expect(asked).toEqual(['Post my offer']);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 /// Owner notes, 3 Nov 2026: the round money buttons are back, Add money the green one (4 Nov), and

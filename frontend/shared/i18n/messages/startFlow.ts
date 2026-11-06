@@ -54,7 +54,7 @@ export interface StartFlowCopy {
     totalBalance: string;
     addMoney: string;
     firstTrade: { done: string; next: string; see: string; body: string; nextLabels: ByChoice<'setup' | 'money' | 'telegram' | 'connect' | 'deal' | 'finish'> };
-    ask: { title: string; body: string; label: string; placeholder: string; send: string; chips: [string, string] };
+    ask: { title: string; body: string; label: string; placeholder: string; send: string; chips: [string, string, string] };
     updatesAuto: string;
   };
   guarantee: { title: string; from: string; useAll: string; left: string };
@@ -150,7 +150,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
         label: 'Ask your assistant',
         placeholder: 'What do you want to do?',
         send: 'Send',
-        chips: ['Post my offer', 'Request a payment'],
+        chips: ['Post my offer', 'Request a payment', 'Check a deal'],
       },
       updatesAuto: 'Moves on by itself. Point at it or focus it to stop.',
     },
@@ -245,7 +245,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
         label: 'Demandez à votre assistant',
         placeholder: 'Que voulez-vous faire ?',
         send: 'Envoyer',
-        chips: ['Publier mon offre', 'Demander un paiement'],
+        chips: ['Publier mon offre', 'Demander un paiement', 'Suivre un accord'],
       },
       updatesAuto: 'Défile tout seul. Pointez ou sélectionnez pour l’arrêter.',
     },
@@ -340,7 +340,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
         label: 'اسأل مساعدك',
         placeholder: 'ماذا تريد أن تفعل؟',
         send: 'إرسال',
-        chips: ['انشر عرضي', 'اطلب دفعة'],
+        chips: ['انشر عرضي', 'اطلب دفعة', 'تابع صفقة'],
       },
       updatesAuto: 'يتقدم وحده. أشر إليه أو حدّده ليتوقف.',
     },
@@ -435,7 +435,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
         label: 'अपने असिस्टेंट से पूछें',
         placeholder: 'आप क्या करना चाहते हैं?',
         send: 'भेजें',
-        chips: ['मेरा ऑफ़र पोस्ट करें', 'भुगतान माँगें'],
+        chips: ['मेरा ऑफ़र पोस्ट करें', 'भुगतान माँगें', 'डील की जाँच करें'],
       },
       updatesAuto: 'अपने आप आगे बढ़ता है। रोकने के लिए उस पर पॉइंटर या फ़ोकस रखें।',
     },
@@ -530,7 +530,7 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
         label: 'Muulize msaidizi wako',
         placeholder: 'Unataka kufanya nini?',
         send: 'Tuma',
-        chips: ['Chapisha ofa yangu', 'Omba malipo'],
+        chips: ['Chapisha ofa yangu', 'Omba malipo', 'Fuatilia mkataba'],
       },
       updatesAuto: 'Husogea yenyewe. Elekeza kiashiria au lenga ili kusimamisha.',
     },

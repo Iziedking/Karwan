@@ -1,40 +1,37 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { rememberReturn } from '@/features/assistant/assistantReturn';
-import { carryAsk } from '@/features/assistant/carriedAsk';
+import { openHelp } from '@/shared/assistant/openHelp';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { CARD_PILL, CardGlyph, LitCard, type CardIcon } from './LitCard';
 
-/// The assistant on Home: a box to type in and two things it can do straight
-/// away. What is sent opens assistant mode with it already asked; switching
-/// assistant mode off comes back here.
+const CHIP_ICONS: readonly CardIcon[] = ['tag', 'request', 'shield'];
+
+/// The assistant on Home: a box to type in and three things it can do straight
+/// away. What is sent opens Help with it already asked (owner, 6 Nov 2026),
+/// so the person stays on Home.
 export function AskCard() {
   const t = useTranslations().startFlow.home.ask;
   const id = useId();
-  const router = useRouter();
-  const pathname = usePathname();
   const [text, setText] = useState('');
   const ask = (words: string) => {
     const clean = words.trim();
     if (!clean) return;
-    carryAsk(clean);
-    rememberReturn(pathname);
-    router.push('/assistant');
+    openHelp(clean, { send: true });
+    setText('');
   };
   return (
-    <section aria-labelledby={`${id}-title`} className="flex flex-col rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6">
-      <h2 id={`${id}-title`} className="text-[19px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">{t.title}</h2>
-      <p className="mt-1.5 text-[15px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{t.body}</p>
+    <LitCard icon="spark" title={t.title} body={t.body} titleId={`${id}-title`}>
       <form
-        className="mt-auto pt-4"
+        data-ask-card
+        className="mt-auto pt-5"
         onSubmit={(e) => {
           e.preventDefault();
           ask(text);
         }}
       >
         <label htmlFor={`${id}-input`} className="sr-only">{t.label}</label>
-        <div className="flex min-h-[52px] items-center gap-2 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-light)] py-1.5 pe-1.5 ps-4 focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
+        <div className="flex min-h-[52px] items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--lp-dark)_10%,transparent)] bg-[var(--lp-light)] py-1.5 pe-1.5 ps-4 focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
           <input
             id={`${id}-input`}
             value={text}
@@ -50,12 +47,13 @@ export function AskCard() {
         </div>
       </form>
       <div className="mt-3 flex flex-wrap gap-2">
-        {t.chips.map((chip) => (
-          <button key={chip} type="button" onClick={() => ask(chip)} className="min-h-11 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+        {t.chips.map((chip, i) => (
+          <button key={chip} type="button" onClick={() => ask(chip)} className={CARD_PILL}>
+            <CardGlyph name={CHIP_ICONS[i] ?? 'spark'} size={16} className="shrink-0 text-[var(--lp-text-sub)]" />
             {chip}
           </button>
         ))}
       </div>
-    </section>
+    </LitCard>
   );
 }
