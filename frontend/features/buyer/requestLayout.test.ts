@@ -33,3 +33,12 @@ test('prefilled optional settings stay visible; the terms carry the split and th
   assert.match(source, /reviewWindowDays: dealTerms\.reviewWindowDays,/);
   assert.match(source, /trustedMatch,/);
 });
+
+test('the words become the parts (view 56): Prepare drafts them, the form has no milestone setup until there are parts', () => {
+  assert.match(source, /await api\.dealDraft\(brief\)/);
+  assert.match(source, /if \(!inParts\) \{/);
+  assert.match(source, /reviewing \? c\.confirmRequest : rf\.prepare/);
+  const form = source.slice(source.indexOf('<form ref='));
+  assert.ok(form.indexOf('{inParts ? (') < form.indexOf('data-pay-in-parts'));
+  assert.ok(form.indexOf('{optionsOpen ? (') < form.indexOf('<details open={optionsOpen}'));
+});

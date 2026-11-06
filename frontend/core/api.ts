@@ -5432,6 +5432,14 @@ export const api = {
     json<ChatTranscript>(`/api/financing-chat/${kind}/${positionId}`),
   sendFinancingMessage: (kind: 'factoring' | 'po', positionId: string, body: string, replyToId?: string, imageDataUrl?: string) =>
     json<{ message: ChatMessage }>(`/api/financing-chat/${kind}/${positionId}`, { method: 'POST', body: JSON.stringify({ body, replyToId, ...(imageDataUrl ? { imageDataUrl } : {}) }) }),
+  /// A person's words as a deal card (view 56). Prepares only; nothing is saved.
+  dealDraft: (brief: string) =>
+    json<{ draft: { title: string; parts: { pct: number; what: string }[]; tradeType: 'service' | 'goods'; quantity: { count: number; unit: string | null } | null; source: 'rules' | 'model' } }>(
+      '/api/deals/draft',
+      { method: 'POST', body: JSON.stringify({ brief }) },
+    ),
+  /// The signed-in person's next moves (view 57), most urgent first.
+  guideNext: () => json<{ moves: import('@/features/guide/pickNudge').NextMove[] }>('/api/guide/next'),
   telegramStatus: (address: string) =>
     json<TelegramStatus>(`/api/telegram/status?address=${address}`),
   telegramLinkStart: (address: string) =>

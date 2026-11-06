@@ -25,6 +25,7 @@ import type { Locale } from '@/shared/i18n/locales';
 /// The Help panel is a launcher until it is opened, so its code (the chat
 /// thread, cards and live support) loads after the page instead of with it.
 const AssistantWidget = dynamic(() => import('@/shared/components/AssistantWidget').then((mod) => mod.AssistantWidget), { ssr: false });
+const NextMoveNudge = dynamic(() => import('@/shared/components/NextMoveNudge').then((mod) => mod.NextMoveNudge), { ssr: false });
 
 const motionFeatures = () => import('@/shared/motion/features').then((mod) => mod.default);
 
@@ -87,6 +88,7 @@ export function AppProviders({
           <GuideProvider>
             {children}
             <AssistantWidget />
+            <NextMoveNudge />
             <ConfirmPresenceProvider />
           </GuideProvider>
         </NotificationsProvider>

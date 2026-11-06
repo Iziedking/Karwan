@@ -5,6 +5,12 @@ export interface RequestFlowCopy {
   yourRequest: string;
   neededByLabel: string;
   payInParts: string;
+  /// View 56: the first button prepares the deal from the words.
+  prepare: string;
+  /// Under the parts the drafter wrote.
+  drafted: string;
+  /// One part on the review: {pct} and {what}.
+  partLine: string;
   post: string;
   finding: string;
   reference: string;
@@ -58,6 +64,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     neededByLabel: 'Needed by',
     payInParts: 'Pay in parts',
     post: 'Post request',
+    prepare: 'Prepare my request',
+    drafted: 'Split into parts from your words. Edit to change them.',
+    partLine: '{pct}%: {what}',
     finding: 'Finding sellers',
     reference: 'Request {reference}',
     upTo: 'Up to {amount} USDC',
@@ -99,6 +108,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     neededByLabel: 'Pour le',
     payInParts: 'Payer en plusieurs parties',
     post: 'Publier la demande',
+    prepare: 'Préparer ma demande',
+    drafted: 'Découpé en parties à partir de vos mots. Modifiez pour changer.',
+    partLine: '{pct} % : {what}',
     finding: 'Recherche de vendeurs',
     reference: 'Demande {reference}',
     upTo: 'Jusqu’à {amount} USDC',
@@ -140,6 +152,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     neededByLabel: 'مطلوب بحلول',
     payInParts: 'ادفع على أجزاء',
     post: 'انشر الطلب',
+    prepare: 'جهّز طلبي',
+    drafted: 'قُسّم إلى أجزاء من كلماتك. عدّل لتغييرها.',
+    partLine: '{pct}%: {what}',
     finding: 'نبحث عن بائعين',
     reference: 'الطلب {reference}',
     upTo: 'حتى {amount} USDC',
@@ -181,6 +196,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     neededByLabel: 'कब तक चाहिए',
     payInParts: 'हिस्सों में भुगतान करें',
     post: 'अनुरोध पोस्ट करें',
+    prepare: 'मेरा अनुरोध तैयार करें',
+    drafted: 'आपके शब्दों से हिस्सों में बाँटा गया। बदलने के लिए संपादित करें।',
+    partLine: '{pct}%: {what}',
     finding: 'विक्रेता खोजे जा रहे हैं',
     reference: 'अनुरोध {reference}',
     upTo: '{amount} USDC तक',
@@ -222,6 +240,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     neededByLabel: 'Inahitajika kufikia',
     payInParts: 'Lipa kwa sehemu',
     post: 'Weka ombi',
+    prepare: 'Andaa ombi langu',
+    drafted: 'Imegawanywa kwa sehemu kutoka kwa maneno yako. Hariri ili kubadilisha.',
+    partLine: '{pct}%: {what}',
     finding: 'Inatafuta wauzaji',
     reference: 'Ombi {reference}',
     upTo: 'Hadi USDC {amount}',

@@ -54,6 +54,8 @@ import { gatewayRoutes } from './routes/gateway.js';
 import { chatRoutes } from './routes/chat.js';
 import { financingChatRoutes } from './routes/financingChat.js';
 import { telegramRoutes } from './routes/telegram.js';
+import { guideRoutes } from './routes/guide.js';
+import { dealDraftRoutes } from './routes/dealDraft.js';
 import { whatsappRoutes } from './routes/whatsapp.js';
 import { channelRoutes } from './routes/channels.js';
 import { installApp } from './channels/inProcess.js';
@@ -486,6 +488,7 @@ app.route(
 app.route('/api/bridge', bridgeRoutes);
 app.route('/api/gateway', gatewayRoutes);
 app.route('/api/reputation', reputationRoutes);
+app.route('/api/deals', dealDraftRoutes);
 app.route('/api/deals', dealsRoutes);
 app.route('/api/cre/delivery-request', creDeliveryRequestRoutes);
 // The suite CRE workflows (view 12). Each is null, and so not served, until
@@ -511,6 +514,7 @@ app.route('/api/legacy', createLegacyContractRoutes(liveLegacyDeps));
 app.route('/api/chat', chatRoutes);
 app.route('/api/financing-chat', financingChatRoutes);
 app.route('/api/telegram', telegramRoutes);
+app.route('/api/guide', guideRoutes);
 app.route('/api/whatsapp', whatsappRoutes);
 app.route('/api/channels', channelRoutes);
 installApp(app);

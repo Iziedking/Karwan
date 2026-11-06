@@ -17,13 +17,18 @@ async function signedInBuyer(page: Page) {
   await page.route(`${API}/api/agents/buyer**`, route => route.fulfill({ json: { profile: null, jobs: [] } }));
 }
 
-test('a request is one screen, parts folded until asked, and posts the chosen date and milestones (view 48)', async ({ page }) => {
+test('a request is said in words and Prepare my request drafts its parts; the review lists them and posts them (view 56)', async ({ page }) => {
   await signedInBuyer(page);
   let posted: Record<string, unknown> | null = null;
+  let draftedFrom = '';
   await page.route(`${API}/api/jobs`, async route => {
     if (route.request().method() !== 'POST') return route.fallback();
     posted = route.request().postDataJSON();
     return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
+  });
+  await page.route(`${API}/api/deals/draft`, async route => {
+    draftedFrom = (route.request().postDataJSON() as { brief: string }).brief;
+    return route.fulfill({ json: { draft: { title: 'A logo for my bakery', parts: [{ pct: 30, what: 'Three logo sketches to choose from' }, { pct: 70, what: 'Final logo in SVG and PNG' }], tradeType: 'service', quantity: null, source: 'rules' } } });
   });
   const rf = en.requestFlow;
 
@@ -31,51 +36,51 @@ test('a request is one screen, parts folded until asked, and posts the chosen da
   await expect(page.getByRole('heading', { level: 1, name: rf.pageTitle })).toBeVisible();
   await expect(page.getByText(rs.stepOf.replace('{n}', '1'), { exact: false })).toHaveCount(0);
   const post = page.locator('button[data-guide="buyer-submit"]');
-  await expect(post).toHaveText(rf.post);
+  await expect(post).toHaveText(rf.prepare);
   await expect(post).toBeDisabled();
+  // No milestone setup on the form: the words carry it.
+  await expect(page.getByText(rf.payInParts, { exact: true })).toHaveCount(0);
 
-  await page.locator('textarea[data-guide="buyer-brief"]').fill('A logo and colours for my bakery in Accra.');
+  await page.locator('textarea[data-guide="buyer-brief"]').fill('A logo for my bakery: three sketches first, then the final files.');
   await page.locator('input[data-guide="buyer-budget"]').fill('150');
-  // No agent balance beside the form: one balance, and Karwan moves money to the agent on confirmation (view 38).
-  await expect(page.getByRole('button', { name: en.money.home.topUpGapTemplate.replace('{gap}', '30.00') })).toHaveCount(0);
   await page.getByRole('button', { name: new RegExp(`^${rs.weeks2}`) }).click();
-  await expect(page.getByRole('button', { name: new RegExp(`^${rs.weeks2}`) })).toHaveAttribute('aria-pressed', 'true');
   await expect(post).toBeEnabled();
 
-  // Paid in parts only when asked.
-  const tb = TERMS_COPY.en;
-  await expect(page.getByRole('button', { name: tb.addPart, exact: true })).toHaveCount(0);
-  await page.getByText(rf.payInParts, { exact: true }).click();
-  await expect(page.getByRole('listitem').filter({ hasText: tb.noWhat.replace('{n}', '1') })).toBeVisible();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
-  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Final logo in SVG and PNG');
-  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
-  await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` })).toHaveValue('33');
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true }).fill('Brand colours sheet');
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` }).fill('10');
-  await expect(page.getByText(tb.needs100.replace('{sum}', '76'), { exact: true })).toBeVisible();
-  await expect(post).toBeDisabled();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('20');
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` }).fill('70');
-  await expect(page.getByText('More terms', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: tb.days.replace('{n}', '7'), exact: true }).click();
-  await expect(page.getByText(tb.ready, { exact: true })).toBeVisible();
-
   await post.click();
+  expect(draftedFrom).toBe('A logo for my bakery: three sketches first, then the final files.');
+  await expect(page.locator('[data-drafted]')).toHaveText(rf.drafted);
+  await expect(page.getByRole('region').locator('dd').filter({ hasText: '30%: Three logo sketches to choose from' }).first()).toBeVisible();
   await expect(page.getByText(en.requestFlow.nothingPaid, { exact: true })).toBeVisible();
-  await expect(page.getByText(en.requestFlow.agentLine, { exact: true })).toBeVisible();
   await post.click();
   await expect.poll(() => posted).not.toBeNull();
-  expect(posted).toMatchObject({ budgetUsdc: 150, deadlineSeconds: 14 * DAY_S, milestonePcts: [20, 70, 10], reviewWindowDays: 7 });
+  expect(posted).toMatchObject({ budgetUsdc: 150, deadlineSeconds: 14 * DAY_S, milestonePcts: [30, 70] });
   const agreement = String((posted as unknown as { terms: string }).terms);
-  expect(agreement).toContain('• Milestone 1, 20% (30 USDC): Three logo sketches to choose from');
-  expect(agreement).toContain('• Milestone 3, 10% (15 USDC): Brand colours sheet');
-  expect(agreement).not.toContain('Accepted when');
-  expect(agreement).toContain('Time to check: 7 days after each delivery');
+  expect(agreement).toContain('• Milestone 1, 30%: Three logo sketches to choose from');
+  expect(agreement).toContain('• Milestone 2, 70%: Final logo in SVG and PNG');
 });
 
-test('left folded, a request is paid at once for what it asks, and Post request turns to Finding sellers while it posts', async ({ page }, testInfo) => {
+test('when the draft cannot be made, the request is paid at once and still posts', async ({ page }) => {
+  await signedInBuyer(page);
+  let posted: Record<string, unknown> | null = null;
+  await page.route(`${API}/api/jobs`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posted = route.request().postDataJSON();
+    return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
+  });
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ status: 503, json: { error: 'down' } }));
+  await page.goto('/buyer?mode=managed');
+  await page.locator('textarea[data-guide="buyer-brief"]').fill('Year-end accounts for a small agency.');
+  await page.locator('input[data-guide="buyer-budget"]').fill('300');
+  await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
+  const post = page.locator('button[data-guide="buyer-submit"]');
+  await post.click();
+  await expect(page.locator('[data-drafted]')).toHaveCount(0);
+  await post.click();
+  await expect.poll(() => posted).not.toBeNull();
+  expect(posted).toMatchObject({ milestonePcts: [100] });
+});
+
+test('one part, a request is paid at once for what it asks, and the button turns to Finding sellers while it posts', async ({ page }, testInfo) => {
   await signedInBuyer(page);
   let posted: Record<string, unknown> | null = null;
   let release!: () => void;
@@ -86,6 +91,7 @@ test('left folded, a request is paid at once for what it asks, and Post request 
     await held;
     return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
   });
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ json: { draft: { title: 'A logo', parts: [{ pct: 100, what: 'A logo for my bakery, warm and simple.' }], tradeType: 'service', quantity: null, source: 'rules' } } }));
   const rf = en.requestFlow;
   await page.goto('/buyer?mode=managed');
   await page.locator('textarea[data-guide="buyer-brief"]').fill('A logo for my bakery, warm and simple.');
@@ -115,7 +121,7 @@ test('a picked date becomes whole days until the end of that day', async ({ page
   await expect(page.locator('button[data-guide="buyer-submit"]')).toBeEnabled();
 });
 
-test('a direct deal names the seller in one box and sends the agreed terms in two parts', async ({ page }) => {
+test('a direct deal names the seller in one box, and what was agreed in words becomes its parts (view 56)', async ({ page }) => {
   await signedInBuyer(page);
   let posted: Record<string, unknown> | null = null;
   await page.route(`${API}/api/deals/direct`, async route => {
@@ -123,8 +129,12 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
     posted = route.request().postDataJSON();
     return route.fulfill({ status: 500, json: { error: 'stop here' } });
   });
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ json: { draft: { title: 'Product photos', parts: [
+    { pct: 40, what: 'Product photos for the first 10 items' },
+    { pct: 40, what: 'Product photos for the other 10 items' },
+    { pct: 20, what: 'Edited set in one folder, white background, 2000 px wide' },
+  ], tradeType: 'service', quantity: null, source: 'model' } } }));
   const dd = en.directDeal;
-  const tb = TERMS_COPY.en;
 
   await page.goto('/buyer?mode=direct');
   await page.getByRole('button', { name: new RegExp(`^${en.requestFlow.kinds.one}`) }).click();
@@ -136,21 +146,13 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   await expect(page.getByRole('button', { name: rs.noDate, exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.locator('[data-money-input]').first().fill('200');
   await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
-  await page.locator('[data-pay-in-parts] summary').click();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Product photos for the first 10 items');
-  // Every deal starts as one milestone; a second is added on purpose.
-  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Product photos for the other 10 items');
-  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true }).fill('Edited set in one folder, white background, 2000 px wide');
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('40');
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` }).fill('40');
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` }).fill('20');
-  await page.getByRole('button', { name: tb.other, exact: true }).click();
-  await page.getByRole('textbox', { name: tb.otherDays, exact: true }).fill('10');
-
+  // No seller deposit and no milestone setup on the form (owner, 6 Nov 2026): the words carry the parts.
+  await expect(page.getByText(en.dealCreation.security, { exact: true })).toHaveCount(0);
+  await expect(page.locator('[data-pay-in-parts]')).toHaveCount(0);
+  await page.getByLabel(en.editDealModal.deliverLabel, { exact: true }).fill('Product photos: 10 items first, then the other 10, then the edited set in one folder.');
   await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
-  await expect(page.getByRole('region').getByText(/Edited set in one folder, white background, 2000 px wide/)).toBeVisible();
+  await expect(page.locator('[data-drafted]')).toHaveText(en.requestFlow.drafted);
+  await expect(page.getByRole('region').getByText(/20%: Edited set in one folder, white background, 2000 px wide/)).toBeVisible();
   const send = page.getByRole('button', { name: rs.sendTo.replace('{name}', '0x3333…3333'), exact: true });
   await send.click();
   await expect.poll(() => posted).not.toBeNull();
@@ -160,12 +162,10 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
     deadlineDays: 7,
     firstReleasePct: 40,
     milestonePcts: [40, 40, 20],
-    reviewWindowDays: 10,
   });
   const agreement = String((posted as unknown as { terms: string }).terms);
   expect(agreement).toContain('• Milestone 1, 40% (80 USDC): Product photos for the first 10 items');
   expect(agreement).toContain('• Milestone 3, 20% (40 USDC): Edited set in one folder');
-  expect(agreement).toContain('Time to check: 10 days after each delivery');
 });
 
 test('a person can open a goods deal handed over in person, and By the hour opens the hourly form (view 32)', async ({ page }) => {

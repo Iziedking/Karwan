@@ -38,7 +38,7 @@ test('both forms are one screen: no steps, no Continue, the terms fold under Pay
     assert.match(s, /<TermsBuilder/, name);
     assert.match(s, /<TermsBlockerNote /, name);
     assert.match(s, /<CreationReview/, name);
-    assert.match(s, /<Button\b[\s\S]*?loading=\{submitting\}/, name);
+    assert.match(s, /<Button\b[\s\S]*?loading=\{submitting(?: \|\| preparing)?\}/, name);
   }
 });
 

@@ -173,6 +173,8 @@ export function DirectDealForm() {
   // in parts is opened for milestones.
   const [delivered, setDelivered] = useState(initialTerms.trim());
   const [inParts, setInParts] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [drafted, setDrafted] = useState(false);
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [terms, setTerms] = useState<TermsDraft>(() =>
@@ -411,7 +413,27 @@ export function DirectDealForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || !address || inFlight.current) return;
-    if (!reviewing) { setReviewing(true); return; }
+    if (!reviewing) {
+      // View 56: what was agreed, in words, becomes the parts the contract
+      // protects. A draft that fails or finds one part keeps one payment.
+      if (!inParts && delivered.trim()) {
+        setPreparing(true);
+        try {
+          const { draft } = await api.dealDraft(delivered.trim());
+          if (draft.parts.length > 1) {
+            setTerms((current) => ({ ...current, parts: draft.parts }));
+            setInParts(true);
+            setDrafted(true);
+          }
+        } catch {
+          /* one payment, as before */
+        } finally {
+          setPreparing(false);
+        }
+      }
+      setReviewing(true);
+      return;
+    }
     inFlight.current = true;
     setSubmitting(true);
     setError(null);
@@ -662,6 +684,7 @@ export function DirectDealForm() {
       </div>
 
       <div className={cn(CARD_CLASS, 'divide-y divide-[var(--line)] overflow-hidden')}>
+        {inParts ? (
         <FoldRow
           label={rf.payInParts}
           fact={inParts ? terms.parts.map((part) => `${part.pct}%`).join(' / ') : t.offerFlow.onePayment}
@@ -682,6 +705,7 @@ export function DirectDealForm() {
             disabled={submitting}
           />
         </FoldRow>
+        ) : null}
         <FoldRow
           label={dd.terms.acceptanceWindowLabel}
           fact={formatWindow(acceptanceHours, t.postJob.unitPickerLabels)}
@@ -692,66 +716,6 @@ export function DirectDealForm() {
             <p className="text-[14px] text-[var(--ink-secondary)]">{dd.terms.acceptanceWindowHint}</p>
             <AcceptWithin hours={acceptanceHours} onChange={setAcceptanceHours} disabled={submitting} />
           </div>
-        </FoldRow>
-        <FoldRow
-          label={c.security}
-          fact={requireStake ? `${requireStakePct}%` : t.offerFlow.notSet}
-          open={depositOpen}
-          onToggle={setDepositOpen}
-        >
-          <label
-            className={cn(
-              'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
-              requireStake
-                ? 'bg-[var(--raised)] border-[var(--ink)]'
-                : 'bg-[var(--surface)] border-[var(--line)] hover:border-[var(--line-strong)]',
-            )}
-            style={{
-              border: '1px solid',
-              borderRadius: 12,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={requireStake}
-              onChange={(e) => setRequireStake(e.target.checked)}
-              disabled={submitting}
-              className="mt-0.5 w-4 h-4 accent-[var(--ink)] shrink-0 cursor-pointer"
-            />
-            <div className="min-w-0">
-              <span className="block text-[14px] font-semibold text-[var(--lp-dark)]">{c.security}</span>
-              <span className="mt-1 block text-[14px] leading-snug text-[var(--lp-text-sub)]">{dd.trustedMatch.body}</span>
-              {requireStake && (
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <input
-                    type="range"
-                    min={50}
-                    max={100}
-                    step={5}
-                    value={requireStakePct}
-                    onChange={(e) => setRequireStakePct(Number(e.target.value))}
-                    disabled={submitting}
-                    className="flex-1 min-w-[180px] accent-[var(--ink)]"
-                    aria-label={dd.trustedMatch.sliderAria}
-                  />
-                  <div className="flex items-baseline gap-1.5 shrink-0">
-                    <span className="text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">
-                      {requireStakePct}
-                    </span>
-                    <span className="text-[14px] text-[var(--lp-text-sub)]">{dd.trustedMatch.pctCaption}</span>
-                  </div>
-                  {typeof amount === 'number' && amount > 0 && (
-                    <p className="basis-full text-[14px] font-medium text-[var(--lp-dark)]">
-                      {dd.trustedMatch.stakeNoteTemplate.replace(
-                        '{amount}',
-                        ((amount * requireStakePct) / 100).toFixed(2),
-                      )}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </label>
         </FoldRow>
       </div>
 
@@ -928,7 +892,7 @@ export function DirectDealForm() {
         },
         { label: dd.terms.amountLabel, value: mt.text(amount) },
         { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : durationText({ days: submitDays, hours: submitHours }, { day: TERMS_COPY[locale].day, days: TERMS_COPY[locale].days, hr: dd.preview.unitHr, min: dd.preview.unitMin }) },
-        { label: c.payment, value: dealTerms.parts.map((part) => `${part.pct}%`).join(' / ') },
+        { label: c.payment, value: dealTerms.parts.length > 1 ? dealTerms.parts.map((part) => rf.partLine.replace('{pct}', String(part.pct)).replace('{what}', part.what)).join('\n') : '100%' },
         { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.responseWindow, value: formatWindow(acceptanceHours, t.postJob.unitPickerLabels) },
         {
@@ -943,6 +907,7 @@ export function DirectDealForm() {
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companyName, companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
       ]}>
+        {drafted ? <p data-drafted className="mb-2 text-[var(--ink-secondary)]">{rf.drafted}</p> : null}
         <p>{c.directNext}</p>
         <p className="mt-2 text-[var(--lp-text-sub)]">{c.currencyNote}</p>
       </CreationReview> : null}
@@ -953,7 +918,7 @@ export function DirectDealForm() {
           type="submit"
           size="lg"
           disabled={!canSubmit}
-          loading={submitting}
+          loading={submitting || preparing}
           loadingLabel={dd.submit.opening}
           className="w-full sm:w-auto"
         >

@@ -52,11 +52,11 @@ export function Nudge({ id, lines }: { id: string; lines: string[] }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reduce ? dur.micro : dur.base, ease: ease.out }}
-          className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-[420px] items-start gap-3 rounded-[16px] border border-[var(--line)] bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-md lg:bottom-8"
+          className="guide-voice fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-[420px] items-start gap-3 rounded-[16px] border border-[var(--line)] bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-md lg:bottom-8"
         >
           <div className="min-w-0 flex-1 space-y-1">
             {lines.map((line) => (
-              <p key={line} className="text-[14px] font-medium leading-snug text-[var(--ink)]">{line}</p>
+              <p key={line} className="text-[15px] font-semibold leading-snug text-[var(--ink)]">{line}</p>
             ))}
           </div>
           <button

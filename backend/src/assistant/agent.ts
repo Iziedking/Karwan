@@ -32,6 +32,7 @@ import { CARRIERS } from '../deals/carriers.js';
 import { extractUrls } from '../security/extractUrls.js';
 import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { dealPendingLines, proposalPendingLines } from './pendingLines.js';
+import { readNextMoves } from '../guide/readNextMoves.js';
 import { arcChain, publicClient } from '../chain/client.js';
 import { config } from '../config.js';
 import { getUserByAddress } from '../db/users.js';
@@ -942,7 +943,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             );
           }
 
+          // The same first move the web nudge shows, so every channel says one thing.
+          const [nextMove] = await readNextMoves(address, now).catch(() => []);
           return {
+            ...(nextMove ? { nextMove } : {}),
             actionNeeded: actionNeeded.slice(0, 20),
             waitingOnOthers: waitingOnOthers.slice(0, 20),
             inFlight: inFlight.slice(0, 20),
@@ -950,7 +954,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             note:
               actionNeeded.length + waitingOnOthers.length + inFlight.length === 0
                 ? 'No attention items found in the checked deal, proposal, bridge, financing and yield records. This does not cover business setup, support tickets or every platform feature.'
-                : 'Lead with actionNeeded, mention the rest only if relevant. Each item names the screen to act on.',
+                : 'Lead with nextMove when present (it is what the website nudge shows: kind, href, amount), then actionNeeded; mention the rest only if relevant. Each item names the screen to act on.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant whats_pending failed');
@@ -2411,7 +2415,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
     }),
 
     cancel_payment_link: tool({
-      description: 'Cancel one of this user’s OPEN payment links so its page stops asking for payment; money already on its way to the link's own addresses still reaches the user. The owner can also do this with End request on the link's page. Only when the user explicitly asks to cancel a specific link; read list_my_payment_links first to get its id. Cannot be undone; a new link can be made.',
+      description: 'Cancel one of this user’s OPEN payment links so its page stops asking for payment; money already on its way to the link’s own addresses still reaches the user. The owner can also do this with End request on the link’s page. Only when the user explicitly asks to cancel a specific link; read list_my_payment_links first to get its id. Cannot be undone; a new link can be made.',
       inputSchema: z.object({ id: z.string().uuid() }),
       execute: async ({ id }) => {
         try {

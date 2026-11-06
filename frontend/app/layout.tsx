@@ -1,6 +1,6 @@
 ﻿import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import { Inter, Noto_Sans_Arabic, Noto_Sans_Devanagari } from 'next/font/google';
+import { Baloo_2, Baloo_Bhaijaan_2, Inter, Noto_Sans_Arabic, Noto_Sans_Devanagari } from 'next/font/google';
 import { DEFAULT_LOCALE } from '@/shared/i18n/locales';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
@@ -72,6 +72,24 @@ const notoDevanagari = Noto_Sans_Devanagari({
   preload: false,
 });
 
+// The guide's voice (view 57): a rounded face used only for nudges, so a line
+// from the guide never reads like product text. Baloo 2 carries Latin and
+// Hindi; its Arabic sibling carries Arabic. Not preloaded: a nudge can wait.
+const guideFont = Baloo_2({
+  subsets: ['latin', 'latin-ext', 'devanagari'],
+  weight: ['600', '700'],
+  variable: '--font-guide',
+  display: 'swap',
+  preload: false,
+});
+const guideFontArabic = Baloo_Bhaijaan_2({
+  subsets: ['arabic'],
+  weight: ['600', '700'],
+  variable: '--font-guide-arabic',
+  display: 'swap',
+  preload: false,
+});
+
 // Each deployment names its own host (testnet.karwan.site, karwan.site) so
 // canonical and share links point back to the network the visitor is on.
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
@@ -137,7 +155,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang={DEFAULT_LOCALE}
       dir="ltr"
       data-theme="dark"
-      className={`${generalSans.variable} ${inter.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
+      className={`${generalSans.variable} ${inter.variable} ${notoArabic.variable} ${notoDevanagari.variable} ${guideFont.variable} ${guideFontArabic.variable}`}
       suppressHydrationWarning
     >
       <head>

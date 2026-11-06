@@ -206,6 +206,8 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   const steps = market.steps.join(' ');
   assert.match(steps, /on one screen, What do you need\?/);
   assert.match(steps, /Pay in parts/);
+  // View 56: the words become the parts; no milestone setup on the form.
+  assert.match(steps, /Prepare my request reads the words into the parts/);
   assert.match(steps, /Finding sellers/);
   assert.doesNotMatch(steps, /in three steps/);
   // View 48 batch 7: the record's three facts and one ask, and the Theme screen from Profile.

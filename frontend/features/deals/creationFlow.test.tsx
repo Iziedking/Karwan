@@ -19,10 +19,14 @@ test('both deal composers have one structured path and no parsing or automatic p
 test('review must precede each creation call, while required protections stay in the payload', () => {
   for (const path of ['./components/DirectDealForm.tsx', '../buyer/components/PostJobForm.tsx']) {
     const source = read(path);
-    const reviewGate = source.indexOf('if (!reviewing) { setReviewing(true); return; }');
+    // View 56: the gate drafts the parts first, then always stops at the review.
+    const reviewGate = source.indexOf('if (!reviewing) {');
+    const gate = source.slice(reviewGate, source.indexOf('inFlight.current = true'));
     assert.ok(reviewGate > source.indexOf('async function submit'));
     assert.ok(reviewGate < source.indexOf('inFlight.current = true'));
-    assert.ok(reviewGate < source.indexOf('await api.'));
+    assert.match(gate, /setReviewing\(true\);\s*return;/);
+    assert.doesNotMatch(gate, /api\.(postJob|createDirectDeal)/);
+    assert.ok(reviewGate < source.search(/await api\.(postJob|createDirectDeal)/));
     assert.match(source, /hidden=\{reviewing\} disabled=\{submitting \|\| reviewing\}/);
     assert.match(source, /<CreationReview/);
     assert.match(source, /inFlight.current = false/);

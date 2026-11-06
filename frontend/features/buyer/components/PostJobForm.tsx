@@ -283,6 +283,8 @@ export function PostJobForm() {
   >([]);
   const [hashingFile, setHashingFile] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [drafted, setDrafted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const startedAt = useRef<number | null>(null);
@@ -320,7 +322,27 @@ export function PostJobForm() {
       setIntentWarned(true);
       return;
     }
-    if (!reviewing) { setReviewing(true); return; }
+    if (!reviewing) {
+      // View 56: the words become the parts the contract protects. A draft that
+      // fails or finds one part leaves the request paid at once, as before.
+      if (!inParts) {
+        setPreparing(true);
+        try {
+          const { draft } = await api.dealDraft(brief);
+          if (draft.parts.length > 1) {
+            setTerms((current) => ({ ...current, parts: draft.parts }));
+            setInParts(true);
+            setDrafted(true);
+          }
+        } catch {
+          /* one payment, as before */
+        } finally {
+          setPreparing(false);
+        }
+      }
+      setReviewing(true);
+      return;
+    }
     inFlight.current = true;
     setSubmitting(true);
     setError(null);
@@ -410,7 +432,7 @@ export function PostJobForm() {
       : elapsed < 30
         ? t.submit.waitingArcTemplate.replace('{seconds}', String(elapsed))
         : t.submit.waitingCircleTemplate.replace('{seconds}', String(elapsed))
-    : reviewing ? c.confirmRequest : rf.post;
+    : reviewing ? c.confirmRequest : rf.prepare;
 
   if (!isConnected) {
     return (
@@ -679,6 +701,7 @@ export function PostJobForm() {
         </div>
       </div>
 
+      {inParts ? (
       <details open={inParts} onToggle={(event) => setInParts(event.currentTarget.open)} data-pay-in-parts className="border-t border-[var(--line)]">
         <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 py-3 text-[14px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] [&::-webkit-details-marker]:hidden">
           {rf.payInParts}<Icon name="chevron-right" size={16} className={cn('ms-auto transition-transform', inParts ? '-rotate-90' : 'rotate-90')} />
@@ -695,6 +718,8 @@ export function PostJobForm() {
           </div>
         ) : null}
       </details>
+      ) : null}
+      {optionsOpen ? (
       <details open={optionsOpen} onToggle={(event) => setOptionsOpen(event.currentTarget.open)} className="border-y border-[var(--line)]">
         <summary data-guide="buyer-tolerance" className="flex min-h-11 cursor-pointer list-none items-center gap-3 py-3 text-[14px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] [&::-webkit-details-marker]:hidden">
           {TRADE_ENTRY_COPY[locale].options}<Icon name="chevron-right" size={16} className={cn('ms-auto transition-transform', optionsOpen ? '-rotate-90' : 'rotate-90')} />
@@ -728,6 +753,7 @@ export function PostJobForm() {
           />
         </div>
       </details>
+      ) : null}
 
       {/* INTENT WARNING. surfaces if the brief reads as a seller offer
           ("I sell..."). User can click submit again to post anyway. */}
@@ -776,12 +802,13 @@ export function PostJobForm() {
           { day: TERMS_COPY[locale].day, days: TERMS_COPY[locale].days, hr: dt.directDeal.preview.unitHr, min: dt.directDeal.preview.unitMin },
         ) },
         { label: c.limit, value: money.text(authorisedPrice(Number(budget), tolerance)) },
-        { label: c.payment, value: dealTerms.parts.map((part) => `${part.pct}%`).join(' / ') },
+        { label: c.payment, value: dealTerms.parts.length > 1 ? dealTerms.parts.map((part) => rf.partLine.replace('{pct}', String(part.pct)).replace('{what}', part.what)).join('\n') : '100%' },
         { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.safeguards, value: trustedMatch ? c.securityHelp : c.none },
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
       ]}>
+        {drafted ? <p data-drafted className="mb-2 text-[var(--ink-secondary)]">{rf.drafted}</p> : null}
         <p data-nothing-paid className="font-semibold">{rf.nothingPaid}</p>
         <p className="mt-2">{rf.agentLine}</p>
         {funding ? (
@@ -819,14 +846,14 @@ export function PostJobForm() {
         <Link href="/buyer?mode=direct#new-deal" className="inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--ink)] underline underline-offset-4">{shopCopy.whoCanSee.linkCta}</Link>
       ) : null}
 
-      {/* SUBMIT: Post request, checked once more, then Finding sellers while it posts (view 48). */}
+      {/* SUBMIT: Prepare my request drafts the parts (view 56), the review asks once more, then Finding sellers while it posts. */}
       <div className="space-y-3 border-t border-[var(--line)] pt-5" hidden={who === 'link'}>
         <Button
           type="submit"
           data-guide="buyer-submit"
           size="lg"
-          disabled={disabled && !submitting}
-          loading={submitting}
+          disabled={disabled && !submitting && !preparing}
+          loading={submitting || preparing}
           loadingLabel={buttonLabel}
           className="w-full sm:w-auto"
         >

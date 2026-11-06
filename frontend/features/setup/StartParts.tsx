@@ -139,7 +139,7 @@ function GuidePop({ from, children }: { from: 'karwan' | 'agent'; children: Reac
             onPointerLeave={() => setHeld(false)}
             onFocus={() => setHeld(true)}
             onBlur={() => setHeld(false)}
-            className="pointer-events-auto flex w-full items-start gap-3 rounded-[16px] border border-[var(--line,var(--lp-border-light))] bg-[var(--surface,var(--lp-card))] px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.18)]"
+            className="guide-voice pointer-events-auto flex w-full items-start gap-3 rounded-[16px] border border-[var(--line,var(--lp-border-light))] bg-[var(--surface,var(--lp-card))] px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.18)]"
           >
             <Mark pulse={!reduce} />
             <div className="min-w-0 flex-1">

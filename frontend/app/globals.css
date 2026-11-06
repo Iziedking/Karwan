@@ -2668,3 +2668,12 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
 .lenis.lenis-stopped { overflow: clip; }
+
+/* The guide's voice (view 57): rounded, used only for nudges. */
+.guide-voice {
+  font-family: var(--font-guide), var(--font-inter), system-ui, sans-serif;
+}
+:lang(ar) .guide-voice,
+[dir='rtl'] .guide-voice {
+  font-family: var(--font-guide-arabic), var(--font-arabic), system-ui, sans-serif;
+}
