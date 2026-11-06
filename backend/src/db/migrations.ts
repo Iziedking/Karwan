@@ -1502,6 +1502,25 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX agent_progress_owner_at ON agent_progress_v1 (owner, at);
     `,
   },
+  {
+    // One runner for each background job, one action at a time on each deal
+    // (view 61). A row is held until it expires; a dead process loses it.
+    version: 59,
+    name: 'watcher_leases',
+    sql: `
+      CREATE TABLE watcher_leases_v1 (
+        name TEXT PRIMARY KEY,
+        holder TEXT NOT NULL,
+        expires_at BIGINT NOT NULL,
+        taken_at BIGINT NOT NULL
+      );
+      CREATE TABLE watcher_claims_v1 (
+        key TEXT PRIMARY KEY,
+        holder TEXT NOT NULL,
+        expires_at BIGINT NOT NULL
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

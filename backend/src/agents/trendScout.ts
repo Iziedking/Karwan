@@ -7,6 +7,7 @@ import { recordHeartbeat } from '../ops/heartbeats.js';
 import { categoryOf, inferCategory, type CategoryId } from '../listings/categories.js';
 import type { CategoryDemand } from '../intelligence/marketStore.js';
 import { currentMarket } from '../intelligence/marketStoreLive.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// Trending-demand nudges, from the one market store (view 48, step 4). A daily
 /// pass reads the market categories rising this week and tells each seller who
@@ -116,12 +117,13 @@ async function runOnce(): Promise<void> {
 export function startTrendScout(): () => void {
   let interval: NodeJS.Timeout | null = null;
   const first = setTimeout(() => {
-    void hydrateDedupe().then(() =>
-      runOnce().catch((err) => logger.error({ err: (err as Error).message }, 'trend scout first run failed')),
+    const run = leased('trendScout', TICK_MS, () =>
+      runOnce().catch((err) => logger.error({ err: (err as Error).message }, 'trend scout run failed')),
     );
+    void hydrateDedupe().then(() => run());
     interval = setInterval(() => {
       recordHeartbeat('trendScout');
-      runOnce().catch((err) => logger.error({ err: (err as Error).message }, 'trend scout run failed'));
+      void run();
     }, TICK_MS);
   }, FIRST_RUN_DELAY_MS);
   logger.info({ tickMs: TICK_MS, firstRunDelayMs: FIRST_RUN_DELAY_MS }, 'trend scout started');

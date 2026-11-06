@@ -3,6 +3,7 @@ import { logger } from '../logger.js';
 import { closeBuyerQuestion } from './agentQuestion.js';
 import { decideByDefault, dueDefaults, dueReminders, expireQuestionsForJob, markReminded, type AgentQuestion } from '../db/agentQuestions.js';
 import { getBrief } from '../db/briefs.js';
+import { leased } from '../ops/leasedLoop.js';
 
 const SWEEP_INTERVAL_MS = 60_000;
 
@@ -111,7 +112,8 @@ export function startQuestionSweep(): () => void {
     if (!CLOSES_REQUEST.has(e.type)) return;
     void expireQuestionsForJob(e.jobId).catch((err: Error) => logger.warn({ jobId: e.jobId, err: err.message }, 'closing agent questions failed'));
   });
-  const timer = setInterval(() => void sweep(), SWEEP_INTERVAL_MS);
+  const run = leased('questionSweep', SWEEP_INTERVAL_MS, sweep);
+  const timer = setInterval(() => void run(), SWEEP_INTERVAL_MS);
   timer.unref?.();
   return () => {
     clearInterval(timer);

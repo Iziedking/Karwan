@@ -748,3 +748,11 @@ Agree: yes.
 - Read-only test, 6 Nov 2026, Circle sandbox attestation API, burns taken read-only from the testnet bridges table: Base Sepolia `0xaaac…d469` on domain 6 → `{status: complete, forwardState: COMPLETE, forwardTxHash: 0x187b…5037}`, destination domain 26 (Arc); Solana devnet `4Qj7…AhX7` on domain 5 → `{status: complete, forwardState: COMPLETE, forwardTxHash: 0x3d91…c496}`.
 - Agree: yes. The attestation API alone is enough to finish a forwarded bridge's record from its burn hash, the same signal App Kit itself waits on.
 - Finding, 6 Nov 2026, same provider source (index.mjs around line 12481): on `forwardState: FAILED` the forwarder wait throws `RELAYER_FORWARD_FAILED` with the advice to check the recipient's balance and, if the mint did not happen, submit it by hand from the attestation in the error cause. `kit.retry` with `useForwarder: true` re-enters that same wait, so it cannot recover a FAILED forward. Built accordingly: a FAILED forward is held for support, not retried.
+
+## 2026-11-06 · One runner per background job (foundation for T2 and T5, view 61, audit M-06)
+
+- Scope: `circle/appKitFinish.ts` and `money/familyFinancingRunner.ts` only change how often their pass runs and in which process (it now runs under a Postgres lease). No Arc or Circle call, argument or response handling changed.
+- Docs: Circle docs, 6 Nov 2026, `cctp/howtos/resolve-stuck-attestation` (`GET /v2/messages` may be read any number of times, so a pass repeated by a second process is harmless). Nothing in the Arc docs bears on how often a job reads.
+- Installed SDK, 6 Nov 2026: `@circle-fin/app-kit` 1.15.2, `@circle-fin/provider-cctp-v2` 1.14.0, `@circle-fin/developer-controlled-wallets` 10.8.0, the same as view 60.
+- Read-only test: the two attestation reads recorded under view 60 today (Base Sepolia and Solana devnet, both COMPLETE). The lease adds no new call to test.
+- Agree: yes.

@@ -34,6 +34,7 @@ import { bus } from '../events.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { claimed, leased } from '../ops/leasedLoop.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 import {
   financingOperationKey,
@@ -268,6 +269,12 @@ async function markDefaulted(offer: FactoringOffer, reason: string): Promise<voi
 /// same repayment.
 async function processOffer(offer: FactoringOffer, deal: DirectDeal): Promise<void> {
   if (processing.has(offer.id)) return;
+  // One process at a time on this offer (view 61).
+  await claimed(`factoring:${offer.id}`, () => processOfferClaimed(offer, deal));
+}
+
+async function processOfferClaimed(offer: FactoringOffer, deal: DirectDeal): Promise<void> {
+  if (processing.has(offer.id)) return;
 
   // Buyer refunded the escrow after the seller took the advance. The seller was
   // never paid by the escrow, so the repayment instrument has nothing to draw
@@ -374,14 +381,17 @@ export function startFactoringWatcher(): () => void {
     );
     return () => {};
   }
-  const id = setInterval(() => {
-    recordHeartbeat('factoringWatcher');
+  const run = leased('factoringWatcher', TICK_MS, () =>
     tick().catch((err) =>
       logger.error(
         { err: (err as Error).message },
         'factoring watcher: tick failed',
       ),
-    );
+    ),
+  );
+  const id = setInterval(() => {
+    recordHeartbeat('factoringWatcher');
+    void run();
   }, TICK_MS);
   logger.info({ tickMs: TICK_MS }, 'factoring watcher started');
   return () => clearInterval(id);

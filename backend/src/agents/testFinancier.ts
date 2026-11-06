@@ -6,6 +6,7 @@ import { getUserByAddress } from '../db/users.js';
 import { logger } from '../logger.js';
 import { testFinancierTerms, type FamilyFinancing } from '../money/familyFinancing.js';
 import { familyFinancing, familyFinancingPorts } from '../money/familyFinancingLive.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// The financier Karwan runs on testnet (view 18). It competes with the
 /// partners: it waits about two hours after a seller asks, so they offer first,
@@ -113,7 +114,8 @@ export function startTestFinancier(): () => void {
     }
   };
   logger.info({ address, waitMinutes: TEST_FINANCIER_WAIT_MS / 60_000 }, 'test financier: answering family requests');
-  void sweep();
-  const id = setInterval(() => void sweep(), SWEEP_MS);
+  const run = leased('testFinancier', SWEEP_MS, sweep);
+  void run();
+  const id = setInterval(() => void run(), SWEEP_MS);
   return () => clearInterval(id);
 }

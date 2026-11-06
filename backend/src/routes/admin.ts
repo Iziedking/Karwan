@@ -56,6 +56,7 @@ import { olderContractsReport } from '../chain/legacyLive.js';
 import { payOutsideFlags } from '../security/payOutsideFlags.js';
 import { pingAssistantProviders } from './assistant.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
+import { jobLeases } from '../ops/leasedLoop.js';
 import { db, pgEnabled } from '../db/client.js';
 import { privateKeyToAccount } from 'viem/accounts';
 import { invalidBodyMessage } from './invalidBody.js';
@@ -247,6 +248,8 @@ adminRoutes.get('/health', async (c) => {
   // that crashed at boot or a cron that silently stopped firing.
   const watchers = watcherHealth();
   const crons = cronHealth();
+  // Which process runs each background job (view 61).
+  const leases = await jobLeases();
 
   const contracts = await contractWiring();
 
@@ -259,6 +262,7 @@ adminRoutes.get('/health', async (c) => {
     features,
     watchers,
     crons,
+    leases,
     contracts,
     // Posted-to-first-decision time per request (view 41, measure 1).
     matching: matchLatencySummary(),

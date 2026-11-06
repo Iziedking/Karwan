@@ -1,6 +1,7 @@
 import { listAllListings, patchListing, type Listing } from '../../db/listings.js';
 import { logger } from '../../logger.js';
 import { isSeedKey } from './runner.js';
+import { leased } from '../../ops/leasedLoop.js';
 
 /// How long a renewed example stays open, the same window the seed gives it.
 export const EXAMPLE_TTL_DAYS = 30;
@@ -32,8 +33,9 @@ export function startExampleKeeper(): () => void {
       logger.warn({ err: (err as Error).message }, 'market examples not reopened');
     }
   };
-  sweep();
-  const timer = setInterval(sweep, SWEEP_MS);
+  const run = leased('exampleKeeper', SWEEP_MS, sweep);
+  void run();
+  const timer = setInterval(() => void run(), SWEEP_MS);
   timer.unref?.();
   return () => clearInterval(timer);
 }

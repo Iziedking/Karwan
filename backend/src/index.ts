@@ -1582,7 +1582,11 @@ for (const sig of ['SIGINT', 'SIGTERM'] as const) {
       /* best-effort */
     }
     stopFns.forEach((fn) => fn());
-    process.exit(0);
+    // Hand the job leases back so the next container runs them at its first tick.
+    void Promise.race([
+      import('./ops/leasedLoop.js').then(({ dropHeldLeases }) => dropHeldLeases()),
+      new Promise((resolve) => setTimeout(resolve, 2_000)),
+    ]).finally(() => process.exit(0));
   });
 }
 

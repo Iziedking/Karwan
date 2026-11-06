@@ -21,6 +21,7 @@ import {
   supportHandoffEnabled,
 } from '../telegram/bot.js';
 import { sendSupportTranscriptEmail, sendSupportAlertEmail } from '../emails/supportTranscript.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// Live-support handoff. The assistant widget calls /start to escalate from the
 /// AI to a human; the operator answers over Telegram (see telegram/bot.ts) and
@@ -216,13 +217,14 @@ supportRoutes.post('/inbound/:secret', async (c) => {
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 
 export function startSupportSweeper(): () => void {
-  const timer = setInterval(() => {
+  const run = leased('supportSweeper', SWEEP_INTERVAL_MS, () => {
     try {
       const autoClosed = sweep();
       for (const convo of autoClosed) void sendSupportTranscriptEmail(convo);
     } catch (err) {
       logger.warn({ err: (err as Error).message }, 'support sweep failed');
     }
-  }, SWEEP_INTERVAL_MS);
+  });
+  const timer = setInterval(() => void run(), SWEEP_INTERVAL_MS);
   return () => clearInterval(timer);
 }

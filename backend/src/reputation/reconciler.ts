@@ -25,6 +25,7 @@ import {
 } from '../chain/settlement.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
+import { leased } from '../ops/leasedLoop.js';
 
 export interface ReconcileResult {
   candidates: number;
@@ -200,8 +201,7 @@ const INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 export function startReputationReconciler(): () => void {
   let inFlight = false;
 
-  const id = setInterval(async () => {
-    recordHeartbeat('reputationReconciler');
+  const run = leased('reputationReconciler', INTERVAL_MS, async () => {
     if (inFlight) {
       logger.warn(
         'reputation reconciler: previous tick still running, skipping this tick',
@@ -234,6 +234,10 @@ export function startReputationReconciler(): () => void {
     } finally {
       inFlight = false;
     }
+  });
+  const id = setInterval(() => {
+    recordHeartbeat('reputationReconciler');
+    void run();
   }, INTERVAL_MS);
 
   logger.info({ intervalMs: INTERVAL_MS }, 'reputation reconciler started');

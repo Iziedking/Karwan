@@ -6,6 +6,7 @@ import { transferFromCircleWallet } from '../chain/usdc3009.js';
 import { getDeal, listAllDeals, recordEarningsMove } from '../db/deals.js';
 import { bus } from '../events.js';
 import { createSuiteEarnings, type TransferProof } from './suiteEarnings.js';
+import { leased } from '../ops/leasedLoop.js';
 
 const RETRY_TICK_MS = 5 * 60_000;
 
@@ -51,9 +52,10 @@ export function startSuiteEarnings(): () => void {
     if (event.type !== 'escrow.milestone.released' && event.type !== 'escrow.seller.paid') return;
     suiteEarnings.onPayout(event).catch((err) => logger.error({ jobId: event.jobId, err: (err as Error).message }, 'earnings move failed'));
   });
-  const id = setInterval(() => {
-    suiteEarnings.retryPending().catch((err) => logger.error({ err: (err as Error).message }, 'earnings retry failed'));
-  }, RETRY_TICK_MS);
+  const run = leased('suiteEarnings', RETRY_TICK_MS, () =>
+    suiteEarnings.retryPending().catch((err) => logger.error({ err: (err as Error).message }, 'earnings retry failed')),
+  );
+  const id = setInterval(() => void run(), RETRY_TICK_MS);
   return () => {
     unsubscribe();
     clearInterval(id);

@@ -22,6 +22,7 @@ import { issueDealSettled, issuanceEnabled } from './issuer.js';
 import { partyMayPublish } from './policy.js';
 import { config } from '../config.js';
 import { getProfile, type UserSettings } from '../db/profiles.js';
+import { leased } from '../ops/leasedLoop.js';
 
 export interface SweepResult {
   /// Deals that reached settlement and are eligible to be attested.
@@ -235,8 +236,7 @@ const INTERVAL_MS = 60 * 60 * 1000;
 export function startAttestationSweep(): () => void {
   let inFlight = false;
 
-  const id = setInterval(async () => {
-    recordHeartbeat('attestationSweep');
+  const run = leased('attestationSweep', INTERVAL_MS, async () => {
     if (inFlight) {
       logger.warn('attestation sweep: previous tick still running, skipping this tick');
       return;
@@ -261,6 +261,10 @@ export function startAttestationSweep(): () => void {
     } finally {
       inFlight = false;
     }
+  });
+  const id = setInterval(() => {
+    recordHeartbeat('attestationSweep');
+    void run();
   }, INTERVAL_MS);
 
   logger.info({ intervalMs: INTERVAL_MS }, 'attestation sweep started');

@@ -8,6 +8,8 @@ import { DealRulesSwitch } from '@/features/admin/DealRulesSwitch';
 /// an account whose agents activated unfunded. Read-only except the seed.
 
 type Health = Awaited<ReturnType<typeof api.adminHealth>>;
+/// Which process runs each background job (view 61), from the same health read.
+type JobLease = { name: string; holder: string; thisProcess: boolean; heldForMs: number; expiresInMs: number };
 type SeedStatus = Awaited<ReturnType<typeof api.adminAgentSeedStatus>>;
 type Older = Awaited<ReturnType<typeof api.adminOlderContracts>>['contracts'];
 type SeedRun = Awaited<ReturnType<typeof api.adminAgentSeedRun>>;
@@ -46,6 +48,13 @@ function StatusDot({ color }: { color: string }) {
   return (
     <span aria-hidden className="inline-block w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
   );
+}
+
+function fmtSpan(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 90) return `${s}s`;
+  const m = Math.round(s / 60);
+  return m < 90 ? `${m}m` : `${Math.round(m / 60)}h`;
 }
 
 function fmtAge(ms: number | null): string {
@@ -243,6 +252,17 @@ function HealthOverview() {
                   {w.label} <span className="text-white/45">{watcherDetail(w)}</span>
                 </span>
               </div>
+            ))}
+          </HealthCard>
+
+          <HealthCard title="Job leases (one runner per job)">
+            {((data as Health & { leases?: JobLease[] }).leases ?? []).map((l) => (
+              <HealthItem key={l.name} ok={l.expiresInMs > 0}>
+                {l.name}{' '}
+                <span className="text-white/45">
+                  {l.thisProcess ? 'this process' : l.holder} · held {fmtSpan(l.heldForMs)} · {l.expiresInMs > 0 ? `expires in ${fmtSpan(l.expiresInMs)}` : 'expired, free to take'}
+                </span>
+              </HealthItem>
             ))}
           </HealthCard>
 

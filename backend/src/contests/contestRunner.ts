@@ -1,5 +1,6 @@
 import { logger } from '../logger.js';
 import type { Contests } from './contests.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// Returns every contest prize nobody picked by its award date (view 40). The
 /// core proves each return from its receipt; a failed one stays open for the
@@ -21,7 +22,8 @@ export function startContestRunner(core: Contests | null): () => void {
       running = false;
     }
   };
-  const id = setInterval(() => void pass(), EVERY_MS);
+  const run = leased('contestRunner', EVERY_MS, pass);
+  const id = setInterval(() => void run(), EVERY_MS);
   id.unref?.();
   return () => clearInterval(id);
 }

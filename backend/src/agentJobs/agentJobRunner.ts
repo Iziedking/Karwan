@@ -1,5 +1,6 @@
 import { logger } from '../logger.js';
 import type { AgentJobs } from './agentJobs.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// Pays outside-agent jobs whose review ended in silence, returns the money for
 /// rejections nobody disputed, and flags the reminders (view 15). A step that
@@ -21,7 +22,8 @@ export function startAgentJobRunner(core: AgentJobs | null): () => void {
       running = false;
     }
   };
-  const id = setInterval(() => void pass(), EVERY_MS);
+  const run = leased('agentJobRunner', EVERY_MS, pass);
+  const id = setInterval(() => void run(), EVERY_MS);
   id.unref?.();
   return () => clearInterval(id);
 }

@@ -10,6 +10,7 @@ import { logger } from '../logger.js';
 import { createRatingAsker, type AskState } from './asker.js';
 import { rateableFrom } from './dealState.js';
 import { createRatings, type RatedDeal } from './service.js';
+import { leased } from '../ops/leasedLoop.js';
 
 const SETTLED_EVENTS = new Set<KarwanEventType>(['escrow.settled', 'deal.auto_released', 'escrow.resolved', 'escrow.split']);
 const SWEEP_MS = 60 * 60 * 1000;
@@ -72,9 +73,10 @@ export function startRatingAsker(): () => void {
     // catches anything this misses.
     setTimeout(() => void liveRatingAsker.check(id).catch(() => {}), 15_000).unref?.();
   });
-  const timer = setInterval(() => void run(), SWEEP_MS);
+  const leasedRun = leased('ratingAsker', SWEEP_MS, run);
+  const timer = setInterval(() => void leasedRun(), SWEEP_MS);
   timer.unref?.();
-  void run();
+  void leasedRun();
   return () => {
     clearInterval(timer);
     unsubscribe();

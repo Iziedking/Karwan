@@ -34,6 +34,7 @@ import { suiteWatcherDeps } from './suiteDisputeWatcherLive.js';
 import { runSuiteReviewEnd } from '../deals/suiteReviewEnd.js';
 import { suiteReviewEndDeps } from '../deals/suiteReviewEndLive.js';
 import { logger } from '../logger.js';
+import { claimed, leased } from '../ops/leasedLoop.js';
 import {
   releaseBlockReasonForDelivery,
   type ReleaseBlockReason,
@@ -832,328 +833,335 @@ async function tick() {
   const pairHistory = buildPairHistory(deals);
   for (const deal of deals) {
     if (deal.cancelledAt || deal.settledAt) continue;
-    // A disputed deal is otherwise invisible to every auto-release path below.
-    // Left alone, a dispute whose counterparty goes silent never resolves (the
-    // propose/accept exit needs their click; the arbiter is a manual admin
-    // action). Hand it to the dispute-timeout resolver so money is never stuck,
-    // then skip the release ladder, which does not apply to a disputed escrow.
-    if (deal.disputed) {
-      if (dealEscrowOps.isV3(deal)) {
-        await runV3DisputeSafely(deal, now);
-      } else if (!(await maybeApplyDeadlineRule(deal, now))) {
-        await maybeRemindStatements(deal, now);
-        await maybeRunDisputeJudge(deal, now);
-        await maybeAutoResolveDispute(deal, now);
-      }
-      continue;
+    // A claim per deal across every process (view 61): a deal another process
+    // is acting on, or one left mid-action by a killed process, waits for it.
+    await claimed(`deal:${deal.jobId.toLowerCase()}`, () => watchDeal(deal, now, pairHistory));
+  }
+}
+
+async function watchDeal(deal: DirectDeal, now: number, pairHistory: ReturnType<typeof buildPairHistory>): Promise<void> {
+  // A disputed deal is otherwise invisible to every auto-release path below.
+  // Left alone, a dispute whose counterparty goes silent never resolves (the
+  // propose/accept exit needs their click; the arbiter is a manual admin
+  // action). Hand it to the dispute-timeout resolver so money is never stuck,
+  // then skip the release ladder, which does not apply to a disputed escrow.
+  if (deal.disputed) {
+    if (dealEscrowOps.isV3(deal)) {
+      await runV3DisputeSafely(deal, now);
+    } else if (!(await maybeApplyDeadlineRule(deal, now))) {
+      await maybeRemindStatements(deal, now);
+      await maybeRunDisputeJudge(deal, now);
+      await maybeAutoResolveDispute(deal, now);
     }
-    // Acceptance window expiry. Seller never agreed in time. Once the seller
-    // agrees, the commercial acceptance window has done its job and the buyer
-    // gets a separate opportunity to review the live fee before funding.
-    // with kind 'pre-accept' so reputation isn't touched on either side; the
-    // buyer is freed up to open a fresh deal elsewhere.
-    if (sellerAgreementExpired(deal, now)) {
-      await patchDeal(deal.jobId, {
-        cancelledAt: now,
-        cancelKind: 'pre-accept',
-        cancelReason: 'acceptance window expired with no seller agreement',
-      });
+    return;
+  }
+  // Acceptance window expiry. Seller never agreed in time. Once the seller
+  // agrees, the commercial acceptance window has done its job and the buyer
+  // gets a separate opportunity to review the live fee before funding.
+  // with kind 'pre-accept' so reputation isn't touched on either side; the
+  // buyer is freed up to open a fresh deal elsewhere.
+  if (sellerAgreementExpired(deal, now)) {
+    await patchDeal(deal.jobId, {
+      cancelledAt: now,
+      cancelKind: 'pre-accept',
+      cancelReason: 'acceptance window expired with no seller agreement',
+    });
+    bus.emitEvent({
+      type: 'deal.acceptance.expired',
+      jobId: deal.jobId,
+      actor: 'platform',
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix,
+      },
+    });
+    logger.info(
+      { jobId: deal.jobId, acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix },
+      'acceptance window expired with no seller agreement, marking deal cancelled (pre-accept)',
+    );
+    return;
+  }
+  // No escrow exists until the buyer funds after seller agreement, so there
+  // is nothing for the on-chain watcher to inspect before acceptedAt, except
+  // money the escrow family holds that no selling agent accepted.
+  if (!deal.acceptedAt) {
+    if (deal.escrowVersion === 'suite' && deal.escrowDealId && !processing.has(deal.jobId)) await maybeSettleUnaccepted(deal, now);
+    return;
+  }
+  if (processing.has(deal.jobId)) return;
+  if (await maybeApplyDeadlineRule(deal, now)) return;
+  const parties = { buyer: deal.buyer, seller: deal.seller };
+  // No buyer agent wallet means the agent physically cannot sign a release.
+  // Surface it rather than skipping in silence; the parties still have the
+  // manual release and the appeal path.
+  if (!deal.buyerAgentWalletId) {
+    await markBlocked(deal.jobId, 'no-agent-wallet', null, { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail }, parties);
+    return;
+  }
+
+  processing.add(deal.jobId);
+  try {
+    const account = await dealEscrowOps.read(deal);
+    // v2.D: the watcher acts on accepted-but-not-yet-released escrows.
+    // Pre-v2.D this was Funded; after the seller's acceptEscrow lands
+    // (which the deal-accept route invokes), the state moves to Accepted
+    // and stays there until milestones are released.
+    if (account.state === ESCROW_DISPUTED) {
+      await maybeResumePendingRefund(deal, account, now);
+      return;
+    }
+    if (account.state === ESCROW_FUNDED && !dealEscrowOps.isV3(deal)) {
+      await maybeReclaimAfterDeadline(deal, account, now);
+      return;
+    }
+    if (account.state !== ESCROW_ACCEPTED) return;
+    const buyerWalletId = deal.buyerAgentWalletId;
+
+    // v3: put a final delivery-check result on-chain for the delivery the
+    // escrow shows, so the review clock and the arbiter can use it.
+    if (account.version === 'v3') {
+      const v3Deps = v3WatcherDeps();
+      if (v3Deps) {
+        await runV3Attestation(v3Deps, deal).catch((err) =>
+          logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'v3 attestation failed (retried next tick)'),
+        );
+      }
+    } else if (account.version === 'suite') {
+      const suiteDeps = suiteWatcherDeps();
+      if (suiteDeps) {
+        await runSuiteCheck(suiteDeps, deal).catch((err) =>
+          logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'suite check report failed (retried next tick)'),
+        );
+      }
+    }
+
+    // A seller who marks delivery on the contract directly starts the
+    // buyer's review clock without us. Tell the buyer; never treat it as a
+    // delivery we checked, so the release ladder below stays untouched.
+    const outOfBand = onChainDeliveryAlert(deal, account);
+    if (outOfBand) {
+      await patchDeal(deal.jobId, { onChainDeliveryAlertedAt: outOfBand.deliveredAtMs });
       bus.emitEvent({
-        type: 'deal.acceptance.expired',
+        type: 'deal.delivered.onchain',
         jobId: deal.jobId,
         actor: 'platform',
         payload: {
           buyer: deal.buyer,
           seller: deal.seller,
-          acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix,
+          deliveredAt: outOfBand.deliveredAtMs,
+          claimableAt: outOfBand.claimableAtMs,
         },
       });
-      logger.info(
-        { jobId: deal.jobId, acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix },
-        'acceptance window expired with no seller agreement, marking deal cancelled (pre-accept)',
-      );
-      continue;
-    }
-    // No escrow exists until the buyer funds after seller agreement, so there
-    // is nothing for the on-chain watcher to inspect before acceptedAt, except
-    // money the escrow family holds that no selling agent accepted.
-    if (!deal.acceptedAt) {
-      if (deal.escrowVersion === 'suite' && deal.escrowDealId && !processing.has(deal.jobId)) await maybeSettleUnaccepted(deal, now);
-      continue;
-    }
-    if (processing.has(deal.jobId)) continue;
-    if (await maybeApplyDeadlineRule(deal, now)) continue;
-    const parties = { buyer: deal.buyer, seller: deal.seller };
-    // No buyer agent wallet means the agent physically cannot sign a release.
-    // Surface it rather than skipping in silence; the parties still have the
-    // manual release and the appeal path.
-    if (!deal.buyerAgentWalletId) {
-      await markBlocked(deal.jobId, 'no-agent-wallet', null, { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail }, parties);
-      continue;
-    }
-
-    processing.add(deal.jobId);
-    try {
-      const account = await dealEscrowOps.read(deal);
-      // v2.D: the watcher acts on accepted-but-not-yet-released escrows.
-      // Pre-v2.D this was Funded; after the seller's acceptEscrow lands
-      // (which the deal-accept route invokes), the state moves to Accepted
-      // and stays there until milestones are released.
-      if (account.state === ESCROW_DISPUTED) {
-        await maybeResumePendingRefund(deal, account, now);
-        continue;
-      }
-      if (account.state === ESCROW_FUNDED && !dealEscrowOps.isV3(deal)) {
-        await maybeReclaimAfterDeadline(deal, account, now);
-        continue;
-      }
-      if (account.state !== ESCROW_ACCEPTED) continue;
-      const buyerWalletId = deal.buyerAgentWalletId;
-
-      // v3: put a final delivery-check result on-chain for the delivery the
-      // escrow shows, so the review clock and the arbiter can use it.
-      if (account.version === 'v3') {
-        const v3Deps = v3WatcherDeps();
-        if (v3Deps) {
-          await runV3Attestation(v3Deps, deal).catch((err) =>
-            logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'v3 attestation failed (retried next tick)'),
-          );
-        }
-      } else if (account.version === 'suite') {
-        const suiteDeps = suiteWatcherDeps();
-        if (suiteDeps) {
-          await runSuiteCheck(suiteDeps, deal).catch((err) =>
-            logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'suite check report failed (retried next tick)'),
-          );
-        }
-      }
-
-      // A seller who marks delivery on the contract directly starts the
-      // buyer's review clock without us. Tell the buyer; never treat it as a
-      // delivery we checked, so the release ladder below stays untouched.
-      const outOfBand = onChainDeliveryAlert(deal, account);
-      if (outOfBand) {
-        await patchDeal(deal.jobId, { onChainDeliveryAlertedAt: outOfBand.deliveredAtMs });
-        bus.emitEvent({
-          type: 'deal.delivered.onchain',
-          jobId: deal.jobId,
-          actor: 'platform',
-          payload: {
-            buyer: deal.buyer,
-            seller: deal.seller,
-            deliveredAt: outOfBand.deliveredAtMs,
-            claimableAt: outOfBand.claimableAtMs,
-          },
-        });
-        logger.warn(
-          { jobId: deal.jobId, deliveredAt: outOfBand.deliveredAtMs, claimableAt: outOfBand.claimableAtMs },
-          'delivery marked on the escrow outside Karwan; buyer alerted',
-        );
-      }
-
-      // The escrow family runs its own review clock: the seller is paid when the
-      // buyer's review ends (owner, 25 Oct 2026), not by the ladder below.
-      if (account.version === 'suite') {
-        // A missed delivery deadline refunds the buyer here too, as on v3.
-        if (await maybeReclaimAfterDeadline(deal, account, now)) continue;
-        // A link held for a safety check is recorded as on the other escrows, so
-        // both sides see it and the seller is pointed to another link or a person.
-        // The family has no guardian hold, so this is what keeps the review end
-        // from paying for a link the buyer cannot open.
-        if (deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious') {
-          await markBlocked(deal.jobId, 'security-hold', 'security-hold', { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail }, parties);
-          continue;
-        }
-        if (deal.releaseBlockedReason === 'security-hold') await clearBlocked(deal.jobId, parties);
-        await runSuiteReviewEndSafely(deal, now);
-        continue;
-      }
-
-      // Two reasons the agent refuses to run the release clock:
-      //
-      //  - security-hold: a delivery link the scan flagged is withheld from the
-      //    buyer, so the buyer can't review it. Releasing would pay a possibly
-      //    malicious seller on a link the buyer never saw. Manual release is
-      //    also blocked server-side (see the release route).
-      //
-      //  - requirement-mismatch: the SecurityAgent judged the delivery off-topic
-      //    for the buyer's request. The proof IS shown (the buyer is the judge),
-      //    but a clear mismatch must never settle on a timer without the buyer's
-      //    explicit look. 'partial' is advisory only and does not pause.
-      //
-      // Both are recorded on the deal. The seller cannot see the buyer's private
-      // deliveryMatch.reason, but they must see THAT the clock stopped, or they
-      // wait forever on a countdown that already expired and never appeal.
-      const evidenceReceipt = deal.delivered
-        ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1, {
-            evidenceRevision: deal.deliveryRevision,
-            evidenceCommitment: deal.evidenceExpectedCommitment,
-            reportId: deal.creEvidenceReceipt?.reportId,
-            requireBinding: deal.evidenceRequired === true,
-          })
-        : undefined;
-      if (deal.delivered) {
-        const source = checkSourceFor({ creEnabled: config.CRE_ENABLED, creResult: !!deal.creEvidenceReceipt });
-        if (deal.deliveryCheckSource !== source) await patchDeal(deal.jobId, { deliveryCheckSource: source });
-      }
-      const checkInput = {
-        ...deal,
-        evidenceRequired: deal.evidenceRequired,
-        evidenceReceipt,
-        manualReview: manualReviewActive(deal),
-      };
-      const blockReason: BlockReason | null = releaseBlockReasonForDelivery(checkInput);
-      if (blockReason) {
-        await markBlocked(
-          deal.jobId,
-          blockReason,
-          deliveryCheckDetail(checkInput),
-          { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail },
-          parties,
-        );
-        continue;
-      }
-      if (deal.releaseBlockedReason) {
-        await clearBlocked(deal.jobId, parties);
-      }
-
-      if (await maybeReclaimAfterDeadline(deal, account, now)) continue;
-
-      const totalMilestones = account.milestonePcts.length || 2;
-      const nextIndex = account.milestonesReleased;
-      const nextIsFinal = nextIndex + 1 >= totalMilestones;
-
-      // Self-heal. The chain says a milestone is out, but the off-chain review
-      // window was never stamped — a release tx that landed while the write
-      // behind it did not. Both the seller's delay appeal and the buyer's panel
-      // key off reviewWindowStartedAt, so a deal in this state can never settle
-      // and neither side can act. The chain is truth; backfill from it.
-      if (nextIndex >= 1 && !deal.reviewWindowStartedAt) {
-        const startedAt = deal.lastReleaseAt ?? now;
-        await patchDeal(deal.jobId, { reviewWindowStartedAt: startedAt });
-        logger.warn(
-          { jobId: deal.jobId, milestonesReleased: nextIndex },
-          'chain shows a released milestone with no review window; backfilled from chain',
-        );
-      }
-
-      // Timer ladder. The first milestone and any intermediate one auto-release
-      // once their window elapses; each window is double the one before it. The
-      // FINAL milestone is never on this ladder — see the delay-appeal branch.
-      if (currentMilestoneDelivered(deal, nextIndex) && deal.deliveredAt && !nextIsFinal) {
-        const anchor = milestoneWindowAnchor(deal, nextIndex) ?? deal.deliveredAt;
-        const windowMs = autoReleaseWindowMs(
-          deal,
-          nextIndex,
-          pairHistory.get(pairKey(deal.buyer, deal.seller)) ?? 0,
-        );
-        if (now <= anchor + windowMs) continue;
-        publishMilestonePayoutShadow(deal, account, nextIndex, Math.floor(now / 1_000));
-        await dealEscrowOps.release(deal, nextIndex, buyerWalletId);
-        const releasedAt = Date.now();
-        await patchDeal(deal.jobId, {
-          lastReleaseAt: releasedAt,
-          ...(nextIndex === 0
-            ? { reviewWindowStartedAt: releasedAt, firstAutoReleased: true }
-            : {}),
-        });
-        bus.emitEvent(
-          nextIndex === 0
-            ? {
-                type: 'deal.review.started',
-                jobId: deal.jobId,
-                actor: 'buyer',
-                payload: {
-                  buyer: deal.buyer,
-                  seller: deal.seller,
-                  windowMs,
-                  startedAt: releasedAt,
-                  auto: true,
-                },
-              }
-            : {
-                type: 'deal.milestone.auto_released',
-                jobId: deal.jobId,
-                actor: 'buyer',
-                payload: {
-                  buyer: deal.buyer,
-                  seller: deal.seller,
-                  index: nextIndex,
-                  windowMs,
-                  releasedAt,
-                },
-              },
-        );
-        logger.info(
-          { jobId: deal.jobId, index: nextIndex, windowMs },
-          'milestone window expired, auto-released',
-        );
-        continue;
-      }
-
-      // Final release: buyer-only by default, BUT if the seller raised a
-      // delay appeal and the buyer didn't respond within the window, the
-      // agent auto-releases on the seller's behalf. Protects sellers from
-      // indefinite buyer silence without surprising the buyer mid-review.
-      //
-      // Only the FINAL milestone may auto-release this way, so the delay appeal
-      // can only force the very last tranche once everything before it is out.
-      // On a two-part deal this is exactly the prior behaviour.
-      const responseDeadline =
-        deal.delayAppealRaisedAt && deal.delayAppealRaisedAt > (deal.delayAppealRespondedAt ?? 0)
-          ? deal.delayAppealRaisedAt + config.DEAL_DELAY_APPEAL_RESPONSE_MS
-          : null;
-      if (
-        nextIndex >= 1 &&
-        nextIsFinal &&
-        currentMilestoneDelivered(deal, nextIndex) &&
-        responseDeadline !== null &&
-        now > responseDeadline
-      ) {
-        publishMilestonePayoutShadow(deal, account, nextIndex, Math.floor(now / 1_000));
-        await dealEscrowOps.release(deal, nextIndex, buyerWalletId);
-        const settled = await dealEscrowOps.finalizeIfSettled(deal);
-        await patchDeal(deal.jobId, {
-          autoReleasedAt: now,
-          lastReleaseAt: Date.now(),
-          ...(settled ? { settledAt: Date.now() } : {}),
-        });
-        if (settled) {
-          // Auto-release settled the deal: the seller has the funds, so pull the
-          // financing repayment immediately instead of on the next watcher tick.
-          void settleFactoringForDeal(deal.jobId);
-          void settlePOFinancingForDeal(deal.jobId);
-        }
-        bus.emitEvent({
-          type: 'deal.delay.auto_released',
-          jobId: deal.jobId,
-          actor: 'buyer',
-          payload: { buyer: deal.buyer, seller: deal.seller, raisedAt: deal.delayAppealRaisedAt },
-        });
-        logger.info(
-          { jobId: deal.jobId, raisedAt: deal.delayAppealRaisedAt },
-          'delay appeal response window passed, auto-released the final milestone',
-        );
-      }
-    } catch (err) {
       logger.warn(
-        { jobId: deal.jobId, err: (err as Error).message },
-        'deal watcher action failed',
+        { jobId: deal.jobId, deliveredAt: outOfBand.deliveredAtMs, claimableAt: outOfBand.claimableAtMs },
+        'delivery marked on the escrow outside Karwan; buyer alerted',
       );
-    } finally {
-      processing.delete(deal.jobId);
     }
+
+    // The escrow family runs its own review clock: the seller is paid when the
+    // buyer's review ends (owner, 25 Oct 2026), not by the ladder below.
+    if (account.version === 'suite') {
+      // A missed delivery deadline refunds the buyer here too, as on v3.
+      if (await maybeReclaimAfterDeadline(deal, account, now)) return;
+      // A link held for a safety check is recorded as on the other escrows, so
+      // both sides see it and the seller is pointed to another link or a person.
+      // The family has no guardian hold, so this is what keeps the review end
+      // from paying for a link the buyer cannot open.
+      if (deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious') {
+        await markBlocked(deal.jobId, 'security-hold', 'security-hold', { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail }, parties);
+        return;
+      }
+      if (deal.releaseBlockedReason === 'security-hold') await clearBlocked(deal.jobId, parties);
+      await runSuiteReviewEndSafely(deal, now);
+      return;
+    }
+
+    // Two reasons the agent refuses to run the release clock:
+    //
+    //  - security-hold: a delivery link the scan flagged is withheld from the
+    //    buyer, so the buyer can't review it. Releasing would pay a possibly
+    //    malicious seller on a link the buyer never saw. Manual release is
+    //    also blocked server-side (see the release route).
+    //
+    //  - requirement-mismatch: the SecurityAgent judged the delivery off-topic
+    //    for the buyer's request. The proof IS shown (the buyer is the judge),
+    //    but a clear mismatch must never settle on a timer without the buyer's
+    //    explicit look. 'partial' is advisory only and does not pause.
+    //
+    // Both are recorded on the deal. The seller cannot see the buyer's private
+    // deliveryMatch.reason, but they must see THAT the clock stopped, or they
+    // wait forever on a countdown that already expired and never appeal.
+    const evidenceReceipt = deal.delivered
+      ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1, {
+          evidenceRevision: deal.deliveryRevision,
+          evidenceCommitment: deal.evidenceExpectedCommitment,
+          reportId: deal.creEvidenceReceipt?.reportId,
+          requireBinding: deal.evidenceRequired === true,
+        })
+      : undefined;
+    if (deal.delivered) {
+      const source = checkSourceFor({ creEnabled: config.CRE_ENABLED, creResult: !!deal.creEvidenceReceipt });
+      if (deal.deliveryCheckSource !== source) await patchDeal(deal.jobId, { deliveryCheckSource: source });
+    }
+    const checkInput = {
+      ...deal,
+      evidenceRequired: deal.evidenceRequired,
+      evidenceReceipt,
+      manualReview: manualReviewActive(deal),
+    };
+    const blockReason: BlockReason | null = releaseBlockReasonForDelivery(checkInput);
+    if (blockReason) {
+      await markBlocked(
+        deal.jobId,
+        blockReason,
+        deliveryCheckDetail(checkInput),
+        { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail },
+        parties,
+      );
+      return;
+    }
+    if (deal.releaseBlockedReason) {
+      await clearBlocked(deal.jobId, parties);
+    }
+
+    if (await maybeReclaimAfterDeadline(deal, account, now)) return;
+
+    const totalMilestones = account.milestonePcts.length || 2;
+    const nextIndex = account.milestonesReleased;
+    const nextIsFinal = nextIndex + 1 >= totalMilestones;
+
+    // Self-heal. The chain says a milestone is out, but the off-chain review
+    // window was never stamped — a release tx that landed while the write
+    // behind it did not. Both the seller's delay appeal and the buyer's panel
+    // key off reviewWindowStartedAt, so a deal in this state can never settle
+    // and neither side can act. The chain is truth; backfill from it.
+    if (nextIndex >= 1 && !deal.reviewWindowStartedAt) {
+      const startedAt = deal.lastReleaseAt ?? now;
+      await patchDeal(deal.jobId, { reviewWindowStartedAt: startedAt });
+      logger.warn(
+        { jobId: deal.jobId, milestonesReleased: nextIndex },
+        'chain shows a released milestone with no review window; backfilled from chain',
+      );
+    }
+
+    // Timer ladder. The first milestone and any intermediate one auto-release
+    // once their window elapses; each window is double the one before it. The
+    // FINAL milestone is never on this ladder — see the delay-appeal branch.
+    if (currentMilestoneDelivered(deal, nextIndex) && deal.deliveredAt && !nextIsFinal) {
+      const anchor = milestoneWindowAnchor(deal, nextIndex) ?? deal.deliveredAt;
+      const windowMs = autoReleaseWindowMs(
+        deal,
+        nextIndex,
+        pairHistory.get(pairKey(deal.buyer, deal.seller)) ?? 0,
+      );
+      if (now <= anchor + windowMs) return;
+      publishMilestonePayoutShadow(deal, account, nextIndex, Math.floor(now / 1_000));
+      await dealEscrowOps.release(deal, nextIndex, buyerWalletId);
+      const releasedAt = Date.now();
+      await patchDeal(deal.jobId, {
+        lastReleaseAt: releasedAt,
+        ...(nextIndex === 0
+          ? { reviewWindowStartedAt: releasedAt, firstAutoReleased: true }
+          : {}),
+      });
+      bus.emitEvent(
+        nextIndex === 0
+          ? {
+              type: 'deal.review.started',
+              jobId: deal.jobId,
+              actor: 'buyer',
+              payload: {
+                buyer: deal.buyer,
+                seller: deal.seller,
+                windowMs,
+                startedAt: releasedAt,
+                auto: true,
+              },
+            }
+          : {
+              type: 'deal.milestone.auto_released',
+              jobId: deal.jobId,
+              actor: 'buyer',
+              payload: {
+                buyer: deal.buyer,
+                seller: deal.seller,
+                index: nextIndex,
+                windowMs,
+                releasedAt,
+              },
+            },
+      );
+      logger.info(
+        { jobId: deal.jobId, index: nextIndex, windowMs },
+        'milestone window expired, auto-released',
+      );
+      return;
+    }
+
+    // Final release: buyer-only by default, BUT if the seller raised a
+    // delay appeal and the buyer didn't respond within the window, the
+    // agent auto-releases on the seller's behalf. Protects sellers from
+    // indefinite buyer silence without surprising the buyer mid-review.
+    //
+    // Only the FINAL milestone may auto-release this way, so the delay appeal
+    // can only force the very last tranche once everything before it is out.
+    // On a two-part deal this is exactly the prior behaviour.
+    const responseDeadline =
+      deal.delayAppealRaisedAt && deal.delayAppealRaisedAt > (deal.delayAppealRespondedAt ?? 0)
+        ? deal.delayAppealRaisedAt + config.DEAL_DELAY_APPEAL_RESPONSE_MS
+        : null;
+    if (
+      nextIndex >= 1 &&
+      nextIsFinal &&
+      currentMilestoneDelivered(deal, nextIndex) &&
+      responseDeadline !== null &&
+      now > responseDeadline
+    ) {
+      publishMilestonePayoutShadow(deal, account, nextIndex, Math.floor(now / 1_000));
+      await dealEscrowOps.release(deal, nextIndex, buyerWalletId);
+      const settled = await dealEscrowOps.finalizeIfSettled(deal);
+      await patchDeal(deal.jobId, {
+        autoReleasedAt: now,
+        lastReleaseAt: Date.now(),
+        ...(settled ? { settledAt: Date.now() } : {}),
+      });
+      if (settled) {
+        // Auto-release settled the deal: the seller has the funds, so pull the
+        // financing repayment immediately instead of on the next watcher tick.
+        void settleFactoringForDeal(deal.jobId);
+        void settlePOFinancingForDeal(deal.jobId);
+      }
+      bus.emitEvent({
+        type: 'deal.delay.auto_released',
+        jobId: deal.jobId,
+        actor: 'buyer',
+        payload: { buyer: deal.buyer, seller: deal.seller, raisedAt: deal.delayAppealRaisedAt },
+      });
+      logger.info(
+        { jobId: deal.jobId, raisedAt: deal.delayAppealRaisedAt },
+        'delay appeal response window passed, auto-released the final milestone',
+      );
+    }
+  } catch (err) {
+    logger.warn(
+      { jobId: deal.jobId, err: (err as Error).message },
+      'deal watcher action failed',
+    );
+  } finally {
+    processing.delete(deal.jobId);
   }
 }
 
 /// Starts the periodic auto-release watcher. Returns a stop function. Each deal
 /// carries its own buyer agent wallet; deals without one are skipped.
 export function startDealWatcher(): () => void {
+  const run = leased('dealWatcher', TICK_MS, () =>
+    tick().catch((err) => logger.error({ err: (err as Error).message }, 'deal watcher tick failed')),
+  );
   const id = setInterval(() => {
     recordHeartbeat('dealWatcher');
-    tick().catch((err) =>
-      logger.error({ err: (err as Error).message }, 'deal watcher tick failed'),
-    );
+    void run();
   }, TICK_MS);
   logger.info(
     {

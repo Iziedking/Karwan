@@ -1,6 +1,7 @@
 import { logger } from '../logger.js';
 import type { Engagements } from './engagements.js';
 import type { WorkRequests } from './workRequests.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// Hourly work's clock (view 32): settles weeks whose review has ended, takes
 /// back offers nobody accepted, takes objected hours to the review team, closes
@@ -27,7 +28,8 @@ export function startWorkRunner(core: Engagements | null, requests: WorkRequests
       running = false;
     }
   };
-  const id = setInterval(() => void pass(), EVERY_MS);
+  const run = leased('workRunner', EVERY_MS, pass);
+  const id = setInterval(() => void run(), EVERY_MS);
   id.unref?.();
   return () => clearInterval(id);
 }

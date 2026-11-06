@@ -3,6 +3,7 @@ import { listRequestsNeedingWork, setRequestState } from '../db/recovery.js';
 import { sendRecoveryEmail } from '../emails/recovery.js';
 import { logger } from '../logger.js';
 import { needsReminder, shouldExpire, type RecoveryRequest } from './rules.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// Sends the one-hour reminder before a recovery can finish, and closes
 /// released requests that were never completed.
@@ -35,11 +36,12 @@ export async function recoveryTick(now: number, deps: Deps = live): Promise<void
 }
 
 export function startRecoveryWatcher(): () => void {
-  const id = setInterval(() => {
+  const run = leased('recoveryWatcher', 60_000, () =>
     recoveryTick(Date.now()).catch((err: unknown) =>
       logger.error({ err: err instanceof Error ? err.message : String(err) }, 'recovery watcher tick failed'),
-    );
-  }, 60_000);
+    ),
+  );
+  const id = setInterval(() => void run(), 60_000);
   logger.info('recovery watcher started');
   return () => clearInterval(id);
 }

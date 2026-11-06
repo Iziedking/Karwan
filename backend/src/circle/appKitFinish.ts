@@ -14,6 +14,7 @@ import {
   type IrisMessage,
   type ReconcileReport,
 } from '../money/appKitReconcile.js';
+import { leased } from '../ops/leasedLoop.js';
 
 export async function fetchIrisMessages(sourceDomain: number, burnTxHash: string): Promise<IrisMessage[] | null> {
   try {
@@ -105,16 +106,16 @@ const EVERY_MS = 60_000;
 /// On boot and every minute after. Each pass costs one attestation read per
 /// open App Kit transfer and nothing when there are none.
 export function startAppKitReconciler(): () => void {
-  const tick = () => {
-    void reconcileAppKitNow().then(
+  const tick = leased('appKitReconciler', EVERY_MS, () =>
+    reconcileAppKitNow().then(
       (report) => {
         if (report.finished.length || report.held.length) logger.info(report, 'App Kit reconcile pass');
       },
       (err) => logger.error({ err: (err as Error).message }, 'App Kit reconcile pass failed'),
-    );
-  };
-  tick();
-  const timer = setInterval(tick, EVERY_MS);
+    ),
+  );
+  void tick();
+  const timer = setInterval(() => void tick(), EVERY_MS);
   timer.unref?.();
   return () => clearInterval(timer);
 }

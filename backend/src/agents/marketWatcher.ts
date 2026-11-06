@@ -6,6 +6,7 @@ import { CATEGORY_NAMES } from '../listings/categories.js';
 import { categoryOfRequest } from '../intelligence/marketStore.js';
 import { currentMarket } from '../intelligence/marketStoreLive.js';
 import { checkWatch } from '../intelligence/watches.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// The sweep behind watch_market (view 48, step 5). Every half hour each live
 /// watch is compared with the market as it is now, and its owner hears once
@@ -37,9 +38,10 @@ export async function sweepWatches(now = Date.now()): Promise<number> {
 }
 
 export function startMarketWatcher(): () => void {
-  const timer = setInterval(() => {
-    sweepWatches().catch((err: Error) => logger.error({ err: err.message }, 'market watch sweep failed'));
-  }, TICK_MS);
+  const run = leased('marketWatcher', TICK_MS, () =>
+    sweepWatches().catch((err: Error) => logger.error({ err: err.message }, 'market watch sweep failed')),
+  );
+  const timer = setInterval(() => void run(), TICK_MS);
   logger.info({ tickMs: TICK_MS }, 'market watcher started');
   return () => clearInterval(timer);
 }

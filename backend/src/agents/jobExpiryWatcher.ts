@@ -7,6 +7,7 @@ import { getPendingNearMiss } from '../db/nearMiss.js';
 import { deleteMatchProposal } from '../db/matchProposals.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
+import { leased } from '../ops/leasedLoop.js';
 
 const TICK_MS = 30_000;
 
@@ -111,14 +112,17 @@ async function tick(): Promise<void> {
 /// don't find a match within their window now reach a deterministic
 /// terminal state instead of lingering in `open` forever.
 export function startJobExpiryWatcher(): () => void {
-  const id = setInterval(() => {
-    recordHeartbeat('jobExpiryWatcher');
+  const run = leased('jobExpiryWatcher', TICK_MS, () =>
     tick().catch((err: unknown) => {
       logger.error(
         { err: err instanceof Error ? err.message : String(err) },
         'job expiry watcher tick failed',
       );
-    });
+    }),
+  );
+  const id = setInterval(() => {
+    recordHeartbeat('jobExpiryWatcher');
+    void run();
   }, TICK_MS);
   logger.info({ tickMs: TICK_MS }, 'job expiry watcher started');
   return () => clearInterval(id);

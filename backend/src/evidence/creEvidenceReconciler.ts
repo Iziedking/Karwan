@@ -13,6 +13,7 @@ import {
   type EvidenceReceiptView,
 } from '../chain/evidenceReceipt.js';
 import { logger } from '../logger.js';
+import { leased } from '../ops/leasedLoop.js';
 
 const BINDABLE_STATES = new Set<EvidenceReceiptView['state']>([
   'pass',
@@ -116,17 +117,16 @@ export async function reconcileCreEvidenceReceipts(nowMs = Date.now()): Promise<
 export function startCreEvidenceReconciler(): () => void {
   if (timer) return stopCreEvidenceReconciler;
   const intervalMs = config.CRE_EVIDENCE_RECONCILER_INTERVAL_MS;
-  void reconcileCreEvidenceReceipts().catch((err: unknown) => {
-    logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'CRE receipt reconciliation failed');
-  });
+  const run = leased('creEvidenceReconciler', intervalMs, () =>
+    reconcileCreEvidenceReceipts().catch((err: unknown) => {
+      logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'CRE receipt reconciliation failed');
+    }),
+  );
+  void run();
   timer = setInterval(() => {
     if (running) return;
     running = true;
-    void reconcileCreEvidenceReceipts()
-      .catch((err: unknown) => {
-        logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'CRE receipt reconciliation failed');
-      })
-      .finally(() => { running = false; });
+    void run().finally(() => { running = false; });
   }, intervalMs);
   logger.info({ intervalMs }, 'CRE receipt reconciler started');
   return stopCreEvidenceReconciler;

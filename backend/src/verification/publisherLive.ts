@@ -7,6 +7,7 @@ import { logger } from '../logger.js';
 import { evidenceDeps } from './live.js';
 import { sealEvidence } from './evidence.js';
 import { createFactPublisher } from './publisher.js';
+import { leased } from '../ops/leasedLoop.js';
 
 export const factsAbi = parseAbi([
   'function record(address subject, bytes32 kind, uint8 level, bytes32 evidenceHash, uint64 expiresAt) returns (uint256)',
@@ -96,18 +97,13 @@ export function startFactPublisher(): () => void {
     },
   });
 
-  let running = false;
-  const timer = setInterval(() => {
-    if (running) return;
-    running = true;
+  const run = leased('factPublisher', SWEEP_MS, () =>
     publish()
       .then((n) => {
         if (n > 0) logger.info({ written: n }, 'facts: written to KarwanFacts');
       })
-      .catch((err) => logger.warn({ err: (err as Error).message }, 'facts: sweep failed'))
-      .finally(() => {
-        running = false;
-      });
-  }, SWEEP_MS);
+      .catch((err) => logger.warn({ err: (err as Error).message }, 'facts: sweep failed')),
+  );
+  const timer = setInterval(() => void run(), SWEEP_MS);
   return () => clearInterval(timer);
 }

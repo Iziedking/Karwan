@@ -3,6 +3,7 @@ import { getRecord, listRecords, putRecord } from '../db/evidence.js';
 import { rememberInChat } from '../channels/chatHistory.js';
 import { logger } from '../logger.js';
 import { needsDeliveryQuestion, servesCountry, type DeliveryKind, type PrivateLocation, type Where } from './rules.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// When a seller's agent finds buyers in a country the seller has not
 /// answered for, it stays out of that deal and asks: "I found some customers
@@ -136,7 +137,8 @@ export function startDeliveryQuestionSweep(): () => void {
     runDeliverySweep(deliveryQuestions, (seller, text) => tellAccount(seller, { kind: 'text', body: text }), rememberInChat).catch((err) =>
       logger.warn({ err: (err as Error).message }, 'delivery question sweep failed'),
     );
-  const timer = setInterval(() => void run(), SWEEP_MS);
+  const leasedRun = leased('deliveryQuestionSweep', SWEEP_MS, run);
+  const timer = setInterval(() => void leasedRun(), SWEEP_MS);
   timer.unref?.();
   return () => clearInterval(timer);
 }

@@ -4,6 +4,7 @@ import { logger } from '../logger.js';
 import { buildCreDeliveryRequest, type CreDeliveryRequest } from './creDeliveryRequest.js';
 import { publishCreDeliveryRequest } from './creDeliveryRequestQueue.js';
 import { parseGitHubSubmission, resolveGitHubSubmissionSha } from './githubSubmission.js';
+import { leased } from '../ops/leasedLoop.js';
 
 export interface CreAutoPublicationDependencies {
   enabled: boolean;
@@ -101,8 +102,9 @@ export function startCreAutoPublisher(): () => void {
       logger.warn('CRE automatic publication recovery failed');
     } finally { running = false; }
   };
-  void sweep();
-  const timer = setInterval(() => { void sweep(); }, 30_000);
+  const run = leased('creAutoPublication', 30_000, sweep);
+  void run();
+  const timer = setInterval(() => { void run(); }, 30_000);
   timer.unref();
   logger.info({ intervalMs: 30_000, batchSize: 5, maxAttempts: 3 }, 'CRE automatic publication started');
   return () => { stopped = true; clearInterval(timer); };

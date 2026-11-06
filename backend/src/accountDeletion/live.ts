@@ -44,6 +44,7 @@ import type { Standing } from './rules.js';
 import { createAccountDeletion, type Eraser } from './service.js';
 import { createMemoryDeletionStore, createPostgresDeletionStore } from './store.js';
 import { forgetWorldIdSessions, releasePersonCheckNullifiers } from './worldId.js';
+import { leased } from '../ops/leasedLoop.js';
 
 const SWEEP_MS = 10 * 60_000;
 // PositionState in KarwanVault: None, Active, Cooling, Withdrawn.
@@ -227,19 +228,14 @@ export const accountDeletion = createAccountDeletion({
 
 /// Runs due deletions every ten minutes. Each run is safe to repeat.
 export function startAccountDeletionSweep(): () => void {
-  let running = false;
-  const timer = setInterval(() => {
-    if (running) return;
-    running = true;
+  const run = leased('accountDeletion', SWEEP_MS, () =>
     accountDeletion
       .sweep()
       .then((n) => {
         if (n > 0) logger.info({ worked: n }, 'account deletion: sweep');
       })
-      .catch((err) => logger.warn({ err: (err as Error).message }, 'account deletion: sweep failed'))
-      .finally(() => {
-        running = false;
-      });
-  }, SWEEP_MS);
+      .catch((err) => logger.warn({ err: (err as Error).message }, 'account deletion: sweep failed')),
+  );
+  const timer = setInterval(() => void run(), SWEEP_MS);
   return () => clearInterval(timer);
 }

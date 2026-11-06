@@ -10,6 +10,7 @@ import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { settleDecision, type Receivable } from './familyFinancing.js';
 import { familyFinancingPorts } from './familyFinancingLive.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// Karwan settles each family line once its deal has ended, and keeps the
 /// hold on the seller's deal guarantee while the deal can still run (view 18).
@@ -105,11 +106,7 @@ export function startFamilyFinancingRunner(): () => void {
     log: (message) => logger.warn(message),
     now: () => Date.now(),
   };
-  let running = false;
-  const timer = setInterval(() => {
-    if (running) return;
-    running = true;
-    void runFamilyFinancingPass(deps).finally(() => { running = false; });
-  }, EVERY_MS);
+  const run = leased('familyFinancingRunner', EVERY_MS, () => runFamilyFinancingPass(deps));
+  const timer = setInterval(() => void run(), EVERY_MS);
   return () => clearInterval(timer);
 }

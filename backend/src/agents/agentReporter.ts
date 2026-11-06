@@ -4,6 +4,7 @@ import { logger } from '../logger.js';
 import { weeklyLineDue, weeklyWindowOpen } from './agentRecord.js';
 import { insightsFor, sentRecord, type Insight, type InsightFacts } from '../intelligence/insights.js';
 import { RECORD_READ_PRICE_USDC } from '../x402/recordReadGate.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// The reporter (view 48, step 6). Once a day it sends each person whose
 /// weekly line is on, and whose agents paid for data in the last week, one
@@ -76,9 +77,10 @@ export async function sendWeeklyLines(now = Date.now(), dataBalance: DataBalance
 }
 
 export function startAgentReporter(): () => void {
-  const timer = setInterval(() => {
-    sendWeeklyLines().catch((err: Error) => logger.error({ err: err.message }, 'agent weekly lines failed'));
-  }, TICK_MS);
+  const run = leased('agentReporter', TICK_MS, () =>
+    sendWeeklyLines().catch((err: Error) => logger.error({ err: err.message }, 'agent weekly lines failed')),
+  );
+  const timer = setInterval(() => void run(), TICK_MS);
   logger.info({ tickMs: TICK_MS }, 'agent reporter started');
   return () => clearInterval(timer);
 }

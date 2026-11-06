@@ -15,6 +15,7 @@ import { requestTitle } from './bidOutcome.js';
 import { goalFits, goalWords, type BriefFacts } from './brief.js';
 import { getBuyerSnapshot, type BuyerJobSnapshot } from './buyer.js';
 import { briefTick, onOfferOnRequest, type BriefGathered, type PersonAgentDeps } from './personAgent.js';
+import { leased } from '../ops/leasedLoop.js';
 
 /// The live stores behind the person agent (view 52, step 4). Reads only what
 /// the person already has: their requests and the offers on them, their open
@@ -146,7 +147,8 @@ export function startPersonAgent(deps: PersonAgentDeps = livePersonAgentDeps): (
       await deps.progress.prune(now - MONTH_MS).catch((err: Error) => logger.warn({ err: err.message }, 'progress log prune failed'));
     }
   };
-  const run = () => void tick().catch((err: Error) => logger.error({ err: err.message }, 'person agent tick failed'));
+  const leasedTick = leased('personAgent', TICK_MS, () => tick().catch((err: Error) => logger.error({ err: err.message }, 'person agent tick failed')));
+  const run = () => void leasedTick();
   const first = setTimeout(run, 60_000);
   const timer = setInterval(run, TICK_MS);
   const stopBids = bus.subscribe((e) => {

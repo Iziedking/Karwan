@@ -1,5 +1,6 @@
 import { deleteMessagesOlderThan } from '../db/messages.js';
 import { logger } from '../logger.js';
+import { leased } from '../ops/leasedLoop.js';
 
 const SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -20,8 +21,9 @@ export function startChatRetentionSweep(): () => void {
       running = false;
     }
   };
-  void sweep();
-  const timer = setInterval(() => void sweep(), SWEEP_INTERVAL_MS);
+  const run = leased('chatRetention', SWEEP_INTERVAL_MS, sweep);
+  void run();
+  const timer = setInterval(() => void run(), SWEEP_INTERVAL_MS);
   timer.unref?.();
   return () => clearInterval(timer);
 }

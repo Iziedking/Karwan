@@ -1,5 +1,6 @@
 import { purgeReadDetails } from '../db/recordReads.js';
 import { logger } from '../logger.js';
+import { leased } from '../ops/leasedLoop.js';
 
 const SWEEP_INTERVAL_MS = 600_000;
 
@@ -19,8 +20,9 @@ export function startRecordReadSweep(): () => void {
       running = false;
     }
   };
-  void sweep();
-  const timer = setInterval(() => void sweep(), SWEEP_INTERVAL_MS);
+  const run = leased('recordReadSweep', SWEEP_INTERVAL_MS, sweep);
+  void run();
+  const timer = setInterval(() => void run(), SWEEP_INTERVAL_MS);
   timer.unref?.();
   return () => clearInterval(timer);
 }

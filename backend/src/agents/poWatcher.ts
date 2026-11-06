@@ -36,6 +36,7 @@ import { bus } from '../events.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { claimed, leased } from '../ops/leasedLoop.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 import {
   financingOperationKey,
@@ -236,7 +237,8 @@ async function runLine(line: POFinancingLine): Promise<void> {
   if (processing.has(line.id)) return;
   processing.add(line.id);
   try {
-    await handleLine(line);
+    // One process at a time on this line (view 61).
+    await claimed(`po:${line.id}`, () => handleLine(line));
   } catch (err) {
     logger.warn(
       { lineId: line.id, err: (err as Error).message },
@@ -283,9 +285,12 @@ export function startPOWatcher(): () => void {
     logger.info('po watcher: PO contract or relay wallet unset; watcher dormant');
     return () => {};
   }
+  const run = leased('poWatcher', TICK_MS, () =>
+    tick().catch((err) => logger.error({ err: (err as Error).message }, 'po watcher: tick failed')),
+  );
   const id = setInterval(() => {
     recordHeartbeat('poWatcher');
-    tick().catch((err) => logger.error({ err: (err as Error).message }, 'po watcher: tick failed'));
+    void run();
   }, TICK_MS);
   logger.info({ tickMs: TICK_MS }, 'po watcher started');
   return () => clearInterval(id);
