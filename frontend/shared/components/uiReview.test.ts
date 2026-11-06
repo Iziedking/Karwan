@@ -619,3 +619,9 @@ test('the money sheets, Send, payment links, offers and the financier desk read 
   // The exact USDC to send on another network stays exact, its worth under it.
   assert.match(source('../../features/payLink/AnyChainPay.tsx'), /money\.hint\(state\.sendUsdc\)/);
 });
+
+test('who can see it is asked once, on the form, never again on the review (owner, 6 Nov 2026)', () => {
+  for (const file of ['../../features/buyer/components/PostJobForm.tsx', '../../features/seller/components/PostListingForm.tsx']) {
+    assert.match(source(file), /reviewing \? null : <WhoCanSee/, file);
+  }
+});

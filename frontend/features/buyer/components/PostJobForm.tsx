@@ -813,8 +813,9 @@ export function PostJobForm() {
         )}
       </CreationReview> : null}
 
-      <WhoCanSee side="request" value={who} onChange={setWho} />
-      {who === 'link' ? (
+      {/* Asked once, on the form; the review that follows does not ask again. */}
+      {reviewing ? null : <WhoCanSee side="request" value={who} onChange={setWho} />}
+      {!reviewing && who === 'link' ? (
         <Link href="/buyer?mode=direct#new-deal" className="inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--ink)] underline underline-offset-4">{shopCopy.whoCanSee.linkCta}</Link>
       ) : null}
 

@@ -455,8 +455,9 @@ export function PostListingForm() {
           </div>
         )}
 
-        <WhoCanSee side="offer" value={who} onChange={setWho} />
-        {who === 'link' ? <DealLinkPanel start="link" /> : null}
+        {/* Asked once, on the form; the review that follows does not ask again. */}
+        {reviewing ? null : <WhoCanSee side="offer" value={who} onChange={setWho} />}
+        {!reviewing && who === 'link' ? <DealLinkPanel start="link" /> : null}
 
         <div className="space-y-3 border-t border-[var(--line)] pt-5" hidden={who === 'link'}>
           <Button
