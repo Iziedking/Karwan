@@ -69,7 +69,10 @@ export interface DepositRequestPublic {
 }
 
 export const REQUEST_TTL_MINUTES = 60;
-export const MAX_REQUEST_TTL_MINUTES = 7 * 24 * 60;
+/// A request to someone you know can stay open for a quarter (owner, 6 Nov 2026).
+export const MAX_REQUEST_TTL_MINUTES = 90 * 24 * 60;
+/// What a link made on /request or by the assistant lasts when nobody picks.
+export const DEFAULT_LINK_TTL_MINUTES = 7 * 24 * 60;
 
 const STORE_PATH = process.env.DEPOSIT_REQUESTS_STORE_PATH
   ? resolve(process.env.DEPOSIT_REQUESTS_STORE_PATH)
@@ -104,6 +107,23 @@ export function normalisePurpose(value: unknown): string {
   if (typeof value !== 'string') return 'USDC deposit';
   const trimmed = value.trim().replace(/\s+/g, ' ');
   return trimmed.slice(0, 120) || 'USDC deposit';
+}
+
+/// How long a link asked for in words lasts: minutes, days, or until the end of
+/// a calendar day (UTC). Nothing asked for is the 7-day default; the 90-day
+/// limit is applied when the request is made.
+export function linkTtlMinutes(
+  input: { expiresInMinutes?: number; expiresInDays?: number; expiresOn?: string },
+  now = Date.now(),
+): number {
+  if (input.expiresOn) {
+    const end = Date.parse(`${input.expiresOn}T23:59:59Z`);
+    if (!Number.isFinite(end)) throw new Error('Give the expiry date as YYYY-MM-DD.');
+    if (end <= now) throw new Error('The expiry date has to be in the future.');
+    return Math.ceil((end - now) / 60_000);
+  }
+  if (input.expiresInDays) return input.expiresInDays * 24 * 60;
+  return input.expiresInMinutes ?? DEFAULT_LINK_TTL_MINUTES;
 }
 
 export function createDepositRequest(input: {
@@ -278,19 +298,19 @@ export async function matchDepositRequest(input: {
   txId: string;
   chain: string;
   now?: number;
-}): Promise<DepositRequest | null> {
+}): Promise<{ request: DepositRequest | null; tied: number }> {
   const now = input.now ?? Date.now();
   // A provider can deliver the same transaction again under a new
   // notification id. The durable transaction column makes that replay
   // idempotent even after a process restart.
   const previouslyMatched = await getDepositRequestByTxId(input.txId);
   if (previouslyMatched) {
-    return previouslyMatched.owner === input.owner.toLowerCase() ? previouslyMatched : null;
+    return { request: previouslyMatched.owner === input.owner.toLowerCase() ? previouslyMatched : null, tied: 0 };
   }
 
-  const request = selectDepositRequest(await listDepositRequests(input.owner, 50), input);
-  if (!request) return null;
-  return markDepositRequestMatched(request, { txId: input.txId, chain: input.chain, now });
+  const picked = pickDepositRequest(await listDepositRequests(input.owner, 50), input);
+  if (!picked.request) return picked;
+  return { request: await markDepositRequestMatched(picked.request, { txId: input.txId, chain: input.chain, now }), tied: 0 };
 }
 
 /// Sets an open request to matched exactly once. The row is the compare-and-set
@@ -348,6 +368,15 @@ export function selectDepositRequest(
   requests: DepositRequest[],
   input: { amountUsdc: string; now?: number },
 ): DepositRequest | null {
+  return pickDepositRequest(requests, input).request;
+}
+
+/// The one open request a deposit pays, or how many it could pay when that is
+/// more than one, so history can say why no request was marked.
+export function pickDepositRequest(
+  requests: DepositRequest[],
+  input: { amountUsdc: string; now?: number },
+): { request: DepositRequest | null; tied: number } {
   const now = input.now ?? Date.now();
   const candidates = requests.filter((request) => {
     if (request.status !== 'open' || request.expiresAt <= now) return false;
@@ -359,7 +388,7 @@ export function selectDepositRequest(
   // An exact amount is not enough when two requests are open. Leaving both
   // unmatched is safer than silently assigning a third-party payment to the
   // wrong purpose.
-  return candidates.length === 1 ? candidates[0]! : null;
+  return candidates.length === 1 ? { request: candidates[0]!, tied: 0 } : { request: null, tied: candidates.length };
 }
 
 export function expireDepositRequest(request: DepositRequest, now = Date.now()): DepositRequest {

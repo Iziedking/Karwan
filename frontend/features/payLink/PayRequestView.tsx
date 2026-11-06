@@ -31,7 +31,8 @@ import { downloadReceiptImage } from '@/features/activity/receiptPresentation';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { LoginModal } from '@/shared/components/LoginModal';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
-import { buttonClasses } from '@/shared/components/Button';
+import { Button, buttonClasses } from '@/shared/components/Button';
+import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
 import { CARD_CLASS } from '@/shared/components/Card';
 
 type Source = 'arc' | CctpChainKey;
@@ -68,7 +69,7 @@ export function PayRequestView({ token }: { token: string }) {
         ) : null}
         {view === 'ready' && request ? (
           address?.toLowerCase() === request.recipientAddress.toLowerCase() ? (
-            <OwnRequest request={request} />
+            <OwnRequest token={token} request={request} onChanged={() => void refetch()} />
           ) : (
             <PayRequest token={token} request={request} onPaid={() => void refetch()} />
           )
@@ -87,8 +88,24 @@ function Amount({ value }: { value: string | null }) {
   return <Price usdc={Number(value ?? 0)} size="hero" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.03em] text-[var(--ink)]" />;
 }
 
-function OwnRequest({ request }: { request: DepositRequestPublic }) {
+function OwnRequest({ token, request, onChanged }: { token: string; request: DepositRequestPublic; onChanged: () => void }) {
   const copy = useTranslations().payLink.pay;
+  const [ending, setEnding] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [endFailed, setEndFailed] = useState(false);
+  async function end() {
+    setBusy(true);
+    setEndFailed(false);
+    try {
+      await api.cancelDepositRequest(token);
+      setEnding(false);
+      onChanged();
+    } catch {
+      setEndFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  }
   const { locale } = useLocale();
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
@@ -113,6 +130,24 @@ function OwnRequest({ request }: { request: DepositRequestPublic }) {
       />
       <p className="text-[15px] text-[var(--ink-secondary)]">{request.status === 'matched' ? copy.paidAlready : request.status === 'expired' ? copy.expired : request.status === 'cancelled' ? copy.cancelled : copy.yours}</p>
       {request.status === 'open' ? <ShareLink url={url} compact /> : null}
+      {request.status === 'open' ? (
+        <Button type="button" variant="secondary" size="lg" className="w-full" onClick={() => setEnding(true)}>
+          {copy.endRequest}
+        </Button>
+      ) : null}
+      <FactsConfirmSheet
+        open={ending}
+        title={copy.endTitle}
+        note={copy.endNote}
+        rows={[]}
+        primaryLabel={copy.endRequest}
+        busyLabel={copy.ending}
+        quietLabel={copy.endKeep}
+        busy={busy}
+        error={endFailed ? copy.endError : null}
+        onConfirm={() => void end()}
+        onClose={() => setEnding(false)}
+      />
     </section>
   );
 }

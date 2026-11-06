@@ -25,7 +25,7 @@ test('a provider transaction is an idempotent, durable QR request match', async 
   const request = createDepositRequest({ owner: OWNER, amountUsdc: '25.50', now: 1_000 });
   await saveDepositRequest(request);
 
-  const matched = await matchDepositRequest({
+  const { request: matched } = await matchDepositRequest({
     owner: OWNER,
     amountUsdc: '25.5',
     txId: 'circle-transfer-1',
@@ -35,7 +35,7 @@ test('a provider transaction is an idempotent, durable QR request match', async 
   assert.equal(matched?.token, request.token);
   assert.equal(matched?.matchedTxId, 'circle-transfer-1');
 
-  const replay = await matchDepositRequest({
+  const { request: replay } = await matchDepositRequest({
     owner: OWNER,
     amountUsdc: '25.5',
     txId: 'circle-transfer-1',
@@ -54,7 +54,7 @@ test('a transaction already matched to one request cannot be assigned to another
 
   // Ambiguous amount matching stays conservative. Even if one request later
   // owns the transaction, a replay never moves that transaction to the other.
-  assert.equal(
+  assert.deepEqual(
     await matchDepositRequest({
       owner: OWNER,
       amountUsdc: '9',
@@ -62,7 +62,7 @@ test('a transaction already matched to one request cannot be assigned to another
       chain: 'Base',
       now: 2_000,
     }),
-    null,
+    { request: null, tied: 2 },
   );
 });
 

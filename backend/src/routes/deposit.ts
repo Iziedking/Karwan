@@ -11,6 +11,7 @@ import {
   listDepositRequests,
   listDepositRequestsPaidBy,
   markDepositRequestMatched,
+  MAX_REQUEST_TTL_MINUTES,
   saveDepositRequest,
   toPublicRequest,
 } from '../money/depositRequests.js';
@@ -57,7 +58,7 @@ export const depositRoutes = new Hono();
 const requestBodySchema = z.object({
   amountUsdc: z.union([z.string(), z.number()]).optional(),
   purpose: z.string().max(120).optional(),
-  ttlMinutes: z.number().int().min(5).max(7 * 24 * 60).optional(),
+  ttlMinutes: z.number().int().min(5).max(MAX_REQUEST_TTL_MINUTES).optional(),
 });
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);

@@ -165,7 +165,7 @@ import {
   cancelDepositRequest,
   createDepositRequest,
   getDepositRequest,
-  MAX_REQUEST_TTL_MINUTES,
+  linkTtlMinutes,
   listDepositRequests,
   listDepositRequestsPaidBy,
   saveDepositRequest,
@@ -2347,11 +2347,15 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       inputSchema: z.object({
         amountUsdc: z.number().positive().max(1_000_000).optional().describe('Exact USDC amount to request. Omit for an open amount.'),
         note: z.string().max(200).optional().describe('What the payment is for, shown to the payer. Trimmed to 120 characters.'),
-        expiresInMinutes: z.number().int().min(5).max(7 * 24 * 60).optional().describe('Default 7 days (10080), the same as a link made on the request page. Shorter only when the user asks.'),
+        expiresOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('The last day the link works, YYYY-MM-DD, when the user names a date ("until 6 Feb"). Up to 90 days ahead.'),
+        expiresInDays: z.number().int().min(1).max(90).optional().describe('How many days the link works, when the user says a length ("for 30 days"). Up to 90.'),
+        expiresInMinutes: z.number().int().min(5).max(24 * 60).optional().describe('Only for a link shorter than a day, when the user asks for one.'),
       }),
-      execute: async ({ amountUsdc, note, expiresInMinutes }) => {
+      execute: async ({ amountUsdc, note, expiresOn, expiresInDays, expiresInMinutes }) => {
         try {
-          const request = createDepositRequest({ owner: address, amountUsdc, purpose: note, ttlMinutes: expiresInMinutes ?? MAX_REQUEST_TTL_MINUTES });
+          // Nothing said about expiry is 7 days, the same as a link made on the request page.
+          const ttlMinutes = linkTtlMinutes({ expiresOn, expiresInDays, expiresInMinutes });
+          const request = createDepositRequest({ owner: address, amountUsdc, purpose: note, ttlMinutes });
           await saveDepositRequest(request);
           const view = toPublicRequest(request);
           const built = buildNavigateAction({ destination: 'payment_link', token: view.requestId, label: 'Open the payment link' });
@@ -2407,7 +2411,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
     }),
 
     cancel_payment_link: tool({
-      description: 'Cancel one of this user’s OPEN payment links so it can no longer be paid. Only when the user explicitly asks to cancel a specific link; read list_my_payment_links first to get its id. Cannot be undone; a new link can be made.',
+      description: 'Cancel one of this user’s OPEN payment links so its page stops asking for payment; money already on its way to the link's own addresses still reaches the user. The owner can also do this with End request on the link's page. Only when the user explicitly asks to cancel a specific link; read list_my_payment_links first to get its id. Cannot be undone; a new link can be made.',
       inputSchema: z.object({ id: z.string().uuid() }),
       execute: async ({ id }) => {
         try {

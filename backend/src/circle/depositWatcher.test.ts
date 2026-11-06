@@ -224,4 +224,27 @@ test('a signed inbound deposit carries its original QR request reference', async
   assert.equal(stored?.matchedChain, 'Base');
 });
 
+test('a deposit that fits two open requests is credited, marks neither and says so in history', async () => {
+  const first = createDepositRequest({ owner: OWNER, amountUsdc: '77', now: Date.now() });
+  const second = createDepositRequest({ owner: OWNER, amountUsdc: '77', now: Date.now() });
+  await saveDepositRequest(first);
+  await saveDepositRequest(second);
+
+  const seen = await credits(deposit({ id: 'tx-two-requests', amounts: ['77'] }));
+  assert.equal(seen.length, 1, 'the money is still credited');
+  assert.equal(seen[0]!.requestId, undefined);
+  assert.equal((await getDepositRequest(first.token))?.status, 'open');
+  assert.equal((await getDepositRequest(second.token))?.status, 'open');
+
+  let row: Awaited<ReturnType<typeof listActivityForAddress>>[number] | undefined;
+  for (let i = 0; i < 50 && !row; i++) {
+    row = (await listActivityForAddress(OWNER, 0)).find((r) => r.refId === 'deposit-tx-two-requests');
+    if (!row) await new Promise((r) => setTimeout(r, 10));
+  }
+  const params = row?.params as Record<string, string> | undefined;
+  assert.equal(params?.t, 'depositFitsRequests');
+  assert.equal(params?.count, '2');
+  assert.equal(params?.amount, '77');
+});
+
 test.after(() => stop());

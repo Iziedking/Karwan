@@ -7,7 +7,12 @@ export interface PayLinkCopy {
     forPlaceholder: string;
     paidTo: string;
     yourAccount: string;
-    lasts: string;
+    expiresLabel: string;
+    day1: string;
+    days7: string;
+    days30: string;
+    pickDate: string;
+    until: string;
     directNote: string;
     create: string;
     creating: string;
@@ -67,6 +72,12 @@ export interface PayLinkCopy {
     paidAlready: string;
     expired: string;
     cancelled: string;
+    endRequest: string;
+    endTitle: string;
+    endNote: string;
+    endKeep: string;
+    ending: string;
+    endError: string;
     unavailableTitle: string;
     unavailableBody: string;
     payWith: string;
@@ -110,7 +121,12 @@ const en: PayLinkCopy = {
     forPlaceholder: 'Logo, first draft',
     paidTo: 'Paid to',
     yourAccount: 'Your account',
-    lasts: 'The link works for 7 days.',
+    expiresLabel: "Link works until",
+    day1: "1 day",
+    days7: "7 days",
+    days30: "30 days",
+    pickDate: "Pick a date",
+    until: "Until {date}",
     directNote: "Money goes directly to your account, outside deal escrow.",
     create: "Create payment link",
     creating: 'Creating link',
@@ -170,6 +186,12 @@ const en: PayLinkCopy = {
     paidAlready: 'This request is paid.',
     expired: 'This request has expired.',
     cancelled: 'This request was cancelled.',
+    endRequest: "End request",
+    endTitle: "End this request?",
+    endNote: "The link stops asking for payment. Money sent to it later still reaches you.",
+    endKeep: "Keep it open",
+    ending: "Ending request",
+    endError: "Couldn't end the request. Try again.",
     unavailableTitle: 'This request is not available.',
     unavailableBody: 'It may have expired, been cancelled, or the link may be incomplete.',
     payWith: "Pay with",
@@ -212,7 +234,12 @@ const fr: PayLinkCopy = {
     forPlaceholder: 'Logo, première version',
     paidTo: 'Payé à',
     yourAccount: 'Votre compte',
-    lasts: 'Le lien reste valable 7 jours.',
+    expiresLabel: "Le lien reste valable jusqu’au",
+    day1: "1 jour",
+    days7: "7 jours",
+    days30: "30 jours",
+    pickDate: "Choisir une date",
+    until: "Jusqu’au {date}",
     directNote: "L’argent arrive directement sur votre compte, hors séquestre d’un accord.",
     create: "Créer un lien de paiement",
     creating: 'Création du lien',
@@ -272,6 +299,12 @@ const fr: PayLinkCopy = {
     paidAlready: 'Cette demande est payée.',
     expired: 'Cette demande a expiré.',
     cancelled: 'Cette demande a été annulée.',
+    endRequest: "Clore la demande",
+    endTitle: "Clore cette demande ?",
+    endNote: "Le lien ne demande plus de paiement. L’argent envoyé plus tard vous parvient quand même.",
+    endKeep: "La garder ouverte",
+    ending: "Clôture de la demande",
+    endError: "Impossible de clore la demande. Réessayez.",
     unavailableTitle: 'Cette demande n’est pas disponible.',
     unavailableBody: 'Elle a peut-être expiré, été annulée, ou le lien est incomplet.',
     payWith: "Payer avec",
@@ -314,7 +347,12 @@ const ar: PayLinkCopy = {
     forPlaceholder: 'شعار، المسودة الأولى',
     paidTo: 'يُدفع إلى',
     yourAccount: 'حسابك',
-    lasts: 'يعمل الرابط لمدة 7 أيام.',
+    expiresLabel: "يعمل الرابط حتى",
+    day1: "يوم واحد",
+    days7: "7 أيام",
+    days30: "30 يومًا",
+    pickDate: "اختر تاريخًا",
+    until: "حتى {date}",
     directNote: "يصل المال مباشرة إلى حسابك، خارج ضمان الصفقات.",
     create: "أنشئ رابط دفع",
     creating: 'جارٍ إنشاء الرابط',
@@ -374,6 +412,12 @@ const ar: PayLinkCopy = {
     paidAlready: 'تم دفع هذا الطلب.',
     expired: 'انتهت صلاحية هذا الطلب.',
     cancelled: 'تم إلغاء هذا الطلب.',
+    endRequest: "إنهاء الطلب",
+    endTitle: "إنهاء هذا الطلب؟",
+    endNote: "يتوقف الرابط عن طلب الدفع. المال المرسل إليه لاحقًا يصلك مع ذلك.",
+    endKeep: "إبقاؤه مفتوحًا",
+    ending: "جارٍ إنهاء الطلب",
+    endError: "تعذّر إنهاء الطلب. حاول مرة أخرى.",
     unavailableTitle: 'هذا الطلب غير متاح.',
     unavailableBody: 'ربما انتهت صلاحيته أو أُلغي، أو أن الرابط غير مكتمل.',
     payWith: "الدفع عبر",
@@ -416,7 +460,12 @@ const hi: PayLinkCopy = {
     forPlaceholder: 'लोगो, पहला ड्राफ़्ट',
     paidTo: 'किसे भुगतान',
     yourAccount: 'आपका खाता',
-    lasts: 'लिंक 7 दिनों तक काम करता है।',
+    expiresLabel: "लिंक इस तारीख तक काम करेगा",
+    day1: "1 दिन",
+    days7: "7 दिन",
+    days30: "30 दिन",
+    pickDate: "तारीख चुनें",
+    until: "{date} तक",
     directNote: "राशि सीधे आपके खाते में आती है, सौदे के एस्क्रो में नहीं।",
     create: "भुगतान लिंक बनाएँ",
     creating: 'लिंक बन रहा है',
@@ -476,6 +525,12 @@ const hi: PayLinkCopy = {
     paidAlready: 'इस अनुरोध का भुगतान हो चुका है।',
     expired: 'यह अनुरोध समाप्त हो गया है।',
     cancelled: 'यह अनुरोध रद्द कर दिया गया।',
+    endRequest: "अनुरोध बंद करें",
+    endTitle: "यह अनुरोध बंद करें?",
+    endNote: "लिंक भुगतान मांगना बंद कर देता है। बाद में भेजा गया पैसा फिर भी आप तक पहुंचता है।",
+    endKeep: "खुला रखें",
+    ending: "अनुरोध बंद हो रहा है",
+    endError: "अनुरोध बंद नहीं हो सका। फिर से कोशिश करें।",
     unavailableTitle: 'यह अनुरोध उपलब्ध नहीं है।',
     unavailableBody: 'यह समाप्त या रद्द हो सकता है, या लिंक अधूरा है।',
     payWith: "इससे भुगतान करें",
@@ -518,7 +573,12 @@ const sw: PayLinkCopy = {
     forPlaceholder: 'Nembo, rasimu ya kwanza',
     paidTo: 'Analipwa',
     yourAccount: 'Akaunti yako',
-    lasts: 'Kiungo kinafanya kazi kwa siku 7.',
+    expiresLabel: "Kiungo kinafanya kazi hadi",
+    day1: "Siku 1",
+    days7: "Siku 7",
+    days30: "Siku 30",
+    pickDate: "Chagua tarehe",
+    until: "Hadi {date}",
     directNote: "Pesa zinaingia moja kwa moja kwenye akaunti yako, nje ya escrow ya makubaliano.",
     create: "Unda kiungo cha malipo",
     creating: 'Inaunda kiungo',
@@ -578,6 +638,12 @@ const sw: PayLinkCopy = {
     paidAlready: 'Ombi hili limelipwa.',
     expired: 'Ombi hili limeisha muda.',
     cancelled: 'Ombi hili lilighairiwa.',
+    endRequest: "Funga ombi",
+    endTitle: "Funga ombi hili?",
+    endNote: "Kiungo kinaacha kuomba malipo. Pesa zitakazotumwa baadaye bado zitakufikia.",
+    endKeep: "Liache wazi",
+    ending: "Inafunga ombi",
+    endError: "Imeshindwa kufunga ombi. Jaribu tena.",
     unavailableTitle: 'Ombi hili halipatikani.',
     unavailableBody: 'Huenda limeisha muda, limeghairiwa, au kiungo hakijakamilika.',
     payWith: "Lipa kwa",

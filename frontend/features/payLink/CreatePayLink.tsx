@@ -14,8 +14,9 @@ import { Button } from '@/shared/components/Button';
 import { ShareLink } from './ShareLink';
 import { PaymentCard } from './PaymentCard';
 import { PayLinkHistory } from './PayLinkHistory';
+import { LinkExpiryChips } from './LinkExpiryChips';
+import { DEFAULT_EXPIRY, expiryAt, expiryMinutes, type LinkExpiry } from './linkExpiry';
 
-const WEEK_MINUTES = 7 * 24 * 60;
 const LABEL = 'block text-[14px] font-medium text-[var(--ink-secondary)]';
 const FIELD = 'mt-2 block w-full rounded-[var(--radius-input)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-[15px] text-[var(--ink)]';
 
@@ -37,6 +38,7 @@ export function CreatePayLink() {
   const [error, setError] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [expiry, setExpiry] = useState<LinkExpiry>(DEFAULT_EXPIRY);
 
   const valid = amt.usdc !== null;
   const me = profile?.handle ? `@${profile.handle}` : address ? `${address.slice(0, 6)}…${address.slice(-4)}` : '';
@@ -47,9 +49,9 @@ export function CreatePayLink() {
     setBusy(true);
     setError(false);
     try {
-      const { request } = await api.createDepositRequest({ amountUsdc: amountUsdc, purpose: purpose.trim() || undefined, ttlMinutes: WEEK_MINUTES });
+      const { request } = await api.createDepositRequest({ amountUsdc: amountUsdc, purpose: purpose.trim() || undefined, ttlMinutes: expiryMinutes(expiry) });
       setUrl(`${window.location.origin}/deposit/request/${request.requestId}`);
-      setExpiresAt(request.expiresAt ?? Date.now() + WEEK_MINUTES * 60_000);
+      setExpiresAt(request.expiresAt ?? expiryAt(expiry));
     } catch {
       setError(true);
     } finally {
@@ -70,6 +72,7 @@ export function CreatePayLink() {
               setUrl(null);
               setAmount('');
               setPurpose('');
+              setExpiry(DEFAULT_EXPIRY);
             }}
             className="min-h-11 text-[14px] font-semibold text-[var(--ink-secondary)] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]"
           >
@@ -96,7 +99,7 @@ export function CreatePayLink() {
             <span className={LABEL}>{copy.paidTo}</span>
             <p className={FIELD}>{me ? `${copy.yourAccount} · ${me}` : copy.yourAccount}</p>
           </div>
-          <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{copy.lasts}</p>
+          <LinkExpiryChips value={expiry} onChange={setExpiry} disabled={busy} />
           {keypad ? <Keypad onKey={(key) => setAmount((typed) => pressKey(typed, key))} disabled={busy} label={entry.keypad} backLabel={entry.back} /> : null}
           {error ? <p role="alert" className="text-[14px] text-[var(--color-critical)]">{copy.error}</p> : null}
           <Button type="submit" size="lg" className="w-full" disabled={!valid} loading={busy} loadingLabel={copy.creating}>

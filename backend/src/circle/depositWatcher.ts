@@ -276,8 +276,8 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
   // exact amount. The request row also stores the provider transaction id
   // behind a unique constraint, so replays and concurrent deliveries cannot
   // assign one transfer twice. If the recipient has two identical requests,
-  // we deliberately leave both open for support to resolve rather than guess.
-  const matchedRequest = await matchDepositRequest({
+  // we deliberately leave both open rather than guess, and history says so.
+  const { request: matchedRequest, tied } = await matchDepositRequest({
     owner,
     amountUsdc,
     txId: n.id,
@@ -323,14 +323,17 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
   void appendActivity({
     address: owner,
     kind: 'deposit',
-    summary: `Deposited ${amountUsdc} USDC from ${originChain}`,
+    summary: tied > 1
+      ? `Deposited ${amountUsdc} USDC from ${originChain}. It fits ${tied} open payment requests, so none was marked paid`
+      : `Deposited ${amountUsdc} USDC from ${originChain}`,
     // Structured too, so the reader's locale decides the wording rather than
     // this file's English. The summary stays as the fallback. The chain name is
     // a proper noun and is not translated.
     params: {
-      t: 'depositCreditedFrom',
+      t: tied > 1 ? 'depositFitsRequests' : 'depositCreditedFrom',
       amount: amountUsdc,
       chain: originChain,
+      ...(tied > 1 ? { count: String(tied) } : {}),
       ...(matchedRequest ? { requestId: matchedRequest.token } : {}),
     },
     amountUsdc,
@@ -365,7 +368,13 @@ async function handleRequestReceipt(
 
   const originChain = friendlyChainName(n.blockchain);
   const applied = await recordRequestReceipt(target.token, { txId: n.id, amountUsdc, chain: originChain });
-  if (!applied || applied.outcome === 'duplicate') return;
+  if (!applied) {
+    // The address is indexed to a request whose row is gone, so nobody can be
+    // credited automatically. The money is on that receiving wallet.
+    logger.error({ token: target.token, walletId: target.walletId, amountUsdc, txId: n.id }, 'payment link money landed for a request with no record');
+    return;
+  }
+  if (applied.outcome === 'duplicate') return;
   const requester = applied.request.recipientAddress.toLowerCase();
 
   logger.info(

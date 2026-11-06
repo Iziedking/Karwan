@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createDepositRequest,
+  DEFAULT_LINK_TTL_MINUTES,
   expireDepositRequest,
+  linkTtlMinutes,
+  MAX_REQUEST_TTL_MINUTES,
+  pickDepositRequest,
   selectDepositRequest,
   toPublicRequest,
   usdcToMicros,
@@ -78,4 +82,34 @@ test('a request nobody has sent to yet carries no receiving fields', () => {
   const pub = toPublicRequest(createDepositRequest({ owner, amountUsdc: '5', now: 1_000 }), 2_000);
   assert.equal(pub.receiving, undefined);
   assert.equal(pub.payments, undefined);
+});
+
+test('a request can stay open for up to 90 days, and a link lasts 7 days unless the person picks', () => {
+  const DAY = 24 * 60;
+  assert.equal(MAX_REQUEST_TTL_MINUTES, 90 * DAY);
+  assert.equal(DEFAULT_LINK_TTL_MINUTES, 7 * DAY);
+  const ninety = createDepositRequest({ owner, ttlMinutes: 90 * DAY, now: 0 });
+  assert.equal(ninety.expiresAt, 90 * DAY * 60_000);
+  const tooLong = createDepositRequest({ owner, ttlMinutes: 400 * DAY, now: 0 });
+  assert.equal(tooLong.expiresAt, 90 * DAY * 60_000);
+});
+
+test('a payment that fits two open requests marks neither and says how many it fits', () => {
+  const a = createDepositRequest({ owner, amountUsdc: '100', now: 1_000 });
+  const b = createDepositRequest({ owner, amountUsdc: '100', now: 1_001 });
+  const c = createDepositRequest({ owner, amountUsdc: '40', now: 1_002 });
+  assert.deepEqual(pickDepositRequest([a, b, c], { amountUsdc: '100', now: 2_000 }), { request: null, tied: 2 });
+  assert.equal(pickDepositRequest([a, b, c], { amountUsdc: '40', now: 2_000 }).request?.token, c.token);
+  assert.deepEqual(pickDepositRequest([a, b, c], { amountUsdc: '7', now: 2_000 }), { request: null, tied: 0 });
+});
+
+test('an expiry asked for in words becomes minutes: a day count, a date, or the 7-day default', () => {
+  const now = Date.parse('2026-11-06T12:00:00Z');
+  assert.equal(linkTtlMinutes({}, now), 7 * 24 * 60);
+  assert.equal(linkTtlMinutes({ expiresInDays: 30 }, now), 30 * 24 * 60);
+  assert.equal(linkTtlMinutes({ expiresInMinutes: 90 }, now), 90);
+  // Until the end of 6 Feb 2027, UTC.
+  assert.equal(linkTtlMinutes({ expiresOn: '2027-02-06' }, now), Math.ceil((Date.parse('2027-02-06T23:59:59Z') - now) / 60_000));
+  assert.throws(() => linkTtlMinutes({ expiresOn: '2026-11-01' }, now), /future/);
+  assert.throws(() => linkTtlMinutes({ expiresOn: 'soon' }, now), /YYYY-MM-DD/);
 });

@@ -776,6 +776,7 @@ interface MessagesShape {
         cancelRefund: string;
         depositCredited: string;
         depositCreditedFrom: string;
+        depositFitsRequests: string;
         requestReceivedFrom: string;
         gatewayDeposit: string;
         gatewayFundAgent: string;
@@ -6055,6 +6056,7 @@ export const en: MessagesShape = {
         cancelRefund: 'Refunded {amount} USDC from a cancelled deal',
         depositCredited: 'Deposited {amount} USDC',
         depositCreditedFrom: 'Deposited {amount} USDC from {chain}',
+        depositFitsRequests: "Deposited {amount} USDC from {chain}. It fits {count} open requests, so none is marked paid",
         requestReceivedFrom: 'Payment request: {amount} USDC from {chain}',
         gatewayDeposit: 'Moved {amount} USDC from your {source} wallet into your balance',
         gatewayFundAgent: 'Added {amount} USDC to the {agent} trade account',
@@ -10498,7 +10500,7 @@ export const en: MessagesShape = {
       q9: { q: 'Where does the agent reasoning run?', a: 'Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes.' },
       q10: { q: "How does Karwan keep delivery safe?", a: "Every delivered link is checked for safety and checked against the agreed request. A delivery that fails either check pauses the payment. Checks cannot guarantee quality, so inspect the work before you release." },
       q11: { q: 'Can I bring my reputation from other platforms?', a: 'Not yet. Karwan is building this so your record from other platforms can count here, with your permission and without leaking your data. Today your reputation comes from completed Karwan deals.' },
-      q12: { q: "How do I get paid with a payment link?", a: "Create a link on Request and share it. The payer needs no account. They can pay from their Karwan balance, from a connected wallet, or with Send from any chain, which shows an address for EVM chains and one for Solana so they can pay from an exchange or any wallet. Money sent that way reaches your own address on Arc automatically. Sending less counts as part payment and the page shows what is left. Sending more marks the link paid and the extra is yours." },
+      q12: { q: "How do I get paid with a payment link?", a: "Create a link on Request and share it. The payer needs no account. They can pay from their Karwan balance, from a connected wallet, or with Send from any chain, which shows an address for EVM chains and one for Solana so they can pay from an exchange or any wallet. Money sent that way reaches your own address on Arc automatically. Sending less counts as part payment and the page shows what is left. Sending more marks the link paid and the extra is yours. A link works for 7 days unless you pick another length or a date, up to 90 days, and you can end it early from its page." },
       q13: { q: "Who sees where I am?", a: "Only your country shows on your record. Your city and area stay private: agents use them to match you with people near you and with buyers you can deliver to, and never show them to anyone. Delivery details are agreed in chat with the person you deal with." },
       q14: { q: "Can I message someone before a deal?", a: "Yes. Ask your agent to send a message to their Karwan tag, or open karwan.site/messages/their-tag. They get it in their Karwan chat with an alert on Telegram and by email, and see your tag, country and tier. When you agree, start a protected deal. Keep payment in Karwan escrow and never pay outside it. Messages are kept 14 days." },
       q15: { q: "How do ratings work?", a: "After a deal settles, you and the other person each rate it from 1 to 5, with a note if you like. Neither of you sees the other's rating until you both rate or 14 days pass. Your public rating is the average with how many ratings it comes from, for example 4.8 from 23 deals; under 3 ratings it shows New. Ratings close 14 days after the deal settles. Ratings from disputed deals are counted beside the number, for example 3.7 from 3 deals, 2 disputed. A note with a phone number, an email or a link is kept private. Your rating is separate from your reputation score." },

@@ -112,6 +112,42 @@ test('any signed-in account creates a link that lasts a week', async ({ page }) 
   expect(created).toEqual({ amountUsdc: '10', purpose: 'Logo, first draft', ttlMinutes: 7 * 24 * 60 });
 });
 
+test('the requester picks how long the link works, up to 90 days', async ({ page }) => {
+  let created: unknown = null;
+  await mockApi(page, { signedInAs: BUYER, onCreate: (body) => (created = body) });
+  await page.goto('/request');
+  const expiry = page.getByRole('group', { name: copy.create.expiresLabel });
+  await expect(expiry.getByRole('button', { name: new RegExp(copy.create.days7) })).toHaveAttribute('aria-pressed', 'true');
+  await expiry.getByRole('button', { name: new RegExp(copy.create.days30) }).click();
+  await expect(expiry.getByRole('button', { name: new RegExp(copy.create.days30) })).toHaveAttribute('aria-pressed', 'true');
+  const calendar = expiry.getByLabel(copy.create.pickDate);
+  await expect(calendar).toHaveAttribute('max', /^\d{4}-\d{2}-\d{2}$/);
+  await page.getByPlaceholder('0').fill('10');
+  await page.getByRole('button', { name: copy.create.create }).click();
+  await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
+  expect(created).toEqual({ amountUsdc: '10', purpose: undefined, ttlMinutes: 30 * 24 * 60 });
+});
+
+test('the requester can end an open request, after one confirm', async ({ page }) => {
+  let state: Record<string, unknown> = { ...openRequest };
+  let cancelled = 0;
+  await mockApi(page, { signedInAs: SELLER, request: () => state });
+  // Added after the catch-all, so it answers first.
+  await page.route(`${API}/api/deposit/requests/${TOKEN}/cancel`, (route) => {
+    cancelled += 1;
+    state = { ...openRequest, status: 'cancelled' };
+    return route.fulfill({ json: { request: state } });
+  });
+  await page.goto(`/deposit/request/${TOKEN}`);
+  await page.getByRole('button', { name: copy.pay.endRequest }).click();
+  await expect(page.getByRole('heading', { name: copy.pay.endTitle })).toBeVisible();
+  await expect(page.getByText(copy.pay.endNote)).toBeVisible();
+  await page.getByTestId('facts-confirm').click();
+  await expect(page.getByText(copy.pay.cancelled)).toBeVisible();
+  await expect(page.getByRole('button', { name: copy.pay.endRequest })).toHaveCount(0);
+  expect(cancelled).toBe(1);
+});
+
 test('no wallet: the exchange route is a small link under the wallet button', async ({ page }) => {
   await mockApi(page);
   await page.goto(`/deposit/request/${TOKEN}`);
