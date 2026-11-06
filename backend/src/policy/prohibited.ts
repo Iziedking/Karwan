@@ -77,7 +77,7 @@ export function prohibitedReason(...texts: Array<string | undefined | null>): Pr
 /// titles, briefs, terms and term drafts alike without naming each field.
 export function textFields(value: unknown, out: string[] = [], depth = 0): string[] {
   if (depth > 6) return out;
-  if (typeof value === 'string') out.push(value);
+  if (typeof value === 'string') { if (!value.startsWith('data:')) out.push(value); }
   else if (Array.isArray(value)) for (const v of value) textFields(v, out, depth + 1);
   else if (value && typeof value === 'object') for (const v of Object.values(value)) textFields(v, out, depth + 1);
   return out;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { prohibitedBody, prohibitedReason } from './prohibited.js';
+import { prohibitedBody, prohibitedReason, textFields } from './prohibited.js';
 
 const caught: Array<[string, string]> = [
   ['who sells outlier account', 'account-resale'],
@@ -76,4 +76,9 @@ test('a write is refused from any text field, nested ones included', () => {
   assert.equal(refused?.code, 'PROHIBITED_TRADE');
   assert.equal(refused?.category, 'fake-engagement');
   assert.equal(prohibitedBody({ title: 'Logo design', description: 'Three concepts', askingPriceUsdc: 150 }), null);
+});
+
+test('file data in a body is not read as words, but its file name is (view 56)', () => {
+  const fields = textFields({ brief: 'A logo', attachments: [{ name: 'quote.pdf', dataUrl: 'data:application/pdf;base64,JVBERi0xLjc=' }] });
+  assert.deepEqual(fields, ['A logo', 'quote.pdf']);
 });

@@ -194,6 +194,8 @@ export interface BuyerJob {
   /// Human-readable brief text from the off-chain store. Null when the brief
   /// record was lost (eg flat-file wiped) but the on-chain job still exists.
   briefText?: string | null;
+  /// Photos or PDFs posted with it (view 56).
+  attachments?: Array<{ name: string; contentType: string }>;
   /// How many the request asks for, read when it was posted (view 41).
   quantity?: { count: number; unit: string | null } | null;
   keywords?: string[] | null;
@@ -955,6 +957,8 @@ export interface DirectDeal {
   }>;
   /// Photos with the latest delivery, served to the two sides only.
   deliveryPhotos?: { revision: number; count: number };
+  /// Photos or PDFs added when the deal was made (view 56), read one at a time with the session.
+  attachments?: { items: Array<{ name: string; contentType: string }> };
   /// Security Agent verdict on the delivery proof links. When 'suspicious' or
   /// 'malicious', the backend withholds deliveryProof from the buyer's view
   /// until cleared; verificationReasons explains why in plain language.
@@ -3118,7 +3122,7 @@ export const api = {
       count: number;
       offers: Offer[];
       role: 'buyer' | 'seller' | 'visitor';
-      request: { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null; state?: RequestMarketState } | null;
+      request: { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null; state?: RequestMarketState; attachments?: Array<{ name: string; contentType: string }> } | null;
       /// Every offer on the request, for everyone (view 53).
       public?: OpenOffer[];
       /// Who posted the request, when their passport is public.
@@ -3920,6 +3924,8 @@ export const api = {
         kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
         label?: string;
       }>;
+      /// Photos or PDFs that go with the request (view 56), up to four.
+      attachments?: Array<{ name: string; dataUrl: string }>;
     } & ({ deadlineSeconds: number } | { deadlineDays: number }),
   ) =>
     json<{ jobId: string; deadlineUnix: number; txHash?: string }>(
@@ -4602,6 +4608,8 @@ export const api = {
       kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
       label?: string;
     }>;
+    /// Photos or PDFs both sides see (view 56), up to four.
+    attachments?: Array<{ name: string; dataUrl: string }>;
     sourceContext?: TradeSourceContext;
     verificationPolicy?: 'standard' | 'high_signal';
     verificationSubject?: 'buyer' | 'seller' | 'both';

@@ -143,6 +143,7 @@ import { MAX_DELIVERY_PHOTOS, PHOTO_REQUIRED_ABOVE_USDC, deliveryFingerprint, de
 import { checkHandoverCode, issueHandoverCode } from '../deals/handoverCode.js';
 import { deliveryPhotoId, deliveryPhotos } from '../deals/deliveryPhotos.js';
 import { decodePhotoDataUrl, type Photo } from '../listings/photos.js';
+import { attachmentHeaders, dealAttachments, decodeAttachments } from '../attachments/attachments.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { getListing, setListingOrder, type Listing } from '../db/listings.js';
 import { agentMayAccept, holdsOneOrderAtATime, listingHeldByOrder, listingOrderMatches } from '../deals/listingOrder.js';
@@ -701,6 +702,9 @@ dealsRoutes.post('/direct', async (c) => {
     dealAmountUsdc: body.dealAmountUsdc.toString(),
     terms: body.terms,
   });
+  const attached = body.attachments?.length ? decodeAttachments(body.attachments) : [];
+  if ('error' in attached) return c.json({ error: attached.error, code: 'attachment-invalid' }, 400);
+  const attachments = attached.length ? dealAttachments.save(attached, Date.now()) : undefined;
   const deal = await createDeal({
     jobId,
     buyer: body.buyerAddress,
@@ -728,6 +732,7 @@ dealsRoutes.post('/direct', async (c) => {
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
     documentRefs: body.documentRefs,
+    ...(attachments ? { attachments } : {}),
     sourceContext: body.sourceContext,
     ...requested,
     ...protection,
@@ -3553,6 +3558,21 @@ dealsRoutes.post('/direct/:jobId/handover-code', async (c) => {
   const { code, record } = issueHandoverCode(jobId, Date.now());
   await patchDeal(jobId, { handover: record });
   return c.json({ code, issuedAt: record.issuedAt }, 200);
+});
+
+/// A photo or PDF added when the deal was made (view 56), for the two sides only.
+dealsRoutes.get('/direct/:jobId/attachments/:n', async (c) => {
+  const deal = await getDeal(c.req.param('jobId'));
+  const n = Number(c.req.param('n'));
+  const meta = deal?.attachments?.items[n];
+  if (!deal?.attachments || !meta) return c.json({ error: 'not found' }, 404);
+  const caller = sessionAddress(c);
+  if (!caller || ![deal.buyer.toLowerCase(), deal.seller.toLowerCase()].includes(caller.toLowerCase())) {
+    return c.json({ error: 'only the two sides of the deal see this' }, 403);
+  }
+  const file = dealAttachments.read(deal.attachments.folder, n);
+  if (!file) return c.json({ error: 'not found' }, 404);
+  return new Response(Buffer.from(file.bytes), { headers: attachmentHeaders(meta) });
 });
 
 /// A photo from a delivery, for the two sides of the deal only.

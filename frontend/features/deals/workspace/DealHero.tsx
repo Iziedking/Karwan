@@ -32,6 +32,7 @@ import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
 import { DealLatest, DealTimeline } from './DealTimeline';
 import { DisputePanel } from './DisputePanel';
 import { DeliveryCard } from './DeliveryCard';
+import { AttachmentList } from '@/features/attachments/AttachmentList';
 import { BuyerPodPanel } from '@/features/trade/components/BuyerPodPanel';
 import { HandoverCode } from './HandoverCode';
 import { RecordNudge } from './RecordNudge';
@@ -309,7 +310,12 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       case 'getPaid':
         return <GetPaidNow deal={deal} viewerIsSeller={isSeller} onChanged={onChanged} />;
       case 'agreement':
-        return <AgreementSection bare deal={deal} />;
+        return (
+          <div className="space-y-5">
+            <AgreementSection bare deal={deal} />
+            <AttachmentList on="deal" jobId={deal.jobId} items={deal.attachments?.items} />
+          </div>
+        );
       case 'receipts':
         return (
           <SettlementRecord

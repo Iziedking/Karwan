@@ -1,3 +1,4 @@
+import { ATTACHMENT_DATA_URL_MAX, MAX_ATTACHMENTS, attachmentHeaders, attachmentList, decodeAttachments, requestAttachments } from '../attachments/attachments.js';
 import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono, type Context } from 'hono';
@@ -188,6 +189,11 @@ const postJobSchema = z
         }),
       )
       .max(20)
+      .optional(),
+    /// Photos or PDFs that go with the request (view 56), up to four.
+    attachments: z
+      .array(z.object({ name: z.string().max(200), dataUrl: z.string().max(ATTACHMENT_DATA_URL_MAX) }))
+      .max(MAX_ATTACHMENTS)
       .optional(),
   })
   .refine((b) => b.deadlineDays != null || b.deadlineSeconds != null, {
@@ -385,6 +391,7 @@ jobsRoutes.get('/:jobId', async (c) => {
     paymentTerms: brief?.paymentTerms ?? null,
     sourcingSector: brief?.counterpartyCompany?.sector ?? null,
     sourcingRegion: brief?.counterpartyCompany?.region ?? null,
+    attachments: attachmentList(brief?.attachments),
   });
 });
 
@@ -487,6 +494,9 @@ ${body.terms}` : body.brief));
   // A request confirmed from an assistant card carries its conversation and
   // the Agree for me choice made there.
   const link = takeRequestLink(body.posterAddress, body.brief, body.budgetUsdc);
+  const attached = body.attachments?.length ? decodeAttachments(body.attachments) : [];
+  if ('error' in attached) return c.json({ error: attached.error, code: 'attachment-invalid' }, 400);
+  const attachments = attached.length ? requestAttachments.save(attached, Date.now()) : undefined;
   createBrief({
     jobId,
     briefText: body.brief,
@@ -507,6 +517,7 @@ ${body.terms}` : body.brief));
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
     documentRefs: body.documentRefs,
+    ...(attachments ? { attachments } : {}),
     ...(link?.conversationId ? { conversationId: link.conversationId } : {}),
     ...(body.agreeForMe ?? link?.agreeForMe ? { agreeForMe: true } : {}),
   });
@@ -566,6 +577,29 @@ ${body.terms}` : body.brief));
 
 /// The agent has reached agreement with a seller and is awaiting human approval
 /// before touching the chain. Returns the pending match, or null if there is none.
+/// One photo or PDF posted with a request (view 56), for whoever may read the
+/// request: anyone on the market; for a private one, the buyer and a seller who
+/// offered on it, the same rule as its words.
+jobsRoutes.get('/:jobId/attachments/:n', async (c) => {
+  const jobId = c.req.param('jobId');
+  const brief = getBrief(jobId);
+  const n = Number(c.req.param('n'));
+  const meta = brief?.attachments?.items[n];
+  if (!brief?.attachments || !meta) return c.json({ error: 'not found' }, 404);
+  if (brief.visibility === 'agents') {
+    const caller = viewerAddress(c);
+    const offered = caller
+      ? caller === brief.postedBy.toLowerCase() ||
+        (await listDirectOffers(jobId)).some((o) => o.sellerUser.toLowerCase() === caller) ||
+        (getBuyerJob(jobId)?.bids ?? []).some((b) => b.sellerUserAddress?.toLowerCase() === caller)
+      : false;
+    if (!offered) return c.json({ error: 'only the buyer and sellers who offered see this' }, 403);
+  }
+  const file = requestAttachments.read(brief.attachments.folder, n);
+  if (!file) return c.json({ error: 'not found' }, 404);
+  return c.body(Buffer.from(file.bytes), 200, attachmentHeaders(meta));
+});
+
 jobsRoutes.get('/:jobId/match', async (c) => {
   const jobId = c.req.param('jobId');
   const proposal = await getMatchProposal(jobId);

@@ -3,7 +3,7 @@ import {
   Activity, ArrowDown, ArrowDownLeft, ArrowLeft, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
   ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, Copy, CornerDownLeft, FileText, Globe,
   GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
-  Package, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
+  Package, Paperclip, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
   BadgeCheck, KeyRound, ShieldCheck, Sofa, Sprout, Utensils, Wrench,
 } from 'lucide-react';
 
@@ -25,6 +25,7 @@ const icons = {
   copy: Copy,
   'file-text': FileText,
   'image-plus': ImagePlus,
+  paperclip: Paperclip,
   plus: Plus,
   globe: Globe,
   link: Link,

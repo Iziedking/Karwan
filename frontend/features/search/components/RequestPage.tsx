@@ -21,6 +21,7 @@ import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { requestTitle } from '../requestTitle';
 import { refreshKey, requestView, type RequestView } from '../requestView';
 import { MatchPanel } from './MatchPanel';
+import { AttachmentList } from '@/features/attachments/AttachmentList';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 type StateKeys = keyof ReturnType<typeof useTranslations>['search']['request']['states'];
@@ -123,6 +124,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
           {quantityLine(rp, job.quantity, job.budgetUsdc) ? (
             <p className="text-[15px] tabular-nums text-[var(--ink-secondary)]">{quantityLine(rp, job.quantity, job.budgetUsdc)}</p>
           ) : null}
+          <AttachmentList on="request" jobId={job.jobId} items={job.attachments} className="pt-2" />
         </header>
 
         <section aria-labelledby="request-status" className="space-y-4">

@@ -1,4 +1,5 @@
 'use client';
+import { AttachmentList } from '@/features/attachments/AttachmentList';
 import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -80,6 +81,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
         {title}
       </h1>
       {body ? <p dir="auto" className="mt-3 text-[16px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p> : null}
+      <AttachmentList on="request" jobId={jobId} items={view.request.attachments} className="mt-4" />
 
       <dl className="mt-8 divide-y divide-[var(--lp-border-light)] rounded-[20px] bg-[var(--lp-card)] px-6">
         {view.poster ? (

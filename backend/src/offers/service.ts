@@ -13,6 +13,7 @@ import {
 import { getRecord, putRecord } from '../db/evidence.js';
 import { MAX_OFFER_REVISIONS } from '../agents/sellerPricing.js';
 import { getBrief } from '../db/briefs.js';
+import { attachmentList } from '../attachments/attachments.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import {
   deleteMatchProposal,
@@ -52,6 +53,8 @@ export type PublicRequest = {
   bids?: Array<{ sellerUser: string | null; priceUsdc: string; deadlineUnix: number }>;
   /// A private request (view 53): only the buyer and sellers who offered see it.
   visibility?: 'market' | 'agents';
+  /// Photos or PDFs posted with it (view 56), read one at a time from their own links.
+  attachments?: Array<{ name: string; contentType: string }>;
 };
 /// One offer on a request as anyone may read it (view 53): the seller by name,
 /// never an address, and no scores, counters or leeway.
@@ -118,7 +121,7 @@ export const defaultDeps: OfferDeps = {
   publicRequest: async (jobId) => {
     const b = await publicRequestOf(jobId);
     return b
-      ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null, state: b.state, chosenSeller: b.chosenSeller, bids: b.bids, visibility: b.visibility }
+      ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null, state: b.state, chosenSeller: b.chosenSeller, bids: b.bids, visibility: b.visibility, attachments: attachmentList(getBrief(jobId)?.attachments) }
       : null;
   },
   sellerSummaries: liveSellerSummaries,

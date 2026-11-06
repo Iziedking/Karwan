@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { en } from '../shared/i18n/messages/en';
 import { TERMS_COPY } from '../features/deals/terms/termsCopy';
 import { API, ME, funded, serveMoney } from './moneyFixtures';
+import { attachCopy } from '../shared/i18n/messages/attachCopy';
 
 const rs = en.dealCreation.requestSteps;
 const DAY_S = 86_400;
@@ -214,6 +215,63 @@ test('a direct deal names the seller in one box, and what was agreed in words be
   const agreement = String((posted as unknown as { terms: string }).terms);
   expect(agreement).toContain('• Milestone 1, 40% (80 USDC): Product photos for the first 10 items');
   expect(agreement).toContain('• Milestone 3, 20% (40 USDC): Edited set in one folder');
+});
+
+const PDF = { name: 'quote.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.7 sample quote') };
+
+test('a request takes photos or PDFs with one attach button; review lists them and they go with the request (view 56)', async ({ page }) => {
+  await signedInBuyer(page);
+  let posted: Record<string, unknown> | null = null;
+  await page.route(`${API}/api/jobs`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posted = route.request().postDataJSON();
+    return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
+  });
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ status: 503, json: { error: 'down' } }));
+  const at = attachCopy.en;
+  await page.goto('/buyer?mode=managed');
+  await page.locator('textarea[data-guide="buyer-brief"]').fill('Shelves for my shop, like the quote attached.');
+  await page.locator('input[data-guide="buyer-budget"]').fill('300');
+  await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
+  await expect(page.getByText(at.hintRequest, { exact: true })).toBeVisible();
+  await page.locator('[data-attach] input[type="file"]').setInputFiles(PDF);
+  await expect(page.locator('[data-attach]').getByText('quote.pdf')).toBeVisible();
+  // A file that is neither a photo nor a PDF is refused on the device.
+  await page.locator('[data-attach] input[type="file"]').setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+  await expect(page.locator('[data-attach] [role="alert"]')).toHaveText(at.notAllowed);
+  const post = page.locator('button[data-guide="buyer-submit"]');
+  await post.click();
+  await expect(page.getByRole('region').locator('dd').filter({ hasText: 'quote.pdf' }).first()).toBeVisible();
+  await post.click();
+  await expect.poll(() => posted).not.toBeNull();
+  const sent = (posted as unknown as { attachments: Array<{ name: string; dataUrl: string }> }).attachments;
+  expect(sent).toHaveLength(1);
+  expect(sent[0]!.name).toBe('quote.pdf');
+  expect(sent[0]!.dataUrl).toMatch(/^data:application\/pdf;base64,JVBERi0/);
+});
+
+test('a direct deal takes the same attach button, and only the two sides are told they see it', async ({ page }) => {
+  await signedInBuyer(page);
+  let posted: Record<string, unknown> | null = null;
+  await page.route(`${API}/api/deals/direct`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posted = route.request().postDataJSON();
+    return route.fulfill({ status: 500, json: { error: 'stop here' } });
+  });
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ status: 503, json: { error: 'down' } }));
+  await page.goto('/buyer?mode=direct');
+  await page.getByRole('button', { name: new RegExp(`^${en.requestFlow.kinds.one}`) }).click();
+  await page.getByLabel(en.directDeal.counterparty.oneBoxLabel).fill('0x3333333333333333333333333333333333333333');
+  await page.locator('[data-money-input]').first().fill('200');
+  await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
+  await page.getByLabel(en.editDealModal.deliverLabel, { exact: true }).fill('Ten product photos on a white background.');
+  await expect(page.getByText(attachCopy.en.hintDeal, { exact: true })).toBeVisible();
+  await page.locator('[data-attach] input[type="file"]').setInputFiles(PDF);
+  await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
+  await expect(page.getByRole('region').getByText('quote.pdf')).toBeVisible();
+  await page.getByRole('button', { name: rs.sendTo.replace('{name}', '0x3333…3333'), exact: true }).click();
+  await expect.poll(() => posted).not.toBeNull();
+  expect((posted as unknown as { attachments: Array<{ name: string }> }).attachments.map((a) => a.name)).toEqual(['quote.pdf']);
 });
 
 test('a person can open a goods deal handed over in person, and By the hour opens the hourly form (view 32)', async ({ page }) => {

@@ -38,6 +38,9 @@ import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
 import { requestFunding } from '../requestFunding';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
+import { AttachField } from '@/features/attachments/AttachField';
+import type { PickedAttachment } from '@/features/attachments/attachments';
+import { attachCopy } from '@/shared/i18n/messages/attachCopy';
 import { WhoCanSee, visibilityOf, type WhoCanSeeChoice } from '@/features/market/components/WhoCanSee';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
@@ -285,6 +288,7 @@ export function PostJobForm() {
   const [submitting, setSubmitting] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [drafted, setDrafted] = useState(false);
+  const [attachments, setAttachments] = useState<PickedAttachment[]>([]);
   const [fits, setFits] = useState<Awaited<ReturnType<typeof api.dealFits>> | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -381,6 +385,7 @@ export function PostJobForm() {
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
         counterpartyCompany: tradeType !== 'service' ? sourcingProfile : undefined,
         documentRefs: documentRefs.length > 0 ? documentRefs : undefined,
+        attachments: attachments.length > 0 ? attachments.map(({ name, dataUrl }) => ({ name, dataUrl })) : undefined,
       });
       sfx.send();
       recordAction('post-job');
@@ -523,6 +528,9 @@ export function PostJobForm() {
             className="form-input form-textarea"
           />
         </FormLabel>
+        <div className="mt-4">
+          <AttachField on="request" value={attachments} onChange={setAttachments} disabled={submitting} />
+        </div>
       </div>
 
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
@@ -811,6 +819,7 @@ export function PostJobForm() {
         { label: c.safeguards, value: trustedMatch ? c.securityHelp : c.none },
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
+        ...(attachments.length ? [{ label: attachCopy[locale].reviewRow, value: attachments.map((a) => a.name).join('\n') }] : []),
       ]}>
         {fits && fits.count > 0 ? (
           <div data-already-fit className="mb-3 rounded-xl border border-[var(--line)] p-3">

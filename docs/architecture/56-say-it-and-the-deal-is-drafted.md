@@ -117,6 +117,6 @@ Hourly and recurring deals (T1.2 later), changing a deal after it is sent (today
 | This view | Approved 6 Nov 2026 |
 | Shared drafter and its endpoint | Built |
 | One screen for request, offer and direct deal | Built: each drafts its parts on Review; Pay in parts shows only once there are parts |
-| Attach on requests and direct deals | Not started (offers already have photos) |
+| Attach on requests and direct deals | Built: one Attach button for up to 4 photos or PDFs (a PDF up to 4 MB, 6 MB together), read by their bytes; a request's are seen by whoever can read the request, a deal's by the two sides only. The assistant does not yet hold them for a request or deal |
 | Market check before posting | Built: Review on the request form and the assistant's post request name the open offers asking no more than the budget whose title words the request says, up to three, best first; the person's own, private and example offers never count |
 | Assistant tools on the drafter | Built: post request and post offer cards carry the drafted parts; a direct deal splits by the stages its words name when no split was given (rules only) |

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MAX_REVIEW_DAYS } from './reviewClock.js';
+import { ATTACHMENT_DATA_URL_MAX, MAX_ATTACHMENTS } from '../attachments/attachments.js';
 
 /// What a direct deal is made of, in one place: POST /api/deals/direct
 /// validates with it, and so does the assistant before it shows a deal card
@@ -94,6 +95,11 @@ export const createSchema = z
         }),
       )
       .max(20)
+      .optional(),
+    /// Photos or PDFs both sides see (view 56), up to four.
+    attachments: z
+      .array(z.object({ name: z.string().max(200), dataUrl: z.string().max(ATTACHMENT_DATA_URL_MAX) }))
+      .max(MAX_ATTACHMENTS)
       .optional(),
     sourceContext: z
       .object({

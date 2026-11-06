@@ -22,6 +22,9 @@ import { composeTerms, termsIssues, type TermsDraft } from '../terms/composeTerm
 import { TERMS_COPY } from '../terms/termsCopy';
 import { DueChips } from './DueChips';
 import { CreationReview } from './CreationReview';
+import { AttachField } from '@/features/attachments/AttachField';
+import type { PickedAttachment } from '@/features/attachments/attachments';
+import { attachCopy } from '@/shared/i18n/messages/attachCopy';
 import { FoldRow } from './FoldRow';
 import { Button } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
@@ -175,6 +178,7 @@ export function DirectDealForm() {
   const [inParts, setInParts] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [drafted, setDrafted] = useState(false);
+  const [attachments, setAttachments] = useState<PickedAttachment[]>([]);
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [terms, setTerms] = useState<TermsDraft>(() =>
@@ -474,6 +478,7 @@ export function DirectDealForm() {
         paymentTerms: isBusiness && tradeType !== 'service' ? paymentTerms : undefined,
         counterpartyCompany: isBusiness && tradeType !== 'service' ? counterpartyCompany : undefined,
         documentRefs: documentRefs.length > 0 ? documentRefs : undefined,
+        attachments: attachments.length > 0 ? attachments.map(({ name, dataUrl }) => ({ name, dataUrl })) : undefined,
         sourceContext: {
           channel: sourceChannel,
           ...(sourceReference ? { reference: sourceReference } : {}),
@@ -622,6 +627,8 @@ export function DirectDealForm() {
           />
         </FormLabel>
       )}
+
+      <AttachField on="deal" value={attachments} onChange={setAttachments} disabled={submitting} />
 
       <div className="space-y-2">
         <p className="text-[14px] font-medium text-[var(--ink)]">{wf.whatItIs}</p>
@@ -906,6 +913,7 @@ export function DirectDealForm() {
         },
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companyName, companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
+        ...(attachments.length ? [{ label: attachCopy[locale].reviewRow, value: attachments.map((a) => a.name).join('\n') }] : []),
       ]}>
         {drafted ? <p data-drafted className="mb-2 text-[var(--ink-secondary)]">{rf.drafted}</p> : null}
         <p>{c.directNext}</p>

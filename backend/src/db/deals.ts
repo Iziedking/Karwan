@@ -6,6 +6,7 @@ import { db, pgEnabled, withPostgresTransaction } from './client.js';
 import { directDeals } from './schema.js';
 import type { DisputeStatement, JudgeProposal } from '../deals/disputeJudge.js';
 import { agreementDigest } from '../deals/agreementDigest.js';
+import type { AttachmentSet } from '../attachments/attachments.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'direct-deals.json');
 
@@ -603,6 +604,8 @@ export interface DirectDeal {
     /// paying for a container they have not seen.
     arrivedAt?: number;
   };
+  /// Photos or PDFs added when the deal was made (view 56), for the two sides only.
+  attachments?: AttachmentSet;
   /// Document hashes anchored on KarwanInvoiceRegistry. Mirror of on-chain
   /// state for fast UI render; chain is the source of truth on tie.
   documentRefs?: Array<{

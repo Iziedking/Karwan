@@ -7,6 +7,7 @@
 import type { DeliveryKind, Where } from '../location/rules.js';
 import type { Quantity } from '../llm/quantity.js';
 import type { ShortlistEntry } from '../agents/shortlist.js';
+import type { AttachmentSet } from '../attachments/attachments.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
@@ -50,6 +51,8 @@ export interface Brief {
   /// one-shot deals where the buyer can't redo the trade if the seller is a
   /// no-show. Defaults to false (Normal mode).
   trustedMatch?: boolean;
+  /// Photos or PDFs posted with it (view 56).
+  attachments?: AttachmentSet;
   /// Who can see it (view 53): on the market (absent) or only to agents.
   visibility?: 'market' | 'agents';
   /// Match lane this brief belongs to. 'service' is the single-service P2P
