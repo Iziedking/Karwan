@@ -38,7 +38,7 @@ These live in `deliveryReview.ts`.
 
 - **What can be reviewed.** Only a delivered, open deal whose current delivery is held, either suspicious or malicious. Every decision needs a written reason.
 - **Suspicious link.** One decision clears it.
-- **Malicious link.** It needs both credentials, the support token and the admin token, in either order. One credential cannot decide twice. Either reviewer saying "unsafe" ends the review with the link blocked.
+- **Malicious link.** It needs two reviews from two people, in either order: the desk owner, and another member with the support page (view 64). One person cannot decide twice. Either reviewer saying "unsafe" ends the review with the link blocked.
 - **Which delivery.** A review belongs to one delivery revision. A new delivery is scanned afresh and starts a new review.
 
 ## Clearing a link
@@ -57,12 +57,11 @@ Nothing changes for the money. The seller is told in the deal chat to send a new
 
 The buyer and seller see only where the check stands: `checking`, `safe` or `unsafe`. They never see the reviewers' notes or which credential decided; the deal response drops the record and sends `deliveryReviewState` from `reviewForParty` instead.
 
-The audit trail is the review record kept on the deal (each step's credential, decision, reason and time), the line in the deal chat, and the server log. There is no separate admin audit log.
+The audit trail is the review record kept on the deal (each step's role, decision, reason and time), the line in the deal chat, the server log, and the desk's change log, which names the member behind each step (view 64).
 
 ## Limits
 
-- The two credentials stand for roles, not named people. Whoever holds both tokens can clear a malicious link alone.
-- Named operator accounts for support would close that gap.
+- The two reviews stand for roles: the owner reviews as admin, every other member as support. So a malicious link always needs the owner and one other member.
 
 ## On the escrow family (found on testnet, 27 Oct 2026)
 

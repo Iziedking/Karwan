@@ -32,6 +32,7 @@ adminDeskRoutes.post('/session', rateLimit({ windowMs: 60_000, max: 10, name: 'a
     return refuse('That email and password do not match a desk member.', 401);
   }
   const member = result.member;
+  if (!member) return refuse('That email and password do not match a desk member.', 401);
   if (!member.deskOwner && !(member.deskPages ?? []).length) return refuse('The owner has not given you any desk pages.', 403);
 
   const { token, expiresAt } = mintDeskSession(member, deskSecret(), Date.now());
@@ -111,7 +112,7 @@ adminDeskRoutes.post('/keys', requireAdmin, async (c) => {
 
 adminDeskRoutes.delete('/keys/:id', requireAdmin, async (c) => {
   const p = deskPrincipal(c)!;
-  const key = await adminDeskStore().getKey(c.req.param('id'));
+  const key = await adminDeskStore().getKey(c.req.param('id') ?? '');
   if (!key || (!p.owner && key.memberId !== p.memberId)) return c.json({ error: 'No such key.' }, 404);
   const ended = await adminDeskStore().revokeKey(key.id, Date.now());
   return c.json({ key: ended ? toKeyView(ended) : null });

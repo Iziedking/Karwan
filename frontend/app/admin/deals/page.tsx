@@ -75,18 +75,17 @@ export default function AdminDeals() {
   }
 
   async function release(jobId: string) {
-    const ok = await confirm({
-      title: 'Force-release milestone',
-      message: 'Release the next milestone on this deal? This moves real USDC.',
-      confirmLabel: 'Release',
-      danger: true,
+    const reason = await prompt({
+      title: 'Ask to release the next milestone',
+      message: 'This pays the seller real USDC. Nothing moves until a second member approves it on Approvals.',
+      placeholder: 'Why it needs releasing',
+      confirmLabel: 'Ask for approval',
     });
-    if (!ok) return;
+    if (!reason?.trim()) return;
     setBusy(jobId);
     try {
-      const r = await api.adminReleaseDeal(jobId);
-      await reload();
-      notify(r.settled ? 'Released and settled' : `Released milestone ${r.milestoneIndex}`);
+      await api.adminReleaseDeal(jobId, reason.trim());
+      notify('Sent for approval. A second member approves it on Approvals.');
     } catch (e) {
       notify(e instanceof Error ? e.message : 'Release failed', 'error');
     } finally {

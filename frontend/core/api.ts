@@ -2452,6 +2452,36 @@ export interface AdminDeskKey {
   revokedAt: number | null;
 }
 
+/// A money or chain move waiting for a second member (view 64).
+export interface AdminMoneyRequest {
+  id: string;
+  action: string;
+  label: string;
+  method: string;
+  path: string;
+  query: string;
+  body: unknown;
+  reason: string;
+  requestedBy: { memberId: string; email: string | null; name: string | null };
+  requestedAt: number;
+  expiresAt: number;
+  snapshot: unknown;
+  status: 'pending' | 'running' | 'done' | 'failed' | 'refused' | 'cancelled' | 'expired';
+  approvedBy?: { memberId: string; email: string | null; name: string | null };
+  decidedAt?: number;
+  result?: { status: number; body: unknown };
+}
+
+export interface AdminMoneyRequestAnswer {
+  request: AdminMoneyRequest;
+  note: string;
+}
+
+/// The reason a money move is asked for, as the header carries it.
+export function deskReasonHeader(reason: string): Record<string, string> {
+  return { 'x-desk-reason': encodeURIComponent(reason) };
+}
+
 export interface AdminDeskAction {
   id: string;
   at: number;
@@ -3541,11 +3571,16 @@ export const api = {
       headers: adminHeaders(),
       body: JSON.stringify({ additionalSeconds }),
     }),
-  adminReleaseDeal: (jobId: string) =>
-    json<{ ok: true; txHash: string; settled: boolean; milestoneIndex: number }>(
-      `/api/admin/deals/${jobId}/release`,
-      { method: 'POST', headers: adminHeaders() },
-    ),
+  adminReleaseDeal: (jobId: string, reason: string) =>
+    json<AdminMoneyRequestAnswer>(`/api/admin/deals/${jobId}/release`, {
+      method: 'POST',
+      headers: { ...adminHeaders(), 'x-desk-reason': encodeURIComponent(reason) },
+    }),
+  adminMoneyRequests: () => json<{ requests: AdminMoneyRequest[] }>('/api/admin/requests', { headers: adminHeaders() }),
+  adminApproveRequest: (id: string) =>
+    json<{ request: AdminMoneyRequest }>(`/api/admin/requests/${encodeURIComponent(id)}/approve`, { method: 'POST', headers: adminHeaders() }),
+  adminWithdrawRequest: (id: string) =>
+    json<{ request: AdminMoneyRequest }>(`/api/admin/requests/${encodeURIComponent(id)}/cancel`, { method: 'POST', headers: adminHeaders() }),
   adminSetBusiness: (address: string, status: 'none' | 'submitted' | 'verified' | 'rejected') =>
     json<{ ok: true; status: string; accountType: string }>(
       `/api/admin/profiles/${address}/business`,

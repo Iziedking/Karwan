@@ -315,6 +315,8 @@ import { createCorrelationMiddleware } from './observability/correlationMiddlewa
 import { requireAdmin } from './middleware/adminAuth.js';
 import { requireAccessPass } from './middleware/accessPass.js';
 import { adminDeskRoutes } from './routes/adminDesk.js';
+import { setDeskReplay } from './middleware/twoPeople.js';
+import { adminRequestRoutes } from './routes/adminRequests.js';
 import { buildOperatorRouteCatalog } from './ops/routeCatalog.js';
 
 const app = new Hono();
@@ -530,6 +532,9 @@ app.use('/api/admin/*', requireAccessPass);
 // Sign-in, access, keys and the change log come first, so sign-in is not held
 // behind the session it hands out.
 app.route('/api/admin', adminDeskRoutes);
+app.route('/api/admin', adminRequestRoutes);
+// An approved money move runs as a request into this same app, as the approver.
+setDeskReplay((req) => Promise.resolve(app.fetch(req)));
 app.route('/api/admin/support', supportTeamRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/admin/agent-runtime', adminAgentRuntimeRoutes);

@@ -1555,6 +1555,21 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX admin_actions_v1_at_idx ON admin_actions_v1 (at DESC);
     `,
   },
+  {
+    // Money and chain moves asked for on the desk wait here for a second
+    // member (view 64). The status column is what makes an approval run once.
+    version: 62,
+    name: 'admin_requests',
+    sql: `
+      CREATE TABLE admin_requests_v1 (
+        id TEXT PRIMARY KEY,
+        status TEXT NOT NULL,
+        requested_at BIGINT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX admin_requests_v1_at_idx ON admin_requests_v1 (requested_at DESC);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

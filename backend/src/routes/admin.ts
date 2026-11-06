@@ -12,6 +12,8 @@ import { getProfile, listProfiles, upsertProfile } from '../db/profiles.js';
 import type { DirectDeal } from '../db/deals.js';
 import { resolveDispute } from '../chain/settlement.js';
 import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
+import { twoPeople } from '../middleware/twoPeople.js';
+import { forceCancelVerdict, resetHistoryVerdict } from '../ops/adminMoneyRules.js';
 import { readEscrow, ESCROW_STATE } from '../chain/contracts.js';
 import { bus } from '../events.js';
 import {
@@ -508,7 +510,7 @@ const adminExtendSchema = z.object({
   additionalSeconds: z.number().int().positive().max(365 * 24 * 3600),
 });
 adminRoutes.post('/deals/:jobId/extend', async (c) => {
-  const jobId = c.req.param('jobId');
+  const jobId = c.req.param('jobId') ?? '';
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
   let body;
@@ -539,10 +541,27 @@ adminRoutes.post('/deals/:jobId/extend', async (c) => {
   return c.json({ ok: true, newDeadlineUnix });
 });
 
+/// What a deal looks like for a two-person money move: read when it is asked
+/// for and again before it runs, so an approval never acts on a deal that moved.
+async function dealSnapshot(path: string): Promise<unknown> {
+  const jobId = path.match(/^\/api\/admin\/deals\/([^/]+)\//)?.[1] ?? path.match(/^\/deals\/([^/]+)\//)?.[1];
+  if (!jobId) return null;
+  const deal = await getDeal(jobId);
+  if (!deal) return { missing: true };
+  let escrow: unknown = 'unreadable';
+  try {
+    const a = await dealEscrowOps.read(deal);
+    escrow = { state: a.state, milestonesReleased: a.milestonesReleased, released: a.released.toString() };
+  } catch {
+    escrow = 'unreadable';
+  }
+  return { settledAt: deal.settledAt ?? null, cancelledAt: deal.cancelledAt ?? null, disputed: deal.disputed ?? false, escrow };
+}
+
 /// Force-release the next milestone on a stuck deal (the same action the
 /// watcher auto-fires, on demand). Power tool: surfaces chain errors verbatim.
-adminRoutes.post('/deals/:jobId/release', async (c) => {
-  const jobId = c.req.param('jobId');
+adminRoutes.post('/deals/:jobId/release', twoPeople({ key: 'release', label: 'Pay the next milestone to the seller', snapshot: dealSnapshot }), async (c) => {
+  const jobId = c.req.param('jobId') ?? '';
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
   if (!deal.buyerAgentWalletId) return c.json({ error: 'deal has no buyer agent wallet' }, 400);
@@ -578,8 +597,8 @@ const adminResolveSchema = z.object({
   sellerBps: z.number().int().min(0).max(10000),
   rulingReason: z.string().min(1).max(2000),
 });
-adminRoutes.post('/deals/:jobId/resolve', async (c) => {
-  const jobId = c.req.param('jobId');
+adminRoutes.post('/deals/:jobId/resolve', twoPeople({ key: 'resolve', label: 'Rule a v2 dispute', snapshot: dealSnapshot }), async (c) => {
+  const jobId = c.req.param('jobId') ?? '';
   let body;
   try {
     body = adminResolveSchema.parse(await c.req.json());
@@ -711,7 +730,7 @@ adminRoutes.get('/x402/research', async (c) => {
 /// is permanent and is NOT touched. The reputation engine's spam/cancel
 /// rates feed off the records we just removed, so a fresh read after this
 /// returns a clean composite score.
-adminRoutes.post('/reset-history', async (c) => {
+adminRoutes.post('/reset-history', twoPeople({ key: 'reset-history', label: 'Delete a person’s briefs, listings, deals and proposals' }), async (c) => {
   let body;
   try {
     body = await c.req.json();
@@ -730,6 +749,8 @@ adminRoutes.post('/reset-history', async (c) => {
     );
   }
   const target = parsed.data.toLowerCase();
+  const verdict = resetHistoryVerdict({ address: target, confirm: body?.confirm, network: config.ARC_NETWORK });
+  if (!verdict.ok) return c.json({ error: verdict.message, code: verdict.code }, verdict.code === 'MAINNET' ? 403 : 400);
   const briefs = deleteBriefsByPoster(target);
   const listings = deleteListingsBySeller(target);
   const deals = await deleteDealsInvolvingAddress(target);
@@ -751,15 +772,26 @@ adminRoutes.post('/reset-history', async (c) => {
 /// orphaned by a contract redeploy, where the recorded acceptedAt no longer
 /// maps to a Funded escrow on the current contract). Sets cancelledAt on the
 /// off-chain record so the UI moves the deal into a terminal state. Does
-/// NOT touch the chain. The deal was never actually funded on the live
-/// contract anyway. Use sparingly; the on-chain path is always preferred.
-adminRoutes.post('/deals/:jobId/force-cancel', async (c) => {
-  const jobId = c.req.param('jobId');
+/// NOT touch the chain, so it first reads the escrow and refuses while the
+/// escrow holds money or cannot be read (view 64).
+adminRoutes.post('/deals/:jobId/force-cancel', twoPeople({ key: 'force-cancel', label: 'Close a stuck deal off chain', snapshot: dealSnapshot }), async (c) => {
+  const jobId = c.req.param('jobId') ?? '';
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
   if (deal.cancelledAt) {
     return c.json({ ok: true, jobId, alreadyCancelled: true });
   }
+  const everFunded = Boolean(deal.fundTxHash || deal.acceptedAt);
+  let escrow: { state: number } | 'unreadable' | null = null;
+  if (everFunded) {
+    try {
+      escrow = { state: (await dealEscrowOps.read(deal)).state };
+    } catch {
+      escrow = 'unreadable';
+    }
+  }
+  const verdict = forceCancelVerdict({ everFunded, escrow });
+  if (!verdict.ok) return c.json({ error: verdict.message, code: verdict.code }, 409);
   await patchDeal(jobId, { cancelledAt: Date.now() });
   logger.warn({ jobId, buyer: deal.buyer, seller: deal.seller }, 'admin: force-cancelled deal');
   return c.json({ ok: true, jobId, forced: true });
@@ -778,7 +810,7 @@ adminRoutes.post('/deals/:jobId/force-cancel', async (c) => {
 /// triage when an operator wants to see the result immediately) and dry
 /// runs. Pass ?address=0x... to limit scope, ?dry=1 to report without
 /// sending txs.
-adminRoutes.post('/reputation/backfill', async (c) => {
+adminRoutes.post('/reputation/backfill', twoPeople({ key: 'reputation-backfill', label: 'Replay settled deals onto the reputation registry', dryRunMovesNothing: true }), async (c) => {
   const filterAddrRaw = c.req.query('address');
   const filterAddr = filterAddrRaw?.toLowerCase() ?? null;
   if (filterAddr && !addrSchema.safeParse(filterAddr).success) {
@@ -816,7 +848,7 @@ adminRoutes.post('/reputation/backfill', async (c) => {
 /// is for the first run on an existing history, where ?dry=1 shows the size of the
 /// back catalogue and ?limit=N walks it in batches instead of publishing every
 /// past deal on one tick.
-adminRoutes.post('/attestations/sweep', async (c) => {
+adminRoutes.post('/attestations/sweep', twoPeople({ key: 'attestation-sweep', label: 'Issue attestations for settled deals', dryRunMovesNothing: true }), async (c) => {
   const filterAddrRaw = c.req.query('address');
   const filterAddr = filterAddrRaw?.toLowerCase() ?? null;
   if (filterAddr && !addrSchema.safeParse(filterAddr).success) {
@@ -858,8 +890,8 @@ adminRoutes.post('/attestations/sweep', async (c) => {
 /// reason: Paytag publishes a revocation count against the issuer profile, so
 /// every use of this costs standing and should be a decision someone made rather
 /// than something a job did.
-adminRoutes.post('/attestations/:id/revoke', async (c) => {
-  const id = c.req.param('id');
+adminRoutes.post('/attestations/:id/revoke', twoPeople({ key: 'attestation-revoke', label: 'Withdraw an attestation' }), async (c) => {
+  const id = c.req.param('id') ?? '';
   const body = await c.req.json().catch(() => ({}) as Record<string, unknown>);
   const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
   if (!reason) return c.json({ error: 'a reason is required to revoke' }, 400);

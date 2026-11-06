@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const BACKEND = (process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || 'http://localhost:8787').replace(/\/+$/, '');
-const FORWARD_HEADERS = ['content-type', 'x-admin-token', 'cf-access-jwt-assertion'];
+const FORWARD_HEADERS = ['content-type', 'x-admin-token', 'x-desk-reason', 'cf-access-jwt-assertion'];
 
 async function forward(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;

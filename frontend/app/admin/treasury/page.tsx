@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminApiUrl } from '@/shared/admin/adminDesk';
+import { getAdminToken } from '@/core/api';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { formatUnits, isAddress, parseUnits } from 'viem';
 import { settlementChain } from '@/core/arcNetwork';
@@ -105,7 +106,7 @@ export default function AdminTreasuryPage() {
   // It used to be cached in sessionStorage, which contradicted core/api.ts's
   // in-memory-only model and left the token one XSS away from exfiltration.
   // Re-entering it per visit is the intended cost.
-  const [token, setToken] = useState<string>('');
+  const [token, setToken] = useState<string>(() => getAdminToken() ?? '');
   const [tokenDraft, setTokenDraft] = useState('');
 
   const saveToken = useCallback(() => {

@@ -18,9 +18,9 @@ import { mayCall } from '../ops/adminPages.js';
 import { requireAccessPass } from './accessPass.js';
 
 /// The admin desk's gate (view 64). After Cloudflare Access's pass, it works out
-/// who is calling (a member's desk session, a member's key, or until the shared
-/// tokens are removed one of those), checks the route against the pages the
-/// owner ticked for them, and leaves a row for every change and every refusal.
+/// who is calling (a member's desk session or a member's key), checks the route
+/// against the pages the owner ticked for them, and leaves a row for every
+/// change and every refusal.
 
 export interface DeskPrincipal {
   via: DeskVia;
@@ -84,6 +84,9 @@ export async function resolvePrincipal(c: Context): Promise<DeskPrincipal | null
     void store.touchKey(key.id, Date.now()).catch(() => undefined);
     return fromMember(member, 'key');
   }
+  // The shared tokens are gone from production (view 64): there, no route
+  // accepts them. Tests and local work still use them as stand-in callers.
+  if (config.NODE_ENV === 'production') return null;
   if (config.ADMIN_API_TOKEN && constantTimeEqual(raw, config.ADMIN_API_TOKEN)) {
     return { via: 'shared-token', memberId: null, email: null, name: 'shared admin token', owner: true, pages: [] };
   }

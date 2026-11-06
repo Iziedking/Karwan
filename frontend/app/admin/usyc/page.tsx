@@ -1,6 +1,8 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { adminApiUrl } from '@/shared/admin/adminDesk';
+import { deskReasonHeader, getAdminToken } from '@/core/api';
+import { useDialog } from '@/shared/components/Dialog';
 
 
 type UsycResp = {
@@ -39,7 +41,8 @@ export default function AdminUsycPage() {
   // In-memory only, exactly as the copy below promises ("held in this tab
   // only"). The old sessionStorage cache outlived that promise and sat one
   // XSS away from exfiltration.
-  const [token, setToken] = useState('');
+  // The desk session the console signed in with (view 64).
+  const [token, setToken] = useState(() => getAdminToken() ?? '');
   const [draft, setDraft] = useState('');
 
   if (!token) {
@@ -119,6 +122,7 @@ interface CoverResult {
 }
 
 function Console({ token, onLock }: { token: string; onLock: () => void }) {
+  const { prompt } = useDialog();
   const [liq, setLiq] = useState<Liquidity | null>(null);
   const [covering, setCovering] = useState(false);
   const [cover, setCover] = useState<CoverResult | null>(null);
@@ -165,13 +169,19 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
 
   const wrap = useCallback(
     async (dry: boolean) => {
+      const reason = dry ? '' : await prompt({ title: 'Ask to run the USYC wrap', message: 'Nothing moves until a second member approves it on Approvals.', confirmLabel: 'Ask for approval' });
+      if (!dry && !reason?.trim()) return;
       setRunning(true);
       setRun(null);
       try {
         const r = await fetch(adminApiUrl(`/api/admin/usyc/run${dry ? '?dry=1' : ''}`), {
           method: 'POST',
-          headers: { 'x-admin-token': token },
+          headers: { 'x-admin-token': token, ...(dry ? {} : deskReasonHeader(reason!.trim())) },
         });
+        if (r.status === 202) {
+          setRun({ ok: true, dryRun: false, steps: [{ action: 'Sent for approval', detail: 'A second member approves it on Approvals. Nothing has moved yet.', skipped: true }] });
+          return;
+        }
         const body = (await r.json()) as RunResult;
         setRun(body);
         if (!dry && body.ok) refresh();
@@ -181,18 +191,24 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
         setRunning(false);
       }
     },
-    [token, refresh],
+    [token, refresh, prompt],
   );
 
   const runCover = useCallback(
     async (dry: boolean) => {
+      const reason = dry ? '' : await prompt({ title: 'Ask to cover the vault shortfall', message: 'Nothing moves until a second member approves it on Approvals.', confirmLabel: 'Ask for approval' });
+      if (!dry && !reason?.trim()) return;
       setCovering(true);
       setCover(null);
       try {
         const r = await fetch(adminApiUrl(`/api/admin/usyc/cover${dry ? '?dry=1' : ''}`), {
           method: 'POST',
-          headers: { 'x-admin-token': token },
+          headers: { 'x-admin-token': token, ...(dry ? {} : deskReasonHeader(reason!.trim())) },
         });
+        if (r.status === 202) {
+          setCover({ error: 'Sent for approval. A second member approves it on Approvals. Nothing has moved yet.' } as CoverResult);
+          return;
+        }
         setCover((await r.json()) as CoverResult);
         if (!dry) refresh();
       } catch (e) {
@@ -201,7 +217,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
         setCovering(false);
       }
     },
-    [token, refresh],
+    [token, refresh, prompt],
   );
 
   useEffect(() => {

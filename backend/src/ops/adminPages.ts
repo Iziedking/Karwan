@@ -73,8 +73,14 @@ export const ADMIN_PAGES: AdminPage[] = [
 /// Routes only the owner may call, whatever pages a member has.
 const OWNER_ONLY = [r('\\w+ /api/admin/access(/.*)?'), r('\\w+ /api/admin/team-members(/.*)?'), r('\\w+ /api/admin/team-keys(/.*)?')];
 
-/// Routes any signed-in member may call: their own session and their own keys.
-const ANY_MEMBER = [r('GET /api/admin/session'), r('\\w+ /api/admin/keys(/.*)?')];
+/// Routes any signed-in member may call: their own session, their own keys, and
+/// the money requests list. Approving one also needs the page its route is on.
+const ANY_MEMBER = [
+  r('GET /api/admin/session'),
+  r('\\w+ /api/admin/keys(/.*)?'),
+  r('GET /api/admin/requests'),
+  r(`POST /api/admin/requests/${ANY}/(approve|cancel)`),
+];
 
 export const ADMIN_PAGE_KEYS = new Set(ADMIN_PAGES.map((p) => p.key));
 

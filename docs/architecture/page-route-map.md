@@ -26,6 +26,7 @@ Calls made with a raw `fetch` outside `api.*` are not in this map.
 | `/admin` | GET /api/admin/business/pending (admin)<br>GET /api/admin/deals (admin)<br>GET /api/admin/health (admin)<br>GET /api/admin/profiles (admin)<br>GET /api/admin/support (admin) |  |
 | `/admin (layout)` |  | POST /api/admin/session (limited) |
 | `/admin/access` | GET /api/admin/access (admin) | POST /api/admin/access/:id/revoke (admin)<br>PUT /api/admin/access/:id (admin) |
+| `/admin/approvals` | GET /api/admin/requests (admin) | POST /api/admin/requests/:id/approve (admin)<br>POST /api/admin/requests/:id/cancel (admin) |
 | `/admin/business` | GET /api/admin/business/pending (admin) | POST /api/admin/business/review (admin) |
 | `/admin/deals` | GET /api/admin/deals (admin) | POST /api/admin/deals/:jobId/extend (admin)<br>POST /api/admin/deals/:jobId/release (admin) |
 | `/admin/diagnostics` | GET /api/admin/agent-seed/:address (admin)<br>GET /api/admin/deal-rules (admin)<br>GET /api/admin/health (admin)<br>GET /api/admin/older-contracts (admin) | POST /api/admin/agent-seed/:address (admin)<br>POST /api/admin/deal-rules (admin) |

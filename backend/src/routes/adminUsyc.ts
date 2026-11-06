@@ -3,6 +3,7 @@ import { formatUnits } from 'viem';
 import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
+import { twoPeople } from '../middleware/twoPeople.js';
 import { logger } from '../logger.js';
 import { runUsycWrap, coverVaultShortfall } from '../chain/usycOrchestrator.js';
 import { readVaultLiquidity } from '../chain/vaultLiquidity.js';
@@ -204,7 +205,7 @@ adminUsycRoutes.get('/liquidity', async (c) => {
 /// It redeems the shortfall and nothing more. Returning the full USYC holding
 /// would be simpler and wrong: the operator's USYC is one pool backing several
 /// vaults' cost basis, so over-returning to one strands another.
-adminUsycRoutes.post('/cover', async (c) => {
+adminUsycRoutes.post('/cover', twoPeople({ key: 'usyc-cover', label: 'Cover a vault shortfall from USYC', dryRunMovesNothing: true }), async (c) => {
   const vault = ((config as unknown as Record<string, string | undefined>).KARWAN_VAULT_ADDR ?? null) as `0x${string}` | null;
   if (!vault) return c.json({ error: 'KARWAN_VAULT_ADDR unset' }, 410);
   const dryRun = c.req.query('dry') === '1';
@@ -216,7 +217,7 @@ adminUsycRoutes.post('/cover', async (c) => {
   }
 });
 
-adminUsycRoutes.post('/run', async (c) => {
+adminUsycRoutes.post('/run', twoPeople({ key: 'usyc-run', label: 'Run the USYC wrap', dryRunMovesNothing: true }), async (c) => {
   const dryRun = c.req.query('dry') === '1' || c.req.query('dryRun') === '1';
   try {
     const result = await runUsycWrap({ dryRun });

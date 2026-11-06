@@ -930,16 +930,10 @@ const envSchema = z.object({
   /// are published only for people who ask. Unset: nothing is published.
   ATTESTATION_START_AT: startAtSchema,
 
-  // Shared secret gating the admin surface (/api/admin/* and the feedback
-  // list/status endpoints). Callers send it as the `X-Admin-Token` header.
-  // Fail-closed: when unset, the admin surface is DISABLED, not open. Set a
-  // long random value in production.
+  // Stand-in admin callers for tests and local work only. In production no
+  // route accepts them: members sign in to the desk or use their own keys
+  // (view 64). Leave both unset in production.
   ADMIN_API_TOKEN: optionalString,
-  // Support-team token. Grants access to the support tickets ONLY (read +
-  // reply + close), never the rest of the admin surface (deals, profiles,
-  // management, events). Give this to support staff so they can answer
-  // tickets without the power to touch deals or accounts. Unset = no support-
-  // only access (only the full admin token works).
   SUPPORT_API_TOKEN: optionalString,
   // Cloudflare Access in front of admin.karwan.site (view 64): the team domain
   // (name.cloudflareaccess.com) and the admin app's audience tag. Every admin

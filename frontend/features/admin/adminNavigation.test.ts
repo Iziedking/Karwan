@@ -10,9 +10,9 @@ test('admin navigation contains unique routes and the API directory', () => {
 
 const hrefs = (me: { owner: boolean; pages: string[] }) => adminNavigationFor(me).flatMap((g) => g.items.map((i) => i.href));
 
-test('a member sees only the pages the owner ticked, and their own keys', () => {
-  assert.deepEqual(hrefs({ owner: false, pages: ['support'] }), ['/admin/support', '/admin/keys']);
-  assert.deepEqual(hrefs({ owner: false, pages: ['deals', 'log'] }), ['/admin/deals', '/admin/log', '/admin/keys']);
+test('a member sees only the pages the owner ticked, plus approvals and their own keys', () => {
+  assert.deepEqual(hrefs({ owner: false, pages: ['support'] }), ['/admin/support', '/admin/approvals', '/admin/keys']);
+  assert.deepEqual(hrefs({ owner: false, pages: ['deals', 'log'] }), ['/admin/deals', '/admin/approvals', '/admin/log', '/admin/keys']);
 });
 
 test('access, team accounts and team keys show only to the owner', () => {

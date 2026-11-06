@@ -47,7 +47,7 @@ flowchart LR
 
 ## Every change leaves a row
 
-Every admin change writes one row: the member, the page, the route, the target (deal, person or record), the request, the result, and for money moves and status changes what it was before and after. A refused attempt writes a row too. The owner and members with the log page read them; nobody can edit or delete a row from the desk.
+Every admin change writes one row: the member, how they came in (desk session, key or sign-in), the route with its target, what was sent, and what came back. Anything that looks like a password, key or code is left off. A refused attempt and every sign-in write a row too. A money move also keeps the target as it was when asked for and as it was read again before it ran. The owner and members with the log page read them; nobody can edit or delete a row from the desk.
 
 ## Two people for money
 
@@ -60,7 +60,7 @@ flowchart LR
   T -->|unchanged| G[Runs once, both names on the row]
 ```
 
-- The approver sees in plain words what will happen. One member can never approve their own request. If only one member is around, the request waits. There is no way to run one alone.
+- The member who asks gives a reason. The approver sees it, with what will happen, before approving. One member can never approve their own request; the one who asked, or the owner, can withdraw it while it waits. A dry run (`?dry=1` on the USYC, attestation and reputation routes) moves nothing and runs without a request. If only one member is around, the request waits. There is no way to run one alone.
 - **Force-cancel reads the escrow first.** It is refused while the escrow is funded, accepted or disputed, and when the escrow cannot be read. It only closes a deal whose escrow holds nothing.
 - **Reset-history asks for the address typed again**, and is refused on mainnet.
 
@@ -70,7 +70,7 @@ A member can make a personal key for a script. The key carries that member's nam
 
 ## The shared tokens go
 
-Once the owner account is in, `ADMIN_API_TOKEN` and `SUPPORT_API_TOKEN` are removed from the env and the manifest, and no route accepts them.
+In production no route accepts `ADMIN_API_TOKEN` or `SUPPORT_API_TOKEN`; they are removed from the production env. Tests and local work still use them as stand-in callers.
 
 ## What it does not change
 

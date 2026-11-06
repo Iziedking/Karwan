@@ -63,6 +63,7 @@ export const ADMIN_NAVIGATION: AdminNavigationGroup[] = [
   {
     label: 'Desk',
     items: [
+      { href: '/admin/approvals', label: 'Approvals', description: 'Money moves waiting for a second member', page: 'member' },
       { href: '/admin/access', label: 'Desk access', description: 'Pages for each member', page: 'owner' },
       { href: '/admin/log', label: 'Change log', description: 'Every change made from the desk', page: 'log' },
       { href: '/admin/keys', label: 'Your keys', description: 'Keys for your scripts', page: 'member' },
