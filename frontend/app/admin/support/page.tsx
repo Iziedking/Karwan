@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, type AdminHeldTransfer, type AdminHeldView, type AdminTicketRow, type AdminWrongToken } from '@/core/api';
+import { api, type AdminGuaranteeHold, type AdminHeldTransfer, type AdminHeldView, type AdminTicketRow, type AdminWrongToken } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
 import { stripMarkdown } from '@/shared/utils/format';
@@ -31,6 +31,8 @@ export default function AdminSupport() {
   const [wrongTokens, setWrongTokens] = useState<AdminWrongToken[]>([]);
   /// Transfers between networks held for a person (view 60).
   const [heldTransfers, setHeldTransfers] = useState<AdminHeldTransfer[]>([]);
+  /// Deal guarantees the vault refused to keep, free or pay out of (view 62).
+  const [guaranteeHolds, setGuaranteeHolds] = useState<AdminGuaranteeHold[]>([]);
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -59,6 +61,8 @@ export default function AdminSupport() {
       if (w) setWrongTokens((prev) => (JSON.stringify(prev) === JSON.stringify(w.items) ? prev : w.items));
       const t = await api.adminHeldTransfers().catch(() => null);
       if (t) setHeldTransfers((prev) => (JSON.stringify(prev) === JSON.stringify(t.items) ? prev : t.items));
+      const g = await api.adminGuaranteeHolds().catch(() => null);
+      if (g) setGuaranteeHolds((prev) => (JSON.stringify(prev) === JSON.stringify(g.items) ? prev : g.items));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load');
     }
@@ -172,6 +176,28 @@ export default function AdminSupport() {
             ))}
           </div>
           {heldJob && <DeliveryReviewPanel key={heldJob} jobId={heldJob} onChanged={() => void loadList()} />}
+        </section>
+      )}
+
+      {guaranteeHolds.length > 0 && (
+        <section className="mt-5 space-y-2" aria-label="Deal guarantees to check">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Deal guarantees to check · Karwan pays nothing from here</p>
+          <p className="text-[12px] text-white/55">GUARANTEE_KEEP_FAILED: the vault keeps refusing to reserve the guarantee past the deal, so keepStake is retried every 10 minutes. GUARANTEE_LAPSED: the reservation ran out while the deal is open, so a ruling cannot pay the buyer from it. GUARANTEE_NOT_FREED: it was not freed at the end and frees itself at the date shown. GUARANTEE_PAYOUT_FAILED: a ruling's payment to the buyer failed and the contract cannot retry it. Read the ruling transaction, then decide.</p>
+          <div className="border border-white/10 rounded-xl divide-y divide-white/[0.06]">
+            {guaranteeHolds.map((h) => (
+              <div key={h.dealId} className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-white">{h.sellerStakeUsdc ?? '?'} USDC guarantee · {h.reason}{h.freesAt ? ` · frees ${new Date(h.freesAt).toLocaleDateString()}` : ''}</span>
+                  <span className="mono text-[11px] text-white/50">{new Date(h.at).toLocaleString()}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-3 text-[12px] text-white/55">
+                  {h.jobId ? <CopyId value={h.jobId} /> : null}
+                  <CopyId value={h.dealId} />
+                  {h.txHash ? <CopyId value={h.txHash} /> : null}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 

@@ -189,6 +189,15 @@ supportTeamRoutes.get('/wrong-tokens', async (c) => {
   });
 });
 
+/// Deal guarantees a person has to check (view 62): the vault kept refusing to
+/// reserve one past its deal, one ran out while its deal was open, one was not
+/// freed when its deal ended, or a ruling's payment to the buyer from it failed.
+/// Karwan pays nothing from here.
+supportTeamRoutes.get('/guarantee-holds', async (c) => {
+  const { listGuaranteeHoldsWithStake } = await import('../deals/guaranteeKeeperLive.js');
+  return c.json({ items: await listGuaranteeHoldsWithStake() });
+});
+
 supportTeamRoutes.get('/whoami', (c) => c.json({ role: tokenRole(c) }));
 
 /// Open support tickets, newest activity first, with a compact preview.

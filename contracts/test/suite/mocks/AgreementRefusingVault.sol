@@ -10,12 +10,17 @@ contract AgreementRefusingVault is IKarwanStakeVault {
     mapping(bytes32 => uint64) public expiryByKey;
     bool public refuseRelease;
     bool public refuseExpiry;
+    bool public refuseExtend;
 
     error Refused();
 
     function setRefusals(bool release_, bool expiry_) external {
         refuseRelease = release_;
         refuseExpiry = expiry_;
+    }
+
+    function setRefuseExtend(bool extend_) external {
+        refuseExtend = extend_;
     }
 
     function reserve(bytes32 ref, address, address, uint128, address, uint64 expiresAt, uint256, bytes calldata)
@@ -25,6 +30,7 @@ contract AgreementRefusingVault is IKarwanStakeVault {
     }
 
     function extend(bytes32 ref, uint64 expiresAt) external {
+        if (refuseExtend) revert Refused();
         expiryByKey[_key(msg.sender, ref)] = expiresAt;
     }
 

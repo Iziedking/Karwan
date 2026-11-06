@@ -315,4 +315,25 @@ contract AgreementStakeRefusingVaultTest is AgreementFixture {
         escrow.extendDeadline(id, later);
         assertEq(_deal(id).deadline, later);
     }
+
+    /// The keeper's retry (view 62): the vault refused to keep the stake when
+    /// the deadline moved, then accepts again, and anyone's keepStake reserves
+    /// it past the deal's new horizon.
+    function test_a_refused_keep_is_made_good_by_anyone_calling_keepStake() public {
+        (bytes32 id, AgreementTerms memory t) = _stakedDeal();
+        uint64 before = refusing.expiryOf(address(escrow), id);
+        refusing.setRefuseExtend(true);
+        vm.expectEmit(address(escrow));
+        emit AgreementCommon.StakeHookFailed(id, AgreementCommon.STAKE_KEEP);
+        vm.prank(buyer);
+        escrow.extendDeadline(id, t.deliveryDeadline + 60 days);
+        uint64 need = escrow.accountOf(id).horizon + 180 days + 30 days;
+        assertEq(refusing.expiryOf(address(escrow), id), before);
+        assertLt(before, need);
+
+        refusing.setRefuseExtend(false);
+        vm.prank(address(0xBEEF));
+        escrow.keepStake(id);
+        assertEq(refusing.expiryOf(address(escrow), id), need);
+    }
 }

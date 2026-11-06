@@ -8,8 +8,6 @@ import { DealRulesSwitch } from '@/features/admin/DealRulesSwitch';
 /// an account whose agents activated unfunded. Read-only except the seed.
 
 type Health = Awaited<ReturnType<typeof api.adminHealth>>;
-/// Which process runs each background job (view 61), from the same health read.
-type JobLease = { name: string; holder: string; thisProcess: boolean; heldForMs: number; expiresInMs: number };
 type SeedStatus = Awaited<ReturnType<typeof api.adminAgentSeedStatus>>;
 type Older = Awaited<ReturnType<typeof api.adminOlderContracts>>['contracts'];
 type SeedRun = Awaited<ReturnType<typeof api.adminAgentSeedRun>>;
@@ -256,7 +254,7 @@ function HealthOverview() {
           </HealthCard>
 
           <HealthCard title="Job leases (one runner per job)">
-            {((data as Health & { leases?: JobLease[] }).leases ?? []).map((l) => (
+            {(data.leases ?? []).map((l) => (
               <HealthItem key={l.name} ok={l.expiresInMs > 0}>
                 {l.name}{' '}
                 <span className="text-white/45">
@@ -264,6 +262,17 @@ function HealthOverview() {
                 </span>
               </HealthItem>
             ))}
+          </HealthCard>
+
+          <HealthCard title="Deal guarantees">
+            <HealthItem ok={(data.guarantees?.held ?? 0) === 0 && (data.guarantees?.errors ?? 0) === 0}>
+              {data.guarantees?.held ?? 0} to check on the support page{' '}
+              <span className="text-white/45">
+                {data.guarantees?.lastPassAt
+                  ? `last pass ${fmtAge(Date.now() - data.guarantees.lastPassAt)} · kept ${data.guarantees.kept} · freed ${data.guarantees.freed} · unread ${data.guarantees.errors}`
+                  : 'no pass yet'}
+              </span>
+            </HealthItem>
           </HealthCard>
 
           <HealthCard title="Host crons (VPS)">

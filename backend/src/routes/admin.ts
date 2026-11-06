@@ -57,6 +57,7 @@ import { payOutsideFlags } from '../security/payOutsideFlags.js';
 import { pingAssistantProviders } from './assistant.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
 import { jobLeases } from '../ops/leasedLoop.js';
+import { guaranteeKeeperReport, listGuaranteeHolds } from '../deals/guaranteeKeeperLive.js';
 import { db, pgEnabled } from '../db/client.js';
 import { privateKeyToAccount } from 'viem/accounts';
 import { invalidBodyMessage } from './invalidBody.js';
@@ -250,6 +251,9 @@ adminRoutes.get('/health', async (c) => {
   const crons = cronHealth();
   // Which process runs each background job (view 61).
   const leases = await jobLeases();
+  // Deal guarantees held for a person, and the keeper's last pass (view 62).
+  const guaranteeHolds = (await listGuaranteeHolds().catch(() => [])).length;
+  const guaranteeKeeper = guaranteeKeeperReport();
 
   const contracts = await contractWiring();
 
@@ -263,6 +267,13 @@ adminRoutes.get('/health', async (c) => {
     watchers,
     crons,
     leases,
+    guarantees: {
+      held: guaranteeHolds,
+      lastPassAt: guaranteeKeeper?.at ?? null,
+      kept: guaranteeKeeper?.kept.length ?? 0,
+      freed: guaranteeKeeper?.freed.length ?? 0,
+      errors: guaranteeKeeper?.errors.length ?? 0,
+    },
     contracts,
     // Posted-to-first-decision time per request (view 41, measure 1).
     matching: matchLatencySummary(),

@@ -107,6 +107,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/admin/support/:id/reply" },
   { method: "GET", path: "/api/admin/support/deliveries/:jobId" },
   { method: "POST", path: "/api/admin/support/deliveries/:jobId/review" },
+  { method: "GET", path: "/api/admin/support/guarantee-holds" },
   { method: "GET", path: "/api/admin/support/held" },
   { method: "GET", path: "/api/admin/support/held-transfers" },
   { method: "POST", path: "/api/admin/support/matches/:jobId/clear" },

@@ -771,6 +771,8 @@ function bootAgents() {
     stopFns.push(startTestFinancier());
     stopFns.push(startExampleKeeper());
     stopFns.push(startFamilyFinancingRunner());
+    // Deal guarantees the vault refused to keep or free (view 62).
+    void import('./deals/guaranteeKeeperLive.js').then(({ startGuaranteeKeeper }) => stopFns.push(startGuaranteeKeeper()));
     stopFns.push(startContestRunner(contestsCore));
     stopFns.push(startAgentJobRunner(agentJobs));
     stopFns.push(startWorkRunner(workCore, workRequests));

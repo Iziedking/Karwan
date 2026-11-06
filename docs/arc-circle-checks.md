@@ -756,3 +756,11 @@ Agree: yes.
 - Installed SDK, 6 Nov 2026: `@circle-fin/app-kit` 1.15.2, `@circle-fin/provider-cctp-v2` 1.14.0, `@circle-fin/developer-controlled-wallets` 10.8.0, the same as view 60.
 - Read-only test: the two attestation reads recorded under view 60 today (Base Sepolia and Solana devnet, both COMPLETE). The lease adds no new call to test.
 - Agree: yes.
+
+## 2026-11-06 · Deal guarantee hooks that failed are retried or held (T2, view 62, audit CR-02)
+
+- Scope: the Agreement escrow's stake hooks. A vault that refuses `release`, `slash` or `extend` only emits `StakeHookFailed(dealId, hook)` (0 release, 1 slash, 2 keep). Only the keep step has an on-chain retry (`KarwanAgreementEscrow.keepStake(dealId)`, anyone, Accepted or Disputed). An expired reservation can be freed by anyone with `KarwanStakeVault.releaseStale(family, ref)`. A failed slash has no retry.
+- Docs: Arc docs, 6 Nov 2026, `arc/references/rpc-endpoints` (`eth_getLogs` block range limit 10,000 blocks, error -32012 above it, page in 9,999-block chunks) and `integrate/infrastructure/indexing-events` (backfill with `eth_getLogs` ranges, persist the last block).
+- Source read, 6 Nov 2026: `contracts/src/suite/agreement/AgreementCommon.sol` (hooks), `AgreementDisputeLib.sol` (slash per ruled tranche, release on the last), `KarwanStakeVault.sol` (`extend` refuses after expiry, `releaseStale` after expiry, `expiryOf` 0 when nothing is reserved). No SDK is involved: plain viem reads and writes on Arc.
+- Read-only test, 6 Nov 2026, Arc Testnet public RPC: head 71,009,686. `getLogs` for `StakeHookFailed` (topic `0xba6d5b43…d169`) on the Agreement escrow `0x5546…F43C` over 9,999 blocks returned 0 logs; a 10,002-block window was refused. Escrow hub `0xB874…38a6` names the vault `0xF5FD…07ed5`; `expiryOf(escrow, 0x0)` read 0.
+- Agree: yes.

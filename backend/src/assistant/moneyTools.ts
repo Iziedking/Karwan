@@ -81,6 +81,37 @@ async function guarded<T>(name: string, run: () => Promise<T>): Promise<T | { er
   }
 }
 
+/// Deal guarantees on the person's own deals that a person from the team is
+/// checking (view 62). Plain lines only: nothing here can be fixed by the person.
+async function guaranteeLines(me: string) {
+  try {
+    const [{ listGuaranteeHolds }, { getDeal }] = await Promise.all([import('../deals/guaranteeKeeperLive.js'), import('../db/deals.js')]);
+    const out: Array<{ kind: 'deal_guarantee'; id: string; what: string; since: string; problem: string }> = [];
+    for (const h of await listGuaranteeHolds()) {
+      if (!h.jobId) continue;
+      const deal = await getDeal(h.jobId);
+      if (!deal) continue;
+      const seller = deal.seller?.toLowerCase() === me;
+      const buyer = deal.buyer?.toLowerCase() === me;
+      if (!seller && !buyer) continue;
+      const problem =
+        h.reason === 'GUARANTEE_PAYOUT_FAILED'
+          ? buyer
+            ? 'The share of the seller’s deal guarantee the ruling gave you was not paid. A person from the team is checking it.'
+            : 'A payment from your deal guarantee after the ruling did not go through. A person from the team is checking it.'
+          : h.reason === 'GUARANTEE_NOT_FREED'
+            ? seller
+              ? `Your deal guarantee was not freed when the deal ended. It frees by itself${h.freesAt ? ` on ${new Date(h.freesAt).toISOString().slice(0, 10)}` : ''}, and a person from the team is checking it.`
+              : 'The seller’s deal guarantee on this deal is being checked by a person from the team. Your money in the deal is not affected.'
+            : 'The deal guarantee on this deal is being checked by a person from the team.';
+      out.push({ kind: 'deal_guarantee', id: h.jobId, what: seller ? 'Your deal guarantee on a deal' : 'The seller’s deal guarantee on a deal', since: new Date(h.at).toISOString(), problem });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 export function moneyTools(address: string, actions: AssistantAction[], deps: MoneyToolDeps) {
   const me = address.toLowerCase();
   const bridges = async (): Promise<BridgeRow[]> => {
@@ -95,12 +126,12 @@ export function moneyTools(address: string, actions: AssistantAction[], deps: Mo
   return {
     list_stuck_money_moves: tool({
       description:
-        "List the person's money moves between networks and money rails that have not finished: what, how much, since when, and what went wrong, plus any token that is not USDC sent to their Karwan addresses (kind wrong_token), which was never added to the balance. Use when they ask where their money is, why a transfer has not arrived, or whether something is stuck. Then offer propose_fix_money_move for a bridge or rail move; for a wrong token, offer to bring in a person from the team, who sends it back to an address the person gives.",
+        "List the person's money moves between networks and money rails that have not finished: what, how much, since when, and what went wrong, plus any token that is not USDC sent to their Karwan addresses (kind wrong_token), which was never added to the balance, and any deal guarantee on their deals that a person from the team is checking (kind deal_guarantee). Use when they ask where their money is, why a transfer has not arrived, or whether something is stuck. Then offer propose_fix_money_move for a bridge or rail move; for a wrong token, offer to bring in a person from the team, who sends it back to an address the person gives.",
       inputSchema: z.object({}),
       execute: async () =>
         guarded('list_stuck_money_moves', async () => {
           const now = Date.now();
-          const [b, r, history] = await Promise.all([bridges(), rails(), listActivityForAddress(me, 0, 500)]);
+          const [b, r, history, guarantees] = await Promise.all([bridges(), rails(), listActivityForAddress(me, 0, 500), guaranteeLines(me)]);
           const moves = [
             ...b
               .filter((x) => x.status !== 'minted' && (x.status === 'error' || now - x.updatedAt > SETTLING_MS))
@@ -126,11 +157,12 @@ export function moneyTools(address: string, actions: AssistantAction[], deps: Mo
                 since: new Date(x.ts).toISOString(),
                 problem: 'Karwan takes only USDC, so it was not added to the balance. A person from the team sends it back to an address the person gives.',
               })),
+            ...guarantees,
           ];
           return {
             moves,
             note: moves.length
-              ? 'Describe each in plain words, never the id. A bridge move can be checked again; a rail move can be tried again or cancelled; a wrong token goes back through a person from the team.'
+              ? 'Describe each in plain words, never the id. A bridge move can be checked again; a rail move can be tried again or cancelled; a wrong token goes back through a person from the team; a deal guarantee is with a person from the team and needs nothing from them.'
               : 'Nothing is stuck. Every move has finished.',
           };
         }),

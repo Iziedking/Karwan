@@ -2181,6 +2181,19 @@ export interface AdminDeliveryReviewView {
 /// What waits for a person at Karwan (view 21): held matches with the offence
 /// each rests on, and held delivery links.
 /// A transfer between networks held for a person (view 60).
+/// A seller's deal guarantee a person has to check (view 62).
+export interface AdminGuaranteeHold {
+  dealId: string;
+  jobId: string | null;
+  reason: 'GUARANTEE_KEEP_FAILED' | 'GUARANTEE_LAPSED' | 'GUARANTEE_NOT_FREED' | 'GUARANTEE_PAYOUT_FAILED';
+  at: number;
+  keepFailures: number;
+  alertedAt: number | null;
+  freesAt?: number;
+  txHash?: string;
+  sellerStakeUsdc: string | null;
+}
+
 export interface AdminHeldTransfer {
   bridgeId: string;
   reason: string;
@@ -3577,6 +3590,10 @@ export const api = {
         status: 'fresh' | 'stale' | 'unknown';
         detail?: string;
       }>;
+      /// Which process runs each background job (view 61).
+      leases: Array<{ name: string; holder: string; thisProcess: boolean; heldForMs: number; expiresInMs: number }>;
+      /// Deal guarantees held for a person, and the keeper's last pass (view 62).
+      guarantees: { held: number; lastPassAt: number | null; kept: number; freed: number; errors: number };
       /// Deployed-bundle wiring read back from chain: ABI binding, satellite
       /// cross-references, the vault one-shot, and teller agreement.
       contracts: Array<{ label: string; ok: boolean; detail: string }>;
@@ -3631,6 +3648,7 @@ export const api = {
     }),
   /// Held matches and held links waiting for a person, without a ticket.
   adminSupportHeld: () => json<AdminHeldView>('/api/admin/support/held', { headers: adminHeaders() }),
+  adminGuaranteeHolds: () => json<{ items: AdminGuaranteeHold[] }>('/api/admin/support/guarantee-holds', { headers: adminHeaders() }),
   adminHeldTransfers: () => json<{ items: AdminHeldTransfer[] }>('/api/admin/support/held-transfers', { headers: adminHeaders() }),
   adminWrongTokens: () => json<{ items: AdminWrongToken[] }>('/api/admin/support/wrong-tokens', { headers: adminHeaders() }),
   adminClearMatchHold: (jobId: string, reason: string) =>
