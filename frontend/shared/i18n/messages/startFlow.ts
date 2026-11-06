@@ -53,7 +53,7 @@ export interface StartFlowCopy {
   home: {
     totalBalance: string;
     addMoney: string;
-    firstTrade: { done: string; next: string; see: string; body: string; nextLabels: ByChoice<'setup' | 'money' | 'telegram' | 'connect' | 'deal' | 'finish'> };
+    firstTrade: { done: string; see: string; body: string };
     ask: { title: string; body: string; label: string; placeholder: string; send: string; chips: [string, string, string] };
     updatesAuto: string;
   };
@@ -139,10 +139,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
       addMoney: 'Add money',
       firstTrade: {
         done: '{done} of {total} done',
-        next: 'Next: {step}',
-        see: 'See the steps',
+        see: 'See all steps',
         body: 'Every deal you finish builds your record.',
-        nextLabels: { setup: 'tell your agent about your work', money: 'add USDC', telegram: 'connect Telegram', connect: 'connect the places you work', deal: 'start a deal', finish: 'finish your first deal' },
       },
       ask: {
         title: 'Ask your assistant',
@@ -234,10 +232,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
       addMoney: 'Ajouter',
       firstTrade: {
         done: '{done} sur {total} faits',
-        next: 'Ensuite : {step}',
-        see: 'Voir les étapes',
+        see: 'Voir toutes les étapes',
         body: 'Chaque accord terminé construit votre historique.',
-        nextLabels: { setup: 'parler de votre travail à votre agent', money: 'ajouter des USDC', telegram: 'connecter Telegram', connect: 'connecter vos lieux de travail', deal: 'lancer un accord', finish: 'terminer votre premier accord' },
       },
       ask: {
         title: 'Demandez à votre assistant',
@@ -329,10 +325,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
       addMoney: 'إضافة',
       firstTrade: {
         done: 'أُنجز {done} من {total}',
-        next: 'التالي: {step}',
-        see: 'عرض الخطوات',
+        see: 'عرض كل الخطوات',
         body: 'كل صفقة تُتمّها تبني سجلك.',
-        nextLabels: { setup: 'أخبر وكيلك عن عملك', money: 'أضف USDC', telegram: 'اربط Telegram', connect: 'اربط أماكن عملك', deal: 'ابدأ صفقة', finish: 'أتمّ صفقتك الأولى' },
       },
       ask: {
         title: 'اسأل مساعدك',
@@ -424,10 +418,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
       addMoney: 'जोड़ें',
       firstTrade: {
         done: '{total} में से {done} पूरे',
-        next: 'अगला: {step}',
-        see: 'चरण देखें',
+        see: 'सभी चरण देखें',
         body: 'हर पूरी डील आपका रिकॉर्ड बनाती है।',
-        nextLabels: { setup: 'अपने एजेंट को अपने काम के बारे में बताएँ', money: 'USDC जोड़ें', telegram: 'Telegram जोड़ें', connect: 'अपने काम की जगहें जोड़ें', deal: 'डील शुरू करें', finish: 'अपनी पहली डील पूरी करें' },
       },
       ask: {
         title: 'अपने असिस्टेंट से पूछें',
@@ -519,10 +511,8 @@ export const startFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', StartFlowCo
       addMoney: 'Ongeza',
       firstTrade: {
         done: '{done} kati ya {total} zimekamilika',
-        next: 'Inayofuata: {step}',
-        see: 'Ona hatua',
+        see: 'Ona hatua zote',
         body: 'Kila mkataba unaokamilisha hujenga rekodi yako.',
-        nextLabels: { setup: 'mweleze wakala wako kuhusu kazi yako', money: 'ongeza USDC', telegram: 'unganisha Telegram', connect: 'unganisha unakofanyia kazi', deal: 'anza mkataba', finish: 'kamilisha mkataba wako wa kwanza' },
       },
       ask: {
         title: 'Muulize msaidizi wako',

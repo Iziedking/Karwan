@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/shared/utils/cn';
 
 /// Icons for the Home cards, drawn like the rest of the app (24 grid, 1.8 stroke).
 const PATHS = {
@@ -10,6 +11,8 @@ const PATHS = {
   shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></>,
   plus: <path d="M12 5v14M5 12h14" />,
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
+  send: <><path d="M21 3 10 14" /><path d="M21 3 14.5 21l-4.5-7-7-4.5z" /></>,
+  list: <><path d="M10 6h10M10 12h10M10 18h10" /><path d="m4 6 1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2" /></>,
 } as const;
 
 export type CardIcon = keyof typeof PATHS;
@@ -25,12 +28,15 @@ export function CardGlyph({ name, size = 18, className }: { name: CardIcon; size
 /// A Home card lit from the top in the accent, with its mark beside the title
 /// (owner, 6 Nov 2026: the assistant card, version 1). The light is the one
 /// colour on it; the actions stay neutral pills.
-export function LitCard({ icon, title, body, titleId, guide, children }: {
-  icon: CardIcon;
+export function LitCard({ icon, badge, title, body, titleId, guide, className, children }: {
+  icon?: CardIcon;
+  /** Takes the place of the icon badge, such as a progress ring. */
+  badge?: ReactNode;
   title: string;
   body: string;
   titleId: string;
   guide?: string;
+  className?: string;
   children: ReactNode;
 }) {
   return (
@@ -38,12 +44,14 @@ export function LitCard({ icon, title, body, titleId, guide, children }: {
       data-lit-card
       data-guide={guide}
       aria-labelledby={titleId}
-      className="flex flex-col rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--lp-accent)_9%,var(--lp-card))_0%,var(--lp-card)_58%)] p-5 sm:p-6"
+      className={cn('flex flex-col rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--lp-accent)_9%,var(--lp-card))_0%,var(--lp-card)_58%)] p-5 sm:p-6', className)}
     >
       <div className="flex items-center gap-3">
-        <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-[14px] bg-[color-mix(in_srgb,var(--lp-accent)_16%,transparent)] text-[var(--lp-accent-on-light)]">
-          <CardGlyph name={icon} size={22} />
-        </span>
+        {badge ?? (
+          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-[14px] bg-[color-mix(in_srgb,var(--lp-accent)_16%,transparent)] text-[var(--lp-accent-on-light)]">
+            <CardGlyph name={icon ?? 'spark'} size={22} />
+          </span>
+        )}
         <div className="min-w-0">
           <h2 id={titleId} className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">{title}</h2>
           <p className="mt-0.5 text-[14px] leading-snug text-[var(--lp-text-sub)]">{body}</p>

@@ -93,6 +93,8 @@ test('Market, listing and order wear the new look: no old tokens, no green but O
 
 test('Home cards carry no green: the one green button on Home is a deal move', () => {
   for (const file of ['../../features/home/components/HomeBlock.tsx', '../../features/home/components/FirstTrade.tsx', '../../features/home/components/FaucetDrop.tsx', '../../features/home/components/RecordHomeNudge.tsx', '../../features/deals/DealStatePill.tsx', '../../features/market/components/SellCards.tsx']) {
-    assert.doesNotMatch(source(file), /--lp-accent\b|className=\{PRIMARY\}/, file);
+    // The first trade ring's stroke is the one green there (owner, 6 Nov 2026: version B); its buttons stay neutral.
+    const code = source(file).replace('stroke-[var(--lp-accent)]', '');
+    assert.doesNotMatch(code, /--lp-accent\b|className=\{PRIMARY\}/, file);
   }
 });

@@ -22,11 +22,14 @@ const STEP_MOVE = buttonClasses({ variant: 'secondary', size: 'lg' });
 import { cn } from '@/shared/utils/cn';
 import { tradeEntryRoutes } from '../tradeEntry';
 import { firstTrade, type FirstTradeStep } from '../firstTrade';
+import { CARD_PILL, CardGlyph, LitCard, type CardIcon } from './LitCard';
+
+const PILL_ICON = 'shrink-0 text-[var(--lp-text-sub)]';
 
 const HIDDEN_PREFIX = 'karwan:first-trade-hidden:';
 
-/// "Your first trade" on Home: how many steps are done and the next one, with
-/// the whole list in a drawer (view 39). Each step ticks itself from what is
+/// "Your first trade" on Home: a ring with how many steps are done, the next
+/// step one tap away, and the whole list in a drawer (view 39). Each step ticks itself from what is
 /// true. Gone once a deal has finished, or when hidden.
 export function FirstTrade({ deals, dealsState, className }: {
   deals: ReturnType<typeof useDirectDeals>['deals'];
@@ -122,26 +125,41 @@ export function FirstTrade({ deals, dealsState, className }: {
     key === 'money' ? (ARC_NETWORK === 'testnet' ? t.steps.money.testnetNote : t.steps.money.note) : key === 'telegram' ? t.steps.telegram.note : key === 'connect' ? t.steps.connect.note : null;
 
   const total = view.steps.length;
+  const doneText = card.done.replace('{done}', String(view.done)).replace('{total}', String(total));
+  // The next step one tap away (owner, 6 Nov 2026: version B). Steps with a
+  // choice in them (Telegram's connect, buy or sell) open the list instead.
+  const nextMove = ((): { label: string; icon: CardIcon; href?: string } | null => {
+    switch (view.next) {
+      case 'setup': return { label: t.steps.setup.action, icon: 'user', href: '/start?step=about' };
+      case 'connect': return { label: t.steps.connect.label, icon: 'link', href: '/profile/sources' };
+      case 'money': return ARC_NETWORK === 'testnet'
+        ? { label: t.steps.money.faucet, icon: 'plus', href: '/profile/wallets' }
+        : { label: t.steps.money.action, icon: 'plus', href: '/add' };
+      case 'telegram': return { label: t.steps.telegram.label, icon: 'send' };
+      case 'deal': return view.dealAction === 'paymentRequest'
+        ? { label: t.steps.deal.paymentRequest, icon: 'request', href: '/request' }
+        : { label: t.steps.deal.label, icon: 'request' };
+      default: return null;
+    }
+  })();
+  const ring = (
+    <span role="img" aria-label={doneText} className="relative grid size-10 shrink-0 place-items-center">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden className="absolute inset-0 -rotate-90">
+        <circle cx="20" cy="20" r="17" fill="none" strokeWidth="4" className="stroke-[var(--lp-border-light)]" />
+        <circle cx="20" cy="20" r="17" fill="none" strokeWidth="4" strokeLinecap="round" pathLength={total} strokeDasharray={`${view.done} ${total}`} className="stroke-[var(--lp-accent)]" />
+      </svg>
+      <span aria-hidden className="text-[13px] font-semibold tabular-nums text-[var(--lp-dark)]">{view.done}/{total}</span>
+    </span>
+  );
   return (
-    <section aria-labelledby="first-trade" className={cn('flex flex-col rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6', className)}>
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 id="first-trade" className="text-[19px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">{t.title}</h2>
-        <span className="text-[14px] font-semibold tabular-nums text-[var(--lp-text-sub)]">
-          {card.done.replace('{done}', String(view.done)).replace('{total}', String(total))}
-        </span>
-      </div>
-      <div aria-hidden className="mt-3 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
-        {view.steps.map((step) => (
-          <span key={step.key} className={cn('h-1.5 rounded-full', step.done ? 'bg-[var(--ink)]' : step.key === view.next ? 'bg-[var(--ink-secondary)]' : 'bg-[var(--lp-border-light)]')} />
-        ))}
-      </div>
-      {view.next ? (
-        <p className="mt-3 text-[15px] font-medium text-[var(--lp-text-sub)]">
-          {card.next.replace('{step}', card.nextLabels[view.next])}
-        </p>
-      ) : null}
-      <div className="mt-auto pt-5">
-        <button type="button" onClick={() => setOpen(true)} className={SECONDARY}>{card.see}</button>
+    <LitCard badge={ring} title={t.title} body={card.body} titleId="first-trade" className={className}>
+      <div data-first-trade className="mt-auto flex flex-wrap gap-2 pt-5">
+        {nextMove?.href ? (
+          <Link href={nextMove.href} className={CARD_PILL}><CardGlyph name={nextMove.icon} size={16} className={PILL_ICON} />{nextMove.label}</Link>
+        ) : nextMove ? (
+          <button type="button" onClick={() => setOpen(true)} className={CARD_PILL}><CardGlyph name={nextMove.icon} size={16} className={PILL_ICON} />{nextMove.label}</button>
+        ) : null}
+        <button type="button" onClick={() => setOpen(true)} className={CARD_PILL}><CardGlyph name="list" size={16} className={PILL_ICON} />{card.see}</button>
       </div>
 
       <Sheet open={open} title={t.title} onClose={() => setOpen(false)}>
@@ -194,6 +212,6 @@ export function FirstTrade({ deals, dealsState, className }: {
           {t.hide}
         </button>
       </Sheet>
-    </section>
+    </LitCard>
   );
 }

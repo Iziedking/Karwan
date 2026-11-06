@@ -26,3 +26,12 @@ test('three suggestions on the assistant card in every language', async () => {
     assert.equal(copy.home.ask.chips.length, 3, locale);
   }
 });
+
+test('your first trade is lit too: a progress ring in the badge, the next step one tap away, then See all steps (owner, 6 Nov 2026: version B)', () => {
+  const card = source('./components/FirstTrade.tsx');
+  assert.match(card, /<LitCard badge=\{ring\}/);
+  assert.match(card, /role="img" aria-label=\{doneText\}/);
+  assert.match(card, /strokeDasharray=\{`\$\{view\.done\} \$\{total\}`\}/);
+  assert.match(card, /case 'money'[\s\S]*href: '\/add'/);
+  assert.match(card, /name="list"[\s\S]*\{card\.see\}/);
+});

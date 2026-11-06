@@ -25,8 +25,10 @@ Unchanged from [view 19](19-simple-karwan.md): `POST /api/setup/save` turns the 
 The balance is the top line of the page, not a card: the amount, the active trade count, and Add money, Send, Request and Withdraw beside it. Under it, three cards side by side (stacked on a phone):
 
 - **The next step from setup** (Find work, Get paid, Post what you need), as today.
-- **Your first trade**: steps done out of five, the next step, and "See the steps", which opens the full list in a side drawer (bottom sheet on a phone). It goes away after the first settled deal, as today.
-- **Ask your assistant**: a box and two suggestions. What is sent, typed or a suggestion, opens assistant mode (`/assistant`) and is sent there as a new conversation, not in the Help panel. Switching assistant mode off comes back to Home.
+- **Your first trade**: a ring with the steps done, the next step as a button (Add USDC, Tell your agent), and "See all steps", which opens the full list in a side drawer (bottom sheet on a phone). Steps that hold a choice, Connect Telegram and Start a deal, open the drawer. It goes away after the first settled deal, as today.
+- **Ask your assistant**: a box and three suggestions. What is sent, typed or a suggestion, opens the Help panel with it already sent, so the person stays on Home (changed 6 Nov 2026; assistant mode now opens only from its own address).
+
+The three cards share one look: a soft accent light from the top, a mark beside the title (the first trade card has its progress ring there), and neutral pill buttons.
 
 "Trade now" is gone: the first card already leads to the market. Updates move on by themselves every 6 seconds and stop while the pointer or keyboard focus is on them, or when the person has asked for reduced motion. There is no pause button.
 
