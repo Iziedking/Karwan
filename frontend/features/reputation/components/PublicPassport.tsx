@@ -35,7 +35,7 @@ export function PublicPassport({ address, notice }: { address: string; notice?: 
 
   return (
     <article className="mx-auto max-w-[720px] px-4 py-6 sm:py-10">
-      <div className="-ms-2 mb-4">
+      <div data-own-back className="-ms-2 mb-4">
         <BackButton tone="adaptive" showOnPublic fallbackHref="/market" />
       </div>
       {notice ? <p role="status" className="mb-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{notice}</p> : null}
