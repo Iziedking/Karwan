@@ -313,6 +313,7 @@ import { hydrateNearMisses } from './db/nearMiss.js';
 import { initEphemeralStores } from './db/ephemeral.js';
 import { createCorrelationMiddleware } from './observability/correlationMiddleware.js';
 import { requireAdmin } from './middleware/adminAuth.js';
+import { requireAccessPass } from './middleware/accessPass.js';
 import { buildOperatorRouteCatalog } from './ops/routeCatalog.js';
 
 const app = new Hono();
@@ -521,6 +522,10 @@ installApp(app);
 startWhatsappAgent();
 // Support-team router first: /api/admin/support is reachable by the scoped
 // support token, while the rest of /api/admin stays admin-only.
+// The admin desk is reached only through Cloudflare Access (view 64). Anything
+// under /api/admin without a valid pass, a path that does not exist included,
+// is answered not found.
+app.use('/api/admin/*', requireAccessPass);
 app.route('/api/admin/support', supportTeamRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/admin/agent-runtime', adminAgentRuntimeRoutes);

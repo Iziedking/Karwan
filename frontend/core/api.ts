@@ -11,6 +11,7 @@ import type { Offer } from '@/features/offers/model';
 import type { SurveyAnswer, SurveySummary } from '@/features/admin/surveyPresentation';
 import type { RecordStep } from '@/shared/chain/ownWalletPlan';
 import type { LiveFeatures } from '@/shared/liveFeatures';
+import { adminApiUrl } from '@/shared/admin/adminDesk';
 
 // next.config.mjs refuses a production build without NEXT_PUBLIC_BACKEND_URL,
 // so localhost here only ever serves development and tests.
@@ -2340,14 +2341,15 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
 
 async function jsonOnce<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = { 'content-type': 'application/json', ...(init?.headers ?? {}) };
-  const res = await fetch(`${BASE}${path}`, {
+  // Desk calls go through admin.karwan.site's own proxy, which carries
+  // Cloudflare Access's pass to the backend (view 64).
+  const url = new Headers(headers).has('x-admin-token') ? adminApiUrl(path) : `${BASE}${path}`;
+  const res = await fetch(url, {
     cache: 'no-store',
     ...init,
     headers,
-    // Customer calls retain their session cookie. Operator calls are
-    // deliberately credential-less and authorize only with the in-memory
-    // X-Admin-Token, so /admin never acts as the signed-in customer account in
-    // the same browser profile.
+    // Customer calls retain their session cookie. Desk calls send only the
+    // admin address's cookies, so the desk never acts as a signed-in customer.
     credentials: credentialsForApiRequest(headers, init?.credentials),
   });
   if (!res.ok) {

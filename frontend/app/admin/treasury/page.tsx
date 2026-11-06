@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { adminApiUrl } from '@/shared/admin/adminDesk';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { formatUnits, isAddress, parseUnits } from 'viem';
 import { settlementChain } from '@/core/arcNetwork';
@@ -11,7 +12,6 @@ import {
   ARC_USDC_DECIMALS,
 } from '@/features/profile/config';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8787';
 
 type TreasuryView = {
   address: string | null;
@@ -182,7 +182,7 @@ function TreasuryConsole({ token, onClearToken }: { token: string; onClearToken:
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${BACKEND_URL}/api/admin/treasuries`, {
+      const r = await fetch(adminApiUrl(`/api/admin/treasuries`), {
         headers: { 'x-admin-token': token },
       });
       if (r.status === 401) {

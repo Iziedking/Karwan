@@ -1,5 +1,6 @@
 import type { Context, Next } from 'hono';
 import { config } from '../config.js';
+import { requireAccessPass } from './accessPass.js';
 
 /// Constant-time string compare. Returns false fast on length mismatch (the
 /// token length isn't the secret); equal-length inputs are compared without an
@@ -42,7 +43,22 @@ export function tokenRole(c: Context): 'admin' | 'support' | null {
   return null;
 }
 
-export async function requireAdmin(c: Context, next: Next): Promise<Response | void> {
+/// Every admin gate first needs Cloudflare Access's pass (view 64), so a route
+/// mounted outside /api/admin is closed to the internet just the same.
+function behindAccess(gate: (c: Context, next: Next) => Promise<Response | void>) {
+  return async (c: Context, next: Next): Promise<Response | void> => {
+    let inner: Response | void = undefined;
+    const refused = await requireAccessPass(c, async () => {
+      inner = await gate(c, next);
+    });
+    return refused ?? inner;
+  };
+}
+
+export const requireAdmin = behindAccess(adminTokenGate);
+export const requireSupport = behindAccess(supportTokenGate);
+
+async function adminTokenGate(c: Context, next: Next): Promise<Response | void> {
   const expected = config.ADMIN_API_TOKEN;
   if (!expected) {
     return c.json({ error: 'admin API disabled (ADMIN_API_TOKEN not set)' }, 503);
@@ -57,7 +73,7 @@ export async function requireAdmin(c: Context, next: Next): Promise<Response | v
 /// Gate for the support tickets surface: accepts the full admin token OR the
 /// support-team token. The admin token can do everything; the support token is
 /// scoped to tickets only and is rejected everywhere else (requireAdmin).
-export async function requireSupport(c: Context, next: Next): Promise<Response | void> {
+async function supportTokenGate(c: Context, next: Next): Promise<Response | void> {
   if (!config.ADMIN_API_TOKEN && !config.SUPPORT_API_TOKEN) {
     return c.json({ error: 'admin API disabled' }, 503);
   }

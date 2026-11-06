@@ -941,6 +941,12 @@ const envSchema = z.object({
   // tickets without the power to touch deals or accounts. Unset = no support-
   // only access (only the full admin token works).
   SUPPORT_API_TOKEN: optionalString,
+  // Cloudflare Access in front of admin.karwan.site (view 64): the team domain
+  // (name.cloudflareaccess.com) and the admin app's audience tag. Every admin
+  // request must carry a pass Access signed for that app. In production, with
+  // either unset, the admin desk answers not found to everyone.
+  ADMIN_ACCESS_TEAM_DOMAIN: optionalString,
+  ADMIN_ACCESS_AUD: optionalString,
   // Semver of the canon the team MCP serves. Every verify response carries it,
   // so a client that has drifted behind a canon release can say so instead of
   // answering from stale facts. Bumped in lockstep with the canon package.

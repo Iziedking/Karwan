@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { adminApiUrl } from '@/shared/admin/adminDesk';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8787';
 
 type UsycResp = {
   configured: boolean;
@@ -131,7 +131,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${BACKEND_URL}/api/admin/usyc`, {
+      const r = await fetch(adminApiUrl(`/api/admin/usyc`), {
         headers: { 'x-admin-token': token },
       });
       if (r.status === 401) {
@@ -149,7 +149,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
       // Separate call: the liquidity read must still work when the USYC/oracle
       // reads above fail, because it is the one an operator acts on.
       try {
-        const lr = await fetch(`${BACKEND_URL}/api/admin/usyc/liquidity`, {
+        const lr = await fetch(adminApiUrl(`/api/admin/usyc/liquidity`), {
           headers: { 'x-admin-token': token },
         });
         setLiq(lr.ok ? ((await lr.json()) as Liquidity) : null);
@@ -168,7 +168,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
       setRunning(true);
       setRun(null);
       try {
-        const r = await fetch(`${BACKEND_URL}/api/admin/usyc/run${dry ? '?dry=1' : ''}`, {
+        const r = await fetch(adminApiUrl(`/api/admin/usyc/run${dry ? '?dry=1' : ''}`), {
           method: 'POST',
           headers: { 'x-admin-token': token },
         });
@@ -189,7 +189,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
       setCovering(true);
       setCover(null);
       try {
-        const r = await fetch(`${BACKEND_URL}/api/admin/usyc/cover${dry ? '?dry=1' : ''}`, {
+        const r = await fetch(adminApiUrl(`/api/admin/usyc/cover${dry ? '?dry=1' : ''}`), {
           method: 'POST',
           headers: { 'x-admin-token': token },
         });
