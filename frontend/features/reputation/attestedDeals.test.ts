@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import type { AttestationBand } from '@/core/api';
 import { attestedDealsCopy } from '@/shared/i18n/messages/attestedDeals';
-import { attestedPage, attestedRows } from './attestedDeals';
+import { attestedPage, attestedRows, bandLine } from './attestedDeals';
 
 const copy = attestedDealsCopy.en;
 const a = (id: string, date: string, role: 'buyer' | 'seller', amountBand: AttestationBand, viaDispute = false) => ({
@@ -58,4 +58,13 @@ test('a long record shows five at a time', () => {
   assert.deepEqual(attestedPage(rows, 2).rows, [10, 11]);
   assert.equal(attestedPage(rows, 9).page, 2);
   assert.equal(attestedPage([], 0).pages, 1);
+});
+
+test('a value band reads in the chosen currency, every figure converted and the USDC word gone (view 55)', () => {
+  const naira = { currency: 'NGN', text: (usdc: number) => `₦${(usdc * 1344).toLocaleString('en')}` };
+  assert.equal(bandLine('100 to 1,000 USDC', naira), '₦134,400 to ₦1,344,000');
+  assert.equal(bandLine('USDC 100 hadi 1,000', naira), '₦134,400 hadi ₦1,344,000');
+  assert.equal(bandLine('1 000 à 10 000 USDC', naira), '₦1,344,000 à ₦13,440,000');
+  assert.equal(bandLine('Under 100 USDC', { currency: 'USDC', text: String }), 'Under 100 USDC');
+  assert.equal(bandLine('Under 100 USDC'), 'Under 100 USDC');
 });

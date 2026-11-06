@@ -1,4 +1,5 @@
 'use client';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError, ConfirmCancelled, type DirectDeal, type DirectDealFundingQuote } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -37,6 +38,12 @@ export function useWorkspaceActions(
   const { activated } = useActivation();
   const fundingQuote = useFundingQuote(jobId);
   const [sheet, setSheet] = useState<SheetState | null>(null);
+  // Every amount on a sheet in the chosen currency (view 55).
+  const { line: moneyLine, currency } = useMoneyText();
+  // With USDC chosen a sheet reads its figure exactly as before; any other
+  // currency reads the figure in that currency (view 55).
+  const figureLocale = currency === 'USDC' ? locale : 'en';
+  const say = useCallback((text: string) => (currency === 'USDC' ? text : moneyLine(text)), [currency, moneyLine]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -58,7 +65,7 @@ export function useWorkspaceActions(
     if (next.action === 'fund') {
       setSheet({
         action: 'fund',
-        title: fill(copy.actions.fundTemplate, { amount: next.amountUsdc ? formatUsdcAmount(next.amountUsdc, locale) : '' }),
+        title: say(fill(copy.actions.fundTemplate, { amount: next.amountUsdc ? formatUsdcAmount(next.amountUsdc, figureLocale) : '' })),
         consequence: dd.fundingConsentModal.body,
         irreversible: false,
         snapshot,
@@ -74,7 +81,7 @@ export function useWorkspaceActions(
         }
         setSheet({
           action: 'fund',
-          title: fill(copy.actions.fundTemplate, { amount: formatUsdcAmount(quote.fundedAmountUsdc, locale) }),
+          title: say(fill(copy.actions.fundTemplate, { amount: formatUsdcAmount(quote.fundedAmountUsdc, figureLocale) })),
           consequence: dd.fundingConsentModal.body,
           irreversible: false,
           snapshot,
@@ -99,13 +106,13 @@ export function useWorkspaceActions(
 
     setSheet({
       action: next.action as SheetAction,
-      title: actionLabel(next, copy, locale) ?? '',
-      consequence: actionConsequence(next, displayName, copy, locale),
+      title: say(actionLabel(next, copy, figureLocale) ?? ''),
+      consequence: say(actionConsequence(next, displayName, copy, figureLocale)),
       irreversible: isIrreversibleAction(next.action),
       snapshot,
       quote: null,
     });
-  }, [deal, address, locale, copy, dd, displayName, activated, fundingQuote]);
+  }, [deal, address, locale, copy, dd, displayName, activated, fundingQuote, say, figureLocale]);
 
   const confirm = useCallback(async () => {
     if (!deal || !address || !sheet || busyRef.current) return;
@@ -166,7 +173,7 @@ export function useWorkspaceActions(
                 ...current,
                 quote: nextQuote,
                 title: nextQuote
-                  ? fill(copy.actions.fundTemplate, { amount: formatUsdcAmount(nextQuote.fundedAmountUsdc, locale) })
+                  ? say(fill(copy.actions.fundTemplate, { amount: formatUsdcAmount(nextQuote.fundedAmountUsdc, figureLocale) }))
                   : current.title,
               }
             : current));
@@ -197,7 +204,7 @@ export function useWorkspaceActions(
       busyRef.current = false;
       setBusy(false);
     }
-  }, [deal, address, sheet, refresh, copy, dd, fundingQuote, locale, viewerIsBuyer]);
+  }, [deal, address, sheet, refresh, copy, dd, fundingQuote, locale, viewerIsBuyer, say, figureLocale]);
 
   const close = useCallback(() => {
     if (busy) return;

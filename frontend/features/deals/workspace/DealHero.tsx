@@ -143,7 +143,9 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     ? null
     : view.next.action === 'respond-cancel' && (outcome === 'refund' || outcome === 'pay')
       ? dp.answerProposal
-      : actionLabel(view.next, copy, locale);
+      : mt.currency === 'USDC'
+        ? actionLabel(view.next, copy, locale)
+        : mt.line(actionLabel(view.next, copy, 'en') ?? '') || null;
   // A payout that may already be on chain is checked again before anything new moves.
   const recovery = address && (view.stage === 'awaiting-first-release' || view.stage === 'awaiting-final-release')
     ? findUnresolvedPayoutRecovery(movements)

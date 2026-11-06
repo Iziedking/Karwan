@@ -1,5 +1,7 @@
 'use client';
 
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { bandLine } from '../attestedDeals';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { BackButton } from '@/shared/components/BackButton';
@@ -8,6 +10,8 @@ import { attestedDealsCopy } from '@/shared/i18n/messages/attestedDeals';
 
 export function AttestedDealPage({ id }: { id: string }) {
   const { locale } = useLocale();
+  const money = useMoneyText({ compact: true });
+  const inMoney = { currency: money.currency, text: (usdc: number) => money.text(usdc) };
   const copy = attestedDealsCopy[locale];
   const query = useQuery({ queryKey: ['attested-deal', id], queryFn: () => api.attestation(id), staleTime: 60_000, retry: 1 });
   const date = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
@@ -27,7 +31,7 @@ export function AttestedDealPage({ id }: { id: string }) {
         ...(who ? [[copy.whoLabel, who]] : []),
         [copy.settledOn, date.format(new Date(doc.claim.settledAt))],
         [copy.roleLabel, doc.claim.role === 'buyer' ? copy.buyer : copy.seller],
-        [copy.valueLabel, copy.bands[doc.claim.amountBand] ?? doc.claim.amountBand],
+        [copy.valueLabel, bandLine(copy.bands[doc.claim.amountBand] ?? doc.claim.amountBand, inMoney)],
         ...(doc.claim.viaDispute ? [[copy.disputeLabel, copy.yes]] : []),
         [copy.signedOn, date.format(new Date(doc.issuedAt))],
       ]
@@ -35,7 +39,7 @@ export function AttestedDealPage({ id }: { id: string }) {
 
   return (
     <article className="mx-auto max-w-[720px] px-4 py-6 sm:py-10">
-      <div className="-ms-2 mb-4">
+      <div data-own-back className="-ms-2 mb-4">
         <BackButton tone="adaptive" showOnPublic fallbackHref="/market" />
       </div>
       <h1 className="text-[28px] font-semibold text-[var(--lp-dark)]">{copy.pageTitle}</h1>

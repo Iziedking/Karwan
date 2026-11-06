@@ -6,6 +6,8 @@ import { relativeTime } from '@/shared/utils/format';
 import { BracketTag, type BracketTagVariant } from '@/shared/components/skill';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { bandLine } from '@/features/reputation/attestedDeals';
 
 interface TickerCard {
   key: string;
@@ -116,6 +118,9 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
   const { locale } = useLocale();
   const t = useTranslations().networkTicker;
   const sr = useTranslations().sealedRecord;
+  // The band in the chosen currency (view 55); its USDC label only when USDC is chosen.
+  const money = useMoneyText({ compact: true });
+  const inUsdc = money.currency === 'USDC';
   // The public feed carries settled deals only.
   const eyebrow = t.eyebrows.completed;
   const variant: BracketTagVariant = 'pos';
@@ -193,14 +198,16 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
               color: 'var(--lp-workspace-ink)',
             }}
           >
-            {sr.bands[card.band]}
+            {bandLine(sr.bands[card.band], { currency: money.currency, text: (usdc) => money.text(usdc) })}
           </span>
-          <span
-            className="font-mono text-[13px] uppercase tracking-[0.14em]"
-            style={{ color: 'var(--lp-workspace-faint)' }}
-          >
-            {sr.usdcDeal}
-          </span>
+          {inUsdc ? (
+            <span
+              className="font-mono text-[13px] uppercase tracking-[0.14em]"
+              style={{ color: 'var(--lp-workspace-faint)' }}
+            >
+              {sr.usdcDeal}
+            </span>
+          ) : null}
         </div>
       </div>
     </m.div>

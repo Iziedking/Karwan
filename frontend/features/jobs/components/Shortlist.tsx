@@ -79,7 +79,8 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
   const world = t.agentNudges.world;
   const notice = shortlistNotice(entries, copy);
-  const cost = shortlistCostLine(recordChecks, copy);
+  const costLine = shortlistCostLine(recordChecks, copy);
+  const cost = costLine ? money.line(costLine, { compact: false }) : null;
   const { locale } = useLocale();
   // Their record in one line: the rating when they have one, else how far they are verified.
   const recordLine = (e: RankedOffer) => (e.rating ? ratingText(e.rating, t.ratings, locale) : shortlistRowView(e, copy).levelLine);

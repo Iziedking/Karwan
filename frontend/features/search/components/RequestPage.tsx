@@ -87,13 +87,10 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
   const matchedName =
     job.bids.find((b) => proposal && b.seller.toLowerCase() === proposal.sellerAgent.toLowerCase())?.sellerDisplayName ??
     t.offers.unnamed;
-  const values = {
-    count: job.bids.length,
-    name: matchedName,
-    price: view.priceUsdc ?? '',
-    was: view.wasUsdc ?? '',
-    amount: view.topUpUsdc ?? '',
-  };
+  const values = { count: job.bids.length, name: matchedName };
+  // Amounts in the chosen currency (view 55), never a bare USDC figure beside it.
+  const amounts = { price: view.priceUsdc, was: view.wasUsdc, amount: view.topUpUsdc };
+  const say = (template: string) => money.fill(template, amounts, values);
   const refreshAll = () => {
     void refreshJob();
     void refreshProposal();
@@ -118,7 +115,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
           <p className="mono text-[13px] tracking-[0.04em] text-[var(--ink-secondary)]">{fill(rf.reference, { reference: requestRef(job.jobId) })}</p>
           <h1 className="break-words text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{title}</h1>
           <p className="text-[15px] tabular-nums text-[var(--ink-secondary)]">
-            {fill(rf.upTo, { amount: job.budgetUsdc })}
+            {money.fill(rf.upTo, { amount: job.budgetUsdc })}
             {job.deadlineUnix ? ` · ${fill(rf.neededBy, { date: formatDealDate(job.deadlineUnix * 1000, locale) })}` : ''}
           </p>
           {quantityLine(rp, job.quantity, job.budgetUsdc) ? (
@@ -129,8 +126,8 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
 
         <section aria-labelledby="request-status" className="space-y-4">
           <div aria-live="polite" className="space-y-2">
-            <h2 id="request-status" className="text-[20px] font-semibold text-[var(--ink)]">{fill(copy.headline, values)}</h2>
-            <p className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">{fill(copy.detail, values)}</p>
+            <h2 id="request-status" className="text-[20px] font-semibold text-[var(--ink)]">{say(copy.headline)}</h2>
+            <p className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">{say(copy.detail)}</p>
             <RequestReachLine
               jobId={job.jobId}
               active={view.viewer === 'buyer' && !proposal && !nearMiss && !job.escrowFunded && !job.expiredAt && !job.cancelledAt}

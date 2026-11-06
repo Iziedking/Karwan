@@ -1,5 +1,6 @@
 'use client';
 
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +15,8 @@ import { CARD_CLASS } from '@/shared/components/Card';
 /// W3C credential. The owner can download all of theirs.
 export function AttestedDeals({ address, downloadable = false }: { address: string; downloadable?: boolean }) {
   const { locale } = useLocale();
+  const money = useMoneyText({ compact: true });
+  const inMoney = { currency: money.currency, text: (usdc: number) => money.text(usdc) };
   const copy = attestedDealsCopy[locale];
   const [page, setPage] = useState(0);
   const query = useQuery({
@@ -24,7 +27,7 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
   // A failed lookup shows nothing rather than a wrong "none".
   if (query.isError) return null;
   if (!query.data) return <div aria-hidden className="mt-8 h-[96px]" />;
-  const rows = attestedRows(query.data.attestations, copy, locale);
+  const rows = attestedRows(query.data.attestations, copy, locale, inMoney);
   const shown = attestedPage(rows, page);
 
   return (

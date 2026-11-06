@@ -36,6 +36,7 @@ export function RecordView({ tag }: { tag: string }) {
   const t = useTranslations().record;
   const sealed = useTranslations().sealedRecord;
   const { locale, t: all } = useLocale();
+  const inMoney = { currency: money.currency, text: (usdc: number) => money.text(usdc) };
   const [record, setRecord] = useState<RecordData | null>(null);
   const [failure, setFailure] = useState<'missing' | 'error' | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -108,7 +109,7 @@ export function RecordView({ tag }: { tag: string }) {
       ]
     : [ratingFact, [view.rating.count.toLocaleString(locale), view.rating.count === 1 ? t.ratingsOne : t.ratingsMany], tierFact];
   const ac = attestedDealsCopy[locale];
-  const recent = attestedRows((attested.data?.attestations ?? []).filter((d) => !d.revokedAt), ac, locale).slice(0, 3);
+  const recent = attestedRows((attested.data?.attestations ?? []).filter((d) => !d.revokedAt), ac, locale, inMoney).slice(0, 3);
   const askHref = sellerAddress && !own ? `/buyer?seller=${sellerAddress}` : null;
 
   return (

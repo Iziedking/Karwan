@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ActivationModal } from '@/shared/components/ActivationModal';
 import { useActivation } from '@/shared/hooks/useActivation';
-import { formatBalance } from '@/features/money/balanceModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { toMicros } from '@/features/money/usdc';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { MoneySheet } from '@/features/money/components/MoneySheet';
+import { Price } from '@/features/money/components/Price';
 import { useDealAmountNeed } from '../dealAmount';
 
 const button =
@@ -16,7 +17,7 @@ const button =
 /// in place, and a price above the balance shows the gap before posting.
 export function BalanceSidecar({ agent = 'buyer' }: { agent?: 'buyer' | 'seller' }) {
   const t = useTranslations().money.home;
-  const { locale } = useLocale();
+  const money = useMoneyText();
   const balances = useMoneyBalances();
   const activation = useActivation();
   const need = useDealAmountNeed();
@@ -45,14 +46,13 @@ export function BalanceSidecar({ agent = 'buyer' }: { agent?: 'buyer' | 'seller'
           {amount === null ? (
             <div aria-busy="true" className="mt-2 h-8 w-32 rounded-[8px] bg-[var(--lp-light)]" />
           ) : (
-            <p className="mt-1 flex items-baseline gap-1.5 tabular-nums">
-              <span className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{formatBalance(amount, locale)}</span>
-              {' '}<span className="text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+            <p className="mt-1">
+              <Price usdc={amount} size="block" figureClassName="text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]" />
             </p>
           )}
           {gap > 0 ? (
             <p role="status" className="mt-2 text-[14px] leading-snug text-[var(--lp-dark)]">
-              {t.shortTemplate.replace('{need}', formatBalance(need!, locale)).replace('{gap}', formatBalance(gap, locale))}
+              {money.fill(t.shortTemplate, { need, gap }, {}, { exact: true })}
             </p>
           ) : null}
           <button
@@ -60,7 +60,7 @@ export function BalanceSidecar({ agent = 'buyer' }: { agent?: 'buyer' | 'seller'
             onClick={() => setSheet(gap > 0 ? { amount: gap } : {})}
             className={`${button} mt-4 ${gap > 0 ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]' : 'border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]'}`}
           >
-            {gap > 0 ? t.topUpGapTemplate.replace('{gap}', formatBalance(gap, locale)) : t.topUp}
+            {gap > 0 ? money.fill(t.topUpGapTemplate, { gap }, {}, { exact: true }) : t.topUp}
           </button>
         </>
       )}

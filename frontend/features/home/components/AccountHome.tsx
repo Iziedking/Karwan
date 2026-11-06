@@ -74,7 +74,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           ) : totalBalance == null ? (
             <p className="mt-1 flex items-baseline gap-2">
               <span className={`text-[34px] font-semibold leading-[1.1] tabular-nums tracking-[-0.03em] text-[var(--ink)] sm:text-[40px] ${owned.loading ? 'motion-safe:animate-pulse' : ''}`}>-</span>
-              {' '}<span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
             </p>
           ) : (
             <p className="mt-1"><Price usdc={totalBalance} size="block" /></p>
