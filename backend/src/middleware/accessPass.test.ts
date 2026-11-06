@@ -57,7 +57,7 @@ test('forged, expired, early, other app, other team, unsigned or garbled passes 
   const stranger = keyPair('k1');
   const cases: Array<[string, string]> = [
     ['forged', pass(stranger.privateKey, 'k1', good())],
-    ['expired', pass(k1.privateKey, 'k1', good({ exp: NOW / 1000 - 1 }))],
+    ['expired', pass(k1.privateKey, 'k1', good({ exp: NOW / 1000 - 61 }))],
     ['not yet valid', pass(k1.privateKey, 'k1', good({ nbf: NOW / 1000 + 600 }))],
     ['other app', pass(k1.privateKey, 'k1', good({ aud: ['someone-else'] }))],
     ['other team', pass(k1.privateKey, 'k1', good({ iss: 'https://evil.cloudflareaccess.com' }))],

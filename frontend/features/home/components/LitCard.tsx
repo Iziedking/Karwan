@@ -28,14 +28,15 @@ export function CardGlyph({ name, size = 18, className }: { name: CardIcon; size
 /// A Home card lit from the top in the accent, with its mark beside the title
 /// (owner, 6 Nov 2026: the assistant card, version 1). The light is the one
 /// colour on it; the actions stay neutral pills.
-export function LitCard({ icon, badge, title, body, titleId, guide, className, children }: {
+export function LitCard({ icon, badge, title, body, titleId, 'data-guide': guide, className, children }: {
   icon?: CardIcon;
   /** Takes the place of the icon badge, such as a progress ring. */
   badge?: ReactNode;
   title: string;
   body: string;
   titleId: string;
-  guide?: string;
+  /** A tour anchor. Pass it as a plain string where the card is used, so the tour check can read it. */
+  'data-guide'?: string;
   className?: string;
   children: ReactNode;
 }) {

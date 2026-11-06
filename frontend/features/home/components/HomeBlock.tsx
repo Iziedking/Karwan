@@ -28,7 +28,7 @@ export function HomeBlock({ profile }: { profile: UserProfile }) {
   }[kind];
 
   return (
-    <LitCard icon={view.icon} title={view.title} body={view.body} titleId="home-next" guide="home-start">
+    <LitCard icon={view.icon} title={view.title} body={view.body} titleId="home-next" data-guide="home-start">
       <div className="mt-auto flex flex-wrap gap-2 pt-5">
         {kind === 'getPaid' ? (
           <>
