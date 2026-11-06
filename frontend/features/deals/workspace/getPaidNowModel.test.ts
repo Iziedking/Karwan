@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DirectDeal, FactoringOffer } from '@/core/api';
-import { getPaidNowView, takePlan } from './getPaidNow';
+import { getPaidNowView, takePlan } from './getPaidNowModel';
 
 /// Get paid now on the deal page (view 18): a business order on the escrow
 /// family can ask from acceptance, and each offer says what it holds.

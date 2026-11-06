@@ -1,7 +1,7 @@
 import type { DirectDeal } from '@/core/api';
 import { stageOf, type DealStage } from './components/DirectDealList';
 import { directDealNeedsViewer } from '@/features/notifications/openDealsModel';
-import { dealRoute, type RouteStatus } from './dealRoute';
+import { dealRoute, type RouteStatus } from './dealRouteModel';
 
 /// What the Deals list needs to place a row. Home and Deals both order through
 /// orderDeals, so a deal sits in the same place on both.

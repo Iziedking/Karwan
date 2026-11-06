@@ -1,7 +1,7 @@
 'use client';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
-import { routeTrack, type RouteLine, type RouteMark } from '../dealRoute';
+import { routeTrack, type RouteLine, type RouteMark } from '../dealRouteModel';
 import type { StepKey } from './dealSteps';
 import { fill } from './presentation';
 

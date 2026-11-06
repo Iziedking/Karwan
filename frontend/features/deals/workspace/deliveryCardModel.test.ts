@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DirectDeal } from '@/core/api';
-import { deliveryCard, linksIn, noteWithoutLinks } from './deliveryCard';
+import { deliveryCard, linksIn, noteWithoutLinks } from './deliveryCardModel';
 
 function deal(extra: Partial<DirectDeal> = {}): DirectDeal {
   return {

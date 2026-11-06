@@ -1,7 +1,7 @@
 'use client';
 import type { DirectDeal } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { dealRoute } from './dealRoute';
+import { dealRoute } from './dealRouteModel';
 import { StepsTrack } from './workspace/StepsTrack';
 
 /// A deal's route, or the one status line that replaces it once the deal has

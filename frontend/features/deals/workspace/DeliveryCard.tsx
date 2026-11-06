@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { api, type DirectDeal } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { deliveryCard } from './deliveryCard';
+import { deliveryCard } from './deliveryCardModel';
 import { fill, formatDealDate } from './presentation';
 
 const outlineButton =

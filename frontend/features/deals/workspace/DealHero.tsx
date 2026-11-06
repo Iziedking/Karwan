@@ -37,7 +37,7 @@ import { BuyerPodPanel } from '@/features/trade/components/BuyerPodPanel';
 import { HandoverCode } from './HandoverCode';
 import { RecordNudge } from './RecordNudge';
 import { deliveryNeedsShipment } from './delivery';
-import { linksIn } from './deliveryCard';
+import { linksIn } from './deliveryCardModel';
 import { DealMoment } from './DealMoment';
 import { dealKindOf, moneySplit } from './dealSteps';
 import { DealRoute } from '../DealRoute';

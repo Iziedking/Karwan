@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DirectDeal } from '@/core/api';
-import { dealRoute, routeTrack } from './dealRoute';
+import { dealRoute, routeTrack } from './dealRouteModel';
 
 /// The deal's route (view 48): four stops for one payment, its own stops for
 /// other kinds, and a status line instead of a route once a deal stops moving

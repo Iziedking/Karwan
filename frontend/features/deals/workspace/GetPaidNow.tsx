@@ -12,7 +12,7 @@ import { ARC_CHAIN_ID } from '@/features/profile/config';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill } from './presentation';
-import { getPaidNowView, takePlan } from './getPaidNow';
+import { getPaidNowView, takePlan } from './getPaidNowModel';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
