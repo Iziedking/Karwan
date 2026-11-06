@@ -1521,6 +1521,16 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    // A World ID check on a request's chosen offer is made before the deal
+    // exists, so the link to direct deals refused every one of them. The routes
+    // read the deal or the request themselves before a check is saved.
+    version: 60,
+    name: 'world_id_checks_for_requests',
+    sql: `
+      ALTER TABLE world_id_deal_checks_v1 DROP CONSTRAINT IF EXISTS world_id_deal_checks_v1_job_id_fkey;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

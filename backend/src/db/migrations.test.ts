@@ -221,3 +221,9 @@ test('migration 37 keeps one open deletion per account', () => {
   assert.match(sql, /state IN \('scheduled', 'cancelled', 'refused', 'erasing', 'done'\)/);
   assert.match(sql, /CREATE UNIQUE INDEX account_deletions_one_open ON account_deletions_v1 \(address\)\s+WHERE state IN \('scheduled', 'erasing'\)/);
 });
+
+test('migration 60 lets a World ID check stand on a request before its deal exists', () => {
+  const migration = NUMBERED_MIGRATIONS.find((m) => m.version === 60);
+  assert.equal(migration?.name, 'world_id_checks_for_requests');
+  assert.match(migration!.sql, /ALTER TABLE world_id_deal_checks_v1 DROP CONSTRAINT IF EXISTS world_id_deal_checks_v1_job_id_fkey/);
+});
