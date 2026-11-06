@@ -1,4 +1,5 @@
 import { partsLines, ruleParts } from '../deals/drafter.js';
+import { requestAttachments } from '../attachments/attachments.js';
 import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -157,13 +158,19 @@ ${partsLines(drafted)}`;
           const built = dealBody(address, seller.party, answers, Date.now());
           if (!built.ok) return { error: built.message };
           if (conversationId) built.body.sourceContext = { channel: 'karwan', reference: conversationReference(conversationId) };
+          // View 56: photos or PDFs sent to the assistant for this deal go with it.
+          const heldFiles = requestAttachments.heldCount(address, Date.now());
+          if (heldFiles) built.body.heldAttachments = true;
           push({
             kind: 'confirm',
             id: `create_direct_deal:${'sellerAddress' in seller.party ? seller.party.sellerAddress : seller.party.sellerEmail}:${confirmNonce()}`,
             intent: 'create_direct_deal',
             title: `Send a protected deal to ${seller.label}`,
             summary: 'They are asked to accept these terms. Nothing is paid until they accept and you confirm payment.',
-            fields: dealCardFields(built.body, seller.label, await buyerPays(built.body.dealAmountUsdc, feeBps).catch(() => null)),
+            fields: [
+              ...dealCardFields(built.body, seller.label, await buyerPays(built.body.dealAmountUsdc, feeBps).catch(() => null)),
+              ...(heldFiles ? [{ label: 'Attached', value: `${heldFiles} ${heldFiles === 1 ? 'photo or file' : 'photos or files'}, only the two of you see them` }] : []),
+            ],
             payload: built.body,
             confirmLabel: 'Send the deal',
             cancelLabel: 'Not now',

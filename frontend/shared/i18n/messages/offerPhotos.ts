@@ -24,6 +24,8 @@ export interface OfferPhotosCopy {
   cancel: string;
   chooseTitle: string;
   forOffer: string;
+  /// View 56: kept for the next request or deal.
+  forDraft: string;
   asInvoice: string;
 }
 
@@ -49,6 +51,7 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     cancel: 'Cancel',
     chooseTitle: 'What is this photo for?',
     forOffer: 'For an offer',
+    forDraft: 'For a request or deal',
     asInvoice: 'Read as an invoice',
   },
   fr: {
@@ -72,6 +75,7 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     cancel: 'Annuler',
     chooseTitle: 'À quoi sert cette photo ?',
     forOffer: 'Pour une offre',
+    forDraft: 'Pour une demande ou un accord',
     asInvoice: 'Lire comme une facture',
   },
   ar: {
@@ -95,6 +99,7 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     cancel: 'إلغاء',
     chooseTitle: 'لأي شيء هذه الصورة؟',
     forOffer: 'لعرض',
+    forDraft: 'لطلب أو صفقة',
     asInvoice: 'قراءتها كفاتورة',
   },
   hi: {
@@ -118,6 +123,7 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     cancel: 'रद्द करें',
     chooseTitle: 'यह फ़ोटो किसलिए है?',
     forOffer: 'किसी ऑफ़र के लिए',
+    forDraft: 'अनुरोध या सौदे के लिए',
     asInvoice: 'इनवॉइस की तरह पढ़ें',
   },
   sw: {
@@ -141,6 +147,7 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     cancel: 'Ghairi',
     chooseTitle: 'Picha hii ni ya nini?',
     forOffer: 'Kwa ofa',
+    forDraft: 'Kwa ombi au mpango',
     asInvoice: 'Isome kama ankara',
   },
 };

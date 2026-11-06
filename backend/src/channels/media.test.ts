@@ -124,3 +124,20 @@ test('a chat photo captioned for an offer is held for it and never read as an in
   await plain.intake('0xada', media);
   assert.equal(plain.facts.length, 1);
 });
+
+test('a photo or PDF sent in chat about a request or a deal is held for it and never read as an invoice (view 56)', async () => {
+  const held: string[] = [];
+  const { intake, facts } = setup({
+    download: async () => ({ bytes: new Uint8Array([1, 2, 3]), mimeType: 'application/pdf' }),
+    extract: async () => { throw new Error('the invoice reader must not run'); },
+    holdForDraft: async (address) => { held.push(address); return 'Added to your next request or deal (1 of 4).'; },
+  });
+  const out = await intake('0xada', { ...media, mimeType: 'application/pdf', text: 'this is the quote we agreed' });
+  assert.equal(body(out), 'Added to your next request or deal (1 of 4).');
+  assert.deepEqual(held, ['0xada']);
+  assert.equal(facts.length, 0);
+  // An invoice sent with words is still read as one.
+  const invoiceWords = setup({ holdForDraft: async () => { throw new Error('must not hold'); } });
+  await invoiceWords.intake('0xada', { ...media, text: 'my invoice for the deal with Tunde' });
+  assert.equal(invoiceWords.facts.length, 1);
+});

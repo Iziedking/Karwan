@@ -1,4 +1,4 @@
-import { ATTACHMENT_DATA_URL_MAX, MAX_ATTACHMENTS, attachmentHeaders, attachmentList, decodeAttachments, requestAttachments } from '../attachments/attachments.js';
+import { ATTACHMENT_DATA_URL_MAX, MAX_ATTACHMENTS, attachmentHeaders, attachmentList, decodeAttachments, joinAttachments, requestAttachments } from '../attachments/attachments.js';
 import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono, type Context } from 'hono';
@@ -195,6 +195,8 @@ const postJobSchema = z
       .array(z.object({ name: z.string().max(200), dataUrl: z.string().max(ATTACHMENT_DATA_URL_MAX) }))
       .max(MAX_ATTACHMENTS)
       .optional(),
+    /// Add the photos or PDFs the poster sent to the assistant for this request.
+    heldAttachments: z.boolean().optional(),
   })
   .refine((b) => b.deadlineDays != null || b.deadlineSeconds != null, {
     message: 'deadlineDays or deadlineSeconds required',
@@ -494,7 +496,9 @@ ${body.terms}` : body.brief));
   // A request confirmed from an assistant card carries its conversation and
   // the Agree for me choice made there.
   const link = takeRequestLink(body.posterAddress, body.brief, body.budgetUsdc);
-  const attached = body.attachments?.length ? decodeAttachments(body.attachments) : [];
+  const fromForm = body.attachments?.length ? decodeAttachments(body.attachments) : [];
+  if ('error' in fromForm) return c.json({ error: fromForm.error, code: 'attachment-invalid' }, 400);
+  const attached = body.heldAttachments ? joinAttachments(fromForm, requestAttachments.takeHeld(body.posterAddress, Date.now())) : fromForm;
   if ('error' in attached) return c.json({ error: attached.error, code: 'attachment-invalid' }, 400);
   const attachments = attached.length ? requestAttachments.save(attached, Date.now()) : undefined;
   createBrief({

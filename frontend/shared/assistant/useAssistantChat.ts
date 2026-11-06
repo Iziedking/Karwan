@@ -5,7 +5,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { confirmOutcomes, type Turn } from './AssistantThread';
 import { savedAction } from './savedAction';
 import { contentForModel } from './modelHistory';
-import { attachForOffer } from '@/features/listings/photos';
+import { attachForDraft, attachForOffer } from '@/features/listings/photos';
 
 /// A card counts as run once its confirmation came back.
 const ran = (a: { id?: string }) => {
@@ -155,7 +155,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
   /// next offer (view 28); otherwise it is read as an invoice, like one sent on
   /// Telegram. The words are then answered with the file in view.
   const attach = useCallback(
-    async (file: File, purpose: 'offer' | 'invoice' = 'invoice', words = '') => {
+    async (file: File, purpose: 'offer' | 'draft' | 'invoice' = 'invoice', words = '') => {
       if (busy) return;
       void flush();
       const text = words.trim();
@@ -166,10 +166,10 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
       setError(null);
       setBusy(true);
       try {
-        const { reply } = purpose === 'offer' ? await attachForOffer(file) : await api.assistantAttach(file);
+        const { reply } = purpose === 'offer' ? await attachForOffer(file) : purpose === 'draft' ? await attachForDraft(file) : await api.assistantAttach(file);
         // An offer photo sent with words needs no "photo added" note: the
         // answer to the words says what happens with it.
-        const shown: Turn[] = purpose === 'offer' && text ? next : [...next, { role: 'assistant', content: reply }];
+        const shown: Turn[] = purpose !== 'invoice' && text ? next : [...next, { role: 'assistant', content: reply }];
         setMessages(shown);
         if (text) {
           const before = messages.map((x) => ({ role: x.role, content: contentForModel(x, ran) }));

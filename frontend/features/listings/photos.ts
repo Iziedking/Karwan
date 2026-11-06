@@ -65,3 +65,17 @@ export function attachForOffer(file: File) {
   form.append('purpose', 'offer');
   return send<{ reply: string }>('/api/assistant/attach', { method: 'POST', body: form });
 }
+
+/// A photo or PDF added in assistant mode for the person's next request or
+/// deal (view 56). A photo is resized on the device first, as on the forms.
+export async function attachForDraft(file: File) {
+  const form = new FormData();
+  if (/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    const blob = await (await fetch(await resizePhoto(file))).blob();
+    form.append('file', new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
+  } else {
+    form.append('file', file);
+  }
+  form.append('purpose', 'draft');
+  return send<{ reply: string }>('/api/assistant/attach', { method: 'POST', body: form });
+}

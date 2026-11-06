@@ -376,3 +376,9 @@ test('account steps run their page routes with the methods the pages use', async
     { method: 'POST', path: '/api/assistant/memory/enabled', body: { on: false } },
   ]);
 });
+
+test('a request confirmed in chat keeps its drafted parts, its agreement and the files held for it (view 56)', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: { jobId: '0xj', txHash: '0xt' } }));
+  await execute({ address: ME }, action('post_request', { posterAddress: ME, brief: 'Logo', budgetUsdc: 80, deadlineDays: 2, milestonePcts: [30, 70], terms: 'Payment: two parts', heldAttachments: true }, 'p2'));
+  assert.deepEqual(calls[0]!.body, { posterAddress: ME, brief: 'Logo', budgetUsdc: 80, deadlineSeconds: 172800, milestonePcts: [30, 70], terms: 'Payment: two parts', heldAttachments: true });
+});

@@ -5,6 +5,7 @@ import type { OutMessage } from './render.js';
 import type { InboundMessage } from './types.js';
 import { holdForOffer, isOfferPhotoCaption } from '../listings/photos.js';
 import { holdForDelivery, isDeliveryPhotoCaption } from '../deals/deliveryPhotos.js';
+import { holdForDraft, isDraftCaption } from '../attachments/attachments.js';
 import { holdForEntry, isEntryCaption } from '../contests/entryFiles.js';
 
 const TWO_YEARS_MS = 2 * 365 * 24 * 3_600_000;
@@ -33,6 +34,9 @@ export interface IntakeDeps {
   /// A photo or PDF captioned for a contest ("my entry") is held for the
   /// person's next entry (view 40).
   holdForEntry?: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string>;
+  /// A photo or PDF captioned for a request or a deal ("I need this", "what we
+  /// agreed") is held for the person's next request or deal (view 56).
+  holdForDraft?: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string>;
 }
 
 const text = (body: string): OutMessage => ({ kind: 'text', body });
@@ -54,6 +58,9 @@ export function createEvidenceIntake(deps: IntakeDeps) {
     }
     if (file.mimeType.startsWith('image/') && isDeliveryPhotoCaption(m.text)) {
       return [text(await (deps.holdForDelivery ?? holdForDelivery)(address, file))];
+    }
+    if (isDraftCaption(m.text)) {
+      return [text(await (deps.holdForDraft ?? holdForDraft)(address, file))];
     }
 
     let fields: ExtractedInvoice;

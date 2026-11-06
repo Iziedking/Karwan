@@ -25,7 +25,7 @@ import { conversationToResume, NEW_CHAT, readOpenConversation, rememberOpenConve
 import { useAuth } from '@/shared/hooks/useAuth';
 import { pastedFile } from '@/shared/utils/pastedFile';
 import { enterSends, touchKeyboard } from '@/shared/utils/enterSends';
-import { isOfferCaption } from '@/shared/assistant/offerCaption';
+import { isDraftCaption, isOfferCaption } from '@/shared/assistant/offerCaption';
 
 const ATTACHABLE = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
@@ -186,10 +186,12 @@ function AssistantPage() {
       const file = staged;
       setStaged(null);
       setInput('');
-      // Words about selling make it an offer photo; any other words read it as
-      // an invoice and are answered. A photo alone asks which it is; a PDF is
+      // Words about a request or a deal keep it for that (view 56); words about
+      // selling make it an offer photo; any other words read it as an invoice
+      // and are answered. A photo alone asks which it is; a PDF is
       // an invoice.
-      if (!file.type.startsWith('image/')) await chat.attach(file, 'invoice', question);
+      if (isDraftCaption(question)) await chat.attach(file, 'draft', question);
+      else if (!file.type.startsWith('image/')) await chat.attach(file, 'invoice', question);
       else if (isOfferCaption(question)) await chat.attach(file, 'offer', question);
       else if (question) await chat.attach(file, 'invoice', question);
       else setPhotoChoice(file);
@@ -329,6 +331,9 @@ function AssistantPage() {
                 <div className="mt-1 flex flex-wrap gap-2">
                   <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'offer'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                     {photoCopy.forOffer}
+                  </button>
+                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'draft'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
+                    {photoCopy.forDraft}
                   </button>
                   <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'invoice'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
                     {photoCopy.asInvoice}

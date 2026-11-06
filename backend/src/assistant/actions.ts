@@ -93,6 +93,8 @@ export interface PostRequestPayload {
   /// Parts drafted from the brief (view 56), and the agreement naming them.
   milestonePcts?: number[];
   terms?: string;
+  /// Add the photos or PDFs sent to the assistant for it (view 56).
+  heldAttachments?: boolean;
 }
 
 export interface ReleaseMilestonePayload {
@@ -760,6 +762,8 @@ export interface BuildPostRequestInput {
   private?: boolean;
   /// Parts drafted from the brief (view 56). One part means paid at once.
   parts?: DraftPart[];
+  /// How many photos or PDFs are held for it from the assistant (view 56).
+  heldAttachments?: number;
 }
 
 /// Build a post-request (buyer desk) confirm card, or an `{ error }` the tool
@@ -801,6 +805,7 @@ export function buildPostRequestConfirm(
       : []),
     { label: 'Deadline', value: deadlineLabel },
     ...(staged ? [{ label: 'Paid in', value: partsLines(staged) }] : []),
+    ...(i.heldAttachments ? [{ label: 'Attached', value: `${i.heldAttachments} ${i.heldAttachments === 1 ? 'photo or file' : 'photos or files'}` }] : []),
     { label: 'Matching', value: 'Your agent compares matching sellers and offers' },
     {
       label: 'Agree for me',
@@ -831,6 +836,7 @@ export function buildPostRequestConfirm(
       ...(quantity ? { quantity } : {}),
       ...(i.private ? { visibility: 'agents' as const } : {}),
       ...(staged ? { milestonePcts: staged.map((p) => p.pct), terms: partsAgreement(staged, { due: true }) } : {}),
+      ...(i.heldAttachments ? { heldAttachments: true } : {}),
     },
     confirmLabel: 'Post request',
     cancelLabel: 'Not now',

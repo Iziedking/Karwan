@@ -9,6 +9,7 @@ import { getBrief, listAllBriefs } from '../db/briefs.js';
 import { randomUUID } from 'node:crypto';
 import { requestsThatFit } from '../listings/fits.js';
 import { offersThatFit } from '../marketplace/offersThatFit.js';
+import { requestAttachments } from '../attachments/attachments.js';
 import { CATEGORY_NAMES, categoryOf } from '../listings/categories.js';
 import { findCustomers } from '../intelligence/customers.js';
 import { newWatch, watchRefusal } from '../intelligence/watches.js';
@@ -2636,11 +2637,14 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         // View 56: a brief that describes stages becomes the parts it is paid in.
         const { parts } = await draftDeal({ brief: args.brief }, { split: modelSplit });
         // View 56: requests check the market first.
+        // View 56: photos or PDFs sent to the assistant for this request go with it.
+        const heldFiles = requestAttachments.heldCount(address, Date.now());
         const fit = offersThatFit({ brief: args.brief, budgetUsdc: args.budgetUsdc, buyer: address, now: Date.now() }, listOpenListings());
         const built = buildPostRequestConfirm({
           caller: address,
           brief: args.brief,
           parts,
+          ...(heldFiles ? { heldAttachments: heldFiles } : {}),
           budgetUsdc: args.budgetUsdc,
           deadlineDays,
           ...(args.deadlineDate ? { deadlineLabel: `by ${args.deadlineDate.trim()}` } : {}),

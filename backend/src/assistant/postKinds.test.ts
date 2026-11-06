@@ -128,3 +128,13 @@ test('an offer said in stages carries its drafted parts as its terms (view 56)',
   assert.equal(p.termsDraft?.proof, 'link');
   assert.deepEqual(card.fields.find((f) => f.label === 'Paid in'), { label: 'Paid in', value: '30%: Two concepts\n70%: Final files' });
 });
+
+test('files held for the next request show on its card and go with it (view 56)', () => {
+  const card = buildPostRequestConfirm({ caller: ADA, brief: 'Shelves like the ones in the photo', budgetUsdc: 300, deadlineDays: 14, heldAttachments: 2 });
+  assert.ok(!('error' in card));
+  assert.deepEqual(card.fields.find((f) => f.label === 'Attached'), { label: 'Attached', value: '2 photos or files' });
+  assert.equal((card.payload as { heldAttachments?: boolean }).heldAttachments, true);
+  const none = buildPostRequestConfirm({ caller: ADA, brief: 'Shelves for my shop', budgetUsdc: 300, deadlineDays: 14 });
+  assert.ok(!('error' in none));
+  assert.equal(none.fields.some((f) => f.label === 'Attached'), false);
+});

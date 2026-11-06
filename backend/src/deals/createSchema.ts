@@ -101,6 +101,8 @@ export const createSchema = z
       .array(z.object({ name: z.string().max(200), dataUrl: z.string().max(ATTACHMENT_DATA_URL_MAX) }))
       .max(MAX_ATTACHMENTS)
       .optional(),
+    /// Add the photos or PDFs the buyer sent to the assistant for this deal.
+    heldAttachments: z.boolean().optional(),
     sourceContext: z
       .object({
         channel: z.enum(['karwan', 'email', 'tiktok', 'instagram', 'facebook', 'x', 'linkedin', 'other']),

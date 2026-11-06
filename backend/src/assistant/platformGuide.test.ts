@@ -209,6 +209,7 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   // View 56: the words become the parts; no milestone setup on the form.
   assert.match(steps, /Prepare my request reads the words into the parts/);
   // View 56: one attach button for photos or PDFs.
+  assert.match(PLATFORM_GUIDE.map((e) => e.summary).join(' '), /kept an hour for the next request or deal card, which shows Attached/);
   assert.match(steps, /Attach button for up to 4 photos or PDFs/);
   // View 56: requests check the market first.
   assert.match(steps, /offers already on the market fit[\s\S]*names up to three[\s\S]*can still be posted/);

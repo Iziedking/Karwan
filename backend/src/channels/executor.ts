@@ -36,6 +36,11 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
       ...(p.agreeForMe === true ? { agreeForMe: true } : {}),
       ...(p.quantity ? { quantity: p.quantity } : {}),
       ...(p.visibility === 'agents' ? { visibility: 'agents' } : {}),
+      // Parts drafted from the brief (view 56), the agreement naming them, and
+      // the files held for it.
+      ...(Array.isArray(p.milestonePcts) && p.milestonePcts.length > 1 ? { milestonePcts: p.milestonePcts } : {}),
+      ...(p.terms ? { terms: p.terms } : {}),
+      ...(p.heldAttachments === true ? { heldAttachments: true } : {}),
     },
   }),
   release_milestone: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/release`, body: { caller: p.caller } }),

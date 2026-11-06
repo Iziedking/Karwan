@@ -143,7 +143,7 @@ import { MAX_DELIVERY_PHOTOS, PHOTO_REQUIRED_ABOVE_USDC, deliveryFingerprint, de
 import { checkHandoverCode, issueHandoverCode } from '../deals/handoverCode.js';
 import { deliveryPhotoId, deliveryPhotos } from '../deals/deliveryPhotos.js';
 import { decodePhotoDataUrl, type Photo } from '../listings/photos.js';
-import { attachmentHeaders, dealAttachments, decodeAttachments } from '../attachments/attachments.js';
+import { attachmentHeaders, dealAttachments, decodeAttachments, joinAttachments, requestAttachments } from '../attachments/attachments.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { getListing, setListingOrder, type Listing } from '../db/listings.js';
 import { agentMayAccept, holdsOneOrderAtATime, listingHeldByOrder, listingOrderMatches } from '../deals/listingOrder.js';
@@ -702,7 +702,9 @@ dealsRoutes.post('/direct', async (c) => {
     dealAmountUsdc: body.dealAmountUsdc.toString(),
     terms: body.terms,
   });
-  const attached = body.attachments?.length ? decodeAttachments(body.attachments) : [];
+  const fromForm = body.attachments?.length ? decodeAttachments(body.attachments) : [];
+  if ('error' in fromForm) return c.json({ error: fromForm.error, code: 'attachment-invalid' }, 400);
+  const attached = body.heldAttachments ? joinAttachments(fromForm, requestAttachments.takeHeld(body.buyerAddress, Date.now())) : fromForm;
   if ('error' in attached) return c.json({ error: attached.error, code: 'attachment-invalid' }, 400);
   const attachments = attached.length ? dealAttachments.save(attached, Date.now()) : undefined;
   const deal = await createDeal({

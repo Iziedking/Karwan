@@ -3926,6 +3926,8 @@ export const api = {
       }>;
       /// Photos or PDFs that go with the request (view 56), up to four.
       attachments?: Array<{ name: string; dataUrl: string }>;
+      /// Add the photos or PDFs sent to the assistant for it.
+      heldAttachments?: boolean;
     } & ({ deadlineSeconds: number } | { deadlineDays: number }),
   ) =>
     json<{ jobId: string; deadlineUnix: number; txHash?: string }>(
@@ -4610,6 +4612,8 @@ export const api = {
     }>;
     /// Photos or PDFs both sides see (view 56), up to four.
     attachments?: Array<{ name: string; dataUrl: string }>;
+    /// Add the photos or PDFs sent to the assistant for it.
+    heldAttachments?: boolean;
     sourceContext?: TradeSourceContext;
     verificationPolicy?: 'standard' | 'high_signal';
     verificationSubject?: 'buyer' | 'seller' | 'both';
