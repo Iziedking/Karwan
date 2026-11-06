@@ -335,6 +335,9 @@ export interface DirectDeal {
   /// suite: the reminder sent before the buyer's review ends, for one delivery,
   /// payment and review end (deals/suiteReviewEnd.ts).
   reviewReminder?: { revision: number; paid: number; endSecs: number };
+  /// escrow family: what Karwan did on chain for a held delivery link, per
+  /// delivery revision: the buyer's extra review time, then the buyer's dispute (view 63).
+  heldLinkOnChain?: import('../deals/heldLinkOnChain.js').HeldLinkOnChain;
   /// suite: a claim the chain refused is tried again from this time.
   reviewClaimRetryAt?: number;
   /// Each side's answers to the three dispute questions, taken inside the

@@ -35,6 +35,7 @@ import { runSuiteReviewEnd } from '../deals/suiteReviewEnd.js';
 import { suiteReviewEndDeps } from '../deals/suiteReviewEndLive.js';
 import { logger } from '../logger.js';
 import { claimed, leased } from '../ops/leasedLoop.js';
+import { HELD_LINK_DISPUTE_REASON, heldLinkStep } from '../deals/heldLinkOnChain.js';
 import {
   releaseBlockReasonForDelivery,
   type ReleaseBlockReason,
@@ -270,6 +271,73 @@ async function runSuiteReviewEndSafely(deal: DirectDeal, now: number) {
     logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'review-end step failed (retried next tick)');
   } finally {
     processing.delete(deal.jobId);
+  }
+}
+
+/// A held link on the escrow family (view 63): the buyer's extra review time
+/// first, then the buyer's dispute, signed by the buyer's agent wallet. A
+/// failure is logged and tried again next tick; nothing here pays anyone.
+async function runHeldLinkOnChainSafely(deal: DirectDeal, now: number) {
+  const deps = suiteReviewEndDeps();
+  const terms = deal.escrowTerms as { reviewWindow?: number; silentLongstop?: number; maxExtensions?: number } | undefined;
+  if (!deps || !deal.buyerAgentWalletId || !terms?.reviewWindow || terms.silentLongstop === undefined || terms.maxExtensions === undefined) return;
+  try {
+    const [view, reviewEndSecs] = await Promise.all([deps.readView(deal), deps.readReviewEnd(deal)]);
+    const step = heldLinkStep({
+      deal,
+      view,
+      reviewEndSecs,
+      nowMs: now,
+      terms: { reviewWindow: terms.reviewWindow, silentLongstop: terms.silentLongstop, maxExtensions: terms.maxExtensions },
+    });
+    if (step.kind === 'more-time') {
+      const txHash = await dealEscrowOps.requestMoreTime(deal, deal.buyerAgentWalletId).catch((err: Error) => {
+        logger.warn({ jobId: deal.jobId, err: err.message }, 'held link: extra review time did not reach the escrow, the dispute follows when due');
+        return null;
+      });
+      const extensionMs = terms.reviewWindow * 1000;
+      await patchDeal(deal.jobId, {
+        heldLinkOnChain: { revision: step.revision, step: 'more-time', at: now, ...(txHash ? { txHash } : {}) },
+        ...(txHash ? { reviewExtensionCount: (deal.reviewExtensionCount ?? 0) + 1, reviewExtensionMs: (deal.reviewExtensionMs ?? 0) + extensionMs } : {}),
+      });
+      if (!txHash) return;
+      await addSystemMessage({
+        jobId: deal.jobId, channel: 'trade', channelKey: deal.jobId, eventType: 'deal.held_link.more_time', occurrenceKey: String(step.revision),
+        body: 'The delivery link is still being checked, so the buyer’s extra review time was used. The seller is not paid on the clock while the link is held.',
+      }).catch(() => undefined);
+      bus.emitEvent({ type: 'deal.review.heartbeat', jobId: deal.jobId, actor: 'platform', payload: { buyer: deal.buyer, seller: deal.seller, extendedByMs: extensionMs, heldLink: true } });
+      logger.info({ jobId: deal.jobId, txHash }, 'held link: buyer extra review time used on the escrow');
+      return;
+    }
+    if (step.kind === 'dispute') {
+      const txHash = await dealEscrowOps.dispute(deal, deal.buyerAgentWalletId, HELD_LINK_DISPUTE_REASON);
+      await patchDeal(deal.jobId, {
+        disputed: true,
+        disputedAt: now,
+        disputedBy: 'buyer',
+        heldLinkOnChain: { revision: step.revision, step: 'dispute', at: now, txHash },
+      });
+      bus.emitEvent({
+        type: 'deal.disputed',
+        jobId: deal.jobId,
+        actor: 'platform',
+        payload: { buyer: deal.buyer, seller: deal.seller, reason: HELD_LINK_DISPUTE_REASON, txHash, heldLink: true },
+      });
+      await addSystemMessage({
+        jobId: deal.jobId, channel: 'trade', channelKey: deal.jobId, eventType: 'deal.held_link.disputed', occurrenceKey: String(step.revision),
+        body: 'The delivery link is still held by the safety check, so a dispute was opened for the buyer. Nobody is paid until it is decided. A person from the team is checking the link.',
+      }).catch(() => undefined);
+      const chat = supportOperatorChatId();
+      if (chat) {
+        await sendTelegramMessage(
+          chat,
+          `*Held link put on chain.* Deal ${deal.jobId.slice(0, 10)}… had a delivery link still held as the buyer's review ran out, so the buyer's dispute was opened. Check the link at /admin/support.`,
+        ).catch((err) => logger.warn({ err: (err as Error).message }, 'held link alert send failed'));
+      }
+      logger.warn({ jobId: deal.jobId, txHash }, 'held link: buyer dispute opened on the escrow');
+    }
+  } catch (err) {
+    logger.error({ jobId: deal.jobId, err: (err as Error).message }, 'held link could not be put on chain (tried again next tick)');
   }
 }
 
@@ -970,6 +1038,9 @@ async function watchDeal(deal: DirectDeal, now: number, pairHistory: ReturnType<
       // from paying for a link the buyer cannot open.
       if (deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious') {
         await markBlocked(deal.jobId, 'security-hold', 'security-hold', { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail }, parties);
+        // The contract does not know of this hold, so before the seller could
+        // claim on the clock the hold is put on chain (view 63).
+        await runHeldLinkOnChainSafely(deal, now);
         return;
       }
       if (deal.releaseBlockedReason === 'security-hold') await clearBlocked(deal.jobId, parties);

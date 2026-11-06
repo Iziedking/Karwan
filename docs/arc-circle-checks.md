@@ -764,3 +764,11 @@ Agree: yes.
 - Source read, 6 Nov 2026: `contracts/src/suite/agreement/AgreementCommon.sol` (hooks), `AgreementDisputeLib.sol` (slash per ruled tranche, release on the last), `KarwanStakeVault.sol` (`extend` refuses after expiry, `releaseStale` after expiry, `expiryOf` 0 when nothing is reserved). No SDK is involved: plain viem reads and writes on Arc.
 - Read-only test, 6 Nov 2026, Arc Testnet public RPC: head 71,009,686. `getLogs` for `StakeHookFailed` (topic `0xba6d5b43…d169`) on the Agreement escrow `0x5546…F43C` over 9,999 blocks returned 0 logs; a 10,002-block window was refused. Escrow hub `0xB874…38a6` names the vault `0xF5FD…07ed5`; `expiryOf(escrow, 0x0)` read 0.
 - Agree: yes.
+
+## 2026-11-06 · A held delivery link is held on chain too (T2, view 63, audit RT-09)
+
+- Scope: on a family deal whose delivery link is held, the buyer's agent wallet (a Circle developer-controlled wallet Karwan holds) calls `requestMoreTime(bytes32)` once, then `dispute(bytes32,bytes32)` if the link is still held. These are the existing `chain/agreementEscrow.ts` writes, through Circle contract execution. No new SDK call.
+- Docs: Circle docs, 6 Nov 2026, `contracts/scp-interact-smart-contract` (`createContractExecutionTransaction` with `walletId`, `contractAddress`, `abiFunctionSignature`, `abiParameters`; the write is asynchronous and needs gas). Contract source, 6 Nov 2026: `AgreementDeliveryLib.claimBar` refuses `claim` while the deal is not Accepted (a dispute makes it Disputed). `moreTime` needs a started review, before the review end, with an extension left. `reviewEndOf` includes held time.
+- Installed SDK: `@circle-fin/developer-controlled-wallets` 10.8.0.
+- Read-only test, 6 Nov 2026, Arc Testnet public RPC, Agreement escrow `0x5546…F43C`: deal ids taken from the escrow's own logs. `getDeal`, `getTerms` and `reviewEndOf` read back `reviewWindow` 3,600, `maxExtensions` 1, `extensionSecs` 3,600, `silentLongstop` 612,000, `reviewStarts` 0 (review starts on delivery), `extUsed` 0.
+- Agree: yes.

@@ -53,6 +53,29 @@ contract AgreementDisputeTest is AgreementFixture {
         escrow.dispute(id, bytes32("late"));
     }
 
+    /// A held link on chain (view 63): the buyer's extra time, then the buyer's
+    /// dispute a little before that runs out, and the seller's claim is refused
+    /// once the review clock has passed.
+    function test_more_time_then_a_dispute_keeps_a_held_link_from_being_claimed() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("held"));
+        _deliver(id);
+        uint64 firstEnd = escrow.reviewEndOf(id);
+        vm.warp(uint256(firstEnd) - 60);
+        vm.prank(buyer);
+        escrow.requestMoreTime(id);
+        uint64 secondEnd = escrow.reviewEndOf(id);
+        assertGt(secondEnd, firstEnd);
+
+        vm.warp(uint256(secondEnd) - 60);
+        vm.prank(buyer);
+        escrow.dispute(id, keccak256("The delivery link is held by the safety check and no person has cleared it."));
+
+        vm.warp(uint256(secondEnd) + 1 days);
+        vm.expectRevert(AgreementDeliveryLib.BadState.selector);
+        escrow.claim(id);
+        assertEq(uint8(_state(id)), uint8(AgreementState.Disputed));
+    }
+
     function test_a_dispute_needs_a_delivery_and_a_party() public {
         bytes32 id = _fundAccepted(_terms(), bytes32("d"));
         vm.prank(buyer);

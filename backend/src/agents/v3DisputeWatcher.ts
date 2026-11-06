@@ -9,6 +9,7 @@ import {
   type DisputeClocks,
   type RulingRecord,
 } from '../deals/arbiterV3.js';
+import { isHeldLink } from '../deals/heldLinkOnChain.js';
 
 /// The deal watcher's v3 half: delivery-check attestations from the evidence
 /// registry, and the dispute lifecycle (automatic proposal or escalation,
@@ -87,6 +88,7 @@ export async function runV3Dispute(deps: V3WatcherDeps, deal: DirectDeal, nowMs:
         nowSecs,
         disputedBy: deal.disputedBy ?? null,
         checkFailedRevision: deal.v3CheckFailedRevision,
+        linkHeld: isHeldLink(deal),
       };
       const ruling = decideRuling(input);
       if (ruling.kind === 'wait') return;

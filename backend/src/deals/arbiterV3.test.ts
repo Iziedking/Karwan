@@ -48,6 +48,14 @@ test('R2 does not apply to a late delivery, or when the seller disputed', () => 
   assert.equal(bySeller.kind, 'escalate');
 });
 
+test('a held link nobody cleared is never paid out by the table, even with a passed check (view 63)', () => {
+  const r = decideRuling({ ...base, linkHeld: true, view: view({ deliveredAt: BigInt(NOW - 3 * DAY), checkPassed: true }) });
+  assert.deepEqual([r.kind, r.ruleId], ['escalate', 'R4-refer']);
+  assert.match(r.reason, /held by the safety check/);
+  const failed = decideRuling({ ...base, linkHeld: true, checkFailedRevision: 1, view: view({ deliveredAt: 1n, revision: 1 }) });
+  assert.deepEqual([failed.kind, failed.kind === 'propose' ? failed.sellerBps : null], ['propose', 0], 'a failed check still returns the money to the buyer');
+});
+
 test('R3: the check failed on this exact delivery: all to the buyer', () => {
   const r = decideRuling({ ...base, checkFailedRevision: 2, view: view({ deliveredAt: 1n, revision: 2 }) });
   assert.deepEqual([r.kind, r.kind === 'propose' ? r.sellerBps : null, r.ruleId], ['propose', 0, 'R3-check-failed']);

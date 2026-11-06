@@ -21,6 +21,8 @@ export interface ArbiterInput {
   disputedBy: 'buyer' | 'seller' | null;
   /// The delivery revision a failed check was attested for, if any.
   checkFailedRevision?: number;
+  /// The delivery link is held by the safety check and no person has cleared it (view 63).
+  linkHeld?: boolean;
 }
 
 export type ArbiterRuling =
@@ -54,6 +56,11 @@ export function decideRuling(input: ArbiterInput): ArbiterRuling {
       ruleId: 'R3-check-failed',
       reason: 'the delivery check failed on the delivery under dispute',
     };
+  }
+
+  // A link nobody has cleared is never paid out by the table: a person decides.
+  if (input.linkHeld) {
+    return { kind: 'escalate', ruleId: 'R4-refer', reason: 'the delivery link is held by the safety check and no person has cleared it' };
   }
 
   if (view.checkPassed && !view.lateMark && input.disputedBy === 'buyer') {

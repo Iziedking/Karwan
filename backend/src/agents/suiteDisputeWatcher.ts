@@ -7,6 +7,7 @@ import type { EvidenceReceiptView } from '../chain/evidenceReceipt.js';
 import type { PlatformSigners } from '../chain/platformSigners.js';
 import type { DirectDeal } from '../db/deals.js';
 import { attestationFor, decideRuling, rulingRecord } from '../deals/arbiterV3.js';
+import { isHeldLink } from '../deals/heldLinkOnChain.js';
 
 /// The deal watcher's escrow-family half: delivery checks signed by two of
 /// Karwan's three checkers, and the dispute table of 25 Sep on the Agreement
@@ -116,6 +117,7 @@ export async function runSuiteDispute(deps: SuiteWatcherDeps, deal: DirectDeal, 
         nowSecs,
         disputedBy: deal.disputedBy ?? null,
         checkFailedRevision: deal.v3CheckFailedRevision,
+        linkHeld: isHeldLink(deal),
       };
       const ruling = decideRuling(input);
       if (ruling.kind === 'wait') return;

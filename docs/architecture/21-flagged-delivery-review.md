@@ -75,6 +75,8 @@ A 230 USDC deal's link (`.xyz`) was held for a safety check, but the deal page s
 
 A person who clears the link late cannot restart the buyer's review on the family's chain clock; the buyer can still ask once for more time.
 
+Since 6 Nov 2026 the hold is also put on chain (view 63). With a quarter of the review time left and the link still held, Karwan uses the buyer's one request for more time. If the link is still held as that runs out, Karwan opens the buyer's dispute, so `claim` is refused. A dispute over a held link always goes to a person, never to the automatic ruling (`linkHeld` in `deals/arbiterV3.ts`).
+
 ## A person checks a held match (found on testnet, 30 Oct 2026)
 
 Deal `0xd68f…` (a smart contract audit, 104.66 USDC) showed "Match held for review" to both people. The buyer read it as a flagged link, opened the support panel, and the panel answered that the delivery was not held, which was true: the delivery link was clean. The hold came from the security match gate (`security/matchGate.ts`), which screens the match after funding and held it because the buyer's account carried one unsafe-link offence from an earlier deal where they were the seller. What was wrong:
