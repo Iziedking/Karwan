@@ -15,6 +15,7 @@ import { moneySounds } from '@/shared/sound/moneySounds';
 import { fill } from '@/features/deals/workspace/presentation';
 import { planTopUp } from '@/features/bridge/routePlan';
 import { useMoneyText } from '../hooks/useMoneyText';
+import { useAmountInput } from '../hooks/useAmountInput';
 import { sendAvailable } from '../sendFromWhole';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { useMoneyMove } from '../hooks/useMoneyMove';
@@ -22,7 +23,6 @@ import {
   SHEET_STEPS,
   chipAmount,
   groupAddress,
-  parseAmount,
   recipientInput,
   sheetBlocker,
   sheetBusy,
@@ -80,7 +80,8 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const announced = useRef<SheetState['kind'] | null>(null);
   const inFlight = useRef(false);
   const move = openedOn;
-  const [typed, setTyped] = useState('');
+  const amt = useAmountInput();
+  const { typed, setTyped } = amt;
   const [recipient, setRecipient] = useState('');
   const [pressed, setPressed] = useState<number | null>(null);
   // Withdraw only: false sends to the account, true to the other agent.
@@ -92,7 +93,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   // no result left over from last time.
   useEffect(() => {
     if (!open) return;
-    setTyped(prefillAmount ? String(prefillAmount) : '');
+    amt.setFromUsdc(prefillAmount ?? null);
     setRecipient(prefillRecipient ?? '');
     setPressed(null);
     setToOtherAgent(false);
@@ -126,7 +127,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const otherAgentBalance = agent === 'buyer' ? balances.seller : balances.buyer;
   const withdrawToAgent = move === 'withdraw' && toOtherAgent && !!otherAgentAddress;
   const topUpFromAgent = move === 'topUp' && fromOtherAgent && !!otherAgentAddress;
-  const amount = parseAmount(typed);
+  const amount = amt.usdc;
   const route =
     move === 'topUp' && amount !== null && balances.balance !== null
       ? planTopUp({ amount, balance: balances.balance, pool: balances.pool })
@@ -332,7 +333,8 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
 
       <div className="mt-6">
         <label htmlFor={amountId} className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.sheet.amountLabel}</label>
-        <div className="mt-2 flex items-baseline gap-2 border-b-2 border-[var(--line-strong)] pb-2 focus-within:border-[var(--ink)]">
+        <div dir="ltr" className="mt-2 flex items-baseline gap-2 border-b-2 border-[var(--line-strong)] pb-2 focus-within:border-[var(--ink)]">
+          {amt.sign !== 'USDC' ? <span data-amount-sign className="text-[28px] font-bold text-[var(--ink-secondary)]">{amt.sign}</span> : null}
           <input
             id={amountId}
             ref={amountRef}
@@ -345,9 +347,8 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             dir="ltr"
             className="amount-input min-w-0 flex-1 bg-transparent text-[36px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
           />
-          {' '}<span className="text-[15px] font-semibold text-[var(--ink-secondary)]">USDC</span>
+          {amt.sign === 'USDC' ? <span className="text-[15px] font-semibold text-[var(--ink-secondary)]">USDC</span> : null}
         </div>
-        {money.hint(amount) ? <p data-local-hint className="mt-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{money.hint(amount)}</p> : null}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p className="inline-flex items-center gap-1.5 text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
             {available === null ? ' ' : money.fill(t.sheet.available, { amount: available })}
@@ -361,7 +362,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                 className={CHIP}
                 disabled={max === null || max <= 0 || state.kind !== 'editing'}
                 onClick={() => {
-                  if (max !== null) setTyped(String(chipAmount(max, chip)));
+                  if (max !== null) amt.setFromUsdc(chipAmount(max, chip), 'down');
                 }}
               >
                 {t.sheet[chip]}

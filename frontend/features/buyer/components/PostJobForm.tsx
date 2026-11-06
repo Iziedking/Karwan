@@ -1,4 +1,5 @@
 ﻿'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { clearRequestDraft, loadRequestDraft, saveRequestDraft } from '../requestDraft';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -653,21 +654,10 @@ export function PostJobForm() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
           <FormLabel
             label={t.sectionTerms.budgetLabel}
-            unit="USDC"
             hint={c.budgetHint}
             dataGuide="buyer-budget"
           >
-            <input
-              data-guide="buyer-budget"
-              type="number"
-              min={1}
-              step={1}
-              value={budget}
-              disabled={submitting}
-              onChange={(e) => setBudget(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              className="form-input form-input-num"
-            />
+            <MoneyInput dataGuide="buyer-budget" value={budget} disabled={submitting} onChange={(usdc) => setBudget(usdc ?? '')} />
           </FormLabel>
           <FormLabel
             label={rf.neededByLabel}

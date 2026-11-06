@@ -593,7 +593,6 @@ test('the money sheets, Send, payment links, offers and the financier desk read 
     '../../features/money/components/AddMoneySheet.tsx',
     '../../features/money/components/WithdrawFlow.tsx',
     '../../features/money/components/WithdrawStart.tsx',
-    '../../features/money/components/AmountHero.tsx',
     '../../features/guarantee/GuaranteeMove.tsx',
     '../../features/payLink/PayRequestView.tsx',
     '../../features/payLink/FundToPay.tsx',
@@ -615,6 +614,8 @@ test('the money sheets, Send, payment links, offers and the financier desk read 
     assert.match(code, /useMoneyText\(/, file);
     assert.doesNotMatch(code, /\$\{format(Balance|Amount|Usdc)\([^`]*\)\} USDC`|\} USDC<\/(span|p|dd)>/, `${file}: no figure printed in USDC alone`);
   }
+  // The big amount is typed in the chosen currency, with its sign (view 55).
+  assert.match(source('../../features/money/components/AmountHero.tsx'), /sign: string/);
   // The exact USDC to send on another network stays exact, its worth under it.
   assert.match(source('../../features/payLink/AnyChainPay.tsx'), /money\.hint\(state\.sendUsdc\)/);
 });

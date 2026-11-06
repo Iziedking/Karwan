@@ -875,6 +875,9 @@ export interface DirectDeal {
   /// its own deal page and is listed on /legacy to reconcile (view 27).
   previousEscrow?: true;
   dealAmountUsdc: string;
+  /// The price as agreed in a local currency (view 55), read back as agreed by
+  /// anyone reading in that currency.
+  agreedLocal?: LocalAmount;
   /// First milestone percent. On a two-milestone deal implies [firstReleasePct,
   /// 100 - firstReleasePct]; kept in sync with milestonePcts[0] when present.
   firstReleasePct: number;
@@ -1276,6 +1279,8 @@ export interface Listing {
   title: string;
   description: string;
   askingPriceUsdc: number;
+  /// The asking price as the seller typed it in their currency (view 55).
+  askingLocal?: LocalAmount;
   negotiationMaxDecreasePct?: number;
   postedAt: number;
   /// Unix-ms when the listing window closes. Past this, listingStatus is
@@ -2636,6 +2641,25 @@ export interface AdminMatchingReviewItem {
   shadowWinnerId?: string;
 }
 
+/// A typed local amount and the USDC it moves (view 55).
+export interface MoneyQuote {
+  currency: string;
+  amount: string;
+  rate: number;
+  at: number;
+  usdcMicros: string;
+  expiresAt: number;
+  token: string;
+}
+
+/// What someone typed in their own currency, kept on a record (view 55).
+export interface LocalAmount {
+  currency: string;
+  amount: string;
+  rate?: number;
+  at?: number;
+}
+
 export interface AdminMatchingReview {
   reviewId: string;
   observationKey: string;
@@ -3230,6 +3254,7 @@ export const api = {
     title: string;
     description: string;
     askingPriceUsdc: number;
+    quote?: string;
     negotiationMaxDecreasePct?: number;
     ttlDays?: number;
     readyInDays?: number;
@@ -3952,6 +3977,10 @@ export const api = {
   /// 1 USDC in each display currency; empty rates mean no fresh figure (view 51).
   moneyRates: () =>
     json<{ rates: Partial<Record<string, number>>; updatedAt: number | null; source: string | null }>('/api/money/rates'),
+  /// An amount typed in a local currency as USDC, held for two minutes and
+  /// signed, so the record keeps the figure on the confirm (view 55).
+  moneyQuote: (currency: string, amount: string) =>
+    json<MoneyQuote>(`/api/money/quote?currency=${encodeURIComponent(currency)}&amount=${encodeURIComponent(amount)}`),
   /// What the person's agent may spend on checks this week (view 51, third round).
   agentLimit: () => json<AgentLimit>('/api/money/agent-limit'),
   setAgentLimit: (weeklyUsdc: number) =>
@@ -4512,6 +4541,8 @@ export const api = {
     /// label. Handles are transferable, so nothing re-resolves it later.
     sellerPaytag?: string;
     dealAmountUsdc: number;
+    /// The price as typed in the buyer's currency, signed (view 55).
+    quote?: string;
     deadlineDays: number;
     deadlineHours?: number;
     acceptanceWindowHours?: number;
@@ -5020,7 +5051,7 @@ export const api = {
     ),
   /// Instant same-chain Arc send: USDC.transfer from the signed-in user's
   /// Karwan identity wallet to any Arc address. No CCTP, settles in one step.
-  cashoutArcSend: (input: { recipient: string; amountUsdc: number; bridgeId?: string; note?: string }) =>
+  cashoutArcSend: (input: { recipient: string; amountUsdc: number; bridgeId?: string; note?: string; quote?: string }) =>
     json<{
       ok: true;
       txHash: string;
@@ -5068,6 +5099,7 @@ export const api = {
     body: {
       caller: string;
       dealAmountUsdc?: number;
+      quote?: string;
       deadlineDays?: number;
       deadlineHours?: number;
       acceptanceWindowHours?: number;
@@ -5335,6 +5367,8 @@ export const api = {
         ts: number;
         /// A send's note, for the sender and the receiver alike (view 50).
         note?: string;
+        /// What the sender typed in their own currency (view 55), on their row only.
+        local?: LocalAmount;
         kind: string;
         summary: string;
         params?: Record<string, string> | null;
@@ -5359,6 +5393,7 @@ export const api = {
     mintTxHash?: string;
     direction?: 'in' | 'out';
     note?: string;
+    quote?: string;
   }) =>
     json<{
       ok: boolean;
@@ -6042,6 +6077,7 @@ export const api = {
     body: {
       caller: string;
       dealAmountUsdc?: number;
+      quote?: string;
       deadlineDays?: number;
       deadlineHours?: number;
       acceptanceWindowHours?: number;

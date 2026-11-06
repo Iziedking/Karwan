@@ -1,3 +1,4 @@
+import type { LocalAmount } from '../rates/quote.js';
 import { createHash, randomBytes } from 'node:crypto';
 
 export const USDC_DECIMALS = 6;
@@ -108,6 +109,9 @@ export interface MoneyMovement {
   summary: string;
   /// A send's note to the person paid (view 50), read by both sides.
   note?: string;
+  /// The amount as the initiator typed it in their own currency (view 55).
+  /// USDC above is what moved; this is what they agreed to and read back.
+  local?: LocalAmount;
   nextActor: MoneyMovementActor;
   expectedArrivalAt?: number;
   jobId?: string;
@@ -128,6 +132,7 @@ export interface CreateMoneyMovementInput {
   participants: MoneyMovementParty[];
   summary: string;
   note?: string;
+  local?: LocalAmount;
   nextActor?: MoneyMovementActor;
   expectedArrivalAt?: number;
   jobId?: string;
@@ -265,6 +270,7 @@ export function createMoneyMovement(
     participants,
     summary: input.summary.trim(),
     ...(input.note ? { note: input.note } : {}),
+    ...(input.local ? { local: input.local } : {}),
     nextActor: input.nextActor ?? 'karwan',
     ...(input.expectedArrivalAt ? { expectedArrivalAt: input.expectedArrivalAt } : {}),
     ...(input.jobId ? { jobId: input.jobId.toLowerCase() } : {}),

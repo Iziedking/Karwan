@@ -16,7 +16,8 @@ import { SOURCE_CHAINS, WITHDRAW_DEST_KEYS, type CctpChainKey } from '@/features
 import { routeSpeed, stepForPhase } from '@/features/bridge/routePlan';
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
 import { pressKey } from '../amountEntry';
-import { chipAmount, parseAmount } from '../moneySheetModel';
+import { chipAmount } from '../moneySheetModel';
+import { useAmountInput } from '../hooks/useAmountInput';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { shortAddr, withdrawCheck, withdrawSplit, withdrawTargets, ADDRESS_RE, type WithdrawStage, type WithdrawTarget } from '../withdrawFlow';
 import { AmountHero } from './AmountHero';
@@ -71,7 +72,8 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
   const [address, setAddress] = useState(prefillAddress ?? '');
   const [dest, setDest] = useState<DestKey>(WITHDRAW_DEST_KEYS[0]);
   const [netOpen, setNetOpen] = useState(false);
-  const [typed, setTyped] = useState(prefillAmount ? String(prefillAmount) : '');
+  const amt = useAmountInput(prefillAmount ?? null);
+  const { typed, setTyped } = amt;
   const [reviewing, setReviewing] = useState(false);
   const [followFrom, setFollowFrom] = useState<number | null>(null);
   const [sent, setSent] = useState<{ amount: number; address: string; network: string; seconds: number | null } | null>(null);
@@ -80,7 +82,7 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
   const followed = followFrom === null ? null : outBridges.find((b) => b.startedAt >= followFrom) ?? null;
   const sending = outBridges.some((b) => b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning');
   const destName = dest === 'arc' ? 'Arc' : SOURCE_CHAINS[dest].name;
-  const amount = parseAmount(typed);
+  const amount = amt.usdc;
   const check = withdrawCheck({ address, amount, ready: split.ready });
   // The networks a withdrawal can reach; your own wallet is already on Arc, so it goes elsewhere.
   const destKeys: DestKey[] = target === 'ownWallet' ? [...WITHDRAW_DEST_KEYS] : ['arc', ...WITHDRAW_DEST_KEYS];
@@ -94,7 +96,7 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
   }, [landed, followed?.id]);
 
   function choose(next: WithdrawTarget) {
-    if (next === 'karwan') { router.push(typed ? `/send?amount=${encodeURIComponent(typed)}` : '/send'); return; }
+    if (next === 'karwan') { router.push(amount ? `/send?amount=${encodeURIComponent(String(amount))}` : '/send'); return; }
     setTarget(next);
     if (next === 'ownWallet' && auth.address) { setAddress(auth.address); setDest(WITHDRAW_DEST_KEYS[0]); }
     else if (address === auth.address) setAddress('');
@@ -109,14 +111,16 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
     onClose();
   }
 
-  function send() {
+  async function send() {
     if (!check.ok || !auth.address || amount === null) return;
     setReviewing(false);
+    const quote = dest === 'arc' ? await amt.quote() : undefined;
+    const held = quote && quote.usdc <= split.ready ? quote : undefined;
     sentAt.current = Date.now();
     setFollowFrom(sentAt.current);
     const recipient = address.trim() as `0x${string}`;
     if (dest === 'arc') {
-      const args = { amountUsdc: amount, recipient, userAddress: auth.address };
+      const args = { amountUsdc: held?.usdc ?? amount, recipient, userAddress: auth.address, ...(held ? { quote: held.token } : {}) };
       if (isCircle) startArcSend(args);
       else startWeb3ArcSend(args);
       return;
@@ -175,7 +179,7 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
             <Link href="/activity" className="inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--ink)] hover:underline">{pages.added.allActivity}</Link>
             <div className="grid gap-2.5">
               <button type="button" data-sent-done onClick={onClose} className={buttonClasses({ size: 'lg', className: 'w-full' })}>{pages.added.done}</button>
-              <button type="button" onClick={() => { setSent(null); setFollowFrom(null); setTyped(''); setStage('where'); }} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>{w.another}</button>
+              <button type="button" onClick={() => { setSent(null); setFollowFrom(null); amt.setFromUsdc(null); setStage('where'); }} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>{w.another}</button>
             </div>
           </div>
         ) : followed ? (
@@ -253,11 +257,11 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
           </div>
         ) : (
           <div className="space-y-4">
-            <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} />
+            <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} sign={amt.sign} />
             <p data-withdraw-ready className="text-center text-[14px] font-medium text-[var(--ink-secondary)]">{money.fill(w.ready, { amount: split.ready })}</p>
             <div className="flex justify-center gap-2">
               {(['quarter', 'half', 'max'] as const).map((chip) => (
-                <button key={chip} type="button" className={CHIP} disabled={split.ready <= 0} onClick={() => setTyped(String(chipAmount(split.ready, chip)))}>{sheetCopy[chip]}</button>
+                <button key={chip} type="button" className={CHIP} disabled={split.ready <= 0} onClick={() => amt.setFromUsdc(chipAmount(split.ready, chip), 'down')}>{sheetCopy[chip]}</button>
               ))}
             </div>
             {keypad ? <Keypad onKey={(key) => setTyped((v) => pressKey(v, key))} label={entry.keypad} backLabel={entry.back} /> : null}

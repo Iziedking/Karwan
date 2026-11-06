@@ -33,6 +33,8 @@ export const createSchema = z
       .regex(/^@?[a-zA-Z0-9_-]{1,32}$/, 'expected a paytag handle like @sarah')
       .optional(),
     dealAmountUsdc: z.number().positive(),
+    /// The price as typed in a local currency (view 55), signed by /money/quote.
+    quote: z.string().max(2000).optional(),
     // Optional delivery deadline. When omitted (or both fields = 0) the deal
     // is open-ended, the seller has no time pressure and the buyer can't
     // unilateral-cancel for late delivery. When set, total must land between

@@ -31,7 +31,7 @@ flowchart LR
 
 **Confirming.** The confirm card says what you typed: "Send ₦50,000 to @ada". The Moves USDC row goes. The figure on the card is held for the life of the card, so the rate cannot move under your thumb. If the card stays open more than 2 minutes, it asks you to look again.
 
-**Deals.** You set the price of a request, an offer, a direct deal or a listing in your currency. The deal remembers the price as agreed, "₦100,000", and anyone reading in naira sees that figure for the whole life of the deal, even after the rate moves. Someone reading in another currency sees it converted at today's rate. What sits in escrow is the USDC worked out at the moment the deal is funded.
+**Deals.** You set the price of a request, an offer, a direct deal or a listing in your currency. The deal remembers the price as agreed, "₦100,000", and anyone reading in naira sees that figure for the whole life of the deal, even after the rate moves. Someone reading in another currency sees it converted at today's rate. What sits in escrow is the USDC worked out when the price was agreed.
 
 **Balances and history.** These read at today's rate, as they do now. Your own receipt keeps the figure you typed. On the deal's or receipt's Proof, behind a tap, a "Settled 37.144 USDC" row records what moved on chain.
 
@@ -48,13 +48,35 @@ flowchart LR
 ## Decisions for the owner
 
 1. **A deal's agreed price stays fixed in the currency it was agreed in.** Recommended. The other choice is to recompute it every day at the live rate, but then "₦100,000" becomes "₦98,700" a week later, which reads as a broken promise.
-2. **Who carries the rate risk between agreement and funding?** Recommended: the USDC is fixed when the buyer funds, at that moment's rate, and both sides see the agreed figure. If the rate has moved more than 2% since the price was agreed, the funding card shows the new figure ("Now ₦102,300") and asks the buyer to confirm it.
+2. **Who carries the rate risk between agreement and funding?** The USDC is fixed when the price is agreed, so the seller is paid what both sides agreed. If the rate has moved more than 2% by the time the buyer funds, the funding card says what that USDC is worth today ("Agreed at ₦100,000. At today's rate that is ₦102,300.") and the buyer confirms with that in front of them. (Ruling while building: the first draft said the USDC is fixed at funding, which would change the seller's amount after they agreed and contradicts the "Now ₦102,300" card in the same line.)
 3. **Terms change.** The terms' Currency line says Karwan applies no exchange rate and that amounts entered are in USDC. With this view, amounts are entered in your currency and Karwan converts them to USDC at a published reference rate (CoinGecko). It is still not an exchange: no naira moves, and no fee is taken on the rate. The terms, FAQ and assistant guide change in the same batch. A legal read before mainnet is recommended.
 4. **Proof keeps one USDC row.** Recommended, because a record has to say what actually moved. It sits behind Proof, never on the main receipt.
 
 ## What this view does not do
 
 It does not add naira in or out (roadmap T5.4, a licensed partner). It does not change contracts, escrow or settlement. It does not let two people agree in two different currencies at once: a deal has one agreed currency, the creator's.
+
+## As built
+
+Built 5 Nov 2026, not deployed. Front end and back end deploy together.
+
+- **Quote.** `GET /api/money/quote` (`backend/src/rates/quote.ts`) returns the USDC for a typed figure, rounded down to the micro, signed with the session secret and good for 2 minutes. A move or a price carries the token; `localFromQuote` keeps `{ currency, amount, rate, at }` only when the token is good and moves exactly its USDC, otherwise the record stays plain USDC.
+- **Kept on the record.** Sends and withdrawals on Arc (`/api/bridge/record`, `/api/cashout/arc-send`) keep `local` on the money movement, and the sender's own ledger row returns it, so Activity, Recent and the receipt read the figure typed. Direct deals keep `agreedLocal` on create, edit and counter. Offers for sale keep `askingLocal`. Request budgets, offers made on requests, contest prizes, hourly rates, agent limits and price ranges are typed in the person's currency and stored in USDC; they read at today's rate.
+- **Fields.** `useAmountInput` and `AmountHero` for the big amounts (Send, Withdraw, the agent sheet, pay links, the deal guarantee); `MoneyInput` for every inline field, which keeps each form in USDC underneath. `oneCurrency.test.ts` fails the build when a money field is a plain decimal input.
+- **Confirms.** Send shows the figure typed; the release and order confirms lose their USDC rows; the funding card reads in your currency and shows the 2% line from decision 2.
+- **Assistant.** Every tool that takes `amountUsdc` also takes `currency`; the figure is converted at today's rate before the tool runs, on the website and in Telegram alike. A move made from chat does not keep the typed figure on its record yet.
+- **Proof.** The receipt has a Network proof fold with one Settled line in USDC.
+- **Terms.** The Currency paragraph changed in all five languages and in `docs/terms-and-conditions.md`.
+
+Rulings while building:
+
+- A withdrawal to an outside wallet keeps its one Moves line in USDC, because that wallet receives USDC and shows it. Add money stays in USDC with the bridge, for the same reason.
+- `MatchBanner.tsx` still has a USDC field: another session is changing that file. It is listed in `oneCurrency.test.ts` to move to `MoneyInput` when that work lands.
+
+## Not done
+
+- The assistant's own moves do not keep the typed figure on the record.
+- The notification for watched prices ("settle around {to} USDC (was {from})") still prints the old price as a bare number.
 
 ## Build order, once approved
 

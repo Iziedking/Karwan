@@ -1,3 +1,4 @@
+import { localFromQuote } from '../rates/quote.js';
 import { cleanNote } from '../money/sendNote.js';
 import { recordedBridgeMintedPayload } from '../money/bridgeEvents.js';
 import { randomUUID } from 'node:crypto';
@@ -280,6 +281,8 @@ const recordSchema = z.object({
   direction: z.enum(['in', 'out']).optional(),
   /// A same-chain send's note to the person paid (view 50).
   note: z.string().max(400).optional(),
+  /// The amount as typed in the sender's currency (view 55), signed by /money/quote.
+  quote: z.string().max(2000).optional(),
 });
 
 bridgeRoutes.post('/record', async (c) => {
@@ -399,6 +402,7 @@ bridgeRoutes.post('/record', async (c) => {
           ? `Sent ${amountUsdc} USDC from Arc to ${chainLabel(body.sourceChainKey)}`
           : await inboundSummary({ amountUsdc, chain: chainLabel(body.sourceChainKey), owner: ownerAddress, recipient: body.mintRecipient }),
       note: sameChain ? cleanNote(body.note) : null,
+      local: localFromQuote(body.quote, amountMicros),
     });
     movement = ensured.movement;
     if (movement.amountMicros !== amountMicros.toString()) {

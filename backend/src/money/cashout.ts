@@ -1,3 +1,4 @@
+import type { LocalAmount } from '../rates/quote.js';
 import {
   beginOrResumeMoneyMovement,
   completeMoneyMovement,
@@ -25,6 +26,7 @@ export interface CashoutMovementInput {
   recipient: string;
   summary: string;
   note?: string | null;
+  local?: LocalAmount;
   jobId?: string;
 }
 
@@ -42,6 +44,7 @@ export async function ensureCashoutMovement(
     ],
     summary: input.summary,
     ...(input.note ? { note: input.note } : {}),
+    ...(input.local ? { local: input.local } : {}),
     nextActor: 'karwan',
     ...(input.jobId ? { jobId: input.jobId } : {}),
   });

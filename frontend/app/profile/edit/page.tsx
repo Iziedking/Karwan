@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -334,7 +335,17 @@ function NumberInput({ value, onChange, ariaLabel }: { value: number; onChange: 
 }
 
 /// A number with its unit beside it, inside the field's row.
+/// A money figure reads and types in the person's own currency (view 55).
+function MoneyNumber({ value, onChange, ariaLabel }: { value: number; onChange: (n: number) => void; ariaLabel?: string }) {
+  return (
+    <span className="min-w-0 flex-1">
+      <MoneyInput value={Number.isFinite(value) ? value : null} onChange={(usdc) => onChange(usdc ?? NaN)} ariaLabel={ariaLabel} />
+    </span>
+  );
+}
+
 function UnitInput({ value, onChange, unit, ariaLabel }: { value: number; onChange: (n: number) => void; unit: string; ariaLabel?: string }) {
+  if (unit === 'USDC') return <MoneyNumber value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   return (
     <span className="flex items-center gap-2">
       <NumberInput value={value} onChange={onChange} ariaLabel={ariaLabel} />
@@ -374,10 +385,10 @@ function RangeField({
         {hint ? <Hint>{hint}</Hint> : null}
       </p>
       <div className="flex items-center gap-2">
-        <NumberInput value={from} onChange={onFrom} ariaLabel={`${label}, ${fromAria}`} />
+        {unit === 'USDC' ? <MoneyNumber value={from} onChange={onFrom} ariaLabel={`${label}, ${fromAria}`} /> : <NumberInput value={from} onChange={onFrom} ariaLabel={`${label}, ${fromAria}`} />}
         <span aria-hidden className="text-[var(--ink-secondary)]">–</span>
-        <NumberInput value={to} onChange={onTo} ariaLabel={`${label}, ${toAria}`} />
-        <span className="shrink-0 text-[14px] font-medium text-[var(--ink-secondary)]">{unit}</span>
+        {unit === 'USDC' ? <MoneyNumber value={to} onChange={onTo} ariaLabel={`${label}, ${toAria}`} /> : <NumberInput value={to} onChange={onTo} ariaLabel={`${label}, ${toAria}`} />}
+        {unit === 'USDC' ? null : <span className="shrink-0 text-[14px] font-medium text-[var(--ink-secondary)]">{unit}</span>}
       </div>
       {children}
     </div>

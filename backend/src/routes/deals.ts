@@ -1,3 +1,4 @@
+import { localFromQuote } from '../rates/quote.js';
 import { releaseLeg } from '../deals/payoutLeg.js';
 import { MAX_REVIEW_DAYS, reviewHasStarted } from '../deals/reviewClock.js';
 import { recheckDelivery, scheduleRecheck } from '../deals/deliveryRecheck.js';
@@ -332,6 +333,8 @@ const editSchema = z
   .object({
     caller: addrSchema,
     dealAmountUsdc: z.number().positive().optional(),
+    /// The new price as typed in a local currency (view 55), signed by /money/quote.
+    quote: z.string().max(2000).optional(),
     deadlineDays: z.number().int().min(0).max(180).optional(),
     deadlineHours: z.number().int().min(0).max(23).optional(),
     acceptanceWindowHours: z.number().min(0.25).max(720).multipleOf(0.25).optional(),
@@ -706,6 +709,7 @@ dealsRoutes.post('/direct', async (c) => {
     buyerAgentWalletId: buyerAgents.buyerWalletId,
     buyerAgentAddress: buyerAgents.buyerAddress,
     dealAmountUsdc: body.dealAmountUsdc.toString(),
+    ...(localFromQuote(body.quote, dealAmountWei) ? { agreedLocal: localFromQuote(body.quote, dealAmountWei) } : {}),
     firstReleasePct: body.firstReleasePct,
     milestonePcts: body.milestonePcts,
     deadlineUnix,
@@ -895,6 +899,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   }
   if (body.dealAmountUsdc !== undefined) {
     patch.dealAmountUsdc = body.dealAmountUsdc.toString();
+    patch.agreedLocal = localFromQuote(body.quote, parseUnits(body.dealAmountUsdc.toString(), USDC_DECIMALS));
   }
   if (body.terms !== undefined) {
     patch.terms = body.terms;
@@ -1090,7 +1095,10 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
     patch.highSignalVerification =
       policy === 'high_signal' ? createHighSignalVerification(subject) : undefined;
   }
-  if (body.dealAmountUsdc !== undefined) patch.dealAmountUsdc = body.dealAmountUsdc.toString();
+  if (body.dealAmountUsdc !== undefined) {
+    patch.dealAmountUsdc = body.dealAmountUsdc.toString();
+    patch.agreedLocal = localFromQuote(body.quote, parseUnits(body.dealAmountUsdc.toString(), USDC_DECIMALS));
+  }
   if (body.terms !== undefined) patch.terms = body.terms;
   Object.assign(patch, splitPatch(body));
   patch.dealKind = kindOf({ ...deal, ...patch });

@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
 import { api, ConfirmCancelled } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -108,20 +109,15 @@ export function FundAgentOptions({
         <div
           className="flex min-h-[52px] items-center gap-3 rounded-[14px] bg-[var(--tint)] px-4"
         >
-          <input
-            id={`fund-agent-amount-${agent}`}
-            type="number"
-            min="0.01"
-            step="0.01"
-            inputMode="decimal"
-            value={amountInput}
-            onChange={(event) => setAmountInput(event.target.value)}
-            disabled={fundingBusy}
-            aria-describedby={`fund-agent-amount-note-${agent}`}
-            className="min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent text-[16px] font-medium tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
-          />
-          <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
-            USDC
+          <span className="min-w-0 flex-1">
+            <MoneyInput
+              id={`fund-agent-amount-${agent}`}
+              value={amountInput}
+              onChange={(usdc) => setAmountInput(usdc === null ? '' : String(usdc))}
+              disabled={fundingBusy}
+              ariaDescribedBy={`fund-agent-amount-note-${agent}`}
+              className="min-h-[52px] rounded-[14px] bg-transparent text-[16px] font-medium tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+            />
           </span>
         </div>
         <p id={`fund-agent-amount-note-${agent}`} className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">

@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useEffect, useId, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -149,8 +150,7 @@ export function FindSellerPage() {
             <div className="min-w-0">
               <label htmlFor={ids.budget} className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.find.budget}</label>
               <div className="mt-2 flex items-center gap-2">
-                <input id={ids.budget} inputMode="decimal" value={budget} onChange={(e) => setBudget(e.target.value)} className={`${FIELD} min-w-0 tabular-nums`} />
-                <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+                <MoneyInput id={ids.budget} value={budget} onChange={(usdc) => setBudget(usdc === null ? '' : String(usdc))} className={`${FIELD} min-w-0 tabular-nums`} />
               </div>
               {err('budget')}
             </div>

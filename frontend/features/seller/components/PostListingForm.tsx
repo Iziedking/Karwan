@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput, type MoneyInputHandle } from '@/features/money/components/MoneyInput';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -75,6 +76,7 @@ export function PostListingForm() {
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [who, setWho] = useState<WhoCanSeeChoice>('market');
   const [price, setPrice] = useState<number | ''>(initialPrice ?? '');
+  const priceField = useRef<MoneyInputHandle>(null);
   const [floorPrice, setFloorPrice] = useState<number | ''>(
     initialPrice != null && initialTolerance != null && initialTolerance > 0
       ? Math.round(initialPrice * (1 - initialTolerance / 100) * 100) / 100
@@ -154,14 +156,17 @@ export function PostListingForm() {
     setSubmitting(true);
     setError(null);
     try {
+      // The asking price as the seller typed it stays with the offer (view 55).
+      const quote = await priceField.current?.quote();
       const r = await api.postListing({
+        ...(quote ? { quote: quote.token } : {}),
         ...(photos.length ? { photos } : {}),
         ...(category ? { category } : {}),
         ...visibilityOf(who),
         sellerUser: address,
         title: title.trim(),
         description: description.trim(),
-        askingPriceUsdc: priceValue,
+        askingPriceUsdc: quote?.usdc ?? priceValue,
         negotiationMaxDecreasePct: floorDropPct ?? undefined,
         ttlDays: openDays,
         readyInDays: readyInDays as number,
@@ -314,17 +319,8 @@ export function PostListingForm() {
           </div>
           ) : null}
 
-          <Field label={f.price} unit="USDC" hint={pl.sectionPricing.askingHint} dataGuide="seller-price">
-            <input
-              type="number"
-              inputMode="decimal"
-              min={1}
-              step="any"
-              value={price}
-              onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              className="form-input form-input-num"
-            />
+          <Field label={f.price} hint={pl.sectionPricing.askingHint} dataGuide="seller-price">
+            <MoneyInput value={price} onChange={(usdc) => setPrice(usdc ?? '')} handle={priceField} />
           </Field>
 
           <div>
@@ -395,18 +391,8 @@ export function PostListingForm() {
               open={floorOpen}
               onToggle={setFloorOpen}
             >
-              <Field label={f.floor} unit="USDC" hint={f.floorHint} dataGuide="seller-floor">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="any"
-                  value={floorPrice}
-                  onChange={(e) => setFloorPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder={priceValue ? String(priceValue) : '0'}
-                  aria-invalid={floorInvalid || undefined}
-                  className="form-input form-input-num"
-                />
+              <Field label={f.floor} hint={f.floorHint} dataGuide="seller-floor">
+                <MoneyInput value={floorPrice} onChange={(usdc) => setFloorPrice(usdc ?? '')} />
               </Field>
             </FoldRow>
             <FoldRow
@@ -555,7 +541,7 @@ export function PostListingForm() {
                         <span className="line-clamp-2 break-words text-[15px] font-semibold leading-snug text-[var(--lp-workspace-ink)]">{l.title}</span>
                         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="text-[14px] font-medium tabular-nums text-[var(--lp-workspace-muted)]">
-                            {money.text(l.askingPriceUsdc)}
+                            {money.price(l.askingPriceUsdc, l.askingLocal)}
                           </span>
                           {/* A tinted label, like Request's: the state reads on its own ground. */}
                           <span

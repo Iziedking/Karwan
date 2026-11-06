@@ -134,7 +134,7 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   await expect(review).toBeDisabled();
   await page.getByLabel(dd.counterparty.oneBoxLabel).fill('0x3333333333333333333333333333333333333333');
   await expect(page.getByRole('button', { name: rs.noDate, exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('spinbutton').first().fill('200');
+  await page.locator('[data-money-input]').first().fill('200');
   await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
   await page.locator('[data-pay-in-parts] summary').click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Product photos for the first 10 items');
@@ -191,7 +191,7 @@ test('a person can open a goods deal handed over in person, and By the hour open
   await expect(page.getByRole('link', { name: wf.byTheHour, exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: wf.inPerson, exact: true }).click();
   await expect(page.getByRole('button', { name: wf.inPerson, exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('spinbutton').first().fill('80');
+  await page.locator('[data-money-input]').first().fill('80');
   await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
   // One payment: what is delivered has its own box.
   await page.getByLabel(en.editDealModal.deliverLabel, { exact: true }).fill('Tecno Spark 20, blue, with charger');

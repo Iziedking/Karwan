@@ -9,7 +9,8 @@ import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { AmountHero } from '@/features/money/components/AmountHero';
 import { Keypad } from '@/features/money/components/Keypad';
 import { pressKey } from '@/features/money/amountEntry';
-import { chipAmount, parseAmount } from '@/features/money/moneySheetModel';
+import { chipAmount } from '@/features/money/moneySheetModel';
+import { useAmountInput } from '@/features/money/hooks/useAmountInput';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useGuarantee } from './useGuarantee';
 
@@ -35,13 +36,14 @@ export function GuaranteeMove({ step, onClose }: { step: GuaranteeStep; onClose:
   // Only an open guarantee has amounts to move.
   const data: { freeUsdc: string; waitDays: number; comingBackUsdc: string } | null =
     read && read.available ? (read as unknown as { freeUsdc: string; waitDays: number; comingBackUsdc: string }) : null;
-  const [typed, setTyped] = useState('');
+  const amt = useAmountInput();
+  const { typed, setTyped } = amt;
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
   const withAmount = step === 'put_up' || step === 'take_out';
   const source = step === 'put_up' ? wallet : Number(data?.freeUsdc ?? 0);
-  const amount = parseAmount(typed);
+  const amount = amt.usdc;
   const waitDays = data?.waitDays ?? 0;
   const readyOn = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(Date.now() + waitDays * 86_400_000));
   const title = step === 'put_up' ? g.addTitle : step === 'take_out' ? g.withdrawTitle : step === 'collect' ? money.fill(c.sheets.collect.title, { amount: data?.comingBackUsdc ?? 0 }) : money.fill(c.sheets.cancel.title, { amount: data?.comingBackUsdc ?? 0 });
@@ -77,13 +79,13 @@ export function GuaranteeMove({ step, onClose }: { step: GuaranteeStep; onClose:
           <h1 id={titleId} className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]" dir="auto">{title}</h1>
           {withAmount ? (
             <>
-              <AmountHero id={amountId} label={sheet.amountLabel} value={typed} onChange={setTyped} keypad={keypad} />
+              <AmountHero id={amountId} label={sheet.amountLabel} value={typed} onChange={setTyped} keypad={keypad} sign={amt.sign} />
               <p className="text-center text-[14px] font-medium text-[var(--ink-secondary)]">
                 {step === 'put_up' ? money.fill(g.fromBalance, { amount: wallet }) : money.fill(g.readyLine, { amount: source })}
               </p>
               <div className="flex justify-center gap-2">
                 {(['quarter', 'half', 'max'] as const).map((chip) => (
-                  <button key={chip} type="button" className={CHIP} disabled={source <= 0 || busy} onClick={() => setTyped(String(chipAmount(source, chip)))}>{sheet[chip]}</button>
+                  <button key={chip} type="button" className={CHIP} disabled={source <= 0 || busy} onClick={() => amt.setFromUsdc(chipAmount(source, chip), 'down')}>{sheet[chip]}</button>
                 ))}
               </div>
               {keypad ? <Keypad onKey={(key) => setTyped((v) => pressKey(v, key))} label={entry.keypad} backLabel={entry.back} /> : null}

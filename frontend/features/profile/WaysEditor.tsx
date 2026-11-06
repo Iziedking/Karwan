@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, m } from 'motion/react';
@@ -169,10 +170,14 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
   const f = c.fields;
   const num = (key: string, label: string, unit: string) => (
     <Field label={label}>
-      <span className="flex items-center gap-2">
-        <NumberBox value={w[key] as number} onChange={(n) => set(key, n)} label={label} />
-        <span className="shrink-0 text-[14px] font-medium text-[var(--lp-text-sub)]">{unit}</span>
-      </span>
+      {unit === 'USDC' ? (
+        <MoneyInput value={Number.isFinite(w[key] as number) ? (w[key] as number) : null} onChange={(usdc) => set(key, usdc ?? NaN)} ariaLabel={label} />
+      ) : (
+        <span className="flex items-center gap-2">
+          <NumberBox value={w[key] as number} onChange={(n) => set(key, n)} label={label} />
+          <span className="shrink-0 text-[14px] font-medium text-[var(--lp-text-sub)]">{unit}</span>
+        </span>
+      )}
     </Field>
   );
   // A goods way priced per item (view 41): a request that names a count is compared per item.

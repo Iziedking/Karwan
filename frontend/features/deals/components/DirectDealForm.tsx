@@ -1,4 +1,5 @@
 ﻿'use client';
+import { MoneyInput, type MoneyInputHandle } from '@/features/money/components/MoneyInput';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -161,6 +162,7 @@ export function DirectDealForm() {
   // from a listing's "Make offer" deep link with ?amount= in the URL, which
   // pre-fills from the listing's asking price; otherwise it stays blank.
   const [amount, setAmount] = useState<number | ''>(initialAmount ?? '');
+  const priceField = useRef<MoneyInputHandle>(null);
   useReportDealAmount(typeof amount === 'number' ? amount : null);
   const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
@@ -414,6 +416,8 @@ export function DirectDealForm() {
     setSubmitting(true);
     setError(null);
     try {
+      // The price as typed in the buyer's currency is kept with the deal (view 55).
+      const quote = await priceField.current?.quote();
       const counterpartyCompany =
         companyName || companySector || companyRegion
           ? {
@@ -431,7 +435,8 @@ export function DirectDealForm() {
             : contactMatch?.kind === 'paytag'
               ? { sellerPaytag: contactMatch.tag }
               : { sellerEmail: counterparty.trim().toLowerCase() }),
-        dealAmountUsdc: amount as number,
+        dealAmountUsdc: quote?.usdc ?? (amount as number),
+        ...(quote ? { quote: quote.token } : {}),
         deadlineDays: submitDays,
         deadlineHours: submitHours,
         acceptanceWindowHours: acceptanceHours,
@@ -631,18 +636,8 @@ export function DirectDealForm() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
-          <FormLabel label={dd.terms.amountLabel} unit="USDC">
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="any"
-              value={amount}
-              disabled={submitting}
-              onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              className="form-input form-input-num"
-            />
+          <FormLabel label={dd.terms.amountLabel}>
+            <MoneyInput value={amount} disabled={submitting} onChange={(usdc) => setAmount(usdc ?? '')} handle={priceField} />
           </FormLabel>
         <div>
           <div className="space-y-2">

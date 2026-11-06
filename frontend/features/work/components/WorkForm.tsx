@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 
 import { CARD_CLASS } from '@/shared/components/Card';
 import { buttonClasses } from '@/shared/components/Button';
@@ -112,7 +113,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
         </fieldset>
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.rate : t.form.rateMonthly}</span>
-          <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, ''))} />
+          <span className="mt-2 block"><MoneyInput value={rate} onChange={(usdc) => setRate(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
         </label>
         {hourly ? (
           <label className="block">

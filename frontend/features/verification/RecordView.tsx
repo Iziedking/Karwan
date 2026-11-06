@@ -150,7 +150,7 @@ export function RecordView({ tag }: { tag: string }) {
                   <img src={offerPicture(l)} alt="" loading="lazy" className="size-12 shrink-0 rounded-[10px] bg-[var(--raised)] object-cover" />
                   <span className="min-w-0 flex-1">
                     <span dir="auto" className="block truncate text-[15px] font-medium text-[var(--ink)]">{l.title}</span>
-                    <span className="block text-[14px] tabular-nums text-[var(--ink-secondary)]">{money.text(l.askingPriceUsdc)}</span>
+                    <span className="block text-[14px] tabular-nums text-[var(--ink-secondary)]">{money.price(l.askingPriceUsdc, l.askingLocal)}</span>
                   </span>
                 </Link>
               </li>

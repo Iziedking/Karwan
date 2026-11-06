@@ -1,7 +1,8 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { api, ApiError, type DirectDeal } from '@/core/api';
+import { MoneyInput, type MoneyInputHandle } from '@/features/money/components/MoneyInput';
 import { feeBreakdown } from '../config';
 import { sfx } from '@/shared/utils/sfx';
 import { CTAPill } from '@/shared/components/Bands';
@@ -55,6 +56,7 @@ export function EditDealModal({
   const initialDue = deal.deadlineUnix && deal.deadlineUnix * 1000 > Date.now() ? isoDate(deal.deadlineUnix * 1000) : '';
 
   const [amount, setAmount] = useState<number | ''>(initialAmount || '');
+  const priceField = useRef<MoneyInputHandle>(null);
   const [due, setDue] = useState(initialDue);
   const [terms, setTerms] = useState(deal.terms);
   const [busy, setBusy] = useState(false);
@@ -75,7 +77,11 @@ export function EditDealModal({
     setError(null);
     try {
       const body: Parameters<typeof api.editDirectDeal>[1] = { caller, acceptanceWindowHours: reviewHours(deal) };
-      if (amount !== initialAmount) body.dealAmountUsdc = amount;
+      if (amount !== initialAmount) {
+        const quote = await priceField.current?.quote();
+        body.dealAmountUsdc = quote?.usdc ?? amount;
+        if (quote) body.quote = quote.token;
+      }
       if (terms.trim() !== deal.terms.trim()) body.terms = terms.trim();
       if (due !== initialDue) {
         // An empty date makes the deal open-ended.
@@ -115,19 +121,7 @@ export function EditDealModal({
 
         <div className="space-y-5 px-6 pb-6 pt-3">
           <Field label={em.amountLabel}>
-            <div className="relative">
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={amount}
-                disabled={busy}
-                onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="form-input form-input-num pe-16"
-              />
-              <span className="pointer-events-none absolute inset-y-0 end-4 grid place-items-center text-[14px] text-[var(--lp-text-sub)] font-medium">USDC</span>
-            </div>
+            <MoneyInput value={amount} disabled={busy} onChange={(usdc) => setAmount(usdc ?? '')} handle={priceField} agreed={deal.agreedLocal} />
             {fee ? (
               <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">
                 {mt.fill(em.feeTemplate, { funded: fee.fundedAmount, seller: fee.sellerNet })}

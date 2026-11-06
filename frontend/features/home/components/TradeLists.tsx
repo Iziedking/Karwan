@@ -95,7 +95,7 @@ function YourOffersInner() {
         href: `/listings/${l.id}`,
         title: l.title,
         line: hub.live,
-        amount: money.text(l.askingPriceUsdc),
+        amount: money.price(l.askingPriceUsdc, l.askingLocal),
       }))}
     />
   );

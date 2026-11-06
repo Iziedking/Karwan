@@ -3,6 +3,7 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { usdcFigure } from '../moneyText';
 import { formatLocal } from '../displayCurrency';
+import { formatTyped } from '../localAmount';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
 
 /// Every price on Karwan reads in the currency the person chose (view 54):
@@ -21,6 +22,7 @@ export function Price({
   usdcClassName,
   figureClassName,
   compact = false,
+  agreed,
 }: {
   usdc: number;
   size?: 'block' | 'hero' | 'stack' | 'inline';
@@ -31,13 +33,16 @@ export function Price({
   figureClassName?: string;
   /// Offers read their USDC without forced cents: "96 USDC".
   compact?: boolean;
+  /// A price agreed in a local currency (view 55): read back as agreed when
+  /// the reader is in that currency.
+  agreed?: { currency: string; amount: string } | null;
 }) {
   const { locale } = useLocale();
   const { currency, rate } = useDisplayCurrency();
   const sign = signed && usdc > 0 ? '+' : signed && usdc < 0 ? '−' : '';
   const figure = usdcFigure(usdc, locale, { compact });
   const usdcText = `${sign}${figure} USDC`;
-  const local = formatLocal(usdc, currency, rate, locale, signed);
+  const local = agreed && agreed.currency === currency && rate ? formatTyped(agreed.amount, currency, locale) : formatLocal(usdc, currency, rate, locale, signed);
 
   if (size === 'block' || size === 'hero') {
     return (

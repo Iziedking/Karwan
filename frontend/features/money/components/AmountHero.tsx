@@ -1,13 +1,12 @@
 'use client';
 import type { Ref } from 'react';
-import { useMoneyText } from '../hooks/useMoneyText';
 
-/// The amount, large and centred, with USDC beside it: the one figure a send
-/// or a request is about (view 50). It is a real input, typed on a computer;
-/// on a phone the keypad fills it and the system keyboard stays closed. The
-/// amount moves in USDC exactly as typed; its worth in the chosen currency
-/// reads under it.
-export function AmountHero({ id, label, value, onChange, keypad, disabled, inputRef }: {
+/// The amount, large and centred, in the person's own currency: "₦ 50000"
+/// (view 55). It is the one figure a send or a request is about (view 50). A
+/// real input, typed on a computer; on a phone the keypad fills it and the
+/// system keyboard stays closed. USDC moves underneath and is never shown,
+/// unless USDC is the chosen currency.
+export function AmountHero({ id, label, value, onChange, keypad, disabled, inputRef, sign }: {
   id: string;
   label: string;
   value: string;
@@ -15,18 +14,22 @@ export function AmountHero({ id, label, value, onChange, keypad, disabled, input
   keypad: boolean;
   disabled?: boolean;
   inputRef?: Ref<HTMLInputElement>;
+  /// "₦", "€", or "USDC". A symbol sits before the figure, a code after it.
+  sign: string;
 }) {
-  const hint = useMoneyText().hint(value === '' ? null : Number(value));
   const size = value.length > 9 ? 'text-[40px]' : value.length > 6 ? 'text-[54px]' : 'text-[72px]';
+  const before = sign !== 'USDC';
+  const mark = <span data-amount-sign className={`font-semibold text-[var(--ink-secondary)] ${before ? 'text-[32px]' : 'text-[19px]'}`}>{sign}</span>;
   return (
     <div className="flex flex-col items-center">
       <label htmlFor={id} className="sr-only">{label}</label>
       <div dir="ltr" className="flex max-w-full items-baseline justify-center gap-2">
+        {before ? mark : null}
         <input
           id={id}
           ref={inputRef}
           value={value}
-          onChange={(event) => onChange?.(event.target.value.replace(/[^\d.]/g, ''))}
+          onChange={(event) => onChange?.(event.target.value)}
           readOnly={!onChange}
           disabled={disabled}
           inputMode={keypad ? 'none' : 'decimal'}
@@ -35,9 +38,8 @@ export function AmountHero({ id, label, value, onChange, keypad, disabled, input
           size={Math.max(1, value.length || 1)}
           className={`amount-input min-w-0 bg-transparent text-center ${size} font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)] caret-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)] [field-sizing:content]`}
         />
-        <span className="text-[19px] font-semibold text-[var(--ink-secondary)]">USDC</span>
+        {before ? null : mark}
       </div>
-      <p data-local-hint aria-live="polite" className="mt-2 min-h-[20px] text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">{hint}</p>
     </div>
   );
 }

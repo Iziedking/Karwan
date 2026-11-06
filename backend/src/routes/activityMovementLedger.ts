@@ -15,6 +15,9 @@ export interface PersonalLedgerItem {
   movementState: MoneyMovement['state'] | null;
   /// A send's note, on the sender's and the receiver's row alike (view 50).
   note?: string;
+  /// What the person who moved the money typed, in their own currency (view 55).
+  /// Only on their own row: the other side reads the USDC at their own rate.
+  local?: { currency: string; amount: string };
 }
 
 function statusFor(state: MoneyMovement['state']): PersonalLedgerItem['status'] {
@@ -163,6 +166,9 @@ export function movementToPersonalLedgerItem(
     status: statusFor(movement.state),
     movementState: movement.state,
     ...(movement.note && (kind === 'transfer_in' || kind === 'transfer_out') ? { note: movement.note } : {}),
+    ...(movement.local && viewer && viewer === movement.initiatedBy.toLowerCase()
+      ? { local: { currency: movement.local.currency, amount: movement.local.amount } }
+      : {}),
   };
 }
 

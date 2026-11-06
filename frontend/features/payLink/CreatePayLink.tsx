@@ -6,6 +6,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { AmountHero } from '@/features/money/components/AmountHero';
+import { useAmountInput } from '@/features/money/hooks/useAmountInput';
 import { Keypad } from '@/features/money/components/Keypad';
 import { pressKey } from '@/features/money/amountEntry';
 import { ProfileFrame } from '@/features/profile/ui/ProfileUi';
@@ -28,14 +29,16 @@ export function CreatePayLink() {
   const amountId = useId();
   const { address } = useAuth();
   const { profile } = useUserProfile();
-  const [amount, setAmount] = useState('');
+  const amt = useAmountInput();
+  const { typed: amount, setTyped: setAmount } = amt;
+  const amountUsdc = amt.usdc === null ? '' : String(amt.usdc);
   const [purpose, setPurpose] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
 
-  const valid = /^\d+(?:\.\d{1,6})?$/.test(amount.trim()) && Number(amount) > 0;
+  const valid = amt.usdc !== null;
   const me = profile?.handle ? `@${profile.handle}` : address ? `${address.slice(0, 6)}…${address.slice(-4)}` : '';
 
   async function create(event: FormEvent) {
@@ -44,7 +47,7 @@ export function CreatePayLink() {
     setBusy(true);
     setError(false);
     try {
-      const { request } = await api.createDepositRequest({ amountUsdc: amount.trim(), purpose: purpose.trim() || undefined, ttlMinutes: WEEK_MINUTES });
+      const { request } = await api.createDepositRequest({ amountUsdc: amountUsdc, purpose: purpose.trim() || undefined, ttlMinutes: WEEK_MINUTES });
       setUrl(`${window.location.origin}/deposit/request/${request.requestId}`);
       setExpiresAt(request.expiresAt ?? Date.now() + WEEK_MINUTES * 60_000);
     } catch {
@@ -59,7 +62,7 @@ export function CreatePayLink() {
       {url ? (
         <div className="space-y-6">
           <p className="-mt-3 text-[15px] text-[var(--ink-secondary)]">{copy.directNote}</p>
-          {address ? <PaymentCard recipient={address} amount={amount.trim()} purpose={purpose.trim() || null} state="open" expiresAt={expiresAt} url={url} /> : null}
+          {address ? <PaymentCard recipient={address} amount={amountUsdc} purpose={purpose.trim() || null} state="open" expiresAt={expiresAt} url={url} /> : null}
           <ShareLink url={url} compact />
           <button
             type="button"
@@ -77,7 +80,7 @@ export function CreatePayLink() {
         <form onSubmit={(event) => void create(event)} className="space-y-6" aria-busy={busy}>
           <p className="-mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{copy.directNote}</p>
           <div className="py-4">
-            <AmountHero id={amountId} label={copy.amount} value={amount} onChange={setAmount} keypad={keypad} />
+            <AmountHero id={amountId} label={copy.amount} value={amount} onChange={setAmount} keypad={keypad} sign={amt.sign} />
           </div>
           <label className="block">
             <span className={LABEL}>{copy.forLabel}</span>

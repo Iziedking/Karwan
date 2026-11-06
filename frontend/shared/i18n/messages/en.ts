@@ -814,6 +814,7 @@ interface MessagesShape {
       receiptStatus: string;
       receiptDate: string;
       receiptProof: string;
+      receiptSettled: string;
       /// Label for the identifier a receipt falls back to when no Karwan
       /// reference was ever minted for the movement: the transaction it
       /// settled in.
@@ -3584,6 +3585,7 @@ interface MessagesShape {
       sellerReceives: string;
       settlement: string;
       noConversion: string;
+      rateMoved: string;
       confirmCta: string;
       confirmBusy: string;
       cancelCta: string;
@@ -6090,6 +6092,7 @@ export const en: MessagesShape = {
       receiptStatus: 'Status',
       receiptDate: 'Date',
       receiptProof: 'Network proof',
+      receiptSettled: 'Settled',
       receiptTransaction: 'Transaction',
       receiptReferenceNone: 'Not recorded',
       receiptShareBuyerOnly: 'Only the buyer can share this receipt.',
@@ -9243,6 +9246,7 @@ export const en: MessagesShape = {
       sellerReceives: 'Seller receives',
       settlement: 'Settlement currency',
       noConversion: 'Karwan settles in USDC. Local-currency conversion is not included.',
+      rateMoved: 'Agreed at {agreed}. At today’s rate that is {now}.',
       confirmCta: 'Confirm and fund',
       confirmBusy: 'Funding escrow…',
       cancelCta: 'Go back',
@@ -10554,7 +10558,7 @@ export const en: MessagesShape = {
         deadlines: { label: 'The deadlines you set.', body: 'If you give the seller two days, you cannot claim breach before that period has passed. If you do not set a deadline, the deal stays open until one of you closes it.' },
         offPlatform: { label: 'Off-platform delivery.', body: 'If you and your counterparty agree to share files, links, or specs outside Karwan, we cannot help you recover funds released on those grounds.' },
         counterparty: { label: 'Who you deal with.', body: 'An individual skill can be self-declared and may not be verified. A business verification state covers only the submitted business evidence and enabled review path. Neither a badge nor a reputation tier confirms identity, licensing, solvency, performance, or safety.' },
-        currency: { label: 'Currency.', body: 'Karwan does not convert currencies and does not apply an exchange rate. Amounts you enter are amounts in USDC. If local currency access reaches your region, the rate and the fee on that leg belong to the partner providing it, not to Karwan.' },
+        currency: { label: 'Currency.', body: 'Karwan settles in USDC. You can type and read amounts in your local currency: Karwan works out the USDC at a published reference rate (CoinGecko), rounds it down, and shows you the figure before you confirm. This is not an exchange: no local currency moves, no fee is taken on the rate, and the rate is a reference, not an offer to buy or sell. A price agreed in a local currency keeps that figure on the deal, and the escrow holds the USDC worked out when the price was agreed. If local currency access reaches your region, the rate and the fee on that leg belong to the partner providing it, not to Karwan.' },
       },
     },
     s4: {

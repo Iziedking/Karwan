@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -71,7 +72,7 @@ export function ContestForm({ prefill }: { prefill: Partial<ContestInput> }) {
         </label>
         <label className="block">
           <span className={fieldLabel}>{t.form.prize}</span>
-          <input className={`${FIELD} mt-2 tabular-nums`} inputMode="decimal" value={prize} onChange={(e) => setPrize(e.target.value.replace(/[^0-9.]/g, ''))} />
+          <span className="mt-2 block"><MoneyInput value={prize} onChange={(usdc) => setPrize(usdc === null ? '' : String(usdc))} className={`${FIELD} tabular-nums`} /></span>
         </label>
         <fieldset>
           <legend className={fieldLabel}>{t.form.places}</legend>

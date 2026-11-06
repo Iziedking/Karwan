@@ -274,7 +274,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
           ))}
         </dl>
       ) : null}
-      <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} />
+      <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} sign="USDC" />
       <p className="text-center text-[14px] font-medium text-[var(--ink-secondary)]" dir="auto">
         {source.kind === 'network'
           ? money.fill(t.add.there, { amount: source.amount }, { network: chainName(source.chain) })

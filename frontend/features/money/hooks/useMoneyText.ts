@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { fillMoney, localHint, localiseFigures, moneyText, usdcFigure, type MoneyTextOptions } from '../moneyText';
 import { useDisplayCurrency } from './useDisplayCurrency';
+import { formatTyped } from '../localAmount';
 
 /// A figure from the API ("20.5", 20.5, "" or null) as a number, or null.
 function toNumber(value: number | string | null | undefined): number | null {
@@ -62,5 +63,15 @@ export function useMoneyText(defaults: MoneyTextOptions = {}) {
     [currency, rate, locale, compact, exact],
   );
 
-  return { text, fill, hint, usdc, line, currency };
+  /// A price agreed in a local currency reads as agreed for anyone in that
+  /// currency (view 55); everyone else reads its USDC at today's rate.
+  const price = useCallback(
+    (usdc: number | string | null | undefined, agreed?: { currency: string; amount: string } | null, options?: MoneyTextOptions): string =>
+      agreed && agreed.currency === currency && rate
+        ? `${options?.signed && Number(usdc) > 0 ? '+' : options?.signed && Number(usdc) < 0 ? '−' : ''}${formatTyped(agreed.amount, currency, locale)}`
+        : text(usdc, options),
+    [currency, rate, locale, text],
+  );
+
+  return { text, fill, hint, usdc, line, price, currency };
 }

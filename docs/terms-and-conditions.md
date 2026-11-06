@@ -60,7 +60,7 @@ You take care of:
 - **The deadlines you set.** If you give the seller two days, you cannot claim breach before that period has passed. If you do not set a deadline, the deal stays open until one of you closes it.
 - **Off-platform delivery.** If you and your counterparty agree to share files, links, or specs outside Karwan, we cannot help you recover funds released on those grounds.
 - **Who you deal with.** An individual skill can be self-declared and may not be verified. A business verification state covers only the submitted business evidence and enabled review path. Neither a badge nor a reputation tier confirms identity, licensing, solvency, performance, or safety.
-- **Currency.** Karwan does not convert currencies and does not apply an exchange rate. Amounts you enter are amounts in USDC. If local currency access reaches your region, the rate and the fee on that leg belong to the partner providing it, not to Karwan.
+- **Currency.** Karwan settles in USDC. You can type and read amounts in your local currency: Karwan works out the USDC at a published reference rate (CoinGecko), rounds it down, and shows you the figure before you confirm. This is not an exchange: no local currency moves, no fee is taken on the rate, and the rate is a reference, not an offer to buy or sell. A price agreed in a local currency keeps that figure on the deal, and the escrow holds the USDC worked out when the price was agreed. If local currency access reaches your region, the rate and the fee on that leg belong to the partner providing it, not to Karwan.
 
 ## 4. How a deal settles
 

@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 
 import { buttonClasses } from '@/shared/components/Button';
 import { useState } from 'react';
@@ -78,7 +79,7 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
         </fieldset>
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.most : t.form.mostMonthly}</span>
-          <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="decimal" value={most} onChange={(e) => setMost(e.target.value.replace(/[^0-9.]/g, ''))} />
+          <span className="mt-2 block"><MoneyInput value={most} onChange={(usdc) => setMost(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
         </label>
         {hourly ? (
           <label className="block">

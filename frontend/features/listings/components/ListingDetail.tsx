@@ -250,7 +250,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
     </div>
   );
   const priceLine = (size: 'page' | 'panel') => (
-    <Price usdc={Number(listing.askingPriceUsdc)} compact size="hero" figureClassName={`${size === 'panel' ? 'text-[34px]' : 'text-[22px]'} font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]`} />
+    <Price usdc={Number(listing.askingPriceUsdc)} agreed={listing.askingLocal} compact size="hero" figureClassName={`${size === 'panel' ? 'text-[34px]' : 'text-[22px]'} font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]`} />
   );
 
   return (

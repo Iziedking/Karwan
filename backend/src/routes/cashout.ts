@@ -1,3 +1,4 @@
+import { localFromQuote } from '../rates/quote.js';
 // Post-settlement withdraw for the seller. Two seller-side wallets exist:
 // the identity wallet (login + staking) and the per-deal seller agent wallet
 // that the escrow pays out to. The cashout page picks one of these as the
@@ -73,6 +74,8 @@ const arcSendSchema = z.object({
   bridgeId: z.string().min(1).optional(),
   /// A note to the person paid (view 50), kept with the send.
   note: z.string().max(400).optional(),
+  /// The amount as typed in the sender's currency (view 55), signed by /money/quote.
+  quote: z.string().max(2000).optional(),
 });
 
 export const cashoutRoutes = new Hono();
@@ -432,6 +435,7 @@ cashoutRoutes.post('/arc-send', async (c) => {
     recipient: body.recipient,
     summary: `Sent ${body.amountUsdc} USDC to ${body.recipient.toLowerCase()}`,
     note: cleanNote(body.note),
+    local: localFromQuote(body.quote, amountWei),
   });
   const existingLeg = movement.legs.find(
     (leg) => leg.attempt === movement.attempt && leg.key === 'arc_transfer',

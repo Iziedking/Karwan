@@ -186,7 +186,6 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
           rows={factsAction === 'release'
             ? [
                 [dp.release.to, actions.displayName],
-                ...(moveUsdc ? [[dp.release.moves, mt.usdc(moveUsdc)] as [string, string]] : []),
                 ...(what ? [[dp.release.for, what] as [string, string]] : []),
                 ...(reference ? [[dp.release.deal, reference] as [string, string]] : []),
                 [dp.release.heldBy, dp.release.heldValue],
@@ -220,6 +219,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         {actions.sheet?.action === 'fund' ? (
           <FundingQuoteRows
             quote={actions.sheet.quote}
+            agreed={deal?.agreedLocal}
             errorCode={actions.errorCode}
             viewerIsBuyer={actions.viewerIsBuyer}
             onFunded={actions.onFunded}

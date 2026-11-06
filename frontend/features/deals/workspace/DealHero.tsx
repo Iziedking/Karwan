@@ -470,7 +470,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               <h1 id="deal-amount" className="text-[24px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink)]">
                 {viewerIsBuyer ? fill(dp.paidTitle, { name }) : dp.doneTitle}
               </h1>
-              <p dir="auto" className="mt-1 text-[15px] text-[var(--ink-secondary)]">{mt.text(deal.dealAmountUsdc)}{what ? ` · ${what}` : ''}</p>
+              <p dir="auto" className="mt-1 text-[15px] text-[var(--ink-secondary)]">{mt.price(deal.dealAmountUsdc, deal.agreedLocal)}{what ? ` · ${what}` : ''}</p>
             </div>
           )}
           <div className={`${CARD_CLASS} p-5 lg:p-6`}>
@@ -478,7 +478,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             <div className="mt-5 border-t border-[var(--line)] pt-1">
               <FactRows facts={[
                 ...(deal.settledAt ? [{ label: dp.stageLine.paidOut, value: formatDealDate(deal.settledAt, locale) }] : []),
-                { label: dp.amount, value: mt.text(deal.dealAmountUsdc) },
+                { label: dp.amount, value: mt.price(deal.dealAmountUsdc, deal.agreedLocal) },
                 ...(reference ? [{ label: dp.release.deal, value: <span dir="ltr">{reference}</span>, id: 'reference' }] : []),
               ]} />
             </div>
@@ -518,7 +518,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               {referenceButton}
             </div>
             <h1 id="deal-amount" className="mt-1">
-              <Price usdc={Number(deal.dealAmountUsdc)} size="hero" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.04em] text-[var(--ink)]" />
+              <Price usdc={Number(deal.dealAmountUsdc)} agreed={deal.agreedLocal} size="hero" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.04em] text-[var(--ink)]" />
             </h1>
             <div className="mt-5 border-t border-[var(--line)] pt-5">
               <DealRoute deal={deal} />

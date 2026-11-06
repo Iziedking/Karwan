@@ -1,3 +1,4 @@
+import type { LocalAmount } from '../rates/quote.js';
 // Seller listings, standing offers a seller has published off-chain. Matched
 // against open buyer briefs (in-memory JobStates) when a listing is created or
 // when a brief is posted. Off-chain; the on-chain action when a match fires is
@@ -32,6 +33,9 @@ export interface Listing {
   title: string;
   description: string;
   askingPriceUsdc: number;
+  /// The asking price as the seller typed it in their own currency (view 55).
+  /// Read back as typed by anyone in that currency; agents work in the USDC.
+  askingLocal?: LocalAmount;
   /** Floor = askingPriceUsdc * (1 - pct/100). 0 = strict at askingPriceUsdc. */
   negotiationMaxDecreasePct?: number;
   postedAt: number;
@@ -135,6 +139,7 @@ export function createListing(
     title: input.title,
     description: input.description,
     askingPriceUsdc: input.askingPriceUsdc,
+    ...(input.askingLocal ? { askingLocal: input.askingLocal } : {}),
     negotiationMaxDecreasePct: input.negotiationMaxDecreasePct,
     postedAt: now,
     expiresAt: now + ttlDays * 24 * 60 * 60 * 1000,
@@ -222,13 +227,17 @@ export function markListingMatched(id: string, jobId: string): void {
 /// is anchored from the edit by the route. The agent address never changes.
 export function patchListing(
   id: string,
-  patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc' | 'negotiationMaxDecreasePct' | 'expiresAt' | 'category'>>,
+  patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc' | 'askingLocal' | 'negotiationMaxDecreasePct' | 'expiresAt' | 'category'>>,
 ): Listing | null {
   const l = store.get(id);
   if (!l) return null;
   if (patch.title !== undefined) l.title = patch.title;
   if (patch.description !== undefined) l.description = patch.description;
-  if (patch.askingPriceUsdc !== undefined) l.askingPriceUsdc = patch.askingPriceUsdc;
+  if (patch.askingPriceUsdc !== undefined) {
+    l.askingPriceUsdc = patch.askingPriceUsdc;
+    if (patch.askingLocal) l.askingLocal = patch.askingLocal;
+    else delete l.askingLocal;
+  }
   if (patch.negotiationMaxDecreasePct !== undefined) l.negotiationMaxDecreasePct = patch.negotiationMaxDecreasePct;
   if (patch.expiresAt !== undefined) l.expiresAt = patch.expiresAt;
   if (patch.category !== undefined) l.category = patch.category;

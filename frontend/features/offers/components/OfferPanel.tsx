@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { TaskEntryLink } from '@/shared/components/TaskEntryLink';
@@ -263,14 +264,7 @@ function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; on
       {lowering ? (
         <div className="mt-4 space-y-2">
           <label htmlFor={priceId} className="block text-[14px] font-semibold text-[var(--lp-dark)]">{m.lowerLabel}</label>
-          <input
-            id={priceId}
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            inputMode="decimal"
-            dir="ltr"
-            className="form-input block font-normal tabular-nums"
-          />
+          <MoneyInput id={priceId} value={price} onChange={(usdc) => setPrice(usdc === null ? '' : String(usdc))} className="form-input block font-normal tabular-nums" />
           <p className="text-[14px] text-[var(--lp-text-sub)]">{m.lowerHint}</p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button className="rounded-full" loading={busy} onClick={() => void lower()}>{m.lowerSubmit}</Button>
@@ -381,16 +375,7 @@ function MakeOffer({
             <label htmlFor={priceId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">
               {t.price}
             </label>
-            <input
-              id={priceId}
-              ref={priceRef}
-              inputMode="decimal"
-              autoComplete="off"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className={`${field} tabular-nums`}
-            />
-            {money.hint(price) ? <p data-local-hint className="mt-1.5 text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{money.hint(price)}</p> : null}
+            <MoneyInput id={priceId} inputRef={priceRef} value={price} onChange={(usdc) => setPrice(usdc === null ? '' : String(usdc))} className={`${field} tabular-nums`} />
           </div>
           <div>
             <label htmlFor={dateId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">

@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 
 import { CARD_CLASS } from '@/shared/components/Card';
 import { buttonClasses } from '@/shared/components/Button';
@@ -140,7 +141,7 @@ export function WorkRequestPage({ id }: { id: string }) {
             <div className="mt-4 space-y-4">
               <label className="block">
                 <span className={fieldLabel}>{hourly ? t.page.yourRate : t.page.yourPrice}</span>
-                <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, ''))} />
+                <span className="mt-2 block"><MoneyInput value={rate} onChange={(usdc) => setRate(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
               </label>
               <label className="block">
                 <span className={fieldLabel}>{t.page.note}</span>

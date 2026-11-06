@@ -57,6 +57,7 @@ import { dealReference } from '../deals/reference.js';
 import { withDealReferences } from './dealReferences.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
+import { withLocalAmounts } from './localAmountTools.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
 import { mergeSetupAnswers } from './setupTool.js';
@@ -3159,7 +3160,7 @@ export async function runAssistantAgent(input: {
       model,
       system,
       messages: input.messages,
-      tools: buildTools(input.address, input.method, actions, input.conversationId),
+      tools: withLocalAmounts(buildTools(input.address, input.method, actions, input.conversationId), () => readUsdcRates()),
       // Allow a few reasoning+tool rounds (e.g. whats_pending, then read one
       // deal, then propose a button), then force a final text answer.
       stopWhen: stepCountIs(6),

@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
@@ -334,7 +335,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
                 {money.fill(copy.max, { amount: available }, {}, { exact: true })}
               </button>
             </span>
-            <input value={amountText} onChange={(e) => setAmountText(e.target.value)} inputMode="decimal" dir="ltr" className={cn(FIELD, 'tabular-nums')} />
+            <MoneyInput value={amountText} onChange={(usdc) => setAmountText(usdc === null ? '' : String(usdc))} className={cn(FIELD, 'tabular-nums')} />
             {amountText && Number(amountText) > available + 1e-9 ? (
               <span role="status" className="mt-1.5 block text-[14px] text-[var(--color-critical)]">{money.fill(copy.overBalance, { amount: available }, {}, { exact: true })}</span>
             ) : null}

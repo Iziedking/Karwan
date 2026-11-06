@@ -211,7 +211,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                   </div>
                   <div className="mt-2.5 flex items-baseline gap-2">
                     <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-                      {mt.text(deal.dealAmountUsdc)}
+                      {mt.price(deal.dealAmountUsdc, deal.agreedLocal)}
                     </span>
                   </div>
                   <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] line-clamp-1 max-w-[60ch] font-medium">

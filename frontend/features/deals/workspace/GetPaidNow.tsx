@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePublicClient } from 'wagmi';
@@ -205,7 +206,7 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
         <label className={fieldLabel}>
           {g.amountLabel}
           <span className="mt-1.5 block">
-            <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} className="form-input form-input-num" />
+            <MoneyInput value={amount} onChange={(usdc) => setAmount(usdc === null ? '' : String(usdc))} />
           </span>
           <span className="mt-1.5 block text-[14px] font-normal text-[var(--lp-text-sub)]">{mt.fill(g.amountNote, { max: max })}</span>
         </label>

@@ -1,3 +1,4 @@
+import type { LocalAmount } from '../rates/quote.js';
 import {
   ensureMoneyMovement,
 } from '../db/moneyMovements.js';
@@ -17,6 +18,7 @@ export interface BridgeMovementInput {
   summary: string;
   sourceAddress?: string;
   note?: string | null;
+  local?: LocalAmount;
 }
 
 export async function ensureBridgeMovement(
@@ -38,6 +40,7 @@ export async function ensureBridgeMovement(
     participants,
     summary: input.summary,
     ...(input.note ? { note: input.note } : {}),
+    ...(input.local ? { local: input.local } : {}),
     nextActor: 'karwan',
   });
 }

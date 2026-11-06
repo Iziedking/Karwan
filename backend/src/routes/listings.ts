@@ -1,3 +1,5 @@
+import { localFromQuote } from '../rates/quote.js';
+import { parseUnits } from 'viem';
 import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono } from 'hono';
@@ -88,6 +90,8 @@ const createSchema = z.object({
   title: z.string().min(3).max(120),
   description: z.string().min(5).max(500),
   askingPriceUsdc: z.number().positive().max(5_000_000),
+  /// The price as typed in a local currency (view 55), signed by /money/quote.
+  quote: z.string().max(2000).optional(),
   negotiationMaxDecreasePct: z.number().min(0).max(50).optional(),
   /// Optional listing window in days. Defaults to 30 in the store. Capped at
   /// 90 to keep stale listings out of the marketplace. Fractional values
@@ -134,6 +138,7 @@ const editSchema = z.object({
   title: z.string().min(3).max(120).optional(),
   description: z.string().min(5).max(500).optional(),
   askingPriceUsdc: z.number().positive().max(5_000_000).optional(),
+  quote: z.string().max(2000).optional(),
   negotiationMaxDecreasePct: z.number().min(0).max(50).optional(),
   ttlDays: z.number().min(0.0006).max(90).optional(),
   category: z.enum(CATEGORY_IDS).optional(),
@@ -426,12 +431,15 @@ listingsRoutes.post('/:id/edit', async (c) => {
   const patch: Partial<
     Pick<
       Listing,
-      'title' | 'description' | 'askingPriceUsdc' | 'negotiationMaxDecreasePct' | 'expiresAt' | 'category'
+      'title' | 'description' | 'askingPriceUsdc' | 'askingLocal' | 'negotiationMaxDecreasePct' | 'expiresAt' | 'category'
     >
   > = {};
   if (body.title !== undefined) patch.title = body.title;
   if (body.description !== undefined) patch.description = body.description;
-  if (body.askingPriceUsdc !== undefined) patch.askingPriceUsdc = body.askingPriceUsdc;
+  if (body.askingPriceUsdc !== undefined) {
+    patch.askingPriceUsdc = body.askingPriceUsdc;
+    patch.askingLocal = localFromQuote(body.quote, parseUnits(body.askingPriceUsdc.toString(), 6));
+  }
   if (body.category !== undefined) patch.category = body.category;
   if (body.negotiationMaxDecreasePct !== undefined) {
     patch.negotiationMaxDecreasePct = body.negotiationMaxDecreasePct;
@@ -516,6 +524,7 @@ listingsRoutes.post('/', async (c) => {
     title: body.title,
     description: body.description,
     askingPriceUsdc: body.askingPriceUsdc,
+    askingLocal: localFromQuote(body.quote, parseUnits(body.askingPriceUsdc.toString(), 6)),
     negotiationMaxDecreasePct: body.negotiationMaxDecreasePct,
     ttlDays: body.ttlDays,
     readyInDays: body.readyInDays,

@@ -17,7 +17,6 @@ const ALLOWED: Record<string, string> = {
   'features/money/components/MoneyHome.tsx': 'the Balance tab block balance, USDC under it',
   'features/payLink/AnyChainPay.tsx': 'send exactly this USDC from another network',
   'features/order/AddMoneyPanel.tsx': 'the exact USDC to add',
-  'features/deals/workspace/FundingQuoteRows.tsx': 'the confirm card before escrow is funded',
   'features/bridge/components/CrossChainFlow.tsx': 'moving between networks',
   'features/bridge/components/GatewayBalanceCard.tsx': 'moving between networks',
   'features/activity/components/StatsTicker.tsx': 'Karwan-wide totals on public pages',
@@ -51,4 +50,33 @@ test('only block balances show USDC under the figure', () => {
   for (const file of ['features/home/components/AccountHome.tsx', 'features/money/components/AgentsTab.tsx', 'features/guarantee/GuaranteeTab.tsx']) {
     assert.match(readFileSync(join(root, file), 'utf8'), /size="block"/, file);
   }
+});
+
+/// Amounts are typed in the person's own currency (view 55) through MoneyInput
+/// or AmountHero. A plain decimal field is allowed only where it is not money,
+/// or where another network sends or receives USDC.
+const DECIMAL_FIELDS: Record<string, string> = {
+  'features/money/components/MoneyInput.tsx': 'the money field itself',
+  'features/money/components/AmountHero.tsx': 'the big money field itself',
+  'features/money/components/MoneySheet.tsx': 'its field follows useAmountInput',
+  'features/agent/agentPanels.tsx': 'days, not money',
+  'features/profile/WaysEditor.tsx': 'days and counts, not money',
+  'app/profile/edit/page.tsx': 'days, not money',
+  'features/financier/components/FinancierDashboard.tsx': 'a percentage',
+  'features/bridge/components/BridgeCard.tsx': 'moving between networks',
+  'features/bridge/components/BridgeOutCard.tsx': 'moving between networks',
+  'features/bridge/components/CrossChainFlow.tsx': 'moving between networks',
+  'features/bridge/components/GatewayBalanceCard.tsx': 'moving between networks',
+  'features/gateway/TopUpFromGateway.tsx': 'moving between networks',
+  'features/money/components/WithdrawStart.tsx': 'the bridge page, moving between networks',
+  'features/jobs/components/MatchBanner.tsx': 'being changed in another session; moves to MoneyInput when it lands',
+};
+
+test('every money field is typed in the chosen currency', () => {
+  const found: string[] = [];
+  for (const file of [...files('features'), ...files('shared'), ...files('app')]) {
+    const code = readFileSync(join(root, file), 'utf8');
+    if (/inputMode=("decimal"|\{keypad \? 'none' : 'decimal'\})/.test(code)) found.push(file);
+  }
+  assert.deepEqual(found.filter((file) => !DECIMAL_FIELDS[file]), [], 'use MoneyInput or AmountHero');
 });

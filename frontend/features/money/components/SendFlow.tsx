@@ -15,14 +15,14 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { CHIP, PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import { fill } from '@/features/deals/workspace/presentation';
 import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
-import { formatAmount } from '../balanceModel';
 import { useMoneyText } from '../hooks/useMoneyText';
+import { useAmountInput } from '../hooks/useAmountInput';
 import { sendAvailable } from '../sendFromWhole';
 import { pressKey } from '../amountEntry';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
@@ -32,7 +32,6 @@ import {
   SHEET_STEPS,
   chipAmount,
   groupAddress,
-  parseAmount,
   recipientInput,
   sheetBlocker,
   sheetBusy,
@@ -65,7 +64,6 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
   const messages = useTranslations();
   const t = messages.money;
   const flow = t.sendFlow;
-  const { locale } = useLocale();
   const money = useMoneyText();
   const auth = useAuth();
   const pathname = usePathname();
@@ -87,7 +85,9 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
   const [stage, setStage] = useState<'who' | 'amount'>('who');
   const [confirming, setConfirming] = useState(false);
   const [recipient, setRecipient] = useState(prefillRecipient ?? '');
-  const [typed, setTyped] = useState(prefillAmount ? String(prefillAmount) : '');
+  const amt = useAmountInput(prefillAmount ?? null);
+  const { typed, setTyped } = amt;
+  const [pressedText, setPressedText] = useState('');
   const [pressed, setPressed] = useState<number | null>(null);
   const [note, setNote] = useState((prefillNote ?? '').slice(0, NOTE_MAX));
   const [noting, setNoting] = useState(!!prefillNote);
@@ -129,7 +129,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
   const walletSigned = auth.method === 'web3';
   const available = balances.balance === null ? null : sendAvailable(balances.balance, balances.pool, balances.poolLoaded);
   const max = available === null ? null : spendable(available, 'send', walletSigned);
-  const amount = parseAmount(typed);
+  const amount = amt.usdc;
   const blocker = sheetBlocker({ move: 'send', amount, available: max, recipient: recipientStatus });
   const busy = sheetBusy(state);
   const moved = pressed ?? amount ?? 0;
@@ -148,17 +148,23 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
     if (stage === 'amount' && !keypad) amountRef.current?.focus();
   }, [stage, keypad]);
 
-  function send() {
+  async function send() {
     if (inFlight.current || blocker !== null || amount === null) return;
     inFlight.current = true;
     moneySounds.submit();
-    setPressed(amount);
+    // The figure on the confirm is the one that moves (view 55): the quote
+    // holds it, and the record keeps it.
+    const quote = await amt.quote();
+    const moving = quote && max !== null && quote.usdc <= max ? quote.usdc : amount;
+    setPressed(moving);
+    setPressedText(amt.display);
     setConfirming(false);
     void start({
       move: 'send',
       agent: 'buyer',
       agentAddress: balances.agents?.buyer as `0x${string}` | undefined,
-      amount,
+      amount: moving,
+      ...(quote && moving === quote.usdc ? { quote: quote.token } : {}),
       recipient: paidTag ? (paidTag.address as `0x${string}`) : recipientCheck.normalized ?? undefined,
       source: 'balance',
       walletBalance: balances.balance,
@@ -192,11 +198,9 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
           <m.div key="result" {...fade} className="flex flex-1 flex-col">
             <div className="flex flex-col items-center gap-5 pt-10 text-center">
               {paidTag ? <PersonRecord address={paidTag.address} size={56} known={{ name: paidTag.displayName, tag: paidTag.tag }} /> : null}
-              <p dir="ltr" className="flex items-baseline gap-2">
-                <span className="text-[64px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">{formatAmount(moved, locale)}</span>
-                <span className="text-[19px] font-semibold text-[var(--ink-secondary)]">USDC</span>
+              <p dir="ltr" data-sent-amount className="text-[64px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">
+                {pressedText || money.text(moved)}
               </p>
-              {money.hint(moved) ? <p data-local-hint className="-mt-3 text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">{money.hint(moved)}</p> : null}
               <p className="text-[15px] font-medium text-[var(--ink-secondary)]">
                 {fill(state.kind === 'confirmed' ? flow.sentTo : flow.sendingTo, { name: toName })}
               </p>
@@ -343,7 +347,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
               </button>
             </div>
             <div className="mt-12">
-              <AmountHero id={amountId} label={t.sheet.amountLabel} value={typed} onChange={setTyped} keypad={keypad} inputRef={amountRef} />
+              <AmountHero id={amountId} label={t.sheet.amountLabel} value={typed} onChange={setTyped} keypad={keypad} inputRef={amountRef} sign={amt.sign} />
             </div>
             <p className="mt-3 inline-flex items-center justify-center gap-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
               {available === null ? ' ' : money.fill(t.sheet.available, { amount: available })}
@@ -351,7 +355,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
             </p>
             <div className="mt-5 flex justify-center gap-2">
               {(['quarter', 'half', 'max'] as const).map((chip) => (
-                <button key={chip} type="button" className={CHIP} disabled={max === null || max <= 0} onClick={() => { if (max !== null) setTyped(String(chipAmount(max, chip))); }}>
+                <button key={chip} type="button" className={CHIP} disabled={max === null || max <= 0} onClick={() => { if (max !== null) amt.setFromUsdc(chipAmount(max, chip), 'down'); }}>
                   {t.sheet[chip]}
                 </button>
               ))}
@@ -394,11 +398,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
         <h2 id={confirmId} className="sr-only">{flow.confirmTitle}</h2>
         <div className="flex flex-col items-center gap-3 pt-2 text-center">
           {paidTag ? <PersonRecord address={paidTag.address} size={48} known={{ name: paidTag.displayName, tag: paidTag.tag }} /> : null}
-          <p dir="ltr" className="flex items-baseline gap-2">
-            <span className="text-[48px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">{formatAmount(amount ?? 0, locale)}</span>
-            <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
-          </p>
-          {money.hint(amount) ? <p data-local-hint className="text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">{money.hint(amount)}</p> : null}
+          <p dir="ltr" data-confirm-amount className="text-[48px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">{amt.display}</p>
         </div>
         <dl className={`${CARD} mt-6 bg-[var(--raised)] px-5 text-[15px]`}>
           <Row label={flow.to} value={toName} />

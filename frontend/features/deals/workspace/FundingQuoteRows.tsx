@@ -1,13 +1,15 @@
 'use client';
 import Link from 'next/link';
-import type { DirectDealFundingQuote } from '@/core/api';
+import type { DirectDealFundingQuote, LocalAmount } from '@/core/api';
 import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatFeeRate } from '../fundingPresentation';
-import { formatUsdcAmount } from './presentation';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { useDisplayCurrency } from '@/features/money/hooks/useDisplayCurrency';
+import { formatTyped, rateMoved } from '@/features/money/localAmount';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -23,8 +25,10 @@ function Row({ label, value }: { label: string; value: string }) {
 /// can't cover it. Lives inside the confirm sheet's children so the amount
 /// being approved, and the way to fix a shortfall, are both visible before
 /// the buyer presses confirm.
-export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, onBusyChange }: {
+export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, onBusyChange, agreed }: {
   quote: DirectDealFundingQuote | null;
+  /// The price as agreed in a local currency (view 55).
+  agreed?: LocalAmount | null;
   errorCode: string | null;
   viewerIsBuyer: boolean;
   onFunded: () => void;
@@ -36,18 +40,30 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, on
   const { agents } = useActivation();
   const buyerAgent = agents?.buyer ?? null;
   const money = useMoneyBalances();
+  const mt = useMoneyText();
+  const { currency, rate } = useDisplayCurrency();
+  // A price agreed in the reader's currency reads as agreed (view 55). If the
+  // rate has moved more than 2% since, the buyer sees what the escrowed USDC
+  // is worth today before confirming.
+  const sameCurrency = !!agreed && agreed.currency === currency;
+  const agreedText = sameCurrency ? formatTyped(agreed.amount, currency, locale) : null;
+  const moved = quote && agreed ? rateMoved(agreed, Number(quote.dealAmountUsdc), currency, rate, locale) : null;
 
   return (
     <div>
       {quote ? (
         <div>
-          <Row label={copy.fundingConsentModal.dealAmount} value={`${formatUsdcAmount(quote.dealAmountUsdc, locale)} USDC`} />
+          <Row label={copy.fundingConsentModal.dealAmount} value={agreedText ?? mt.text(quote.dealAmountUsdc, { exact: true })} />
           <Row
             label={`${copy.fundingConsentModal.buyerFee} · ${formatFeeRate(quote.feeBps)}`}
-            value={`${formatUsdcAmount(quote.buyerFeeUsdc, locale)} USDC`}
+            value={mt.text(quote.buyerFeeUsdc, { exact: true })}
           />
-          <Row label={copy.fundingConsentModal.sellerReceives} value={`${formatUsdcAmount(quote.sellerNetUsdc, locale)} USDC`} />
-          <p className="pt-2 text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{copy.fundingConsentModal.noConversion}</p>
+          <Row label={copy.fundingConsentModal.sellerReceives} value={mt.text(quote.sellerNetUsdc, { exact: true })} />
+          {moved ? (
+            <p data-rate-moved className="pt-2 text-[14px] leading-snug text-[var(--ink)] font-medium">
+              {copy.fundingConsentModal.rateMoved.replace('{agreed}', moved.agreed).replace('{now}', moved.now)}
+            </p>
+          ) : null}
         </div>
       ) : null}
       {errorCode === 'INSUFFICIENT_AGENT_BALANCE' ? (

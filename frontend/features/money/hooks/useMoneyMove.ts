@@ -38,6 +38,9 @@ export interface MoveRequest {
   recipient?: `0x${string}`;
   /// Send only: a note to the person paid, kept with the send (view 50).
   note?: string;
+  /// Send and withdraw: the signed quote for the figure the person typed in
+  /// their own currency (view 55), so the record keeps it.
+  quote?: string;
   /// Withdraw only: where the agent's USDC goes. Defaults to the account itself.
   toAddress?: `0x${string}`;
   /// Top-up only: where planTopUp said the money comes from.
@@ -179,7 +182,7 @@ export function useMoneyMove() {
             return;
           }
         }
-        const input = { amountUsdc: request.amount, recipient: request.recipient, userAddress: auth.address, ...(request.note ? { note: request.note } : {}) };
+        const input = { amountUsdc: request.amount, recipient: request.recipient, userAddress: auth.address, ...(request.note ? { note: request.note } : {}), ...(request.quote ? { quote: request.quote } : {}) };
         await (walletSigned ? startWeb3ArcSend(input) : startArcSend(input));
         refreshMoney();
         return;

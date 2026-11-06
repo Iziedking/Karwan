@@ -29,6 +29,8 @@ export interface PortableReceiptItem {
   status: 'done' | 'pending' | 'failed';
   /// A send's note, read the same by sender and receiver (view 50).
   note?: string;
+  /// What the sender typed in their own currency (view 55).
+  local?: { currency: string; amount: string };
 }
 
 export function PortableReceipt({
@@ -79,7 +81,7 @@ export function PortableReceipt({
       title: copy.receiptTitle,
       summary: item.note ? `${line} · ${noteLabel}: ${item.note}` : line,
       reference,
-      amount: item.amountUsdc ? money.text(item.amountUsdc) : null,
+      amount: item.amountUsdc ? money.price(item.amountUsdc, item.local) : null,
       status,
       date,
       transaction,
@@ -154,7 +156,7 @@ export function PortableReceipt({
           className="mt-5"
           status={{ label: status, tone: item.status }}
           kind={copy.receiptTitle}
-          amount={item.amountUsdc ? money.text(item.amountUsdc) : null}
+          amount={item.amountUsdc ? money.price(item.amountUsdc, item.local) : null}
           sentence={line}
           rows={[
             ...(item.note ? [{ label: noteLabel, value: item.note }] : []),
@@ -166,6 +168,17 @@ export function PortableReceipt({
           verify={proofHref ? { href: proofHref, title: copy.receiptVerifyTitle, body: copy.receiptVerifyBody, qrLabel: copy.receiptProof } : undefined}
           footnote={[reference ? null : copy.receiptHistorical, ARC_NETWORK === 'testnet' ? copy.receiptTestnet : null].filter(Boolean).join(' · ') || undefined}
         />
+
+        {/* What moved on chain, for the record (view 55): behind Proof, never on the receipt itself. */}
+        {item.amountUsdc ? (
+          <details data-receipt-proof className="karwan-receipt-actions mt-3 text-[14px] text-[var(--ink-secondary)]">
+            <summary className="min-h-11 cursor-pointer py-2 font-semibold text-[var(--ink)]">{copy.receiptProof}</summary>
+            <p className="flex justify-between gap-3 py-1 tabular-nums">
+              <span>{copy.receiptSettled}</span>
+              <span dir="ltr" className="font-medium text-[var(--ink)]">{money.usdc(item.amountUsdc, { compact: false, exact: true })}</span>
+            </p>
+          </details>
+        ) : null}
 
         {!canShare && (
           <p className="karwan-receipt-actions mt-4 text-[14px] leading-relaxed text-[var(--lp-text-muted)]">

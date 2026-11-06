@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 
 import { useId, useState, type ReactNode } from 'react';
 import { api, type UserProfile } from '@/core/api';
@@ -47,6 +48,17 @@ function Panel({ title, busy, error, onClose, onSave, t, children }: {
         </div>
       </form>
     </ConfirmSheetShell>
+  );
+}
+
+/// A price the agent works with, typed in the person's own currency (view 55).
+function MoneyField({ name, value, onChange, note }: { name: string; value: string; onChange: (v: string) => void; note?: string }) {
+  return (
+    <label className={label}>
+      {name}
+      <MoneyInput value={value} onChange={(usdc) => onChange(usdc === null ? '' : String(usdc))} className={input} />
+      {note ? <span className="mt-1 block text-[13px] font-medium text-[var(--lp-text-sub)]">{note}</span> : null}
+    </label>
   );
 }
 
@@ -182,8 +194,8 @@ export function AgentPanel({ open, profile, t, own, onClose, onSaved }: {
         if (problem) return setError(problem === 'order' ? t.problems.order : t.problems.missing);
         void run(() => api.saveWays(withPrice(ways, { lowest: num(lowest), usual: num(usual) })));
       }}>
-        <NumberField name={t.fields.usual} value={usual} onChange={setUsual} />
-        <NumberField name={t.fields.lowest} value={lowest} onChange={setLowest} note={t.fields.lowestNote} />
+        <MoneyField name={t.fields.usual} value={usual} onChange={setUsual} />
+        <MoneyField name={t.fields.lowest} value={lowest} onChange={setLowest} note={t.fields.lowestNote} />
       </Panel>
     );
   }
@@ -232,7 +244,7 @@ export function AgentPanel({ open, profile, t, own, onClose, onSaved }: {
         if (!(most > 0) || !Number.isInteger(within) || within < 1) return setError(t.problems.missing);
         void run(() => api.saveProfile(profileBody(profile, { buyer: { ...buyer, maxBudgetUsdc: most, maxDeadlineDays: Math.max(within, buyer.minDeadlineDays) } })));
       }}>
-        <NumberField name={t.fields.maxPrice} value={maxPrice} onChange={setMaxPrice} />
+        <MoneyField name={t.fields.maxPrice} value={maxPrice} onChange={setMaxPrice} />
         <NumberField name={t.fields.waitDays} value={wait} onChange={setWait} />
       </Panel>
     );

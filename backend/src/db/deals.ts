@@ -1,3 +1,4 @@
+import type { LocalAmount } from '../rates/quote.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { eq, or, desc } from 'drizzle-orm';
@@ -66,6 +67,10 @@ export interface DirectDeal {
   sellerAgentWalletId?: string;
   sellerAgentAddress?: string;
   dealAmountUsdc: string;
+  /// The price as agreed in a local currency (view 55): "₦100,000". Anyone
+  /// reading in that currency sees this figure for the life of the deal; the
+  /// USDC above is what the escrow holds. Absent on deals agreed in USDC.
+  agreedLocal?: LocalAmount;
   /// First milestone percent (1-99). On a two-milestone deal this implies the
   /// split [firstReleasePct, 100 - firstReleasePct]. Always kept in sync with
   /// milestonePcts[0] when an N-part split is present so back-compat readers

@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useId, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT, FIELD, PRIMARY } from '@/shared/ui/controls';
@@ -69,8 +70,7 @@ export function OfferForm({ onSubmit }: { onSubmit: (draft: OfferDraft) => void 
         <div className="min-w-0">
           <label htmlFor={ids.price} className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.price}</label>
           <div className="mt-2 flex items-center gap-2">
-            <input id={ids.price} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className={`${FIELD} min-w-0 tabular-nums`} />
-            <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+            <MoneyInput id={ids.price} value={price} onChange={(usdc) => setPrice(usdc === null ? '' : String(usdc))} className={`${FIELD} min-w-0 tabular-nums`} />
           </div>
           {err('price')}
         </div>

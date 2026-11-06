@@ -1,4 +1,5 @@
 'use client';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useId, useState } from 'react';
 import { api, type BuyerJob, type MatchProposal } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -93,14 +94,7 @@ export function MatchPanel({
           <div>
             <label htmlFor={raiseId} className="text-[14px] text-[var(--ink)]">{t.raise.label}</label>
             <div className="mt-2 flex items-center gap-2">
-              <input
-                id={raiseId}
-                inputMode="decimal"
-                value={raisePrice}
-                onChange={(e) => setRaisePrice(e.target.value)}
-                className={`${FIELD} max-w-[140px] tabular-nums`}
-              />
-              <span className="text-[14px] font-semibold text-[var(--ink-secondary)]">USDC</span>
+              <MoneyInput id={raiseId} value={raisePrice} onChange={(usdc) => setRaisePrice(usdc === null ? '' : String(usdc))} className={`${FIELD} max-w-[160px] tabular-nums`} />
             </div>
           </div>
           <button type="button" className={SECONDARY} disabled={busy} onClick={() => void sendRaise()}>{t.raise.send}</button>

@@ -132,7 +132,11 @@ test('with naira chosen the activity statement reads in naira alone', async ({ p
   await expect(row.locator('[data-ledger-amount]')).toContainText('+₦673,055');
   await expect(row).not.toContainText('USDC');
   await row.getByRole('button').click();
-  await expect(page.getByRole('dialog')).not.toContainText('500 USDC');
+  const receipt = page.getByRole('dialog').locator('.karwan-receipt-print');
+  await expect(receipt).toContainText('₦673,055');
+  await expect(receipt).not.toContainText('USDC');
+  // What moved on chain stays on the record, behind Proof (view 55).
+  await expect(page.locator('[data-receipt-proof]')).toContainText(/500(\.00)? USDC/);
 });
 
 test('with no fresh rate everything reads in USDC', async ({ page }) => {
@@ -255,4 +259,30 @@ test('a wallet account adding from an exchange sees its own wallet address, neve
   await expect(card).toContainText('On Arc Testnet it lands in your balance.');
   await expect(card.getByRole('button', { name: 'Copy address' })).toBeVisible();
   await expect(page.getByText('Deposits are being set up for your account.', { exact: false })).toHaveCount(0);
+});
+
+test('with naira chosen a withdrawal is typed and confirmed in naira, and the USDC moves underneath (view 55)', async ({ page }) => {
+  const sent: Array<Record<string, unknown>> = [];
+  await serveMoney(page, {
+    balances: funded,
+    rates: RATES,
+    settings: { displayCurrency: 'NGN' },
+    bridgeOut: async (route) => {
+      sent.push(route.request().postDataJSON());
+      return route.fulfill({ json: { id: 'b1', status: 'submitted' } });
+    },
+  });
+  await page.goto('/withdraw');
+  await page.locator('[data-withdraw-target="otherWallet"]').click();
+  await page.getByPlaceholder('0x').fill('0x2222222222222222222222222222222222222222');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  const flow = page.locator('[data-withdraw-flow]');
+  await expect(flow.locator('[data-amount-sign]')).toHaveText('₦');
+  await flow.getByLabel('Amount', { exact: true }).fill('50000');
+  await page.getByRole('button', { name: 'Review ₦50,000' }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByRole('heading', { name: 'Withdraw ₦50,000?' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Withdraw ₦50,000' }).click();
+  await expect.poll(() => sent.length).toBe(1);
+  expect(sent[0].amountUsdc).toBe(37.144066);
 });

@@ -21,6 +21,7 @@ import {
 import { logger } from '../logger.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { readUsdcRates } from '../rates/usdcRates.js';
+import { isLocalCurrency, makeQuote } from '../rates/quote.js';
 import { agentLimitSchema, agentLimitView } from '../agents/agentLimit.js';
 import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
 
@@ -132,6 +133,19 @@ moneyRoutes.get('/rates', async (c) => {
   const rates = await readUsdcRates();
   c.header('Cache-Control', 'public, max-age=30');
   return c.json(rates);
+});
+
+/// An amount typed in a local currency, worked out in USDC and held for two
+/// minutes (view 55). The confirm sends the token back with the move, so the
+/// record keeps the figure the person saw. Public: a rate is not personal.
+moneyRoutes.get('/quote', async (c) => {
+  const currency = c.req.query('currency');
+  const amount = c.req.query('amount') ?? '';
+  if (!isLocalCurrency(currency)) return c.json({ error: 'unknown currency' }, 400);
+  const quote = makeQuote(currency, amount, await readUsdcRates());
+  if (!quote) return c.json({ error: 'no fresh rate or no amount', code: 'NO_QUOTE' }, 409);
+  c.header('Cache-Control', 'no-store');
+  return c.json(quote);
 });
 
 /// What the person's agent may spend on checks this week, what it spent and

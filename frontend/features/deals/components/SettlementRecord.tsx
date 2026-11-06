@@ -1,4 +1,6 @@
 'use client';
+import { Price } from '@/features/money/components/Price';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 import { useState } from 'react';
 import type { MoneyMovementState, MoneyMovementView } from '@/core/api';
@@ -104,6 +106,7 @@ export function SettlementRecord({
   const translations = useTranslations();
   const { locale } = useLocale();
   const copy = translations.directDealDetail.settlementRecord;
+  const mt = useMoneyText();
   const receiptCopy = translations.activity.myMoney;
   const [openReference, setOpenReference] = useState<string | null>(null);
   const [copiedReference, setCopiedReference] = useState<string | null>(null);
@@ -223,16 +226,10 @@ export function SettlementRecord({
                     {stateLabel}
                   </span>
                 </div>
-                <p className="mt-3 flex items-baseline gap-2 tabular-nums">
-                  <span className="text-[34px] font-semibold leading-none tracking-[-0.03em] text-[var(--lp-workspace-ink)]">{movement.amountUsdc}</span>
-                  {' '}<span className="text-[16px] font-semibold text-[var(--lp-workspace-muted)]">USDC</span>
-                </p>
+                <Price usdc={Number(movement.amountUsdc)} size="hero" className="mt-3" figureClassName="text-[34px] font-semibold leading-none tracking-[-0.03em] text-[var(--lp-workspace-ink)]" />
                 {breakdown ? (
                   <p className="mt-2 text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">
-                    {(movement.kind === 'escrow_funding' ? copy.fundingBreakdown : copy.payoutBreakdown)
-                      .replace('{deal}', breakdown.base)
-                      .replace('{share}', breakdown.base)
-                      .replace('{fee}', breakdown.fee)}
+                    {mt.fill(movement.kind === 'escrow_funding' ? copy.fundingBreakdown : copy.payoutBreakdown, { deal: breakdown.base, share: breakdown.base, fee: breakdown.fee }, {}, { exact: true })}
                   </p>
                 ) : null}
 
