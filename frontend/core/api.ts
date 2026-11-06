@@ -2085,6 +2085,7 @@ export interface AssistantConfirmAction {
     | 'remove_email'
     | 'join_newsletter'
     | 'unlink_telegram'
+    | 'sign_out_everywhere'
     | 'set_memory'
     | 'remove_published_deals'
     | 'set_outside_reads'
@@ -2450,6 +2451,17 @@ export interface AdminDeskKey {
   createdAt: number;
   lastUsedAt: number | null;
   revokedAt: number | null;
+}
+
+/// One place the account is signed in (view 65).
+export interface SignedInDevice {
+  id: string;
+  device: string;
+  method: 'web3' | 'circle';
+  via: 'open_link' | null;
+  createdAt: number;
+  lastSeenAt: number;
+  current: boolean;
 }
 
 /// A money or chain move waiting for a second member (view 64).
@@ -5622,6 +5634,10 @@ export const api = {
       '/api/telegram/link/start',
       { method: 'POST', body: JSON.stringify({ address }) },
     ),
+  mySessions: () => json<{ sessions: SignedInDevice[] }>('/api/auth/sessions'),
+  closeSession: (id: string) =>
+    json<{ ok: true; current: boolean }>(`/api/auth/sessions/${encodeURIComponent(id)}/close`, { method: 'POST', body: '{}' }),
+  closeAllSessions: () => json<{ ok: true; closed: number }>('/api/auth/sessions/close-all', { method: 'POST', body: '{}' }),
   telegramLinkRemove: (address: string) =>
     json<{ ok: true }>('/api/telegram/link/remove', {
       method: 'POST',

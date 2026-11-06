@@ -3,10 +3,20 @@ import type { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { config } from '../config.js';
 import { ARC } from '../chain/client.js';
+import { pgEnabled, postgresExecutor } from '../db/client.js';
+import { logger } from '../logger.js';
+import {
+  createClosedList,
+  deviceName,
+  memorySessionRecordStore,
+  newSid,
+  postgresSessionRecordStore,
+  type SessionRecordStore,
+} from './sessionRecords.js';
 
-// Stateless session cookies, HMAC-signed with SESSION_SECRET so the backend
-// doesn't have to remember anything between requests. Payload is small on
-// purpose, just enough to identify the user and the auth method.
+// Session cookies, HMAC-signed with SESSION_SECRET. Each one names a session
+// record (view 65): every request checks that record against the closed list,
+// so a person can sign any device out from Profile or from chat.
 
 export const COOKIE_NAME = 'karwan_session';
 const DEFAULT_TTL_DAYS = 30;
@@ -28,6 +38,12 @@ export interface SessionPayload {
   via?: 'open_link';
   /// Issued at, seconds since epoch. Absent on sessions from before it was recorded.
   iat?: number;
+  /// The session record (view 65). Absent on cookies from before records,
+  /// which get one on their first request.
+  sid?: string;
+  /// Set only on the token a chat channel signs for one call into this app.
+  /// It never leaves the process and has no record.
+  inp?: true;
   /// Expiry in seconds since epoch. Checked server-side on every read.
   exp: number;
 }
@@ -93,6 +109,8 @@ export function signSession(
     email: payload.email,
     chainId: ARC.chainId,
     ...(payload.via ? { via: payload.via } : {}),
+    ...(payload.sid ? { sid: payload.sid } : {}),
+    ...(payload.inp ? { inp: true as const } : {}),
     iat,
     exp,
   };
@@ -118,7 +136,65 @@ export function verifySession(token: string): SessionPayload | null {
   }
   if (payload.exp < Math.floor(Date.now() / 1000)) return null;
   if (!sessionChainOk(payload.chainId, ARC)) return null;
+  if (payload.sid && closedSessions.has(payload.sid)) return null;
   return payload;
+}
+
+// ---------------------------------------------------------------- records
+
+let records: SessionRecordStore = pgEnabled ? postgresSessionRecordStore(postgresExecutor()) : memorySessionRecordStore();
+const closedSessions = createClosedList(() => records.closedSince(Date.now()));
+
+export function sessionRecordStore(): SessionRecordStore {
+  return records;
+}
+
+/// Tests point the records at their own store.
+export function useSessionRecordsForTests(next: SessionRecordStore): void {
+  records = next;
+}
+
+export function refreshClosedSessions(): Promise<void> {
+  return closedSessions.refresh();
+}
+
+/// Every minute, so a sign-out on another server reaches this one.
+export function startClosedSessionRefresh(): () => void {
+  const tick = () => void refreshClosedSessions().catch((err) => logger.warn({ err: (err as Error).message }, 'closed sessions refresh failed'));
+  tick();
+  const t = setInterval(tick, 60_000);
+  t.unref?.();
+  return () => clearInterval(t);
+}
+
+export async function closeSession(address: string, sid: string): Promise<boolean> {
+  const rec = await records.get(sid);
+  if (!rec || rec.address !== address.toLowerCase()) return false;
+  const closed = await records.close(sid, Date.now());
+  closedSessions.add([sid]);
+  return closed;
+}
+
+export async function closeAllSessions(address: string): Promise<number> {
+  const sids = await records.closeAllFor(address.toLowerCase(), Date.now());
+  closedSessions.add(sids);
+  return sids.length;
+}
+
+async function openRecord(c: Context, payload: { address: string; method: SessionPayload['method']; via?: SessionPayload['via'] }, expiresAtMs: number): Promise<string> {
+  const sid = newSid();
+  const now = Date.now();
+  await records.insert({
+    sid,
+    address: payload.address.toLowerCase(),
+    method: payload.method,
+    device: payload.via === 'open_link' ? 'Chat link' : deviceName(c.req.header('user-agent')),
+    ...(payload.via ? { via: payload.via } : {}),
+    createdAt: now,
+    lastSeenAt: now,
+    expiresAt: expiresAtMs,
+  });
+  return sid;
 }
 
 // Cookie helpers. We set HttpOnly so JS can't read the token, SameSite=Lax
@@ -129,10 +205,13 @@ function isProd(): boolean {
 }
 
 /// `ttlSecs` shortens a session that should not outlive one task, such as the
-/// one-time link a chat account opens for a verification page.
-export function setSessionCookie(c: Context, payload: Omit<SessionPayload, 'exp'>, opts: { ttlSecs?: number } = {}) {
+/// one-time link a chat account opens for a verification page. The record is
+/// written first: a session that could not be recorded could not be signed out,
+/// so it is not handed out.
+export async function setSessionCookie(c: Context, payload: Omit<SessionPayload, 'exp'>, opts: { ttlSecs?: number } = {}) {
   const ttlSecs = opts.ttlSecs ?? DEFAULT_TTL_DAYS * 86_400;
-  const token = signSession({ ...payload, ttlSecs });
+  const sid = await openRecord(c, payload, Date.now() + ttlSecs * 1000);
+  const token = signSession({ ...payload, sid, ttlSecs });
   setCookie(c, COOKIE_NAME, token, {
     path: '/',
     httpOnly: true,
@@ -186,6 +265,39 @@ export function sessionMismatchesClaim(c: Context, claimed: string | null | unde
 /// trusted the param as identity. Identity is the signed session, full stop.
 export function viewerAddress(c: Context): string | null {
   return sessionAddress(c);
+}
+
+const TOUCH_EVERY_MS = 5 * 60_000;
+const touched = new Map<string, number>();
+
+/// Runs on every request. A cookie from before records gets one and a fresh
+/// cookie with the same end; a recorded one has its last-seen time kept, at
+/// most every five minutes.
+export async function sessionUpkeep(c: Context, next: () => Promise<void>): Promise<void> {
+  const payload = readSession(c);
+  if (payload && !payload.inp) {
+    try {
+      if (!payload.sid) {
+        const remaining = payload.exp - Math.floor(Date.now() / 1000);
+        if (remaining > 60) {
+          const sid = await openRecord(c, payload, payload.exp * 1000);
+          const { exp: _exp, iat: _iat, ...rest } = payload;
+          const token = signSession({ ...rest, sid, ttlSecs: remaining });
+          setCookie(c, COOKIE_NAME, token, { path: '/', httpOnly: true, secure: isProd(), sameSite: isProd() ? 'None' : 'Lax', maxAge: remaining });
+        }
+      } else {
+        const now = Date.now();
+        if ((touched.get(payload.sid) ?? 0) + TOUCH_EVERY_MS < now) {
+          touched.set(payload.sid, now);
+          if (touched.size > 50_000) touched.clear();
+          void records.touch(payload.sid, now).catch(() => undefined);
+        }
+      }
+    } catch (err) {
+      logger.warn({ err: (err as Error).message }, 'session record upkeep failed');
+    }
+  }
+  await next();
 }
 
 export function clearSessionCookie(c: Context) {

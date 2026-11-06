@@ -221,6 +221,7 @@ export function ProfileAccountHub({
       <RowGroup title={mpg.account}>
         <Row label={simple.contactTitle} value={rows.contact} href="/profile/contact" />
         <Row label={simple.walletsTitle} href="/profile/wallets" />
+        <Row label={hub.devices} href="/profile/devices" />
         {DEALS_AVAILABLE ? (
           <Row
             label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}

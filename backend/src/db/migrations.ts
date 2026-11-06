@@ -1570,6 +1570,22 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX admin_requests_v1_at_idx ON admin_requests_v1 (requested_at DESC);
     `,
   },
+  {
+    // A record for every sign-in (view 65), so any device can be signed out.
+    version: 63,
+    name: 'user_sessions',
+    sql: `
+      CREATE TABLE user_sessions_v1 (
+        sid TEXT PRIMARY KEY,
+        address TEXT NOT NULL,
+        expires_at BIGINT NOT NULL,
+        closed_at BIGINT,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX user_sessions_v1_address_idx ON user_sessions_v1 (address);
+      CREATE INDEX user_sessions_v1_closed_idx ON user_sessions_v1 (closed_at) WHERE closed_at IS NOT NULL;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

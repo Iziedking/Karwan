@@ -21,7 +21,7 @@ export async function callAsAccount(
 ): Promise<{ status: number; json: Record<string, unknown> }> {
   if (!app) throw new Error('in-process app not installed');
   const who = address.toLowerCase();
-  const token = signSession({ address: who, method: 'circle', chainId: ARC.chainId });
+  const token = signSession({ address: who, method: 'circle', chainId: ARC.chainId, inp: true });
   const res = await app.request(path, {
     method,
     headers: {

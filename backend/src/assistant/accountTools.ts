@@ -20,6 +20,7 @@ import {
   buildSetOutsideReadsConfirm,
   buildSetUpAgentsConfirm,
   buildSetXHandleConfirm,
+  buildSignOutEverywhereConfirm,
   buildUnlinkTelegramConfirm,
 } from './accountActions.js';
 
@@ -156,6 +157,28 @@ export function accountTools(address: string, actions: AssistantAction[], deps: 
         guarded('propose_unlink_telegram', async () => {
           const r = await deps.call(me, 'GET', `/api/telegram/status?address=${me}`);
           return offer(actions, buildUnlinkTelegramConfirm({ address: me, linked: r.json.linked === true, username: typeof r.json.username === 'string' ? r.json.username : null }));
+        }),
+    }),
+
+    get_my_devices: tool({
+      description: 'Where the person is signed in: each device, how it signed in and when it was last used (view 65). Signing out one device is on Profile, Signed-in devices; propose_sign_out_everywhere signs out all of them.',
+      inputSchema: z.object({}),
+      execute: async () =>
+        guarded('get_my_devices', async () => {
+          const r = await deps.call(me, 'GET', '/api/auth/sessions');
+          const sessions = Array.isArray(r.json.sessions) ? (r.json.sessions as Array<Record<string, unknown>>) : [];
+          return { devices: sessions.map((s) => ({ device: s.device, method: s.method, lastUsed: s.lastSeenAt, startedAt: s.createdAt })), manageAt: '/profile/devices' };
+        }),
+    }),
+
+    propose_sign_out_everywhere: tool({
+      description: 'Prepare a card to sign the person out on every device at once, for a lost or shared phone or computer. This chat stays connected.',
+      inputSchema: z.object({}),
+      execute: async () =>
+        guarded('propose_sign_out_everywhere', async () => {
+          const r = await deps.call(me, 'GET', '/api/auth/sessions');
+          const devices = Array.isArray(r.json.sessions) ? r.json.sessions.length : 0;
+          return offer(actions, buildSignOutEverywhereConfirm({ devices }));
         }),
     }),
 

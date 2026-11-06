@@ -42,6 +42,10 @@ export interface UnlinkTelegramConfirm extends ConfirmActionBase {
   intent: 'unlink_telegram';
   payload: { address: string };
 }
+export interface SignOutEverywhereConfirm extends ConfirmActionBase {
+  intent: 'sign_out_everywhere';
+  payload: Record<string, never>;
+}
 export interface SetMemoryConfirm extends ConfirmActionBase {
   intent: 'set_memory';
   payload: { on: boolean };
@@ -103,6 +107,7 @@ export type AccountStepConfirm =
   | RemoveEmailConfirm
   | JoinNewsletterConfirm
   | UnlinkTelegramConfirm
+  | SignOutEverywhereConfirm
   | SetMemoryConfirm
   | RemovePublishedDealsConfirm
   | SetOutsideReadsConfirm
@@ -259,6 +264,22 @@ export function buildUnlinkTelegramConfirm(i: { address: string; linked: boolean
     payload: { address: i.address },
     confirmLabel: 'Unlink',
     cancelLabel: 'Keep it',
+  };
+}
+
+/// Sign out every device (view 65). The chat it is asked from stays connected.
+export function buildSignOutEverywhereConfirm(i: { devices: number }): SignOutEverywhereConfirm | { error: string } {
+  if (i.devices === 0) return { error: 'This account is not signed in on any device.' };
+  return {
+    kind: 'confirm',
+    id: `sign_out_everywhere:${confirmNonce()}`,
+    intent: 'sign_out_everywhere',
+    title: 'Sign out everywhere',
+    summary: 'Every browser and phone signed in to this account is signed out at once and must sign in again. This chat stays connected.',
+    fields: [{ label: 'Signed in on', value: i.devices === 1 ? '1 device' : `${i.devices} devices` }],
+    payload: {},
+    confirmLabel: 'Sign out everywhere',
+    cancelLabel: 'Keep them',
   };
 }
 

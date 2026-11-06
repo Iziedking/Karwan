@@ -233,6 +233,8 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/x/oauth/start': { by: 'page', why: 'Linking X signs in at X in the browser.' },
   'POST /api/terms/accept': { by: 'page', why: 'Accepting the terms is read and agreed by the person on the page.' },
   'POST /api/auth/logout': { by: 'page', why: 'Signing out of this browser.' },
+  'POST /api/auth/sessions/close-all': { by: 'assistant', via: 'sign_out_everywhere' },
+  'POST /api/auth/sessions/:/close': { by: 'page', why: 'Signing out one device is picked from the list on Profile, Signed-in devices.' },
   'POST /api/survey/research': { by: 'page', why: 'The public research survey, answered without an account.' },
   'POST /api/feedback/:/status': { by: 'internal', why: "The team's triage of feedback." },
   'POST /api/diagnose': { by: 'internal', why: 'The help panel sends its own diagnostics.' },

@@ -188,7 +188,7 @@ siweRoutes.post(
     }
 
     pending.delete(key);
-    setSessionCookie(c, {
+    await setSessionCookie(c, {
       address: key,
       method: 'web3',
       ...(email ? { email } : {}),

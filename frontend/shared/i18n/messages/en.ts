@@ -1017,6 +1017,19 @@ interface MessagesShape {
       security: string;
       passkey: string;
       recovery: string;
+      devices: string;
+      devicesPage: {
+        title: string;
+        intro: string;
+        thisDevice: string;
+        lastUsed: string;
+        chatLink: string;
+        signOut: string;
+        signOutEverywhere: string;
+        everywhereBody: string;
+        loadError: string;
+        actionError: string;
+      };
       soon: string;
       other: string;
       publicProfile: string;
@@ -6327,6 +6340,19 @@ export const en: MessagesShape = {
       security: "Security",
       passkey: "Passkey",
       recovery: "Account recovery",
+      devices: "Signed-in devices",
+      devicesPage: {
+        title: "Signed-in devices",
+        intro: "Where this account is signed in. Sign out any device you do not recognise.",
+        thisDevice: "This device",
+        lastUsed: "Last used",
+        chatLink: "Chat link",
+        signOut: "Sign out",
+        signOutEverywhere: "Sign out everywhere",
+        everywhereBody: "Every browser and phone signed in to this account is signed out, this one too.",
+        loadError: "Could not load your devices.",
+        actionError: "Could not sign that device out. Try again.",
+      },
       soon: "Soon",
       other: "Other",
       publicProfile: "Public profile",

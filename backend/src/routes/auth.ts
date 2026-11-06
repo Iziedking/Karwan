@@ -34,11 +34,7 @@ import { signEmailProof } from '../auth/emailProof.js';
 import { getModularAccountByEmail } from '../db/modularAccounts.js';
 import { isInvited } from '../db/waitlist.js';
 import { getProfile } from '../db/profiles.js';
-import {
-  clearSessionCookie,
-  readSession,
-  setSessionCookie,
-} from '../auth/session.js';
+import { clearSessionCookie, readSession, setSessionCookie, closeSession, closeAllSessions, sessionRecordStore } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { createEmailCodes, type PendingEmailCode } from '../auth/otpStore.js';
@@ -255,9 +251,43 @@ authRoutes.get('/bootstrap', async (c) => {
   });
 });
 
-authRoutes.post('/logout', (c) => {
+authRoutes.post('/logout', async (c) => {
+  const s = readSession(c);
+  if (s?.sid) await closeSession(s.address, s.sid).catch(() => false);
   clearSessionCookie(c);
   return c.json({ ok: true });
+});
+
+/// Where this account is signed in (view 65): open sessions, newest first, the
+/// one making this request marked.
+authRoutes.get('/sessions', async (c) => {
+  const s = readSession(c);
+  if (!s) return c.json({ error: 'not signed in' }, 401);
+  const open = await sessionRecordStore().openFor(s.address.toLowerCase(), Date.now());
+  return c.json({
+    sessions: open
+      .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+      .map((r) => ({ id: r.sid, device: r.device, method: r.method, via: r.via ?? null, createdAt: r.createdAt, lastSeenAt: r.lastSeenAt, current: r.sid === s.sid })),
+  });
+});
+
+authRoutes.post('/sessions/:id/close', async (c) => {
+  const s = readSession(c);
+  if (!s) return c.json({ error: 'not signed in' }, 401);
+  const id = c.req.param('id');
+  const closed = await closeSession(s.address, id);
+  if (!closed) return c.json({ error: 'No such open session on this account.' }, 404);
+  if (id === s.sid) clearSessionCookie(c);
+  return c.json({ ok: true, current: id === s.sid });
+});
+
+/// Every device, this one included.
+authRoutes.post('/sessions/close-all', async (c) => {
+  const s = readSession(c);
+  if (!s) return c.json({ error: 'not signed in' }, 401);
+  const closed = await closeAllSessions(s.address);
+  if (!s.inp) clearSessionCookie(c);
+  return c.json({ ok: true, closed });
 });
 
 // ---------- LOOKUP (unified login surface) ----------
@@ -601,7 +631,7 @@ authRoutes.post('/register/verify', async (c) => {
   // testnet-only) so it's spendable right away without a faucet hunt.
   void dripTestnetUsdc(identity.address, { reason: 'signup' });
 
-  setSessionCookie(c, {
+  await setSessionCookie(c, {
     address: identity.address,
     method: 'circle',
     email: body.email,
@@ -716,7 +746,7 @@ authRoutes.post('/login/verify', async (c) => {
     bumpCounter(credentialId, info.newCounter);
   }
 
-  setSessionCookie(c, {
+  await setSessionCookie(c, {
     address: user.address,
     method: 'circle',
     email: user.email,
@@ -817,7 +847,7 @@ authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
     void dripTestnetUsdc(identity.address, { reason: 'signup' });
   }
 
-  setSessionCookie(c, {
+  await setSessionCookie(c, {
     address: user.address,
     method: 'circle',
     email: user.email,

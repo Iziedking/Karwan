@@ -4,7 +4,7 @@ import type { OpenablePath } from './openLink.js';
 export interface OpenRouteDeps {
   webBase: string;
   redeem: (token: string) => Promise<{ address: string; path: OpenablePath } | null>;
-  signIn: (c: Context, address: string) => void;
+  signIn: (c: Context, address: string) => void | Promise<void>;
 }
 
 /// GET /open?t=<token>: the one-time link a chat account gets for the few
@@ -16,7 +16,7 @@ export function openHandler(deps: OpenRouteDeps) {
     if (!token) return c.text('missing link', 400);
     const opened = await deps.redeem(token);
     if (!opened) return c.redirect(`${deps.webBase}/?link=expired`, 302);
-    deps.signIn(c, opened.address);
+    await deps.signIn(c, opened.address);
     return c.redirect(`${deps.webBase}${opened.path}`, 302);
   };
 }

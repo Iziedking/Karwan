@@ -313,6 +313,7 @@ import { hydrateNearMisses } from './db/nearMiss.js';
 import { initEphemeralStores } from './db/ephemeral.js';
 import { createCorrelationMiddleware } from './observability/correlationMiddleware.js';
 import { requireAdmin } from './middleware/adminAuth.js';
+import { sessionUpkeep, startClosedSessionRefresh } from './auth/session.js';
 import { requireAccessPass } from './middleware/accessPass.js';
 import { adminDeskRoutes } from './routes/adminDesk.js';
 import { setDeskReplay } from './middleware/twoPeople.js';
@@ -326,6 +327,8 @@ const app = new Hono();
 /// authority input. The path excludes query strings so secrets in query
 /// parameters cannot be copied into logs.
 app.use('*', createCorrelationMiddleware(appLogger));
+// Session records (view 65): an old cookie gets one, a recorded one is kept fresh.
+app.use('*', sessionUpkeep);
 
 // Session cookies need credentials:true, which forbids origin:*. We echo the
 // request's Origin back when it's in the trusted set. Defaults cover local
@@ -697,6 +700,7 @@ app.get('/api/admin/route-catalog', requireAdmin, (c) => {
 installProcessErrorHandlers();
 
 const stopFns: Array<() => void> = [];
+stopFns.push(startClosedSessionRefresh());
 
 // Private trade and financing conversations have a fixed 14-day retention
 // window. This worker is independent of agent flags so cleanup continues when
