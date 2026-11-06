@@ -63,6 +63,7 @@ import { withDealReferences } from './dealReferences.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
 import { withLocalAmounts } from './localAmountTools.js';
+import { moneyVoice } from './moneyVoice.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
 import { mergeSetupAnswers } from './setupTool.js';
@@ -315,7 +316,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           const local = localFigure(owned.total, profile?.settings?.displayCurrency, rates);
           return {
             totalUsdc: owned.total.toFixed(2),
-            ...(local ? { local, localNote: `They chose to see amounts in ${local.currency}. Give the balance in USDC first, then about ${local.amount} ${local.currency} at today's rate. Their money stays in USDC.` } : {}),
+            ...(local ? { local, localNote: `They read amounts in ${local.currency}. Give the balance as about ${local.amount} ${local.currency} at today's rate, with no USDC beside it. Their money stays in USDC underneath.` } : {}),
             parts: {
               walletOnArcUsdc: owned.wallet.toFixed(2),
               agentsUsdc: owned.agents.toFixed(2),
@@ -3170,7 +3171,13 @@ export async function runAssistantAgent(input: {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
+  // The account's own currency sets how the assistant speaks about money. A
+  // failed read answers in USDC, never fails the turn.
+  const voice = await Promise.all([getProfile(input.address), readUsdcRates()])
+    .then(([profile, rates]) => moneyVoice(profile?.settings?.displayCurrency, rates))
+    .catch(() => '');
   const system = systemPromptFor({ mode: input.mode, hidden: hiddenGuideIds(liveFeatures) }) +'\n' + authenticatedPreamble(input.address, input.method)
+    + (voice ? '\n' + voice : '')
     + (input.memory ? '\n' + memoryPreamble(input.memory) : '')
     + (input.viewingDeal ? '\n' + viewingDealLine(input.viewingDeal) : '')
     + (input.forceRead ? '\nRead the account with the tool for what the person asked about before you answer. State only what that read returned.' : '');
