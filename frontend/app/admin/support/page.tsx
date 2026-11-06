@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, type AdminHeldView, type AdminTicketRow, type AdminWrongToken } from '@/core/api';
+import { api, type AdminHeldTransfer, type AdminHeldView, type AdminTicketRow, type AdminWrongToken } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
 import { stripMarkdown } from '@/shared/utils/format';
@@ -29,6 +29,8 @@ export default function AdminSupport() {
   const [heldJob, setHeldJob] = useState<string | null>(null);
   /// Tokens that are not USDC on addresses Karwan holds, to send back by hand (view 59).
   const [wrongTokens, setWrongTokens] = useState<AdminWrongToken[]>([]);
+  /// Transfers between networks held for a person (view 60).
+  const [heldTransfers, setHeldTransfers] = useState<AdminHeldTransfer[]>([]);
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -55,6 +57,8 @@ export default function AdminSupport() {
       if (h) setHeld((prev) => (JSON.stringify(prev) === JSON.stringify(h) ? prev : h));
       const w = await api.adminWrongTokens().catch(() => null);
       if (w) setWrongTokens((prev) => (JSON.stringify(prev) === JSON.stringify(w.items) ? prev : w.items));
+      const t = await api.adminHeldTransfers().catch(() => null);
+      if (t) setHeldTransfers((prev) => (JSON.stringify(prev) === JSON.stringify(t.items) ? prev : t.items));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load');
     }
@@ -168,6 +172,29 @@ export default function AdminSupport() {
             ))}
           </div>
           {heldJob && <DeliveryReviewPanel key={heldJob} jobId={heldJob} onChanged={() => void loadList()} />}
+        </section>
+      )}
+
+      {heldTransfers.length > 0 && (
+        <section className="mt-5 space-y-2" aria-label="Transfers to check">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Transfers to check · nothing is sent again by itself</p>
+          <p className="text-[12px] text-white/55">BRIDGE_FORWARD_FAILED: Circle did not mint. Check the recipient balance, then mint by hand from the attestation for the burn. BRIDGE_BURN_UNKNOWN: no burn was reported. Check the source wallet on its network before anything is sent again.</p>
+          <div className="border border-white/10 rounded-xl divide-y divide-white/[0.06]">
+            {heldTransfers.map((h) => (
+              <div key={h.bridgeId} className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-white">{h.amountUsdc} USDC · {h.from ?? 'unknown'} to {h.to ?? 'unknown'} · {h.reason}</span>
+                  <span className="mono text-[11px] text-white/50">{new Date(h.heldAt).toLocaleString()}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-3 text-[12px] text-white/55">
+                  <CopyId value={h.bridgeId} />
+                  {h.burnTxHash ? <CopyId value={h.burnTxHash} /> : null}
+                  {h.sourceWallet ? <CopyId value={h.sourceWallet} /> : null}
+                  {h.reference ? <CopyId value={h.reference} /> : null}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 

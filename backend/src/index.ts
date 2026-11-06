@@ -1478,6 +1478,8 @@ async function boot() {
   resumePendingBridges().catch((err) =>
     appLogger.error({ err: (err as Error).message }, 'bridge resume failed'),
   );
+  // App Kit transfers finish from their burn hash, whichever process started them.
+  void import('./circle/appKitFinish.js').then(({ startAppKitReconciler }) => startAppKitReconciler());
   /// One-shot replay of historical chain events into the bus when the disk
   /// snapshot (data/events.json) is missing or empty. Without this, a fresh
   /// deploy or VPS restore comes up with /activity showing zero events even

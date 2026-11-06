@@ -2,6 +2,13 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import { patchBridge } from '../db/bridges.js';
+import { reconcileAppKitNow } from './appKitFinish.js';
+
+/// The burn's hash once App Kit reports the burn landed.
+function burnedStep(steps: Array<{ name?: string; state?: string; txHash?: string }> | undefined): string | null {
+  const burn = steps?.find?.((s) => s.name?.toLowerCase() === 'burn' && s.state === 'success' && !!s.txHash);
+  return burn?.txHash ?? null;
+}
 import { appKit, circleWalletsAdapter } from './sdkCompat.js';
 import { ARC } from '../chain/client.js';
 import { CCTP_CHAINS, CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
@@ -208,6 +215,10 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
       { bridgeId: input.bridgeId, state: values?.state, txHash: values?.txHash },
       'appkit bridge.burn',
     );
+    // Kept as soon as App Kit has a hash, so a restart still knows the burn.
+    if (values?.txHash && values.state !== 'error' && values.state !== 'success') {
+      void patchBridge(input.bridgeId, { sourceTxHash: values.txHash });
+    }
     if (values?.state === 'success' && values?.txHash) {
       void Promise.resolve(input.onBurn?.(values.txHash)).catch((err) =>
         logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'app-kit inbound burn movement update failed'),
@@ -307,6 +318,16 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
     });
 
     if (result.state === 'error') {
+      // Burned already: Circle's forwarder mints whatever happens to this
+      // process, so this is not a failure yet. The reconciler reads the
+      // attestation API and finishes or holds it (view 60).
+      const burn = burnedStep(result.steps);
+      if (burn) {
+        logger.warn({ bridgeId: input.bridgeId, failedStep: result.steps?.find?.((s) => s.state === 'error')?.name }, 'appkit transfer errored after the burn; reconciling from the burn hash');
+        await patchBridge(input.bridgeId, { status: 'relaying', sourceTxHash: burn });
+        void reconcileAppKitNow(input.bridgeId).catch(() => undefined);
+        return;
+      }
       const failedStep = result.steps?.find?.((s) => s.state === 'error');
       // BridgeStep.error is typed `unknown`; coerce safely. Most failures
       // are either plain strings or Error instances; richer shapes fall back
@@ -438,6 +459,9 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
       { bridgeId: input.bridgeId, state: values?.state, txHash: values?.txHash },
       'appkit bridge-out.burn',
     );
+    if (values?.txHash && values.state !== 'error' && values.state !== 'success') {
+      void patchBridge(input.bridgeId, { sourceTxHash: values.txHash });
+    }
     if (values?.state === 'success' && values.txHash) {
       void Promise.resolve(input.onBurn?.(values.txHash)).catch((err) =>
         logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'cash-out burn movement update failed'),
@@ -518,6 +542,16 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
     });
 
     if (result.state === 'error') {
+      // Burned already: Circle's forwarder mints whatever happens to this
+      // process, so this is not a failure yet. The reconciler reads the
+      // attestation API and finishes or holds it (view 60).
+      const burn = burnedStep(result.steps);
+      if (burn) {
+        logger.warn({ bridgeId: input.bridgeId, failedStep: result.steps?.find?.((s) => s.state === 'error')?.name }, 'appkit transfer errored after the burn; reconciling from the burn hash');
+        await patchBridge(input.bridgeId, { status: 'relaying', sourceTxHash: burn });
+        void reconcileAppKitNow(input.bridgeId).catch(() => undefined);
+        return;
+      }
       const failedStep = result.steps?.find?.((s) => s.state === 'error');
       const stepError = failedStep?.error;
       const message =

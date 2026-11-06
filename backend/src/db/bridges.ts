@@ -55,12 +55,14 @@ export interface BridgeRelay {
   /// those so the hand-rolled resume logic skips them.
   sourceChainKey?: CctpChainKey | AppKitSourceChainKey;
   /// True when this bridge is managed by the App Kit + Forwarding Service
-  /// path (POST /circle-bridge-app-kit). The hand-rolled resume logic
-  /// (resumePendingBridges → startSourcePipeline) skips these because App
-  /// Kit's kit.bridge() does not currently checkpoint resumable state across
-  /// process restarts. A future iteration can persist the BridgeResult and
-  /// call kit.retry() on boot.
+  /// path. The hand-rolled resume logic (startSourcePipeline, startRelay)
+  /// never touches these; they finish from their burn hash through
+  /// money/appKitReconcile.ts, because Circle mints them whether or not the
+  /// process that started them is still running (view 60).
   appKit?: boolean;
+  /// Set when a person has to look: Circle's forward FAILED, or no burn hash
+  /// was ever reported. The reconciler skips a held row; support clears it.
+  held?: { reason: string; at: number };
   /// The user's source-chain Circle DCW that signs approve + burn.
   bridgeWalletId?: string;
   bridgeWalletAddress?: string;

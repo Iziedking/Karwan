@@ -2176,6 +2176,22 @@ export interface AdminDeliveryReviewView {
 
 /// What waits for a person at Karwan (view 21): held matches with the offence
 /// each rests on, and held delivery links.
+/// A transfer between networks held for a person (view 60).
+export interface AdminHeldTransfer {
+  bridgeId: string;
+  reason: string;
+  heldAt: number;
+  direction: 'in' | 'out';
+  amountUsdc: string;
+  from: string | null;
+  to: string | null;
+  sourceDomain: number;
+  burnTxHash: string | null;
+  sourceWallet: string | null;
+  recipient: string;
+  reference: string | null;
+}
+
 /// A token that is not USDC, sent to an address Karwan holds (view 59).
 export interface AdminWrongToken {
   account: string;
@@ -3611,6 +3627,7 @@ export const api = {
     }),
   /// Held matches and held links waiting for a person, without a ticket.
   adminSupportHeld: () => json<AdminHeldView>('/api/admin/support/held', { headers: adminHeaders() }),
+  adminHeldTransfers: () => json<{ items: AdminHeldTransfer[] }>('/api/admin/support/held-transfers', { headers: adminHeaders() }),
   adminWrongTokens: () => json<{ items: AdminWrongToken[] }>('/api/admin/support/wrong-tokens', { headers: adminHeaders() }),
   adminClearMatchHold: (jobId: string, reason: string) =>
     json<{ cleared: true }>(`/api/admin/support/matches/${encodeURIComponent(jobId)}/clear`, {

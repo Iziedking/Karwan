@@ -144,6 +144,31 @@ supportTeamRoutes.post('/deliveries/:jobId/review', async (c) => {
 
 /// Lets the frontend know which token it holds, so a support-only token sees
 /// only the tickets nav and never the rest of the admin page.
+/// Transfers between networks held for a person (view 60): Circle's forward
+/// FAILED (mint it by hand from the attestation, after checking the recipient's
+/// balance), or no burn hash was ever reported (check the source wallet on the
+/// network before anything is sent again). Nothing here is sent automatically.
+supportTeamRoutes.get('/held-transfers', async (c) => {
+  const { listPendingBridges } = await import('../db/bridges.js');
+  const rows = (await listPendingBridges()).filter((b) => b.held);
+  return c.json({
+    items: rows.map((b) => ({
+      bridgeId: b.bridgeId,
+      reason: b.held!.reason,
+      heldAt: b.held!.at,
+      direction: b.direction ?? 'in',
+      amountUsdc: b.amountUsdc,
+      from: b.sourceChainKey ?? (b.direction === 'out' ? 'arc' : null),
+      to: b.destChainKey ?? (b.direction === 'out' ? null : 'arc'),
+      sourceDomain: b.sourceDomain,
+      burnTxHash: b.sourceTxHash || null,
+      sourceWallet: b.bridgeWalletAddress ?? null,
+      recipient: b.mintRecipient,
+      reference: b.movementReference ?? null,
+    })),
+  });
+});
+
 /// Tokens that are not USDC, sent to an address Karwan holds (view 59). Never
 /// credited; support sends them back by hand to an address the owner gives.
 /// The reference is Circle's transaction id after `token-`, which finds the

@@ -14,7 +14,9 @@ import {
   patchBridge,
   listPendingBridges,
   listBridgesForUser,
+  type BridgeRelay,
 } from '../db/bridges.js';
+import { reconcileAppKitNow } from '../circle/appKitFinish.js';
 import { getMoneyMovement } from '../db/moneyMovements.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { inboundSummary } from '../money/inboundSummary.js';
@@ -255,6 +257,8 @@ bridgeRoutes.get('/list', async (c) => {
       approveTxId: b.approveTxId ?? null,
       burnTxId: b.burnTxId ?? null,
       error: b.error ?? null,
+      // A person at Karwan is checking it (view 60).
+      held: !!b.held,
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
     })),
@@ -632,16 +636,9 @@ export async function resumePendingBridges(): Promise<void> {
   if (pending.length === 0) return;
   logger.info({ count: pending.length }, 'resuming pending bridges');
   for (const b of pending) {
-    // App Kit-managed bridges don't have persisted resumable state yet (no
-    // BridgeResult checkpoint). Skip them on boot; an operator marks them
-    // 'error' or 'minted' manually after observing the on-chain mint.
-    if (b.appKit) {
-      logger.info(
-        { bridgeId: b.bridgeId, status: b.status },
-        'skipping app-kit bridge in resume (no persisted resumable state)',
-      );
-      continue;
-    }
+    // App Kit transfers finish from their burn hash in the App Kit
+    // reconciler (circle/appKitFinish.ts), started beside this on boot.
+    if (b.appKit) continue;
     // Bridge-out: burn is on Arc, mint is on the destination chain. Resume only
     // the destination mint relay (the Arc burn is synchronous, so a record stuck
     // pre-burn after a restart has no on-chain effect and is left to retry).
@@ -1192,11 +1189,32 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
   }
 }
 
+/// An App Kit transfer, checked again: one read of Circle's attestation API for
+/// its burn hash finishes it, holds it for a person, or leaves it on its way.
+async function recheckAppKit(record: BridgeRelay) {
+  await reconcileAppKitNow(record.bridgeId);
+  const after = (await getBridge(record.bridgeId)) ?? record;
+  return {
+    status: after.status,
+    mintTxHash: after.mintTxHash ?? null,
+    ...(after.held ? { held: true } : {}),
+  };
+}
+
 /// Manual recheck: re-queries IRIS for the attestation and tries to mint, even
 /// for bridges that had been marked 'error'. Covers the case where the SSE
 /// event was missed by a closed tab, or where the relay loop ended before
 /// Circle finally posted the attestation.
 bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
+  {
+    const record = await getBridge(c.req.param('bridgeId'));
+    if (record?.appKit) {
+      if (!isSessionSelf(c, bridgeOwnerFor(record) ?? '')) {
+        return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
+      }
+      return c.json(await recheckAppKit(record));
+    }
+  }
   if (!config.cctpRelayWalletId) {
     return c.json(
       { error: 'CCTP_RELAY_WALLET_ID not configured (legacy alias: BUYER_AGENT_WALLET_ID)' },
@@ -1218,19 +1236,10 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
   // running the inbound mint path below (which would try to receiveMessage on
   // Arc with a message destined elsewhere).
   if (record.direction === 'out') {
-    // Solana out-bridges are managed by App Kit's kit.bridge (not the hand-rolled
-    // startOutRelay), so there is no relay to re-arm here — mirror the App Kit
-    // resume guard used for the in-direction App Kit bridges.
+    // A Solana out-bridge with no App Kit flag predates the flag; it was
+    // still App Kit's, so it reconciles the same way.
     if (record.destChainKey && isSolanaDestKey(record.destChainKey)) {
-      return c.json(
-        {
-          error: 'this bridge is managed by App Kit',
-          detail:
-            'Solana bridges run through kit.bridge; wait for the in-flight transfer to settle, then verify the mint on Solscan.',
-          code: 'APPKIT_MANAGED',
-        },
-        409,
-      );
+      return c.json(await recheckAppKit(record));
     }
     if (!record.sourceTxHash || !record.destChainKey || !record.bridgeWalletId) {
       return c.json(
@@ -2048,6 +2057,7 @@ bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
   if (record.status === 'minted') {
     return c.json({ status: 'minted', mintTxHash: record.mintTxHash ?? null });
   }
+  if (record.appKit) return c.json(await recheckAppKit(record));
   // Already burned: just make sure the mint relay is running.
   if (record.sourceTxHash) {
     startRelay({
@@ -2063,19 +2073,6 @@ bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
   if (!record.sourceChainKey || !record.bridgeWalletId || !record.bridgeWalletAddress) {
     return c.json(
       { error: 'bridge has no source context; this is likely a web3 bridge. Use /recheck.' },
-      409,
-    );
-  }
-  // App Kit bridges don't have a resumable hand-rolled state to re-enter.
-  // Manual operator path: mark the record minted or error after observing
-  // the on-chain outcome of the in-flight kit.bridge() call.
-  if (record.appKit) {
-    return c.json(
-      {
-        error: 'app-kit bridge has no resumable state',
-        detail:
-          'This bridge is managed by App Kit. Wait for the in-flight kit.bridge() to settle, then verify the mint on Arcscan and mark the record manually if needed.',
-      },
       409,
     );
   }

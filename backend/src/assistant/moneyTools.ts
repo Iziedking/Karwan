@@ -40,6 +40,7 @@ interface BridgeRow {
   sourceChainKey: string | null;
   destChainKey: string | null;
   error: string | null;
+  held?: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -109,7 +110,9 @@ export function moneyTools(address: string, actions: AssistantAction[], deps: Mo
                 what: x.direction === 'out' ? `Out of Karwan to ${chainName(x.destChainKey)}` : `Into Karwan from ${chainName(x.sourceChainKey)}`,
                 amountUsdc: x.amountUsdc,
                 since: new Date(x.createdAt).toISOString(),
-                problem: x.status === 'error' ? 'It stopped with an error.' : 'It has not arrived yet.',
+                problem: x.held
+                  ? 'A person from the team is checking it. Nothing is sent again by itself.'
+                  : x.status === 'error' ? 'It stopped with an error.' : 'It has not arrived yet.',
               })),
             ...r
               .filter((x) => !DONE_RAIL.has(x.status))
