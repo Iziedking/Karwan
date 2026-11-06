@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { and, eq, gte, desc } from 'drizzle-orm';
+import { and, eq, gte, desc, sql } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { activityLog } from './schema.js';
 import { logger } from '../logger.js';
@@ -41,7 +41,10 @@ export type ActivityKind =
   /// is the seller taking the advance.
   | 'financing_funded'
   | 'financing_received'
-  | 'financing_repaid';
+  | 'financing_repaid'
+  /// A token that is not USDC landed on an address Karwan holds. Never in the
+  /// balance and never carries amountUsdc; support sends it back (view 59).
+  | 'wrong_token';
 
 /// One recorded money movement on a user's account. `address` is always the
 /// session identity the route verified — never a client-supplied value — so a
@@ -138,6 +141,24 @@ export async function listActivityForAddress(
   }
   return Object.values(loadFile())
     .filter((e) => e.address === a && e.ts >= sinceTs)
+    .sort((x, y) => y.ts - x.ts)
+    .slice(0, limit);
+}
+
+/// Every row of one kind across all accounts, newest first. For support views
+/// of rare rows, such as wrong tokens; not for anything a person loads.
+export async function listActivityOfKind(kind: ActivityKind, limit = 200): Promise<ActivityEntry[]> {
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(activityLog)
+      .where(sql`${activityLog.data}->>'kind' = ${kind}`)
+      .orderBy(desc(activityLog.ts))
+      .limit(limit);
+    return rows.map((r) => r.data);
+  }
+  return Object.values(loadFile())
+    .filter((e) => e.kind === kind)
     .sort((x, y) => y.ts - x.ts)
     .slice(0, limit);
 }

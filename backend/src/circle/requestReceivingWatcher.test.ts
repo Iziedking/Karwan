@@ -35,9 +35,14 @@ await saveDepositRequest({
 });
 invalidateReceivingIndex();
 
-const stop = startDepositWatcher(async () => ({ isNative: false, tokenAddress: CCTP_CHAINS.baseSepolia.usdc, blockchain: 'BASE-SEPOLIA' }));
+const { listActivityForAddress } = await import('../db/activityLog.js');
 
-async function inbound(id: string, amount: string) {
+const stop = startDepositWatcher(async (tokenId) =>
+  tokenId === 'usdt'
+    ? { isNative: false, tokenAddress: '0x00000000000000000000000000000000000000d7', blockchain: 'BASE-SEPOLIA', symbol: 'USDT' }
+    : { isNative: false, tokenAddress: CCTP_CHAINS.baseSepolia.usdc, blockchain: 'BASE-SEPOLIA' });
+
+async function inbound(id: string, amount: string, tokenId = 'usdc') {
   const seen: Array<Record<string, unknown>> = [];
   const off = bus.subscribe((e) => {
     if (e.type === 'wallet.credited') seen.push(e.payload as Record<string, unknown>);
@@ -50,7 +55,7 @@ async function inbound(id: string, amount: string) {
         transaction: {
           id,
           blockchain: 'BASE-SEPOLIA',
-          tokenId: 'usdc',
+          tokenId,
           transactionType: 'INBOUND',
           state: 'COMPLETE',
           amounts: [amount],
@@ -89,5 +94,12 @@ test('a redelivered transfer is not counted or moved twice', async () => {
   const seen = await inbound('p2', '20');
   assert.equal(seen.length, 0);
   assert.equal((await getDepositRequest(request.token))?.receipts?.length, 2);
+});
+
+test('USDT sent to a payment link is not counted, and the requester sees it in history', async () => {
+  assert.equal((await inbound('usdt-1', '7', 'usdt')).length, 0);
+  assert.equal((await getDepositRequest(request.token))?.receipts?.length, 2);
+  const row = (await listActivityForAddress(REQUESTER, 0, 500)).find((r) => r.id === 'wrong-token-usdt-1');
+  assert.deepEqual(row?.params, { t: 'wrongToken', amount: '7', token: 'USDT', chain: 'Base' });
   stop();
 });

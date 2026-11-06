@@ -2176,6 +2176,17 @@ export interface AdminDeliveryReviewView {
 
 /// What waits for a person at Karwan (view 21): held matches with the offence
 /// each rests on, and held delivery links.
+/// A token that is not USDC, sent to an address Karwan holds (view 59).
+export interface AdminWrongToken {
+  account: string;
+  at: number;
+  amount: string | null;
+  token: string | null;
+  chain: string | null;
+  reference: string | null;
+  txHash: string | null;
+}
+
 export interface AdminHeldView {
   matches: Array<{
     jobId: string;
@@ -3600,6 +3611,7 @@ export const api = {
     }),
   /// Held matches and held links waiting for a person, without a ticket.
   adminSupportHeld: () => json<AdminHeldView>('/api/admin/support/held', { headers: adminHeaders() }),
+  adminWrongTokens: () => json<{ items: AdminWrongToken[] }>('/api/admin/support/wrong-tokens', { headers: adminHeaders() }),
   adminClearMatchHold: (jobId: string, reason: string) =>
     json<{ cleared: true }>(`/api/admin/support/matches/${encodeURIComponent(jobId)}/clear`, {
       method: 'POST',

@@ -55,7 +55,7 @@ invalidateDepositIndex();
 /// Circle's answer for each tokenId this test uses. Only the network call is
 /// stood in for: the address comparison that decides whether a token is a dollar
 /// runs for real against the same chain table production reads.
-const TOKENS: Record<string, { isNative: boolean; tokenAddress: string; blockchain: string }> = {
+const TOKENS: Record<string, { isNative: boolean; tokenAddress: string; blockchain: string; symbol?: string }> = {
   'usdc-base': {
     isNative: false,
     tokenAddress: CCTP_CHAINS.baseSepolia.usdc,
@@ -67,6 +67,13 @@ const TOKENS: Record<string, { isNative: boolean; tokenAddress: string; blockcha
     isNative: false,
     tokenAddress: '0x00000000000000000000000000000000deadbeef',
     blockchain: 'BASE-SEPOLIA',
+  },
+  // Another stablecoin, sent to the wrong address by mistake.
+  'usdt-base': {
+    isNative: false,
+    tokenAddress: '0x00000000000000000000000000000000000000d7',
+    blockchain: 'BASE-SEPOLIA',
+    symbol: 'USDT',
   },
   // The chain's own gas token, which Circle also reports as an inbound transfer.
   'native-eth': {
@@ -245,6 +252,29 @@ test('a deposit that fits two open requests is credited, marks neither and says 
   assert.equal(params?.t, 'depositFitsRequests');
   assert.equal(params?.count, '2');
   assert.equal(params?.amount, '77');
+});
+
+async function wrongTokenRows(txId: string) {
+  await new Promise((r) => setTimeout(r, 30));
+  return (await listActivityForAddress(OWNER, 0, 500)).filter((r) => r.id === `wrong-token-${txId}`);
+}
+
+test('USDT sent to a deposit address is not credited, and the owner sees it once in history', async () => {
+  assert.equal((await credits(deposit({ id: 'tx-usdt', tokenId: 'usdt-base', amounts: ['5'] }))).length, 0);
+  await credits(deposit({ id: 'tx-usdt', tokenId: 'usdt-base', amounts: ['5'] }));
+  const rows = await wrongTokenRows('tx-usdt');
+  assert.equal(rows.length, 1, 'a redelivery writes nothing new');
+  assert.equal(rows[0]!.kind, 'wrong_token');
+  assert.equal(rows[0]!.amountUsdc, undefined);
+  assert.deepEqual(rows[0]!.params, { t: 'wrongToken', amount: '5', token: 'USDT', chain: 'Base' });
+});
+
+test('a token calling itself USDC is recorded without its name, and a gas coin is not recorded', async () => {
+  await credits(deposit({ id: 'tx-fake-named', tokenId: 'fake-usdc', amounts: ['25.5'] }));
+  const fake = await wrongTokenRows('tx-fake-named');
+  assert.equal(fake[0]?.params?.t, 'wrongTokenUnnamed');
+  await credits(deposit({ id: 'tx-gas', tokenId: 'native-eth', amounts: ['0.01'] }));
+  assert.equal((await wrongTokenRows('tx-gas')).length, 0);
 });
 
 test.after(() => stop());

@@ -144,6 +144,26 @@ supportTeamRoutes.post('/deliveries/:jobId/review', async (c) => {
 
 /// Lets the frontend know which token it holds, so a support-only token sees
 /// only the tickets nav and never the rest of the admin page.
+/// Tokens that are not USDC, sent to an address Karwan holds (view 59). Never
+/// credited; support sends them back by hand to an address the owner gives.
+/// The reference is Circle's transaction id after `token-`, which finds the
+/// wallet and token in the Circle console.
+supportTeamRoutes.get('/wrong-tokens', async (c) => {
+  const { listActivityOfKind } = await import('../db/activityLog.js');
+  const rows = await listActivityOfKind('wrong_token');
+  return c.json({
+    items: rows.map((r) => ({
+      account: r.address,
+      at: r.ts,
+      amount: r.params?.amount ?? null,
+      token: r.params?.token ?? null,
+      chain: r.params?.chain ?? null,
+      reference: r.refId ?? null,
+      txHash: r.txHash ?? null,
+    })),
+  });
+});
+
 supportTeamRoutes.get('/whoami', (c) => c.json({ role: tokenRole(c) }));
 
 /// Open support tickets, newest activity first, with a compact preview.

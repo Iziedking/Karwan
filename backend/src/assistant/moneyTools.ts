@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { logger } from '../logger.js';
+import { listActivityForAddress } from '../db/activityLog.js';
 import { CCTP_CHAIN_KEYS, CCTP_CHAINS, type CctpChainKey } from '../chain/cctpChains.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import {
@@ -93,12 +94,12 @@ export function moneyTools(address: string, actions: AssistantAction[], deps: Mo
   return {
     list_stuck_money_moves: tool({
       description:
-        "List the person's money moves between networks and money rails that have not finished: what, how much, since when, and what went wrong. Use when they ask where their money is, why a transfer has not arrived, or whether something is stuck. Then offer propose_fix_money_move.",
+        "List the person's money moves between networks and money rails that have not finished: what, how much, since when, and what went wrong, plus any token that is not USDC sent to their Karwan addresses (kind wrong_token), which was never added to the balance. Use when they ask where their money is, why a transfer has not arrived, or whether something is stuck. Then offer propose_fix_money_move for a bridge or rail move; for a wrong token, offer to bring in a person from the team, who sends it back to an address the person gives.",
       inputSchema: z.object({}),
       execute: async () =>
         guarded('list_stuck_money_moves', async () => {
           const now = Date.now();
-          const [b, r] = await Promise.all([bridges(), rails()]);
+          const [b, r, history] = await Promise.all([bridges(), rails(), listActivityForAddress(me, 0, 500)]);
           const moves = [
             ...b
               .filter((x) => x.status !== 'minted' && (x.status === 'error' || now - x.updatedAt > SETTLING_MS))
@@ -113,11 +114,20 @@ export function moneyTools(address: string, actions: AssistantAction[], deps: Mo
             ...r
               .filter((x) => !DONE_RAIL.has(x.status))
               .map((x) => ({ kind: 'rail' as const, id: x.id, what: railLabel(x), since: new Date(x.createdAt).toISOString(), problem: x.failureCode ? 'It stopped and can be tried again or cancelled.' : 'It is waiting on a step.' })),
+            ...history
+              .filter((x) => x.kind === 'wrong_token')
+              .map((x) => ({
+                kind: 'wrong_token' as const,
+                id: x.refId ?? x.id,
+                what: `${x.params?.amount ?? 'Some'} ${x.params?.token ?? 'of a token that is not USDC'} on ${x.params?.chain ?? 'another network'}`,
+                since: new Date(x.ts).toISOString(),
+                problem: 'Karwan takes only USDC, so it was not added to the balance. A person from the team sends it back to an address the person gives.',
+              })),
           ];
           return {
             moves,
             note: moves.length
-              ? 'Describe each in plain words, never the id. A bridge move can be checked again; a rail move can be tried again or cancelled.'
+              ? 'Describe each in plain words, never the id. A bridge move can be checked again; a rail move can be tried again or cancelled; a wrong token goes back through a person from the team.'
               : 'Nothing is stuck. Every move has finished.',
           };
         }),

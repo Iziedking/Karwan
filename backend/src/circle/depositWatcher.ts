@@ -5,8 +5,9 @@ import { logger } from '../logger.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import { routeDepositToArc, bridgeIdForDeposit } from './depositRouter.js';
-import { matchDepositRequest } from '../money/depositRequests.js';
+import { getDepositRequest, matchDepositRequest } from '../money/depositRequests.js';
 import { recordRequestReceipt, requestForAddress } from '../money/requestReceiving.js';
+import { wrongTokenEntry } from './wrongToken.js';
 /// Base58, so it cannot live in CCTP_CHAINS, which types `usdc` as a hex
 /// address. Shared with the Solana balance reader so one mint address decides
 /// both what counts as a deposit and what counts as a balance.
@@ -109,6 +110,8 @@ function sameAddress(a: string, b: string): boolean {
 /// "that token is not USDC", or one bad minute would reject a chain's deposits
 /// for the life of the process.
 const tokenVerdicts = new Map<string, boolean>();
+/// What Circle said about each token, so a rejected one can be named.
+const tokenFacts = new Map<string, TokenFacts>();
 
 /// Is this transfer actually dollars?
 ///
@@ -139,6 +142,7 @@ async function isUsdc(n: CircleTxNotification, fetchToken: FetchToken): Promise<
 
   const token = await fetchToken(n.tokenId);
   if (!token) return false; // no verdict to cache
+  tokenFacts.set(n.tokenId, token);
 
   const ok =
     token.isNative === false &&
@@ -157,6 +161,21 @@ export interface TokenFacts {
   isNative?: boolean;
   tokenAddress?: string;
   blockchain?: string;
+  symbol?: string;
+}
+
+/// A token that is not USDC, on an address that is ours, is written down once
+/// for the person it was meant for. A network coin (ETH, SOL) stays in the log:
+/// Karwan sends those to the same wallets itself, for gas (view 59).
+function recordWrongToken(n: CircleTxNotification, recipient: string): void {
+  const facts = n.tokenId ? tokenFacts.get(n.tokenId) : undefined;
+  const amount = n.amounts?.[0];
+  if (!facts || facts.isNative !== false || !amount || !n.id || !n.blockchain) return;
+  logger.warn({ recipient, tokenId: n.tokenId, blockchain: n.blockchain, txId: n.id, amount }, 'a token that is not USDC landed on a Karwan address; recorded for support');
+  void appendActivity({
+    ...wrongTokenEntry({ address: recipient, txId: n.id, amount, symbol: facts.symbol, chain: friendlyChainName(n.blockchain) }),
+    ...(n.txHash ? { txHash: n.txHash } : {}),
+  });
 }
 
 /// Resolve an opaque Circle tokenId to the facts about it. This is the only part
@@ -262,6 +281,7 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
       { tokenId: n.tokenId, blockchain: n.blockchain, txId: n.id },
       'inbound transfer to a deposit address skipped: token is not an allowlisted USDC (set CIRCLE_USDC_TOKEN_IDS)',
     );
+    recordWrongToken(n, owner);
     return;
   }
 
@@ -360,6 +380,8 @@ async function handleRequestReceipt(
 ): Promise<void> {
   if (!(await isUsdc(n, fetchToken))) {
     logger.warn({ tokenId: n.tokenId, blockchain: n.blockchain, txId: n.id }, 'inbound to a payment link address skipped: not USDC');
+    const request = await getDepositRequest(target.token);
+    if (request) recordWrongToken(n, request.recipientAddress);
     return;
   }
   const amountUsdc = n.amounts?.[0] ?? null;

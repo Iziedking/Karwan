@@ -777,6 +777,8 @@ interface MessagesShape {
         depositCredited: string;
         depositCreditedFrom: string;
         depositFitsRequests: string;
+        wrongToken: string;
+        wrongTokenUnnamed: string;
         requestReceivedFrom: string;
         gatewayDeposit: string;
         gatewayFundAgent: string;
@@ -837,7 +839,7 @@ interface MessagesShape {
       justNow: string;
       /// What happened, in a word or two, keyed by the movement kind. The amount
       /// sits in its own column, so the title never repeats it.
-      kind: Record<'deposit' | 'top_up' | 'transfer_in' | 'transfer_out' | 'payout' | 'release' | 'escrow_funding' | 'yield' | 'yield_claim' | 'refund' | 'stake' | 'unstake' | 'withdraw' | 'cash_out' | 'bridge' | 'agent_seed' | 'agent_topup' | 'data_balance' | 'agent_funding' | 'agent_spend' | 'gateway_deposit' | 'gateway_fund_agent' | 'gateway_cash_out' | 'financing_funded' | 'financing_received' | 'financing_repaid' | 'financing_repayment' | 'financing_repayment_sent' | 'financing_paid_from_deal', string>;
+      kind: Record<'deposit' | 'top_up' | 'transfer_in' | 'transfer_out' | 'payout' | 'release' | 'escrow_funding' | 'yield' | 'yield_claim' | 'refund' | 'stake' | 'unstake' | 'withdraw' | 'cash_out' | 'bridge' | 'agent_seed' | 'agent_topup' | 'data_balance' | 'agent_funding' | 'agent_spend' | 'gateway_deposit' | 'gateway_fund_agent' | 'gateway_cash_out' | 'financing_funded' | 'financing_received' | 'financing_repaid' | 'financing_repayment' | 'financing_repayment_sent' | 'financing_paid_from_deal' | 'wrong_token', string>;
       today: string;
       yesterday: string;
       filter: { all: string; in: string; out: string; aria: string };
@@ -6057,6 +6059,8 @@ export const en: MessagesShape = {
         depositCredited: 'Deposited {amount} USDC',
         depositCreditedFrom: 'Deposited {amount} USDC from {chain}',
         depositFitsRequests: "Deposited {amount} USDC from {chain}. It fits {count} open requests, so none is marked paid",
+        wrongToken: "Received {amount} {token} on {chain}. Karwan takes only USDC, so it is not in your balance. Ask support to send it back.",
+        wrongTokenUnnamed: "Received {amount} of a token that is not USDC on {chain}. It is not in your balance. Ask support to send it back.",
         requestReceivedFrom: 'Payment request: {amount} USDC from {chain}',
         gatewayDeposit: 'Moved {amount} USDC from your {source} wallet into your balance',
         gatewayFundAgent: 'Added {amount} USDC to the {agent} trade account',
@@ -6138,6 +6142,7 @@ export const en: MessagesShape = {
         financing_repayment: "Advance repayment",
         financing_repayment_sent: "Advance repaid",
         financing_paid_from_deal: "Repaid to your financier",
+        wrong_token: "Token not added",
       },
       today: "Today",
       yesterday: "Yesterday",

@@ -175,3 +175,15 @@ test('ledger actors and wallet destinations follow the reader locale', () => {
   assert.equal(ledgerLine({ summary: 'x', params: { t: 'agentWithdraw', to: '0x1234567890abcdef1234567890abcdef12345678' } }, texts), 'Envoyé au destinataire');
   assert.equal(ledgerLine({ summary: 'x', params: { t: 'agentWithdraw', to: 'Alexandra Laurent' } }, texts), 'Envoyé au Alexandra Laurent');
 });
+
+test('a wrong token reads as a plain line with no amount and no sign, so nothing looks credited', async () => {
+  const { en } = await import('../../shared/i18n/messages/en');
+  const texts = en.activity.myMoney.text as unknown as Record<string, string>;
+  assert.equal(ledgerDirection('wrong_token'), 'flat');
+  assert.equal(ledgerAmountLabel(undefined, 'wrong_token'), null);
+  assert.equal(
+    ledgerLine({ summary: 'x', params: { t: 'wrongToken', amount: '5', token: 'USDT', chain: 'Base' } }, texts),
+    'Received 5 USDT on Base. Karwan takes only USDC, so it is not in your balance. Ask support to send it back.',
+  );
+  assert.equal(en.activity.myMoney.kind.wrong_token, 'Token not added');
+});

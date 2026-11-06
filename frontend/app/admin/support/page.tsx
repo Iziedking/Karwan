@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, type AdminHeldView, type AdminTicketRow } from '@/core/api';
+import { api, type AdminHeldView, type AdminTicketRow, type AdminWrongToken } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
 import { stripMarkdown } from '@/shared/utils/format';
@@ -27,6 +27,8 @@ export default function AdminSupport() {
   /// Held matches and held links waiting for a person, with no ticket needed (view 21).
   const [held, setHeld] = useState<AdminHeldView | null>(null);
   const [heldJob, setHeldJob] = useState<string | null>(null);
+  /// Tokens that are not USDC on addresses Karwan holds, to send back by hand (view 59).
+  const [wrongTokens, setWrongTokens] = useState<AdminWrongToken[]>([]);
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -51,6 +53,8 @@ export default function AdminSupport() {
       setTickets(r.tickets);
       const h = await api.adminSupportHeld().catch(() => null);
       if (h) setHeld((prev) => (JSON.stringify(prev) === JSON.stringify(h) ? prev : h));
+      const w = await api.adminWrongTokens().catch(() => null);
+      if (w) setWrongTokens((prev) => (JSON.stringify(prev) === JSON.stringify(w.items) ? prev : w.items));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load');
     }
@@ -164,6 +168,27 @@ export default function AdminSupport() {
             ))}
           </div>
           {heldJob && <DeliveryReviewPanel key={heldJob} jobId={heldJob} onChanged={() => void loadList()} />}
+        </section>
+      )}
+
+      {wrongTokens.length > 0 && (
+        <section className="mt-5 space-y-2" aria-label="Wrong tokens">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Wrong tokens · send back by hand</p>
+          <p className="text-[12px] text-white/55">Never credited. Ask the account for a return address, then send from the Circle console. The reference after token- is the Circle transaction id.</p>
+          <div className="border border-white/10 rounded-xl divide-y divide-white/[0.06]">
+            {wrongTokens.map((w) => (
+              <div key={w.reference ?? `${w.account}-${w.at}`} className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-white">{w.amount} {w.token ?? 'unnamed token'} on {w.chain}</span>
+                  <span className="mono text-[11px] text-white/50">{new Date(w.at).toLocaleString()}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-3 text-[12px] text-white/55">
+                  <CopyId value={w.account} />
+                  {w.reference ? <CopyId value={w.reference} /> : null}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
