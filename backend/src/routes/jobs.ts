@@ -5,6 +5,7 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { keccak256, parseUnits, toBytes, type Address } from 'viem';
 import { readUsdcBalance, getEscrowFeeBps } from '../chain/contracts.js';
+import { refreshFundability } from '../agents/matchFundability.js';
 import { BoardError, boardJobId } from '../marketplace/board.js';
 import { marketBoard } from '../marketplace/chainBoard.js';
 import {
@@ -615,7 +616,10 @@ jobsRoutes.get('/:jobId/match', async (c) => {
     (caller === proposal.buyerUser.toLowerCase() ||
       caller === proposal.sellerUser.toLowerCase());
   if (!isParty) return c.json({ proposal: null });
-  return c.json({ proposal });
+  // A match marked short reads the agent's balance again, so a top-up shows at
+  // once. Shown only, never written here: approval reads the balance itself.
+  const fresh = await refreshFundability(proposal, readUsdcBalance);
+  return c.json({ proposal: fresh ?? proposal });
 });
 
 /// All open match proposals where caller is either the buyer (awaiting their
