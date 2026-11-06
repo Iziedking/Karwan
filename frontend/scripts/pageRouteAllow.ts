@@ -3,6 +3,7 @@
 /// is an open finding names it and the fix plan item that closes it; remove
 /// the entry in that item's change.
 export const ALLOWED_WITHOUT_GUARD: Record<string, string> = {
+  'POST /api/admin/session': 'Desk sign-in, reached only through Cloudflare Access; checks the team password and the owner\'s pages; rate limited.',
   'POST /api/auth/logout': 'Sign out. Clears the caller\'s own cookie and nothing else.',
   'POST /api/auth/otp/request': 'Sign in. Sends an email code; rate limited.',
   'POST /api/auth/otp/verify': 'Sign in. Checks the email code; rate limited.',

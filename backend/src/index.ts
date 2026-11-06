@@ -314,6 +314,7 @@ import { initEphemeralStores } from './db/ephemeral.js';
 import { createCorrelationMiddleware } from './observability/correlationMiddleware.js';
 import { requireAdmin } from './middleware/adminAuth.js';
 import { requireAccessPass } from './middleware/accessPass.js';
+import { adminDeskRoutes } from './routes/adminDesk.js';
 import { buildOperatorRouteCatalog } from './ops/routeCatalog.js';
 
 const app = new Hono();
@@ -526,6 +527,9 @@ startWhatsappAgent();
 // under /api/admin without a valid pass, a path that does not exist included,
 // is answered not found.
 app.use('/api/admin/*', requireAccessPass);
+// Sign-in, access, keys and the change log come first, so sign-in is not held
+// behind the session it hands out.
+app.route('/api/admin', adminDeskRoutes);
 app.route('/api/admin/support', supportTeamRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/admin/agent-runtime', adminAgentRuntimeRoutes);

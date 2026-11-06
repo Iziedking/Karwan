@@ -2343,7 +2343,7 @@ async function jsonOnce<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = { 'content-type': 'application/json', ...(init?.headers ?? {}) };
   // Desk calls go through admin.karwan.site's own proxy, which carries
   // Cloudflare Access's pass to the backend (view 64).
-  const url = new Headers(headers).has('x-admin-token') ? adminApiUrl(path) : `${BASE}${path}`;
+  const url = isDeskRequest(headers) ? adminApiUrl(path) : `${BASE}${path}`;
   const res = await fetch(url, {
     cache: 'no-store',
     ...init,
@@ -2415,6 +2415,55 @@ export function getAdminToken(): string | null {
 
 export function setAdminToken(token: string | null): void {
   adminToken = token && token.trim() ? token.trim() : null;
+}
+
+/// Marks a desk call that has no session yet (sign-in), so it still goes
+/// through the admin address's proxy.
+const DESK_HEADER = 'x-karwan-desk';
+
+function isDeskRequest(headers: HeadersInit): boolean {
+  const h = new Headers(headers);
+  return h.has('x-admin-token') || h.has(DESK_HEADER);
+}
+
+export interface AdminDeskMe {
+  id: string | null;
+  name: string | null;
+  email: string | null;
+  owner: boolean;
+  pages: string[];
+}
+
+export interface AdminDeskMember {
+  id: string;
+  name: string;
+  email: string;
+  owner: boolean;
+  pages: string[];
+  lastLoginAt: number | null;
+}
+
+export interface AdminDeskKey {
+  id: string;
+  memberId: string;
+  label: string;
+  createdAt: number;
+  lastUsedAt: number | null;
+  revokedAt: number | null;
+}
+
+export interface AdminDeskAction {
+  id: string;
+  at: number;
+  memberId: string | null;
+  memberEmail: string | null;
+  via: 'session' | 'key' | 'shared-token' | 'sign-in';
+  method: string;
+  path: string;
+  outcome: 'done' | 'refused' | 'failed';
+  status: number;
+  request: unknown;
+  result: unknown;
 }
 
 function adminHeaders(): Record<string, string> {
@@ -3617,10 +3666,34 @@ export const api = {
       buyer: { ok: boolean; txHash?: string; reason?: string };
       seller: { ok: boolean; txHash?: string; reason?: string };
     }>(`/api/admin/agent-seed/${address}`, { method: 'POST', headers: adminHeaders() }),
-  adminWhoami: () =>
-    json<{ role: 'admin' | 'support' | null }>('/api/admin/support/whoami', {
-      headers: adminHeaders(),
+  adminSignIn: (email: string, password: string) =>
+    json<{ token: string; expiresAt: number; me: AdminDeskMe }>('/api/admin/session', {
+      method: 'POST',
+      headers: { [DESK_HEADER]: '1' },
+      body: JSON.stringify({ email, password }),
     }),
+  adminSession: () => json<{ me: AdminDeskMe | null }>('/api/admin/session', { headers: adminHeaders() }),
+  adminAccess: () =>
+    json<{ pages: Array<{ key: string; label: string }>; members: AdminDeskMember[] }>('/api/admin/access', { headers: adminHeaders() }),
+  adminSetAccess: (memberId: string, pages: string[]) =>
+    json<{ member: AdminDeskMember }>(`/api/admin/access/${encodeURIComponent(memberId)}`, {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify({ pages }),
+    }),
+  adminRevokeAccess: (memberId: string) =>
+    json<{ keysEnded: number }>(`/api/admin/access/${encodeURIComponent(memberId)}/revoke`, { method: 'POST', headers: adminHeaders() }),
+  adminDeskKeys: () => json<{ keys: AdminDeskKey[] }>('/api/admin/keys', { headers: adminHeaders() }),
+  adminMakeDeskKey: (label: string) =>
+    json<{ key: AdminDeskKey; rawKey: string }>('/api/admin/keys', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ label }),
+    }),
+  adminEndDeskKey: (id: string) =>
+    json<{ key: AdminDeskKey | null }>(`/api/admin/keys/${encodeURIComponent(id)}`, { method: 'DELETE', headers: adminHeaders() }),
+  adminDeskActions: (before?: number) =>
+    json<{ actions: AdminDeskAction[] }>(`/api/admin/actions?limit=50${before ? `&before=${before}` : ''}`, { headers: adminHeaders() }),
   adminSupportList: () =>
     json<{ count: number; tickets: AdminTicketRow[] }>('/api/admin/support', {
       headers: adminHeaders(),

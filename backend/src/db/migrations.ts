@@ -1531,6 +1531,30 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       ALTER TABLE world_id_deal_checks_v1 DROP CONSTRAINT IF EXISTS world_id_deal_checks_v1_job_id_fkey;
     `,
   },
+  {
+    // The admin desk (view 64): member keys for scripts, and one row for every
+    // change made from the desk. Rows are only ever added.
+    version: 61,
+    name: 'admin_desk',
+    sql: `
+      CREATE TABLE admin_desk_keys_v1 (
+        id TEXT PRIMARY KEY,
+        member_id TEXT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX admin_desk_keys_v1_member_idx ON admin_desk_keys_v1 (member_id);
+      CREATE TABLE admin_actions_v1 (
+        id TEXT PRIMARY KEY,
+        at BIGINT NOT NULL,
+        member_id TEXT,
+        method TEXT NOT NULL,
+        path TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX admin_actions_v1_at_idx ON admin_actions_v1 (at DESC);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

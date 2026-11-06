@@ -6,6 +6,6 @@ export function credentialsForApiRequest(
   requested: RequestCredentials | undefined,
 ): RequestCredentials {
   const requestHeaders = new Headers(headers);
-  if (requestHeaders.has('x-admin-token')) return 'same-origin';
+  if (requestHeaders.has('x-admin-token') || requestHeaders.has('x-karwan-desk')) return 'same-origin';
   return requested ?? 'include';
 }

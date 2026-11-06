@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { WagmiProvider } from 'wagmi';
-import { api, setAdminToken } from '@/core/api';
+import { api, setAdminToken, type AdminDeskMe } from '@/core/api';
 import { adminWagmiConfig } from '@/core/adminWagmi';
 import { DialogProvider } from '@/shared/components/Dialog';
 import { AdminWalletControl } from '@/features/admin/AdminWalletControl';
 import {
-  adminNavigationForRole,
+  adminNavigationFor,
   adminNavigationItem,
+  canOpen,
+  firstDeskPage,
   type AdminNavigationGroup,
 } from '@/features/admin/adminNavigation';
 
@@ -46,25 +48,25 @@ function Navigation({ groups, pathname, compact = false }: {
   );
 }
 
-function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => void }) {
-  const [token, setToken] = useState('');
-  const [error, setError] = useState(false);
+function AccessGate({ onUnlock }: { onUnlock: (me: AdminDeskMe) => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function unlock(event: React.FormEvent) {
     event.preventDefault();
-    const value = token.trim();
-    if (!value || busy) return;
+    if (!email.trim() || !password || busy) return;
     setBusy(true);
-    setError(false);
-    setAdminToken(value);
+    setError(null);
     try {
-      const response = await api.adminWhoami();
-      if (response.role !== 'admin' && response.role !== 'support') throw new Error('invalid role');
-      onUnlock(response.role);
-    } catch {
+      const { token, me } = await api.adminSignIn(email.trim(), password);
+      setAdminToken(token);
+      setPassword('');
+      onUnlock(me);
+    } catch (err) {
       setAdminToken(null);
-      setError(true);
+      setError(err instanceof Error && err.message ? err.message : 'Sign-in could not be verified.');
     } finally {
       setBusy(false);
     }
@@ -82,7 +84,7 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
           <p className="mt-4 max-w-[520px] text-[14px] leading-6 text-white/55 sm:mt-6 sm:text-[15px] sm:leading-7">Review customer work, watch agents and resolve exceptions from one operator console.</p>
           <div className="mt-8 hidden gap-3 sm:grid sm:grid-cols-3">
             {[
-              ['01', 'Unlock', 'Verify your operator access key.'],
+              ['01', 'Sign in', 'Your own team account, on the pages the owner gave you.'],
               ['02', 'Connect', 'Choose a separate signing wallet.'],
               ['03', 'Act', 'Use reviewed tools with visible consequences.'],
             ].map(([number, title, copy]) => (
@@ -99,27 +101,36 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="mono text-[9px] uppercase tracking-[0.17em] text-white/35">Operator session</p>
-              <p className="mt-2 text-[20px] font-extrabold">Unlock console</p>
+              <p className="mt-2 text-[20px] font-extrabold">Sign in</p>
             </div>
             <span className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-3 mono text-[9px] uppercase tracking-[0.12em] text-white/40">Session scoped</span>
           </div>
-          <label htmlFor="operator-key" className="mt-7 block mono text-[10px] font-bold uppercase tracking-[0.13em] text-white/55">Operator access key</label>
+          <label htmlFor="desk-email" className="mt-7 block mono text-[10px] font-bold uppercase tracking-[0.13em] text-white/55">Team email</label>
           <input
-            id="operator-key"
-            type="password"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-            placeholder="Enter access key"
-            autoComplete="off"
-            aria-invalid={error}
-            aria-describedby="operator-key-help"
-            className="mt-2 min-h-12 w-full rounded-lg border border-white/15 bg-[#0A0A0B] px-3 font-mono text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60"
+            id="desk-email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="username"
+            aria-invalid={!!error}
+            className="mt-2 min-h-12 w-full rounded-lg border border-white/15 bg-[#0A0A0B] px-3 text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60"
           />
-          <p id="operator-key-help" className="mt-2 text-[11px] leading-5 text-white/38">The key stays in this tab only and is cleared when you lock or refresh the console.</p>
-          <button type="submit" disabled={busy || !token.trim()} className="mt-5 min-h-12 w-full rounded-lg bg-[#AFC95B] px-4 mono text-[11px] font-bold uppercase tracking-[0.13em] text-[#0A0A0B] transition hover:bg-[#AFC95B] disabled:cursor-not-allowed disabled:opacity-45">
-            {busy ? 'Verifying access...' : 'Unlock operator console'}
+          <label htmlFor="desk-password" className="mt-4 block mono text-[10px] font-bold uppercase tracking-[0.13em] text-white/55">Password</label>
+          <input
+            id="desk-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            aria-invalid={!!error}
+            aria-describedby="desk-help"
+            className="mt-2 min-h-12 w-full rounded-lg border border-white/15 bg-[#0A0A0B] px-3 text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60"
+          />
+          <p id="desk-help" className="mt-2 text-[11px] leading-5 text-white/38">Your team account. The session stays in this tab only and ends when you lock or refresh.</p>
+          <button type="submit" disabled={busy || !email.trim() || !password} className="mt-5 min-h-12 w-full rounded-lg bg-[#AFC95B] px-4 mono text-[11px] font-bold uppercase tracking-[0.13em] text-[#0A0A0B] transition hover:bg-[#AFC95B] disabled:cursor-not-allowed disabled:opacity-45">
+            {busy ? 'Signing in' : 'Sign in'}
           </button>
-          {error && <p role="alert" className="mt-3 rounded-lg border border-[#e0794f]/25 bg-[#e0794f]/8 px-3 py-2.5 text-[12px] text-[#efaa8d]">Access could not be verified. Check the key and try again.</p>}
+          {error && <p role="alert" className="mt-3 rounded-lg border border-[#e0794f]/25 bg-[#e0794f]/8 px-3 py-2.5 text-[12px] text-[#efaa8d]">{error}</p>}
           <div className="mt-6 border-t border-white/8 pt-4">
             <p className="text-[11px] leading-5 text-white/38">Signing is separate. The console will never reuse the customer wallet connected elsewhere in Karwan.</p>
           </div>
@@ -129,19 +140,21 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
   );
 }
 
-function AdminConsole({ role, onLock, children }: {
-  role: 'admin' | 'support';
+function AdminConsole({ me, onLock, children }: {
+  me: AdminDeskMe;
   onLock: () => void;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const navigation = adminNavigationForRole(role);
+  const navigation = adminNavigationFor(me);
   const activeItem = adminNavigationItem(pathname);
+  const allowed = activeItem ? canOpen(me, activeItem.page) : false;
+  const signs = me.owner || me.pages.some((p) => p !== 'support' && p !== 'feedback');
 
   useEffect(() => {
-    if (role === 'support' && pathname !== '/admin/support') router.replace('/admin/support');
-  }, [role, pathname, router]);
+    if (pathname === '/admin' && !canOpen(me, 'overview')) router.replace(firstDeskPage(me));
+  }, [me, pathname, router]);
 
   return (
     <div className="min-h-screen bg-[#0A0A0B] text-white [&_button]:min-h-11 [&_input]:min-h-11 [&_select]:min-h-11">
@@ -162,10 +175,10 @@ function AdminConsole({ role, onLock, children }: {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {role === 'admin' ? (
+            {signs ? (
               <div className="hidden md:block"><AdminWalletControl /></div>
             ) : (
-              <span className="hidden min-h-11 items-center rounded-lg border border-white/10 px-3 mono text-[9px] uppercase tracking-[0.11em] text-white/40 md:inline-flex">Support scope</span>
+              <span className="hidden min-h-11 items-center rounded-lg border border-white/10 px-3 mono text-[9px] uppercase tracking-[0.11em] text-white/40 md:inline-flex">{me.name ?? 'Member'}</span>
             )}
             <button type="button" onClick={onLock} className="min-h-11 rounded-lg border border-white/12 px-3 mono text-[10px] uppercase tracking-[0.12em] text-white/50 transition hover:border-white/25 hover:text-white">Lock</button>
           </div>
@@ -175,19 +188,29 @@ function AdminConsole({ role, onLock, children }: {
       <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[248px_minmax(0,1fr)]">
         <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] overflow-y-auto border-r border-white/8 px-3 py-6 lg:block">
           <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.025] p-3">
-            <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-[#AFC95B]" /><p className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#AFC95B]">{role} session</p></div>
-            <p className="mt-2 text-[10px] leading-4 text-white/38">Authority is scoped by the access key. Wallet signing stays opt-in.</p>
+            <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-[#AFC95B]" /><p className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#AFC95B]">{me.owner ? 'Owner' : 'Member'}</p></div>
+            <p className="mt-2 text-[10px] leading-4 text-white/38">{me.name}. You see the pages the owner gave you. Every change is logged with your name.</p>
           </div>
           <Navigation groups={navigation} pathname={pathname} />
         </aside>
 
         <div className="min-w-0">
-          {role === 'admin' && <div className="border-b border-white/8 px-4 py-3 md:hidden"><AdminWalletControl /></div>}
+          {signs && <div className="border-b border-white/8 px-4 py-3 md:hidden"><AdminWalletControl /></div>}
           <details className="group border-b border-white/8 lg:hidden">
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 mono text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">Browse workspaces<span aria-hidden="true" className="text-[#AFC95B] transition group-open:rotate-45">+</span></summary>
             <div className="border-t border-white/8 px-4 py-5"><Navigation groups={navigation} pathname={pathname} compact /></div>
           </details>
-          <main className="mx-auto w-full max-w-[1320px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"><DialogProvider>{children}</DialogProvider></main>
+          <main className="mx-auto w-full max-w-[1320px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            {allowed ? (
+              <DialogProvider>{children}</DialogProvider>
+            ) : (
+              <section className="max-w-[560px] py-10">
+                <h1 className="text-[22px] font-extrabold">Not on your pages</h1>
+                <p className="mt-3 text-[14px] leading-6 text-white/55">The owner decides which desk pages you can open. Ask them if you need this one.</p>
+                <Link href={firstDeskPage(me)} className="mt-6 inline-flex min-h-11 items-center rounded-lg border border-white/15 px-4 text-[13px] font-semibold">Go to your pages</Link>
+              </section>
+            )}
+          </main>
         </div>
       </div>
     </div>
@@ -195,17 +218,17 @@ function AdminConsole({ role, onLock, children }: {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState<'admin' | 'support' | null>(null);
+  const [me, setMe] = useState<AdminDeskMe | null>(null);
 
   function lock() {
     setAdminToken(null);
-    setRole(null);
+    setMe(null);
   }
 
-  if (!role) return <AccessGate onUnlock={setRole} />;
+  if (!me) return <AccessGate onUnlock={setMe} />;
   return (
     <WagmiProvider config={adminWagmiConfig} reconnectOnMount={false}>
-      <AdminConsole role={role} onLock={lock}>{children}</AdminConsole>
+      <AdminConsole me={me} onLock={lock}>{children}</AdminConsole>
     </WagmiProvider>
   );
 }

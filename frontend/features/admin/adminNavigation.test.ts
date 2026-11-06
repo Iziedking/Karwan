@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ADMIN_NAVIGATION, adminNavigationForRole, adminNavigationItem } from './adminNavigation';
+import { ADMIN_NAVIGATION, adminNavigationFor, adminNavigationItem, canOpen, firstDeskPage } from './adminNavigation';
 
 test('admin navigation contains unique routes and the API directory', () => {
   const items = ADMIN_NAVIGATION.flatMap((group) => group.items);
@@ -8,11 +8,25 @@ test('admin navigation contains unique routes and the API directory', () => {
   assert.ok(items.some((item) => item.href === '/admin/routes'));
 });
 
-test('support role only sees its scoped workspace', () => {
-  assert.deepEqual(
-    adminNavigationForRole('support').flatMap((group) => group.items.map((item) => item.href)),
-    ['/admin/support'],
-  );
+const hrefs = (me: { owner: boolean; pages: string[] }) => adminNavigationFor(me).flatMap((g) => g.items.map((i) => i.href));
+
+test('a member sees only the pages the owner ticked, and their own keys', () => {
+  assert.deepEqual(hrefs({ owner: false, pages: ['support'] }), ['/admin/support', '/admin/keys']);
+  assert.deepEqual(hrefs({ owner: false, pages: ['deals', 'log'] }), ['/admin/deals', '/admin/log', '/admin/keys']);
+});
+
+test('access, team accounts and team keys show only to the owner', () => {
+  const member = { owner: false, pages: ADMIN_NAVIGATION.flatMap((g) => g.items.map((i) => i.page)) };
+  for (const href of ['/admin/access', '/admin/team', '/admin/team-keys']) {
+    assert.equal(hrefs(member).includes(href), false, href);
+    assert.equal(hrefs({ owner: true, pages: [] }).includes(href), true, href);
+  }
+  assert.equal(canOpen({ owner: false, pages: ['owner'] }, 'owner'), false);
+});
+
+test('a member lands on their first page', () => {
+  assert.equal(firstDeskPage({ owner: false, pages: ['support'] }), '/admin/support');
+  assert.equal(firstDeskPage({ owner: true, pages: [] }), '/admin');
 });
 
 test('active item resolves exact and nested admin paths', () => {

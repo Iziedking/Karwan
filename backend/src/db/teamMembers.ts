@@ -51,6 +51,14 @@ export interface TeamMember {
   /// Absent means zero. Cookies minted before this existed carry no stamp and
   /// also read as zero, so nobody is signed out by the deploy that adds it.
   sessionEpoch?: number;
+  /// The admin desk (view 64). Set on one account by a server script; that
+  /// account alone gives, changes and takes away desk pages.
+  deskOwner?: boolean;
+  /// Desk pages the owner ticked for this member. Absent or empty: no desk.
+  deskPages?: string[];
+  /// Bumped when the owner takes a page away or revokes the member, so every
+  /// desk session and key minted before it stops at once.
+  deskEpoch?: number;
 }
 
 export interface TeamMemberView {
@@ -63,6 +71,8 @@ export interface TeamMemberView {
   disabledAt: number | null;
   active: boolean;
   locked: boolean;
+  deskOwner: boolean;
+  deskPages: string[];
 }
 
 function nextSessionEpoch(member: TeamMember): number {
@@ -78,6 +88,8 @@ export function toMemberView(m: TeamMember): TeamMemberView {
     createdAt: m.createdAt,
     lastLoginAt: m.lastLoginAt ?? null,
     disabledAt: m.disabledAt ?? null,
+    deskOwner: m.deskOwner === true,
+    deskPages: m.deskPages ?? [],
     active: !m.disabledAt,
     locked: !!m.lockedUntil && m.lockedUntil > Date.now(),
   };
@@ -558,6 +570,42 @@ export async function changePassword(id: string, password: string): Promise<bool
     sessionEpoch: nextSessionEpoch(member),
   });
   return true;
+}
+
+// ---------------------------------------------------------------- admin desk
+
+/// Make one account the desk owner. Run only from the server script: there is
+/// no route for it, so nobody can make themselves owner from the desk.
+export async function setDeskOwner(email: string): Promise<TeamMemberView | null> {
+  const member = await getMemberByEmail(email);
+  if (!member || member.disabledAt) return null;
+  await persistMember({ ...member, deskOwner: true });
+  return toMemberView({ ...member, deskOwner: true });
+}
+
+/// The owner's ticks for one member. Taking any page away ends that member's
+/// desk sessions and keys, so nothing minted with more reach outlives it.
+export async function setDeskPages(id: string, pages: string[]): Promise<TeamMemberView | null> {
+  const member = await getMember(id);
+  if (!member) return null;
+  const before = new Set(member.deskPages ?? []);
+  const removed = [...before].some((p) => !pages.includes(p));
+  const next: TeamMember = {
+    ...member,
+    deskPages: pages,
+    ...(removed ? { deskEpoch: Math.max(Date.now(), (member.deskEpoch ?? 0) + 1) } : {}),
+  };
+  await persistMember(next);
+  return toMemberView(next);
+}
+
+/// Revoke: every page gone, every desk session and key ended at once.
+export async function revokeDesk(id: string): Promise<TeamMemberView | null> {
+  const member = await getMember(id);
+  if (!member) return null;
+  const next: TeamMember = { ...member, deskPages: [], deskEpoch: Math.max(Date.now(), (member.deskEpoch ?? 0) + 1) };
+  await persistMember(next);
+  return toMemberView(next);
 }
 
 // ---------------------------------------------------------------- storage
