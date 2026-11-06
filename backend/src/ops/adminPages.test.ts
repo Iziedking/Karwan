@@ -8,6 +8,8 @@ import { cleanPages, mayCall, routeRule } from './adminPages.js';
 
 const snapshot = readFileSync(resolve(process.cwd(), '../frontend/features/admin/backendRouteSnapshot.generated.ts'), 'utf8');
 const ADMIN_OUTSIDE = ['GET /api/feedback', 'POST /api/feedback/:id/status', 'POST /api/listings/:id/photos/clear', 'POST /api/financier/admin/review'];
+/// Sign-in itself: behind Cloudflare Access, before any session or page.
+const BEFORE_SIGN_IN = new Set(['POST /api/admin/session']);
 const adminRoutes = [
   ...[...snapshot.matchAll(/\{ method: "([A-Z]+)", path: "(\/api\/admin[^"]*)" \}/g)].map((m) => `${m[1]} ${m[2]}`),
   ...ADMIN_OUTSIDE,
@@ -16,6 +18,7 @@ const adminRoutes = [
 test('every admin route belongs to a page, the owner, or every member', () => {
   assert.ok(adminRoutes.length > 100);
   const orphans = adminRoutes.filter((line) => {
+    if (BEFORE_SIGN_IN.has(line)) return false;
     const [method, path] = line.split(' ');
     return routeRule(method!, path!.replace(/:[^/]+/g, 'x')).kind === 'none';
   });
@@ -34,6 +37,8 @@ test('a member reaches only the routes their ticked pages use', () => {
   assert.equal(mayCall(member(['usyc']), 'POST', '/api/admin/usyc/cover'), true);
   assert.equal(mayCall(member([]), 'GET', '/api/admin/health'), false);
   assert.equal(mayCall(member(['payments']), 'GET', '/api/admin/events'), true);
+  assert.equal(mayCall(member(['payments']), 'POST', '/api/admin/events/backfill'), false, 'payments only reads events');
+  assert.equal(mayCall(member(['events']), 'POST', '/api/admin/events/backfill'), true);
 });
 
 test('access, team accounts and team keys are the owner’s alone', () => {
