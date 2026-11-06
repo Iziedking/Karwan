@@ -14,6 +14,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { getShellSurface, isAssistantRoute, START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
 import { AssistantModeSwitch } from './AssistantModeSwitch';
+import { ASSISTANT_MODE_ENTRY } from '@/features/assistant/assistantModeEntry';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import type { UserProfile } from '@/core/api';
@@ -116,9 +117,9 @@ export function TopNav() {
             </>
           ) : showAppChrome ? (
               <>
-                {/* On a phone the switch lives at the top of Profile; it stays here
-                    while assistant mode is on, as the way back out. */}
-                {showFullChrome ? (
+                {/* Parked for now (assistantModeEntry.ts): shown only on /assistant,
+                    as the way back out. */}
+                {showFullChrome && (ASSISTANT_MODE_ENTRY || isAssistantRoute(pathname)) ? (
                   <span className={shell === 'workspace' && !isAssistantRoute(pathname) ? 'hidden lg:contents' : 'contents'}>
                     <AssistantModeSwitch />
                   </span>

@@ -15,6 +15,7 @@ async function signedInBuyer(page: Page) {
   await page.route(`${API}/api/profile**`, route =>
     route.fulfill({ json: { profile: { address: ME, role: 'buyer', displayName: 'Ada', handle: 'ada', buyer: { milestonePcts: [50, 50] } } } }));
   await page.route(`${API}/api/agents/buyer**`, route => route.fulfill({ json: { profile: null, jobs: [] } }));
+  await page.route(`${API}/api/deals/fits`, route => route.fulfill({ json: { count: 0, offers: [] } }));
 }
 
 test('a request is said in words and Prepare my request drafts its parts; the review lists them and posts them (view 56)', async ({ page }) => {
@@ -57,6 +58,53 @@ test('a request is said in words and Prepare my request drafts its parts; the re
   const agreement = String((posted as unknown as { terms: string }).terms);
   expect(agreement).toContain('• Milestone 1, 30%: Three logo sketches to choose from');
   expect(agreement).toContain('• Milestone 2, 70%: Final logo in SVG and PNG');
+});
+
+test('before posting, the review names the offers already on the market that fit, and the request still posts (view 56)', async ({ page }) => {
+  await signedInBuyer(page);
+  let posted: Record<string, unknown> | null = null;
+  let asked: { brief: string; budgetUsdc: number } | null = null;
+  await page.route(`${API}/api/jobs`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posted = route.request().postDataJSON();
+    return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
+  });
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ json: { draft: { title: 'A logo', parts: [{ pct: 100, what: 'A logo for my bakery.' }], tradeType: 'service', quantity: null, source: 'rules' } } }));
+  await page.route(`${API}/api/deals/fits`, async route => {
+    asked = route.request().postDataJSON();
+    return route.fulfill({ json: { count: 4, offers: [
+      { id: 'lst_a', title: 'Bakery logo', askingPriceUsdc: 80 },
+      { id: 'lst_b', title: 'Logo', askingPriceUsdc: 40 },
+      { id: 'lst_c', title: 'Logo for small shops', askingPriceUsdc: 95 },
+    ] } });
+  });
+  const rf = en.requestFlow;
+  await page.goto('/buyer?mode=managed');
+  await page.locator('textarea[data-guide="buyer-brief"]').fill('A logo for my bakery.');
+  await page.locator('input[data-guide="buyer-budget"]').fill('100');
+  await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
+  const post = page.locator('button[data-guide="buyer-submit"]');
+  await post.click();
+  expect(asked).toEqual({ brief: 'A logo for my bakery.', budgetUsdc: 100 });
+  const fit = page.locator('[data-already-fit]');
+  await expect(fit).toContainText(rf.alreadyFitMany.replace('{n}', '4'));
+  await expect(fit.getByRole('link')).toHaveCount(3);
+  await expect(fit.getByRole('link', { name: /Bakery logo/ })).toHaveAttribute('href', '/listings/lst_a');
+  await expect(fit).toContainText(rf.postAnyway);
+  await post.click();
+  await expect.poll(() => posted).not.toBeNull();
+});
+
+test('when no offer fits, the review says nothing about the market', async ({ page }) => {
+  await signedInBuyer(page);
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ status: 503, json: { error: 'down' } }));
+  await page.goto('/buyer?mode=managed');
+  await page.locator('textarea[data-guide="buyer-brief"]').fill('Year-end accounts for a small agency.');
+  await page.locator('input[data-guide="buyer-budget"]').fill('300');
+  await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
+  await page.locator('button[data-guide="buyer-submit"]').click();
+  await expect(page.getByText(en.requestFlow.nothingPaid, { exact: true })).toBeVisible();
+  await expect(page.locator('[data-already-fit]')).toHaveCount(0);
 });
 
 test('when the draft cannot be made, the request is paid at once and still posts', async ({ page }) => {

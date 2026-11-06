@@ -28,6 +28,8 @@ const ASSISTANT_OWN = { by: 'internal', why: "The assistant's own conversation a
 export const COVERAGE: Record<string, Coverage> = {
   // Market: requests, offers, matches.
   'POST /api/listings': { by: 'assistant', via: 'post_offer' },
+  'POST /api/deals/draft': { by: 'internal', why: 'A step inside preparing a request, offer or deal; the assistant tools draft the parts themselves (view 56).' },
+  'POST /api/deals/fits': { by: 'internal', why: 'A step inside preparing a request; propose_post_request checks the same offers itself (view 56).' },
   'POST /api/listings/:/cancel': { by: 'assistant', via: 'cancel_listing' },
   'POST /api/listings/:/edit': { by: 'assistant', via: 'edit_listing' },
   'POST /api/jobs/:/approve-match': { by: 'assistant', via: 'approve_match' },

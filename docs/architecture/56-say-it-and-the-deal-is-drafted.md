@@ -118,5 +118,5 @@ Hourly and recurring deals (T1.2 later), changing a deal after it is sent (today
 | Shared drafter and its endpoint | Built |
 | One screen for request, offer and direct deal | Built: each drafts its parts on Review; Pay in parts shows only once there are parts |
 | Attach on requests and direct deals | Not started (offers already have photos) |
-| Market check before posting | Not started |
+| Market check before posting | Built: Review on the request form and the assistant's post request name the open offers asking no more than the budget whose title words the request says, up to three, best first; the person's own, private and example offers never count |
 | Assistant tools on the drafter | Built: post request and post offer cards carry the drafted parts; a direct deal splits by the stages its words name when no split was given (rules only) |

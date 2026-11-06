@@ -11,6 +11,11 @@ export interface RequestFlowCopy {
   drafted: string;
   /// One part on the review: {pct} and {what}.
   partLine: string;
+  /// Before posting: offers already on the market that fit. {n} is the count.
+  alreadyFitOne: string;
+  alreadyFitMany: string;
+  /// Under them: posting is still the person's call.
+  postAnyway: string;
   post: string;
   finding: string;
   reference: string;
@@ -66,6 +71,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     post: 'Post request',
     prepare: 'Prepare my request',
     drafted: 'Split into parts from your words. Edit to change them.',
+    alreadyFitOne: '1 offer already fits.',
+    alreadyFitMany: '{n} offers already fit.',
+    postAnyway: 'Open one, or post your request anyway.',
     partLine: '{pct}%: {what}',
     finding: 'Finding sellers',
     reference: 'Request {reference}',
@@ -110,6 +118,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     post: 'Publier la demande',
     prepare: 'Préparer ma demande',
     drafted: 'Découpé en parties à partir de vos mots. Modifiez pour changer.',
+    alreadyFitOne: '1 offre correspond déjà.',
+    alreadyFitMany: '{n} offres correspondent déjà.',
+    postAnyway: 'Ouvrez-en une, ou publiez quand même votre demande.',
     partLine: '{pct} % : {what}',
     finding: 'Recherche de vendeurs',
     reference: 'Demande {reference}',
@@ -154,6 +165,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     post: 'انشر الطلب',
     prepare: 'جهّز طلبي',
     drafted: 'قُسّم إلى أجزاء من كلماتك. عدّل لتغييرها.',
+    alreadyFitOne: 'عرض واحد يناسب طلبك بالفعل.',
+    alreadyFitMany: '{n} عروض تناسب طلبك بالفعل.',
+    postAnyway: 'افتح أحدها، أو انشر طلبك على أي حال.',
     partLine: '{pct}%: {what}',
     finding: 'نبحث عن بائعين',
     reference: 'الطلب {reference}',
@@ -198,6 +212,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     post: 'अनुरोध पोस्ट करें',
     prepare: 'मेरा अनुरोध तैयार करें',
     drafted: 'आपके शब्दों से हिस्सों में बाँटा गया। बदलने के लिए संपादित करें।',
+    alreadyFitOne: '1 ऑफ़र पहले से मेल खाता है।',
+    alreadyFitMany: '{n} ऑफ़र पहले से मेल खाते हैं।',
+    postAnyway: 'किसी एक को खोलें, या फिर भी अपना अनुरोध पोस्ट करें।',
     partLine: '{pct}%: {what}',
     finding: 'विक्रेता खोजे जा रहे हैं',
     reference: 'अनुरोध {reference}',
@@ -242,6 +259,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     post: 'Weka ombi',
     prepare: 'Andaa ombi langu',
     drafted: 'Imegawanywa kwa sehemu kutoka kwa maneno yako. Hariri ili kubadilisha.',
+    alreadyFitOne: 'Ofa 1 tayari inafaa.',
+    alreadyFitMany: 'Ofa {n} tayari zinafaa.',
+    postAnyway: 'Fungua moja, au chapisha ombi lako hata hivyo.',
     partLine: '{pct}%: {what}',
     finding: 'Inatafuta wauzaji',
     reference: 'Ombi {reference}',

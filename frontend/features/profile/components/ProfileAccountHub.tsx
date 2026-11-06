@@ -17,6 +17,7 @@ import { liveOffers, openRequests } from '@/features/home/tradeHub';
 import { marketViewHref } from '@/features/market/marketQuery';
 import { useRouter } from 'next/navigation';
 import { rememberReturn } from '@/features/assistant/assistantReturn';
+import { ASSISTANT_MODE_ENTRY } from '@/features/assistant/assistantModeEntry';
 import { ProfileSignOut } from './ProfileSignOut';
 import { PhotoMenu } from './PhotoMenu';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
@@ -203,7 +204,7 @@ export function ProfileAccountHub({
           <Row label={pp.selling} value={trade.offers} href={marketViewHref('yours', 'offers')} />
           <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} />
           {/* On a computer the switch sits in the top bar, so it is not said twice. */}
-          {wideScreen ? null : (
+          {wideScreen || !ASSISTANT_MODE_ENTRY ? null : (
             <ToggleRow
               label={messages.assistantMode.use}
               checked={false}

@@ -8,6 +8,7 @@ import { locationOf, withBuyerLocations, withSellerLocations } from '../location
 import { getBrief, listAllBriefs } from '../db/briefs.js';
 import { randomUUID } from 'node:crypto';
 import { requestsThatFit } from '../listings/fits.js';
+import { offersThatFit } from '../marketplace/offersThatFit.js';
 import { CATEGORY_NAMES, categoryOf } from '../listings/categories.js';
 import { findCustomers } from '../intelligence/customers.js';
 import { newWatch, watchRefusal } from '../intelligence/watches.js';
@@ -2634,6 +2635,8 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         }
         // View 56: a brief that describes stages becomes the parts it is paid in.
         const { parts } = await draftDeal({ brief: args.brief }, { split: modelSplit });
+        // View 56: requests check the market first.
+        const fit = offersThatFit({ brief: args.brief, budgetUsdc: args.budgetUsdc, buyer: address, now: Date.now() }, listOpenListings());
         const built = buildPostRequestConfirm({
           caller: address,
           brief: args.brief,
@@ -2649,7 +2652,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-        return { ok: true, shown: built.title, ...(parts.length > 1 ? { paidInParts: parts } : {}), note: 'When paidInParts is there, say in one line the request is paid in those parts, each when its part is delivered, and that they can change them on the request page. Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_fund_agent) or send them to add money.' };
+        return { ok: true, shown: built.title, ...(parts.length > 1 ? { paidInParts: parts } : {}), ...(fit.count > 0 ? { offersAlreadyFit: fit } : {}), note: 'When offersAlreadyFit is there, say in one line how many offers already fit and name the first with its price; they can open it on the market (offer pages are /listings/<id>) or confirm the card to post anyway. When paidInParts is there, say in one line the request is paid in those parts, each when its part is delivered, and that they can change them on the request page. Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_fund_agent) or send them to add money.' };
       },
     }),
 

@@ -4,6 +4,8 @@ import { sessionAddress } from '../auth/session.js';
 import { draftDeal, type DraftPart, type SplitWithModel } from '../deals/drafter.js';
 import { generateObjectWithLlmFallback } from '../llm/client.js';
 import { logger } from '../logger.js';
+import { listOpenListings } from '../db/listings.js';
+import { offersThatFit } from '../marketplace/offersThatFit.js';
 
 const splitSchema = z.object({
   parts: z.array(z.object({ pct: z.number(), what: z.string() })).min(1).max(5),
@@ -40,4 +42,19 @@ dealDraftRoutes.post('/draft', async (c) => {
     logger.warn({ err: (err as Error).message }, 'deal draft failed');
     return c.json({ draft: await draftDeal({ brief: parsed.data.brief }, {}) });
   }
+});
+
+const fitsSchema = z.object({
+  brief: z.string().trim().min(3).max(500),
+  budgetUsdc: z.number().positive().max(1_000_000_000),
+});
+
+/// The offers already on the market that fit a request being prepared (view
+/// 56). Reads only; the person can open one or post anyway.
+dealDraftRoutes.post('/fits', async (c) => {
+  const buyer = sessionAddress(c);
+  if (!buyer) return c.json({ error: 'not authenticated' }, 401);
+  const parsed = fitsSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'Say what you need and the budget.' }, 400);
+  return c.json(offersThatFit({ ...parsed.data, buyer, now: Date.now() }, listOpenListings()));
 });

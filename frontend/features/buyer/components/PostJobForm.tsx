@@ -285,6 +285,7 @@ export function PostJobForm() {
   const [submitting, setSubmitting] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [drafted, setDrafted] = useState(false);
+  const [fits, setFits] = useState<Awaited<ReturnType<typeof api.dealFits>> | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const startedAt = useRef<number | null>(null);
@@ -325,8 +326,11 @@ export function PostJobForm() {
     if (!reviewing) {
       // View 56: the words become the parts the contract protects. A draft that
       // fails or finds one part leaves the request paid at once, as before.
+      // It also checks the offers already on the market while it drafts; a read
+      // that fails shows nothing and the request posts as before.
+      setPreparing(true);
+      const fitsRead = api.dealFits(brief, Number(budget)).catch(() => null);
       if (!inParts) {
-        setPreparing(true);
         try {
           const { draft } = await api.dealDraft(brief);
           if (draft.parts.length > 1) {
@@ -336,10 +340,10 @@ export function PostJobForm() {
           }
         } catch {
           /* one payment, as before */
-        } finally {
-          setPreparing(false);
         }
       }
+      setFits(await fitsRead);
+      setPreparing(false);
       setReviewing(true);
       return;
     }
@@ -808,6 +812,22 @@ export function PostJobForm() {
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
       ]}>
+        {fits && fits.count > 0 ? (
+          <div data-already-fit className="mb-3 rounded-xl border border-[var(--line)] p-3">
+            <p className="font-semibold">{fits.count === 1 ? rf.alreadyFitOne : rf.alreadyFitMany.replace('{n}', String(fits.count))}</p>
+            <ul className="mt-1">
+              {fits.offers.map((offer) => (
+                <li key={offer.id}>
+                  <Link href={`/listings/${offer.id}`} className="flex min-h-11 items-center justify-between gap-3 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]">
+                    <span className="min-w-0 truncate">{offer.title}</span>
+                    <span className="shrink-0 tabular-nums">{money.text(offer.askingPriceUsdc)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[var(--ink-secondary)]">{rf.postAnyway}</p>
+          </div>
+        ) : null}
         {drafted ? <p data-drafted className="mb-2 text-[var(--ink-secondary)]">{rf.drafted}</p> : null}
         <p data-nothing-paid className="font-semibold">{rf.nothingPaid}</p>
         <p className="mt-2">{rf.agentLine}</p>

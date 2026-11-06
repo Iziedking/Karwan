@@ -208,6 +208,8 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   assert.match(steps, /Pay in parts/);
   // View 56: the words become the parts; no milestone setup on the form.
   assert.match(steps, /Prepare my request reads the words into the parts/);
+  // View 56: requests check the market first.
+  assert.match(steps, /offers already on the market fit[\s\S]*names up to three[\s\S]*can still be posted/);
   const selling = PLATFORM_GUIDE.flatMap((entry) => entry.steps).join(' ');
   assert.match(selling, /Review reads the title and description into the parts the offer is paid in/);
   assert.match(selling, /cards show Paid in with each part/);

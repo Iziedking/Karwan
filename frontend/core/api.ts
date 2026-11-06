@@ -5450,6 +5450,12 @@ export const api = {
       '/api/deals/draft',
       { method: 'POST', body: JSON.stringify({ brief }) },
     ),
+  /// The offers already on the market that fit a request being prepared (view 56).
+  dealFits: (brief: string, budgetUsdc: number) =>
+    json<{ count: number; offers: { id: string; title: string; askingPriceUsdc: number }[] }>(
+      '/api/deals/fits',
+      { method: 'POST', body: JSON.stringify({ brief, budgetUsdc }) },
+    ),
   /// The signed-in person's next moves (view 57), most urgent first.
   guideNext: () => json<{ moves: import('@/features/guide/pickNudge').NextMove[] }>('/api/guide/next'),
   telegramStatus: (address: string) =>
