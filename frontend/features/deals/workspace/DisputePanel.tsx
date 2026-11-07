@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { api, type DealDisputeView, type DisputeStatementView } from '@/core/api';
+import { Hint } from '@/shared/components/Hint';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatDealDate } from './presentation';
@@ -9,13 +10,16 @@ import { StepsTrack } from './StepsTrack';
 import { linksFrom, proposalNote, splitShares } from './disputeShares';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
-/// The dispute on the deal page: this side's account, the other side's once it
-/// may be seen, and the judge's proposed ruling with what a reviewer does next.
-export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myName, openedBy = null, heldUsdc = null, onChanged }: {
+/// The open problem on the deal page (owner, 7 Nov 2026, Figma 205:637): one
+/// card with a heading and an (i), the route with a date under each stop, the
+/// money held, then each side. Once answers close it stops asking.
+export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myName, openedBy = null, openedAt = null, heldUsdc = null, onChanged }: {
   jobId: string;
   dispute: DealDisputeView;
   /// Who opened the problem, when the deal says.
   openedBy?: 'buyer' | 'seller' | null;
+  /// When it was opened, ms.
+  openedAt?: number | null;
   /// What Karwan still holds while it is decided.
   heldUsdc?: string | null;
   viewerIsBuyer: boolean;
@@ -38,38 +42,44 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
   const [editing, setEditing] = useState(!mine);
   const track = problemSteps(dispute, Date.now());
   const date = formatDealDate(dispute.closesAt, locale);
-  const labels: Record<'opened' | 'answer' | 'decides', string> = {
-    opened: openedBy === me ? pp.problemOpened : openedBy === them ? fill(pp.theyOpened, { name }) : t.title,
-    answer: track.answerPassed ? pp.answerPassed : fill(pp.answersBy, { name, date }),
-    decides: pp.karwanDecides,
+  const asking = !proposal && dispute.open && !track.answerPassed;
+  const labels: Record<'opened' | 'answer' | 'decides', { label: string; sub?: string }> = {
+    opened: {
+      label: openedBy === me ? pp.problemOpened : openedBy === them ? fill(pp.theyOpened, { name }) : t.stepOpened,
+      sub: openedAt ? formatDealDate(openedAt, locale) : undefined,
+    },
+    answer: track.answerPassed
+      ? { label: t.answersClosed, sub: date }
+      : dispute.otherSubmitted && mine
+        ? { label: t.answered }
+        : { label: t.answersDue, sub: fill(t.dueBy, { date }) },
+    decides: { label: pp.karwanDecides },
   };
   // D13 as built: a silent seller's rule returns the money after a Karwan reviewer confirms it.
-  const silent = viewerIsBuyer && !proposal && dispute.open && !dispute.otherSubmitted;
+  const silent = viewerIsBuyer && asking && !dispute.otherSubmitted;
+  const theyMissed = !proposal && track.answerPassed && !theirs;
 
   return (
-    <section aria-labelledby="dispute-title" className="mt-6 space-y-4 rounded-[20px] bg-[var(--lp-card)] p-5">
+    <section aria-labelledby="dispute-title" data-problem-card className="mt-6 space-y-4 rounded-[20px] border border-[var(--line)] bg-[var(--lp-card)] p-5">
+      <div className="flex items-center gap-2">
+        <h2 id="dispute-title" className="text-[18px] font-bold text-[var(--lp-dark)]">
+          {asking && editing ? t.title : t.openTitle}
+        </h2>
+        <Hint side="bottom">{t.intro}</Hint>
+      </div>
       <div data-problem-steps className="space-y-3">
-        <StepsTrack steps={track.steps.map((step) => ({ ...step, label: labels[step.key] }))} />
-        {heldUsdc ? <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{mt.fill(pp.heldUntil, { amount: heldUsdc })}</p> : null}
+        <StepsTrack steps={track.steps.map((step) => ({ ...step, ...labels[step.key] }))} />
+        {heldUsdc ? (
+          <p data-problem-held className="rounded-[14px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-3.5 py-3 text-[14px] font-semibold text-[var(--ink)]">
+            {mt.fill(pp.heldUntil, { amount: heldUsdc })}
+          </p>
+        ) : null}
         {silent ? <p className="text-[14px] text-[var(--lp-text-sub)]">{fill(pp.silentLine, { name, date })}</p> : null}
       </div>
-      {proposal ? (
-        <Proposal proposal={proposal} viewerIsBuyer={viewerIsBuyer} name={name} myName={myName} />
-      ) : (
-        <div>
-          <h2 id="dispute-title" className="text-[18px] font-bold text-[var(--lp-dark)]">{t.title}</h2>
-          <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.intro}</p>
-          <p className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">
-            {dispute.open ? fill(t.closes, { date: formatDealDate(dispute.closesAt, locale) }) : t.closed}
-          </p>
-          <p data-dispute-safety className="mt-3 flex gap-2.5 rounded-[var(--radius-input)] bg-[var(--raised)] p-3 text-[14px] leading-snug text-[var(--ink)]">
-            <Icon name="shield-check" size={20} className="shrink-0" />
-            <span>{t.safety}</span>
-          </p>
-        </div>
-      )}
+      {theyMissed ? <p className="text-[15px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{fill(t.closedSilent, { name })}</p> : null}
+      {proposal ? <Proposal proposal={proposal} viewerIsBuyer={viewerIsBuyer} name={name} myName={myName} /> : null}
 
-      {!proposal && dispute.open && editing ? (
+      {asking && editing ? (
         <StatementForm
           jobId={jobId}
           caller={caller}
@@ -82,12 +92,17 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
           title={t.yourAccount}
           statement={mine}
           viewerIsBuyer={viewerIsBuyer}
-          action={!proposal && dispute.open ? { label: t.edit, onClick: () => setEditing(true) } : undefined}
+          action={asking ? { label: t.edit, onClick: () => setEditing(true) } : undefined}
         />
       ) : null}
 
       {theirs ? (
         <StatementCard title={fill(t.theirAccount, { name })} statement={theirs} viewerIsBuyer={!viewerIsBuyer} />
+      ) : theyMissed ? (
+        <div data-their-side="silent" className="rounded-[16px] border border-dashed border-[var(--line-strong)] px-4 py-3.5">
+          <h3 className="text-[15px] font-bold text-[var(--lp-dark)]">{fill(t.theirAccount, { name })}</h3>
+          <p className="mt-0.5 text-[14px] font-medium text-[var(--lp-text-sub)]">{fill(t.didNotAnswer, { date })}</p>
+        </div>
       ) : !proposal ? (
         <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">
           {dispute.otherSubmitted ? fill(t.theyGave, { name }) : fill(t.waitingFor, { name })}
@@ -97,6 +112,11 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
       {!proposal && mine && dispute.otherSubmitted && theirs ? (
         <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.reviewing}</p>
       ) : null}
+
+      <p data-dispute-safety className="flex gap-2 text-[13px] font-medium leading-snug text-[var(--lp-text-sub)]">
+        <Icon name="shield-check" size={16} className="mt-px shrink-0" />
+        <span>{t.safety}</span>
+      </p>
     </section>
   );
 }
@@ -115,7 +135,7 @@ function Proposal({ proposal, viewerIsBuyer, name, myName }: {
   const showSplit = proposal.confidence === 'clear' || !!proposal.rule && proposal.rule !== 'both-silent' && proposal.rule !== 'judge-unavailable';
   return (
     <div role="status">
-      <h2 id="dispute-title" className="text-[18px] font-bold text-[var(--lp-dark)]">{t.proposalTitle}</h2>
+      <h3 className="text-[17px] font-bold text-[var(--lp-dark)]">{t.proposalTitle}</h3>
       {showSplit ? (
         <p className="mt-2 text-[16px] font-semibold tabular-nums text-[var(--lp-dark)]">
           {fill(t.split, { pct: shares.seller, name: sellerName })} · {fill(t.split, { pct: shares.buyer, name: buyerName })}
@@ -146,26 +166,29 @@ function StatementCard({ title, statement, viewerIsBuyer, action }: {
   action?: { label: string; onClick: () => void };
 }) {
   const t = useTranslations().disputeJudge;
+  const { locale } = useLocale();
   const rows: Array<[string, string]> = [
     [viewerIsBuyer ? t.receivedBuyer : t.receivedSeller, statement.received],
     [t.missing, statement.missing],
     [t.late, statement.late],
   ];
   return (
-    <div className="rounded-[16px] border border-[var(--lp-border-light)] p-4">
+    <div data-statement className="rounded-[16px] bg-[var(--raised)] p-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[16px] font-semibold text-[var(--lp-dark)]">{title}</h3>
+        <h3 className="text-[15px] font-bold text-[var(--lp-dark)]">{title}</h3>
         {action ? (
           <button type="button" onClick={action.onClick} className="min-h-11 px-2 text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
             {action.label}
           </button>
+        ) : statement.submittedAt ? (
+          <span className="text-[13px] font-medium text-[var(--ink-muted)]">{fill(t.sentOn, { date: formatDealDate(statement.submittedAt, locale) })}</span>
         ) : null}
       </div>
       <dl className="mt-2 space-y-2.5">
         {rows.map(([q, a]) => (
           <div key={q}>
             <dt className="text-[14px] font-medium text-[var(--lp-text-sub)]">{q}</dt>
-            <dd dir="auto" className="mt-0.5 whitespace-pre-line text-[15px] text-[var(--lp-dark)]">{a}</dd>
+            <dd dir="auto" className="mt-0.5 whitespace-pre-line text-[15px] font-semibold text-[var(--lp-dark)]">{a}</dd>
           </div>
         ))}
         {statement.links.length ? (

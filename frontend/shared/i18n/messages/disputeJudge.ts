@@ -33,6 +33,19 @@ export interface DisputeJudgeCopy {
   unavailable: string;
   reviewing: string;
   timeline: { statementBuyer: string; statementSeller: string; proposed: string };
+  /// The problem card on the deal page (owner, 7 Nov 2026).
+  openTitle: string;
+  stepOpened: string;
+  answersDue: string;
+  answersClosed: string;
+  answered: string;
+  dueBy: string;
+  sentOn: string;
+  didNotAnswer: string;
+  closedSilent: string;
+  nothingNow: string;
+  decidedHere: string;
+  settle: string;
 }
 
 export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJudgeCopy> = {
@@ -72,6 +85,18 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       statementSeller: "The seller gave their side.",
       proposed: "Karwan proposed a decision. It is confirmed before any money moves.",
     },
+    openTitle: "A problem is open",
+    stepOpened: "Opened",
+    answersDue: "Answers due",
+    answersClosed: "Answers closed",
+    answered: "Both sides answered",
+    dueBy: "by {date}",
+    sentOn: "Sent {date}",
+    didNotAnswer: "Did not answer by {date}",
+    closedSilent: "{name} did not answer in time. Karwan reads your side, the delivery and the deal chat.",
+    nothingNow: "Nothing to do now",
+    decidedHere: "Karwan shows the decision here once it is made.",
+    settle: "Offer a settlement",
   },
   fr: {
     title: "Donnez votre version à Karwan",
@@ -109,6 +134,18 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       statementSeller: "Le vendeur a donné sa version.",
       proposed: "Karwan a proposé une décision. Elle est confirmée avant tout mouvement d'argent.",
     },
+    openTitle: "Un problème est ouvert",
+    stepOpened: "Ouvert",
+    answersDue: "Réponses attendues",
+    answersClosed: "Réponses closes",
+    answered: "Les deux ont répondu",
+    dueBy: "avant le {date}",
+    sentOn: "Envoyé le {date}",
+    didNotAnswer: "N'a pas répondu avant le {date}",
+    closedSilent: "{name} n'a pas répondu à temps. Karwan lit votre version, la livraison et la discussion.",
+    nothingNow: "Rien à faire pour l'instant",
+    decidedHere: "Karwan affiche la décision ici dès qu'elle est prise.",
+    settle: "Proposer un arrangement",
   },
   ar: {
     title: "أخبر كاروان بروايتك",
@@ -146,6 +183,18 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       statementSeller: "قدّم البائع روايته.",
       proposed: "اقترح كاروان قرارًا. يُؤكَّد قبل أن يتحرك أي مال.",
     },
+    openTitle: "هناك مشكلة مفتوحة",
+    stepOpened: "فُتحت",
+    answersDue: "الردود مطلوبة",
+    answersClosed: "أُغلقت الردود",
+    answered: "رد الطرفان",
+    dueBy: "بحلول {date}",
+    sentOn: "أُرسل في {date}",
+    didNotAnswer: "لم يرد بحلول {date}",
+    closedSilent: "لم يرد {name} في الوقت المحدد. تقرأ كاروان روايتك والتسليم ومحادثة الصفقة.",
+    nothingNow: "لا شيء عليك الآن",
+    decidedHere: "تعرض كاروان القرار هنا عند اتخاذه.",
+    settle: "اعرض تسوية",
   },
   hi: {
     title: "Karwan को अपना पक्ष बताएँ",
@@ -183,6 +232,18 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       statementSeller: "विक्रेता ने अपना पक्ष दिया।",
       proposed: "Karwan ने फ़ैसला प्रस्तावित किया। पैसा चलने से पहले इसकी पुष्टि होती है।",
     },
+    openTitle: "एक समस्या खुली है",
+    stepOpened: "खोली गई",
+    answersDue: "जवाब बाकी",
+    answersClosed: "जवाब बंद",
+    answered: "दोनों ने जवाब दिया",
+    dueBy: "{date} तक",
+    sentOn: "{date} को भेजा",
+    didNotAnswer: "{date} तक जवाब नहीं दिया",
+    closedSilent: "{name} ने समय पर जवाब नहीं दिया। Karwan आपकी बात, डिलीवरी और डील चैट पढ़ता है।",
+    nothingNow: "अभी कुछ करना नहीं है",
+    decidedHere: "फ़ैसला होते ही Karwan उसे यहाँ दिखाएगा।",
+    settle: "समझौता प्रस्तावित करें",
   },
   sw: {
     title: "Mweleze Karwan upande wako",
@@ -220,5 +281,17 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       statementSeller: "Muuzaji ametoa upande wake.",
       proposed: "Karwan imependekeza uamuzi. Unathibitishwa kabla pesa zozote hazijasonga.",
     },
+    openTitle: "Kuna tatizo lililo wazi",
+    stepOpened: "Limefunguliwa",
+    answersDue: "Majibu yanasubiriwa",
+    answersClosed: "Majibu yamefungwa",
+    answered: "Pande zote zimejibu",
+    dueBy: "kufikia {date}",
+    sentOn: "Imetumwa {date}",
+    didNotAnswer: "Hakujibu kufikia {date}",
+    closedSilent: "{name} hakujibu kwa wakati. Karwan inasoma upande wako, uwasilishaji na mazungumzo ya mpango.",
+    nothingNow: "Hakuna cha kufanya sasa",
+    decidedHere: "Karwan itaonyesha uamuzi hapa ukifanywa.",
+    settle: "Pendekeza suluhu",
   },
 };

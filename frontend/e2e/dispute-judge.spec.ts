@@ -69,7 +69,8 @@ test('the buyer sees the steps of the problem, the money held, and what happens 
   await page.goto(`/deals/${JOB}`);
   const steps = page.locator('[data-problem-steps]');
   await expect(steps.getByText(pp.problemOpened)).toBeVisible();
-  await expect(steps.getByText(/ answers by /)).toBeVisible();
+  await expect(steps.getByText(t.answersDue, { exact: true })).toBeVisible();
+  await expect(steps.getByText(/^by /)).toBeVisible();
   await expect(steps.getByText(pp.karwanDecides)).toBeVisible();
   await expect(steps.getByText(/1,200 USDC held by Karwan until it is decided/)).toBeVisible();
   await expect(steps.getByText(/does not answer by .*, Karwan returns the money to you after a check\./)).toBeVisible();
@@ -84,8 +85,27 @@ test('the seller sees who opened it and never the silent-seller line', async ({ 
   await expect(steps.getByText(/after a check/)).toHaveCount(0);
 });
 
-test('a passed answer date says Karwan is checking', async ({ page }) => {
+test('once answers close the card stops asking: the silent side shows as not answered and nothing is left to press (owner, 7 Nov 2026)', async ({ page }) => {
+  await serveDeal(page, disputed({ closesAt: Date.now() - HOUR, open: false, otherSubmitted: false, statements: { seller: statement } }), SELLER);
+  await page.goto(`/deals/${JOB}`);
+  const card = page.locator('[data-problem-card]');
+  await expect(card.getByRole('heading', { name: t.openTitle })).toBeVisible();
+  await expect(page.getByRole('heading', { name: t.title })).toHaveCount(0);
+  await expect(card.locator('[data-problem-steps]').getByText(t.answersClosed, { exact: true })).toBeVisible();
+  await expect(card.getByText(/ did not answer in time\. Karwan reads your side, the delivery and the deal chat\./)).toBeVisible();
+  await expect(card.locator('[data-their-side="silent"]')).toContainText(/Did not answer by /);
+  await expect(card.getByText(/^Waiting for /)).toHaveCount(0);
+  await expect(card.locator('[data-statement]')).toContainText(statement.missing);
+  await expect(card.getByRole('button', { name: t.edit })).toHaveCount(0);
+  await expect(card.locator('[data-dispute-safety]')).toHaveText(t.safety);
+  await expect(page.locator('[data-problem-wait]')).toContainText(t.nothingNow);
+  await expect(page.getByText(en.dealWorkspace.actor.nobody, { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: en.dealWorkspace.simple.problem })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: t.settle })).toBeVisible();
+});
+
+test('a passed answer date says answers are closed', async ({ page }) => {
   await serveDeal(page, disputed({ closesAt: Date.now() - HOUR, open: false, otherSubmitted: false, statements: { buyer: statement } }));
   await page.goto(`/deals/${JOB}`);
-  await expect(page.locator('[data-problem-steps]').getByText(pp.answerPassed)).toBeVisible();
+  await expect(page.locator('[data-problem-steps]').getByText(t.answersClosed, { exact: true })).toBeVisible();
 });

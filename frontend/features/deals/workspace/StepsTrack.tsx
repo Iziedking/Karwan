@@ -17,6 +17,8 @@ export interface LabelledStep {
   key: string;
   state: 'done' | 'current' | 'upcoming';
   label: string;
+  /// A short fact under the label, such as its date.
+  sub?: string;
 }
 
 /// The route (view 48, Figma Route): the road travelled is a solid line, the
@@ -56,6 +58,9 @@ export function StepsTrack({ steps }: { steps: Array<TrackStep | LabelledStep> }
             >
               {label}
             </span>
+            {'sub' in step && step.sub ? (
+              <span className="-mt-1.5 text-[13px] leading-[1.4] text-[var(--ink-muted)]">{step.sub}</span>
+            ) : null}
             {'stageLine' in step && step.stageLine ? (
               <span className="-mt-1 text-[13px] leading-[1.4] text-[var(--ink-secondary)]">{t.stageLine[step.stageLine]}</span>
             ) : null}

@@ -345,7 +345,8 @@ test('in a dispute either side proposes paying the seller or refunding the buyer
   await serveDeal(page, { ...deliveredDeal, disputed: true, view: disputedView } as DirectDeal, SELLER);
   const proposed = capture(page, 'cancel/propose');
   await page.goto(`/deals/${JOB}`);
-  await page.getByRole('button', { name: s.problem, exact: true }).click();
+  await expect(page.getByRole('button', { name: s.problem, exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: en.disputeJudge.settle, exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('radio', { name: dp.refundBuyer })).toBeVisible();
   await dialog.getByRole('radio', { name: dp.paySeller }).click();
