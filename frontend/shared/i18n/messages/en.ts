@@ -681,6 +681,8 @@ interface MessagesShape {
     endChat: string;
     backToAssistant: string;
     operatorName: string;
+    /// The support ticket under the live divider: "Ticket {id}".
+    ticketLine: string;
     suggestions: [string, string, string];
     confirmNote: string;
   };
@@ -5984,13 +5986,14 @@ export const en: MessagesShape = {
     disclaimer: 'Guidance only. The assistant cannot move funds or act on your account.',
     humanButton: 'Talk to a person',
     handoffContext: 'They can see what you asked the assistant.',
-    liveHeader: 'Live support',
+    liveHeader: "You're talking to a person",
     liveBanner: 'Connected to support. A person will reply here, usually within a few minutes.',
     liveClosed: 'This support chat is closed. The transcript was emailed to you.',
     livePlaceholder: 'Message support…',
     endChat: 'End chat',
     backToAssistant: 'Back to assistant',
-    operatorName: 'Support',
+    operatorName: 'Karwan support',
+    ticketLine: 'Ticket {id}',
     suggestions: ["Where is my money?", "How does escrow work?", "I want to talk to a person"],
     confirmNote: "Nothing moves without your confirmation.",
   },

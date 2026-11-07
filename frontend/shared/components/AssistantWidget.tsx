@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 import { dealIdInPath } from '@/features/deals/dealReference';
 import { api, ApiError } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   useFloatingClearance,
   floatingClearanceStyle,
@@ -44,6 +44,8 @@ const SUPPORT_STORAGE_KEY = 'karwan.support.convo';
 export function AssistantWidget() {
   const a11y = useTranslations().a11y;
   const t = useTranslations().assistant;
+  const { locale } = useLocale();
+  const timeOf = (ts: number) => (ts > 0 ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(ts) : '');
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   /// Fold the launcher away while it would sit on top of a control.
@@ -431,39 +433,36 @@ export function AssistantWidget() {
             <AssistantThread messages={turns} busy={false} onNavigate={() => setOpen(false)} />
             {isLive && (
               <>
-                <div className="flex items-center gap-2 pt-1">
+                <div data-live-divider className="flex items-center gap-2 pt-1">
                   <span className="h-px flex-1 bg-[var(--line)]" />
-                  <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+                  <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--ink-secondary)]">
+                    {!liveClosed ? <span aria-hidden className="size-1.5 rounded-full bg-[var(--action)]" /> : null}
                     {t.liveHeader}
                   </span>
                   <span className="h-px flex-1 bg-[var(--line)]" />
                 </div>
                 {convoId && (
-                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--ink-muted)] text-center">
-                    Ticket {convoId}
+                  <p className="text-[13px] text-[var(--ink-muted)] text-center tabular-nums">
+                    {t.ticketLine.replace('{id}', convoId)}
                   </p>
                 )}
                 {!liveClosed && (
-                  <p className="mono text-[13px] leading-snug text-[var(--ink-secondary)] px-1">
-                    {t.liveBanner ??
-                      'Connected to support. A person will reply here, usually within a few minutes.'}
+                  <p className="text-[14px] leading-snug text-[var(--ink-secondary)] px-1">
+                    {t.liveBanner}
                     {fromElsewhere ? ` ${t.handoffContext}` : null}
                   </p>
                 )}
-                {live.map((m, i) => (
-                  <div key={`l${i}`}>
-                    {m.role === 'operator' && (
-                      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--ink-secondary)] mb-1 ms-1">
-                        {t.operatorName}
-                      </p>
-                    )}
-                    <Bubble role={m.role === 'user' ? 'user' : 'assistant'}>
+                {live.map((m, i) =>
+                  m.role === 'operator' ? (
+                    <PersonReply key={`l${i}`} name={t.operatorName} time={timeOf(m.ts)} text={stripMarkdown(m.text)} />
+                  ) : (
+                    <Bubble key={`l${i}`} role={m.role === 'user' ? 'user' : 'assistant'}>
                       {m.role === 'user' ? m.text : stripMarkdown(m.text)}
                     </Bubble>
-                  </div>
-                ))}
+                  ),
+                )}
                 {liveClosed && (
-                  <p className="mono text-[13px] leading-snug text-[var(--ink-muted)] px-1 pt-1">
+                  <p className="text-[14px] leading-snug text-[var(--ink-muted)] px-1 pt-1">
                     {t.liveClosed ??
                       'This support chat is closed. The transcript was emailed to you.'}
                   </p>
@@ -507,7 +506,7 @@ export function AssistantWidget() {
                 <button
                   type="button"
                   onClick={endChat}
-                  className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--ink-muted)] hover:text-[var(--ink)] transition"
+                  className="min-h-9 rounded-full border border-[var(--line)] px-3.5 text-[14px] font-medium text-[var(--ink-secondary)] transition-colors hover:border-[var(--line-strong)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                 >
                   {t.endChat}
                 </button>
@@ -552,7 +551,7 @@ export function AssistantWidget() {
                     (each action still gated by a confirm card), so the line would
                     be wrong — hide it. */}
                 {!isLive && !auth.isAuthenticated && (
-                  <p className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--ink-muted)] mt-2 leading-snug">
+                  <p className="mt-2 text-center text-[14px] leading-snug text-[var(--ink-muted)]">
                     {t.disclaimer}
                   </p>
                 )}
@@ -565,3 +564,23 @@ export function AssistantWidget() {
   );
 }
 
+/// A reply from a person on the support team: their own bubble, a face and a
+/// name, so it never reads like the assistant's plain answers.
+function PersonReply({ name, time, text }: { name: string; time: string; text: string }) {
+  return (
+    <div data-bubble="operator" className="flex items-end gap-2">
+      <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full border border-[var(--soft-green-edge)] bg-[var(--soft-green-chip)] text-[var(--soft-green-ink)]">
+        <Icon name="user" size={16} />
+      </span>
+      <div className="min-w-0 max-w-[85%]">
+        <p className="mb-1 ms-1 text-[13px] text-[var(--ink-secondary)]">
+          <span className="font-semibold text-[var(--ink)]">{name}</span>
+          {time ? <span className="tabular-nums"> · {time}</span> : null}
+        </p>
+        <div className="break-words rounded-[16px] rounded-es-[4px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-3.5 py-2.5 text-[15px] leading-relaxed text-[var(--ink)]">
+          {text}
+        </div>
+      </div>
+    </div>
+  );
+}
