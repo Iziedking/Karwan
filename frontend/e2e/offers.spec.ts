@@ -5,7 +5,7 @@ import { BUYER_AGENT, ME, funded, API, RPC, TX, watchHydration } from './moneyFi
 import { JOB, makeJob, serveSearch } from './searchFixtures';
 import type { Offer } from '../features/offers/model';
 import {
-  assertTopUpAppearance, blockTopUpProviders, captureTopUpScreen, checkTopUpKeyboardFocus,
+  assertTopUpAppearance, blockTopUpProviders, captureTopUpScreen, checkTopUpKeyboardFocus, fakeClockPages,
   gatewayBalance, noProtocolWords, prepareTopUpAppearance, topUpEvidenceManifest,
   topUpMainnet, topUpMessages,
 } from './instantTopUpFixtures';
@@ -57,7 +57,10 @@ type World = {
 
 async function open(page: Page, world: World, theme: 'light' | 'dark' = 'light', locale: 'en' | 'ar' = 'en') {
   const hydrationErrors = watchHydration(page);
-  if (world.shortUntilFunded) await page.clock.install();
+  if (world.shortUntilFunded) {
+    await page.clock.install();
+    fakeClockPages.add(page);
+  }
   await prepareTopUpAppearance(page, theme, locale);
   const balances = { ...(world.balances ?? funded) };
   await serveSearch(page, {

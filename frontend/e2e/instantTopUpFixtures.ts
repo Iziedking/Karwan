@@ -89,6 +89,15 @@ export async function noProtocolWords(page: Page) {
 /// Capture the active interaction surface and the whole document separately.
 /// A modal's dimmed background controls are still in the DOM; the document
 /// count is retained in evidence rather than passed off as a modal count.
+/// Pages whose spec installed Playwright's fake clock. Under it, animation
+/// frames only run when the fake clock moves, so a sheet's fade can stop part
+/// way (opacity 0 hides every control from the checks). Settling runs a second
+/// of frames so the screen is measured at rest.
+export const fakeClockPages = new WeakSet<Page>();
+async function settleFakeClock(page: Page) {
+  if (fakeClockPages.has(page)) await page.clock.runFor(1_000);
+}
+
 export async function captureTopUpScreen(page: Page, testInfo: TestInfo, phase: string, {
   root = page.locator('.product-surface').last(),
   primary,
@@ -101,6 +110,7 @@ export async function captureTopUpScreen(page: Page, testInfo: TestInfo, phase: 
   wholePagePrimary?: number;
   maxHeadingWeight?: number;
 } = {}) {
+  await settleFakeClock(page);
   await expect(root).toBeVisible();
   // A button still under the cursor from the last click shows its hover shade,
   // so measure resting colours with the mouse parked and transitions settled.
@@ -169,6 +179,7 @@ export async function captureTopUpScreen(page: Page, testInfo: TestInfo, phase: 
 }
 
 export async function checkTopUpKeyboardFocus(page: Page, control: Locator, testInfo: TestInfo, label: string) {
+  await settleFakeClock(page);
   await control.focus();
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.press('Tab');
