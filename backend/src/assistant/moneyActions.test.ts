@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   buildCancelMoneyMoveConfirm,
+  buildCollectOwedConfirm,
   buildPauseMoneyOutConfirm,
   buildPayPaymentLinkConfirm,
   buildRecheckMoneyMoveConfirm,
@@ -60,4 +61,24 @@ test('payout recheck, pause and address removal carry the page bodies', () => {
   assert.match(ok(buildPauseMoneyOutConfirm({ paused: false })).warning ?? '', /World ID/);
   assert.match(err(buildPauseMoneyOutConfirm({ paused: true })), /already paused/);
   assert.deepEqual(ok(buildRemovePayoutAddressConfirm({ addressId: 'a-1', address: ADA, chainName: 'Base' })).payload, { addressId: 'a-1' });
+});
+
+test('collecting money owed: one card for what Karwan collects, pointed to Money for the rest', () => {
+  const card = buildCollectOwedConfirm({ karwanUsdc: '40', yoursUsdc: '0.25' });
+  assert.ok(!('error' in card));
+  if ('error' in card) return;
+  assert.equal(card.intent, 'collect_owed');
+  assert.equal(card.title, 'Collect money owed to you');
+  assert.deepEqual(card.fields, [
+    { label: 'Amount', value: '40.00 USDC' },
+    { label: 'To', value: 'The wallet it was owed to' },
+  ]);
+  assert.match(card.summary, /0\.25 USDC more is in your own wallet's name/);
+  assert.equal(card.confirmLabel, 'Collect');
+});
+
+test('collecting money owed refuses when nothing is owed, or only the own wallet can collect it', () => {
+  assert.deepEqual(buildCollectOwedConfirm({ karwanUsdc: '0', yoursUsdc: '0' }), { error: 'Nothing is owed to them.' });
+  const own = buildCollectOwedConfirm({ karwanUsdc: '0', yoursUsdc: '3' });
+  assert.ok('error' in own && /own wallet/.test(own.error));
 });

@@ -2078,6 +2078,7 @@ export interface AssistantConfirmAction {
     | 'cancel_money_move'
     | 'recheck_payout'
     | 'pause_money_out'
+    | 'collect_owed'
     | 'remove_payout_address'
     | 'change_settings'
     | 'edit_profile'
@@ -2184,6 +2185,12 @@ export interface AdminDeliveryReviewView {
 /// each rests on, and held delivery links.
 /// A transfer between networks held for a person (view 60).
 /// A seller's deal guarantee a person has to check (view 62).
+/// Money owed to people on the suite contracts and CRE fees (view 66).
+export interface AdminOwed {
+  open: Array<{ contract: 'agreement' | 'jobs' | 'time' | 'vault' | 'cre'; contractAddress: string; wallet: string; firstSeenAt: number; amountUsdc: string; userAddress: string | null }>;
+  totals: Array<{ contract: 'agreement' | 'jobs' | 'time' | 'vault' | 'cre'; totalUsdc: string | null }>;
+}
+
 export interface AdminGuaranteeHold {
   dealId: string;
   jobId: string | null;
@@ -3784,6 +3791,7 @@ export const api = {
   /// Held matches and held links waiting for a person, without a ticket.
   adminSupportHeld: () => json<AdminHeldView>('/api/admin/support/held', { headers: adminHeaders() }),
   adminGuaranteeHolds: () => json<{ items: AdminGuaranteeHold[] }>('/api/admin/support/guarantee-holds', { headers: adminHeaders() }),
+  adminOwed: () => json<AdminOwed>('/api/admin/support/owed', { headers: adminHeaders() }),
   adminHeldTransfers: () => json<{ items: AdminHeldTransfer[] }>('/api/admin/support/held-transfers', { headers: adminHeaders() }),
   adminWrongTokens: () => json<{ items: AdminWrongToken[] }>('/api/admin/support/wrong-tokens', { headers: adminHeaders() }),
   adminClearMatchHold: (jobId: string, reason: string) =>

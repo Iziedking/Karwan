@@ -17,6 +17,7 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'guarantee_put_up',
   'claim_yield',
   'guarantee_collect',
+  'collect_owed',
   'legacy_step',
   'finance_accept',
   'finance_offer',
@@ -93,6 +94,7 @@ export function moneyStepPath(action: ConfirmAction): string | null {
       return job ? `/jobs/${job}` : null;
     case 'withdraw_proceeds':
     case 'fund_agent':
+    case 'collect_owed':
       return '/account';
     case 'cash_out':
       return '/bridge?direction=out';

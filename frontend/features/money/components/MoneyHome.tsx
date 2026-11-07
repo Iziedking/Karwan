@@ -17,6 +17,7 @@ import { formatBalance, heroAmount, homeState, movingTransfer, whereItIs } from 
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import type { AgentKey } from '../moneySheetModel';
 import { RecentMoney } from './RecentMoney';
+import { OwedRow } from './OwedRow';
 import { SavedAddresses } from '@/features/moneyOut/SavedAddresses';
 import { RecoveryRow } from '@/features/recovery/components/RecoveryRow';
 import { useHeldDeals, useHeldInDeals } from '../useHeldInDeals';
@@ -206,6 +207,8 @@ function MoneyHomeInner() {
 
         {tab === 'balance' ? (
           <>
+            <OwedRow />
+
             <SavedAddresses />
 
             <RecoveryRow />

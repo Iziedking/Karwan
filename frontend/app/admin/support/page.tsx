@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, type AdminGuaranteeHold, type AdminHeldTransfer, type AdminHeldView, type AdminTicketRow, type AdminWrongToken } from '@/core/api';
+import { api, type AdminGuaranteeHold, type AdminOwed, type AdminHeldTransfer, type AdminHeldView, type AdminTicketRow, type AdminWrongToken } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
 import { stripMarkdown } from '@/shared/utils/format';
@@ -33,6 +33,7 @@ export default function AdminSupport() {
   const [heldTransfers, setHeldTransfers] = useState<AdminHeldTransfer[]>([]);
   /// Deal guarantees the vault refused to keep, free or pay out of (view 62).
   const [guaranteeHolds, setGuaranteeHolds] = useState<AdminGuaranteeHold[]>([]);
+  const [owed, setOwed] = useState<AdminOwed | null>(null);
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -63,6 +64,8 @@ export default function AdminSupport() {
       if (t) setHeldTransfers((prev) => (JSON.stringify(prev) === JSON.stringify(t.items) ? prev : t.items));
       const g = await api.adminGuaranteeHolds().catch(() => null);
       if (g) setGuaranteeHolds((prev) => (JSON.stringify(prev) === JSON.stringify(g.items) ? prev : g.items));
+      const o = await api.adminOwed().catch(() => null);
+      if (o) setOwed((prev) => (JSON.stringify(prev) === JSON.stringify(o) ? prev : o));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load');
     }
@@ -194,6 +197,27 @@ export default function AdminSupport() {
                   {h.jobId ? <CopyId value={h.jobId} /> : null}
                   <CopyId value={h.dealId} />
                   {h.txHash ? <CopyId value={h.txHash} /> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {owed && owed.open.length > 0 && (
+        <section className="mt-5 space-y-2" aria-label="Money owed to people">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Money owed to people · only the owed wallet can collect it</p>
+          <p className="text-[12px] text-white/55">A payout to this wallet failed, so the contract keeps it as owed. The person sees it on Money with a Collect button, and the assistant can collect it for a wallet Karwan holds. Totals: {owed.totals.map((t) => `${t.contract} ${t.totalUsdc ?? '?'} USDC`).join(' · ')}</p>
+          <div className="border border-white/10 rounded-xl divide-y divide-white/[0.06]">
+            {owed.open.map((o) => (
+              <div key={`${o.contract}:${o.wallet}`} className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-white">{o.amountUsdc} USDC owed · {o.contract}</span>
+                  <span className="mono text-[11px] text-white/50">since {new Date(o.firstSeenAt).toLocaleString()}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-3 text-[12px] text-white/55">
+                  <CopyId value={o.wallet} />
+                  {o.userAddress && o.userAddress !== o.wallet ? <CopyId value={o.userAddress} /> : null}
                 </div>
               </div>
             ))}

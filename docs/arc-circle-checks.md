@@ -772,3 +772,12 @@ Agree: yes.
 - Installed SDK: `@circle-fin/developer-controlled-wallets` 10.8.0.
 - Read-only test, 6 Nov 2026, Arc Testnet public RPC, Agreement escrow `0x5546…F43C`: deal ids taken from the escrow's own logs. `getDeal`, `getTerms` and `reviewEndOf` read back `reviewWindow` 3,600, `maxExtensions` 1, `extensionSecs` 3,600, `silentLongstop` 612,000, `reviewStarts` 0 (review starts on delivery), `extUsed` 0.
 - Agree: yes.
+
+## 2026-11-07 · Money owed to you, collected in one tap (T5, view 66, audit M-01 and CR-03)
+
+- Scope: read `owed` and `owedTotal` on the suite deal escrows (agreement, jobs, time) and the suite stake vault (`owed(address asset, address who)`, `withdrawOwed(address asset)`), and on `KarwanCreFees` (`owed(address who)`, `withdrawOwed()`). Collect calls `withdrawOwed` from the owed address: through Circle contract execution for a wallet Karwan holds, or signed once by the person's own wallet. Scan `PayoutCredited` and `OwedWithdrawn` for the support list.
+- Docs: Arc docs, 7 Nov 2026, `arc/references/rpc-endpoints` (`eth_getLogs` block range limit 10,000 blocks) and `arc/tutorials/monitor-contract-events`. Circle docs, 7 Nov 2026, `contracts/scp-interact-smart-contract` (`createContractExecutionTransaction` with `walletId`, `contractAddress`, `abiFunctionSignature`, `abiParameters`; writes need gas and a `walletId`).
+- Source read, 7 Nov 2026: `suite/settlement/SettlementLib.sol` (`_deliver` credits on a refused transfer, `withdrawOwed` pays `msg.sender` only), `suite/KarwanStakeVault.sol` (`_deliver`), `suite/KarwanCreFees.sol` (`_pay`). All emit `PayoutCredited` when crediting and `OwedWithdrawn` when paid.
+- Installed SDK: `@circle-fin/developer-controlled-wallets` 10.8.0, `viem` 2.55.11.
+- Read-only test, 7 Nov 2026, Arc Testnet public RPC from node-services, head 71,150,040, asset USDC `0x3600…0000`: `owedTotal` reads 0 on agreement `0x5546…F43C`, jobs `0xEA06…D550`, time `0xdB32…11C1`, vault `0xF5FD…7ed5` and `KarwanCreFees` `0x9553…9c7e`; `owed(USDC, 0x…dEaD)` reads 0; `getLogs` for `PayoutCredited` over the last 9,999 blocks returns 0 logs on each.
+- Agree: yes. Nothing is owed on testnet today, so the exit check forces a refused payout to a test wallet.

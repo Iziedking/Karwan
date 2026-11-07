@@ -6,6 +6,7 @@ import { CCTP_CHAIN_KEYS, CCTP_CHAINS, type CctpChainKey } from '../chain/cctpCh
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import {
   buildCancelMoneyMoveConfirm,
+  buildCollectOwedConfirm,
   buildPauseMoneyOutConfirm,
   buildPayPaymentLinkConfirm,
   buildRecheckMoneyMoveConfirm,
@@ -190,6 +191,34 @@ export function moneyTools(address: string, actions: AssistantAction[], deps: Mo
           if (!row) return { error: 'That move is not one of theirs. Call list_stuck_money_moves again.' };
           const input = { intentId: id, label: railLabel(row), status: row.status };
           return offer(actions, action === 'cancel' ? buildCancelMoneyMoveConfirm(input) : buildRetryMoneyMoveConfirm(input));
+        }),
+    }),
+
+    get_money_owed: tool({
+      description:
+        "Money a contract keeps for the person because a payout to them could not be delivered at the time (view 66): the total, and how much Karwan collects for them versus how much their own wallet collects on Money. Use for 'am I owed anything', 'is any money waiting for me', or when a payout seems missing. Then offer propose_collect_owed.",
+      inputSchema: z.object({}),
+      execute: async () =>
+        guarded('get_money_owed', async () => {
+          const r = await deps.call(me, 'GET', '/api/money/owed');
+          if (r.status !== 200) return { error: 'Could not read what is owed to them right now.' };
+          const lines = (r.json.lines as Array<{ amountUsdc: string; signs: 'karwan' | 'you' }> | undefined) ?? [];
+          const sum = (who: 'karwan' | 'you') => lines.filter((l) => l.signs === who).reduce((n, l) => n + Number(l.amountUsdc), 0);
+          return { totalUsdc: r.json.totalUsdc, karwanCollectsUsdc: sum('karwan'), theirWalletCollectsUsdc: sum('you'), someUnreadable: r.json.unreadable === true, collectAt: '/account' };
+        }),
+    }),
+
+    propose_collect_owed: tool({
+      description:
+        "Prepare a card to collect money owed to the person: Karwan sends it to the wallet it was owed to, never anywhere else. What their own connected wallet is owed is collected on Money, where that wallet signs once.",
+      inputSchema: z.object({}),
+      execute: async () =>
+        guarded('propose_collect_owed', async () => {
+          const r = await deps.call(me, 'GET', '/api/money/owed');
+          if (r.status !== 200) return { error: 'Could not read what is owed to them right now.' };
+          const lines = (r.json.lines as Array<{ amountUsdc: string; signs: 'karwan' | 'you' }> | undefined) ?? [];
+          const sum = (who: 'karwan' | 'you') => String(lines.filter((l) => l.signs === who).reduce((n, l) => n + Number(l.amountUsdc), 0));
+          return offer(actions, buildCollectOwedConfirm({ karwanUsdc: sum('karwan'), yoursUsdc: sum('you') }));
         }),
     }),
 

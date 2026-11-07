@@ -1134,6 +1134,7 @@ const MONEY_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: Record<st
   recheck_payout: (p) => api.reconcileDirectDealPayout(String(p.jobId), String(p.reference), String(p.caller)),
   pause_money_out: () => api.moneyOutPause(),
   remove_payout_address: (p) => api.moneyOutRemoveAddress(String(p.addressId)),
+  collect_owed: () => api.collectOwed({ requestId: crypto.randomUUID() }),
 };
 
 const MONEY_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], string>> = {
@@ -1145,6 +1146,7 @@ const MONEY_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], string>>
   recheck_payout: 'Checked. The deal now shows the payment.',
   pause_money_out: 'Paused. No money can leave until you resume it with World ID.',
   remove_payout_address: 'Address removed.',
+  collect_owed: 'Collected. It is in the wallet it was owed to.',
 };
 
 const MONEY_STEP_VIEW: Partial<Record<AssistantConfirmAction['intent'], (p: Record<string, unknown>) => string>> = {
@@ -1156,6 +1158,7 @@ const MONEY_STEP_VIEW: Partial<Record<AssistantConfirmAction['intent'], (p: Reco
   recheck_payout: (p) => `/deals/${String(p.jobId)}`,
   pause_money_out: () => '/account',
   remove_payout_address: () => '/account',
+  collect_owed: () => '/account',
 };
 
 type RequestStepPayload = { jobId: string; caller?: string; offerId?: string; priceUsdc?: string; deliverByUnix?: number; note?: string };
@@ -1232,6 +1235,7 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   recheck_payout: 'Checking…',
   pause_money_out: 'Pausing…',
   remove_payout_address: 'Removing…',
+  collect_owed: 'Collecting…',
   stop_agent_bid: 'Saving…',
   confirm_goods_received: 'Confirming…',
   withdraw_offer: 'Withdrawing…',

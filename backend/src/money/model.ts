@@ -18,7 +18,8 @@ export type MoneyMovementKind =
   | 'bridge'
   | 'cash_out'
   | 'financing_advance'
-  | 'financing_repayment';
+  | 'financing_repayment'
+  | 'owed_withdrawal';
 
 export type MoneyMovementState =
   | 'created'

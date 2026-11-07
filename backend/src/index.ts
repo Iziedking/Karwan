@@ -126,6 +126,8 @@ import { platformSignersProblem } from './chain/platformSignersLive.js';
 import { createRecordSetupRoutes } from './routes/recordSetup.js';
 import { createGuaranteeRoutes } from './routes/guarantee.js';
 import { liveGuaranteeDeps } from './routes/guaranteeLive.js';
+import { createOwedRoutes } from './routes/owed.js';
+import { liveOwedDeps } from './money/owedLive.js';
 import { suiteIdentity } from './identity/suiteIdentityLive.js';
 import { requirePresence } from './presence/live.js';
 import { confirmRouteDeps } from './presence/live.js';
@@ -650,6 +652,7 @@ app.route(
   }),
 );
 app.route('/api/guarantee', createGuaranteeRoutes(liveGuaranteeDeps));
+app.route('/api/money/owed', createOwedRoutes(liveOwedDeps));
 app.route('/api/admin/verification', adminVerificationRoutes);
 app.route('/api/admin/account-deletions', createAdminAccountDeletionRoutes(() => accountDeletion));
 app.route('/api/r', createRecordRoutes(recordDeps));
@@ -793,6 +796,7 @@ function bootAgents() {
     stopFns.push(startFamilyFinancingRunner());
     // Deal guarantees the vault refused to keep or free (view 62).
     void import('./deals/guaranteeKeeperLive.js').then(({ startGuaranteeKeeper }) => stopFns.push(startGuaranteeKeeper()));
+    void import('./money/owedLive.js').then(({ startOwedScan }) => stopFns.push(startOwedScan()));
     stopFns.push(startContestRunner(contestsCore));
     stopFns.push(startAgentJobRunner(agentJobs));
     stopFns.push(startWorkRunner(workCore, workRequests));

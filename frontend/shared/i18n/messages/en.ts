@@ -797,6 +797,7 @@ interface MessagesShape {
         guaranteeTakeOut: string;
         guaranteeCancel: string;
         guaranteeCollect: string;
+        owedCollected: string;
         legacyTakeOut: string;
         legacyCancel: string;
         legacyCollect: string;
@@ -6092,6 +6093,7 @@ export const en: MessagesShape = {
         guaranteeTakeOut: 'Started withdrawing {amount} USDC from the deal guarantee',
         guaranteeCancel: 'Kept {amount} USDC in the deal guarantee',
         guaranteeCollect: 'Collected {amount} USDC from the deal guarantee',
+        owedCollected: 'Collected {amount} USDC owed to you',
         legacyTakeOut: 'Started withdrawing {amount} USDC from an older contract',
         legacyCancel: 'Kept {amount} USDC on an older contract',
         legacyCollect: 'Collected {amount} USDC from an older contract',
@@ -10291,6 +10293,7 @@ export const en: MessagesShape = {
       { q: "How long does a deposit take?", a: "Timing depends on the source chain and transfer service. Follow the status shown in Deposit / Withdraw. If a transfer is still pending, use the recheck control before sending another one." },
       { q: "How do I raise my reputation?", a: "Reputation uses the inputs and tier requirements shown in your profile and the current reputation model. Settled outcomes matter. Reputation is not identity, skill, or business verification." },
       { q: 'Does the deal guarantee earn anything?', a: 'On testnet it earns at the USYC rate, paid by Karwan. The Deal guarantee page shows what you earned and lets you claim it. It is not guaranteed.' },
+      { q: 'A payment to me did not arrive. Is it lost?', a: 'No. If a payment to you could not be delivered at the time, it is kept for you. Money shows it as Money owed to you, with a Collect button that sends it to the wallet it was owed to. You can also ask the assistant.' },
       { q: "Where does settled money go?", a: "The deal and wallet views show the destination account. Use Deposit / Withdraw for a supported transfer after settlement. Available routes depend on the live configuration." },
       { q: "Does Karwan custody funds?", a: "Wallet control depends on how you sign in. A connected wallet or mainnet passkey wallet is signed by you. Karwan operates the managed email wallets available on testnet. Once a deal is funded, the escrow contract governs those deal funds. Read the Terms for authority and recovery details." },
       { q: "Why can I see sellers who are not verified?", a: "Your agent lists everyone who fits your request and says plainly who is verified. Only a verified seller can be recommended; on testnet, a seller with settled Karwan deals and no lost dispute can be too, and stays marked not verified. You can choose anyone on the list until the request closes, and choosing someone who is not verified asks you once more before any money moves." },

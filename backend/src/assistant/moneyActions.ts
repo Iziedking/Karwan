@@ -35,6 +35,10 @@ export interface RecheckPayoutConfirm extends ConfirmActionBase {
   intent: 'recheck_payout';
   payload: { jobId: string; caller: string; reference: string };
 }
+export interface CollectOwedConfirm extends ConfirmActionBase {
+  intent: 'collect_owed';
+  payload: { amountUsdc: string };
+}
 export interface PauseMoneyOutConfirm extends ConfirmActionBase {
   intent: 'pause_money_out';
   payload: Record<string, never>;
@@ -53,7 +57,8 @@ export type MoneyStepConfirm =
   | CancelMoneyMoveConfirm
   | RecheckPayoutConfirm
   | PauseMoneyOutConfirm
-  | RemovePayoutAddressConfirm;
+  | RemovePayoutAddressConfirm
+  | CollectOwedConfirm;
 
 const usdc = (n: number | string) => `${Number(n).toFixed(2)} USDC`;
 const shortAddress = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -193,6 +198,29 @@ export function buildRecheckPayoutConfirm(i: { jobId: string; caller: string; re
     fields: [{ label: 'Payment', value: usdc(i.amountUsdc) }],
     payload: { jobId: i.jobId, caller: i.caller, reference: i.reference },
     confirmLabel: 'Check again',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Money owed to them (view 66): Karwan collects what its wallets are owed;
+/// what their own wallet is owed is collected on Money, where it signs.
+export function buildCollectOwedConfirm(i: { karwanUsdc: string; yoursUsdc: string }): CollectOwedConfirm | { error: string } {
+  const karwan = Number(i.karwanUsdc);
+  const yours = Number(i.yoursUsdc);
+  if (!(karwan > 0) && !(yours > 0)) return { error: 'Nothing is owed to them.' };
+  if (!(karwan > 0)) return { error: `${usdc(yours)} is owed to their own wallet. They collect it on Money, where their wallet signs once.` };
+  return {
+    kind: 'confirm',
+    id: `collect_owed:${i.karwanUsdc}:${confirmNonce()}`,
+    intent: 'collect_owed',
+    title: 'Collect money owed to you',
+    summary: `A payment that could not be delivered earlier goes to the wallet it was owed to.${yours > 0 ? ` ${usdc(yours)} more is in your own wallet's name; collect it on Money.` : ''}`,
+    fields: [
+      { label: 'Amount', value: usdc(karwan) },
+      { label: 'To', value: 'The wallet it was owed to' },
+    ],
+    payload: { amountUsdc: i.karwanUsdc },
+    confirmLabel: 'Collect',
     cancelLabel: 'Not now',
   };
 }

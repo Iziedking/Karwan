@@ -114,6 +114,16 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['backend/src/routes/cashout.ts', 'backend/src/routes/bridge.ts', 'frontend/app/bridge/page.tsx'],
   },
   {
+    id: 'owed', title: 'Money owed to you', status: 'testnet', mainnet: 'off', route: '/account',
+    pages: ['/account'],
+    api: ['GET /api/money/owed', 'POST /api/money/owed/collect', 'POST /api/money/owed/intent', 'POST /api/money/owed/complete'],
+    tools: ['get_money_owed', 'propose_collect_owed'],
+    keywords: 'owed money owed waiting for me payout failed missing payout could not be delivered collect claim kept for me',
+    summary: 'When a payment to someone could not be delivered at the time (a deal payout, a deal guarantee payment, or a refund from a record check), the contract keeps it for them as money owed, and only the wallet it was owed to can collect it. Money shows Money owed to you with the amount and a Collect button only when something is owed; the assistant reads it (get_money_owed) and collects it (propose_collect_owed). Collect sends it to the wallet it was owed to, never anywhere else, and a receipt lands in Activity. Karwan collects it for a wallet it holds, such as an agent wallet; a wallet the person connected signs once on Money. Support can see every owed balance but cannot collect it for anyone.',
+    steps: ['Open Money. If something is owed, Money owed to you shows the amount.', 'Press Collect, check the amount and that it goes to the wallet it was owed to, and confirm.'],
+    sources: ['backend/src/routes/owed.ts', 'backend/src/money/owedLive.ts', 'frontend/features/money/components/OwedRow.tsx'],
+  },
+  {
     id: 'market', title: 'Buy, sell and find a counterparty', status: 'testnet', mainnet: 'off', route: '/market',
     pages: ['/market', '/listings/[id]', '/order/[listingId]'],
     api: ['GET /api/listings', 'GET /api/jobs/marketplace', 'GET /api/deals/feed', 'GET /api/listings/:id/quote', 'POST /api/deals/direct'],

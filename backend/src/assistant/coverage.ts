@@ -96,6 +96,10 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/guarantee/collect': { by: 'assistant', via: 'guarantee_collect' },
   'POST /api/guarantee/intent': { by: 'assistant', via: 'guarantee_put_up' },
   'POST /api/guarantee/complete': { by: 'assistant', via: 'guarantee_put_up' },
+  // Money owed to you (view 66).
+  'POST /api/money/owed/collect': { by: 'assistant', via: 'collect_owed' },
+  'POST /api/money/owed/intent': { by: 'page', why: 'A wallet the person connected signs its own collect on Money; the assistant card points there.' },
+  'POST /api/money/owed/complete': { by: 'page', why: 'A wallet the person connected signs its own collect on Money; the assistant card points there.' },
   'POST /api/yield/claim': { by: 'assistant', via: 'claim_yield' },
   'POST /api/legacy/step': { by: 'assistant', via: 'legacy_step' },
 

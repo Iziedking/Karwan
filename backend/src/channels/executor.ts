@@ -236,6 +236,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
     body: { caller: p.caller },
   }),
   pause_money_out: () => ({ method: 'POST', path: '/api/money-out/pause', body: {} }),
+  collect_owed: () => ({ method: 'POST', path: '/api/money/owed/collect', body: { requestId: randomUUID() } }),
   remove_payout_address: (p) => ({ method: 'DELETE', path: `/api/money-out/addresses/${encodeURIComponent(String(p.addressId))}` }),
   edit_listing: (p) => {
     const { listingId, ...body } = p;
@@ -323,6 +324,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   cancel_money_move: 'Cancelled.',
   recheck_payout: 'Checked. The deal now shows the payment.',
   pause_money_out: 'Paused. No money can leave until you resume it with World ID.',
+  collect_owed: 'Collected. It is in the wallet it was owed to.',
   remove_payout_address: 'Address removed.',
   stop_agent_bid: 'Your agent took back its offer on that request.',
   confirm_goods_received: 'Confirmed on the trade record.',

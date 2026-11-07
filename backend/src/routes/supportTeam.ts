@@ -198,6 +198,13 @@ supportTeamRoutes.get('/guarantee-holds', async (c) => {
   return c.json({ items: await listGuaranteeHoldsWithStake() });
 });
 
+/// Money a contract keeps for someone because a payout to them failed (view 66).
+/// Only the owed wallet can collect it; support can see it, not move it.
+supportTeamRoutes.get('/owed', async (c) => {
+  const { owedForSupport } = await import('../money/owedLive.js');
+  return c.json(await owedForSupport());
+});
+
 supportTeamRoutes.get('/whoami', (c) => c.json({ role: tokenRole(c) }));
 
 /// Open support tickets, newest activity first, with a compact preview.
