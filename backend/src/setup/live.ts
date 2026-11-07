@@ -5,13 +5,15 @@ import { getProfile, updateProfile, type UserLocale } from '../db/profiles.js';
 import { extractKeywords } from '../llm/keywords.js';
 import type { SetupRouteDeps } from '../routes/setup.js';
 import { learnedFor } from '../agents/learnedLive.js';
+import { briefMoneyFor } from '../agents/briefMoney.js';
 
 /// The live wiring behind /api/setup: the shared reader, the profile store and
 /// the same private location save the Telegram interview uses.
 export const liveSetupDeps: SetupRouteDeps = {
   sessionAddress,
   current: (address) => getProfile(address),
-  read: (answers, current, locale) => readBrief(answers, current, { keywords: (text) => extractKeywords(text, 'setup') }, locale),
+  read: async (answers, current, locale) =>
+    readBrief(answers, current, { keywords: (text) => extractKeywords(text, 'setup'), money: await briefMoneyFor(current) }, locale),
   save: (address, patch) =>
     updateProfile(address, (current) => {
       const { settings, ...rest } = patch;

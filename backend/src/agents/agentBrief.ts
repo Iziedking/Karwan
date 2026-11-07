@@ -1,6 +1,6 @@
 import type { AgentPrefs, UserLocale, UserProfile, UserSettings } from '../db/profiles.js';
 import { parsePlace } from '../location/rules.js';
-import { parseBriefPrice } from './agentBriefParse.js';
+import { parseBriefPrice, type BriefMoney } from './agentBriefParse.js';
 import { briefLines, type BriefAnswers, type BriefRead } from './agentBriefLines.js';
 import { legacyFromWays, usualOf, waysOf, withWay, type SellWay } from './ways.js';
 
@@ -36,7 +36,8 @@ function businessOf(text: string): { name: string; trades: string } | null {
 export async function readBrief(
   a: BriefAnswers,
   current: UserProfile | null,
-  deps: { keywords: (text: string) => Promise<string[]> },
+  /// money: the account's own currency and today's rate, so prices are answered in it (view 55).
+  deps: { keywords: (text: string) => Promise<string[]>; money?: BriefMoney | null },
   locale: UserLocale,
 ): Promise<BriefResult> {
   const has = (g: BriefAnswers['goals'][number]) => a.goals.includes(g);
@@ -49,7 +50,7 @@ export async function readBrief(
 
   const what = clip(a.what, 400);
   const priceText = clip(a.price, 200);
-  const priced = parseBriefPrice(priceText);
+  const priced = parseBriefPrice(priceText, deps.money);
   const price = priced.price ?? (priceText ? null : current?.seller ? { min: current.seller.minBudgetUsdc, max: current.seller.maxBudgetUsdc } : null);
   const pace = priced.pace ?? (current?.seller ? { minDays: current.seller.minDeadlineDays, maxDays: current.seller.maxDeadlineDays } : null);
 
@@ -108,7 +109,7 @@ export async function readBrief(
   }
 
   const buyText = clip(a.buy, 200);
-  const buyMax = buyText ? parseBriefPrice(buyText).price?.max ?? null : null;
+  const buyMax = buyText ? parseBriefPrice(buyText, deps.money).price?.max ?? null : null;
   if (buying) {
     const max = buyMax ?? current?.buyer?.maxBudgetUsdc ?? null;
     patch.buyer = {

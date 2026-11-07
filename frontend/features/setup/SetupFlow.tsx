@@ -14,6 +14,9 @@ import { ease } from '@/shared/motion/tokens';
 import { PRIMARY } from '@/shared/ui/controls';
 import { safeNext } from '@/shared/auth/safeNext';
 import { ChoiceCard, SummaryLines } from './SetupParts';
+import { localExample } from './setupMoney';
+import { useDisplayCurrency } from '@/features/money/hooks/useDisplayCurrency';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { Nudge, StartBar } from './StartParts';
 import { answersFromProfile, initialSetup, setupReducer } from './setupMachine';
 import { TEXT_STEPS, aboutProgress, asksClients, isQuestionStep, sells, setupSteps, type Goal, type TextStep } from './setupSteps';
@@ -56,6 +59,11 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
   const offset = (reduce ? 0 : 24) * state.direction * (rtl ? -1 : 1);
   const tag = profile?.handle ? `@${profile.handle}` : '';
   const sellOnly = answers.goals.includes('sell') && !answers.goals.includes('work');
+  // Prices are asked and read back in the currency the person reads (owner, 7 Nov 2026).
+  const { currency, rate } = useDisplayCurrency();
+  const money = useMoneyText({ compact: true });
+  const ex = (example: string) => localExample(example, currency, rate, locale);
+  const said = (lines: string[]) => lines.map((line) => money.line(line));
 
   // "Change" under Me opens here with the saved answers, on the summary.
   useEffect(() => {
@@ -178,17 +186,17 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                   id="setup-price"
                   label={f.work.priceLabel}
                   value={answers.price ?? ''}
-                  placeholder={t.questions.price.example}
-                  examples={t.questions.price.examples}
+                  placeholder={ex(t.questions.price.example)}
+                  examples={t.questions.price.examples.map(ex)}
                   onChange={(value) => dispatch({ type: 'answer', step: 'price', value })}
                 />
                 <div className="mt-6">
                   <Nudge from="agent" live inline>
-                    {readBack === null ? (answers.retried ? f.work.noPrice : f.work.waiting) : readBack === 'reading' ? f.work.reading : readBack.noPrice ? f.work.noPrice : (
+                    {readBack === null ? (answers.retried ? ex(f.work.noPrice) : f.work.waiting) : readBack === 'reading' ? f.work.reading : readBack.noPrice ? ex(f.work.noPrice) : (
                       <>
                         <p>{f.work.read}</p>
                         <ul className="mt-2 space-y-1 font-semibold">
-                          {readBack.lines.map((line) => <li key={line} dir="auto">{line}</li>)}
+                          {said(readBack.lines).map((line) => <li key={line} dir="auto">{line}</li>)}
                         </ul>
                         <p className="mt-2 text-[14px] text-[var(--ink-secondary)]">{f.work.again}</p>
                       </>
@@ -207,8 +215,8 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                   label={t.questions[text].title}
                   hideLabel
                   value={answers[text] ?? ''}
-                  placeholder={t.questions[text].example}
-                  examples={t.questions[text].examples}
+                  placeholder={ex(t.questions[text].example)}
+                  examples={t.questions[text].examples.map(ex)}
                   onChange={(value) => dispatch({ type: 'answer', step: text, value })}
                 />
                 <Nudge from="agent">{f.nudges[text]}</Nudge>
@@ -286,7 +294,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                 {state.lines.length > 0 ? (
                   <section aria-labelledby="setup-first-post" className="mt-6 rounded-[22px] border border-[var(--line)] bg-[var(--surface)] p-5">
                     <h2 id="setup-first-post" className="text-[14px] font-semibold text-[var(--ink-secondary)]">{firstPostKind === 'request' ? f.summary.firstRequest : f.summary.firstOffer}</h2>
-                    <SummaryLines lines={state.lines} reduce={reduce} />
+                    <SummaryLines lines={said(state.lines)} reduce={reduce} />
                     {firstPostKind && !destination ? (
                       <label className="mt-4 flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold">
                         <input type="checkbox" checked={postNow} onChange={(e) => setPostNow(e.target.checked)} className="size-5 shrink-0 accent-[var(--ink)]" />

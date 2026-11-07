@@ -1,6 +1,10 @@
+import type { LocalCurrency } from '../rates/usdcRates.js';
+
 /// Reads a usual price and delivery time from however a person says it, for
 /// the setup conversation (view 19). Rules first, no model: a price is money,
 /// and an answer that cannot be read is null so the agent asks, never guesses.
+/// A person who reads amounts in a local currency answers in it ("₦30,000 to
+/// ₦60,000", "30k"); the figures become USDC at today's rate (view 55).
 
 export interface PriceRange {
   min: number;
@@ -11,6 +15,27 @@ export interface Pace {
   minDays: number;
   maxDays: number;
 }
+
+/// The account's own currency and 1 USDC in it, when a fresh rate exists.
+export interface BriefMoney {
+  currency: LocalCurrency;
+  rate: number;
+}
+
+/// How each currency is written. The account's own is read; any other named
+/// means the figure is not in it, so the agent asks again.
+const MARKS: Record<LocalCurrency, RegExp> = {
+  NGN: /₦|\bngn\b|naira|\bn(?=\s?\d)/g,
+  USD: /\$|\busd\b|dollars?/g,
+  EUR: /€|\beur\b|euros?/g,
+  GBP: /£|\bgbp\b|pounds?/g,
+  CNY: /¥|\bcny\b|\brmb\b|yuan/g,
+  INR: /₹|\binr\b|rupees?|\brs\.?(?=\s?\d)/g,
+  AED: /\baed\b|dirhams?/g,
+  KES: /\bkes\b|\bksh\b|shillings?/g,
+  XOF: /\bxof\b|\bf?cfa\b/g,
+};
+const USDC_MARK = /\busdc\b/;
 
 const DIGITS: Array<[number, number]> = [
   [0x0660, 0x0669], // Arabic-Indic
@@ -34,7 +59,10 @@ const NUM = '(\\d+(?:\\.\\d+)?)';
 function normalise(text: string): string {
   return asciiDigits(text.toLowerCase())
     .replace(/[–—]/g, '-')
-    .replace(/(\d),(?=\d{3}\b)/g, '$1');
+    .replace(/(\d),(?=\d{3}\b)/g, '$1')
+    // "30k" and "1.5 million" are how prices in naira and shillings are said.
+    .replace(/(\d+(?:\.\d+)?)\s?k\b/g, (_, n: string) => String(Number(n) * 1_000))
+    .replace(/(\d+(?:\.\d+)?)\s?(?:m|million)\b/g, (_, n: string) => String(Number(n) * 1_000_000));
 }
 
 function takePace(text: string): { pace: Pace | null; rest: string } {
@@ -59,9 +87,23 @@ function takePace(text: string): { pace: Pace | null; rest: string } {
   return { pace: null, rest: text };
 }
 
-function takePrice(text: string): PriceRange | null {
+function takePrice(text: string, money?: BriefMoney | null): PriceRange | null {
+  // USDC, or dollars from someone who reads another currency, is taken as USDC as before.
+  const saysUsdc = USDC_MARK.test(text) || (money?.currency !== 'USD' && new RegExp(MARKS.USD.source).test(text));
+  if (money && !saysUsdc) {
+    const others = (Object.keys(MARKS) as LocalCurrency[]).filter((c) => c !== money.currency && c !== 'USD');
+    if (others.some((c) => new RegExp(MARKS[c].source).test(text))) return null;
+    const local = readRange(text.replace(MARKS[money.currency], ' '));
+    if (!local) return null;
+    // Four places keep "₦30,000" reading back as ₦30,000, not ₦30,002.
+    const usdc = (n: number) => Math.round((n / money.rate) * 10_000) / 10_000;
+    return { min: usdc(local.min), max: usdc(local.max) };
+  }
   if (OTHER_CURRENCY.test(text)) return null;
-  const t = text.replace(/\$|usdc|usd|dollars?/g, ' ');
+  return readRange(text.replace(/\$|usdc|usd|dollars?/g, ' '));
+}
+
+function readRange(t: string): PriceRange | null {
   const ordered = (a: number, b: number): PriceRange => ({ min: Math.min(a, b), max: Math.max(a, b) });
   let m = t.match(new RegExp(`up\\s*to\\s*${NUM}`));
   if (m) return { min: 0, max: Number(m[1]) };
@@ -77,7 +119,7 @@ function takePrice(text: string): PriceRange | null {
   return null;
 }
 
-export function parseBriefPrice(text: string): { price: PriceRange | null; pace: Pace | null } {
+export function parseBriefPrice(text: string, money?: BriefMoney | null): { price: PriceRange | null; pace: Pace | null } {
   const { pace, rest } = takePace(normalise(text ?? ''));
-  return { price: takePrice(rest), pace };
+  return { price: takePrice(rest, money), pace };
 }

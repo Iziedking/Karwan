@@ -80,7 +80,7 @@ test('how clients pay becomes the selling way the agent starts with', async () =
   assert.deepEqual(goods.patch.agentWays?.sell, [
     { shape: 'goods', what: 'Ankara fabric', priceMin: 30, priceUsual: 45, perItem: true, shipsTo: 'Kano, Nigeria', arriveDaysMin: 2, arriveDaysMax: 4 },
   ]);
-  assert.ok(goods.lines.includes('Usually 45 USDC, lowest 30, delivers in 2 to 4 days'), goods.lines.join(' | '));
+  assert.ok(goods.lines.includes('Usually 45 USDC, lowest 30 USDC, delivers in 2 to 4 days'), goods.lines.join(' | '));
   const one = await readBrief({ goals: ['work'], what: 'Logos', price: '100 USDC, a week', paid: 'one_time' }, null, deps, 'en');
   assert.deepEqual(one.patch.agentWays?.sell, [{ shape: 'one_time', priceMin: 100, priceUsual: 100, daysMin: 7, daysMax: 7 }]);
   assert.ok(one.lines.includes('Asks 100 USDC, delivers in about 7 days'), one.lines.join(' | '));
@@ -90,4 +90,16 @@ test('how clients pay becomes the selling way the agent starts with', async () =
   assert.equal(stages.patch.agentWays?.sell[0]?.shape, 'milestones');
   const unsaid = await readBrief({ goals: ['work'], what: 'Logos', price: '20 to 40 USDC' }, null, deps, 'en');
   assert.equal(unsaid.patch.agentWays, undefined);
+});
+
+test('setup reads the price in the currency the person reads (owner, 7 Nov 2026)', async () => {
+  const r = await readBrief(
+    { goals: ['work'], what: 'Logo design', price: '₦30,000 to ₦60,000, 3 days' },
+    null,
+    { keywords: async () => ['logo'], money: { currency: 'NGN', rate: 1500 } },
+    'en',
+  );
+  assert.deepEqual(r.needs, []);
+  assert.equal(r.patch.seller?.minBudgetUsdc, 20);
+  assert.ok(r.lines.includes('Usually 30 USDC, lowest 20 USDC, delivers in about 3 days'), r.lines.join(' | '));
 });

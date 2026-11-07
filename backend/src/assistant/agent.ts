@@ -68,6 +68,7 @@ import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
 import { mergeSetupAnswers } from './setupTool.js';
 import { readBrief } from '../agents/agentBrief.js';
+import { briefMoneyFor } from '../agents/briefMoney.js';
 import { buyWaySchema, isPriced, LIVE_SHAPES, sellWaySchema, TIME_SHAPES, waysOf, waysSchema, wayLines, withWay } from '../agents/ways.js';
 import { answersSchema as setupAnswersSchema } from '../routes/setup.js';
 import { readStakerYield } from '../routes/yield.js';
@@ -1052,9 +1053,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           const answers = mergeSetupAnswers(saved, change);
           const parsed = setupAnswersSchema.safeParse(answers);
           if (!parsed.success) return { error: 'Some of those answers are too long. Ask them to say it in a line.' };
-          const read = await readBrief(parsed.data, saved, { keywords: (text) => extractKeywords(text, 'setup') }, (saved.settings?.locale ?? 'en') as UserLocale);
+          const money = await briefMoneyFor(saved);
+          const read = await readBrief(parsed.data, saved, { keywords: (text) => extractKeywords(text, 'setup'), money }, (saved.settings?.locale ?? 'en') as UserLocale);
           if (read.needs.includes('price')) {
-            return { needs: 'price', note: 'Their price could not be read. Ask once for a typical price in USDC, for example 20 to 40 USDC, then call this again with retried context in price.' };
+            return { needs: 'price', note: money ? `Their price could not be read. Ask once for a typical price in ${money.currency}, the currency they read, for example a low and a usual figure, then call this again with retried context in price.` : 'Their price could not be read. Ask once for a typical price in USDC, for example 20 to 40 USDC, then call this again with retried context in price.' };
           }
           const card = buildSaveSetupConfirm(parsed.data, read.lines);
           if (!hasEquivalentConfirm(actions, card)) actions.push(card);

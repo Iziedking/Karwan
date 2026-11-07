@@ -66,6 +66,7 @@ Built 5 Nov 2026, not deployed. Front end and back end deploy together.
 - **Confirms.** Send shows the figure typed; the release and order confirms lose their USDC rows; the funding card reads in your currency and shows the 2% line from decision 2.
 - **Assistant.** Every tool that takes `amountUsdc` also takes `currency`; the figure is converted at today's rate before the tool runs, on the website and in Telegram alike. Since 6 Nov 2026 every turn also reads the account's currency and today's rate, so the assistant speaks and asks in that currency on its own ("How much do you want to request?", never "How much USDC") and passes the figure with its currency; with no fresh rate it says so and uses USDC. A move made from chat does not keep the typed figure on its record yet.
 - **Hourly and monthly work (7 Nov 2026).** The rate labels no longer say USDC, and the rate, the paid and returned lines, the market's "Up to" line and every Pay button on the work pages read in the account's currency. `MoneyInput` sets its side padding inline: the global `.form-input` padding outranked the utility class, so the ₦ sign sat on top of the figure in every inline money field.
+- **Setup questions (7 Nov 2026).** About you asked "Your usual price" with USDC examples and refused an answer in naira. Now the examples and the agent's read-back are in the currency the country set at sign-up, with round figures (₦30,000 to ₦60,000), and the server reads the answer in it: a ₦ or naira sign, "30k" or a bare figure is naira, then USDC at today's rate (`backend/src/agents/briefMoney.ts`, `agentBriefParse.ts`). USDC or dollars written out are still read as USDC. With USDC chosen, or no fresh rate, everything stays in USDC. Telegram's interview reads answers through the same route.
 - **Proof.** The receipt has a Network proof fold with one Settled line in USDC.
 - **Terms.** The Currency paragraph changed in all five languages and in `docs/terms-and-conditions.md`.
 
@@ -77,6 +78,7 @@ Rulings while building:
 ## Not done
 
 - The assistant's own moves do not keep the typed figure on the record.
+- Telegram's setup interview still writes its price examples in USDC ("20 to 40 USDC"); answers in naira are read, but the example is not said in naira yet.
 - The notification for watched prices ("settle around {to} USDC (was {from})") still prints the old price as a bare number.
 
 ## Build order, once approved

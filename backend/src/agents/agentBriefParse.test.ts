@@ -32,3 +32,29 @@ for (const [text, price, pace] of cases) {
     assert.deepEqual(read.pace, pace);
   });
 }
+
+/// A person who reads naira answers in naira; the figures become USDC at
+/// today's rate (owner, 7 Nov 2026). 1 USDC = 1,500 naira here.
+const naira = { currency: 'NGN' as const, rate: 1500 };
+const inNaira: Array<[string, { min: number; max: number } | null]> = [
+  ['₦30,000 to ₦60,000, 3 days', { min: 20, max: 40 }],
+  ['30k to 60k', { min: 20, max: 40 }],
+  ['N45,000', { min: 30, max: 30 }],
+  ['45000 naira', { min: 30, max: 30 }],
+  ['1.5m', { min: 1000, max: 1000 }],
+  ['20 to 40 USDC', { min: 20, max: 40 }],
+  ['$20 to $40', { min: 20, max: 40 }],
+  ['€20 to €40', null],
+  ['Depends on size', null],
+];
+for (const [text, price] of inNaira) {
+  test(`reads "${text}" for someone in naira`, () => {
+    assert.deepEqual(parseBriefPrice(text, naira).price, price);
+  });
+}
+
+test('a figure in naira reads back as the naira typed, not a cent off', () => {
+  const rate = 1471.37;
+  const read = parseBriefPrice('₦30,000', { currency: 'NGN', rate }).price!;
+  assert.equal(Math.round(read.min * rate), 30000);
+});
