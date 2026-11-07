@@ -32,6 +32,7 @@ import { logger } from '../logger.js';
 import { liveDirect } from '../messages/live.js';
 import { scrubNotesBy } from '../db/ratings.js';
 import { deleteConversationsOf } from '../db/assistantConversations.js';
+import { sentFiles } from '../channels/sentFiles.js';
 import { deleteMemoryOf } from '../db/assistantMemory.js';
 import { moneyOutStore } from '../moneyOut/live.js';
 import { presenceStore } from '../presence/live.js';
@@ -187,6 +188,7 @@ const eraser: Eraser = {
     { name: 'direct messages', run: (address) => liveDirect.forget(address) },
     { name: 'rating notes', run: (address) => scrubNotesBy(address) },
     { name: 'assistant conversations', run: (address) => deleteConversationsOf(address) },
+    { name: 'sent files', run: async (address) => { sentFiles.clear(address); } },
     { name: 'assistant memory', run: (address) => deleteMemoryOf(address) },
     {
       name: 'agent suggestions',

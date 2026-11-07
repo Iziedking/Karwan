@@ -19,6 +19,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ease } from '@/shared/motion/tokens';
 import { greetingKey } from './conversationGroups';
 import { ConversationList } from './ConversationList';
+import { PickUpLine } from './PickUpLine';
 import { takeReturn } from './assistantReturn';
 import { takeAsk } from './carriedAsk';
 import { conversationToResume, NEW_CHAT, readOpenConversation, rememberOpenConversation } from './resumeConversation';
@@ -56,7 +57,6 @@ function AssistantPage() {
   });
   const [input, setInput] = useState('');
   const askRef = useAutoGrow(input);
-  const [photoChoice, setPhotoChoice] = useState<File | null>(null);
   // A chosen, pasted or dropped file waits in the box, like a picture in a
   // chat app, and goes with the words on Send.
   const [staged, setStaged] = useState<File | null>(null);
@@ -84,6 +84,9 @@ function AssistantPage() {
   const [atLatest, setAtLatest] = useState(true);
   const atLatestRef = useRef(true);
   const list = useQuery({ queryKey: LIST_KEY, queryFn: () => api.assistantConversations().then((r) => r.conversations) });
+  // What was left unfinished, after a break (view 66). Read once per visit.
+  const pickUp = useQuery({ queryKey: ['assistant', 'pick-up'], queryFn: () => api.assistantPickUp().then((r) => r.pickUp), staleTime: Infinity, retry: false });
+  const [pickUpGone, setPickUpGone] = useState(false);
 
   // A newly saved conversation joins the column.
   useEffect(() => {
@@ -186,19 +189,18 @@ function AssistantPage() {
       const file = staged;
       setStaged(null);
       setInput('');
-      // Words about a request or a deal keep it for that (view 56); words about
-      // selling make it an offer photo; any other words read it as an invoice
-      // and are answered. A photo alone asks which it is; a PDF is
-      // an invoice.
+      // Words about a request or a deal keep it for that (view 56), words
+      // about selling make it an offer photo. Anything else, a photo alone
+      // included, goes the way a file sent on Telegram goes (view 66): the
+      // assistant sees what it shows and places it from the conversation, or asks.
       if (isDraftCaption(question)) await chat.attach(file, 'draft', question);
-      else if (!file.type.startsWith('image/')) await chat.attach(file, 'invoice', question);
-      else if (isOfferCaption(question)) await chat.attach(file, 'offer', question);
-      else if (question) await chat.attach(file, 'invoice', question);
-      else setPhotoChoice(file);
+      else if (file.type.startsWith('image/') && isOfferCaption(question)) await chat.attach(file, 'offer', question);
+      else await chat.attach(file, 'auto', question);
       return;
     }
     if (!question) return;
     setInput('');
+    setPickUpGone(true);
     await chat.send(question);
   }
 
@@ -320,26 +322,16 @@ function AssistantPage() {
                 ))}
               </div>
             ) : null}
-            {photoChoice ? (
-              <div role="group" aria-label={photoCopy.chooseTitle} className="mb-3 rounded-[20px] border border-[var(--line)] bg-[var(--surface)] p-3">
-                <div className="flex items-center gap-2">
-                  <p className="min-w-0 flex-1 px-1 text-[14px] font-semibold text-[var(--ink)]">{photoCopy.chooseTitle}</p>
-                  <button type="button" onClick={() => setPhotoChoice(null)} aria-label={photoCopy.cancel} className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--ink-secondary)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
-                    <Icon name="close" size={20} />
-                  </button>
-                </div>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'offer'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
-                    {photoCopy.forOffer}
-                  </button>
-                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'draft'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
-                    {photoCopy.forDraft}
-                  </button>
-                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'invoice'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
-                    {photoCopy.asInvoice}
-                  </button>
-                </div>
-              </div>
+            {pickUp.data && !pickUpGone ? (
+              <PickUpLine
+                pickUp={pickUp.data}
+                busy={chat.busy}
+                onDismiss={() => setPickUpGone(true)}
+                onContinue={() => {
+                  setPickUpGone(true);
+                  void openConversation(pickUp.data!.conversationId);
+                }}
+              />
             ) : null}
             {staged ? (
               <div className="mb-2 flex items-center gap-2 px-1">

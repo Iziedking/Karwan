@@ -2,7 +2,6 @@ import type { AssistantAction } from '../assistant/actions.js';
 import { ARC } from '../chain/client.js';
 import { provisionUserIdentityWallet } from '../circle/wallets.js';
 import { config } from '../config.js';
-import { claimUnique } from '../db/evidence.js';
 import { getProfile } from '../db/profiles.js';
 import { createUser } from '../db/users.js';
 import {
@@ -15,16 +14,16 @@ import {
 import { chatAccountEmail } from '../emails/chatRecipients.js';
 import { logger } from '../logger.js';
 import { setInboundHandler } from '../routes/whatsapp.js';
-import { addVerifiedFact, cacReview, clientConfirmations } from '../verification/live.js';
+import { cacReview, clientConfirmations } from '../verification/live.js';
 import { installVerificationServices } from '../verification/services.js';
 import { createDispatcher } from '../channels/dispatch.js';
 import { createExecutor } from '../channels/executor.js';
 import { MONEY_INTENTS, createMoneyStepPresenter } from '../channels/moneySteps.js';
 import { createIdentity, hashNumber } from '../channels/identity.js';
 import { callAsAccount } from '../channels/inProcess.js';
-import { createEvidenceIntake } from '../channels/media.js';
+import { createChatFileIntake, keepChat } from '../channels/fileArrival.js';
 import { chatOpenLinks, chatOpenUrl } from '../channels/openLinksLive.js';
-import { extractInvoice, MEDIA_MAX_BYTES } from '../channels/invoiceExtract.js';
+import { MEDIA_MAX_BYTES } from '../channels/invoiceExtract.js';
 import { createOutbox } from './outbox.js';
 import type { OutMessage } from '../channels/render.js';
 import { installChannelPorts } from '../channels/sender.js';
@@ -108,8 +107,7 @@ export function startWhatsappAgent(): void {
     cac: cacReview((address, text) => sendToAddress(address, { kind: 'text', body: text }).then(() => undefined)),
   });
 
-  const intake = createEvidenceIntake({
-    now: Date.now,
+  const intake = createChatFileIntake({
     channel: 'whatsapp',
     download: async (mediaId) => {
       if (!config.WHATSAPP_TOKEN) return null;
@@ -130,10 +128,6 @@ export function startWhatsappAgent(): void {
         return null;
       }
     },
-    extract: extractInvoice,
-    displayNameOf: async (address) => (await getProfile(address))?.displayName ?? '',
-    claimFingerprint: (fp, address) => claimUnique('fp', fp, address),
-    addFact: addVerifiedFact,
   });
 
   const identity = createIdentity<WhatsappAccount>({
@@ -162,8 +156,8 @@ export function startWhatsappAgent(): void {
     saveAccount: saveWhatsappAccount,
     send: outbox.send,
     drain: outbox.drain,
-    chat: async (address, messages) => {
-      const r = await callAsAccount(address, 'POST', '/api/assistant/chat', { messages });
+    chat: async (address, messages, opts) => {
+      const r = await callAsAccount(address, 'POST', '/api/assistant/chat', { messages, ...opts });
       if (r.status === 200) {
         return { ok: true, reply: String(r.json.reply ?? ''), actions: r.json.actions as AssistantAction[] | undefined };
       }
@@ -184,7 +178,8 @@ export function startWhatsappAgent(): void {
       if (fact) return 'Thank you. Your confirmation is on their record.';
       return yes ? 'Thank you. This request was already answered or has closed.' : 'Thank you for answering. Nothing was added to their record.';
     },
-    media: (account, m) => (account.address ? intake(account.address, m) : Promise.resolve([])),
+    media: (account, m) => (account.address ? intake(account.address, m) : Promise.resolve({ replies: [] })),
+    keep: keepChat('whatsapp'),
     moneyOut: moneyOutChat,
     deletion: accountDeletion,
   });

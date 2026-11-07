@@ -79,3 +79,19 @@ export async function attachForDraft(file: File) {
   form.append('purpose', 'draft');
   return send<{ reply: string }>('/api/assistant/attach', { method: 'POST', body: form });
 }
+
+/// A photo or PDF sent to the assistant with the words beside it (view 66): the
+/// words place it, or the server reads what it shows and the assistant answers.
+/// A photo is resized on the device first, as on the forms.
+export async function attachAuto(file: File, words: string) {
+  const form = new FormData();
+  if (/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    const blob = await (await fetch(await resizePhoto(file))).blob();
+    form.append('file', new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
+  } else {
+    form.append('file', file);
+  }
+  form.append('purpose', 'auto');
+  if (words.trim()) form.append('words', words.trim().slice(0, 500));
+  return send<{ reply?: string; note: string; turn: boolean }>('/api/assistant/attach', { method: 'POST', body: form });
+}

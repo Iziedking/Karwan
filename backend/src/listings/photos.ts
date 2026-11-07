@@ -59,9 +59,9 @@ export function photoUrls(listing: { id: string; photos?: ListingPhoto[] }): str
   return (listing.photos ?? []).map((p, i) => `/api/listings/${listing.id}/photos/${i}?v=${p.at}`);
 }
 
-/// A photo sent in a chat app goes to the next offer only when its caption
-/// says so ("for my offer", "selling this"). Anything else is read as an
-/// invoice, as before.
+/// A caption that plainly says a photo is for an offer ("for my offer",
+/// "selling this"). Any other photo goes to the assistant, which places it
+/// from the chat (view 66).
 export function isOfferPhotoCaption(caption: string | undefined): boolean {
   if (!caption) return false;
   return /\b(?:offers?|listings?|selling|for sale|sell this|to sell)\b/i.test(caption);

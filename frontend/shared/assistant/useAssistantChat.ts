@@ -5,7 +5,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { confirmOutcomes, type Turn } from './AssistantThread';
 import { savedAction } from './savedAction';
 import { contentForModel } from './modelHistory';
-import { attachForDraft, attachForOffer } from '@/features/listings/photos';
+import { attachAuto, attachForDraft, attachForOffer } from '@/features/listings/photos';
 
 /// A card counts as run once its confirmation came back.
 const ran = (a: { id?: string }) => {
@@ -41,7 +41,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
     if (!persist || savedUpTo >= all.length) return id;
     const fresh = all.slice(savedUpTo).map((m) => {
       const actions = (m.actions ?? []).map((a) => savedAction(a, (id) => confirmOutcomes.get(id))).filter((a): a is Record<string, unknown> => a !== null);
-      return { role: m.role, content: m.content, ...(actions.length ? { actions } : {}) };
+      return { role: m.role, content: m.forModel ?? m.content, ...(actions.length ? { actions } : {}) };
     });
     live.current.savedUpTo = all.length;
     try {
@@ -152,10 +152,12 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
 
   /// A photo or PDF sent in chat, with the words typed beside it, as one
   /// message that shows the picture. `offer` keeps a photo for the person's
-  /// next offer (view 28); otherwise it is read as an invoice, like one sent on
-  /// Telegram. The words are then answered with the file in view.
+  /// next offer (view 28), `draft` for a request or deal (view 56), `invoice`
+  /// reads it for the record. `auto` goes the way a file sent on Telegram goes
+  /// (view 66): the words place it, or the assistant sees what it shows and
+  /// answers with the whole conversation in view.
   const attach = useCallback(
-    async (file: File, purpose: 'offer' | 'draft' | 'invoice' = 'invoice', words = '') => {
+    async (file: File, purpose: 'offer' | 'draft' | 'invoice' | 'auto' = 'auto', words = '') => {
       if (busy) return;
       void flush();
       const text = words.trim();
@@ -166,6 +168,19 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
       setError(null);
       setBusy(true);
       try {
+        if (purpose === 'auto') {
+          const got = await attachAuto(file, text);
+          const sent: Turn = { ...next[next.length - 1]!, forModel: got.note };
+          const withNote: Turn[] = [...messages, sent];
+          if (!got.turn) {
+            const shown: Turn[] = [...withNote, { role: 'assistant', content: got.reply ?? '' }];
+            setMessages(shown);
+            return;
+          }
+          setMessages(withNote);
+          await answer(withNote.map((x) => ({ role: x.role, content: contentForModel(x, ran) })), withNote);
+          return;
+        }
         const { reply } = purpose === 'offer' ? await attachForOffer(file) : purpose === 'draft' ? await attachForDraft(file) : await api.assistantAttach(file);
         // An offer photo sent with words needs no "photo added" note: the
         // answer to the words says what happens with it.

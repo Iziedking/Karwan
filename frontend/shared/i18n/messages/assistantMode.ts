@@ -33,6 +33,13 @@ export interface AssistantModeCopy {
   jumpLatest: string;
   /// Accessible name of a history row's delete button: {title}.
   removeNamed: string;
+  /// View 66: the line shown after a break when something was left unfinished.
+  pickUpLabel: string;
+  pickUpCard: string;
+  pickUpQuestion: string;
+  pickUpHeld: string;
+  pickUpContinue: string;
+  pickUpDismiss: string;
   removeTitle: string;
   removeBody: string;
   removeKeep: string;
@@ -74,6 +81,12 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     remove: "Delete conversation",
     jumpLatest: "Go to latest message",
     removeNamed: "Delete conversation: {title}",
+    pickUpLabel: "Where you stopped",
+    pickUpCard: "Last time, \"{card}\" was waiting for you to confirm.",
+    pickUpQuestion: "Last time we stopped at: \"{question}\"",
+    pickUpHeld: "Files you sent last time are still held.",
+    pickUpContinue: "Continue",
+    pickUpDismiss: "Dismiss",
     removeTitle: "Delete this conversation?",
     removeBody: "It is removed from your account and cannot be brought back. Nothing you confirmed in it is undone.",
     removeKeep: "Keep it",
@@ -112,6 +125,12 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     remove: "Supprimer la conversation",
     jumpLatest: "Aller au dernier message",
     removeNamed: "Supprimer la conversation : {title}",
+    pickUpLabel: "Là où vous vous êtes arrêté",
+    pickUpCard: "La dernière fois, « {card} » attendait votre confirmation.",
+    pickUpQuestion: "La dernière fois, nous en étions à : « {question} »",
+    pickUpHeld: "Les fichiers envoyés la dernière fois sont encore gardés.",
+    pickUpContinue: "Continuer",
+    pickUpDismiss: "Ignorer",
     removeTitle: "Supprimer cette conversation ?",
     removeBody: "Elle est retirée de votre compte et ne peut pas être récupérée. Rien de ce que vous y avez confirmé n’est annulé.",
     removeKeep: "La garder",
@@ -150,6 +169,12 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     remove: "احذف المحادثة",
     jumpLatest: "انتقل إلى آخر رسالة",
     removeNamed: "احذف المحادثة: {title}",
+    pickUpLabel: "حيث توقفت",
+    pickUpCard: "في المرة السابقة، كان \"{card}\" ينتظر تأكيدك.",
+    pickUpQuestion: "في المرة السابقة توقفنا عند: \"{question}\"",
+    pickUpHeld: "الملفات التي أرسلتها في المرة السابقة ما زالت محفوظة.",
+    pickUpContinue: "متابعة",
+    pickUpDismiss: "إخفاء",
     removeTitle: "هل تحذف هذه المحادثة؟",
     removeBody: "تُزال من حسابك ولا يمكن استعادتها. لا يُلغى أي شيء أكدته فيها.",
     removeKeep: "أبقها",
@@ -188,6 +213,12 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     remove: "बातचीत हटाएँ",
     jumpLatest: "नवीनतम संदेश पर जाएँ",
     removeNamed: "बातचीत हटाएँ: {title}",
+    pickUpLabel: "जहाँ आप रुके थे",
+    pickUpCard: "पिछली बार \"{card}\" आपकी पुष्टि का इंतज़ार कर रहा था।",
+    pickUpQuestion: "पिछली बार हम यहाँ रुके थे: \"{question}\"",
+    pickUpHeld: "पिछली बार भेजी गई फ़ाइलें अभी भी रखी हैं।",
+    pickUpContinue: "जारी रखें",
+    pickUpDismiss: "हटाएँ",
     removeTitle: "यह बातचीत हटाएँ?",
     removeBody: "यह आपके खाते से हट जाएगी और वापस नहीं लाई जा सकती। इसमें जो आपने पुष्टि की, वह रद्द नहीं होता।",
     removeKeep: "रहने दें",
@@ -226,6 +257,12 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     remove: "Futa mazungumzo",
     jumpLatest: "Nenda kwenye ujumbe wa mwisho",
     removeNamed: "Futa mazungumzo: {title}",
+    pickUpLabel: "Ulipoishia",
+    pickUpCard: "Mara ya mwisho, \"{card}\" ilikuwa ikisubiri uthibitishe.",
+    pickUpQuestion: "Mara ya mwisho tuliishia hapa: \"{question}\"",
+    pickUpHeld: "Faili ulizotuma mara ya mwisho bado zimehifadhiwa.",
+    pickUpContinue: "Endelea",
+    pickUpDismiss: "Ondoa",
     removeTitle: "Ufute mazungumzo haya?",
     removeBody: "Yanaondolewa kwenye akaunti yako na hayawezi kurudishwa. Chochote ulichothibitisha ndani yake hakibatilishwi.",
     removeKeep: "Yabaki",

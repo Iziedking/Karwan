@@ -52,6 +52,10 @@ export interface Turn {
   image?: string;
   /// The turn is the picture alone, so its saved name is not shown under it.
   imageOnly?: boolean;
+  /// What the assistant reads, and the conversation keeps, for this turn when
+  /// it differs from what is shown: the line saying a file arrived and what it
+  /// shows (view 66).
+  forModel?: string;
 }
 
 const isPast = (a: AssistantAction | PastAssistantAction): a is PastAssistantAction => 'status' in a;

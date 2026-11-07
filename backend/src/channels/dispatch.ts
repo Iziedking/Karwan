@@ -4,6 +4,8 @@ import { renderTurn, type OutMessage } from './render.js';
 import type { OnboardingResult } from './onboarding.js';
 import { CARD_TTL_MS, type ChatAccount, type InboundMessage } from './types.js';
 import { expandNumberReply } from './numberReply.js';
+import type { FileArrival } from './fileArrival.js';
+import { RETURN_AFTER_MS } from '../assistant/pickUp.js';
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -25,13 +27,19 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
   send: (to: string, m: OutMessage) => Promise<{ sent: boolean }>;
   drain: (to: string) => Promise<void>;
   /// One assistant turn as the account, through the same route the app uses.
-  chat: (address: string, messages: ChatMessage[]) => Promise<ChatResult>;
+  /// `returning` says the person is back after a break, so the assistant may
+  /// pick up unfinished work (view 66).
+  chat: (address: string, messages: ChatMessage[], opts?: { conversationId?: string; returning?: boolean }) => Promise<ChatResult>;
   executeConfirm: (account: { address: string }, action: ConfirmAction) => Promise<ExecuteResult>;
   /// A past client's Yes or No to a work confirmation. The client may have no
   /// Karwan account, so this runs before anything else. Returns the reply.
   clientAnswer: (requestId: string, from: string, yes: boolean) => Promise<string>;
-  /// A photo or document from an account: evidence intake.
-  media: (account: A, m: InboundMessage) => Promise<OutMessage[]>;
+  /// A photo or document from an account (view 66): put where its caption
+  /// says, or held and handed to the assistant with a line saying what it shows.
+  media: (account: A, m: InboundMessage) => Promise<FileArrival>;
+  /// Keeps the chat as a conversation the person can search and see on the
+  /// website (view 66). Returns the conversation's id. A failure never stops a reply.
+  keep?: (address: string, id: string | null, messages: Array<{ role: 'user' | 'assistant'; content: string; actions?: unknown[] }>) => Promise<string>;
   /// How a channel shows a confirm card instead of Confirm and Cancel buttons.
   /// A message returned here is sent as is and the card is not kept, so no
   /// chat tap can confirm it. Used for steps that move money.
@@ -63,6 +71,8 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
 }
 
 const HISTORY_MAX = 20;
+/// A kept conversation ends after a day with no messages; the next starts a new one.
+const KEEP_GAP_MS = 24 * 3_600_000;
 const ACCEPT_ID = 'terms:accept';
 
 const text = (body: string): OutMessage => ({ kind: 'text', body });
@@ -223,9 +233,31 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       return;
     }
 
+    // Where this chat is kept: the same conversation until a day goes quiet.
+    let keptId = account.conversationId && account.conversationAt && deps.now() - account.conversationAt < KEEP_GAP_MS ? account.conversationId : null;
+    const keep = async (messages: Array<{ role: 'user' | 'assistant'; content: string; actions?: unknown[] }>) => {
+      if (!deps.keep) return;
+      try {
+        keptId = await deps.keep(address, keptId, messages);
+        account = await deps.saveAccount({ ...account, conversationId: keptId, conversationAt: deps.now() });
+      } catch {
+        /* the chat goes on; it is just not kept this time */
+      }
+    };
+
+    let fileNote: string | undefined;
     if (m.kind === 'media') {
-      for (const out of await deps.media(account, m)) await reply(out);
-      return;
+      const got = await deps.media(account, m);
+      for (const out of got.replies) await reply(out);
+      if (!got.note) return;
+      if (!got.turn) {
+        const said = got.replies.map((o) => ('body' in o ? o.body : '')).filter(Boolean).join('\n');
+        const notes: ChatMessage[] = [{ role: 'user', content: got.note }, ...(said ? [{ role: 'assistant' as const, content: said }] : [])];
+        account = await deps.saveAccount({ ...account, history: [...(account.history ?? []), ...notes].slice(-HISTORY_MAX) });
+        await keep(notes);
+        return;
+      }
+      fileNote = got.note;
     }
 
     if (m.kind === 'other') {
@@ -233,13 +265,16 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       return;
     }
 
-    const typed = handOff ?? m.text?.trim();
+    const typed = handOff ?? fileNote ?? m.text?.trim();
     if (!typed) return;
     // A bare number answers the last numbered list Karwan sent (a shortlist).
-    const said = (handOff ? null : expandNumberReply(typed, account.choices, deps.now())) ?? typed;
+    const said = (handOff || fileNote ? null : expandNumberReply(typed, account.choices, deps.now())) ?? typed;
 
     const history: ChatMessage[] = [...(account.history ?? []), { role: 'user' as const, content: said }].slice(-HISTORY_MAX);
-    const result = await deps.chat(address, history);
+    // Back after six quiet hours: the assistant may pick up what was left.
+    const returning = first.lastInboundAt !== null && deps.now() - first.lastInboundAt >= RETURN_AFTER_MS;
+    await keep([{ role: 'user', content: said }]);
+    const result = await deps.chat(address, history, { ...(keptId ? { conversationId: keptId } : {}), ...(returning ? { returning: true } : {}) });
     if (!result.ok) {
       const userFacing = result.code === 'assistant_quota_exhausted' ? result.error : "I couldn't check that just now. Try again in a minute.";
       await deps.saveAccount({ ...account, history });
@@ -268,6 +303,7 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       history: [...history, { role: 'assistant' as const, content: result.reply }, ...arrived].slice(-HISTORY_MAX),
       pendingActions,
     });
+    await keep([{ role: 'assistant', content: result.reply, ...(result.actions?.length ? { actions: result.actions } : {}) }]);
     for (const out of renderTurn(result.reply, kept, deps.webBase)) await reply(out);
     for (const out of elsewhere) await reply(out);
   };

@@ -70,7 +70,7 @@ function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: 
       answers.push(`${requestId}:${from}:${yes}`);
       return yes ? 'Thank you. Your answer is on their record.' : 'Thank you for answering.';
     },
-    media: async () => [{ kind: 'text', body: 'I read your invoice.' }],
+    media: async () => ({ replies: [{ kind: 'text', body: 'Photo added for your next offer.' }], note: '[I sent a photo, caption "selling this". Photo added for your next offer.]', turn: false }),
     ...(opts.presentConfirm ? { presentConfirm: opts.presentConfirm } : {}),
     ...opts.extra,
     executeConfirm:
@@ -245,11 +245,78 @@ test('a past client answering Yes or No is handled even without a Karwan account
   assert.deepEqual(s.answers.at(-1), 'req8:2348012345678:false');
 });
 
-test('a photo or document from an account goes to evidence intake', async () => {
+test('a photo its caption places is answered without a turn, and the chat history says so', async () => {
   const s = setup({ active: true });
-  await s.dispatch(msg({ kind: 'media', mediaId: 'm1', mimeType: 'image/jpeg' }));
-  assert.match(bodyOf(s.sent.at(-1)!), /I read your invoice/);
+  await s.dispatch(msg({ kind: 'media', mediaId: 'm1', mimeType: 'image/jpeg', text: 'selling this' }));
+  assert.match(bodyOf(s.sent.at(-1)!), /next offer/);
   assert.equal(s.chats.length, 0);
+  const history = s.account().history ?? [];
+  assert.ok(history.at(-2)!.content.startsWith("[I sent a photo"));
+  assert.equal(history.at(-1)!.role, 'assistant');
+});
+
+test('a photo nothing places goes to the assistant as a line saying what it shows (view 66)', async () => {
+  const note = '[I sent a photo, caption "Laptop photo". It shows a silver HP Envy laptop, open, screen on.]';
+  const s = setup({
+    active: true,
+    history: [{ role: 'assistant', content: 'Send me the photo and I will show you the listing.' }],
+    extra: { media: async () => ({ replies: [], note, turn: true }) },
+  });
+  await s.dispatch(msg({ kind: 'media', mediaId: 'm1', mimeType: 'image/jpeg', text: 'Laptop photo' }));
+  assert.equal(s.chats.length, 1);
+  assert.equal(s.chats[0]!.at(-1)!.content, note);
+  assert.equal(s.chats[0]!.at(-2)!.role, 'assistant');
+  assert.match(bodyOf(s.sent.at(-1)!), /Hello from the agent/);
+});
+
+test('a file that could not be opened says so and runs no turn', async () => {
+  const s = setup({ active: true, extra: { media: async () => ({ replies: [{ kind: 'text', body: "I couldn't open that file." }] }) } });
+  await s.dispatch(msg({ kind: 'media', mediaId: 'm1' }));
+  assert.match(bodyOf(s.sent.at(-1)!), /couldn't open/);
+  assert.equal(s.chats.length, 0);
+  assert.equal(s.account().history, undefined);
+});
+
+test('each turn is kept as a conversation, the same one until a day goes quiet (view 66)', async () => {
+  const kept: Array<{ id: string | null; messages: Array<{ role: string; content: string }> }> = [];
+  const keep: DispatchDeps['keep'] = async (_a, id, messages) => {
+    kept.push({ id, messages });
+    return id ?? 'conv-1';
+  };
+  let opts: unknown;
+  const s = setup({
+    active: true,
+    extra: { keep },
+    chat: async (_a, _m, o) => {
+      opts = o;
+      return { ok: true, reply: 'Hello from the agent.' };
+    },
+  });
+  await s.dispatch(msg({ text: 'I want to sell my laptop' }));
+  assert.deepEqual(kept.map((k) => [k.id, k.messages.map((m) => m.role).join()]), [[null, 'user'], ['conv-1', 'assistant']]);
+  assert.deepEqual(opts, { conversationId: 'conv-1' });
+  assert.equal(s.account().conversationId, 'conv-1');
+
+  await s.save({ ...s.account(), conversationAt: NOW - 25 * 3_600_000 });
+  await s.dispatch(msg({ id: 'm2', text: 'hello again' }));
+  assert.equal(kept[2]!.id, null);
+});
+
+test('a message after six quiet hours asks the assistant to pick up; a quick reply does not', async () => {
+  const seen: unknown[] = [];
+  const chat: DispatchDeps['chat'] = async (_a, _m, o) => {
+    seen.push(o ?? {});
+    return { ok: true, reply: 'ok' };
+  };
+  await setup({ active: true, chat, lastInboundAt: NOW - 7 * 3_600_000 }).dispatch(msg({ text: 'hi' }));
+  await setup({ active: true, chat, lastInboundAt: NOW - 3_600_000 }).dispatch(msg({ text: 'hi' }));
+  assert.deepEqual(seen, [{ returning: true }, {}]);
+});
+
+test('a keeper that fails never stops the reply', async () => {
+  const s = setup({ active: true, extra: { keep: async () => { throw new Error('db down'); } } });
+  await s.dispatch(msg({ text: 'hi' }));
+  assert.match(bodyOf(s.sent.at(-1)!), /Hello from the agent/);
 });
 
 test('a money card can be shown as a link to Karwan, and no chat button can confirm it', async () => {

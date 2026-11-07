@@ -2262,6 +2262,19 @@ export interface AssistantConversationSummary {
   title: string;
   createdAt: number;
   updatedAt: number;
+  /// Kept from a chat app (view 66).
+  source?: 'telegram' | 'whatsapp';
+}
+
+/// What was left unfinished, shown after a break (view 66).
+export interface AssistantPickUp {
+  conversationId: string;
+  title: string;
+  source?: 'telegram' | 'whatsapp';
+  at: number;
+  card?: string;
+  question?: string;
+  held: { sent: number; offer: number; delivery: number; request: number; entry: number };
 }
 
 export interface AssistantConversation extends AssistantConversationSummary {
@@ -6040,6 +6053,7 @@ export const api = {
     }),
   /// Assistant conversations saved to the account (view 19).
   assistantConversations: () => json<{ conversations: AssistantConversationSummary[] }>('/api/assistant/conversations'),
+  assistantPickUp: () => json<{ pickUp: AssistantPickUp | null }>('/api/assistant/pick-up'),
   assistantConversation: (id: string) =>
     json<{ conversation: AssistantConversation }>(`/api/assistant/conversations/${encodeURIComponent(id)}`),
   assistantLiveTurns: (id: string) =>

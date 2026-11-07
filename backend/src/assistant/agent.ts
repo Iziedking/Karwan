@@ -197,6 +197,7 @@ import type { FinanceDeal } from './finance.js';
 import { callAsAccount } from '../channels/inProcess.js';
 import { familyClaimableUsdc } from '../money/familyFinancingLive.js';
 import { financierEligibility } from '../profile/financier.js';
+import { readInvoiceLive, sentFiles, useSentFiles } from '../channels/sentFiles.js';
 
 /// Absolute so a link works when pasted anywhere, including outside the app.
 function paymentLinkUrl(token: string): string {
@@ -1615,7 +1616,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_mark_delivered: tool({
       description:
-        "Prepare a confirm card for the SELLER to mark a deal delivered, which starts the buyer's review window and puts the payment in reach. Use for 'I finished the work', 'mark it delivered', 'I've sent it', 'I handed it over'. Work is delivered with a link in the note. Goods are delivered with the carrier and tracking number, or, when handed over in person, with the six-digit code the buyer shows once they hold the item. Goods over 50 USDC need a photo of the item: photos the seller sends here with a caption like 'delivered' or 'packed' are added on their own.",
+        "Prepare a confirm card for the SELLER to mark a deal delivered, which starts the buyer's review window and puts the payment in reach. Use for 'I finished the work', 'mark it delivered', 'I've sent it', 'I handed it over'. Work is delivered with a link in the note. Goods are delivered with the carrier and tracking number, or, when handed over in person, with the six-digit code the buyer shows once they hold the item. Goods over 50 USDC need a photo of the item: photos the seller sends here go on the delivery once they say it is for the delivery (use_sent_photo purpose delivery), or on their own with a caption like 'delivered'.",
       inputSchema: z.object({
         jobId: z.string().min(1).max(120).describe('The deal id.'),
         note: z
@@ -1652,7 +1653,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             return { error: `Ask for the ${found.name} tracking page link, so the buyer can follow the parcel.` };
           }
           if (needs.photo && photos === 0) {
-            return { error: 'Goods over 50 USDC are delivered with a photo of the item. Ask them to send one here first, with a caption like "packed" or "delivered".' };
+            return { error: 'Goods over 50 USDC are delivered with a photo of the item. Ask them to send one here first; no caption is needed.' };
           }
           if (needs.link && !extractUrls(note ?? '').length) {
             return { error: 'Ask for the link to the work (a Google Drive, Figma or repository link) and put it in the note.' };
@@ -2548,9 +2549,27 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       },
     }),
 
+    use_sent_photo: tool({
+      description:
+        'Put the photos or PDFs the person just sent, which are waiting with nothing yet saying what they are for, where they belong. ' +
+        'A chat line in [brackets] says a file arrived, its caption and what it shows. Decide from the conversation: ' +
+        '"offer" for an item they are listing or about to list (then prepare the card with propose_post_offer; the photos go on it), ' +
+        '"delivery" for proof of a delivery they are making, "request" for a request or a direct deal they are setting up, ' +
+        '"entry" for a contest entry, "record" ONLY when they say it is an invoice or receipt for work they did, to add to their record. ' +
+        'If the conversation does not make it clear, ask them which, and do not call this. If the picture does not match what they are listing ' +
+        '(they are selling a laptop and it shows a phone), say so and ask before using it. Never ask for special caption words: they just send the photo.',
+      inputSchema: z.object({
+        purpose: z.enum(['offer', 'delivery', 'request', 'entry', 'record']).describe('Where the files go.'),
+      }),
+      execute: async ({ purpose }) => {
+        const out = await useSentFiles(address, purpose, { now: Date.now, store: sentFiles, readInvoice: (a, f) => readInvoiceLive(a, f) });
+        return out.ok ? { ok: true, said: out.said } : { error: out.said };
+      },
+    }),
+
     propose_post_offer: tool({
       description:
-        "Prepare a confirm card to post the user's standing OFFER to supply work or goods (a listing on the marketplace). This does NOT post it: it shows the user a card they must approve, then it posts as themselves. Use it when they clearly want to advertise what they sell and have given a title, a short description, and an asking price in USDC. Nothing moves money and the offer can be cancelled later. Photos the user sent in this chat in the last hour go on the offer automatically (up to four); for goods, invite them to send photos first. Do NOT use this for posting a REQUEST for work they need (that funds an auction) — send them to the request desk with propose_navigation instead.",
+        "Prepare a confirm card to post the user's standing OFFER to supply work or goods (a listing on the marketplace). This does NOT post it: it shows the user a card they must approve, then it posts as themselves. Use it when they clearly want to advertise what they sell and have given a title, a short description, and an asking price in USDC. Nothing moves money and the offer can be cancelled later. Photos held for their next offer in the last hour go on it automatically (up to four); a photo they just sent with nothing saying what for must first be put there with use_sent_photo purpose offer. For goods, invite them to send photos first: they just send them, no caption needed. Do NOT use this for posting a REQUEST for work they need (that funds an auction) — send them to the request desk with propose_navigation instead.",
       inputSchema: z.object({
         title: z.string().min(3).max(120).describe('Short offer title, e.g. "Arabic-English contract translation".'),
         description: z.string().min(5).max(500).describe('What they supply, plainly. One or two sentences.'),
@@ -3164,6 +3183,8 @@ export async function runAssistantAgent(input: {
   conversationId?: string;
   /// The deal page the person has open, when they asked from it (view 42).
   viewingDeal?: string;
+  /// What the person left unfinished, when they are back after a break (view 66).
+  pickUp?: string;
   /// A second try after a reply stated account facts without reading them:
   /// the first step must call a tool, so the answer rests on a fresh read.
   forceRead?: boolean;
@@ -3180,6 +3201,7 @@ export async function runAssistantAgent(input: {
     + (voice ? '\n' + voice : '')
     + (input.memory ? '\n' + memoryPreamble(input.memory) : '')
     + (input.viewingDeal ? '\n' + viewingDealLine(input.viewingDeal) : '')
+    + (input.pickUp ? '\n' + input.pickUp : '')
     + (input.forceRead ? '\nRead the account with the tool for what the person asked about before you answer. State only what that read returned.' : '');
   const actions: AssistantAction[] = [];
 

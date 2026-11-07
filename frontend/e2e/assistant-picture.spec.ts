@@ -13,7 +13,12 @@ async function open(page: Page) {
     const req = route.request();
     const path = new URL(req.url()).pathname;
     if (path === '/api/assistant/attach') {
-      calls.attach.push(req.postDataBuffer()?.toString('latin1').includes('offer') ? 'offer' : 'invoice');
+      const body = req.postDataBuffer()?.toString('latin1') ?? '';
+      if (/name="purpose"\s+auto/.test(body)) {
+        calls.attach.push('auto');
+        return route.fulfill({ json: { note: '[I sent a photo, no caption. It shows a red sneaker.]', turn: true } });
+      }
+      calls.attach.push(body.includes('offer') ? 'offer' : 'invoice');
       return route.fulfill({ json: { reply: 'Photo added for your next offer (1 of 4).' } });
     }
     if (path === '/api/assistant/chat') {
@@ -53,7 +58,7 @@ test('a pasted picture waits in the box, then goes with the words and shows in t
   expect(calls.chat.at(-1)?.at(-1)).toEqual({ role: 'user', content: 'selling this for 50 USDC' });
 });
 
-test('a picture sent alone asks what it is for, and can be removed before sending', async ({ page }) => {
+test('a picture sent alone goes to the assistant with what it shows, and can be removed before sending (view 66)', async ({ page }) => {
   const calls = await open(page);
   await pastePicture(page);
   await page.getByRole('button', { name: 'Remove photo 1' }).click();
@@ -61,6 +66,8 @@ test('a picture sent alone asks what it is for, and can be removed before sendin
 
   await pastePicture(page);
   await page.locator('form:has(#assistant-ask) button[type="submit"]').click();
-  await expect(page.getByText('What is this photo for?')).toBeVisible();
-  expect(calls.attach).toEqual([]);
+  await expect(page.getByText('Your offer is ready to post.')).toBeVisible();
+  expect(calls.attach).toEqual(['auto']);
+  expect(calls.chat.at(-1)?.at(-1)).toEqual({ role: 'user', content: '[I sent a photo, no caption. It shows a red sneaker.]' });
+  await expect(page.locator('img[src^="blob:"]')).toHaveCount(1);
 });

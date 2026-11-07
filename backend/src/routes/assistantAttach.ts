@@ -1,9 +1,11 @@
 import { Hono, type Context } from 'hono';
 
-/// POST /api/assistant/attach: a photo or PDF added in assistant mode. It goes
-/// through the same intake as a file sent to the agent on Telegram (read as an
-/// invoice for your own work, added to your record unconfirmed). The file is
-/// never kept; only its hash and the fields read from it.
+/// POST /api/assistant/attach: a photo or PDF added in assistant mode.
+/// purpose 'offer', 'entry', 'draft' or 'delivery' holds it for that; 'auto'
+/// goes the way a file sent on Telegram goes (view 66): put where the words
+/// beside it say, or held with a line saying what it shows for the assistant
+/// to answer. Anything else reads it as an invoice for your own work: only its
+/// hash and the fields read from it are kept.
 
 export const ATTACH_MAX_BYTES = 10 * 1024 * 1024;
 const READABLE = /^(image\/(jpeg|png|webp)|application\/pdf)$/;
@@ -16,6 +18,13 @@ export interface AttachRouteDeps {
   intake: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string[]>;
   /// A photo the person added for an offer: held for their next offer (view 28).
   holdForOffer?: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string>;
+  /// A file the words beside it do not place (view 66): the note for the
+  /// assistant's turn, or what was done with it.
+  arrive?: (
+    address: string,
+    file: { bytes: Uint8Array; mimeType: string },
+    words: string | undefined,
+  ) => Promise<{ reply?: string; note: string; turn: boolean } | { error: string }>;
   now?: () => number;
 }
 
@@ -63,6 +72,11 @@ export function createAssistantAttachRoutes(deps: AttachRouteDeps): Hono {
       const { holdForDelivery } = await import('../deals/deliveryPhotos.js');
       return c.json({ reply: await holdForDelivery(address, { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type }) });
     }
+    if (form?.purpose === 'auto' && deps.arrive) {
+      const words = typeof form.words === 'string' ? form.words.slice(0, 500) : undefined;
+      const got = await deps.arrive(address, { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type }, words);
+      return 'error' in got ? c.json({ error: got.error }, 415) : c.json(got);
+    }
     const lines = await deps.intake(address, { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type });
     return c.json({ reply: lines.join('\n\n') });
   });
@@ -86,6 +100,22 @@ const live = async () => {
 
 export const assistantAttachRoutes = createAssistantAttachRoutes({
   sessionAddress: async (c) => (await live()).sessionAddress(c),
+  arrive: async (address, file, words) => {
+    const [{ fileArrived }, { sentFiles, readInvoiceLive }, { describeSentFile }] = await Promise.all([
+      import('../channels/fileArrival.js'),
+      import('../channels/sentFiles.js'),
+      import('../channels/describeSentFile.js'),
+    ]);
+    const got = await fileArrived(address, file, words, {
+      now: Date.now,
+      store: sentFiles,
+      describe: describeSentFile,
+      readInvoice: (a, f) => readInvoiceLive(a, f, 'web'),
+    });
+    const reply = got.replies.map((m) => ('body' in m ? m.body : '')).filter(Boolean).join('\n\n');
+    if (!got.note) return { error: reply };
+    return { ...(reply ? { reply } : {}), note: got.note, turn: got.turn };
+  },
   intake: async (address, file) => {
     const l = await live();
     const intake = l.createEvidenceIntake({

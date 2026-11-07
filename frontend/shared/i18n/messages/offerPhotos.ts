@@ -22,11 +22,6 @@ export interface OfferPhotosCopy {
   reportSent: string;
   reportFailed: string;
   cancel: string;
-  chooseTitle: string;
-  forOffer: string;
-  /// View 56: kept for the next request or deal.
-  forDraft: string;
-  asInvoice: string;
 }
 
 export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
@@ -49,10 +44,6 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     reportSent: 'Thanks. The team will look at it.',
     reportFailed: "That didn't send. Try again.",
     cancel: 'Cancel',
-    chooseTitle: 'What is this photo for?',
-    forOffer: 'For an offer',
-    forDraft: 'For a request or deal',
-    asInvoice: 'Read as an invoice',
   },
   fr: {
     label: 'Photos',
@@ -73,10 +64,6 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     reportSent: "Merci. L'équipe va regarder.",
     reportFailed: "L'envoi a échoué. Réessayez.",
     cancel: 'Annuler',
-    chooseTitle: 'À quoi sert cette photo ?',
-    forOffer: 'Pour une offre',
-    forDraft: 'Pour une demande ou un accord',
-    asInvoice: 'Lire comme une facture',
   },
   ar: {
     label: 'الصور',
@@ -97,10 +84,6 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     reportSent: 'شكرًا. سيراجعه الفريق.',
     reportFailed: 'لم يُرسل. حاول مرة أخرى.',
     cancel: 'إلغاء',
-    chooseTitle: 'لأي شيء هذه الصورة؟',
-    forOffer: 'لعرض',
-    forDraft: 'لطلب أو صفقة',
-    asInvoice: 'قراءتها كفاتورة',
   },
   hi: {
     label: 'फ़ोटो',
@@ -121,10 +104,6 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     reportSent: 'धन्यवाद। टीम इसे देखेगी।',
     reportFailed: 'यह नहीं भेजा गया। फिर से कोशिश करें।',
     cancel: 'रद्द करें',
-    chooseTitle: 'यह फ़ोटो किसलिए है?',
-    forOffer: 'किसी ऑफ़र के लिए',
-    forDraft: 'अनुरोध या सौदे के लिए',
-    asInvoice: 'इनवॉइस की तरह पढ़ें',
   },
   sw: {
     label: 'Picha',
@@ -145,9 +124,5 @@ export const offerPhotosCopy: Record<Locale, OfferPhotosCopy> = {
     reportSent: 'Asante. Timu itaiangalia.',
     reportFailed: 'Haikutumwa. Jaribu tena.',
     cancel: 'Ghairi',
-    chooseTitle: 'Picha hii ni ya nini?',
-    forOffer: 'Kwa ofa',
-    forDraft: 'Kwa ombi au mpango',
-    asInvoice: 'Isome kama ankara',
   },
 };

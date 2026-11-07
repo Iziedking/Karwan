@@ -19,4 +19,7 @@ export const chatBodySchema = z.object({
   /// The deal page the Help panel is open on (view 42). Context only: every
   /// tool still checks the person is a party to it.
   viewingDeal: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+  /// The person is back after a break (a chat app sets it): the assistant may
+  /// pick up unfinished work, read on the server (view 66).
+  returning: z.boolean().optional(),
 });

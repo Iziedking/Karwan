@@ -25,9 +25,13 @@ export interface AssistantConversation {
   messages: StoredMessage[];
   createdAt: number;
   updatedAt: number;
+  /// Kept from a chat app (view 66); absent for a website conversation.
+  source?: ConversationSource;
 }
 
-export type ConversationSummary = Pick<AssistantConversation, 'id' | 'title' | 'createdAt' | 'updatedAt'>;
+export type ConversationSource = 'telegram' | 'whatsapp';
+
+export type ConversationSummary = Pick<AssistantConversation, 'id' | 'title' | 'createdAt' | 'updatedAt' | 'source'>;
 
 export interface IncomingMessage {
   role: 'user' | 'assistant';
@@ -41,7 +45,13 @@ let lastAt = 0;
 /// Strictly increasing, so "used longest ago" never ties.
 const stamp = () => (lastAt = Math.max(Date.now(), lastAt + 1));
 
-const summary = (c: AssistantConversation): ConversationSummary => ({ id: c.id, title: c.title, createdAt: c.createdAt, updatedAt: c.updatedAt });
+const summary = (c: AssistantConversation): ConversationSummary => ({
+  id: c.id,
+  title: c.title,
+  createdAt: c.createdAt,
+  updatedAt: c.updatedAt,
+  ...(c.source ? { source: c.source } : {}),
+});
 
 /// Whatever the client sent about a card, it comes back unconfirmable.
 function storedAction(raw: unknown): StoredAction | null {
@@ -87,8 +97,13 @@ export async function getConversation(address: string, id: string): Promise<Assi
 }
 
 /// Starts a conversation (id null) or adds to one. Throws `not_found` for an
-/// id the account does not own.
-export async function appendToConversation(address: string, id: string | null, messages: readonly IncomingMessage[]): Promise<AssistantConversation> {
+/// id the account does not own. `source` marks a new one kept from a chat app.
+export async function appendToConversation(
+  address: string,
+  id: string | null,
+  messages: readonly IncomingMessage[],
+  source?: ConversationSource,
+): Promise<AssistantConversation> {
   const a = low(address);
   const current = id ? await getConversation(a, id) : null;
   if (id && !current) throw new Error('not_found');
@@ -96,7 +111,7 @@ export async function appendToConversation(address: string, id: string | null, m
   const all = [...(current?.messages ?? []), ...messages.map(storedMessage)].slice(-MAX_MESSAGES);
   const next: AssistantConversation = current
     ? { ...current, messages: all, updatedAt: now }
-    : { id: randomUUID(), address: a, title: titleOf(all), messages: all, createdAt: now, updatedAt: now };
+    : { id: randomUUID(), address: a, title: titleOf(all), messages: all, createdAt: now, updatedAt: now, ...(source ? { source } : {}) };
 
   if (!pgEnabled) {
     mem.set(next.id, next);
@@ -138,6 +153,19 @@ export async function conversationsMentioning(address: string, terms: readonly s
     [a, patterns],
   );
   return res.rows.map((row) => row.data);
+}
+
+/// The most recently used conversation, for picking up where the person stopped.
+export async function latestConversation(address: string): Promise<AssistantConversation | null> {
+  const a = low(address);
+  if (!pgEnabled) {
+    return [...mem.values()].filter((c) => c.address === a).sort((x, y) => y.updatedAt - x.updatedAt)[0] ?? null;
+  }
+  const res = await postgresExecutor().query<{ data: AssistantConversation }>(
+    `SELECT data FROM assistant_conversations_v1 WHERE address = $1 ORDER BY updated_at DESC LIMIT 1`,
+    [a],
+  );
+  return res.rows[0]?.data ?? null;
 }
 
 export async function deleteConversation(address: string, id: string): Promise<boolean> {

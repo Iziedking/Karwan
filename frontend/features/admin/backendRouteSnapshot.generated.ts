@@ -185,6 +185,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/assistant/memory" },
   { method: "POST", path: "/api/assistant/memory/enabled" },
   { method: "DELETE", path: "/api/assistant/memory/notes/:id" },
+  { method: "GET", path: "/api/assistant/pick-up" },
   { method: "GET", path: "/api/auth/bootstrap" },
   { method: "POST", path: "/api/auth/login/options" },
   { method: "POST", path: "/api/auth/login/verify" },

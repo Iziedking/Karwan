@@ -76,4 +76,8 @@ export interface ChatAccount {
   /// The last numbered list Karwan sent (a shortlist), so a bare number in
   /// reply chooses from it (channels/numberReply.ts).
   choices?: ChatChoices;
+  /// The kept conversation this chat is written to, and when it was last
+  /// written (view 66). A day of quiet starts a new one.
+  conversationId?: string;
+  conversationAt?: number;
 }

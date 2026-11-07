@@ -76,3 +76,21 @@ test('a photo meant for an offer is held for it, not read as an invoice', async 
   const refused = await createAssistantAttachRoutes({ sessionAddress: () => '0xada', intake: async () => [], holdForOffer: async () => 'x' }).request('/', { method: 'POST', body: pdf });
   assert.equal(refused.status, 415);
 });
+
+test('auto sends the file and the words beside it the way a chat-app file goes (view 66)', async () => {
+  const arrived: Array<{ words?: string; bytes: number }> = [];
+  let invoices = 0;
+  const form = new FormData();
+  form.append('file', new File([new Uint8Array([0xff, 0xd8, 0xff])], 'laptop.jpg', { type: 'image/jpeg' }));
+  form.append('purpose', 'auto');
+  form.append('words', 'Laptop photo');
+  const res = await createAssistantAttachRoutes({
+    sessionAddress: () => '0xada',
+    intake: async () => (invoices++, ['invoice']),
+    arrive: async (_a, f, w) => (arrived.push({ words: w, bytes: f.bytes.length }), { note: 'n', turn: true }),
+  }).request('/', { method: 'POST', body: form });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { note: 'n', turn: true });
+  assert.deepEqual(arrived, [{ words: 'Laptop photo', bytes: 3 }]);
+  assert.equal(invoices, 0);
+});

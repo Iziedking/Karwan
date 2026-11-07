@@ -45,7 +45,7 @@ const actingTools = new Set([
   'ask_past_client_to_confirm', 'message_about_early_payment', 'message_person', 'message_in_deal',
   'rate_deal', 'set_chat_alerts', 'set_location', 'set_up_my_agents', 'set_up_record',
   'set_way_i_deal', 'share_my_passport', 'stop_passport_share', 'submit_business_registration',
-  'remember_this', 'forget_memory', 'dismiss_learned_suggestion',
+  'remember_this', 'forget_memory', 'dismiss_learned_suggestion', 'use_sent_photo',
 ]);
 
 function successful(output: unknown): boolean {

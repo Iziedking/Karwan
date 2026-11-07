@@ -1,6 +1,6 @@
 # 66 · Photos the assistant understands, and picking up where you stopped
 
-Track T6 (channels), roadmap item T6.6. Proposed 7 Nov 2026 from the owner's Telegram test: a seller listing a laptop sent its photo with the caption "Laptop photo", and Karwan answered "I couldn't read who it was for, the amount or the date. Please send a clearer photo of the whole invoice." The three decisions below were chosen the same day. Waiting for approval of this view.
+Track T6 (channels), roadmap item T6.6. Proposed 7 Nov 2026 from the owner's Telegram test: a seller listing a laptop sent its photo with the caption "Laptop photo", and Karwan answered "I couldn't read who it was for, the amount or the date. Please send a clearer photo of the whole invoice." The three decisions below were chosen and the view approved the same day. Built 7 Nov 2026, not deployed.
 
 ## What is wrong today
 
@@ -71,7 +71,7 @@ flowchart LR
 
 | Part | State |
 |---|---|
-| Photo read on arrival, the chat line, `use_sent_photo` (`channels/media.ts`, `assistant/agent.ts`) | Proposed |
-| No invoice reading by default | Proposed |
-| Chat-app turns kept as conversations (`channels/dispatch.ts`, `db/assistantConversations.ts`) | Proposed |
-| Picking up unfinished work, in chat apps and on the website | Proposed |
+| Photo read on arrival, the chat line, `use_sent_photo` (`channels/fileArrival.ts`, `channels/sentFiles.ts`, `channels/describeSentFile.ts`, `assistant/agent.ts`) | Built 7 Nov 2026, not deployed |
+| No invoice reading by default, on the website too (its photo choice is gone; the assistant asks) | Built 7 Nov 2026, not deployed |
+| Chat-app turns kept as conversations (`channels/dispatch.ts`, `db/assistantConversations.ts`) | Built 7 Nov 2026, not deployed |
+| Picking up unfinished work, in chat apps and on the website (`assistant/pickUp.ts`, `GET /api/assistant/pick-up`, `PickUpLine`) | Built 7 Nov 2026, not deployed |

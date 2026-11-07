@@ -11,15 +11,14 @@ import { createTagStep } from '../../channels/tagStep.js';
 import { checkKarwanTag } from '../../profile/karwanTag.js';
 import { MONEY_INTENTS, createMoneyStepPresenter } from '../../channels/moneySteps.js';
 import { callAsAccount } from '../../channels/inProcess.js';
-import { extractInvoice, MEDIA_MAX_BYTES } from '../../channels/invoiceExtract.js';
-import { createEvidenceIntake } from '../../channels/media.js';
+import { MEDIA_MAX_BYTES } from '../../channels/invoiceExtract.js';
+import { createChatFileIntake, keepChat } from '../../channels/fileArrival.js';
 import { chatOpenLinks, chatOpenUrl } from '../../channels/openLinksLive.js';
 import { openLinkAllowed } from '../../channels/openLink.js';
 import type { OutMessage } from '../../channels/render.js';
 import { installChannelPorts, tellAccount } from '../../channels/sender.js';
 import { provisionUserIdentityWallet } from '../../circle/wallets.js';
 import { config } from '../../config.js';
-import { claimUnique } from '../../db/evidence.js';
 import { getProfile, tagAvailableFor, updateProfile } from '../../db/profiles.js';
 import {
   claimTelegramUsername,
@@ -36,7 +35,7 @@ import { isInvited, joinWaitlist } from '../../db/waitlist.js';
 import { emailCodes, emailHash } from '../../routes/auth.js';
 import { isChatAccountEmail, telegramAccountEmail } from '../../emails/chatRecipients.js';
 import { logger } from '../../logger.js';
-import { addVerifiedFact, cacReview, clientConfirmations } from '../../verification/live.js';
+import { cacReview, clientConfirmations } from '../../verification/live.js';
 import { installVerificationServices } from '../../verification/services.js';
 import { setTelegramAgentHandler } from '../bot.js';
 import { createTelegramApi } from './api.js';
@@ -88,17 +87,12 @@ export function startTelegramAgent(): boolean {
     cac: cacReview((address, text) => tellAccount(address, { kind: 'text', body: text }).then(() => undefined)),
   });
 
-  const intake = createEvidenceIntake({
-    now: Date.now,
+  const intake = createChatFileIntake({
     channel: 'telegram',
     download: async (fileId, mimeType) => {
       const bytes = await api.download(fileId);
       return bytes && mimeType ? { bytes, mimeType } : null;
     },
-    extract: extractInvoice,
-    displayNameOf: async (address) => (await getProfile(address))?.displayName ?? '',
-    claimFingerprint: (fp, address) => claimUnique('fp', fp, address),
-    addFact: addVerifiedFact,
   });
 
   const activate = async (address: string) => {
@@ -208,8 +202,8 @@ export function startTelegramAgent(): boolean {
     saveAccount: saveTelegramAccount,
     send,
     drain: async () => {},
-    chat: async (address, messages) => {
-      const r = await callAsAccount(address, 'POST', '/api/assistant/chat', { messages });
+    chat: async (address, messages, opts) => {
+      const r = await callAsAccount(address, 'POST', '/api/assistant/chat', { messages, ...opts });
       if (r.status === 200) {
         return { ok: true, reply: String(r.json.reply ?? ''), actions: r.json.actions as AssistantAction[] | undefined };
       }
@@ -260,7 +254,8 @@ export function startTelegramAgent(): boolean {
       }
       return yes ? 'Thank you. This request was already answered or has closed.' : 'Thank you for answering. Nothing was added to their record.';
     },
-    media: (account, m) => (account.address ? intake(account.address, m) : Promise.resolve([])),
+    media: (account, m) => (account.address ? intake(account.address, m) : Promise.resolve({ replies: [] })),
+    keep: keepChat('telegram'),
   });
 
   // The alert link row carries the username too, so it never goes stale.

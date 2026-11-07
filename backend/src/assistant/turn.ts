@@ -11,6 +11,8 @@ import { replyStands, retryWithRead, type TryOutcome } from './turnRules.js';
 import { getMemory, type AssistantMemory } from '../db/assistantMemory.js';
 import { liveMemoryWriterDeps, writeMemoryNotes } from './memoryWriter.js';
 import { noteRequestCards } from './requestLinks.js';
+import { pickUpPreamble } from './pickUp.js';
+import { readPickUp } from './pickUpLive.js';
 
 export type AssistantTurnResult =
   | { ok: true; reply: string; actions?: AssistantAction[] }
@@ -28,7 +30,7 @@ const STATE_UNAVAILABLE: AssistantTurnResult = {
 };
 
 export async function runAssistantTurn(
-  input: { address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant'; conversationId?: string; viewingDeal?: string },
+  input: { address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant'; conversationId?: string; viewingDeal?: string; returning?: boolean },
   fallback: FallbackReply,
 ): Promise<AssistantTurnResult> {
   // Stateful prompts fail closed rather than falling through to an ungrounded
@@ -42,6 +44,11 @@ export async function runAssistantTurn(
         logger.warn({ err: err.message }, 'assistant memory: read failed, answering without it');
         return undefined;
       });
+      // Back after a break: what was left unfinished, read live (view 66).
+      // Picking up reads past chats, so it needs memory on.
+      const pickUp = input.returning && memory?.enabled
+        ? await readPickUp(address, Date.now()).catch((): null => null)
+        : null;
       const ask = (forceRead: boolean) => runAssistantAgent({
         address,
         method: input.method,
@@ -50,6 +57,7 @@ export async function runAssistantTurn(
         memory,
         conversationId: input.conversationId,
         viewingDeal: input.viewingDeal,
+        ...(pickUp ? { pickUp: pickUpPreamble(pickUp, Date.now()) } : {}),
         forceRead,
       });
       let { text, actions, grounded, subjects, acted } = await ask(false);

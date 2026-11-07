@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-11-05",
+  "canonUpdated": "2026-11-07",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -239,7 +239,7 @@
       "id": "delivery-proof",
       "title": "What counts as delivery",
       "status": "shipping",
-      "updated": "2026-11-05",
+      "updated": "2026-11-07",
       "tags": [
         "delivery",
         "goods",
@@ -252,7 +252,7 @@
           "date": "2026-10-26"
         }
       ],
-      "body": "Delivery has to be against something the buyer can check, and what that is\ndepends on the kind of deal.\n\nAnyone can sell goods on Karwan, a person or a business. When the deal is made\nthe seller says how the item reaches the buyer: shipped, with a carrier and\ntracking number at delivery, or handed over in person, with the buyer's\none-time handover code. The kind of deal, one payment, stages or goods, is\nsaved on the deal, and the escrow follows it.\n\nWork, such as a design, writing, code or a video, is delivered as a link to the\nwork, with a short note. The link has to point to a real site before the\ndelivery is accepted. Every link is checked for safety; one the check holds is\nhidden from the buyer and never paid for, not even when the buyer's review time\nends, until a person at Karwan clears it or the seller sends another link.\n\nKarwan also compares the delivery with what was agreed, using a language\nmodel. When no model answers, fixed rules check what can be measured: the\nproof is in place and every link in it passed the safety check and opened.\nThen the deal says Delivery received and the buyer checks the work; it never\nsays the work matches, and a model reads it again later. When even that cannot\nbe said, the deal says so in plain words: Karwan couldn't check the delivery, the buyer checks the work before releasing, and\nautomatic release waits for them. Nothing is wrong with the seller's delivery\nbecause of it. Karwan tries the check again a few minutes later, and either side\ncan press Check again on the Checked by Karwan card or ask the assistant. Checks run on\nchain by Chainlink CRE are not live yet.\n\nSeparately from links, the security agent screens each match when it is funded.\nA match it holds shows Held for a look on the deal, with one shared line and\nonly the lines meant for that side. The money stays in escrow and release\nfollows the deal’s own rules; nothing is blocked. Either person can ask a\nperson at Karwan to check from that card, and a person at Karwan clears the\nhold with a reason, after which both see one line in the deal chat. A person\nat Karwan can also review an earlier delivery link, or one on a closed deal,\nfor the record: clearing it takes the offence off the seller and changes\nnothing for the money.\n\nGoods sent with a courier are delivered with the carrier and the tracking\nnumber. Karwan builds the tracking link for DHL, FedEx, UPS and the main\nshipping lines. For local couriers, such as GIG Logistics, Kwik, NIPOST,\nAramex, Emirates Post, Delhivery, India Post and Bosta, the seller adds the\ncourier's tracking page. The buyer confirms when the goods arrive, which\nstarts their review. Confirming arrival does not pay the seller.\n\nGoods handed over in person end with a handover code. The buyer opens the deal\nand shows a six-digit code only once they hold the item, and the seller enters\nit. The code works once, counts as the item arriving, and starts the buyer's\nreview, so the buyer can still raise a problem they find later. Five wrong\ntries lock the code for 15 minutes, and asking for a new code cancels the old\none.\n\nGoods worth more than 50 USDC are delivered with a photo of the item. Any\ndelivery can carry up to four photos, added on the deal page or sent to the\nassistant with a caption like \"delivered\" or \"packed\".\n\nBoth sides see every delivery on the deal page: the links to open, where the\ngoods are, what Karwan checked, the photos and the deliveries before this one.\nThe assistant answers \"where is my order\" from the same record.\n\nKarwan does not inspect goods or judge the quality of work, and it does not\nread the courier's own tracking status yet. What it requires is that each\ndelivery is specific, on the record and fingerprinted on chain with the\ndelivery."
+      "body": "Delivery has to be against something the buyer can check, and what that is\ndepends on the kind of deal.\n\nAnyone can sell goods on Karwan, a person or a business. When the deal is made\nthe seller says how the item reaches the buyer: shipped, with a carrier and\ntracking number at delivery, or handed over in person, with the buyer's\none-time handover code. The kind of deal, one payment, stages or goods, is\nsaved on the deal, and the escrow follows it.\n\nWork, such as a design, writing, code or a video, is delivered as a link to the\nwork, with a short note. The link has to point to a real site before the\ndelivery is accepted. Every link is checked for safety; one the check holds is\nhidden from the buyer and never paid for, not even when the buyer's review time\nends, until a person at Karwan clears it or the seller sends another link.\nOn the escrow family the hold is also put on chain. If nobody has cleared the\nlink when a quarter of the buyer's review time is left, Karwan uses the\nbuyer's one request for more time. If the link is still held as that runs\nout, Karwan opens the buyer's dispute, so the payment cannot be claimed on the\nclock. A dispute over a held link is decided by a person.\n\nKarwan also compares the delivery with what was agreed, using a language\nmodel. When that check cannot run, the deal says so in plain words: Karwan\ncouldn't check the delivery, the buyer checks the work before releasing, and\nautomatic release waits for them. Nothing is wrong with the seller's delivery\nbecause of it. Karwan tries the check again a few minutes later, and either side\ncan ask for Check again on the deal page or from the assistant. Checks run on\nchain by Chainlink CRE are not live yet.\n\nSeparately from links, the security agent screens each match when it is funded.\nA match it holds shows Held for a look on the deal, with one shared line and\nonly the lines meant for that side. The money stays in escrow and release\nfollows the deal’s own rules; nothing is blocked. Either person can ask a\nperson at Karwan to check from that card, and a person at Karwan clears the\nhold with a reason, after which both see one line in the deal chat. A person\nat Karwan can also review an earlier delivery link, or one on a closed deal,\nfor the record: clearing it takes the offence off the seller and changes\nnothing for the money.\n\nGoods sent with a courier are delivered with the carrier and the tracking\nnumber. Karwan builds the tracking link for DHL, FedEx, UPS and the main\nshipping lines. For local couriers, such as GIG Logistics, Kwik, NIPOST,\nAramex, Emirates Post, Delhivery, India Post and Bosta, the seller adds the\ncourier's tracking page. The buyer confirms when the goods arrive, which\nstarts their review. Confirming arrival does not pay the seller.\n\nGoods handed over in person end with a handover code. The buyer opens the deal\nand shows a six-digit code only once they hold the item, and the seller enters\nit. The code works once, counts as the item arriving, and starts the buyer's\nreview, so the buyer can still raise a problem they find later. Five wrong\ntries lock the code for 15 minutes, and asking for a new code cancels the old\none.\n\nGoods worth more than 50 USDC are delivered with a photo of the item. Any\ndelivery can carry up to four photos, added on the deal page or sent to the\nassistant while you talk about the delivery. No special words are needed.\n\nBoth sides see every delivery on the deal page: the links to open, where the\ngoods are, what Karwan checked, the photos and the deliveries before this one.\nThe assistant answers \"where is my order\" from the same record.\n\nKarwan does not inspect goods or judge the quality of work, and it does not\nread the courier's own tracking status yet. What it requires is that each\ndelivery is specific, on the record and fingerprinted on chain with the\ndelivery."
     },
     {
       "id": "deposit-and-withdraw",
@@ -544,6 +544,27 @@
         }
       ],
       "body": "Other people see your standing, a few plain reasons and how many deals you\nfinished and how many on time, never your score or your amounts. When someone asks to see your record before a\ndeal, you can show them the full passport you see yourself, amounts and the\nmoney held as a reserve included.\n\nOpen your Trade record page and tap Share full record, or ask your assistant on the\nwebsite, Telegram or WhatsApp. Choose one person by their Karwan tag, who must\nbe signed in to open it, or a link anyone can open, for someone not on Karwan\nyet. Choose 24 hours or 7 days.\n\nProfile shows your record in one line, your level and the deals you completed.\nIt opens your Trade record page, which holds every number, what others see,\nyour earlier deals and where your record comes from.\n\nYour passport lists each live share, who it is for, until when and how often it\nwas opened. Stop any of them at any time; the link then shows the sealed\npassport again. At most five shares are live at once.\n\nThis is built for testnet and not live yet."
+    },
+    {
+      "id": "photos-in-the-chat-and-picking-up",
+      "title": "Photos the assistant understands, and picking up where you stopped",
+      "status": "shipping",
+      "updated": "2026-11-07",
+      "tags": [
+        "assistant",
+        "telegram",
+        "photos",
+        "memory",
+        "testnet"
+      ],
+      "path": "public/product/photos-in-the-chat-and-picking-up.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/66-photos-in-the-chat-and-picking-up.md",
+          "date": "2026-11-07"
+        }
+      ],
+      "body": "You can send the Karwan assistant a photo or a PDF on the website, in Telegram\nor in WhatsApp without any special words. A clear caption such as \"selling\nthis\", \"delivered\", \"my entry\" or \"invoice\" puts it there straight away.\nOtherwise the assistant looks at it once, says what it shows, and puts it where\nyour conversation is going: on the offer you are listing, on a delivery, on a\nrequest or deal, or on a contest entry. It reads a file as an invoice for your\nrecord only when you say it is one. When nothing says what the file is for, it\nasks. If a photo does not match what you are listing, it tells you before\nusing it. Sent files wait an hour, four at most.\n\nYour Telegram and WhatsApp chats are kept as conversations, like the ones on\nthe website, marked with where they came from. A new one starts after a day\nwithout messages, and the assistant can search them later.\n\nWhen you come back after six hours or more and something was left unfinished,\nsuch as a card you never confirmed, a question you did not answer, or photos\nheld for an offer you have not posted, the assistant opens with one line that\npicks it up. On the website the same line shows above the input with Continue.\nThis reads your past chats, so it stops when you turn the assistant's memory\noff."
     },
     {
       "id": "photos-on-offers",
@@ -1268,7 +1289,7 @@
         "note": "Goods deliveries are refused without a carrier and tracking reference or the buyer's handover code.",
         "lastVerified": ""
       },
-      "updated": "2026-11-05",
+      "updated": "2026-11-07",
       "path": "public/product/delivery-proof.md"
     },
     {
@@ -2129,6 +2150,36 @@
       "check": null,
       "updated": "2026-11-03",
       "path": "public/product/your-karwan-record.md"
+    },
+    {
+      "id": "photos-in-the-chat-and-picking-up",
+      "title": "Photos the assistant understands, and picking up where you stopped",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "assistant",
+        "telegram",
+        "photos",
+        "memory",
+        "testnet"
+      ],
+      "summary": "You can send the Karwan assistant a photo or a PDF on the website, in Telegram or in WhatsApp without any special words. A clear caption such as \"selling this\", \"delivered\", \"my entry\" or \"invoice\" puts it there straight away. Otherwise the assistant looks at it once, says what it shows, and puts it where your conversation is going: on the offer you are listing, on a delivery, on a request or deal, or on a contest entry. It reads a file as an invoice for your record only when you say it is one. When nothing says what the file is for, it asks. If a photo does not match what you are listing, it tells you before using it. Sent files wait an hour, four at most.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/66-photos-in-the-chat-and-picking-up.md",
+          "date": "2026-11-07"
+        }
+      ],
+      "check": {
+        "kind": "manual",
+        "note": "Built, not deployed yet. The file rules, the chat line, the kept conversations and the pick-up facts read against their tests, which passed on 7 November 2026.",
+        "lastVerified": "2026-11-07"
+      },
+      "updated": "2026-11-07",
+      "path": "public/product/photos-in-the-chat-and-picking-up.md"
     }
   ]
 }

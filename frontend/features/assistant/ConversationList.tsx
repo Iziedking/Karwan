@@ -50,6 +50,7 @@ export function ConversationList({ list, currentId, onNew, onOpen, onRemove }: {
                   )}
                 >
                   {c.title}
+                  {c.source ? <span className="ms-2 text-[13px] font-normal text-[var(--lp-text-sub)]">{c.source === 'telegram' ? 'Telegram' : 'WhatsApp'}</span> : null}
                 </button>
                 {/* Always shown on touch screens; on a pointer it appears on hover or focus. */}
                 <button
