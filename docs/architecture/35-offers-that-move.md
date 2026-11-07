@@ -103,3 +103,7 @@ Post it and sleep: the agents do the haggling inside each person's limits, and b
 - The honest note does not wait for the offer window, which only opens on a first offer: when the market read finds the buyer's limit under 60% of a grounded fair price, the agent looks again two seller sweeps later (`agents/underMarket.ts`).
 - The seller's prompts no longer tell the LLM that an agent never bids below the buyer's budget (`llm/prompts.ts`).
 - The newer request page (search v2) now shows the market note too; before, only the older page did.
+
+### The sell page, 7 Nov 2026
+
+The owner saw one offer twice on /seller: the posted offer under Your offers, and the bid the agent placed on a request in an Active offers table that named the request and buyer by id and wallet. Now there is one list. Your offers shows each posted offer, and the agent's live offer on the request it was matched to (`matchedJobId`) sits under it as one line in words: the price, the request's title, Talking or the round, Withdraw and Open (`OfferBidLine.tsx`). Offers the agent made from the selling settings, not from a posted offer, are rows of their own in the same list; `BidsTable.tsx` is gone. Post an offer is three pages with Back and Next (Figma 203:637): what you sell, price and timing, then photos, who can see it and Review. Every field stays mounted, so the price quote and the drafted parts work as before.

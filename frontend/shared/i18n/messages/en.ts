@@ -1896,6 +1896,12 @@ interface MessagesShape {
       open30: string;
       open90: string;
       readyInRow: string;
+      stepWhat: string;
+      stepPrice: string;
+      stepPhotos: string;
+      stepOf: string;
+      stepNext: string;
+      stepBack: string;
       openForRow: string;
       publish: string;
       publishing: string;
@@ -4230,7 +4236,7 @@ interface MessagesShape {
     empty: { idle: string; dismissed: string };
     columns: { job: string; buyer: string; bid: string; rounds: string; status: string; open: string };
     status: { finalized: string; negotiating: string };
-    row: { openJobAria: string; dismissTitle: string; dismissAria: string; open: string; abandon: string; abandonConfirm: string };
+    row: { openJobAria: string; dismissTitle: string; dismissAria: string; open: string; abandon: string; abandonConfirm: string; onRequest: string; onRequestUntitled: string; withdraw: string; withdrawConfirm: string; talking: string; round: string; };
   };
   releaseMilestones: {
     button: { released: string; releasing: string; release: string };
@@ -7307,6 +7313,12 @@ export const en: MessagesShape = {
       open30: "30 days",
       open90: "90 days",
       readyInRow: "{n} days after the deal starts",
+      stepWhat: "What you sell",
+      stepPrice: "Price and timing",
+      stepPhotos: "Photos and post",
+      stepOf: "Step {n} of 3",
+      stepNext: "Next",
+      stepBack: "Back",
       openForRow: "{n} days",
       publish: "Publish offer",
       publishing: "Publishing…",
@@ -9922,6 +9934,12 @@ export const en: MessagesShape = {
       dismissAria: 'Dismiss this finished offer',
       abandon: 'Abandon',
       abandonConfirm: 'Confirm',
+      onRequest: 'Offered {price} on "{title}"',
+      onRequestUntitled: 'Offered {price} on a buyer\'s request',
+      withdraw: 'Withdraw',
+      withdrawConfirm: 'Yes, withdraw',
+      talking: 'Talking',
+      round: 'Round {n}',
       open: 'Open',
     },
   },

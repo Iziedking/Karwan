@@ -27,14 +27,15 @@ const greenControls = (page: Page) =>
 
 const noSidewaysScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 
-test('Post an offer is one screen with one green button, and fits a phone', async ({ page }, info) => {
+test('Post an offer opens on its first page with one green button, Next, and fits a phone', async ({ page }, info) => {
   await signedIn(page, 'seller');
   await page.goto('/seller');
-  await expect(page.locator('[data-guide="seller-price"] input')).toBeVisible();
+  await expect(page.locator('[data-guide="seller-listing"] input')).toBeVisible();
+  await expect(page.locator('[data-guide="seller-price"] input')).toBeHidden();
   // View 56: no milestone setup until the words make parts.
   await expect(page.locator('[data-pay-in-parts]')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: en.dealCreation.review, exact: true })).toBeVisible();
-  expect(await greenControls(page)).toEqual([en.dealCreation.review]);
+  await expect(page.getByRole('button', { name: en.postListing.flow.stepNext, exact: true })).toBeVisible();
+  expect(await greenControls(page)).toEqual([en.postListing.flow.stepNext]);
   expect(await noSidewaysScroll(page)).toBe(true);
   await page.screenshot({ path: info.outputPath('post-offer.png'), fullPage: true });
 });

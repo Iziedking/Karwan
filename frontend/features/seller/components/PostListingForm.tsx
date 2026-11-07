@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
-import { api, ApiError, type Listing } from '@/core/api';
+import { api, ApiError, type Listing, type SellerActiveBid } from '@/core/api';
+import { OfferBidLine } from './OfferBidLine';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { Hint } from '@/shared/components/Hint';
 import { cn } from '@/shared/utils/cn';
@@ -45,7 +46,9 @@ const chipOff = 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hove
 
 const fill = (template: string, n: number | string) => template.replace('{n}', String(n));
 
-export function PostListingForm() {
+/// `bids`: your agent's live offers on requests. Each sits under the posted
+/// offer it came from, the rest are rows of their own in the same list.
+export function PostListingForm({ bids = [], onWithdrawn }: { bids?: SellerActiveBid[]; onWithdrawn?: (jobId: string) => void } = {}) {
   const pl = useTranslations().postListing;
   const t = useTranslations();
   const f = pl.flow;
@@ -70,6 +73,9 @@ export function PostListingForm() {
   const initialTolerance =
     initialToleranceRaw != null && Number.isFinite(Number(initialToleranceRaw)) ? Number(initialToleranceRaw) : null;
   const [reviewing, setReviewing] = useState(false);
+  // Three pages with Back and Next (owner, 7 Nov 2026, Figma 203:637): what you
+  // sell, price and timing, then photos and posting. Every field stays mounted.
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [title, setTitle] = useState(search.get('title') ?? '');
   const [description, setDescription] = useState(search.get('description') ?? '');
   // Optional: left empty, the market reads a category from the words.
@@ -148,6 +154,13 @@ export function PostListingForm() {
   const agreementText = composeTerms(dealTerms, { priceUsdc: priceValue, dueLabel: null }, TERMS_COPY[locale].text);
   const wordsMissing = stepOneBlocker(title, description, offer);
   const ready = !wordsMissing && !!priceValue && !floorInvalid && readyValid && termsIssues(dealTerms).length === 0;
+  const pricedReady = !!priceValue && !floorInvalid && readyValid && termsIssues(dealTerms).length === 0;
+  const canNext = step === 1 ? !wordsMissing : step === 2 ? pricedReady : ready;
+  const stepNames = [f.stepWhat, f.stepPrice, f.stepPhotos] as const;
+  const goTo = (next: 1 | 2 | 3) => {
+    setStep(next);
+    if (typeof window !== 'undefined') document.getElementById('post-listing')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
 
   // View 56: the words become the parts the contract protects. A draft that
   // fails or finds one part keeps one payment, as before.
@@ -229,6 +242,7 @@ export function PostListingForm() {
     setIntentWarned(false);
     setPublished(null);
     setMatchedJobId(null);
+    setStep(1);
   }
 
   if (!isConnected) {
@@ -262,13 +276,28 @@ export function PostListingForm() {
         onSubmit={(e) => {
           e.preventDefault();
           if (reviewing) void publish();
+          else if (step < 3) { if (canNext) goTo((step + 1) as 2 | 3); }
           else if (ready) void prepare();
         }}
         className="space-y-6"
       >
         {/* One screen (Figma, Batch 9 · Post an offer): the words, the price
             and time, then the settings most people leave as they are. */}
+        {reviewing ? null : (
+          <div data-offer-steps className="space-y-2.5">
+            <div className="flex items-center justify-between gap-3 text-[14px] font-semibold">
+              <span className="text-[var(--ink-secondary)]">{stepNames[step - 1]}</span>
+              <span className="tabular-nums text-[var(--ink-muted)]">{f.stepOf.replace('{n}', String(step))}</span>
+            </div>
+            <div className="flex gap-1.5" aria-hidden>
+              {[1, 2, 3].map((n) => (
+                <span key={n} className={cn('h-1 flex-1 rounded-full', n <= step ? 'bg-[var(--action)]' : 'bg-[var(--line-strong)]')} />
+              ))}
+            </div>
+          </div>
+        )}
         <fieldset hidden={reviewing} disabled={submitting} className="min-w-0 space-y-6">
+          <div hidden={step !== 1} data-step="1" className="space-y-6">
           <div className="space-y-6" data-guide="seller-listing">
             <Field label={pl.sectionWork.titleLabel} hint={pl.sectionWork.titleHint}>
               <input
@@ -342,7 +371,9 @@ export function PostListingForm() {
             </div>
           </div>
           ) : null}
+          </div>
 
+          <div hidden={step !== 2} data-step="2" className="space-y-6">
           <Field label={f.price} hint={pl.sectionPricing.askingHint} dataGuide="seller-price">
             <MoneyInput value={price} onChange={(usdc) => setPrice(usdc ?? '')} handle={priceField} />
           </Field>
@@ -434,10 +465,13 @@ export function PostListingForm() {
           {floorInvalid ? (
             <p role="alert" className="text-[14px] font-medium text-[var(--ink)]">{f.floorTooLow}</p>
           ) : null}
+          </div>
 
+          <div hidden={step !== 3} data-step="3" className="space-y-6">
           {/* Its own block, after the words: the photos are optional and never
               mix with the fields the words check. */}
           <OfferPhotosField value={photos} onChange={setPhotos} title={title.trim()} />
+          </div>
         </fieldset>
 
         {reviewing ? (
@@ -483,21 +517,42 @@ export function PostListingForm() {
         )}
 
         {/* Asked once, on the form; the review that follows does not ask again. */}
-        {reviewing ? null : <WhoCanSee side="offer" value={who} onChange={setWho} />}
-        {!reviewing && who === 'link' ? <DealLinkPanel start="link" /> : null}
+        {reviewing || step !== 3 ? null : <WhoCanSee side="offer" value={who} onChange={setWho} />}
+        {!reviewing && step === 3 && who === 'link' ? <DealLinkPanel start="link" /> : null}
 
-        <div className="space-y-3 border-t border-[var(--line)] pt-5" hidden={who === 'link'}>
-          <Button
-            type="submit"
-            data-guide="seller-submit"
-            size="lg"
-            disabled={!reviewing && !ready}
-            loading={submitting || preparing}
-            loadingLabel={f.publishing}
-            className="w-full sm:w-auto"
-          >
-            {reviewing ? f.publish : t.dealCreation.review}
-          </Button>
+        {!reviewing && step < 3 ? (
+          <div data-step-nav className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-5">
+            {step > 1 ? (
+              <Button type="button" variant="secondary" size="lg" onClick={() => goTo((step - 1) as 1 | 2)}>
+                {f.stepBack}
+              </Button>
+            ) : <span />}
+            <Button type="submit" size="lg" disabled={!canNext}>
+              {f.stepNext}
+            </Button>
+          </div>
+        ) : null}
+        {!reviewing && step < 3 && step === 1 && wordsMissing ? <p role="status" className="text-[14px] font-medium text-[var(--ink-secondary)]">{wordsMissing}</p> : null}
+
+        <div className="space-y-3 border-t border-[var(--line)] pt-5" hidden={who === 'link' || (!reviewing && step < 3)}>
+          <div className="flex items-center justify-between gap-3">
+            {!reviewing ? (
+              <Button type="button" variant="secondary" size="lg" onClick={() => goTo(2)}>
+                {f.stepBack}
+              </Button>
+            ) : null}
+            <Button
+              type="submit"
+              data-guide="seller-submit"
+              size="lg"
+              disabled={!reviewing && !ready}
+              loading={submitting || preparing}
+              loadingLabel={f.publishing}
+              className={reviewing ? 'w-full sm:w-auto' : undefined}
+            >
+              {reviewing ? f.publish : t.dealCreation.review}
+            </Button>
+          </div>
           {reviewing ? <MarketReadsNote /> : null}
           {!reviewing && wordsMissing ? <p role="status" className="text-[14px] font-medium text-[var(--ink-secondary)]">{wordsMissing}</p> : null}
           {!reviewing && !wordsMissing && inParts && termsIssues(dealTerms).length > 0 ? <TermsBlockerNote terms={dealTerms} /> : null}
@@ -529,10 +584,14 @@ export function PostListingForm() {
       </form>
       )}
 
-      {recent.length > 0 && (() => {
+      {(recent.length > 0 || bids.length > 0) && (() => {
         const now = Date.now();
         const visible = recent.filter((l) => !dismissed.has(l.id));
-        if (visible.length === 0) {
+        const shown = visible.slice(0, 5);
+        const fromOffer = new Set(shown.map((l) => l.matchedJobId).filter(Boolean));
+        const ownRows = bids.filter((b) => !fromOffer.has(b.jobId));
+        const withdrawn = (jobId: string) => onWithdrawn?.(jobId);
+        if (visible.length === 0 && bids.length === 0) {
           return (
             <section className="pt-6 border-t border-[var(--lp-workspace-border)]">
               <h2 className="text-[16px] font-semibold text-[var(--lp-workspace-ink)]">{pl.yourOffers.eyebrow}</h2>
@@ -544,9 +603,13 @@ export function PostListingForm() {
         }
         return (
           <section className="pt-6 border-t border-[var(--lp-workspace-border)]">
-            <h2 className="text-[16px] font-semibold text-[var(--lp-workspace-ink)]">{pl.yourOffers.eyebrow}</h2>
+            <h2 data-your-offers className="flex items-baseline gap-2 text-[16px] font-semibold text-[var(--lp-workspace-ink)]">
+              {pl.yourOffers.eyebrow}
+              <span className="text-[14px] font-medium tabular-nums text-[var(--lp-workspace-muted)]">{shown.length + ownRows.length}</span>
+            </h2>
             <ul className="mt-2 divide-y divide-[var(--lp-workspace-border)]">
-              {visible.slice(0, 5).map((l) => {
+              {shown.map((l) => {
+                const bid = l.matchedJobId ? bids.find((b) => b.jobId === l.matchedJobId) : undefined;
                 const isCancelled = !!l.cancelledAt;
                 const isMatched = !!l.matchedAt && !!l.matchedJobId;
                 const isExpired = !isCancelled && !isMatched && (l.expiresAt ?? Infinity) <= now;
@@ -559,7 +622,8 @@ export function PostListingForm() {
                       ? pl.offerStatuses.matched
                       : pl.offerStatuses.open;
                 return (
-                  <li key={l.id} className="flex items-center gap-1">
+                  <li key={l.id} className="pb-2">
+                    <div className="flex items-center gap-1">
                     <Link
                       href={`/listings/${l.id}`}
                       aria-label={pl.openAriaTemplate.replace('{title}', l.title)}
@@ -598,9 +662,16 @@ export function PostListingForm() {
                         <Icon name="close" size={16} />
                       </button>
                     )}
+                    </div>
+                    {bid ? <OfferBidLine bid={bid} nested onWithdrawn={withdrawn} /> : null}
                   </li>
                 );
               })}
+              {ownRows.map((b) => (
+                <li key={b.jobId}>
+                  <OfferBidLine bid={b} nested={false} onWithdrawn={withdrawn} />
+                </li>
+              ))}
             </ul>
           </section>
         );

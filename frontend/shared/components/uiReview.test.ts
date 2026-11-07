@@ -623,6 +623,7 @@ test('the money sheets, Send, payment links, offers and the financier desk read 
 
 test('who can see it is asked once, on the form, never again on the review (owner, 6 Nov 2026)', () => {
   for (const file of ['../../features/buyer/components/PostJobForm.tsx', '../../features/seller/components/PostListingForm.tsx']) {
-    assert.match(source(file), /reviewing \? null : <WhoCanSee/, file);
+    // The offer form asks it on its last page, Photos and post (owner, 7 Nov 2026).
+    assert.match(source(file), /reviewing(?: \|\| step !== 3)? \? null : <WhoCanSee/, file);
   }
 });

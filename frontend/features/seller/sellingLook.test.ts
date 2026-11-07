@@ -29,11 +29,11 @@ test('no green outside the one main button: no accent marks, no positive colour,
   }
 });
 
-test('both forms are one screen: no steps, no Continue, the terms fold under Pay in parts', () => {
+test('Start a deal is one screen; both forms fold the terms under Pay in parts', () => {
+  assert.doesNotMatch(direct, /rs\.stepOf/);
+  assert.doesNotMatch(direct, /rs\.continue/);
+  assert.doesNotMatch(direct, /setStep\(/);
   for (const [name, s] of [['offer', offer], ['direct', direct]] as const) {
-    assert.doesNotMatch(s, /rs\.stepOf/, name);
-    assert.doesNotMatch(s, /rs\.continue/, name);
-    assert.doesNotMatch(s, /setStep\(/, name);
     assert.match(s, /label=\{rf\.payInParts\}[\s\S]{0,800}?\n\s*payInParts\n/, name);
     assert.match(s, /<TermsBuilder/, name);
     assert.match(s, /<TermsBlockerNote /, name);
@@ -66,4 +66,13 @@ test('an offer drafts its parts from the words on Review, and Pay in parts shows
   assert.match(offer, /api\.dealDraft\(words, 'offer'\)/);
   assert.match(offer, /\{inParts \? \(\s*<FoldRow\s+label=\{rf\.payInParts\}/);
   assert.match(offer, /data-drafted/);
+});
+
+test('Post an offer is three pages with Back and Next, every field kept (owner, 7 Nov 2026, Figma 203:637)', () => {
+  assert.match(offer, /useState<1 \| 2 \| 3>\(1\)/);
+  for (const n of ['1', '2', '3']) assert.match(offer, new RegExp(`hidden=\\{step !== ${n}\\} data-step="${n}"`));
+  assert.match(offer, /data-offer-steps/);
+  assert.match(offer, /f\.stepOf\.replace\('\{n\}'/);
+  assert.match(offer, /<Button type="submit" size="lg" disabled=\{!canNext\}>/);
+  assert.match(offer, /f\.stepBack/);
 });

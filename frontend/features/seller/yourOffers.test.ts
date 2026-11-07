@@ -15,3 +15,14 @@ test('Your offers reads like the Request list', () => {
   assert.match(list, /<Icon name="chevron-right"[^>]*directional/);
   assert.match(list, /<Icon name="close"/);
 });
+
+test('your agent\'s offers sit in Your offers, under the posted offer they came from (owner, 7 Nov 2026)', () => {
+  assert.match(list, /bids\.find\(\(b\) => b\.jobId === l\.matchedJobId\)/);
+  assert.match(list, /<OfferBidLine bid=\{bid\} nested onWithdrawn=\{withdrawn\} \/>/);
+  assert.match(list, /ownRows\.map/);
+  const page = readFileSync(new URL('../../app/seller/page.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(page, /BidsTable|activeBids\.tag/, 'no second table of the same offers');
+  const line = readFileSync(new URL('./components/OfferBidLine.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(line, /shortHash|jobBuyer/, 'a request is named in words, never by id or wallet');
+  assert.match(line, /money\.text\(bid\.lastBidPrice\)/);
+});

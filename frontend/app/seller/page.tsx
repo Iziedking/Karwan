@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type SellerActiveBid } from '@/core/api';
-import { BidsTable } from '@/features/seller/components/BidsTable';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
 import { DealAmountProvider } from '@/features/balances/dealAmount';
@@ -18,8 +17,6 @@ import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
 import { useSearchV2 } from '@/features/search/useSearchV2';
 import { SellerDesk } from '@/features/search/components/SellerDesk';
 
-type FetchState = 'idle' | 'loading' | 'ready' | 'error';
-
 export default function SellerPage() {
   const sh = useTranslations().sellerHub;
   return (
@@ -34,29 +31,23 @@ function SellerPageInner() {
   const entry = TRADE_ENTRY_COPY[locale];
   const auth = useAuth();
   const address = auth.address;
+  // Your agent's offers on requests sit in Your offers, under the posted offer
+  // each came from: one list, not a second table (owner, 7 Nov 2026).
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
-  const [fetchState, setFetchState] = useState<FetchState>('idle');
-  const sh = useTranslations().sellerHub;
   const v2 = useSearchV2();
 
   useEffect(() => {
     if (!address) {
       setActiveBids([]);
-      setFetchState('idle');
       return;
     }
     let cancelled = false;
-    setFetchState('loading');
     api
       .seller(address)
       .then((d) => {
-        if (cancelled) return;
-        setActiveBids(d.activeBids ?? []);
-        setFetchState('ready');
+        if (!cancelled) setActiveBids((d.activeBids ?? []).filter((b) => !b.finalized));
       })
-      .catch(() => {
-        if (!cancelled) setFetchState('error');
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -86,7 +77,7 @@ if (v2) return <SellerDesk />;
           <div className="min-w-0 lg:order-1">
             <PageCard>
               <div className="p-6 md:p-8">
-                <ListingComposer />
+                <ListingComposer bids={activeBids} onWithdrawn={(jobId) => setActiveBids((prev) => prev.filter((b) => b.jobId !== jobId))} />
               </div>
             </PageCard>
           </div>
@@ -94,39 +85,6 @@ if (v2) return <SellerDesk />;
         </DealAmountProvider>
       </Band>
 
-      {/* ACTIVE BIDS */}
-      <Band tone="light" compact>
-        <div className="flex items-center gap-2">
-          <h2 className="flex items-baseline gap-2 text-[17px] font-semibold text-[var(--lp-dark)]">
-            {sh.activeBids.tag}
-            {activeBids.length > 0 ? <span className="text-[15px] font-medium tabular-nums text-[var(--lp-text-muted)]">{activeBids.length}</span> : null}
-          </h2>
-          <Hint side="bottom" align="start">{sh.activeBids.lede}</Hint>
-        </div>
-        <div className="mt-4 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
-          {fetchState === 'error' ? (
-            <p role="status" className="p-6 text-[15px] font-medium text-[var(--lp-text-sub)]">
-              {sh.activeBids.errorMessage}
-            </p>
-          ) : fetchState === 'loading' || fetchState === 'idle' ? (
-            <div className="space-y-3 p-6">
-              <div className="h-14 animate-pulse rounded-[12px] bg-[var(--lp-light)] motion-reduce:animate-none" />
-              <div className="h-14 animate-pulse rounded-[12px] bg-[var(--lp-light)] motion-reduce:animate-none" />
-            </div>
-          ) : activeBids.length === 0 ? (
-            <p className="p-6 text-[15px] font-medium text-[var(--lp-text-sub)]">
-              {sh.activeBids.emptyMessage}
-            </p>
-          ) : (
-            <BidsTable
-              bids={activeBids}
-              onAbandon={(jobId) =>
-                setActiveBids((prev) => prev.filter((b) => b.jobId !== jobId))
-              }
-            />
-          )}
-        </div>
-      </Band>
     </FullBleed>
   );
 }

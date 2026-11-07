@@ -343,9 +343,10 @@ test('the guide reads Activity and its receipt as the new look shows them (view 
   assert.match(said('records'), /Download image is the main button/);
 });
 
-test('the guide walks Post an offer and Start a deal as one screen (view 48, batch 9b)', () => {
+test('the guide walks Post an offer in three pages and Start a deal as one screen (view 48, batch 9b; owner, 7 Nov 2026)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
-  assert.match(said('sell'), /The form is one screen/);
+  assert.match(said('sell'), /The form is three pages with Back and Next/);
+  assert.match(said('sell'), /There is no second table of active offers/);
   assert.match(said('sell'), /Lowest you accept open in place/);
   assert.match(said('sell'), /Publish offer posts it/);
   assert.match(said('direct'), /What will be delivered/);

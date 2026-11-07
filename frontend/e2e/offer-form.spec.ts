@@ -4,7 +4,6 @@ import { TERMS_COPY } from '../features/deals/terms/termsCopy';
 import { API, ME, funded, serveMoney } from './moneyFixtures';
 import { requestFlowCopy } from '../shared/i18n/messages/requestFlow';
 
-const rs = en.dealCreation.requestSteps;
 const f = en.postListing.flow;
 const tb = TERMS_COPY.en;
 
@@ -19,7 +18,7 @@ async function signedIn(page: Page, role: 'seller' | 'buyer') {
   await page.route(`${API}/api/listings/mine**`, route => route.fulfill({ json: { listings: [] } }));
 }
 
-test('an offer is one screen: price, ready-in time, the floor in place, and its parts drafted from the words (views 48, 56)', async ({ page }) => {
+test('an offer is three pages: the words, then price and ready-in time with the floor, then post; its parts are drafted from the words (views 48, 56; owner, 7 Nov 2026)', async ({ page }) => {
   await signedIn(page, 'seller');
   let draftedFrom = '';
   await page.route(`${API}/api/deals/draft`, async route => {
@@ -34,9 +33,10 @@ test('an offer is one screen: price, ready-in time, the floor in place, and its 
   });
 
   await page.goto('/seller');
-  await expect(page.getByText(rs.stepOf.replace('{n}', '1'), { exact: false })).toHaveCount(0);
+  await expect(page.getByText(f.stepOf.replace('{n}', '1'), { exact: true })).toBeVisible();
+  const next = page.getByRole('button', { name: f.stepNext, exact: true });
   const review = page.getByRole('button', { name: en.dealCreation.review, exact: true });
-  await expect(review).toBeDisabled();
+  await expect(next).toBeDisabled();
   await page.locator('[data-guide="seller-listing"] input').fill('Logo design for small shops');
   await page.locator('[data-guide="seller-listing"] textarea').fill('Three logo sketches first, then the logo in SVG and PNG.');
   // No milestone setup on the form (view 56): the words carry it.
@@ -45,6 +45,8 @@ test('an offer is one screen: price, ready-in time, the floor in place, and its 
   const design = page.getByRole('group', { name: en.marketShop.categoriesLabel }).getByRole('button', { name: en.marketShop.categories.design });
   await design.click();
   await expect(design).toHaveAttribute('aria-pressed', 'true');
+  await next.click();
+  await expect(page.getByText(f.stepOf.replace('{n}', '2'), { exact: true })).toBeVisible();
 
   // Ways to charge that do not work yet stay hidden until business accounts open.
   await expect(page.getByRole('button', { name: f.perUnit })).toHaveCount(0);
@@ -55,8 +57,10 @@ test('an offer is one screen: price, ready-in time, the floor in place, and its 
   await expect(page.getByText(f.floorTooLow, { exact: true })).toBeVisible();
   await page.getByRole('button', { name: f.other, exact: true }).click();
   await page.getByRole('textbox', { name: f.otherDays, exact: true }).fill('5');
-  await expect(review).toBeDisabled();
+  await expect(next).toBeDisabled();
   await page.locator('[data-guide="seller-floor"] input').fill('80');
+  await next.click();
+  await expect(page.getByText(f.stepOf.replace('{n}', '3'), { exact: true })).toBeVisible();
 
   await review.click();
   expect(draftedFrom).toBe('Logo design for small shops. Three logo sketches first, then the logo in SVG and PNG.');
@@ -94,8 +98,10 @@ test('an offer whose words make one part posts one milestone named by its title'
   await page.goto('/seller');
   await page.locator('[data-guide="seller-listing"] input').fill('Menu photos');
   await page.locator('[data-guide="seller-listing"] textarea').fill('Photos of 12 dishes, edited for the web.');
+  await page.getByRole('button', { name: f.stepNext, exact: true }).click();
   await page.locator('[data-guide="seller-price"] input').fill('200');
   await page.getByRole('button', { name: f.days.replace('{n}', '3'), exact: true }).click();
+  await page.getByRole('button', { name: f.stepNext, exact: true }).click();
   await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
   await expect(page.locator('[data-drafted]')).toHaveCount(0);
   await page.getByRole('button', { name: f.publish }).click();
