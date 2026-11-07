@@ -5792,6 +5792,7 @@ export const ar: Messages = {
       errors: {
         invalidEmail: 'أدخل بريدًا إلكترونيًا صالحًا.',
         lookupFailed: 'تعذّر التحقّق من هذا البريد.',
+        tooManyTries: 'محاولات كثيرة. حاول مرة أخرى بعد بضع دقائق.',
         passkeyCancelledSignIn: 'تم إلغاء طلب مفتاح المرور. حاول مرّة أخرى أو استخدم رمزًا.',
         passkeyCancelledCreate: 'تم إلغاء إعداد مفتاح المرور. حاول مرّة أخرى أو استخدم رمزًا.',
         passkeyGeneric: 'فشلت عملية مفتاح المرور.',

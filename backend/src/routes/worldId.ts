@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { config } from '../config.js';
+import { sessionAddress } from '../auth/session.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import { pgEnabled, withPostgresTransaction } from '../db/client.js';
 import { createWorldAccountSessions, type WorldAccountSessions } from '../worldid/accountSessions.js';
 import { createWorldAgentChecks } from '../worldid/agentChecks.js';
@@ -203,7 +205,14 @@ worldIdRoutes.get('/status', (c) => {
   });
 });
 
-worldIdRoutes.post('/rp-signature', async (c) => {
+/// The person check page is only reached signed in, so the signature needs a
+/// session, ten per ten minutes per person (view 68).
+const rpSignatureLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 10, name: 'world-id-rp-signature', key: sessionAddress });
+
+worldIdRoutes.post('/rp-signature', async (c, next) => {
+  if (!sessionAddress(c)) return c.json({ error: 'sign in first', code: 'WORLD_ID_SIGN_IN' }, 401);
+  return rpSignatureLimit(c, next);
+}, async (c) => {
   c.header('Cache-Control', 'no-store');
   if (!configured()) return c.json({ error: 'World ID Sandbox is not configured', code: 'WORLD_ID_UNAVAILABLE' }, 503);
   const body = (await c.req.json().catch(() => ({}))) as { action?: unknown };

@@ -120,6 +120,7 @@ export interface SignupCopy {
     generic: string;
     notInvited: string;
     lookupFailed: string;
+    tooManyTries: string;
     codeSendFailed: string;
     codeRejected: string;
     passkeyCancelled: string;
@@ -270,6 +271,7 @@ const en: SignupCopy = {
     generic: 'Something went wrong. Try again.',
     notInvited: "This email is not invited yet. Join the waitlist instead.",
     lookupFailed: 'We could not check that email. Try again.',
+    tooManyTries: 'Too many tries. Try again in a few minutes.',
     codeSendFailed: 'We could not send the code. Try again.',
     codeRejected: 'That code did not work. Check it and try again.',
     passkeyCancelled: 'Passkey cancelled. Try again when you are ready.',
@@ -420,6 +422,7 @@ const ar: SignupCopy = {
     generic: 'حدث خطأ. حاول مرة أخرى.',
     notInvited: "هذا البريد غير مدعو بعد. انضم إلى قائمة الانتظار بدلًا من ذلك.",
     lookupFailed: 'تعذر التحقق من هذا البريد. حاول مرة أخرى.',
+    tooManyTries: 'محاولات كثيرة. حاول مرة أخرى بعد بضع دقائق.',
     codeSendFailed: 'تعذر إرسال الرمز. حاول مرة أخرى.',
     codeRejected: 'الرمز غير صحيح. تحقق منه وحاول مرة أخرى.',
     passkeyCancelled: 'تم إلغاء مفتاح المرور. حاول مرة أخرى عندما تكون جاهزًا.',
@@ -570,6 +573,7 @@ const fr: SignupCopy = {
     generic: 'Une erreur est survenue. Réessayez.',
     notInvited: "Cet e-mail n’est pas encore invité. Rejoignez plutôt la liste d’attente.",
     lookupFailed: 'Impossible de vérifier cet e-mail. Réessayez.',
+    tooManyTries: 'Trop d’essais. Réessayez dans quelques minutes.',
     codeSendFailed: 'Impossible d’envoyer le code. Réessayez.',
     codeRejected: 'Ce code ne fonctionne pas. Vérifiez-le et réessayez.',
     passkeyCancelled: 'Clé d’accès annulée. Réessayez quand vous êtes prêt.',
@@ -720,6 +724,7 @@ const hi: SignupCopy = {
     generic: 'कुछ गलत हुआ। फिर से कोशिश करें।',
     notInvited: "यह ईमेल अभी आमंत्रित नहीं है। प्रतीक्षा सूची से जुड़ें।",
     lookupFailed: 'हम यह ईमेल जाँच नहीं सके। फिर से कोशिश करें।',
+    tooManyTries: 'बहुत ज़्यादा कोशिशें। कुछ मिनट बाद फिर से कोशिश करें।',
     codeSendFailed: 'कोड नहीं भेजा जा सका। फिर से कोशिश करें।',
     codeRejected: 'यह कोड काम नहीं किया। जाँचकर फिर कोशिश करें।',
     passkeyCancelled: 'पासकी रद्द हुई। तैयार होने पर फिर कोशिश करें।',
@@ -870,6 +875,7 @@ const sw: SignupCopy = {
     generic: 'Kuna tatizo. Jaribu tena.',
     notInvited: "Barua pepe hii bado haijaalikwa. Jiunge na orodha ya kusubiri badala yake.",
     lookupFailed: 'Hatukuweza kukagua barua pepe hiyo. Jaribu tena.',
+    tooManyTries: 'Majaribio mengi mno. Jaribu tena baada ya dakika chache.',
     codeSendFailed: 'Hatukuweza kutuma msimbo. Jaribu tena.',
     codeRejected: 'Msimbo huo haukufanya kazi. Ukague ujaribu tena.',
     passkeyCancelled: 'Passkey imeghairiwa. Jaribu tena ukiwa tayari.',

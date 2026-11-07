@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
@@ -37,6 +37,9 @@ export interface SupportConversation {
   /// Deals this ticket is about, attached by the person from the deal page. The
   /// support console opens the flagged-delivery review for each.
   dealIds?: string[];
+  /// Hash of the private ticket key the widget holds (view 68). Reading,
+  /// writing and closing need the key or the opener's session.
+  keyHash?: string;
 }
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'support.json');
@@ -110,6 +113,25 @@ export function createConversation(input: {
   conversations.set(convo.id, convo);
   schedulePersist();
   return convo;
+}
+
+const hashKey = (key: string) => createHash('sha256').update(key).digest('hex');
+
+/// A fresh private key for a widget ticket. Only its hash is kept.
+export function issueTicketKey(id: string): string | null {
+  const convo = conversations.get(id);
+  if (!convo) return null;
+  const key = randomBytes(16).toString('hex');
+  convo.keyHash = hashKey(key);
+  schedulePersist();
+  return key;
+}
+
+export function ticketKeyMatches(convo: SupportConversation, key: string | undefined): boolean {
+  if (!convo.keyHash || !key) return false;
+  const a = Buffer.from(hashKey(key));
+  const b = Buffer.from(convo.keyHash);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export function getConversation(id: string): SupportConversation | null {

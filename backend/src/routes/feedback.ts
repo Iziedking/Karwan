@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
-import { telegramEnabled, sendTelegramMessage, sendTelegramPhoto } from '../telegram/bot.js';
+import { telegramEnabled, sendTelegramMessage, sendTelegramPhotoFile } from '../telegram/bot.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import {
@@ -151,7 +151,7 @@ feedbackRoutes.get('/', requireAdmin, (c) => {
     context: fb.context ?? null,
     status: fb.status,
     createdAt: fb.createdAt,
-    screenshotUrls: fb.screenshots.map((_, i) => assetUrl(fb.id, i)),
+    screenshotUrls: fb.screenshots.map((_, i) => assetPath(fb.id, i)),
   }));
   return c.json({ feedback: items });
 });
@@ -173,8 +173,10 @@ feedbackRoutes.post('/:id/status', requireAdmin, async (c) => {
   return c.json({ ok: true, status: fb.status });
 });
 
-feedbackRoutes.get('/:id/asset/:n', (c) => {
-  const id = c.req.param('id');
+/// Screenshots can show balances and addresses, so only the admin desk reads
+/// them, never cached outside the browser (view 68).
+feedbackRoutes.get('/:id/asset/:n', requireAdmin, (c) => {
+  const id = c.req.param('id') ?? '';
   const n = Number(c.req.param('n'));
   if (!Number.isInteger(n) || n < 0) return c.json({ error: 'bad index' }, 400);
   const asset = readFeedbackAsset(id, n);
@@ -183,14 +185,13 @@ feedbackRoutes.get('/:id/asset/:n', (c) => {
   // c.body rejects Node's Buffer<ArrayBufferLike> (SharedArrayBuffer mismatch).
   return c.body(Uint8Array.from(asset.buffer), 200, {
     'content-type': asset.mime,
-    'cache-control': 'public, max-age=86400',
+    'cache-control': 'private, no-store',
   });
 });
 
-function assetUrl(id: string, index: number): string {
-  const base = config.PUBLIC_API_BASE_URL?.replace(/\/$/, '');
-  const path = `/api/feedback/${id}/asset/${index}`;
-  return base ? `${base}${path}` : path;
+/// The desk loads this through its own proxy, which carries the Access pass.
+function assetPath(id: string, index: number): string {
+  return `/api/feedback/${id}/asset/${index}`;
 }
 
 const CATEGORY_LABEL: Record<Feedback['category'], string> = {
@@ -201,8 +202,8 @@ const CATEGORY_LABEL: Record<Feedback['category'], string> = {
 };
 
 /// Pushes a new submission to the operator's Telegram chat: a text summary,
-/// then each screenshot as a photo (when the public API base is set so Telegram
-/// can fetch the URL). No-ops cleanly when the chat id or bot isn't configured.
+/// then each screenshot uploaded as a photo, since the screenshots have no
+/// public link. No-ops cleanly when the chat id or bot isn't configured.
 export async function notifyOperator(fb: Feedback): Promise<void> {
   const chatId = config.FEEDBACK_TELEGRAM_CHAT_ID;
   if (!chatId || !telegramEnabled()) return;
@@ -215,14 +216,10 @@ export async function notifyOperator(fb: Feedback): Promise<void> {
   if (fb.context?.url) lines.push(`Where: ${fb.context.url}`);
   if (fb.context?.wallet) lines.push(`Wallet: \`${fb.context.wallet}\``);
   if (fb.contact) lines.push(`Contact: ${fb.contact}`);
-  if (fb.screenshots.length > 0 && !config.PUBLIC_API_BASE_URL) {
-    lines.push(`${fb.screenshots.length} screenshot(s) attached (set PUBLIC_API_BASE_URL to receive them here).`);
-  }
   await sendTelegramMessage(chatId, lines.join('\n'));
 
-  if (config.PUBLIC_API_BASE_URL) {
-    for (let i = 0; i < fb.screenshots.length; i++) {
-      await sendTelegramPhoto(chatId, assetUrl(fb.id, i));
-    }
+  for (let i = 0; i < fb.screenshots.length; i++) {
+    const asset = readFeedbackAsset(fb.id, i);
+    if (asset) await sendTelegramPhotoFile(chatId, Uint8Array.from(asset.buffer), asset.mime);
   }
 }

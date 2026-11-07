@@ -1,7 +1,7 @@
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
-import { rateLimit } from '../middleware/rateLimit.js';
+import { bodyEmail, rateLimit } from '../middleware/rateLimit.js';
 import { durableEphemeralMap } from '../db/ephemeral.js';
 import { resendClient } from '../emails/resend.js';
 import { LOGO_BUFFER, LOGO_CID } from '../emails/brand.js';
@@ -299,7 +299,15 @@ authRoutes.post('/sessions/close-all', async (c) => {
 /// passkey credential attached.
 const lookupSchema = z.object({ email: emailSchema });
 
-authRoutes.post('/lookup', async (c) => {
+/// Ten lookups per ten minutes from one address, and ten for one email from
+/// any address, so checking a list of emails is slow and leaves a trace (view 68).
+const TEN_MINUTES = 10 * 60 * 1000;
+
+authRoutes.post(
+  '/lookup',
+  rateLimit({ windowMs: TEN_MINUTES, max: 10, name: 'auth-lookup' }),
+  rateLimit({ windowMs: TEN_MINUTES, max: 10, name: 'auth-lookup-email', key: bodyEmail }),
+  async (c) => {
   let body;
   try {
     body = lookupSchema.parse(await c.req.json());
@@ -649,7 +657,11 @@ authRoutes.post('/register/verify', async (c) => {
 
 // ---------- LOGIN (returning user) ----------
 
-authRoutes.post('/login/options', async (c) => {
+authRoutes.post(
+  '/login/options',
+  rateLimit({ windowMs: TEN_MINUTES, max: 10, name: 'auth-login-options' }),
+  rateLimit({ windowMs: TEN_MINUTES, max: 10, name: 'auth-login-options-email', key: bodyEmail }),
+  async (c) => {
   let body;
   try {
     body = startSchema.parse(await c.req.json());
@@ -658,18 +670,19 @@ authRoutes.post('/login/options', async (c) => {
   }
   purgeStale();
   const user = getUserByEmail(body.email);
-  if (!user) {
-    return c.json({ error: 'no account for this email; register first' }, 404);
-  }
   const { id: rpID } = rp();
+  // An email with no account gets the same answer with no passkeys in it, so
+  // this route does not say who has an account. Nothing is pending for it, so
+  // a sign-in attempt with it fails at verify.
   const options = await generateAuthenticationOptions({
     rpID,
     userVerification: 'preferred',
-    allowCredentials: user.credentials.map((c) => ({
+    allowCredentials: (user?.credentials ?? []).map((c) => ({
       id: c.credentialId,
       transports: c.transports as AuthenticatorTransportFuture[] | undefined,
     })),
   });
+  if (!user) return c.json({ options });
   pending.set(body.email, {
     challenge: options.challenge,
     email: body.email,

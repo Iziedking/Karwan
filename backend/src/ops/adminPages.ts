@@ -61,7 +61,7 @@ export const ADMIN_PAGES: AdminPage[] = [
   { key: 'signals', label: 'Signals', routes: [r('\\w+ /api/admin/signals(/.*)?')] },
   { key: 'newsletter', label: 'Newsletter', routes: [r('\\w+ /api/admin/newsletter(/.*)?'), r('\\w+ /api/admin/email(/.*)?')] },
   { key: 'updates', label: 'Updates', routes: [r('\\w+ /api/admin/updates(/.*)?')] },
-  { key: 'feedback', label: 'Feedback', routes: [r('GET /api/feedback'), r(`POST /api/feedback/${ANY}/status`)] },
+  { key: 'feedback', label: 'Feedback', routes: [r('GET /api/feedback'), r(`GET /api/feedback/${ANY}/asset/${ANY}`), r(`POST /api/feedback/${ANY}/status`)] },
   { key: 'survey', label: 'Survey', routes: [r('\\w+ /api/admin/research(/.*)?'), r('\\w+ /api/admin/form-limits(/.*)?')] },
   { key: 'waitlist', label: 'Waitlist', routes: [r('\\w+ /api/admin/waitlist(/.*)?'), r('\\w+ /api/admin/form-limits(/.*)?')] },
   { key: 'treasury', label: 'Treasury', routes: [r('\\w+ /api/admin/treasuries(/.*)?'), r('\\w+ /api/admin/treasury(/.*)?')] },

@@ -2179,6 +2179,8 @@ export interface AdminDeliveryReviewView {
   deliveries: Array<{ revision: number; verificationStatus: 'suspicious' | 'malicious'; current: boolean; reviewed: 'safe' | 'unsafe' | 'pending-approval' | null }>;
   /// The match hold still open on this deal, if any.
   matchHold: { flags: string[]; reasons: Array<{ text: string; audience: 'buyer' | 'seller' | 'both' }>; evaluatedAt: number } | null;
+  /// The work check found the current delivery does not match the request (view 21).
+  workMismatch: { revision: number; reason: string } | null;
 }
 
 /// What waits for a person at Karwan (view 21): held matches with the offence
@@ -2241,6 +2243,8 @@ export interface AdminHeldView {
     offences: Array<{ address: string; count: number; lastVerdict: 'suspicious' | 'malicious'; from: Array<{ jobId: string; surface: 'delivery' | 'chat' }> }>;
   }>;
   links: Array<{ jobId: string; buyer: string; seller: string; amountUsdc: string; deliveryRevision: number; verificationStatus: 'suspicious' | 'malicious'; deliveredAt: number | null }>;
+  /// Open deals whose current delivery the work check read as not matching the request.
+  works?: Array<{ jobId: string; buyer: string; seller: string; amountUsdc: string; deliveryRevision: number; deliveredAt: number | null }>;
 }
 
 export interface AssistantMemoryView {
@@ -2344,6 +2348,40 @@ function confirmRequiredOf(err: unknown): ConfirmRequired | null {
   if (!(err instanceof ApiError) || err.status !== 428) return null;
   const body = err.body as Partial<ConfirmRequired> | undefined;
   return body?.code === 'CONFIRM_REQUIRED' && typeof body.challengeId === 'string' ? (body as ConfirmRequired) : null;
+}
+
+/// A support ticket opens only with its private key or the opener's session
+/// (view 68). The key is kept in this browser beside the ticket id.
+const TICKET_KEY_PREFIX = 'karwan.support.key.';
+
+function keepTicketKey(id: string, key: string): void {
+  try {
+    window.localStorage.setItem(TICKET_KEY_PREFIX + id, key);
+  } catch {
+    /* private mode: the chat still works until the page closes */
+    memoryTicketKeys.set(id, key);
+  }
+}
+
+const memoryTicketKeys = new Map<string, string>();
+
+function ticketKeyHeader(id: string): Record<string, string> {
+  let key: string | null = memoryTicketKeys.get(id) ?? null;
+  try {
+    key = window.localStorage.getItem(TICKET_KEY_PREFIX + id) ?? key;
+  } catch {
+    /* fall back to the in-memory key */
+  }
+  return key ? { 'x-ticket-key': key } : {};
+}
+
+function forgetTicketKey(id: string): void {
+  memoryTicketKeys.delete(id);
+  try {
+    window.localStorage.removeItem(TICKET_KEY_PREFIX + id);
+  } catch {
+    /* nothing kept */
+  }
 }
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
@@ -3807,6 +3845,12 @@ export const api = {
   adminOwed: () => json<AdminOwed>('/api/admin/support/owed', { headers: adminHeaders() }),
   adminHeldTransfers: () => json<{ items: AdminHeldTransfer[] }>('/api/admin/support/held-transfers', { headers: adminHeaders() }),
   adminWrongTokens: () => json<{ items: AdminWrongToken[] }>('/api/admin/support/wrong-tokens', { headers: adminHeaders() }),
+  adminClearWorkMismatch: (jobId: string, reason: string) =>
+    json<{ cleared: true }>(`/api/admin/support/deliveries/${encodeURIComponent(jobId)}/work-clear`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ reason }),
+    }),
   adminClearMatchHold: (jobId: string, reason: string) =>
     json<{ cleared: true }>(`/api/admin/support/matches/${encodeURIComponent(jobId)}/clear`, {
       method: 'POST',
@@ -5134,7 +5178,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ caller }),
     }),
-  releaseDirectDeal: (jobId: string, caller: string) =>
+  /// acceptedAfterReview: the work check found a gap and the buyer accepts it after their own review (view 21).
+  releaseDirectDeal: (jobId: string, caller: string, opts?: { acceptedAfterReview?: true }) =>
     json<{
       accepted: boolean;
       jobId: string;
@@ -5147,7 +5192,7 @@ export const api = {
       receiptPending?: boolean;
     }>(
       `/api/deals/direct/${jobId}/release`,
-      { method: 'POST', body: JSON.stringify({ caller }) },
+      { method: 'POST', body: JSON.stringify({ caller, ...(opts?.acceptedAfterReview ? { acceptedAfterReview: true } : {}) }) },
     ),
   reconcileDirectDealPayout: (jobId: string, reference: string, caller: string) =>
     json<{
@@ -6247,22 +6292,26 @@ export const api = {
     email?: string,
     dealId?: string,
   ) =>
-    json<{ conversationId: string; at: number }>(withCaller('/api/support/start'), {
+    json<{ conversationId: string; ticketKey: string | null; at: number }>(withCaller('/api/support/start'), {
       method: 'POST',
       body: JSON.stringify({ messages, ...(email ? { email } : {}), ...(dealId ? { dealId } : {}) }),
+    }).then((res) => {
+      if (res.ticketKey) keepTicketKey(res.conversationId, res.ticketKey);
+      return res;
     }),
   supportSend: (id: string, text: string, dealId?: string) =>
     json<{ ok: boolean }>(`/api/support/${id}/message`, {
       method: 'POST',
+      headers: ticketKeyHeader(id),
       body: JSON.stringify({ text, ...(dealId ? { dealId } : {}) }),
     }),
   supportPoll: (id: string, since: number) =>
     json<{
       status: 'open' | 'closed';
       messages: Array<{ role: 'user' | 'assistant' | 'operator' | 'system'; text: string; ts: number }>;
-    }>(`/api/support/${id}/messages?since=${since}`),
+    }>(`/api/support/${id}/messages?since=${since}`, { headers: ticketKeyHeader(id) }),
   supportClose: (id: string) =>
-    json<{ ok: boolean }>(`/api/support/${id}/close`, { method: 'POST' }),
+    json<{ ok: boolean }>(`/api/support/${id}/close`, { method: 'POST', headers: ticketKeyHeader(id) }).finally(() => forgetTicketKey(id)),
 
   // What research costs: the person's agents pay for it themselves (view 48).
   researchStatus: () =>

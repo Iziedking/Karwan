@@ -212,7 +212,7 @@ export function classifyGuard(handlerText: string, routePath: string): Guard {
   if (has(STEP_UP)) return 'step-up';
   if (has(SESSION)) return 'session';
   if (has(SIGNED)) return 'signed';
-  if (/\/:token(\/|$)/.test(routePath) || handlerText.includes('useTicket(')) return 'token';
+  if (/\/:token(\/|$)/.test(routePath) || handlerText.includes('useTicket(') || handlerText.includes('ownTicket(')) return 'token';
   if (handlerText.includes('rateLimit(')) return 'limited';
   return 'none';
 }

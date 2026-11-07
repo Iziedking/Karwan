@@ -165,8 +165,14 @@ export function AssistantWidget() {
         setLiveClosed(true);
         if (typeof window !== 'undefined') window.localStorage.removeItem(SUPPORT_STORAGE_KEY);
       }
-    } catch {
-      /* transient network blip; the next tick retries */
+    } catch (err) {
+      // A ticket this browser has no key for (one saved before tickets had
+      // keys, view 68) answers not found: let it go and offer a new chat.
+      if (err instanceof ApiError && err.status === 404) {
+        setLiveClosed(true);
+        if (typeof window !== 'undefined') window.localStorage.removeItem(SUPPORT_STORAGE_KEY);
+      }
+      /* otherwise a transient network blip; the next tick retries */
     } finally {
       pollBusyRef.current = false;
     }

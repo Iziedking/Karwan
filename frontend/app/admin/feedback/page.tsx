@@ -9,6 +9,7 @@ import {
   type FeedbackStatus,
   type FeedbackCategory,
 } from '@/core/api';
+import { adminApiUrl } from '@/shared/admin/adminDesk';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
@@ -32,9 +33,45 @@ const STATUS_COLOR: Record<FeedbackStatus, string> = {
 /// Resolves a screenshot URL the backend returned. Absolute (PUBLIC_API_BASE_URL
 /// set) is used as-is; a relative path is prefixed with the API origin since the
 /// frontend runs on a different host than the backend.
-function resolveAssetUrl(url: string): string {
-  if (/^https?:\/\//i.test(url)) return url;
-  return `${api.baseUrl}${url}`;
+/// Screenshots are admin only (view 68). An <img> cannot send the desk's
+/// session, so each one is fetched through the desk's proxy with it and shown
+/// from a local object URL.
+function useDeskImage(path: string): string | null {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    let objectUrl: string | null = null;
+    const token = getAdminToken();
+    fetch(adminApiUrl(path.replace(/^https?:\/\/[^/]+/i, '')), { headers: token ? { 'x-admin-token': token } : {}, cache: 'no-store' })
+      .then((r) => (r.ok ? r.blob() : null))
+      .then((blob) => {
+        if (!blob || !live) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [path]);
+  return src;
+}
+
+function Screenshot({ path, onOpen }: { path: string; onOpen: (src: string) => void }) {
+  const src = useDeskImage(path);
+  return (
+    <button
+      type="button"
+      disabled={!src}
+      onClick={() => src && onOpen(src)}
+      className="h-28 min-w-28 overflow-hidden border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
+      style={{ borderRadius: 8 }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {src ? <img src={src} alt="screenshot" className="block h-28 w-auto object-cover" /> : null}
+    </button>
+  );
 }
 
 export default function AdminFeedbackPage() {
@@ -363,21 +400,9 @@ function FeedbackCard({
       {/* SCREENSHOTS */}
       {item.screenshotUrls.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-3">
-          {item.screenshotUrls.map((url) => {
-            const resolved = resolveAssetUrl(url);
-            return (
-              <button
-                key={url}
-                type="button"
-                onClick={() => onOpenShot(resolved)}
-                className="overflow-hidden border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
-                style={{ borderRadius: 8 }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={resolved} alt="screenshot" className="block h-28 w-auto object-cover" />
-              </button>
-            );
-          })}
+          {item.screenshotUrls.map((url) => (
+            <Screenshot key={url} path={url} onOpen={onOpenShot} />
+          ))}
         </div>
       )}
 

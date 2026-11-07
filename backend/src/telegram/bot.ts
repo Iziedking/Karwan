@@ -112,6 +112,22 @@ export async function sendTelegramMessage(
   }
 }
 
+/// Uploads a photo's bytes, for an image that has no public link (feedback
+/// screenshots, view 68). No-ops without a token.
+export async function sendTelegramPhotoFile(chatId: number, bytes: Uint8Array, mime: string): Promise<void> {
+  if (!config.TELEGRAM_BOT_TOKEN) return;
+  try {
+    const form = new FormData();
+    form.set('chat_id', String(chatId));
+    const ext = mime.split('/')[1] ?? 'png';
+    form.set('photo', new Blob([bytes], { type: mime }), `screenshot.${ext}`);
+    const res = await fetch(`${API}/bot${config.TELEGRAM_BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form });
+    if (!res.ok) logger.warn({ status: res.status, body: await res.text() }, 'telegram photo upload failed');
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'telegram photo upload error');
+  }
+}
+
 /// Sends a photo by URL. Telegram fetches the URL itself, so it must be
 /// publicly reachable (PUBLIC_API_BASE_URL, not localhost). Caption is
 /// optional and rendered as Markdown. No-ops without a token.

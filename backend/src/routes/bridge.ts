@@ -22,6 +22,7 @@ import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { inboundSummary } from '../money/inboundSummary.js';
 import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf, readSession, sessionAddress } from '../auth/session.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import { provisionUserBridgeWallet, dripTestnetUsdc } from '../circle/wallets.js';
 import { ensureAgentBridgeWallet } from '../circle/agentBridgeWallet.js';
 import {
@@ -532,7 +533,10 @@ bridgeRoutes.post('/record', async (c) => {
   });
 });
 
-bridgeRoutes.post('/relay', async (c) => {
+/// Ten relays per ten minutes per person (view 68).
+const relayLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 10, name: 'bridge-relay', key: sessionAddress });
+
+bridgeRoutes.post('/relay', relayLimit, async (c) => {
   if (!config.cctpRelayWalletId) {
     return c.json(
       { error: 'CCTP_RELAY_WALLET_ID not configured (legacy alias: BUYER_AGENT_WALLET_ID)' },
@@ -544,7 +548,8 @@ bridgeRoutes.post('/relay', async (c) => {
   // stops anonymous callers from burning relay-wallet gas and spamming
   // bridge records. Every legitimate caller (web3 EVM flow, Solana flow,
   // recheck) runs with a session cookie.
-  if (!sessionAddress(c)) {
+  const caller = sessionAddress(c);
+  if (!caller) {
     return c.json({ error: 'sign in to relay a bridge' }, 401);
   }
 
@@ -564,6 +569,11 @@ bridgeRoutes.post('/relay', async (c) => {
   // client could still POST a fresh burn for the same bridgeId, that would
   // overwrite the original sourceTxHash and orphan the user's first burn.
   const existing = await getBridge(body.bridgeId);
+  // A bridge already on record is relayed only by its owner (view 68). A new
+  // bridge id becomes the caller's.
+  if (existing && bridgeOwnerFor(existing)?.toLowerCase() !== caller) {
+    return c.json({ error: 'This transfer belongs to someone else.', code: 'forbidden' }, 403);
+  }
   // Already settled: report it instead of re-entering the pipeline, so a
   // recheck re-POST resolves immediately (createBridge also refuses to
   // regress minted records, this is the friendly response for it).
@@ -594,6 +604,7 @@ bridgeRoutes.post('/relay', async (c) => {
     sourceTxHash: body.sourceTxHash,
     amountUsdc: body.amountUsdc,
     mintRecipient: body.mintRecipient,
+    owner: caller,
     ...(body.sourceChainKey ? { sourceChainKey: body.sourceChainKey as never } : {}),
   });
 

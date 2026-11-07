@@ -63,6 +63,7 @@ test('a public write that is only rate limited still needs a reason', () => {
 test('guards are read from the handler and the helpers it calls', () => {
   assert.equal(classifyGuard('const s = deps.session(c); if (!s) return c.json({ error: "not authenticated" }, 401);', '/x'), 'session');
   assert.equal(classifyGuard('requirePresence(c, { action: "payout" }); readSession(c)', '/x'), 'step-up');
+  assert.equal(classifyGuard('if (!ownTicket(c, id)) return c.json({ error: "not-found" }, 404);', '/:id/close'), 'token');
   assert.equal(classifyGuard('requireAdmin', '/api/admin/x'), 'admin');
   assert.equal(classifyGuard('verifyWebhookSignature(body)', '/hook'), 'signed');
   assert.equal(classifyGuard('return c.json(await rates())', '/api/money/rates'), 'none');

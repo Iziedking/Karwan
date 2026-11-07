@@ -5792,6 +5792,7 @@ export const fr: Messages = {
       errors: {
         invalidEmail: 'Saisissez un e-mail valide.',
         lookupFailed: "Impossible de vérifier cet e-mail.",
+        tooManyTries: 'Trop d’essais. Réessayez dans quelques minutes.',
         passkeyCancelledSignIn: 'Demande de passkey annulée. Réessayez ou utilisez un code.',
         passkeyCancelledCreate: 'Configuration du passkey annulée. Réessayez ou utilisez un code.',
         passkeyGeneric: 'La procédure passkey a échoué.',

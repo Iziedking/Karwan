@@ -5789,6 +5789,7 @@ export const sw: Messages = {
       errors: {
         invalidEmail: 'Weka barua pepe halali.',
         lookupFailed: 'Hatukuweza kuchunguza barua pepe hiyo.',
+        tooManyTries: 'Majaribio mengi mno. Jaribu tena baada ya dakika chache.',
         passkeyCancelledSignIn: 'Ombi la passkey limeghairiwa. Jaribu tena, au tumia msimbo.',
         passkeyCancelledCreate: 'Usanidi wa passkey umeghairiwa. Jaribu tena, au tumia msimbo.',
         passkeyGeneric: 'Mchakato wa passkey umeshindwa.',

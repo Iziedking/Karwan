@@ -269,8 +269,8 @@ export function AuthCard({
       }
       await api.authOtpRequest(clean);
       setInStep('code');
-    } catch {
-      setError(t.errors.lookupFailed);
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 429 ? t.errors.tooManyTries : t.errors.lookupFailed);
     } finally {
       setBusy(null);
     }

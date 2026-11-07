@@ -29,6 +29,7 @@ test('the proxy forwards only the routes the desk calls', () => {
   assert.equal(adminProxyTarget(['api', 'admin', 'deals', '0xabc', 'release']), '/api/admin/deals/0xabc/release');
   assert.equal(adminProxyTarget(['api', 'feedback']), '/api/feedback');
   assert.equal(adminProxyTarget(['api', 'feedback', 'f1', 'status']), '/api/feedback/f1/status');
+  assert.equal(adminProxyTarget(['api', 'feedback', 'f1', 'asset', '0']), '/api/feedback/f1/asset/0');
   assert.equal(adminProxyTarget(['api', 'listings', 'l1', 'photos', 'clear']), '/api/listings/l1/photos/clear');
   assert.equal(adminProxyTarget(['api', 'financier', 'admin', 'review']), '/api/financier/admin/review');
   for (const bad of [
@@ -37,6 +38,7 @@ test('the proxy forwards only the routes the desk calls', () => {
     ['api', 'admin', '..', 'auth'],
     ['api', 'admin', 'a%2F..'.replace('%2F', '/')],
     ['api', 'listings', 'l1'],
+    ['api', 'feedback', 'f1', 'asset', 'x'],
     [],
   ]) {
     assert.equal(adminProxyTarget(bad), null, bad.join('/'));

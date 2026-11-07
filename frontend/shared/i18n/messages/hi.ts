@@ -5790,6 +5790,7 @@ export const hi: Messages = {
       errors: {
         invalidEmail: 'मान्य ईमेल दर्ज करें।',
         lookupFailed: 'इस ईमेल की जाँच नहीं हो सकी।',
+        tooManyTries: 'बहुत ज़्यादा कोशिशें। कुछ मिनट बाद फिर से कोशिश करें।',
         passkeyCancelledSignIn: 'पासकी प्रॉम्प्ट रद्द हो गया। दोबारा प्रयास करें, या कोड का उपयोग करें।',
         passkeyCancelledCreate: 'पासकी सेट अप रद्द हो गया। दोबारा प्रयास करें, या कोड का उपयोग करें।',
         passkeyGeneric: 'पासकी प्रक्रिया विफल रही।',

@@ -9,7 +9,7 @@ import {
   startAuthentication,
   browserSupportsWebAuthn,
 } from '@simplewebauthn/browser';
-import { api } from '@/core/api';
+import { api, ApiError } from '@/core/api';
 import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
 import { useSiwe } from '@/shared/hooks/useSiwe';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -293,8 +293,8 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
       setPlan({ exists: r.exists, hasPasskey: r.hasPasskey, supportsWebAuthn, pref });
       setEntryStarted(true);
       setStage('auth');
-    } catch {
-      setError(t.errors.lookupFailed);
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 429 ? t.errors.tooManyTries : t.errors.lookupFailed);
     } finally {
       setBusy(false);
     }

@@ -5325,6 +5325,7 @@ interface MessagesShape {
       errors: {
         invalidEmail: string;
         lookupFailed: string;
+        tooManyTries: string;
         passkeyCancelledSignIn: string;
         passkeyCancelledCreate: string;
         passkeyGeneric: string;
@@ -11225,6 +11226,7 @@ export const en: MessagesShape = {
       errors: {
         invalidEmail: 'Enter a valid email.',
         lookupFailed: "Couldn't check that email.",
+        tooManyTries: 'Too many tries. Try again in a few minutes.',
         passkeyCancelledSignIn: 'Passkey prompt cancelled. Try again, or use a code.',
         passkeyCancelledCreate: 'Passkey setup cancelled. Try again, or use a code.',
         passkeyGeneric: 'Passkey ceremony failed.',

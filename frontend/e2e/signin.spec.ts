@@ -14,6 +14,8 @@ type Theme = 'light' | 'dark';
 type Locale = 'en' | 'ar';
 type AuthWorld = {
   lookup?: { exists: boolean; hasPasskey: boolean };
+  /// The sign-in lookup answers 429 once its limit is reached (view 68).
+  lookupLimited?: boolean;
   invited?: boolean;
 };
 type CapturedRequest = { path: string; body: unknown };
@@ -43,6 +45,7 @@ async function open(page: Page, {
       case '/api/auth/me':
         return route.fulfill({ status: 401, json: { error: 'unauthorized' } });
       case '/api/auth/lookup':
+        if (world.lookupLimited) return route.fulfill({ status: 429, headers: { 'retry-after': '540' }, json: { error: 'too many requests', retryAfterSeconds: 540 } });
         return route.fulfill({ json: world.lookup ?? { exists: false, hasPasskey: false } });
       case '/api/signup/tag':
         return route.fulfill({ json: { tag: url.searchParams.get('tag'), available: true } });
@@ -151,6 +154,15 @@ test('an unknown email offers sign-up with the email kept', async ({ page }, tes
   await expect(page.getByRole('button', { name: en.signUp.sendCode, exact: true })).toBeEnabled();
   await expect(page.getByText(start.account.nudge, { exact: true })).toBeVisible();
   await layoutIsSound(page, testInfo);
+});
+
+test('too many email checks says to try again in a few minutes', async ({ page }) => {
+  await open(page, { world: { lookupLimited: true } });
+  await signIn(page);
+  await page.getByLabel(en.signIn.emailLabel, { exact: true }).fill(EMAIL);
+  await page.getByRole('button', { name: en.signIn.continue, exact: true }).click();
+  await expect(page.getByText(en.errors.tooManyTries, { exact: true })).toBeVisible();
+  await expect(page.getByText(en.signIn.notFound, { exact: true })).toHaveCount(0);
 });
 
 test('sign-up keeps code errors and back navigation', async ({ page }, testInfo) => {

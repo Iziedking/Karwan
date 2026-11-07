@@ -32,6 +32,9 @@ export function rateLimit(opts: {
   max: number | ((c: Context) => number);
   name: string;
   enabled?: () => boolean;
+  /// Counts by this instead of the network address: a signed-in person or the
+  /// email being asked about (view 68). Null falls back to the address.
+  key?: (c: Context) => string | null | Promise<string | null>;
 }) {
   const store = new Map<string, Bucket>();
 
@@ -47,7 +50,8 @@ export function rateLimit(opts: {
       for (const [k, v] of store) if (v.resetAt <= now) store.delete(k);
     }
 
-    const key = `${opts.name}:${clientIp(c)}`;
+    const who = opts.key ? await opts.key(c) : null;
+    const key = who ? `${opts.name}:k:${who}` : `${opts.name}:${clientIp(c)}`;
     const bucket = store.get(key);
     if (!bucket || bucket.resetAt <= now) {
       store.set(key, { count: 1, resetAt: now + opts.windowMs });
@@ -68,4 +72,11 @@ export function rateLimit(opts: {
     }
     await next();
   };
+}
+
+/// The email in a JSON body, for a limit counted per email. Hono keeps the
+/// parsed body, so the route reads it again as usual.
+export async function bodyEmail(c: Context): Promise<string | null> {
+  const body = (await c.req.json().catch(() => null)) as { email?: unknown } | null;
+  return typeof body?.email === 'string' && body.email.includes('@') ? body.email.trim().toLowerCase() : null;
 }

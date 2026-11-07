@@ -33,7 +33,7 @@ export function adminGate(input: {
 /// proxy is never a general way into the API.
 const FORWARDED = [
   /^api\/admin\/[^?#]*$/,
-  /^api\/feedback(\/[^/?#]+\/status)?$/,
+  /^api\/feedback(\/[^/?#]+\/status|\/[^/?#]+\/asset\/\d+)?$/,
   /^api\/listings\/[^/?#]+\/photos\/clear$/,
   /^api\/financier\/admin\/review$/,
 ];

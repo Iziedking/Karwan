@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { viewerAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
@@ -12,8 +12,11 @@ import {
   createConversation,
   createEmailConversation,
   getConversation,
+  issueTicketKey,
   messagesSince,
   sweep,
+  ticketKeyMatches,
+  type SupportConversation,
 } from '../support/store.js';
 import {
   relaySupportUserMessage,
@@ -88,8 +91,18 @@ supportRoutes.post(
   // `at` anchors the widget's poll cursor: it only pulls messages newer than
   // the seeded transcript, so the handoff doesn't echo the AI history back.
   // conversationId IS the ticket id (KSUP-…), shown to the user for tracing.
-  return c.json({ conversationId: convo.id, at: convo.updatedAt });
+  return c.json({ conversationId: convo.id, ticketKey: issueTicketKey(convo.id), at: convo.updatedAt });
 });
+
+/// A ticket opens only for its private key or the signed-in person who opened
+/// it (view 68). Anything else answers like a ticket that does not exist.
+function ownTicket(c: Context, id: string): SupportConversation | null {
+  const convo = getConversation(id);
+  if (!convo) return null;
+  if (ticketKeyMatches(convo, c.req.header('x-ticket-key'))) return convo;
+  const viewer = viewerAddress(c)?.toLowerCase();
+  return viewer && convo.address === viewer ? convo : null;
+}
 
 supportRoutes.post(
   '/:id/message',
@@ -105,6 +118,7 @@ supportRoutes.post(
   } catch (e) {
     return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
   }
+  if (!ownTicket(c, id)) return c.json({ error: 'not-open' }, 404);
   const convo = appendUserMessage(id, body.text);
   if (!convo) return c.json({ error: 'not-open' }, 404);
   const dealId = await partyDeal(viewerAddress(c) ?? undefined, body.dealId);
@@ -119,7 +133,7 @@ supportRoutes.post(
 
 supportRoutes.get('/:id/messages', (c) => {
   const id = c.req.param('id');
-  const convo = getConversation(id);
+  const convo = ownTicket(c, id);
   if (!convo) return c.json({ error: 'not-found' }, 404);
   const since = Number(c.req.query('since') ?? 0) || 0;
   return c.json({ status: convo.status, messages: messagesSince(id, since) });
@@ -127,6 +141,7 @@ supportRoutes.get('/:id/messages', (c) => {
 
 supportRoutes.post('/:id/close', (c) => {
   const id = c.req.param('id');
+  if (!ownTicket(c, id)) return c.json({ error: 'not-found' }, 404);
   const convo = closeConversation(id);
   if (!convo) return c.json({ error: 'not-found' }, 404);
   // The user ending their chat does NOT email a transcript. The archive
@@ -136,7 +151,7 @@ supportRoutes.post('/:id/close', (c) => {
 });
 
 /// Inbound email -> ticket. The mail provider (Resend Inbound, or a Cloudflare
-/// Email Worker) POSTs a received email here. The secret in the path gates it.
+/// Email Worker) POSTs a received email here. The secret in the x-inbound-secret header gates it.
 /// A reply to one of our emails carries "Ticket KSUP-…" in the subject and
 /// re-threads into that conversation; anything else opens a new email ticket.
 function parseEmailAddress(raw: string): string {
@@ -158,11 +173,22 @@ function inboundSecretOk(supplied: string | undefined): boolean {
   return timingSafeEqual(a, b);
 }
 
+/// The header-only route (view 68). The path form below stays until the mail
+/// webhook is repointed here, then it is removed.
+supportRoutes.post('/inbound', async (c) => {
+  if (!inboundSecretOk(c.req.header('x-inbound-secret'))) return c.json({ error: 'not found' }, 404);
+  return inboundMail(c);
+});
+
 supportRoutes.post('/inbound/:secret', async (c) => {
   const supplied = c.req.header('x-inbound-secret') ?? c.req.param('secret');
   if (!inboundSecretOk(supplied)) {
     return c.json({ error: 'not found' }, 404);
   }
+  return inboundMail(c);
+});
+
+async function inboundMail(c: Context) {
   let payload: Record<string, unknown>;
   try {
     payload = (await c.req.json()) as Record<string, unknown>;
@@ -209,7 +235,7 @@ supportRoutes.post('/inbound/:secret', async (c) => {
   void sendSupportAlertEmail(convo);
   logger.info({ id: convo.id, email }, 'inbound email opened a new ticket');
   return c.json({ ok: true, ticketId: convo.id, threaded: false });
-});
+}
 
 /// Slow housekeeping: drop expired closed conversations and auto-close abandoned
 /// open ones (archiving them on the way out). Hourly is plenty; this touches
