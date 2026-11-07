@@ -47,6 +47,10 @@ export interface DealPageCopy {
   stageAmount: string;
   askChanges: string;
   changesDraft: string;
+  /// The work check found a gap: the buyer releases after their own review (view 21).
+  acceptAfterReview: string;
+  acceptTitle: string;
+  acceptBody: string;
   release: {
     title: string;
     to: string;
@@ -126,6 +130,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageAmount: 'Stage {n}: {amount} USDC',
     askChanges: 'Ask for changes',
     changesDraft: 'Here is what needs changing: ',
+    acceptAfterReview: 'I checked it, release',
+    acceptTitle: 'Release after your own review',
+    acceptBody: 'Karwan\'s check found a gap between this delivery and your request. Releasing pays the seller for this part and records that you checked the work yourself. This cannot be undone.',
     release: {
       title: 'Release {amount} USDC to {name}?',
       to: 'To',
@@ -202,6 +209,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageAmount: 'Étape {n} : {amount} USDC',
     askChanges: 'Demander des modifications',
     changesDraft: 'Voici ce qu’il faut modifier : ',
+    acceptAfterReview: 'Je l’ai vérifié, payer',
+    acceptTitle: 'Payer après votre propre vérification',
+    acceptBody: 'La vérification de Karwan a trouvé un écart entre cette livraison et votre demande. Payer règle cette partie au vendeur et indique que vous avez vérifié le travail vous-même. C’est définitif.',
     release: {
       title: 'Libérer {amount} USDC pour {name} ?',
       to: 'À',
@@ -278,6 +288,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageAmount: 'المرحلة {n}: {amount} USDC',
     askChanges: 'اطلب تعديلات',
     changesDraft: 'هذا ما يحتاج إلى تعديل: ',
+    acceptAfterReview: 'راجعته، ادفع',
+    acceptTitle: 'ادفع بعد مراجعتك بنفسك',
+    acceptBody: 'وجد فحص كاروان فرقًا بين هذا التسليم وطلبك. الدفع يرسل هذا الجزء إلى البائع ويسجّل أنك راجعت العمل بنفسك. لا يمكن التراجع عن ذلك.',
     release: {
       title: 'صرف {amount} USDC إلى {name}؟',
       to: 'إلى',
@@ -354,6 +367,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageAmount: 'चरण {n}: {amount} USDC',
     askChanges: 'बदलाव माँगें',
     changesDraft: 'यह बदलना है: ',
+    acceptAfterReview: 'मैंने देख लिया, भुगतान करें',
+    acceptTitle: 'अपनी जाँच के बाद भुगतान करें',
+    acceptBody: 'Karwan की जाँच में इस डिलीवरी और आपके अनुरोध में अंतर मिला। भुगतान करने पर यह हिस्सा विक्रेता को जाता है और दर्ज होता है कि आपने काम खुद जाँचा। यह वापस नहीं होगा।',
     release: {
       title: '{name} को {amount} USDC जारी करें?',
       to: 'किसे',
@@ -430,6 +446,9 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageAmount: 'Hatua {n}: {amount} USDC',
     askChanges: 'Omba mabadiliko',
     changesDraft: 'Hiki ndicho kinachohitaji kubadilishwa: ',
+    acceptAfterReview: 'Nimekiangalia, lipa',
+    acceptTitle: 'Lipa baada ya kukagua mwenyewe',
+    acceptBody: 'Ukaguzi wa Karwan ulipata tofauti kati ya uwasilishaji huu na ombi lako. Kulipa kunampa muuzaji sehemu hii na kunaandika kwamba ulikagua kazi mwenyewe. Hili haliwezi kutenduliwa.',
     release: {
       title: 'Uachilie USDC {amount} kwa {name}?',
       to: 'Kwa',

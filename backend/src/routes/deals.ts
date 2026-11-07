@@ -184,6 +184,8 @@ import { termsDigest } from '../deals/termsDigest.js';
 import { agreementDigest } from '../deals/agreementDigest.js';
 import { fundingAgreementBlock } from '../deals/fundingAgreement.js';
 import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
+import { workMismatchOpen } from '../deals/workMismatch.js';
+import { applyWorkMismatchLift, liveWorkMismatchDeps } from '../deals/workMismatchService.js';
 import { dealOrigin, publicFeedDeal } from '../deals/publicFeed.js';
 import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
 import { reviewForParty } from '../deals/deliveryReview.js';
@@ -370,6 +372,8 @@ const editSchema = z
   );
 
 const callerSchema = z.object({ caller: addrSchema });
+/// The buyer may accept a delivery the work check found a gap in, after their own review.
+const releaseSchema = callerSchema.extend({ acceptedAfterReview: z.literal(true).optional() });
 
 /// The parts a split may set on a deal: given every part, the first follows
 /// it; given only the first, the deal goes back to two parts.
@@ -1564,7 +1568,7 @@ dealsRoutes.get('/direct', async (c) => {
       const held = d.verificationStatus === 'suspicious' || d.verificationStatus === 'malicious';
       return {
         ...deal,
-        matchRisk: undefined,
+        matchRisk: undefined, workCheckOverride: undefined,
         matchHold: matchHoldForParty(d, asBuyer ? 'buyer' : 'seller'),
         deliveryHistory: deliveryHistoryFor(d.deliveryHistory, asBuyer ? 'buyer' : 'seller', d.deliveryReview),
         handover: undefined,
@@ -1617,8 +1621,8 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   const deliveryHistory = deliveryHistoryFor(deal.deliveryHistory, viewerIsBuyer ? 'buyer' : 'seller', deal.deliveryReview);
   const postedPrice = await postedPriceFor(deal);
   const shaped = viewerIsBuyer
-    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, postedPriceUsdc: postedPrice, handover: undefined, matchRisk: undefined, disputeStatements: undefined, judgeProposal: undefined }
-    : { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, postedPriceUsdc: postedPrice, handover: undefined, matchRisk: undefined, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
+    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, postedPriceUsdc: postedPrice, handover: undefined, matchRisk: undefined, workCheckOverride: undefined, disputeStatements: undefined, judgeProposal: undefined }
+    : { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, postedPriceUsdc: postedPrice, handover: undefined, matchRisk: undefined, workCheckOverride: undefined, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
   if (viewerIsBuyer && held && enriched.deliveryProof) {
     return c.json({ deal: { ...shaped, deliveryProof: undefined } });
   }
@@ -4034,12 +4038,13 @@ dealsRoutes.post('/direct/:jobId/payouts/:reference/reconcile', async (c) => {
 
 dealsRoutes.post('/direct/:jobId/release', async (c) => {
   const jobId = c.req.param('jobId');
-  const deal = await getDeal(jobId);
-  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  const found = await getDeal(jobId);
+  if (!found) return c.json({ error: 'deal not found' }, 404);
+  let deal: DirectDeal = found;
 
   let body;
   try {
-    body = callerSchema.parse(await c.req.json());
+    body = releaseSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
@@ -4064,6 +4069,14 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       },
       409,
     );
+  }
+  // The work check found a gap and the buyer accepts the delivery after their
+  // own review (view 21, 7 Nov 2026): it reads as matching for this delivery.
+  if (body.acceptedAfterReview && workMismatchOpen(deal)) {
+    const lifted = await applyWorkMismatchLift(jobId, { by: 'buyer' }, await liveWorkMismatchDeps());
+    if (!lifted.ok) return c.json({ error: lifted.message, code: lifted.code }, 409);
+    deal = lifted.deal;
+    logger.info({ jobId, deliveryRevision: deal.deliveryRevision }, 'buyer accepted a delivery the work check had found a gap in');
   }
   const releaseEvidenceReceipt = await readEvidenceReceipt(jobId, deal.agreementVersion ?? 1, {
     evidenceRevision: deal.deliveryRevision,

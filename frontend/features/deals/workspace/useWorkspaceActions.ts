@@ -23,6 +23,8 @@ export interface SheetState {
   /// freshly refetched one, so the total the buyer approved is the total that
   /// gets authorized.
   quote: DirectDealFundingQuote | null;
+  /// A release after the buyer's own review of a delivery the work check found a gap in (view 21).
+  acceptedAfterReview?: true;
 }
 
 export function useWorkspaceActions(
@@ -34,6 +36,7 @@ export function useWorkspaceActions(
 ) {
   const copy = useTranslations().dealWorkspace;
   const dd = useTranslations().directDealDetail;
+  const dp = useTranslations().dealPage;
   const { locale } = useLocale();
   const { activated } = useActivation();
   const fundingQuote = useFundingQuote(jobId);
@@ -114,6 +117,14 @@ export function useWorkspaceActions(
     });
   }, [deal, address, locale, copy, dd, displayName, activated, fundingQuote, say, figureLocale]);
 
+  // The work check found a gap: the buyer releases this part after looking themselves.
+  const openAcceptRelease = useCallback(() => {
+    if (!deal || !address) return;
+    setError(null);
+    setErrorCode(null);
+    setSheet({ action: 'release', title: dp.acceptTitle, consequence: dp.acceptBody, irreversible: true, snapshot: snapshotDeal(deal), quote: null, acceptedAfterReview: true });
+  }, [deal, address, dp]);
+
   const confirm = useCallback(async () => {
     if (!deal || !address || !sheet || busyRef.current) return;
     busyRef.current = true;
@@ -148,7 +159,7 @@ export function useWorkspaceActions(
           expectedAgreementDigest: deal.agreementDigest,
         });
       } else if (sheet.action === 'release') {
-        await api.releaseDirectDeal(deal.jobId, address);
+        await api.releaseDirectDeal(deal.jobId, address, sheet.acceptedAfterReview ? { acceptedAfterReview: true } : undefined);
       } else if (sheet.action === 'claim') {
         await api.claimDirectDeal(deal.jobId, address);
       } else {
@@ -217,5 +228,5 @@ export function useWorkspaceActions(
     setErrorCode(null);
   }, []);
 
-  return { sheet, openPrimary, confirm, close, busy, error, errorCode, viewerIsBuyer, onFunded, displayName };
+  return { sheet, openPrimary, openAcceptRelease, confirm, close, busy, error, errorCode, viewerIsBuyer, onFunded, displayName };
 }

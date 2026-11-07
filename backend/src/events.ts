@@ -55,6 +55,7 @@ export type KarwanEventType =
   | 'deal.delivered'
   | 'deal.delivery.flagged'
   | 'deal.delivery.cleared'
+  | 'deal.work.accepted'
   | 'deal.matched'
   | 'deal.match.declined'
   | 'deal.match.approved'

@@ -71,7 +71,7 @@ const LINE_KEY = {
 
 /// One screen, one move: who it is with, the money and where it is, a line for
 /// this moment, and the single thing to do. Everything else opens on request.
-export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy, onPrimary, onChanged, movements, recordState, onRetryRecord }: {
+export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy, onPrimary, onAcceptRelease, onChanged, movements, recordState, onRetryRecord }: {
   deal: DirectDeal;
   view: DealView;
   address: string | null;
@@ -79,6 +79,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   displayName: string;
   busy: boolean;
   onPrimary: () => void;
+  /// The buyer releases after their own review of a delivery the work check found a gap in.
+  onAcceptRelease?: () => void;
   onChanged: () => void;
   movements: MoneyMovementView[];
   recordState: SettlementRecordFetchState;
@@ -88,6 +90,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const dp = useTranslations().dealPage;
   const dl = useTranslations().dealLive;
   const s = copy.simple;
+  const dj = useTranslations().disputeJudge;
   const dd = useTranslations().directDealDetail;
   const declineCopy = dd.actionPanel.awaitingAcceptance;
   const { locale } = useLocale();
@@ -367,9 +370,16 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         {dp.checkAgain}
       </Button>
     ) : askForChanges ? (
-      <button type="button" onClick={() => { setDraft({ text: dp.changesDraft, key: Date.now() }); openMessages(); }} className={PRIMARY_CLASS}>
-        {dp.askChanges}
-      </button>
+      <>
+        <button type="button" onClick={() => { setDraft({ text: dp.changesDraft, key: Date.now() }); openMessages(); }} className={PRIMARY_CLASS}>
+          {dp.askChanges}
+        </button>
+        {onAcceptRelease && view.stage !== 'disputed' ? (
+          <button type="button" data-accept-after-review onClick={onAcceptRelease} disabled={busy} className={SECONDARY_CLASS}>
+            {dp.acceptAfterReview}
+          </button>
+        ) : null}
+      </>
     ) : held === 'redeliver' && address ? (
       <>
         <button type="button" onClick={() => setPanel('deliver')} disabled={busy} className={PRIMARY_CLASS}>
@@ -392,6 +402,12 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       <button type="button" onClick={() => setEditing(true)} className={PRIMARY_CLASS}>
         {declineCopy.editTermsCta}
       </button>
+    ) : view.stage === 'disputed' && view.next.actor !== 'you' ? (
+      // While Karwan decides there is nothing to press: say so, and where the answer appears.
+      <div data-problem-wait className="w-full text-center">
+        <p className="text-[16px] font-bold text-[var(--ink)]">{dj.nothingNow}</p>
+        <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{dj.decidedHere}</p>
+      </div>
     ) : !momentNow && view.next.actor !== 'you' && view.stage !== 'cancelled' ? (
       // Whose move it is, as a plain line: a filled pill read as a button
       // nobody could press.
@@ -401,7 +417,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     ) : null}
     {!settled && canProblem ? (
       <button type="button" onClick={() => setPanel('problem')} className={SECONDARY_CLASS}>
-        {s.problem}
+        {view.stage === 'disputed' ? dj.settle : s.problem}
       </button>
     ) : null}
     {view.next.action === 'accept' && !deal.sellerDeclinedAt ? (
@@ -538,7 +554,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       {settled ? moveBar : null}
 
       {deal.dispute && address ? (
-        <DisputePanel jobId={deal.jobId} dispute={deal.dispute} viewerIsBuyer={viewerIsBuyer} caller={address} name={name} myName={displayName} openedBy={deal.disputedBy ?? null} heldUsdc={moneySplit(deal)?.heldUsdc ?? null} onChanged={onChanged} />
+        <DisputePanel jobId={deal.jobId} dispute={deal.dispute} viewerIsBuyer={viewerIsBuyer} caller={address} name={name} myName={displayName} openedBy={deal.disputedBy ?? null} openedAt={deal.disputedAt ?? null} heldUsdc={moneySplit(deal)?.heldUsdc ?? null} onChanged={onChanged} />
       ) : null}
       </div>
 

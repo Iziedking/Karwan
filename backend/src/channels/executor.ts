@@ -43,7 +43,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
       ...(p.heldAttachments === true ? { heldAttachments: true } : {}),
     },
   }),
-  release_milestone: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/release`, body: { caller: p.caller } }),
+  release_milestone: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/release`, body: { caller: p.caller, ...(p.acceptedAfterReview === true ? { acceptedAfterReview: true } : {}) } }),
   withdraw_proceeds: (p) => ({ method: 'POST', path: '/api/activation/withdraw', body: { ...p, requestId: randomUUID() } }),
   cash_out: (p, a) =>
     p.route === 'unified'

@@ -28,6 +28,7 @@ import { withLlmTimeout } from '../agents/llm-utils.js';
 import { systemPromptFor } from './knowledge.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
+import { workMismatchOpen } from '../deals/workMismatch.js';
 import { deliveryForAssistant } from '../deals/deliveryHistoryView.js';
 import { recheckDelivery } from '../deals/deliveryRecheck.js';
 import { deliveryNeeds } from '../deals/deliveryProofRules.js';
@@ -2690,7 +2691,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_release: tool({
       description:
-        "Prepare a confirm card to RELEASE a milestone payment to the seller on one of the buyer's own deals. This pays the seller real USDC from escrow and CANNOT be undone, so it only shows a card the buyer must approve; it never releases on its own. Use it when the buyer clearly wants to pay out, release, or approve a delivery on a specific deal. Only the buyer can release, and only after the seller has marked the work delivered.",
+        "Prepare a confirm card to RELEASE a milestone payment to the seller on one of the buyer's own deals. This pays the seller real USDC from escrow and CANNOT be undone, so it only shows a card the buyer must approve; it never releases on its own. Use it when the buyer clearly wants to pay out, release, or approve a delivery on a specific deal. Only the buyer can release, and only after the seller has marked the work delivered. When Karwan's check found a gap between the delivery and the request, the card says so and releasing records that the buyer checked it themselves; tell them to look at the delivery first.",
       inputSchema: z.object({
         jobId: z.string().min(1).max(120).describe('The deal id to release the next milestone on.'),
       }),
@@ -2744,6 +2745,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           amountUsdc: formatUnits(amountWei, USDC_DECIMALS),
           remainingUsdc: formatUnits(remainingWei, USDC_DECIMALS),
           isFinal: idx + 1 >= total,
+          workGap: workMismatchOpen(deal),
         });
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };

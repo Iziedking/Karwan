@@ -14,6 +14,7 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
   const [revision, setRevision] = useState<number | undefined>(undefined);
   const [reason, setReason] = useState('');
   const [holdReason, setHoldReason] = useState('');
+  const [workReason, setWorkReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -71,6 +72,22 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
     }
   }
 
+  async function clearWork() {
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.adminClearWorkMismatch(jobId, workReason);
+      setWorkReason('');
+      setNote('Cleared. The work reads as matching for this delivery, the buyer review starts now and the deal chat says so.');
+      await load();
+      onChanged?.();
+    } catch (e) {
+      setNote(e instanceof ApiError ? e.message : 'That did not save.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function copyLink(text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -89,11 +106,12 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
   const decided = review && review.decision !== 'pending-approval';
   const recordOnly = view.scope === 'record-only';
   const hold = view.matchHold;
+  const work = view.workMismatch;
 
   return (
     <section className="space-y-3 rounded-xl border border-white/10 p-4" aria-label={`Review for ${view.jobId}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-[14px] font-semibold text-white">{hold && !held ? 'Held match' : 'Flagged delivery'}</p>
+        <p className="text-[14px] font-semibold text-white">{held ? 'Flagged delivery' : work ? 'Work does not match' : hold ? 'Held match' : 'Flagged delivery'}</p>
         <p className="text-[13px] text-white/60">{view.amountUsdc} USDC · delivery {view.revision}{view.revision !== view.deliveryRevision ? ` of ${view.deliveryRevision}` : ''}{view.closed ? ' · deal closed' : ''}</p>
       </div>
 
@@ -121,6 +139,25 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {work && (
+        <div className="space-y-2 rounded-lg border border-white/10 p-3">
+          <p className="text-[13px] font-semibold text-white">The work check found a gap with the request</p>
+          <p className="text-[13px] text-white/60">The release is paused until the seller delivers again, the buyer accepts it after their own review, or you clear it. Clearing pays nothing; the buyer review window starts then.</p>
+          <p className="text-[13px] text-white/80">{work.reason}</p>
+          <label htmlFor={`work-${view.jobId}`} className="block text-[13px] text-white/60">What you checked and what you found</label>
+          <textarea
+            id={`work-${view.jobId}`}
+            value={workReason}
+            onChange={(e) => setWorkReason(e.target.value)}
+            rows={2}
+            className="w-full resize-y rounded-lg border border-white/15 bg-[#0e0e0e] px-3 py-2 text-[13px] text-white outline-none focus:border-white/40"
+          />
+          <button type="button" data-work-clear disabled={busy || workReason.trim().length < 10} onClick={() => void clearWork()} className="min-h-10 rounded-lg bg-[#AFC95B] px-4 text-[13px] font-bold text-[#10171D] disabled:opacity-50">
+            Work matches, clear it
+          </button>
         </div>
       )}
 

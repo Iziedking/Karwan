@@ -151,7 +151,7 @@ export default function AdminSupport() {
       />
       {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• Error: {err}</p>}
 
-      {held && (held.matches.length > 0 || held.links.length > 0) && (
+      {held && (held.matches.length > 0 || held.links.length > 0 || (held.works?.length ?? 0) > 0) && (
         <section className="mt-5 space-y-2" aria-label="Held for a look">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Held for a look</p>
           <div className="border border-white/10 rounded-xl divide-y divide-white/[0.06]">
@@ -174,6 +174,14 @@ export default function AdminSupport() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[13px] text-white">Link held ({l.verificationStatus}) · {l.amountUsdc} USDC · delivery {l.deliveryRevision}</span>
                   <span className="mono text-[11px] text-white/50">{l.jobId.slice(0, 10)}…</span>
+                </div>
+              </button>
+            ))}
+            {(held.works ?? []).map((w) => (
+              <button key={`w-${w.jobId}`} type="button" onClick={() => setHeldJob(heldJob === w.jobId ? null : w.jobId)} className={`w-full text-start p-3 transition ${heldJob === w.jobId ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-white">Work does not match the request · {w.amountUsdc} USDC · delivery {w.deliveryRevision}</span>
+                  <span className="mono text-[11px] text-white/50">{w.jobId.slice(0, 10)}…</span>
                 </div>
               </button>
             ))}

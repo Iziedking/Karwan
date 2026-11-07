@@ -159,6 +159,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         displayName={actions.displayName}
         busy={actions.busy || fundingBusy}
         onPrimary={actions.openPrimary}
+        onAcceptRelease={actions.openAcceptRelease}
         onChanged={() => { void refresh(); }}
         movements={movements}
         recordState={recordState}

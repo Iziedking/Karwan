@@ -116,8 +116,34 @@ deals/deliveryReview.ts, now by revision
 
 The scanner rates `.xyz` a high-risk domain (`security/localScan.ts`). That is what flagged `arcrun.xyz`, twice. Options: keep it (one reviewer clears each hit, and the offence can now come off later), or take `.xyz` out of the list. Recommended: keep it until the review path above is live, then decide from how often it fires on real deals.
 
+## Work that does not match the request (found on testnet, 7 Nov 2026)
+
+Deal `0x9de5…` (programming lessons, 35 USDC in three parts) stayed held after the owner cleared its match hold. The hold was neither the link nor the match. The check that compares the work with the request read the second delivery, `anthropic.skilljar.com`, as a sign-in page and rated it a mismatch. A mismatch stops the review timer, and the release route refused the buyer too (`requirement-mismatch`), so the deal could only move by a new delivery or a dispute. Nobody could say "this is the work".
+
+### How it works now
+
+```
+delivery → work check (model): mismatch → release paused, buyer sees the gap
+      │
+      ├─ buyer: Release, after my own review         deal page or the assistant card
+      │    POST /api/deals/direct/:jobId/release {caller, acceptedAfterReview: true}
+      │
+      └─ person at Karwan: Work matches, clear it    /admin/support → DeliveryReviewPanel
+           POST /api/admin/support/deliveries/:jobId/work-clear {reason}
+      ▼
+deals/workMismatch.ts (rules) → deals/workMismatchService.ts (apply)
+```
+
+### The rules
+
+- **Only the work check's own verdict.** It lifts a `mismatch` from the model that compares the work with the request, on the current delivery of an open deal. A held link is reviewed as above. A signed on-chain check that answered "does not match" stays binding.
+- **The buyer decides for themselves.** The buyer releases the part with "I checked it myself": one step on the deal page, or the assistant's release card, which says the check found a gap. That is their acceptance of that delivery, and the payment follows at once.
+- **A person at Karwan can clear it.** Either credential, with a written reason; one decision is enough because nothing is paid by it. The buyer's review window starts at that moment, so nothing pays out before they look.
+- **One delivery only.** The clearing belongs to the delivery it was made on. A new delivery is checked afresh.
+- **The record.** The deal keeps who lifted it (buyer, support or admin, never a name), when, the reason and the check's original words. The parties see the work as matching; the reviewer's note never reaches them. One line goes in the deal chat.
+
 #
 
 ## Status
 
-Built 22 Oct 2026; the escrow family fix built 27 Oct 2026. The held-match review was found, designed and built on 30 Oct 2026.
+Built 22 Oct 2026; the escrow family fix built 27 Oct 2026. The held-match review was found, designed and built on 30 Oct 2026. Lifting a work mismatch, by the buyer or a person at Karwan, was found and built on 7 Nov 2026.

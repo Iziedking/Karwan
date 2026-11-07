@@ -54,7 +54,12 @@ supportTeamRoutes.get('/held', async (c) => {
     .filter((d) => d.delivered && (d.verificationStatus === 'suspicious' || d.verificationStatus === 'malicious'))
     .sort((a, b) => (b.deliveredAt ?? 0) - (a.deliveredAt ?? 0))
     .map((d) => ({ jobId: d.jobId, buyer: d.buyer, seller: d.seller, amountUsdc: d.dealAmountUsdc, deliveryRevision: d.deliveryRevision ?? 0, verificationStatus: d.verificationStatus, deliveredAt: d.deliveredAt ?? null }));
-  return c.json({ matches, links });
+  const { workMismatchOpen } = await import('../deals/workMismatch.js');
+  const works = open
+    .filter((d) => workMismatchOpen(d))
+    .sort((a, b) => (b.deliveredAt ?? 0) - (a.deliveredAt ?? 0))
+    .map((d) => ({ jobId: d.jobId, buyer: d.buyer, seller: d.seller, amountUsdc: d.dealAmountUsdc, deliveryRevision: d.deliveryRevision ?? 0, deliveredAt: d.deliveredAt ?? null }));
+  return c.json({ matches, links, works });
 });
 
 const clearSchema = z.object({ reason: z.string().min(1).max(1000) });
@@ -87,6 +92,7 @@ supportTeamRoutes.get('/deliveries/:jobId', async (c) => {
   const { getDeal } = await import('../db/deals.js');
   const { reviewOpenFor, reviewableDeliveries } = await import('../deals/deliveryReview.js');
   const { holdOpenFor } = await import('../deals/matchHold.js');
+  const { workMismatchOpen } = await import('../deals/workMismatch.js');
   const deal = await getDeal(c.req.param('jobId'));
   if (!deal) return c.json({ error: 'deal not found' }, 404);
   const current = deal.deliveryRevision ?? 0;
@@ -114,7 +120,28 @@ supportTeamRoutes.get('/deliveries/:jobId', async (c) => {
     matchHold: hold
       ? { flags: hold.flags, reasons: hold.reasons.map((r) => (typeof r === 'string' ? { text: r, audience: 'both' as const } : r)), evaluatedAt: hold.evaluatedAt }
       : null,
+    workMismatch: workMismatchOpen(deal) ? { revision: current, reason: deal.deliveryMatch?.reason ?? '' } : null,
   });
+});
+
+const workClearSchema = z.object({ reason: z.string().min(1).max(1000) });
+
+/// A person clears the work check's mismatch on the current delivery with a
+/// reason (view 21). It pays nothing: the buyer's review window starts then.
+supportTeamRoutes.post('/deliveries/:jobId/work-clear', async (c) => {
+  const role = tokenRole(c);
+  if (!role) return c.json({ error: 'unauthorized' }, 401);
+  const parsed = workClearSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'a reason is required' }, 400);
+  const { applyWorkMismatchLift, liveWorkMismatchDeps } = await import('../deals/workMismatchService.js');
+  const out = await applyWorkMismatchLift(c.req.param('jobId'), { by: role, reason: parsed.data.reason }, await liveWorkMismatchDeps());
+  if (!out.ok) {
+    const status = out.code === 'not-found' ? 404 : out.code === 'reason-required' ? 400 : 409;
+    return c.json({ error: out.message, code: out.code }, status);
+  }
+  const { logger } = await import('../logger.js');
+  logger.info({ jobId: c.req.param('jobId'), role, revision: out.deal.deliveryRevision }, 'support: work mismatch cleared');
+  return c.json({ cleared: true });
 });
 
 const reviewSchema = z.object({

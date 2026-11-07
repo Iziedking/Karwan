@@ -463,8 +463,8 @@ async function runConfirmIntent(
     };
   }
   if (action.intent === 'release_milestone') {
-    const p = action.payload as { jobId: string; caller: string };
-    const r = await api.releaseDirectDeal(p.jobId, p.caller);
+    const p = action.payload as { jobId: string; caller: string; acceptedAfterReview?: true };
+    const r = await api.releaseDirectDeal(p.jobId, p.caller, p.acceptedAfterReview ? { acceptedAfterReview: true } : undefined);
     // Settlement-speed line: the route measures approval-to-verified itself.
     const settleLine =
       r.settledInMs != null

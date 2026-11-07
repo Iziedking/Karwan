@@ -273,6 +273,10 @@ export interface DirectDeal {
     deliveryRevision: number;
     agreementVersion: number;
   };
+  /// The work check's mismatch on one delivery was lifted (deals/workMismatch.ts):
+  /// by the buyer after their own review, or by a person at Karwan with a
+  /// reason. Keeps the check's own words. Never sent to either party.
+  workCheckOverride?: import('../deals/workMismatch.js').WorkCheckOverride;
   /// Optional high-signal counterparty policy. This gates the selected party's
   /// acceptance/funding action; it never authorizes a payment or release.
   verificationPolicy?: 'standard' | 'high_signal';
@@ -812,6 +816,17 @@ export function recordDeliveryReviewForRevision(snapshot: DirectDeal, revision: 
       ? current.verificationStatus === snapshot.verificationStatus
       : entryOf(current)?.verificationStatus === entryOf(snapshot)?.verificationStatus;
     if (!sameVerdict || reviewOf(current) !== reviewOf(snapshot)) return null;
+    return { ...current, ...patch, updatedAt: Date.now() };
+  });
+}
+
+/** A work mismatch is lifted only on the delivery and verdict that were seen. */
+export function recordWorkCheckOverride(snapshot: DirectDeal, patch: Partial<DirectDeal>): Promise<DirectDeal | null> {
+  return mutateLockedDeal(snapshot.jobId, (current) => {
+    if (!current || current.cancelledAt || current.settledAt
+      || (current.deliveryRevision ?? 0) !== (snapshot.deliveryRevision ?? 0)
+      || current.deliveryMatch?.verdict !== snapshot.deliveryMatch?.verdict
+      || current.verificationStatus !== snapshot.verificationStatus) return null;
     return { ...current, ...patch, updatedAt: Date.now() };
   });
 }

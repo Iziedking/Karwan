@@ -102,6 +102,8 @@ export interface ReleaseMilestonePayload {
   /// Always the caller's own session address (the buyer), set by the backend. The
   /// release route re-checks isSessionSelf AND caller === deal.buyer.
   caller: string;
+  /// The work check found a gap and the buyer accepts it after their own review (view 21).
+  acceptedAfterReview?: true;
 }
 
 export interface WithdrawPayload {
@@ -857,6 +859,8 @@ export interface BuildReleaseInput {
   amountUsdc: string;
   remainingUsdc: string;
   isFinal: boolean;
+  /// The work check found a gap with the request on this delivery.
+  workGap?: boolean;
 }
 
 /// Build a release-milestone confirm card. Pure: the tool reads the escrow, does
@@ -871,6 +875,7 @@ export function buildReleaseConfirm(i: BuildReleaseInput): ReleaseConfirm {
     i.isFinal
       ? { label: 'After this', value: 'Deal complete' }
       : { label: 'Left in escrow', value: `${i.remainingUsdc} USDC` },
+    ...(i.workGap ? [{ label: 'Karwan\'s check', value: 'Found a gap with your request. Releasing says you checked it yourself.' }] : []),
   ];
   return {
     kind: 'confirm',
@@ -880,8 +885,8 @@ export function buildReleaseConfirm(i: BuildReleaseInput): ReleaseConfirm {
     summary: `Pay the seller for milestone ${i.milestoneNumber} of ${i.totalMilestones}.`,
     warning: 'Payouts are final. This cannot be undone.',
     fields,
-    payload: { jobId: i.jobId, caller: i.caller },
-    confirmLabel: 'Release payment',
+    payload: { jobId: i.jobId, caller: i.caller, ...(i.workGap ? { acceptedAfterReview: true as const } : {}) },
+    confirmLabel: i.workGap ? 'I checked it, release' : 'Release payment',
     cancelLabel: 'Not now',
   };
 }
