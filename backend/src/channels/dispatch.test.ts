@@ -530,3 +530,16 @@ test('a number replied to a shortlist reaches the assistant as that choice, not 
   await s.dispatch(msg({ text: 'rate my deal with @lawful 5 stars' }));
   assert.equal(s.chats.at(-1)?.at(-1)?.content, 'rate my deal with @lawful 5 stars');
 });
+
+test('with the chat kept as a conversation, a card shown can still be confirmed (Telegram, 7 Nov)', async () => {
+  const s = setup({
+    active: true,
+    chat: async () => ({ ok: true, reply: 'Ready.', actions: [card] }),
+    extra: { keep: async (_a, id) => id ?? 'conv-1' },
+  });
+  await s.dispatch(msg({ text: 'post my laptop' }));
+  assert.ok(s.account().pendingActions?.['act_1:n1'], 'the card is still stored after the turn is kept');
+  assert.equal(s.account().history?.at(-1)?.content, 'Ready.');
+  await s.dispatch(msg({ id: 'c1', kind: 'button', replyId: 'confirm:act_1:n1' }));
+  assert.deepEqual(s.executed, ['act_1:n1']);
+});

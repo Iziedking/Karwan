@@ -70,10 +70,12 @@ export function sentFileStore(root: string = resolve(process.cwd(), 'data', 'sen
     },
 
     /// The held files, oldest first, removed from the hold.
-    take(address: string, now: number): SentFile[] {
+    /// `only` leaves the other files held: an offer takes the photos and leaves a PDF.
+    take(address: string, now: number, only?: (type: SentType) => boolean): SentFile[] {
       const out: SentFile[] = [];
       for (const name of live(address, now)) {
         const mimeType = BY_EXT[name.split('.').pop() ?? ''];
+        if (mimeType && only && !only(mimeType)) continue;
         const path = join(dirOf(address), name);
         if (mimeType) out.push({ bytes: new Uint8Array(readFileSync(path)), mimeType });
         rmSync(path, { force: true });
@@ -162,8 +164,14 @@ export async function putSentFile(
 /// Puts every held file where the person said. Returns what happened, in the
 /// words the person sees.
 export async function useSentFiles(address: string, purpose: SentPurpose, deps: UseSentDeps): Promise<{ ok: boolean; said: string }> {
-  const files = deps.store.take(address, deps.now());
-  if (!files.length) return { ok: false, said: 'No sent file is waiting: it was used already or is over an hour old. Ask them to send it again.' };
+  // An offer or a delivery takes only photos; a PDF stays held for something else.
+  const photosOnly = purpose === 'offer' || purpose === 'delivery';
+  const files = deps.store.take(address, deps.now(), photosOnly ? (t) => t.startsWith('image/') : undefined);
+  if (!files.length) {
+    return deps.store.count(address, deps.now())
+      ? { ok: false, said: `Only a PDF is waiting, and ${purpose === 'offer' ? 'an offer' : 'a delivery'} takes photos.` }
+      : { ok: false, said: 'No sent file is waiting: it was used already or is over an hour old. Ask them to send it again.' };
+  }
   const lines: string[] = [];
   let used = 0;
   for (const file of files) {

@@ -298,7 +298,9 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
     const before = account.history ?? [];
     const fresh = await deps.getOrStart(m.from).catch(() => account);
     const arrived = (fresh.history ?? []).filter((h) => !before.some((b) => b.role === h.role && b.content === h.content));
-    await deps.saveAccount({
+    // The saved account carries the new cards; keeping the turn below writes on
+    // top of it, so it must start from this one or the cards are lost.
+    account = await deps.saveAccount({
       ...account,
       history: [...history, { role: 'assistant' as const, content: result.reply }, ...arrived].slice(-HISTORY_MAX),
       pendingActions,

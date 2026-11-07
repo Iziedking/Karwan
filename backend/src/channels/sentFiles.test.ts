@@ -63,7 +63,7 @@ const holds = (calls: string[]) => ({
   holdForEntry: async () => (calls.push('entry'), 'Kept for your entry.'),
 });
 
-test('use_sent_photo puts held files where the person said, and a PDF never on an offer', async () => {
+test('use_sent_photo puts held files where the person said; an offer takes the photos and leaves a PDF held', async () => {
   const { s, done } = store();
   try {
     const calls: string[] = [];
@@ -73,10 +73,11 @@ test('use_sent_photo puts held files where the person said, and a PDF never on a
     const out = await useSentFiles(ADA, 'offer', deps);
     assert.equal(out.ok, true);
     assert.deepEqual(calls, ['offer:image/jpeg']);
-    assert.match(out.said, /PDF can't go on an offer/);
-    assert.equal((await useSentFiles(ADA, 'offer', deps)).ok, false);
+    assert.equal(s.count(ADA, NOW + 2), 1);
+    const again = await useSentFiles(ADA, 'offer', deps);
+    assert.equal(again.ok, false);
+    assert.match(again.said, /Only a PDF is waiting/);
 
-    s.hold(ADA, PDF, NOW);
     assert.equal((await useSentFiles(ADA, 'record', deps)).said, 'Got it: an invoice.');
     assert.deepEqual(calls.at(-1), 'record:application/pdf');
   } finally {

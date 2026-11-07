@@ -2597,6 +2597,11 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         if (!sellerProfile) {
           return { error: 'They need a seller profile first. Offer a button to the seller desk (destination "new_offer").' };
         }
+        // Photos sent in this chat and still waiting go on the offer, so the
+        // card never depends on use_sent_photo having been called first (view 66).
+        if (sentFiles.count(address, Date.now())) {
+          await useSentFiles(address, 'offer', { now: Date.now, store: sentFiles, readInvoice: async () => [] });
+        }
         const heldPhotos = offerPhotos.heldCount(address, Date.now());
         // View 56: words that describe stages become the parts it is paid in.
         const { parts } = await draftDeal({ brief: `${args.title}. ${args.description}`.slice(0, 500) }, { split: modelSplit });
