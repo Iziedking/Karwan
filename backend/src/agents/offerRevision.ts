@@ -58,3 +58,16 @@ export function decideOfferRevision(input: {
   if (input.counterOpenWith && input.counterOpenWith.toLowerCase() === input.seller.toLowerCase()) return 'lower-after-counter';
   return 'lower-now';
 }
+
+/// A seller's posted offer meets a request their agent already priced from its
+/// setup range. The posted price is the seller's own word, so it takes the
+/// place of the guess while no one has negotiated yet. Offers only move down,
+/// so a posted price above the agent's bid keeps the bid's price; the offer's
+/// floor still holds the agent from going lower.
+export function postedOfferOverAgentBid(
+  bid: { fromOffer: boolean; finalized: boolean; counterRounds: number; buyerCountered: boolean; priceUsdc: string },
+  offerPriceUsdc: string,
+): 'replace' | 'keep-price' | 'held' {
+  if (bid.fromOffer || bid.finalized || bid.counterRounds > 0 || bid.buyerCountered) return 'held';
+  return parseUnits(offerPriceUsdc, 6) < parseUnits(bid.priceUsdc, 6) ? 'replace' : 'keep-price';
+}

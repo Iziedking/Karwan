@@ -56,6 +56,7 @@ import { locationOf } from '../location/live.js';
 import { kindOf } from '../location/rules.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { actorSignalsFor } from './signals.js';
+import { postedOfferOverAgentBid } from './offerRevision.js';
 import { saveActiveBids, saveActiveBidsConfirmed, saveActiveBidsSync, loadActiveBids } from '../db/activeBids.js';
 import { clearJudged, clearJudgedBySeller, loadJudged, saveJudged } from '../db/sellerJudged.js';
 import { forgetSeller } from './judgedSet.js';
@@ -405,8 +406,31 @@ export async function submitListingBid(
   | { ok: false; reason: string; message: string }
 > {
   const key = bidKey(job.jobId, seller.address);
-  if (activeBids.has(key)) {
-    return { ok: false, reason: 'already-bid', message: 'This offer is already on the board.' };
+  const standing = activeBids.get(key);
+  if (standing) {
+    const step = postedOfferOverAgentBid(
+      {
+        fromOffer: standing.listingAskingPriceUsdc !== undefined,
+        finalized: standing.finalized,
+        counterRounds: standing.counterRounds,
+        buyerCountered: standing.lastBuyerPrice !== undefined || standing.lastCounterRef !== undefined,
+        priceUsdc: standing.lastBidPrice,
+      },
+      listing.askingPriceUsdc.toString(),
+    );
+    if (step === 'keep-price') {
+      // The bid stays at its price; the offer's floor now bounds the agent.
+      standing.listingFloorUsdc = Math.min(listing.floorUsdc, Number(standing.lastBidPrice));
+      standing.listingAskingPriceUsdc = Number(standing.lastBidPrice);
+      scheduleActiveBidsPersist();
+    }
+    if (step !== 'replace') {
+      return { ok: false, reason: 'already-bid', message: 'This offer is already on the board.' };
+    }
+    logger.info(
+      { jobId: job.jobId, seller: seller.address, agentBid: standing.lastBidPrice, offerPrice: listing.askingPriceUsdc },
+      'posted offer replaces the agent bid from setup',
+    );
   }
   await prepareSellerRecord(seller.userAddress);
   // The seller already named their own price on this request; a listing bid
@@ -699,8 +723,6 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
     { jobId, byWords: candidates.byWords.length, toJudge: candidates.toJudge.length, skipped: candidates.skipped, resolved: sellers.length },
     'request matched against the seller index',
   );
-  if (sellers.length === 0) return;
-
   // Read the buyer's deterministic signals once and share across every seller
   // evaluation. Saves N reputation reads and keeps the read window aligned.
   try {
@@ -715,6 +737,18 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
       'buyer signals lookup failed, falling back to neutral',
     );
   }
+
+  // Posted offers go first (7 Nov): a seller who posted an offer for this
+  // work has named their price, so their agent offers it rather than a price
+  // from its setup range. The profile sweep below skips sellers already on the
+  // board, and an offer posted later replaces an untouched setup-range bid.
+  try {
+    const { scanListingsForBrief } = await import('../routes/listings.js');
+    await scanListingsForBrief({ ...baseJob });
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'scanListingsForBrief failed');
+  }
+  if (sellers.length === 0) return;
 
   // Order the sweep the way a human works their contacts: providers this buyer
   // has closed clean deals with before ("my regulars") first, then proven tiers,
@@ -803,17 +837,6 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
     },
   );
   await Promise.all(workers);
-
-  // After profile-driven evaluation, scan open listings against this fresh
-  // brief so listings posted BEFORE the brief still match. Listings posted
-  // AFTER a brief are handled by the listings route's scanBriefsForListing.
-  // The shared activeBids dedupe prevents a profile-bid + listing-bid race.
-  try {
-    const { scanListingsForBrief } = await import('../routes/listings.js');
-    await scanListingsForBrief({ ...baseJob });
-  } catch (err) {
-    logger.warn({ err: (err as Error).message }, 'scanListingsForBrief failed');
-  }
 }
 
 /// The seller agent researches an open order before pricing it, so it arrives

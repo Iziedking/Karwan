@@ -61,3 +61,15 @@ test('each seller is measured against the lowest offer other than their own', ()
 test('a seller who withdrew is never taken back by a later offer', () => {
   assert.equal(decideOfferRevision({ seller: SELLER, next: { priceUsdc: '90', deadlineUnix: 2_000 }, withdrawn: true }), 'ignore');
 });
+
+test('a posted offer takes the place of the agent bid from setup until someone negotiates (7 Nov)', async () => {
+  const { postedOfferOverAgentBid } = await import('./offerRevision.js');
+  const bid = { fromOffer: false, finalized: false, counterRounds: 0, buyerCountered: false, priceUsdc: '180' };
+  assert.equal(postedOfferOverAgentBid(bid, '120'), 'replace');
+  assert.equal(postedOfferOverAgentBid(bid, '180'), 'keep-price');
+  assert.equal(postedOfferOverAgentBid(bid, '220'), 'keep-price', 'offers only move down');
+  assert.equal(postedOfferOverAgentBid({ ...bid, buyerCountered: true }, '120'), 'held');
+  assert.equal(postedOfferOverAgentBid({ ...bid, counterRounds: 1 }, '120'), 'held');
+  assert.equal(postedOfferOverAgentBid({ ...bid, fromOffer: true }, '120'), 'held');
+  assert.equal(postedOfferOverAgentBid({ ...bid, finalized: true }, '120'), 'held');
+});
