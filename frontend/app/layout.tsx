@@ -77,14 +77,12 @@ const notoDevanagari = Noto_Sans_Devanagari({
 // Hindi; its Arabic sibling carries Arabic. Not preloaded: a nudge can wait.
 const guideFont = Baloo_2({
   subsets: ['latin', 'latin-ext', 'devanagari'],
-  weight: ['600', '700'],
   variable: '--font-guide',
   display: 'swap',
   preload: false,
 });
 const guideFontArabic = Baloo_Bhaijaan_2({
   subsets: ['arabic'],
-  weight: ['600', '700'],
   variable: '--font-guide-arabic',
   display: 'swap',
   preload: false,
