@@ -777,7 +777,7 @@ function ErrorLine({ error }: { error: string | null }) {
   );
 }
 
-const AGREE_LINK = 'font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
+const AGREE_LINK = 'whitespace-nowrap font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
 
 /// The one box ticked before the account exists: the terms and the privacy
 /// notice, each a link that opens beside the card.

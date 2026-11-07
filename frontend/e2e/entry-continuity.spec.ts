@@ -72,6 +72,17 @@ for(const [locale,m] of [['en',en],['ar',ar]] as const)for(const theme of ['ligh
   expect(w.posts).toContain('/api/signup');expect(w.posts).toContain('/api/terms/accept');expect(w.posts.some(p=>/setup|assistant|fund/.test(p)||p.startsWith('/api/deals/direct'))).toBe(false);
  });
 }
+for(const [locale,m] of [['en',en],['fr',fr],['ar',ar],['hi',hi],['sw',sw]] as const)test('the terms line is one line '+locale,async({page})=>{
+ await world(page,{newAccount:true,locale});await page.goto('/start?mode=signup');
+ await page.getByLabel(m.signup.signUp.emailLabel,{exact:true}).fill('one-line@example.com');
+ await page.getByRole('button',{name:m.signup.signUp.sendCode,exact:true}).click();
+ await page.getByLabel(m.signup.signUp.codeLabel,{exact:true}).fill('123456');
+ await page.getByRole('button',{name:m.signup.signUp.verify,exact:true}).click();
+ const line=page.getByRole('checkbox').locator('xpath=following-sibling::span');
+ await expect(line).toContainText(m.startFlow.tag.privacy);await page.evaluate(()=>document.fonts.ready);
+ const box=await line.evaluate((e)=>({h:e.getBoundingClientRect().height,lh:parseFloat(getComputedStyle(e.parentElement!).lineHeight),w:Math.ceil(e.scrollWidth),room:e.getBoundingClientRect().width}));
+ expect(box.h,JSON.stringify(box)).toBeLessThan(box.lh*1.5);
+});
 for(const path of ['/seller#post-listing','/market?view=yours&list=offers','/start?step=about&next=%2Fbuyer%3Fmode%3Ddirect'])test('gate retains '+path,async({page})=>{
  await world(page);await page.goto(path);const expected=path.startsWith('/start')?'/buyer?mode=direct':path;
  await expect.poll(()=>new URL(page.url()).searchParams.get('next')).toBe(expected);
