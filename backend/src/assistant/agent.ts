@@ -2582,7 +2582,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           .describe('Optional: how far, in percent, their agent may auto-negotiate below the asking price.'),
         ttlDays: z.number().min(0.0006).max(90).optional().describe('Optional: how many days the offer stays open. Defaults to 30.'),
         deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional().describe('goods (physical items to deliver), in_person (work done at a place), or remote (done online). Ask only if unclear.'),
-        category: z.enum(CATEGORY_IDS).optional().describe('The market category the offer belongs in, when it clearly fits one: phones is phones, laptops, computers and gadgets; tech is software and online work, never a device. Leave it out when unsure; the market reads one from the words.'),
+        category: z.enum(CATEGORY_IDS).optional().describe('The market category the offer belongs in, when it clearly fits one: phones is phones, laptops, computers, electronics, parts and gadgets; tech is software and online work, never a device or a part. Leave it out when unsure; the market reads one from the words.'),
         private: z.boolean().optional().describe('True only when they want it private: never on the market or in search; buyer agents still find it and anyone they send the link can open it. Off means everyone on the market sees it. If they want to sell to one person they already agreed with, use share_my_deal_link instead.'),
       }),
       execute: async (args) => {
@@ -2605,7 +2605,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         const heldPhotos = offerPhotos.heldCount(address, Date.now());
         // View 56: words that describe stages become the parts it is paid in.
         const goods = args.deliveryKind === 'goods' || heldPhotos > 0;
-        const { parts } = await draftDeal({ brief: `${args.title}. ${args.description}`.slice(0, 500), goods }, { split: modelSplit });
+        const { parts } = await draftDeal({ brief: `${args.title}. ${args.description}`.slice(0, 500), goods, offer: true }, { split: modelSplit });
         const built = buildPostOfferConfirm({ caller: address, ...args, ...(heldPhotos ? { heldPhotos } : {}), parts });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);

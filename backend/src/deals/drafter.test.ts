@@ -105,3 +105,16 @@ test('goods for sale are one payment: the model is never asked to find stages in
   const deposit = await draftDeal({ brief: '50% deposit first, rest when the fridge is delivered to Lekki', goods: true }, { split });
   assert.deepEqual(deposit.parts.map((p) => p.pct), [50, 50]);
 });
+
+test('a plain offer is one payment: for an offer the model is asked only when the words hint at stages (7 Nov)', async () => {
+  let asked = 0;
+  const split = async () => (asked++, [{ pct: 20, what: 'Confirm availability' }, { pct: 80, what: 'Stock a wide range of components' }]);
+  const plain = await draftDeal({ brief: 'Electronics Parts Supplier. Quality electronics parts available. Wide range of components in stock. Reliable delivery and fair pricing.', offer: true }, { split });
+  assert.equal(plain.parts.length, 1);
+  assert.equal(asked, 0);
+  const staged = await draftDeal({ brief: 'A brand identity for a new restaurant: mood boards and a logo direction, a full logo set once one is chosen, and the menu and signage last.', offer: true }, { split });
+  assert.equal(asked, 0, 'no stage words, no model');
+  assert.equal(staged.parts.length, 1);
+  await draftDeal({ brief: 'A brand identity for a new restaurant. Mood boards and a logo direction come first, the full logo set after one is chosen, and the menu and signage last of all.', offer: true }, { split });
+  assert.equal(asked, 1);
+});

@@ -36,3 +36,7 @@ test('laptops and computers are in Phones and laptops, never Tech (Telegram, 7 N
   assert.equal(inferCategory('MacBook Air M2, like new'), 'phones');
   assert.equal(inferCategory('I build websites for small shops'), 'tech');
 });
+
+test('electronics and parts sit in Phones and electronics, never Tech (7 Nov)', () => {
+  assert.equal(inferCategory('Electronics Parts Supplier. Quality electronics parts, wide range of components'), 'phones');
+});

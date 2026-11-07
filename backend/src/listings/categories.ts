@@ -8,7 +8,7 @@ export type CategoryId = (typeof CATEGORY_IDS)[number];
 const WORDS: Record<CategoryId, readonly string[]> = {
   design: ['logo', 'logos', 'brand', 'branding', 'flyer', 'flyers', 'poster', 'banner', 'design', 'designer', 'illustration', 'photo', 'photos', 'photography', 'photographer', 'video', 'editing', 'animation', 'menu design', 'business card', 'business cards', 'cards', 'printing'],
   tech: ['website', 'websites', 'landing page', 'app', 'apps', 'code', 'coding', 'developer', 'dashboard', 'software', 'web3', 'wordpress', 'shopify', 'api', 'bot', 'automation', 'smart contract', 'contract deployment', 'gas optimisation', 'gas optimization', 'solidity', 'seo'],
-  phones: ['phone', 'phones', 'iphone', 'samsung', 'galaxy', 'tecno', 'infinix', 'itel', 'pixel', 'smartphone', 'android', 'charger', 'airpods', 'laptop', 'laptops', 'macbook', 'notebook', 'computer', 'computers', 'tablet', 'ipad', 'thinkpad', 'chromebook'],
+  phones: ['phone', 'phones', 'iphone', 'samsung', 'galaxy', 'tecno', 'infinix', 'itel', 'pixel', 'smartphone', 'android', 'charger', 'airpods', 'laptop', 'laptops', 'macbook', 'notebook', 'computer', 'computers', 'tablet', 'ipad', 'thinkpad', 'chromebook', 'electronics', 'electronic', 'components', 'gadget', 'gadgets', 'accessories', 'headphones', 'earbuds', 'camera', 'cameras'],
   fashion: ['ankara', 'fabric', 'fabrics', 'wax print', 'dress', 'dresses', 'shirt', 'shirts', 't-shirt', 't-shirts', 'shoes', 'sneakers', 'handbag', 'handbags', 'wig', 'wigs', 'tailoring', 'tailor', 'aso ebi', 'lace', 'clothes', 'clothing', 'jewellery', 'jewelry'],
   food: ['cake', 'cakes', 'jollof', 'catering', 'chef', 'meal', 'meals', 'snacks', 'small chops', 'pastries', 'soup', 'suya', 'food'],
   farm: ['rice', 'maize', 'yam', 'cassava', 'beans', 'garri', 'produce', 'farm', 'poultry', 'eggs', 'cocoa', 'cashew', 'sesame', 'palm oil', 'tomatoes', 'pepper', 'grain', 'cotton lint', 'fertiliser', 'fertilizer'],
@@ -36,7 +36,7 @@ export function categoryOf(listing: { category?: CategoryId; title: string; desc
 export const CATEGORY_NAMES: Record<CategoryId, string> = {
   design: 'Design',
   tech: 'Tech',
-  phones: 'Phones and laptops',
+  phones: 'Phones and electronics',
   fashion: 'Fashion',
   food: 'Food',
   farm: 'Farm produce',

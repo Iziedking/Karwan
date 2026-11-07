@@ -103,7 +103,10 @@ export type KarwanEventType =
   | 'deal.cancel.declined'
   | 'deal.fund.insufficient'
   | 'listing.posted'
+  /// A new offer fits a request the person posted in the last 30 days.
   | 'listing.match.proactive'
+  /// A new offer on the market, told to everyone it does not fit (personal, not on the public feed).
+  | 'listing.new'
   /// Daily trend scout: a keyword the seller serves is rising in demand. A
   /// personal nudge (not on the public feed), routed to the seller by userAddress.
   | 'trend.match'

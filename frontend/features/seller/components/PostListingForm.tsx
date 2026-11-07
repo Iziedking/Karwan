@@ -156,7 +156,7 @@ export function PostListingForm() {
       setPreparing(true);
       try {
         const words = [title.trim(), description.trim()].filter(Boolean).join('. ').slice(0, 500);
-        const { draft } = await api.dealDraft(words);
+        const { draft } = await api.dealDraft(words, 'offer');
         if (draft.parts.length > 1) {
           setTerms((current) => ({ ...current, parts: draft.parts }));
           setInParts(true);

@@ -161,6 +161,7 @@ export const RELEVANT = new Set([
   'po.defaulted',
   'listing.matched',
   'listing.match.proactive',
+  'listing.new',
   'trend.match',
   'market.watch',
   'agent.weekly',
@@ -351,7 +352,7 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   }
   // Proactive scan: the buyer is the target. They had no open brief, so the
   // agent surfaces an offer that overlaps their recent history.
-  if (e.type === 'listing.match.proactive') {
+  if (e.type === 'listing.match.proactive' || e.type === 'listing.new') {
     const buyer = (e.payload?.buyerUser as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'self' }] : [];
   }
@@ -528,11 +529,19 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       const price = (e.payload?.listingAskingPriceUsdc as number | string | undefined) ?? '';
       const listingId = (e.payload?.listingId as string | undefined) ?? undefined;
       const link = listingUrl(listingId);
-      const titleSnip = title ? ` "${title.slice(0, 60)}"` : '';
+      const titleSnip = title ? ` "${title.slice(0, 60)}"` : ' an offer';
+      const matched = ((e.payload?.matched as string[] | undefined) ?? []).slice(0, 3);
       return withLink(
-        `*Your agent spotted an offer that fits your past activity*${titleSnip}${price ? ` at ${price} USDC` : ''}. Tap to open a deal from this offer.`,
+        `*Fits what you asked for*${matched.length ? ` (${matched.join(', ')})` : ''}:${titleSnip}${price ? ` at ${price} USDC` : ''}. Tap to see it.`,
         link,
       );
+    }
+    case 'listing.new': {
+      const title = (e.payload?.listingTitle as string | undefined) ?? '';
+      const price = (e.payload?.listingAskingPriceUsdc as number | string | undefined) ?? '';
+      const listingId = (e.payload?.listingId as string | undefined) ?? undefined;
+      const titleSnip = title ? ` "${title.slice(0, 60)}"` : ' an offer';
+      return withLink(`*New on the market:*${titleSnip}${price ? ` at ${price} USDC` : ''}. Tap to see it.`, listingUrl(listingId));
     }
     case 'trend.match': {
       const keyword = (e.payload?.keyword as string | undefined) ?? '';

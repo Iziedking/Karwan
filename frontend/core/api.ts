@@ -4687,6 +4687,16 @@ export const api = {
   guaranteeComplete: (body: { step: GuaranteeStep; amountUsdc?: string; requestId: string; txHash: string }) =>
     json<{ ok: true; reference: string; txHash: string; amountUsdc: string }>('/api/guarantee/complete', { method: 'POST', body: JSON.stringify(body) }),
 
+  /// Money a contract keeps for the person because a payout to them failed (view 66).
+  moneyOwed: () =>
+    json<{ totalUsdc: string; unreadable: boolean; lines: Array<{ id: string; amountUsdc: string; signs: 'karwan' | 'you'; from: 'deal' | 'guarantee' | 'check' }> }>('/api/money/owed'),
+  collectOwed: (body: { requestId: string }) =>
+    json<{ collected: Array<{ id: string; amountUsdc: string; reference: string; txHash: string | null }>; failed: string[]; yoursToSign: string[] }>('/api/money/owed/collect', { method: 'POST', body: JSON.stringify(body) }),
+  owedIntent: (body: { id: string; requestId: string }) =>
+    json<{ reference: string; to: `0x${string}`; data: `0x${string}`; amountMicros: string; amountUsdc: string }>('/api/money/owed/intent', { method: 'POST', body: JSON.stringify(body) }),
+  owedComplete: (body: { id: string; requestId: string; txHash: string }) =>
+    json<{ ok: true; reference: string; txHash: string; amountUsdc: string }>('/api/money/owed/complete', { method: 'POST', body: JSON.stringify(body) }),
+
   /// Everything still held on older Karwan contracts, each with the step that
   /// works now (view 37).
   legacyPositions: () =>
@@ -5627,10 +5637,11 @@ export const api = {
   sendFinancingMessage: (kind: 'factoring' | 'po', positionId: string, body: string, replyToId?: string, imageDataUrl?: string) =>
     json<{ message: ChatMessage }>(`/api/financing-chat/${kind}/${positionId}`, { method: 'POST', body: JSON.stringify({ body, replyToId, ...(imageDataUrl ? { imageDataUrl } : {}) }) }),
   /// A person's words as a deal card (view 56). Prepares only; nothing is saved.
-  dealDraft: (brief: string) =>
+  /// `offer` drafts a standing offer, split only when its words name stages (view 66).
+  dealDraft: (brief: string, kind?: 'offer') =>
     json<{ draft: { title: string; parts: { pct: number; what: string }[]; tradeType: 'service' | 'goods'; quantity: { count: number; unit: string | null } | null; source: 'rules' | 'model' } }>(
       '/api/deals/draft',
-      { method: 'POST', body: JSON.stringify({ brief }) },
+      { method: 'POST', body: JSON.stringify({ brief, ...(kind ? { kind } : {}) }) },
     ),
   /// The offers already on the market that fit a request being prepared (view 56).
   dealFits: (brief: string, budgetUsdc: number) =>

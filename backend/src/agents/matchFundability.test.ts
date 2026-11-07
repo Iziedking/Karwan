@@ -15,10 +15,17 @@ test('after a top-up the match reads as fundable and the shortfall clears', asyn
   assert.equal(next?.agentBalanceUsdc, '90');
 });
 
-test('still short after a small top-up: the gap is what is left', async () => {
+test('still short after a small top-up: the gap is what is left, network costs included', async () => {
   const next = await refreshFundability(short, async () => 82_000_000n);
   assert.equal(next?.fundable, false);
-  assert.equal(next?.topUpNeededUsdc, '2.70985');
+  assert.equal(next?.topUpNeededUsdc, '3.20985');
+});
+
+test('a top-up of exactly the escrow amount still needs the network reserve, so it is not marked fundable', async () => {
+  const next = await refreshFundability(short, async () => 84_709_850n);
+  assert.equal(next?.fundable, false);
+  assert.equal(next?.topUpNeededUsdc, '0.5');
+  assert.equal((await refreshFundability(short, async () => 85_209_850n))?.fundable, true);
 });
 
 test('nothing to refresh on a fundable, approved, declined or unread match, or when the read fails', async () => {

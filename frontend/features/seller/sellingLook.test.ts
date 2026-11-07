@@ -62,7 +62,8 @@ test('the fold label exists in every language', () => {
 });
 
 test('an offer drafts its parts from the words on Review, and Pay in parts shows only once there are parts (view 56)', () => {
-  assert.match(offer, /api\.dealDraft\(words\)/);
+  // Drafted as an offer: split only when its words name stages (view 66).
+  assert.match(offer, /api\.dealDraft\(words, 'offer'\)/);
   assert.match(offer, /\{inParts \? \(\s*<FoldRow\s+label=\{rf\.payInParts\}/);
   assert.match(offer, /data-drafted/);
 });

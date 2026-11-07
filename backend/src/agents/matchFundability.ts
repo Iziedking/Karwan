@@ -1,5 +1,6 @@
 import { formatUnits, parseUnits } from 'viem';
 import type { MatchProposal } from '../db/matchProposals.js';
+import { matchNeed } from './buyerFundingNeed.js';
 
 const USDC_DECIMALS = 6;
 
@@ -20,7 +21,7 @@ export async function refreshFundability(
   } catch {
     return null;
   }
-  const needed = parseUnits(proposal.fundedAmountUsdc, USDC_DECIMALS);
+  const needed = matchNeed(parseUnits(proposal.fundedAmountUsdc, USDC_DECIMALS));
   const agentBalanceUsdc = formatUnits(balance, USDC_DECIMALS);
   if (agentBalanceUsdc === proposal.agentBalanceUsdc) return null;
   const fundable = balance >= needed;

@@ -26,7 +26,7 @@ export const modelSplit: SplitWithModel = async (brief) => {
   return result.object.parts as DraftPart[];
 };
 
-const bodySchema = z.object({ brief: z.string().trim().min(3).max(500) });
+const bodySchema = z.object({ brief: z.string().trim().min(3).max(500), kind: z.literal('offer').optional() });
 
 export const dealDraftRoutes = new Hono();
 
@@ -37,7 +37,8 @@ dealDraftRoutes.post('/draft', async (c) => {
   const parsed = bodySchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'Say what the deal is, in a few words.' }, 400);
   try {
-    return c.json({ draft: await draftDeal({ brief: parsed.data.brief }, { split: modelSplit }) });
+    const offer = parsed.data.kind === 'offer';
+    return c.json({ draft: await draftDeal({ brief: parsed.data.brief, offer }, { split: modelSplit }) });
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'deal draft failed');
     return c.json({ draft: await draftDeal({ brief: parsed.data.brief }, {}) });

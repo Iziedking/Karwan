@@ -4,6 +4,13 @@ import { USDC_DECIMALS } from '../deals/fundingQuote.js';
 /// Gas on Arc is USDC and a deal costs a handful of transactions.
 export const GAS_HEADROOM_USDC = '0.5';
 
+/// What a buyer agent must hold to fund a matched deal: what escrow pulls (the
+/// price and the buyer's half of the fee) plus the reserve for network costs,
+/// so a top-up of exactly the gap funds it instead of leaving it pending.
+export function matchNeed(fundedAmount: bigint): bigint {
+  return fundedAmount + parseUnits(GAS_HEADROOM_USDC, USDC_DECIMALS);
+}
+
 export interface FundingNeedView {
   requiredUsdc: string;
   balanceUsdc: string;

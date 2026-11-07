@@ -5,6 +5,7 @@ import { blocksOffer, SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerBindingRefusal
 import { carriedGate } from './proposalCarry.js';
 import { offerToChoose, priceAsSeen, withAgreedPrice, type OfferChoice } from './chooseOffer.js';
 import { sellerKey } from './sellerKey.js';
+import { matchNeed } from './buyerFundingNeed.js';
 import { bidsFromHistory, offeredDaysFrom, withdrawnFromHistory } from './bidHistory.js';
 import { bestAndFinalRecipients, decideOfferRevision, lowestOtherUsdc, rejudgeStep, type StandingOffer } from './offerRevision.js';
 import { cancelBlock, reopensOnEdit, sellersToJudgeAgain } from './noDeal.js';
@@ -4023,11 +4024,14 @@ async function proposeMatch(
       ]);
       const priceWei = parseUnits(agreedPriceUsdc, USDC_DECIMALS);
       const { fundedAmount } = computeFunding(priceWei, feeBps);
-      const fundable = agentBal >= fundedAmount;
+      // The top-up asked for covers the network costs too (matchNeed), or the
+      // match stays pending after the person tops up exactly the gap.
+      const needed = matchNeed(fundedAmount);
+      const fundable = agentBal >= needed;
       proposal.fundable = fundable;
       proposal.agentBalanceUsdc = formatUnits(agentBal, USDC_DECIMALS);
       proposal.fundedAmountUsdc = formatUnits(fundedAmount, USDC_DECIMALS);
-      proposal.topUpNeededUsdc = formatUnits(fundable ? 0n : fundedAmount - agentBal, USDC_DECIMALS);
+      proposal.topUpNeededUsdc = formatUnits(fundable ? 0n : needed - agentBal, USDC_DECIMALS);
     } catch (err) {
       logger.warn(
         { jobId: state.jobId, err: (err as Error).message },

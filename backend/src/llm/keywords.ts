@@ -75,7 +75,7 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
 
 /// Common request/filler words to drop from the naive fallback, on top of the
 /// generic commerce filler. Not exhaustive, just enough to keep the signal words.
-const NAIVE_STOPWORDS = new Set([
+export const NAIVE_STOPWORDS = new Set([
   'need', 'want', 'looking', 'hire', 'hiring', 'get', 'please', 'help', 'someone',
   'good', 'have', 'this', 'that', 'from', 'into', 'will', 'can', 'are', 'you',
   'who', 'any', 'one', 'out', 'now', 'not',
@@ -95,7 +95,7 @@ function naiveKeywords(text: string): string[] {
 /// ("sell an account", "good service") but which say nothing about the actual
 /// topic. Stripped before a topical check so a bare "account" can't make an
 /// Amazon-account request look like a match for an outlier-account seller.
-const GENERIC_TAG_WORDS = new Set([
+export const GENERIC_TAG_WORDS = new Set([
   'account', 'accounts', 'service', 'services', 'sale', 'sales', 'sell',
   'selling', 'buy', 'buying', 'work', 'job', 'online', 'digital', 'deal',
   'deals', 'fast', 'cheap', 'good', 'quality', 'best', 'new', 'used', 'the',
