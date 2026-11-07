@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type AdminUpdateCard, type TrendingCategory, type UpdateGround, type UpdateInput, type UpdateKind } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
 import { UpdateTile } from '@/features/home/components/UpdatesCarousel';
+import { pictureNote, pictureTooLarge } from '@/features/admin/updatePicture';
 
 /// The home Updates cards. What is published here shows on every signed-in
 /// home page, in this order. A link is a Karwan path (/how-it-works) or an
@@ -25,7 +26,6 @@ const EMPTY: UpdateInput = { kind: 'post', tag: '', title: '', body: '', ctaLabe
 
 const inputClass = 'mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] focus:border-white/40 outline-none';
 const labelClass = 'text-[12px] font-semibold text-white/55';
-const MAX_PICTURE_BYTES = 4_000_000;
 
 const smallButton = 'min-h-9 rounded-lg border border-white/15 px-3 text-[12px] font-semibold text-white/80 hover:border-white/40 disabled:opacity-30';
 
@@ -73,7 +73,8 @@ export default function AdminUpdatesPage() {
   async function upload(picked: File | undefined) {
     if (!picked) return;
     setErr(null);
-    if (picked.size > MAX_PICTURE_BYTES) { setErr('That picture is too large. Use one under 4 MB; a 1600x900 WebP is usually under 300 KB.'); return; }
+    const tooLarge = pictureTooLarge(picked.size);
+    if (tooLarge) { setErr(tooLarge); return; }
     setUploading(true);
     try {
       const dataUrl = await new Promise<string>((done, fail) => {
@@ -242,15 +243,9 @@ export default function AdminUpdatesPage() {
   );
 }
 
-/// The tile shows the picture at about 16:9 and trims the rest.
 function PictureNote({ width, height }: { width: number; height: number }) {
-  const ratio = width / height;
-  const fits = Math.abs(ratio - 16 / 9) < 0.05;
-  return (
-    <p className={`mt-1.5 text-[13px] ${fits ? 'text-white/55' : 'text-[#e0b84f]'}`}>
-      Uploaded, {width}x{height}.{fits ? ' Fits the tile.' : ' Not 16:9, so the tile trims it. Check the preview, or ask for 1600x900.'}
-    </p>
-  );
+  const { fits, text } = pictureNote(width, height);
+  return <p className={`mt-1.5 text-[13px] ${fits ? 'text-white/55' : 'text-[#e0b84f]'}`}>{text}</p>;
 }
 
 function Segmented<T extends string | number>({ options, value, onChange }: {
