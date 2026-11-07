@@ -7,15 +7,17 @@ import { attachmentHref } from './attachments';
 
 /// The photos and PDFs on a request or a deal (view 56): photos as thumbnails,
 /// PDFs as links, each opening on its own.
-export function AttachmentList({ on, jobId, items, className }: {
+export function AttachmentList({ on, jobId, items, from = 0, className }: {
   on: 'request' | 'deal';
   jobId: string;
   items: ReadonlyArray<{ name: string; contentType: string }> | undefined;
+  /// Items before this one are already shown, such as the request photo beside its title.
+  from?: number;
   className?: string;
 }) {
   const { locale } = useLocale();
   const t = attachCopy[locale];
-  if (!items?.length) return null;
+  if (!items || items.length <= from) return null;
   let photo = 0;
   return (
     <section data-attachments className={className} aria-label={t.shown}>
@@ -24,6 +26,7 @@ export function AttachmentList({ on, jobId, items, className }: {
           const href = attachmentHref(on, jobId, n);
           const isPhoto = item.contentType.startsWith('image/');
           if (isPhoto) photo += 1;
+          if (n < from) return null;
           return (
             <li key={n}>
               <a

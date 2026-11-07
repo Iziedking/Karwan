@@ -35,7 +35,23 @@ export function RequestReachLine({ jobId, active, refreshKey }: { jobId: string;
 
   if (!active) return null;
   const line = reachLine(t, reach);
-  if (line) return <p className="mt-3 text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{line}</p>;
+  if (line && reach) {
+    // Three counts under a hairline (owner, 7 Nov 2026); the sentence stays for screen readers.
+    const stats: Array<[number, string]> = [[reach.fit, t.statFit], [reach.offered, t.statOffered], [reach.asked, t.statAsked]];
+    return (
+      <div data-reach-stats className="mt-5 border-t border-[var(--line)] pt-4">
+        <p className="sr-only">{line}</p>
+        <div aria-hidden className="grid grid-cols-3">
+          {stats.map(([n, label], i) => (
+            <div key={label} className={i ? 'border-s border-[var(--line)] ps-3.5 sm:ps-5' : 'pe-3.5 sm:pe-5'}>
+              <p className="text-[18px] font-semibold tabular-nums text-[var(--ink)] sm:text-[20px]">{n}</p>
+              <p className="mt-0.5 text-[13px] font-medium leading-snug text-[var(--ink-secondary)]">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (!showNobodyYet(reach)) return null;
 
   const copyLink = async () => {
@@ -49,9 +65,9 @@ export function RequestReachLine({ jobId, active, refreshKey }: { jobId: string;
   };
 
   return (
-    <div className="mt-4 border-t border-[var(--lp-border-light)] pt-4">
-      <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{t.nobodyTitle}</p>
-      <p className="mt-1 text-[14px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{t.nobodyBody}</p>
+    <div className="mt-5 border-t border-[var(--line)] pt-4">
+      <p className="text-[16px] font-semibold text-[var(--ink)]">{t.nobodyTitle}</p>
+      <p className="mt-1 text-[14px] font-medium leading-relaxed text-[var(--ink-secondary)]">{t.nobodyBody}</p>
       <Button variant="outline" className="mt-3 rounded-full" onClick={() => void copyLink()}>
         <Icon name={copied ? 'check' : 'copy'} size={16} />
         {copied ? t.copied : t.copyLink}

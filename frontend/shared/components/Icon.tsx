@@ -4,7 +4,7 @@ import {
   ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, Copy, CornerDownLeft, FileText, Globe,
   GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
   Package, Paperclip, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
-  BadgeCheck, KeyRound, ShieldCheck, Sofa, Sprout, Utensils, Wrench,
+  BadgeCheck, KeyRound, Shield, ShieldCheck, Sofa, Sprout, Utensils, Wrench,
 } from 'lucide-react';
 
 const icons = {
@@ -57,6 +57,7 @@ const icons = {
   trash: Trash2,
   'badge-check': BadgeCheck,
   'key-round': KeyRound,
+  shield: Shield,
   'shield-check': ShieldCheck,
   sofa: Sofa,
   sprout: Sprout,

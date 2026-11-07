@@ -1640,6 +1640,7 @@ export const sw: Messages = {
       confirmYesBusy: 'Inaghairi…',
       confirmNo: 'Weka ombi',
     },
+    manage: { title: 'Simamia ombi', edit: 'Hariri', cancel: 'Ghairi' },
     outOfReach: {
       tag: 'Hakuna ofa ndani ya bajeti yako',
       title: 'Hakuna ofa ndani ya bajeti yako',

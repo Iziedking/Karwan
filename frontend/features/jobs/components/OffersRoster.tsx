@@ -99,7 +99,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   }
 
   return (
-    <section data-guide="job-bids" className="mt-6">
+    <section data-guide="job-bids">
       {!open ? (
         pickSeller && others.length === 0 ? null : (
           <button

@@ -1643,6 +1643,7 @@ export const ar: Messages = {
       confirmYesBusy: 'جاري الإلغاء…',
       confirmNo: 'احتفظ بالطلب',
     },
+    manage: { title: 'إدارة الطلب', edit: 'تعديل', cancel: 'إلغاء' },
     outOfReach: {
       tag: 'لا تطابق ضمن ميزانيتك',
       title: 'لا تطابق ضمن ميزانيتك',

@@ -5,6 +5,8 @@ import { api, ApiError, type AgentWorldCheckView, type ShortlistEntry, type Worl
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
+import { Hint } from '@/shared/components/Hint';
+import { Icon } from '@/shared/components/Icon';
 import { FactRows } from '@/shared/components/FactRows';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ratingText } from '@/features/ratings/ratingText';
@@ -20,6 +22,8 @@ import { AgentWorldCheck } from './AgentWorldCheck';
 import { worldStepFrom } from '../agentWorldStep';
 
 const POLL_MS = 6_000;
+/// Offers shown before Show all.
+const PREVIEW = 3;
 
 /// The shortlist for a request, or null when the backend does not run it, so
 /// the caller falls back to the plain offers list.
@@ -70,7 +74,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const roster = t.offerRoster;
   const rf = t.requestFlow;
   const ranked = rankedOffers(entries);
-  // The ranking starts folded: the count first, the order one tap away (owner, 3 Nov 2026).
+  // The best three show at once; the rest are one tap away (owner, 7 Nov 2026, request page design).
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<RankedOffer | null>(null);
   const [choosing, setChoosing] = useState<ShortlistEntry | null>(null);
@@ -83,6 +87,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const cost = costLine ? money.line(costLine, { compact: false }) : null;
   const { locale } = useLocale();
   // Their record in one line: the rating when they have one, else how far they are verified.
+  const shown = open ? ranked : ranked.slice(0, PREVIEW);
   const recordLine = (e: RankedOffer) => (e.rating ? ratingText(e.rating, t.ratings, locale) : shortlistRowView(e, copy).levelLine);
   const waitingOn = worldCheck?.waitingOn === 'seller' && worldCheck.buyerConfirmed
     ? entries.find((e) => e.seller.toLowerCase() === worldCheck.sellerAgent.toLowerCase())?.name ?? null
@@ -113,57 +118,76 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   }
 
   return (
-    <section data-guide="job-shortlist" className={`${CARD_CLASS} mt-6 px-4`}>
-      <div className="py-4">
-        <h2 className="text-[17px] font-semibold text-[var(--ink)]">{copy.title}</h2>
-        {ranked.length ? (
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <p className="text-[14px] font-medium text-[var(--ink-secondary)]">
-              {open ? copy.note : ranked.length === 1 ? copy.countOne : fill(copy.countMany, { n: ranked.length })}
-            </p>
-            <button
-              type="button"
-              aria-expanded={open}
-              aria-controls={`shortlist-${jobId}`}
-              onClick={() => setOpen((now) => !now)}
-              className={buttonClasses({ variant: 'outline', size: 'sm' })}
-            >
-              {open ? copy.hide : copy.show}
-            </button>
-          </div>
-        ) : null}
-        {notice ? <p className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{notice}</p> : null}
+    <section data-guide="job-shortlist" className={`${CARD_CLASS} px-5 lg:px-6`}>
+      <div className="pb-3 pt-5 lg:pt-6">
+        <h2 className="text-[20px] font-semibold leading-tight text-[var(--ink)]">{copy.title}</h2>
+        {ranked.length ? <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.note}</p> : null}
+        {notice && notice !== copy.noneVerified ? <p className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{notice}</p> : null}
         {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
       </div>
-      {ranked.length && open ? (
+      {ranked.length ? (
         <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
-          {ranked.map((e, i) => (
+          {shown.map((e, i) => (
             <li key={e.seller}>
               <button
                 type="button"
                 onClick={() => setViewing(e)}
-                className="flex min-h-16 w-full items-center gap-3 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
+                className="flex min-h-[72px] w-full items-center gap-3.5 py-3.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
               >
-                <PersonAvatar address={e.sellerUser} name={e.name} size={40} />
+                <PersonAvatar address={e.sellerUser} name={e.name} size={44} />
                 <span className="min-w-0 flex-1">
-                  <span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--ink)]">{e.name}</span>
-                  <span className="block truncate text-[13px] text-[var(--ink-secondary)]">{recordLine(e)}</span>
+                  <span dir="auto" className="block truncate text-[16px] font-semibold text-[var(--ink)]">{e.name}</span>
+                  <span className="block text-[13px] font-medium leading-snug text-[var(--ink-secondary)]">
+                    {e.tag ? <span dir="ltr">@{e.tag}</span> : null}
+                    {e.tag ? ' · ' : null}
+                    {recordLine(e)}
+                  </span>
                 </span>
                 <span className="shrink-0 text-end">
-                  <Price usdc={e.priceUsdc} compact className="text-[15px] font-semibold text-[var(--ink)]" />
-                  <span
-                    {...(e.bestFit ? { 'data-best-fit': '' } : {})}
-                    className={`block text-[13px] ${e.bestFit ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}
-                  >
-                    {e.state === 'unavailable' ? `${fill(copy.rank, { n: i + 1 })} · ${copy.unavailable}` : rankLine(i, e.bestFit, copy)}
-                  </span>
+                  <Price usdc={e.priceUsdc} compact className="text-[16px] font-semibold text-[var(--ink)]" />
+                  {e.bestFit && e.state !== 'unavailable' ? (
+                    <span data-best-fit className="mt-1 inline-block rounded-full bg-[var(--raised)] px-2 py-0.5 text-[13px] font-semibold text-[var(--ink)]">
+                      {copy.pick}
+                    </span>
+                  ) : (
+                    <span className="block text-[13px] text-[var(--ink-secondary)]">
+                      {e.state === 'unavailable' ? `${fill(copy.rank, { n: i + 1 })} · ${copy.unavailable}` : rankLine(i, false, copy)}
+                    </span>
+                  )}
                 </span>
               </button>
             </li>
           ))}
         </ul>
       ) : null}
-      {cost ? <p className="border-t border-[var(--line)] py-3 text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">{cost}</p> : null}
+      {notice === copy.noneVerified ? (
+        <p data-unverified-notice className="mb-1 mt-1 flex items-center gap-2.5 rounded-[12px] bg-[var(--raised)] py-1.5 pe-2 ps-3.5 text-[14px] font-semibold text-[var(--ink)]">
+          <Icon name="shield" size={16} className="shrink-0" />
+          <span className="min-w-0 flex-1">{notice}</span>
+          <Hint align="end">{copy.noneVerifiedTip}</Hint>
+        </p>
+      ) : null}
+      {cost || ranked.length > PREVIEW ? (
+        <div className="flex flex-col gap-3 border-t border-[var(--line)] py-4 sm:flex-row sm:items-center sm:justify-between">
+          {ranked.length > PREVIEW ? (
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls={`shortlist-${jobId}`}
+              onClick={() => setOpen((now) => !now)}
+              className={buttonClasses({ variant: 'secondary', className: 'min-h-11 w-full rounded-full sm:order-2 sm:w-auto' })}
+            >
+              {open ? copy.showFewer : fill(copy.showAll, { n: ranked.length })}
+            </button>
+          ) : null}
+          {cost ? (
+            <p className="flex items-center gap-1.5 text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">
+              <span>{cost}</span>
+              <Hint>{copy.checkedTip}</Hint>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <OfferDetails
         entry={viewing}
         place={viewing ? ranked.indexOf(viewing) : 0}

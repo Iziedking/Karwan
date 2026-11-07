@@ -1643,6 +1643,7 @@ export const fr: Messages = {
       confirmYesBusy: 'Annulation…',
       confirmNo: 'Garder la requête',
     },
+    manage: { title: 'Gérer la requête', edit: 'Modifier', cancel: 'Annuler' },
     outOfReach: {
       tag: 'Aucune offre dans votre budget',
       title: 'Aucune offre dans votre budget',

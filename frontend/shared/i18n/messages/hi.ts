@@ -1641,6 +1641,7 @@ export const hi: Messages = {
       confirmYesBusy: 'रद्द हो रहा है…',
       confirmNo: 'अनुरोध रखें',
     },
+    manage: { title: 'अनुरोध संभालें', edit: 'बदलें', cancel: 'रद्द करें' },
     outOfReach: {
       tag: 'आपके बजट में कोई मैच नहीं',
       title: 'आपके बजट में कोई मैच नहीं',

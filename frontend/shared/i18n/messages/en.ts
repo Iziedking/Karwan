@@ -1566,6 +1566,7 @@ interface MessagesShape {
       confirmYesBusy: string;
       confirmNo: string;
     };
+    manage: { title: string; edit: string; cancel: string };
     outOfReach: {
       tag: string;
       title: string;
@@ -6930,6 +6931,7 @@ export const en: MessagesShape = {
       confirmYesBusy: 'Cancelling…',
       confirmNo: 'Keep request',
     },
+    manage: { title: 'Manage request', edit: 'Edit', cancel: 'Cancel' },
     outOfReach: {
       tag: 'No match at your budget',
       title: 'No match at your budget',

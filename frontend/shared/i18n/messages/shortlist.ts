@@ -5,10 +5,6 @@ export interface ShortlistCopy {
   title: string;
   note: string;
   /// The ranking starts folded under the count (owner, 3 Nov 2026).
-  show: string;
-  hide: string;
-  countOne: string;
-  countMany: string;
   /// The agent's order: {n} is the place, the first choosable offer inside the request is its pick.
   pick: string;
   rank: string;
@@ -39,6 +35,10 @@ export interface ShortlistCopy {
   negotiating: string;
   noneYet: string;
   noneVerified: string;
+  noneVerifiedTip: string;
+  checkedTip: string;
+  showAll: string;
+  showFewer: string;
   noneInBudget: string;
   unverifiedWarning: string;
   outsideRequest: string;
@@ -53,10 +53,6 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   en: {
     title: 'Your shortlist',
     note: 'Ranked by your agent. Tap one to see more.',
-    show: 'Show your shortlist',
-    hide: 'Hide',
-    countOne: '1 seller offered',
-    countMany: '{n} sellers offered',
     pick: 'Agent’s pick',
     rank: '#{n}',
     close: 'Close',
@@ -85,6 +81,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     negotiating: 'Your agent is agreeing the price',
     noneYet: 'No one has offered yet. Your agent keeps looking until the request closes.',
     noneVerified: 'None of these sellers is verified yet.',
+    noneVerifiedTip: 'None of these sellers has checked their identity or skills yet. Their deals on Karwan still count.',
+    checkedTip: 'Your agent paid to read each seller’s record before ranking them.',
+    showAll: 'Show all {n} offers',
+    showFewer: 'Show fewer',
     noneInBudget: 'No verified seller is within your budget yet.',
     unverifiedWarning: "{name} is not verified. Review the available record before accepting. Payment follows the agreed release rules.",
     outsideRequest: 'Above your budget, outside your request',
@@ -104,10 +104,6 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   fr: {
     title: 'Votre sélection',
     note: 'Classées par votre agent. Touchez-en une pour en voir plus.',
-    show: 'Voir votre sélection',
-    hide: 'Masquer',
-    countOne: '1 vendeur a fait une offre',
-    countMany: '{n} vendeurs ont fait une offre',
     pick: 'Choix de votre agent',
     rank: '#{n}',
     close: 'Fermer',
@@ -136,6 +132,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     negotiating: 'Votre agent fixe le prix',
     noneYet: 'Personne n’a encore fait d’offre. Votre agent continue jusqu’à la clôture de la demande.',
     noneVerified: 'Aucun de ces vendeurs n’est encore vérifié.',
+    noneVerifiedTip: 'Aucun de ces vendeurs n’a encore fait vérifier son identité ou ses compétences. Leurs transactions sur Karwan comptent toujours.',
+    checkedTip: 'Votre agent a payé pour lire le dossier de chaque vendeur avant de les classer.',
+    showAll: 'Voir les {n} offres',
+    showFewer: 'Voir moins',
     noneInBudget: 'Aucun vendeur vérifié ne tient encore dans votre budget.',
     unverifiedWarning: "{name} n’est pas vérifié. Consultez son historique disponible avant d’accepter. Les règles de versement convenues s’appliquent.",
     outsideRequest: 'Au-dessus de votre budget, hors de votre demande',
@@ -155,10 +155,6 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   ar: {
     title: 'قائمتك المختصرة',
     note: 'رتّبها وكيلك. اضغط على أي عرض لترى المزيد.',
-    show: 'اعرض قائمتك المختصرة',
-    hide: 'إخفاء',
-    countOne: 'بائع واحد قدّم عرضًا',
-    countMany: '{n} بائعين قدّموا عروضًا',
     pick: 'اختيار وكيلك',
     rank: '#{n}',
     close: 'إغلاق',
@@ -187,6 +183,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     negotiating: 'وكيلك يتفق على السعر',
     noneYet: 'لم يقدّم أحد عرضًا بعد. يواصل وكيلك البحث حتى يُغلق الطلب.',
     noneVerified: 'لا أحد من هؤلاء البائعين موثّق بعد.',
+    noneVerifiedTip: 'لم يتحقق أي من هؤلاء البائعين من هويته أو مهاراته بعد. صفقاتهم على Karwan لا تزال تُحتسب.',
+    checkedTip: 'دفع وكيلك لقراءة سجل كل بائع قبل ترتيبهم.',
+    showAll: 'عرض كل العروض ({n})',
+    showFewer: 'عرض أقل',
     noneInBudget: 'لا يوجد بائع موثّق ضمن ميزانيتك بعد.',
     unverifiedWarning: "لم يتم التحقق من {name}. راجع السجل المتاح قبل القبول. تسري قواعد الصرف المتفق عليها.",
     outsideRequest: 'أعلى من ميزانيتك، خارج طلبك',
@@ -206,10 +206,6 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   hi: {
     title: 'आपकी शॉर्टलिस्ट',
     note: 'आपके एजेंट ने इन्हें क्रम में रखा है। ज़्यादा देखने के लिए किसी पर टैप करें।',
-    show: 'अपनी शॉर्टलिस्ट देखें',
-    hide: 'छिपाएँ',
-    countOne: '1 विक्रेता ने ऑफ़र दिया',
-    countMany: '{n} विक्रेताओं ने ऑफ़र दिया',
     pick: 'एजेंट की पसंद',
     rank: '#{n}',
     close: 'बंद करें',
@@ -238,6 +234,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     negotiating: 'आपका एजेंट कीमत तय कर रहा है',
     noneYet: 'अभी किसी ने ऑफ़र नहीं दिया। अनुरोध बंद होने तक आपका एजेंट खोजता रहेगा।',
     noneVerified: 'इनमें से कोई विक्रेता अभी सत्यापित नहीं है।',
+    noneVerifiedTip: 'इनमें से किसी विक्रेता ने अभी अपनी पहचान या कौशल की जाँच नहीं कराई है। Karwan पर उनकी डील फिर भी गिनी जाती हैं।',
+    checkedTip: 'रैंक करने से पहले आपके एजेंट ने हर विक्रेता का रिकॉर्ड पढ़ने के लिए भुगतान किया।',
+    showAll: 'सभी {n} ऑफ़र देखें',
+    showFewer: 'कम दिखाएँ',
     noneInBudget: 'अभी कोई सत्यापित विक्रेता आपके बजट में नहीं है।',
     unverifiedWarning: "{name} सत्यापित नहीं हैं। स्वीकार करने से पहले उपलब्ध रिकॉर्ड देखें। भुगतान के सहमत नियम लागू होते हैं।",
     outsideRequest: 'आपके बजट से ऊपर, आपके अनुरोध से बाहर',
@@ -257,10 +257,6 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   sw: {
     title: 'Orodha yako fupi',
     note: 'Zimepangwa na wakala wako. Gusa moja kuona zaidi.',
-    show: 'Onyesha orodha yako fupi',
-    hide: 'Ficha',
-    countOne: 'Muuzaji 1 ametoa ofa',
-    countMany: 'Wauzaji {n} wametoa ofa',
     pick: 'Chaguo la wakala wako',
     rank: '#{n}',
     close: 'Funga',
@@ -289,6 +285,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     negotiating: 'Wakala wako anakubaliana bei',
     noneYet: 'Bado hakuna aliyetoa ofa. Wakala wako anaendelea kutafuta hadi ombi lifungwe.',
     noneVerified: 'Hakuna kati ya wauzaji hawa aliyethibitishwa bado.',
+    noneVerifiedTip: 'Hakuna kati ya wauzaji hawa aliyethibitisha utambulisho au ujuzi wake bado. Mikataba yao kwenye Karwan bado inahesabika.',
+    checkedTip: 'Wakala wako alilipa kusoma rekodi ya kila muuzaji kabla ya kuwapanga.',
+    showAll: 'Onyesha ofa zote {n}',
+    showFewer: 'Onyesha chache',
     noneInBudget: 'Bado hakuna muuzaji aliyethibitishwa ndani ya bajeti yako.',
     unverifiedWarning: "{name} hajathibitishwa. Kagua historia iliyopo kabla ya kukubali. Malipo yanafuata kanuni zilizokubaliwa.",
     outsideRequest: 'Juu ya bajeti yako, nje ya ombi lako',

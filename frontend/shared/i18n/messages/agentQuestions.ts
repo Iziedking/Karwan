@@ -4,6 +4,10 @@ export interface AgentQuestionsCopy {
   /// {fit}, {offered} and {asked} are counts of sellers.
   reachOne: string;
   reachMany: string;
+  /// Labels under the three counts on the request page.
+  statFit: string;
+  statOffered: string;
+  statAsked: string;
   nobodyTitle: string;
   nobodyBody: string;
   copyLink: string;
@@ -33,6 +37,9 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
   en: {
     reachOne: 'One seller fits so far: {offered} offered, {asked} checking the price.',
     reachMany: '{fit} sellers fit so far: {offered} offered, {asked} checking the price.',
+    statFit: 'fit your request',
+    statOffered: 'offered',
+    statAsked: 'checking the price',
     nobodyTitle: 'Nobody on Karwan sells this yet',
     nobodyBody: 'Your agent keeps looking and tells you the moment someone fits. Know a seller? Send them the link and they can offer here.',
     copyLink: 'Copy the link',
@@ -58,6 +65,9 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
   fr: {
     reachOne: 'Un vendeur correspond pour le moment : {offered} a fait une offre, {asked} vérifie le prix.',
     reachMany: '{fit} vendeurs correspondent pour le moment : {offered} ont fait une offre, {asked} vérifient le prix.',
+    statFit: 'correspondent',
+    statOffered: 'ont fait une offre',
+    statAsked: 'vérifient le prix',
     nobodyTitle: 'Personne ne vend encore cela sur Karwan',
     nobodyBody: 'Votre agent continue de chercher et vous prévient dès que quelqu’un correspond. Vous connaissez un vendeur ? Envoyez-lui le lien et il pourra faire une offre ici.',
     copyLink: 'Copier le lien',
@@ -83,6 +93,9 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
   ar: {
     reachOne: 'بائع واحد يناسب الطلب حتى الآن: {offered} قدّم عرضًا، {asked} يتحقق من السعر.',
     reachMany: '{fit} بائعين يناسبون الطلب حتى الآن: {offered} قدّموا عروضًا، {asked} يتحققون من السعر.',
+    statFit: 'يناسبون الطلب',
+    statOffered: 'قدّموا عروضًا',
+    statAsked: 'يتحققون من السعر',
     nobodyTitle: 'لا أحد يبيع هذا على كروان بعد',
     nobodyBody: 'يواصل وكيلك البحث ويخبرك فور أن يناسب أحد طلبك. تعرف بائعًا؟ أرسل له الرابط ليقدم عرضه هنا.',
     copyLink: 'انسخ الرابط',
@@ -108,6 +121,9 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
   hi: {
     reachOne: 'अब तक एक विक्रेता मेल खाता है: {offered} ने ऑफ़र दिया, {asked} कीमत देख रहा है।',
     reachMany: 'अब तक {fit} विक्रेता मेल खाते हैं: {offered} ने ऑफ़र दिया, {asked} कीमत देख रहे हैं।',
+    statFit: 'मेल खाते हैं',
+    statOffered: 'ने ऑफ़र दिया',
+    statAsked: 'कीमत देख रहे हैं',
     nobodyTitle: 'Karwan पर अभी कोई यह नहीं बेचता',
     nobodyBody: 'आपका एजेंट खोजता रहता है और जैसे ही कोई मेल खाए, आपको बताता है। किसी विक्रेता को जानते हैं? उन्हें लिंक भेजें, वे यहाँ ऑफ़र दे सकते हैं।',
     copyLink: 'लिंक कॉपी करें',
@@ -133,6 +149,9 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
   sw: {
     reachOne: 'Muuzaji mmoja analingana hadi sasa: {offered} ametoa ofa, {asked} anaangalia bei.',
     reachMany: 'Wauzaji {fit} wanalingana hadi sasa: {offered} wametoa ofa, {asked} wanaangalia bei.',
+    statFit: 'wanalingana',
+    statOffered: 'wametoa ofa',
+    statAsked: 'wanaangalia bei',
     nobodyTitle: 'Hakuna anayeuza hiki kwenye Karwan bado',
     nobodyBody: 'Wakala wako anaendelea kutafuta na atakuambia mara mtu atakapolingana. Unamjua muuzaji? Mtumie kiungo na anaweza kutoa ofa hapa.',
     copyLink: 'Nakili kiungo',

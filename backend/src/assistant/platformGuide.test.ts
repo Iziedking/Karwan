@@ -387,7 +387,10 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /What buyers need as picture cards like Buy/);
   assert.match(all, /one Money row shows the same one figure as Money/);
   assert.doesNotMatch(all, /sit under Selling/);
-  assert.match(all, /starts folded under how many sellers offered, and Show your shortlist opens the order/);
+  // The request page shows the best three, and its notes open from an (i) (owner, 7 Nov 2026).
+  assert.match(all, /the best three show at once/);
+  assert.match(all, /open from the \(i\) beside each/);
+  assert.doesNotMatch(all, /starts folded under how many sellers offered/);
   // A dispute reads as Karwan checking, with the support safety line (owner, 3 Nov 2026).
   assert.match(all, /Karwan checks both sides, the delivery and the deal chat/);
   assert.match(all, /Karwan support will never message you outside Karwan or ask you to send money/);

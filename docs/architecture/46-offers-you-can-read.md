@@ -33,3 +33,14 @@ flowchart LR
 | `frontend/features/jobs/components/BriefSections.tsx` | Edit and Cancel no longer hide on no deal |
 | `frontend/features/jobs/components/Shortlist.tsx` | one line per offer, details sheet |
 | assistant | `cancel_request` and `edit_request` work the same after no deal; guide entry updated |
+
+## The page, redrawn (7 Nov 2026)
+
+The owner approved a new request page, drawn first in Figma (page "Request page · 7 Nov").
+
+- The request photo sits beside the title.
+- One status card leads with how many offers there are, said large, and three counts under a hairline: sellers who fit, who offered, and who are checking the price.
+- The shortlist shows the best three at once, each with photo, name, tag and price, and the agent's pick marked. Show all opens the rest.
+- None of these sellers is verified yet is one line. What it means, and what the agent spent checking records, open from the (i) beside each.
+- Edit request and Cancel request are two rows in one Manage request card. Each note opens from its (i), and Cancel asks once in a confirm sheet.
+- Every note in the app uses the same tooltip (`shared/components/Hint.tsx`): a raised card with a pointer, opened by hover, focus or tap, and closed by Escape or a tap outside.

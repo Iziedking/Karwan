@@ -46,17 +46,12 @@ test('offers are one line each in the agent order, the pick marked, and a tap sh
   await page.goto(`/jobs/${JOB}`);
   await expect(page.getByText(/^Request REQ-/)).toBeVisible();
   const rows = page.locator('[data-guide="job-shortlist"] li > button');
-  // The ranking starts folded: the count shows, the order waits behind Show (owner, 3 Nov 2026).
-  const toggle = page.locator('[data-guide="job-shortlist"]').getByRole('button', { name: 'Show your shortlist' });
-  await expect(rows).toHaveCount(0);
-  await expect(page.locator('[data-guide="job-shortlist"]')).toContainText('3 sellers offered');
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  await toggle.click();
+  // The best three show at once; Show all only appears when there are more (owner, 7 Nov 2026).
   await expect(rows).toHaveCount(3);
-  const hide = page.locator('[data-guide="job-shortlist"]').getByRole('button', { name: 'Hide' });
-  await expect(hide).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('[data-guide="job-shortlist"]').getByRole('button', { name: /^Show all/ })).toHaveCount(0);
   await expect(rows.nth(0)).toContainText('Realnica');
-  await expect(rows.nth(0)).toContainText('#1 · Agent’s pick');
+  await expect(rows.nth(0)).toContainText('@realnica');
+  await expect(rows.nth(0)).toContainText('Agent’s pick');
   await expect(rows.nth(0)).toContainText('96 USDC');
   await expect(rows.nth(1)).toContainText('#2');
   await expect(page.locator('[data-best-fit]')).toHaveCount(1);
@@ -86,6 +81,43 @@ test('offers are one line each in the agent order, the pick marked, and a tap sh
   await sheet.getByRole('button', { name: 'Not now' }).click();
   expect(choices).toBe(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test('past three offers Show all opens the rest, and the notes open from their (i) (owner, 7 Nov 2026)', async ({ page }) => {
+  const none = (rank: number, name: string, price: number) => ({ ...entry(rank, name, price), recommended: false });
+  await serveSearch(page, {
+    balances: funded,
+    job: makeJob({
+      budgetUsdc: '100',
+      bids: [{
+        seller: `0x${'1'.repeat(40)}`, priceUsdc: '90', deadlineUnix: Math.floor(Date.now() / 1000) + 6 * 86_400, score: 70,
+        suggestedCounterPrice: null, suggestedCounterDeadlineDays: null, sellerTier: 'new',
+        sellerUserAddress: null, sellerDisplayName: 'Realnica', topicalMatch: 80,
+      }],
+    }),
+    shortlist: { entries: [none(1, 'Realnica', 90), none(2, 'Pamcollins', 92), none(3, 'Poz', 95), none(4, 'Ifeoma', 97), none(5, 'Kelechi', 99)], closed: false },
+  });
+  await page.goto(`/jobs/${JOB}`);
+  const card = page.locator('[data-guide="job-shortlist"]');
+  const rows = card.locator('li > button');
+  await expect(rows).toHaveCount(3);
+  const all = card.getByRole('button', { name: 'Show all 5 offers' });
+  await expect(all).toHaveAttribute('aria-expanded', 'false');
+  await all.click();
+  await expect(rows).toHaveCount(5);
+  await expect(card.getByRole('button', { name: 'Show fewer' })).toHaveAttribute('aria-expanded', 'true');
+  // None verified is one line; why it matters is in the tooltip, not on the page.
+  const notice = card.locator('[data-unverified-notice]');
+  await expect(notice).toContainText('None of these sellers is verified yet.');
+  await expect(page.getByText('Their deals on Karwan still count.', { exact: false })).toHaveCount(0);
+  // Keyboard focus opens it, the same as a hover or a tap.
+  await notice.getByRole('button').focus();
+  await expect(page.getByRole('tooltip')).toContainText('Their deals on Karwan still count.');
+  // The edit note is behind its (i) too.
+  await expect(page.getByText('The budget and due date are fixed once posted.', { exact: false })).toHaveCount(0);
+  await page.locator('[data-manage-row]').first().getByRole('button').first().focus();
+  await expect(page.getByRole('tooltip')).toContainText('The budget and due date are fixed once posted.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
 
@@ -194,7 +226,6 @@ for (const [lang, messages] of batch3Locales) test('Batch 3 shortlist funding wa
  await page.addInitScript(() => {localStorage.setItem('karwan:guide:disabled','1');localStorage.setItem('karwan-theme','light');});
  await serveSearch(page,{balances:funded,job:makeJob({budgetUsdc:'100',bids:[{seller:'0x'+'1'.repeat(40),priceUsdc:'96',deadlineUnix:Math.floor(Date.now()/1000)+6*86400,score:70,suggestedCounterPrice:null,suggestedCounterDeadlineDays:null,sellerTier:'new',sellerUserAddress:null,sellerDisplayName:'Realnica',topicalMatch:80}]}),shortlist:{entries:[entry(1,'Realnica',96)],closed:false}});
  await page.goto('/jobs/'+JOB);
- await page.locator('[data-guide="job-shortlist"]').getByRole('button', { name: messages.shortlist.show }).click();
  await page.locator('[data-guide="job-shortlist"] li > button').first().click();
  await page.getByRole('button',{name:messages.requestFlow.reviewOffer+' Realnica',exact:true}).click();
  const sheet=page.getByRole('dialog');

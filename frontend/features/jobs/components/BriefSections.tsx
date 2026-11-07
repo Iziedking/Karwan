@@ -1,10 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { api, ApiError, type BuyerJob } from '@/core/api';
 import { EDIT_REQUEST_EVENT } from '@/shared/components/MarketAdvisoryBanner';
-import { SectionTag, PageCard, CTAPill } from '@/shared/components/Bands';
+import { CTAPill } from '@/shared/components/Bands';
+import { buttonClasses } from '@/shared/components/Button';
+import { Hint } from '@/shared/components/Hint';
+import { Icon } from '@/shared/components/Icon';
+import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { briefOpenForChange } from '../briefOpen';
 
@@ -25,7 +29,8 @@ export function EditBriefSection({
   isBuyer?: boolean;
   onEdited: () => Promise<void> | void;
 }) {
-  const es = useTranslations().liveJob.editSection;
+  const lj = useTranslations().liveJob;
+  const es = lj.editSection;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,29 +73,19 @@ export function EditBriefSection({
 
   return (
     <>
-      <PageCard>
-        <div className="px-6 pt-6 pb-3">
-          <SectionTag>{es.tag}</SectionTag>
-          <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-            {es.title}
-          </h3>
-        </div>
-        <div className="px-6 pb-6 space-y-3">
-          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-            {es.body}
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setOpen(true);
-            }}
-            className="mono text-[14px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent-on-light)] underline underline-offset-2 hover:underline-offset-4"
-          >
-            {es.cta}
-          </button>
-        </div>
-      </PageCard>
+      <ManageRow icon="pen-line" label={es.cta} note={es.body}>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setOpen(true);
+          }}
+          aria-label={es.cta}
+          className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'min-h-10 px-4' })}
+        >
+          {lj.manage.edit}
+        </button>
+      </ManageRow>
       {open && (
         <EditBriefModal
           initialBriefText={job.briefText ?? ''}
@@ -308,7 +303,8 @@ export function CancelBriefSection({
   /// buyer AGENT address, so an address comparison never matches the user.
   isBuyer?: boolean;
 }) {
-  const cs = useTranslations().liveJob.cancelSection;
+  const lj = useTranslations().liveJob;
+  const cs = lj.cancelSection;
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -336,66 +332,51 @@ export function CancelBriefSection({
   }
 
   return (
-    <PageCard>
-      <div className="px-6 pt-6 pb-3">
-        <SectionTag>{cs.tag}</SectionTag>
-        <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-          {cs.title}
-        </h3>
-      </div>
-      <div className="px-6 pb-6 space-y-3">
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-          {cs.body}
-        </p>
-        {!confirm ? (
-          <button
-            type="button"
-            onClick={() => setConfirm(true)}
-            className="mono text-[14px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
-          >
-            {cs.cta}
-          </button>
-        ) : (
-          <div
-            className="px-4 py-3 space-y-3"
-            style={{
-              background: 'rgba(176, 61, 58, 0.08)',
-              border: '1px solid rgba(176, 61, 58, 0.30)',
-              borderRadius: 10,
-            }}
-          >
-            <p className="text-[14px] text-[var(--lp-dark)] leading-snug">
-              {cs.confirmBody}
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={busy}
-                className="mono text-[14px] font-bold uppercase tracking-[0.10em] px-3.5 py-2 text-white transition-colors disabled:opacity-60"
-                style={{
-                  background: '#b03d3a',
-                  borderRadius: 8,
-                }}
-              >
-                {busy ? cs.confirmYesBusy : cs.confirmYes}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirm(false)}
-                disabled={busy}
-                className="mono text-[14px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] font-medium"
-              >
-                {cs.confirmNo}
-              </button>
-            </div>
-            {error && (
-              <p className="mono text-[14px] text-[#b03d3a]">{error}</p>
-            )}
-          </div>
-        )}
-      </div>
-    </PageCard>
+    <>
+      <ManageRow icon="close" label={cs.cta} note={cs.body}>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setConfirm(true);
+          }}
+          aria-label={cs.cta}
+          className={buttonClasses({ variant: 'ghost', size: 'sm', className: 'min-h-10 px-4' })}
+        >
+          {lj.manage.cancel}
+        </button>
+      </ManageRow>
+      <ConfirmSheet
+        open={confirm}
+        title={cs.title}
+        consequence={cs.confirmBody}
+        confirmLabel={cs.confirmYes}
+        irreversible
+        busy={busy}
+        error={error}
+        onConfirm={() => {
+          if (!busy) void handleCancel();
+        }}
+        onClose={() => {
+          if (!busy) setConfirm(false);
+        }}
+      />
+    </>
+  );
+}
+
+/// One row of the Manage request card: what it does, its note behind the (i)
+/// (owner, 7 Nov 2026: notes live in tooltips), and the one button.
+function ManageRow({ icon, label, note, children }: { icon: 'pen-line' | 'close'; label: string; note: string; children: ReactNode }) {
+  return (
+    <div data-manage-row className="flex min-h-16 items-center gap-3 py-3">
+      <Icon name={icon} size={20} className="shrink-0 text-[var(--ink-secondary)]" />
+      <span className="flex min-w-0 flex-1 items-center gap-1.5 text-[16px] font-semibold text-[var(--ink)]">
+        <span className="min-w-0">{label}</span>
+        <Hint>{note}</Hint>
+      </span>
+      {children}
+    </div>
   );
 }
 
