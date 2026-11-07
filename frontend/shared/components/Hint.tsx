@@ -27,7 +27,7 @@ export function Hint({
   const [measured, setMeasured] = useState(0);
   const [pos, setPos] = useState<{ top: number; left: number; width: number; arrow: number; below: boolean } | null>(null);
 
-  const PADDING = 8;
+  const PADDING = 10;
   const tooltipWidth = () => Math.min(300, window.innerWidth - PADDING * 2);
 
   useEffect(() => {
@@ -116,12 +116,22 @@ export function Hint({
         }
         if (e.key === 'Escape') setOpen(false);
       }}
-      className={`inline-flex w-11 h-11 -m-3 items-center justify-center rounded-full text-[var(--ink-secondary)] hover:text-[var(--ink)] focus:outline-none focus-visible:text-[var(--ink)] focus-visible:ring-2 focus-visible:ring-[var(--ink)] transition-colors duration-150 cursor-help${glow ? ' hint-glow' : ''}`}
+      className={`group inline-flex w-11 h-11 -m-3 items-center justify-center rounded-full focus:outline-none cursor-help${glow ? ' hint-glow' : ''}`}
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden className="block">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
+      {/* The (i) turns soft green while its note is open (owner, 7 Nov 2026). */}
+      <span
+        data-hint-dot
+        className={`inline-flex size-7 items-center justify-center rounded-full border transition-colors duration-150 group-focus-visible:ring-2 group-focus-visible:ring-[var(--ink)] ${
+          open
+            ? 'border-[var(--soft-green-edge)] bg-[var(--soft-green-chip)] text-[var(--soft-green-ink)]'
+            : 'border-transparent text-[var(--ink-secondary)] group-hover:text-[var(--ink)]'
+        }`}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden className="block">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </span>
     </span>
   );
 
@@ -132,7 +142,8 @@ export function Hint({
             ref={tooltipRef}
             role="tooltip"
             data-hint-tip
-            className="fixed z-[200] rounded-[12px] border border-[var(--line-strong)] bg-[var(--raised)] px-3.5 py-3 text-start text-[14px] font-medium leading-[1.5] text-[var(--ink)] pointer-events-none normal-case tracking-normal"
+            // A soft green bubble whose tail points at the (i) (owner, 7 Nov 2026, Figma 202:637).
+            className="fixed z-[200] rounded-[16px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 py-3.5 text-start text-[14px] font-medium leading-[1.5] text-[var(--ink)] shadow-[0_8px_24px_-4px_rgba(0,0,0,0.18)] pointer-events-none normal-case tracking-normal"
             style={{
               top: pos.top - window.scrollY,
               left: pos.left - window.scrollX,
@@ -142,13 +153,13 @@ export function Hint({
             {children}
             <span
               aria-hidden
-              className={`absolute size-2.5 rotate-45 bg-[var(--raised)] ${pos.below ? '-top-[6px]' : '-bottom-[6px]'}`}
+              className={`absolute size-3 rotate-45 rounded-[2px] bg-[var(--soft-green)] ${pos.below ? '-top-[7px]' : '-bottom-[7px]'}`}
               // Physical sides on purpose: the bubble is placed in screen pixels, in Arabic too.
               style={{
-                left: pos.arrow - 5,
+                left: pos.arrow - 6,
                 ...(pos.below
-                  ? { borderTop: '1px solid var(--line-strong)', borderLeft: '1px solid var(--line-strong)' }
-                  : { borderBottom: '1px solid var(--line-strong)', borderRight: '1px solid var(--line-strong)' }),
+                  ? { borderTop: '1px solid var(--soft-green-edge)', borderLeft: '1px solid var(--soft-green-edge)' }
+                  : { borderBottom: '1px solid var(--soft-green-edge)', borderRight: '1px solid var(--soft-green-edge)' }),
               }}
             />
           </div>,

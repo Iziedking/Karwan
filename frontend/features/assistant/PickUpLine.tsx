@@ -30,7 +30,7 @@ export function PickUpLine({ pickUp, onContinue, onDismiss, busy }: {
         type="button"
         onClick={onContinue}
         disabled={busy}
-        className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-[var(--ink)] px-4 text-[14px] font-semibold text-[var(--surface)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2"
+        className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-[var(--action)] px-4 text-[14px] font-semibold text-[var(--on-action)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2"
       >
         {t.pickUpContinue}
       </button>

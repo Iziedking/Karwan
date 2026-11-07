@@ -120,7 +120,7 @@ export function NextMoveNudge() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: reduce ? 0 : 6 }}
           transition={{ duration: reduce ? dur.micro : dur.base, ease: ease.out }}
-          className="guide-voice fixed start-4 bottom-24 z-50 w-[min(360px,calc(100vw-6.5rem))] rounded-[20px] rounded-es-[8px] bg-[var(--ink)] px-4 pb-3.5 pt-3 text-[var(--raised)] shadow-[0_14px_36px_-14px_rgba(0,0,0,0.55)] md:start-5 md:bottom-5"
+          className="guide-voice fixed start-4 bottom-24 z-50 w-[min(360px,calc(100vw-6.5rem))] rounded-[20px] rounded-es-[8px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-14px_rgba(0,0,0,0.45)] md:start-5 md:bottom-5"
         >
           <div className="flex items-start gap-2">
             <p role="status" className="min-w-0 flex-1 pt-0.5 text-[16px] font-semibold leading-[1.3]">
@@ -130,7 +130,7 @@ export function NextMoveNudge() {
               type="button"
               onClick={() => close(nudge.key)}
               aria-label={copy.close}
-              className="-me-2 -mt-1 grid size-9 shrink-0 place-items-center rounded-full opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="-me-2 -mt-1 grid size-9 shrink-0 place-items-center rounded-full opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             >
               <svg aria-hidden width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M4 4l8 8M12 4l-8 8" />
@@ -140,7 +140,7 @@ export function NextMoveNudge() {
           <Link
             href={nudge.href}
             onClick={() => close(nudge.key)}
-            className="mt-2.5 inline-flex min-h-10 items-center rounded-full bg-[var(--accent)] px-4 text-[15px] font-bold text-[var(--accent-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--raised)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink)]"
+            className="mt-2.5 inline-flex min-h-10 items-center rounded-full bg-[var(--action)] px-4 text-[15px] font-bold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--soft-green)]"
           >
             {copy.moves[nudge.kind].action}
           </Link>

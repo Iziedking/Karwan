@@ -60,6 +60,12 @@
   --control-line: color-mix(in srgb, var(--ink) 56%, transparent);
   --action: #AFC95B;
   --on-action: #16202A;
+  /* Soft green for popups (owner, 7 Nov 2026, Figma section 202:637): a light
+     green tint over the card, a thin green edge, and a deeper green for the icon. */
+  --soft-green: #F3F7E6;
+  --soft-green-edge: color-mix(in srgb, #97B04B 45%, transparent);
+  --soft-green-chip: #E6EFC9;
+  --soft-green-ink: #4E7A23;
   /* Slate for requests, olive for offers: both drawn from the ink and green. */
   --offer: #42560F;
   --request: #3B4E6E;
@@ -217,6 +223,10 @@
 
 html[data-theme="dark"] {
   --canvas: #0F1012;
+  --soft-green: #2B3226;
+  --soft-green-edge: color-mix(in srgb, #AFC95B 32%, transparent);
+  --soft-green-chip: #33402A;
+  --soft-green-ink: #AFC95B;
   --surface: #16181B;
   --raised: #1D2024;
   --ash: #24272B;

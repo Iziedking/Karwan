@@ -330,7 +330,7 @@ export function AssistantWidget() {
           aria-label={t.launcherAria}
           data-float-launcher
           data-float-side="end"
-          className="fixed z-[60] end-4 bottom-24 inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-5 text-[14px] font-semibold text-[var(--raised)] shadow-[0_10px_28px_-12px_rgba(0,0,0,0.5)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 md:end-5 md:bottom-5"
+          className="fixed z-[60] end-4 bottom-24 inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-full bg-[var(--action)] px-5 text-[14px] font-semibold text-[var(--on-action)] shadow-[0_10px_28px_-12px_rgba(0,0,0,0.5)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 md:end-5 md:bottom-5"
           style={floatingClearanceStyle(clearance)}
         >
           {unread && (
@@ -511,7 +511,7 @@ export function AssistantWidget() {
               <button
                 type="button"
                 onClick={resetToAssistant}
-                className="w-full mono text-[14px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 rounded-[10px] bg-[var(--ink)] text-[var(--canvas)] transition"
+                className="min-h-11 w-full rounded-[14px] bg-[var(--action)] px-3 py-2.5 text-[14px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90"
               >
                 {t.backToAssistant}
               </button>

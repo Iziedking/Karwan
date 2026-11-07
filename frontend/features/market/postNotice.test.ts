@@ -21,7 +21,7 @@ test('the note is a nudge that fades, never a fixed line under the button (owner
   const nudge = read('../../shared/components/Nudge.tsx');
   assert.match(nudge, /NUDGE_MS = 6000/);
   assert.match(nudge, /aria-label=\{nudgeCopy\[locale\]\.close\}/);
-  assert.match(nudge, /backdrop-blur/);
+  assert.match(nudge, /bg-\[var\(--soft-green\)\]/);
   assert.match(read('../buyer/components/PostJobForm.tsx'), /<MarketReadsNote also=\{\[c\.requestNext\]\} \/>/);
 });
 

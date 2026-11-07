@@ -751,7 +751,7 @@ function KindOption(props: { selected: boolean; title: string; body: string; bad
       </button>
       {inert && props.badge && (
         <span id={noteId} role="tooltip"
-          className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-[14px] bg-[var(--ink)] px-3 py-2 text-[14px] font-medium text-[var(--canvas)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none group-hover:opacity-100 group-focus-within:opacity-100 ${noteOpen ? 'opacity-100' : 'opacity-0'}`}>
+          className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-[14px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-3 py-2 text-[14px] font-medium text-[var(--ink)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none group-hover:opacity-100 group-focus-within:opacity-100 ${noteOpen ? 'opacity-100' : 'opacity-0'}`}>
           {props.badge}
         </span>
       )}

@@ -44,9 +44,34 @@ test('Edit and Cancel are rows in one card, their notes in tooltips, Cancel aske
   assert.match(page, /not-has-\[\[data-manage-row\]\]:hidden/);
 });
 
-test('every note uses the one tooltip look: a raised card with a pointer', () => {
+test('every note opens in the soft green bubble, and its (i) turns green (owner, 7 Nov 2026)', () => {
   const hint = source('../../shared/components/Hint.tsx');
   assert.match(hint, /data-hint-tip/);
-  assert.match(hint, /border-\[var\(--line-strong\)\] bg-\[var\(--raised\)\]/);
-  assert.doesNotMatch(hint, /--color-ink|--color-bg/);
+  assert.match(hint, /rounded-\[16px\] border border-\[var\(--soft-green-edge\)\] bg-\[var\(--soft-green\)\]/);
+  assert.match(hint, /bg-\[var\(--soft-green-chip\)\] text-\[var\(--soft-green-ink\)\]/);
+  assert.doesNotMatch(hint, /--color-ink|--color-bg|bg-\[var\(--raised\)\]/);
+  const tokens = source('../../app/design-tokens.css');
+  for (const name of ['--soft-green:', '--soft-green-edge:', '--soft-green-chip:', '--soft-green-ink:']) {
+    assert.equal(tokens.split(name).length - 1, 2, `${name} has a light and a dark value`);
+  }
+});
+
+test('confirm popups carry the green badge and an optional soft green note', () => {
+  const sheet = source('../deals/workspace/ConfirmSheet.tsx');
+  assert.match(sheet, /data-confirm-badge/);
+  assert.match(sheet, /data-confirm-note/);
+  assert.match(sheet, /bg-\[var\(--soft-green\)\]/);
+});
+
+test('main actions are Karwan green, never ink-filled (owner, 7 Nov 2026)', () => {
+  for (const file of [
+    '../assistant/PickUpLine.tsx',
+    '../profile/components/RegisterBusinessBand.tsx',
+    '../profile/components/SmeCompanyBand.tsx',
+    '../../shared/components/AssistantWidget.tsx',
+    '../../shared/components/NextMoveNudge.tsx',
+  ]) {
+    assert.match(source(file), /bg-\[var\(--action\)\][^"]*text-\[var\(--on-action\)\]/, file);
+  }
+  assert.match(source('../../shared/components/Button.tsx'), /primary: 'bg-\[var\(--action\)\] text-\[var\(--on-action\)\]/);
 });

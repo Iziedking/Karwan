@@ -326,7 +326,7 @@ export function SmeCompanyBand({
                   type="button"
                   onClick={save}
                   disabled={saving}
-                  className="inline-flex min-h-11 items-center text-[14px] font-semibold font-semibold px-3 py-2 bg-[var(--ink)] text-[var(--canvas)] disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center text-[14px] font-semibold px-3 py-2 bg-[var(--action)] text-[var(--on-action)] disabled:opacity-60"
                   style={{
                     borderRadius: 6,
                   }}

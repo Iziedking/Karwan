@@ -241,7 +241,7 @@ export function RegisterBusinessBand({
                     type="button"
                     onClick={submit}
                     disabled={submitting}
-                    className="inline-flex min-h-11 items-center px-4 py-2 text-[14px] font-semibold bg-[var(--ink)] text-[var(--raised)] disabled:opacity-60"
+                    className="inline-flex min-h-11 items-center px-4 py-2 text-[14px] font-semibold bg-[var(--action)] text-[var(--on-action)] disabled:opacity-60"
                     style={cornerStyle}
                   >
                     {submitting ? t.actions.submitting : t.actions.submit}
