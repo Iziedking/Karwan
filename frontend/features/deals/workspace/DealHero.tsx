@@ -146,10 +146,9 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       : mt.currency === 'USDC'
         ? actionLabel(view.next, copy, locale)
         : mt.line(actionLabel(view.next, copy, 'en') ?? '') || null;
-  // A payout that may already be on chain is checked again before anything new moves.
-  const recovery = address && (view.stage === 'awaiting-first-release' || view.stage === 'awaiting-final-release')
-    ? findUnresolvedPayoutRecovery(movements)
-    : undefined;
+  // A payout of the caller's that needs attention can be checked again by the
+  // buyer or the seller, at whatever stage the deal is (view 67).
+  const recovery = address ? findUnresolvedPayoutRecovery(movements) : undefined;
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   async function checkAgain(reference: string) {

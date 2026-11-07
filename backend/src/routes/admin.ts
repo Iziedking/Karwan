@@ -57,6 +57,7 @@ import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { olderContractsReport } from '../chain/legacyLive.js';
 import { payOutsideFlags } from '../security/payOutsideFlags.js';
 import { pingAssistantProviders } from './assistant.js';
+import { readMoneyHealth } from '../ops/moneyHealthLive.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
 import { jobLeases } from '../ops/leasedLoop.js';
 import { guaranteeKeeperReport, listGuaranteeHolds } from '../deals/guaranteeKeeperLive.js';
@@ -258,10 +259,13 @@ adminRoutes.get('/health', async (c) => {
   const guaranteeKeeper = guaranteeKeeperReport();
 
   const contracts = await contractWiring();
+  // Stuck money, owed balances, unfinished bridges and the scheduled check (view 67).
+  const money = await readMoneyHealth().catch((err) => ({ ok: false, lines: [], lastSweep: null, error: (err as Error).message }));
 
   return c.json({
     checkedAt,
     overall,
+    money,
     modelGateway: { primary, providers },
     funds,
     infrastructure,

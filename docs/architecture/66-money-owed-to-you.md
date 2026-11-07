@@ -35,7 +35,7 @@ flowchart LR
 - **The money stays theirs.** `withdrawOwed` can only pay the address that is owed, to itself. Nothing in this flow can send it anywhere else.
 - **Several at once.** One Collect gathers every owed balance the person has, one call per contract and wallet. If one fails, the others are still kept, and the row shows what is left.
 - **The assistant.** `get_money_owed` answers "am I owed anything". `propose_collect_owed` opens the same confirm, so Telegram and the website can both do it.
-- **Support.** Admin, on the Money health page from plan item 4, lists every open owed balance by person, contract and amount, with the total per contract from `owedTotal`. Support can see it but cannot collect it for someone.
+- **Support.** Admin Support, under "Money owed to people", lists every open owed balance by person, contract and amount, with the total per contract from `owedTotal`. Support can see it but cannot collect it for someone.
 
 ## No step-up on Collect
 
@@ -43,7 +43,7 @@ The money can only go back to the same address that is owed, so it never leaves 
 
 ## Test
 
-- forge: a payout to a recipient that refuses transfers is kept as owed on each of the three contracts, and `withdrawOwed` from that address pays it and sets `owed` to 0.
+- forge: a payout the token refuses (a blocked address on the test token) is kept as owed on each of the three contracts, and `withdrawOwed` from that address pays it and sets `owed` to 0.
 - backend: the read finds a person's owed balance on every contract and wallet; Collect from a Karwan-held wallet sends the call, checks the receipt and records the movement; a second Collect while one is running is refused; nothing is shown for someone owed nothing.
 - backend: the scan picks up each `PayoutCredited` address once, in steps under Arc's 10,000-block log limit, and runs under one runner; the support list drops an address once its `owed` reads 0.
 - assistant: both tools answer only for the caller.
@@ -51,7 +51,7 @@ The money can only go back to the same address that is owed, so it never leaves 
 
 ## Exit
 
-On testnet, a payout forced to fail (to a test wallet that refuses transfers) shows on Money, on the support list and in the assistant, and Collect brings it to the wallet, with the row gone and a receipt in activity.
+A wallet cannot refuse a USDC transfer. On Arc a payout is kept as owed only when USDC blocks the address or the escrow cannot pull its parked money back yet, and neither can be set up with real testnet USDC. The forge tests prove the owed and collect paths with a blockable test token. On testnet: with nothing owed, Money shows no row, the support list is empty with every contract read, and the assistant says nothing is owed.
 
 ## Where it lives
 
@@ -62,5 +62,5 @@ On testnet, a payout forced to fail (to a test wallet that refuses transfers) sh
 | Routes | `GET /api/money/owed`, `POST /api/money/owed/collect`, the own-wallet intent and complete pair |
 | Assistant tools | `backend/src/assistant/` |
 | Money row and confirm | `frontend/features/money/` |
-| Support list | admin Money health page (plan item 4) |
+| Support list | admin Support, "Money owed to people" |
 | Arc check | `docs/arc-circle-checks.md` entry before any code |

@@ -3712,6 +3712,19 @@ export const api = {
       leases: Array<{ name: string; holder: string; thisProcess: boolean; heldForMs: number; expiresInMs: number }>;
       /// Deal guarantees held for a person, and the keeper's last pass (view 62).
       guarantees: { held: number; lastPassAt: number | null; kept: number; freed: number; errors: number };
+      /// Stuck money, owed balances, unfinished bridges and the scheduled check (view 67).
+      money?: {
+        ok: boolean;
+        lines: Array<{
+          key: 'needs_attention' | 'stuck' | 'owed' | 'bridges' | 'watchers' | 'sweep';
+          ok: boolean;
+          count: number;
+          oldest?: { reference: string; at: number };
+          detail?: string;
+        }>;
+        lastSweep: { at: number; looked: number; young: number; fixed: string[]; left: Array<{ reference: string; kind: string; state: string; reason: string; updatedAt: number }>; bridgesFinished: number } | null;
+        error?: string;
+      };
       /// Deployed-bundle wiring read back from chain: ABI binding, satellite
       /// cross-references, the vault one-shot, and teller agreement.
       contracts: Array<{ label: string; ok: boolean; detail: string }>;

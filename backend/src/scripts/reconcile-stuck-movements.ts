@@ -20,6 +20,10 @@
 /// reconcile script is not missing a row, it is completing a movement whose
 /// money never moved.
 ///
+/// The proved-only part (walk forward legs whose receipts landed, finish
+/// bridge rows behind a completed movement) also runs on its own every 15
+/// minutes: money/reconcileSweep.ts, view 67. The flags below stay manual.
+///
 /// It writes NOTHING without `--execute`, and even then only walks a leg forward
 /// when a receipt proves the transaction succeeded. It never invents a hash,
 /// never marks anything failed, and never touches a movement younger than the
@@ -71,7 +75,7 @@ import { getMoneyMovement, updateMoneyMovement } from '../db/moneyMovements.js';
 import { createBridge, getBridge, listAllBridges, patchBridge } from '../db/bridges.js';
 import type { BridgeRelay } from '../db/bridges.js';
 import { recordCashoutLeg } from '../money/cashout.js';
-import { completeMoneyMovement } from '../money/service.js';
+import { applyReconcilePlan as apply, legProof as proofFor, OPEN_STATES } from '../money/reconcileLive.js';
 import {
   canTransitionMovement,
   formatUsdcMicros,
@@ -81,16 +85,13 @@ import {
 } from '../money/model.js';
 import {
   activeLegs,
-  completionPath,
   isDeadIntent,
   planReconcile,
   type LegProof,
-  type ReconcilePlan,
 } from '../money/reconcile.js';
 import { decodeFunctionData, hexToNumber, slice } from 'viem';
 import { publicClient } from '../chain/client.js';
 import { CCTP_CHAINS } from '../chain/cctpChains.js';
-import { sourceClients } from '../chain/cctpClients.js';
 import { CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
 
 const execute = process.argv.includes('--execute');
@@ -109,74 +110,6 @@ const attachLeg = flag('--leg')?.trim();
 const rebuildProjection = process.argv.includes('--rebuild-projection');
 const mapMints = flag('--map-mints')?.trim();
 
-/// States a movement can sit in forever. `needs_attention` is included on
-/// purpose: it is where a failed leg parks, and a movement whose transaction
-/// actually succeeded belongs out of it.
-const OPEN_STATES = ['created', 'preparing', 'submitted', 'verifying', 'needs_attention'];
-
-interface ReceiptReader {
-  getTransactionReceipt(args: { hash: `0x${string}` }): Promise<{ status: 'success' | 'reverted' }>;
-}
-
-/// Every chain a leg could have landed on, Arc first because most of them did.
-const CHAINS: Array<{ name: string; client: ReceiptReader }> = [
-  { name: 'arc', client: publicClient as unknown as ReceiptReader },
-  ...CCTP_CHAIN_KEYS.filter((k) => sourceClients[k]).map((k) => ({
-    name: k,
-    client: sourceClients[k] as unknown as ReceiptReader,
-  })),
-];
-
-/// How long one chain gets to answer before the search moves on.
-///
-/// The lookup walked every chain in order with no bound, so a hash living on a
-/// late chain, or one slow RPC anywhere in the list, hung the whole run: the
-/// operator sees a command that never returns and cannot tell it from a write
-/// in progress. A miss is the common case here, so it has to be cheap.
-const LOOKUP_TIMEOUT_MS = 8_000;
-
-function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`lookup timed out after ${ms}ms`)), ms);
-    work.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      },
-    );
-  });
-}
-
-async function proofFor(leg: MoneyMovementLeg): Promise<LegProof> {
-  if (!leg.txHash) return { kind: 'no-hash' };
-  const hash = leg.txHash as `0x${string}`;
-  // Asked all at once. Sequential was fine when the hash was on Arc and wrong
-  // for everything else, and the answer does not depend on the order: a
-  // transaction exists on exactly one of these chains.
-  const answers = await Promise.allSettled(
-    CHAINS.map(async (chain) => {
-      const receipt = await withTimeout(
-        chain.client.getTransactionReceipt({ hash }),
-        LOOKUP_TIMEOUT_MS,
-      );
-      return { chain: chain.name, status: receipt.status };
-    }),
-  );
-  for (const answer of answers) {
-    if (answer.status !== 'fulfilled') continue;
-    return answer.value.status === 'success'
-      ? { kind: 'landed', chain: answer.value.chain }
-      : { kind: 'reverted', chain: answer.value.chain };
-  }
-  // Nobody had it, or nobody answered in time. Either way this is `unknown`, not
-  // a failure: an RPC that cannot see a transaction has not proved it does not
-  // exist, and the caller refuses to write on `unknown`.
-  return { kind: 'unknown' };
-}
 
 async function loadMovements(): Promise<MoneyMovement[]> {
   if (onlyReference) {
@@ -204,41 +137,6 @@ const SKIP_NOTES: Record<string, string> = {
   'nothing-to-do': 'no legs on the current attempt.',
 };
 
-async function apply(reference: string, plan: ReconcilePlan): Promise<string> {
-  if (plan.action === 'complete') {
-    const current = await getMoneyMovement(reference);
-    if (!current) return 'unreadable';
-    // `completed` is only reachable from `verifying`, so a movement parked in
-    // needs_attention has to walk back through preparing first. Each hop goes
-    // through the state machine rather than around it, and the final one is left
-    // to completeMoneyMovement so its own "no unverified legs" guard still runs.
-    const path = completionPath(current.state);
-    if (path.length === 0) return current.state;
-    for (const next of path.slice(0, -1)) {
-      await updateMoneyMovement(reference, (movement) =>
-        canTransitionMovement(movement.state, next)
-          ? transitionMoneyMovement(movement, next, { nextActor: 'karwan' })
-          : movement,
-      );
-    }
-    const after = await completeMoneyMovement(reference);
-    return after.state;
-  }
-  if (plan.action === 'repair' || plan.action === 'adopt') {
-    // Walk each leg through the normal recording path so it climbs planned ->
-    // submitted -> confirmed -> verified and the movement completes the way a
-    // live one would, rather than having its state written by hand here.
-    for (const repair of plan.legs) {
-      await recordCashoutLeg(reference, repair.key, {
-        txHash: repair.txHash,
-        ...(repair.explorerUrl ? { explorerUrl: repair.explorerUrl } : {}),
-      });
-    }
-    const after = await getMoneyMovement(reference);
-    return after?.state ?? 'unreadable';
-  }
-  return 'skipped';
-}
 
 async function main() {
   if (pgEnabled) await ensureSchema();

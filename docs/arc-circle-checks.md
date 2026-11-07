@@ -780,4 +780,12 @@ Agree: yes.
 - Source read, 7 Nov 2026: `suite/settlement/SettlementLib.sol` (`_deliver` credits on a refused transfer, `withdrawOwed` pays `msg.sender` only), `suite/KarwanStakeVault.sol` (`_deliver`), `suite/KarwanCreFees.sol` (`_pay`). All emit `PayoutCredited` when crediting and `OwedWithdrawn` when paid.
 - Installed SDK: `@circle-fin/developer-controlled-wallets` 10.8.0, `viem` 2.55.11.
 - Read-only test, 7 Nov 2026, Arc Testnet public RPC from node-services, head 71,150,040, asset USDC `0x3600…0000`: `owedTotal` reads 0 on agreement `0x5546…F43C`, jobs `0xEA06…D550`, time `0xdB32…11C1`, vault `0xF5FD…7ed5` and `KarwanCreFees` `0x9553…9c7e`; `owed(USDC, 0x…dEaD)` reads 0; `getLogs` for `PayoutCredited` over the last 9,999 blocks returns 0 logs on each.
-- Agree: yes. Nothing is owed on testnet today, so the exit check forces a refused payout to a test wallet.
+- Agree: yes. Nothing is owed on testnet today. A wallet cannot refuse a USDC transfer, so the testnet exit check is the nothing-owed read; the owed and collect paths are proved in forge with a blockable test token.
+
+## 2026-11-07 · Money that stops is found, fixed or flagged (T5, view 67, audit M-02, R-03, RT-04, RT-29)
+
+- Scope: the scheduled stuck-money check reads each stuck leg's transaction receipt on Arc and the CCTP source chains (`getTransactionReceipt`, the reads `scripts/reconcile-stuck-movements.ts` already made) and walks a movement forward only on a `success` receipt. No new Arc or Circle call, no write to any chain, no SDK change.
+- Docs: Arc docs, 7 Nov 2026, `integrate/exchanges/custody` (deterministic finality, a receipt is immediately authoritative, one confirmation) and `integrate/wallets/transaction-lifecycle` (a blocklisted transfer is included with `status: 0`, so a reverted receipt is final and is never completed).
+- Installed SDK: `viem` 2.55.11 (unchanged).
+- Read-only test, 7 Nov 2026, Arc Testnet public RPC from node-services: head 71,216,763; the first transaction of that block returned a receipt with status `0x1`; a receipt for a hash that does not exist returned `null`, which the check treats as unknown and never writes on.
+- Agree: yes.

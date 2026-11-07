@@ -19,3 +19,10 @@ export function validatePayoutRecoveryTarget(
   }
   return { ok: true };
 }
+
+/// Checking a payout only reads the chain and records what it proves, so either
+/// person on the deal may ask for it (view 67).
+export function mayCheckPayout(caller: string, deal: { buyer: string; seller: string }): boolean {
+  const who = caller.toLowerCase();
+  return who === deal.buyer.toLowerCase() || who === deal.seller.toLowerCase();
+}

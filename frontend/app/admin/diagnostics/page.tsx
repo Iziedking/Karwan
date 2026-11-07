@@ -264,6 +264,27 @@ function HealthOverview() {
             ))}
           </HealthCard>
 
+          <HealthCard title="Money">
+            {(data.money?.lines ?? []).map((line) => (
+              <HealthItem key={line.key} ok={line.ok}>
+                {MONEY_LINE[line.key]}: {line.key === 'sweep' ? (line.ok ? 'running' : 'late') : line.count}{' '}
+                <span className="text-white/45">
+                  {[line.detail, line.oldest ? `oldest ${line.oldest.reference}, ${fmtAge(Date.now() - line.oldest.at)}` : null].filter(Boolean).join(' · ')}
+                </span>
+              </HealthItem>
+            ))}
+            {data.money?.error ? <HealthItem ok={false}>Could not read: {data.money.error}</HealthItem> : null}
+            {data.money?.lastSweep && data.money.lastSweep.left.length > 0 ? (
+              <div className="space-y-1 pt-1">
+                {data.money.lastSweep.left.slice(0, 20).map((l) => (
+                  <span key={l.reference} className="block mono text-[11px] text-white/55">
+                    {l.reference} · {l.kind} · {l.state} · {l.reason}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </HealthCard>
+
           <HealthCard title="Deal guarantees">
             <HealthItem ok={(data.guarantees?.held ?? 0) === 0 && (data.guarantees?.errors ?? 0) === 0}>
               {data.guarantees?.held ?? 0} to check on the support page{' '}
@@ -293,6 +314,15 @@ function HealthOverview() {
     </section>
   );
 }
+
+const MONEY_LINE: Record<'needs_attention' | 'stuck' | 'owed' | 'bridges' | 'watchers' | 'sweep', string> = {
+  needs_attention: 'Needs attention',
+  stuck: 'Not finished after an hour',
+  owed: 'Owed, not collected',
+  bridges: 'Transfers between networks after an hour',
+  watchers: 'Watchers stalled or missing',
+  sweep: 'Scheduled money check',
+};
 
 const usd = (v: string | null) => (v === null ? '—' : `${Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC`);
 

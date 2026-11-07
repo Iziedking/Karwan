@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { validatePayoutRecoveryTarget } from './payoutRecovery.js';
+import { mayCheckPayout, validatePayoutRecoveryTarget } from './payoutRecovery.js';
 
 const movement = {
   reference: 'KWN-AAAA-BBBB-CCCC',
@@ -32,4 +32,11 @@ test('recovery cannot target the next payout or another reference', () => {
     buyer: '0xbuyer',
     milestonesReleased: 1,
   }), { ok: false, code: 'WRONG_REFERENCE' });
+});
+
+test('either person on the deal may ask for a payout check, nobody else', () => {
+  const deal = { buyer: '0xBuyer', seller: '0xSeller' };
+  assert.equal(mayCheckPayout('0xbuyer', deal), true);
+  assert.equal(mayCheckPayout('0xSELLER', deal), true);
+  assert.equal(mayCheckPayout('0xstranger', deal), false);
 });

@@ -400,6 +400,21 @@ test('a payout that needs another look is checked again from the deal, before an
   await expect.poll(() => checked.body).toEqual({ caller: BUYER });
 });
 
+test('the seller checks again a payout that needs attention, while the next stage is under way', async ({ page }) => {
+  const nextStage = { ...deliveredDeal, view: { ...deliveredDeal.view!, stage: 'awaiting-delivery' as const, next: { action: 'deliver' as const, actor: 'you' as const } } } as DirectDeal;
+  await serveDeal(page, nextStage, SELLER);
+  const reference = 'movement-payout-1';
+  await page.route(new RegExp(`/api/deals/direct/${JOB}/movements(\\?|$)`), (route) => route.fulfill({ json: { movements: [{
+    reference, kind: 'milestone_payout', state: 'needs_attention', currency: 'USDC', amountUsdc: '400.000000', summary: 'Payout',
+    nextActor: 'karwan', createdAt: 1, updatedAt: 1, legs: [],
+  }] } }));
+  const checked = capture(page, `payouts/${reference}/reconcile`);
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.getByText(en.directDealDetail.settlementRecord.recoveryTitle)).toBeVisible();
+  await page.getByRole('button', { name: dp.checkAgain }).click();
+  await expect.poll(() => checked.body).toEqual({ caller: SELLER });
+});
+
 test('a deal on an older contract points to Earlier deals and offers no move here', async ({ page }) => {
   await serveDeal(page, { ...deliveredDeal, legacyEscrow: true } as DirectDeal, BUYER);
   await page.goto(`/deals/${JOB}`);

@@ -114,7 +114,7 @@ import {
   findAdvancedUnfinishedPayout,
   fundingEscrowMatches,
 } from '../money/escrowProjection.js';
-import { validatePayoutRecoveryTarget } from '../money/payoutRecovery.js';
+import { mayCheckPayout, validatePayoutRecoveryTarget } from '../money/payoutRecovery.js';
 import { buildWorkRecord } from '../agents/workRecord.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { resolvePaytag } from '../paytag/resolve.js';
@@ -3967,8 +3967,8 @@ dealsRoutes.post('/direct/:jobId/payouts/:reference/reconcile', async (c) => {
   if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
-  if (body.caller.toLowerCase() !== deal.buyer) {
-    return c.json({ error: 'only the buyer can reconcile this payout' }, 403);
+  if (!mayCheckPayout(body.caller, deal)) {
+    return c.json({ error: 'Only the buyer or the seller can check this payout.', code: 'forbidden' }, 403);
   }
   const movement = await getMoneyMovement(reference);
   if (!movement) return c.json({ error: 'payment reference not found', code: 'PAYOUT_NOT_FOUND' }, 404);

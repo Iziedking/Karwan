@@ -224,7 +224,7 @@ export function moneyTools(address: string, actions: AssistantAction[], deps: Mo
 
     propose_recheck_payout: tool({
       description:
-        "Prepare a card for the BUYER to check again a deal payment that was released but did not confirm, so the deal records it. Use when a deal says a payment needs attention, or 'I released but it still shows unpaid'.",
+        "Prepare a card for the buyer or the seller to check again a deal payment that was released but did not confirm, so the deal records it. Use when a deal says a payment needs attention, or 'I released but it still shows unpaid'.",
       inputSchema: z.object({ jobId: z.string().regex(JOB).describe('The deal id.') }),
       execute: async ({ jobId }) =>
         guarded('propose_recheck_payout', async () => {

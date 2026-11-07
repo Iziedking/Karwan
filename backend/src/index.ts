@@ -797,6 +797,7 @@ function bootAgents() {
     // Deal guarantees the vault refused to keep or free (view 62).
     void import('./deals/guaranteeKeeperLive.js').then(({ startGuaranteeKeeper }) => stopFns.push(startGuaranteeKeeper()));
     void import('./money/owedLive.js').then(({ startOwedScan }) => stopFns.push(startOwedScan()));
+    void import('./ops/moneyHealthLive.js').then(({ startMoneyReconcile }) => stopFns.push(startMoneyReconcile()));
     stopFns.push(startContestRunner(contestsCore));
     stopFns.push(startAgentJobRunner(agentJobs));
     stopFns.push(startWorkRunner(workCore, workRequests));
