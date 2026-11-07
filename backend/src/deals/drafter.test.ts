@@ -90,3 +90,18 @@ test('the agreement for drafted parts names every milestone, the proof and the t
   assert.match(text, /^Late:/m);
   assert.doesNotMatch(partsAgreement([{ pct: 50, what: 'a' }, { pct: 50, what: 'b' }], { due: false }), /^Late:/m);
 });
+
+test('goods for sale are one payment: the model is never asked to find stages in a used laptop (Telegram, 7 Nov)', async () => {
+  let asked = 0;
+  const split = async () => (asked++, [{ pct: 25, what: 'HP Envy laptop' }, { pct: 75, what: 'Laptop in excellent condition' }]);
+  const brief = 'HP Envy Core i5 Laptop. HP Envy Core i5, 32 GB RAM, 1TB SSD, 8GB VRAM, keyboard light. Lightly used, in excellent condition. Includes charger. Ships with tracking.';
+  const d = await draftDeal({ brief }, { split });
+  assert.equal(d.tradeType, 'goods');
+  assert.equal(d.parts.length, 1);
+  assert.equal(asked, 0);
+  const said = await draftDeal({ brief: 'Two mattresses, queen size, still wrapped in plastic, collected from Yaba on Saturday morning.', goods: true }, { split });
+  assert.equal(said.parts.length, 1);
+  assert.equal(asked, 0);
+  const deposit = await draftDeal({ brief: '50% deposit first, rest when the fridge is delivered to Lekki', goods: true }, { split });
+  assert.deepEqual(deposit.parts.map((p) => p.pct), [50, 50]);
+});

@@ -29,7 +29,7 @@ const MAX_TITLE = 80;
 const SPLITS: Record<number, number[]> = { 2: [30, 70], 3: [20, 30, 50], 4: [10, 20, 30, 40], 5: [10, 15, 20, 25, 30] };
 const STAGE_WORD = /\b(first|then|after that|finally)\b/i;
 const STAGE_SPLIT = /,?\s*\b(?:and then|then|after that|finally|next)\b\s*/i;
-const GOODS = /\b(ship|shipped|shipping|bags?|cartons?|crates?|yards?|kg|kilos?|pieces?|pcs|bottles?|tons?|litres?|liters?|pairs?)\b|\bdelivered to\b/i;
+const GOODS = /\b(ships?|shipped|shipping|tracking|bags?|cartons?|crates?|yards?|kg|kilos?|pieces?|pcs|bottles?|tons?|litres?|liters?|pairs?|brand new|(?:lightly|fairly|gently) used|condition|charger|laptops?)\b|\bdelivered to\b/i;
 
 const clip = (s: string, max: number) => (s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`);
 const tidy = (s: string) => s.replace(/\s+/g, ' ').replace(/^[\s,.;:-]+|[\s,.;:-]+$/g, '').trim();
@@ -88,19 +88,21 @@ export function repairParts(parts: readonly DraftPart[], brief: string): DraftPa
   return kept.map((p, i) => ({ pct: shares[i]!, what: p.what }));
 }
 
+/// Goods are one payment unless the words ask for a deposit: a used laptop has
+/// no stages, so the model is not asked to find some.
 export async function draftDeal(
-  input: { brief: string },
+  input: { brief: string; goods?: boolean },
   deps: { split?: SplitWithModel; timeoutMs?: number },
 ): Promise<Draft> {
   const brief = tidy(input.brief);
   const quantity = readQuantity(brief);
   const base = {
     title: draftTitle(brief),
-    tradeType: (GOODS.test(brief) ? 'goods' : 'service') as Draft['tradeType'],
+    tradeType: (input.goods || GOODS.test(brief) ? 'goods' : 'service') as Draft['tradeType'],
     quantity,
   };
   const ruled = ruleParts(brief);
-  if (ruled.length > 1 || brief.length <= 80 || !deps.split) return { ...base, parts: ruled, source: 'rules' };
+  if (ruled.length > 1 || base.tradeType === 'goods' || brief.length <= 80 || !deps.split) return { ...base, parts: ruled, source: 'rules' };
   try {
     const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), deps.timeoutMs ?? 4000));
     const proposed = await Promise.race([deps.split(brief), timeout]);

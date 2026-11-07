@@ -30,3 +30,9 @@ test('the frontend lists the same categories, in the same order', () => {
   const list = /export const CATEGORY_IDS = \[([^\]]*)\]/.exec(source)?.[1] ?? '';
   assert.deepEqual([...list.matchAll(/'([a-z]+)'/g)].map((m) => m[1]), [...CATEGORY_IDS]);
 });
+
+test('laptops and computers are in Phones and laptops, never Tech (Telegram, 7 Nov)', () => {
+  assert.equal(inferCategory('HP Envy Core i5 Laptop, 32 GB RAM'), 'phones');
+  assert.equal(inferCategory('MacBook Air M2, like new'), 'phones');
+  assert.equal(inferCategory('I build websites for small shops'), 'tech');
+});
