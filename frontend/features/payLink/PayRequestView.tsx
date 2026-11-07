@@ -128,7 +128,7 @@ function OwnRequest({ token, request, onChanged }: { token: string; request: Dep
         paidAt={request.paidAt}
         url={request.status === 'open' ? url : null}
       />
-      <p className="text-[15px] text-[var(--ink-secondary)]">{request.status === 'matched' ? copy.paidAlready : request.status === 'expired' ? copy.expired : request.status === 'cancelled' ? copy.cancelled : copy.yours}</p>
+      {request.status === 'open' ? <p className="text-[15px] text-[var(--ink-secondary)]">{copy.yours}</p> : null}
       {request.status === 'open' ? <ShareLink url={url} compact /> : null}
       {request.status === 'open' ? (
         <Button type="button" variant="secondary" size="lg" className="w-full" onClick={() => setEnding(true)}>

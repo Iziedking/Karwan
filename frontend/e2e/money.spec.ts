@@ -73,7 +73,7 @@ test('money with the agent is counted and listed in Where it is, with its two mo
 test('recent money reads in words, signed, with its reference', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
-  await expect(page.getByText('Added 50 USDC to the buyer trade account from the main account')).toBeVisible();
+  await expect(page.getByText('Added 50.00 USDC to the buyer trade account from the main account')).toBeVisible();
   await expect(page.getByText('-50.00 USDC')).toBeVisible();
   await expect(page.getByText('+500.00 USDC')).toBeVisible();
   await expect(page.getByText('KWN-2026-0002')).toBeVisible();
