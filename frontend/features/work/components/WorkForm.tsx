@@ -4,7 +4,7 @@ import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { CARD_CLASS } from '@/shared/components/Card';
 import { buttonClasses } from '@/shared/components/Button';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type WorkCard, type WorkInput, type WorkKind } from '@/core/api';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -14,6 +14,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
 import { localDay, microsToUsdc } from '../workModel';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { usePersonTag } from '@/shared/hooks/usePersonTag';
 
 const GREEN = buttonClasses({ size: 'lg' });
 
@@ -36,7 +37,13 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
   const [card, setCard] = useState<WorkCard | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const tag = who.trim().replace(/^@/, '').toLowerCase();
+  // A link that names the person by wallet is turned into their tag.
+  const byWallet = usePersonTag(who);
+  useEffect(() => {
+    if (byWallet.state === 'tag') setWho(byWallet.tag);
+  }, [byWallet]);
+  const walletPending = byWallet.state === 'checking' || byWallet.state === 'tag';
+  const tag = byWallet.state === 'none' ? who.trim().replace(/^@/, '').toLowerCase() : '';
   const lookup = useTagRecipient(tag.length >= 2 ? tag : null);
   const found = lookup?.state === 'done' && lookup.result.found && !lookup.result.self ? lookup.result : null;
   const hourly = kind === 'hourly';
@@ -67,13 +74,15 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
       router.push(`/work/${r.work.id}`);
     } catch (err) {
       const need = err instanceof ApiError ? (err.body as { needMicros?: string } | undefined)?.needMicros : undefined;
-      setError(need ? fill(t.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : t.failed);
+      setError(need ? mt.fill(t.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : t.failed);
       setBusy(false);
     }
   }
 
   const ready = !!found && Number(rate) > 0 && Number(periods) >= 1 && (!hourly || Number(hours) >= 1) && title.trim().length > 0;
-  const tagLine = !tag || tag.length < 2 || !lookup || lookup.state === 'checking'
+  const tagLine = byWallet.state === 'no-tag'
+    ? t.form.whoNoTag
+    : walletPending || !tag || tag.length < 2 || !lookup || lookup.state === 'checking'
     ? t.form.whoHint
     : lookup.state === 'done' && lookup.result.found
       ? (lookup.result.self ? t.form.whoSelf : fill(t.form.whoFound, { name: lookup.result.displayName, tag: lookup.result.tag }))
@@ -93,7 +102,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
 
   return (
     <main className="mx-auto w-full max-w-[760px] px-4 pb-16 pt-8 sm:px-6">
-      <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.form.title}</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{hourly ? t.form.title : t.form.titleMonthly}</h1>
       <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">
         {t.requests.findBody}{' '}
         <Link href="/work/requests/new" className="font-semibold text-[var(--ink)] underline underline-offset-2">{t.requests.findTitle}</Link>
@@ -166,7 +175,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
             {error ? <p role="alert" className={`${ALERT} mt-4`}>{error}</p> : null}
             <div className="mt-6 space-y-3">
               <button type="button" disabled={busy} onClick={() => void confirm()} className={primaryButton}>
-                {fill(t.card.confirm, { amount: microsToUsdc(card.totalMicros) })}
+                {mt.fill(t.card.confirm, { amount: microsToUsdc(card.totalMicros) })}
               </button>
               <button type="button" disabled={busy} onClick={() => setCard(null)} className={quietButton}>{t.notNow}</button>
             </div>

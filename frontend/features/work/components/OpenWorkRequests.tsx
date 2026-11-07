@@ -8,10 +8,12 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { Chevron } from '@/features/market/components/YourTrades';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { localDay, microsToUsdc } from '../workModel';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// Hourly work taking offers, in the market (view 32). Nothing shows when there is none.
 export function OpenWorkRequests() {
   const all = useTranslations().work;
+  const mt = useMoneyText({ compact: true });
   const t = all.requests;
   const { locale } = useLocale();
   const [list, setList] = useState<WorkRequestView[]>([]);
@@ -36,7 +38,7 @@ export function OpenWorkRequests() {
                 </span>
               </span>
               <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]">
-                {fill(r.kind === 'hourly' ? t.market.upTo : t.market.upToMonth, { amount: microsToUsdc(r.maxRateMicros) })}
+                {mt.fill(r.kind === 'hourly' ? t.market.upTo : t.market.upToMonth, { amount: microsToUsdc(r.maxRateMicros) })}
               </span>
               <Chevron />
             </Link>

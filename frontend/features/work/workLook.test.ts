@@ -41,3 +41,24 @@ test('By the hour or Monthly is one segmented track, marked in ink', () => {
     assert.match(file, /shadow-\[inset_0_0_0_1px_var\(--ink\)\]/);
   }
 });
+
+test('a person is named by tag, and every figure reads in the account currency (owner, 7 Nov 2026)', () => {
+  const { form, page, request, open } = FILES;
+  // A link with a wallet becomes the tag, or says they have none; it never sits as a tag that is not found.
+  assert.match(form, /usePersonTag\(who\)/);
+  assert.match(form, /t\.form\.whoNoTag/);
+  assert.match(form, /hourly \? t\.form\.title : t\.form\.titleMonthly/);
+  const deal = source('../deals/components/DirectDealForm.tsx');
+  assert.match(deal, /usePersonTag\(initialSeller\)/);
+  assert.doesNotMatch(deal, /withWho=\{initialSeller \?/);
+  // Amounts go through the money text, never a bare "{amount} USDC".
+  for (const [name, s] of Object.entries({ form, page, request, open })) {
+    assert.doesNotMatch(s, /[^.]\bfill\([^()]*\{ amount: /, name);
+  }
+  const copy = source('../../shared/i18n/messages/work.ts');
+  assert.doesNotMatch(copy, /[,،] USDC['"]/);
+  // Hourly work is paid a week at a time, so the choice says so.
+  assert.match(copy, /hourly: 'Hourly, paid weekly'/);
+  // The global .form-input padding outranks a utility class, so the sign's room is set inline.
+  assert.match(source('../money/components/MoneyInput.tsx'), /style=\{before \? \{ paddingInlineStart:/);
+});

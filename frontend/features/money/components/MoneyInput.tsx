@@ -113,7 +113,10 @@ export function MoneyInput({
           lastSent.current = usdc;
           onChange(usdc);
         }}
-        className={`${className} w-full ${before ? 'ps-9' : 'pe-16'}`}
+        className={`${className} w-full`}
+        // Inline, because the global .form-input padding outranks a utility class
+        // and put the sign on top of the figure (owner, 7 Nov 2026).
+        style={before ? { paddingInlineStart: `calc(1.4rem + ${Math.max(1, sign.length)}ch)` } : { paddingInlineEnd: '4rem' }}
       />
       {before ? null : (
         <span aria-hidden className="pointer-events-none absolute end-3.5 text-[14px] font-semibold text-[var(--ink-secondary)]">USDC</span>

@@ -4,11 +4,13 @@ export interface WorkCopy {
   start: { title: string; body: string };
   form: {
     title: string;
+    titleMonthly: string;
     who: string;
     whoHint: string;
     whoFound: string;
     whoMissing: string;
     whoSelf: string;
+    whoNoTag: string;
     how: string;
     hourly: string;
     monthly: string;
@@ -106,16 +108,18 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     start: { title: 'Hire by the hour', body: 'Pay someone by the hour or monthly, one week at a time.' },
     form: {
       title: 'Hire by the hour',
+      titleMonthly: 'Hire monthly',
       who: 'Who',
       whoHint: 'Their Karwan tag.',
       whoFound: '{name} · @{tag} on Karwan',
       whoMissing: 'Nobody on Karwan has that tag.',
       whoSelf: 'That is you.',
+      whoNoTag: 'They have no Karwan tag yet, so they cannot be hired here.',
       how: 'How you pay',
-      hourly: 'By the hour',
+      hourly: 'Hourly, paid weekly',
       monthly: 'Monthly',
-      rate: 'Rate per hour, USDC',
-      rateMonthly: 'Price per month, USDC',
+      rate: 'Rate per hour',
+      rateMonthly: 'Price per month',
       hours: 'Most hours a week',
       weeks: 'How many weeks',
       months: 'How many months',
@@ -185,7 +189,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     requests: {
       findTitle: 'Post it instead',
       findBody: 'No one in mind? Post it, and your agent finds the best fit from what people have done on Karwan.',
-      form: { title: 'Post hourly work', most: 'The most per hour, USDC', mostMonthly: 'The most per month, USDC', briefHint: 'Say what the work is, so the right people find it.', starts: 'Starts in, days', startsHint: 'Offers close a day before it starts.', post: 'Post it' },
+      form: { title: 'Post hourly work', most: 'The most per hour', mostMonthly: 'The most per month', briefHint: 'Say what the work is, so the right people find it.', starts: 'Starts in, days', startsHint: 'Offers close a day before it starts.', post: 'Post it' },
       market: { title: 'Hourly work', upTo: 'Up to {amount} USDC an hour', upToMonth: 'Up to {amount} USDC a month', closes: 'Offers close {date}' },
       page: {
         status: { open: 'Taking offers', hired: 'Someone was hired', closed: 'Closed', expired: 'Closed, nobody was hired' },
@@ -195,8 +199,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
         hire: 'Hire',
         close: 'Close it',
         yourOffer: 'Your offer',
-        yourRate: 'Your rate per hour, USDC',
-        yourPrice: 'Your price per month, USDC',
+        yourRate: 'Your rate per hour',
+        yourPrice: 'Your price per month',
         note: 'A short note',
         send: 'Send my offer',
         change: 'Change my offer',
@@ -216,16 +220,18 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     start: { title: "Embaucher à l'heure", body: "Payez quelqu'un à l'heure ou au mois, une semaine à la fois." },
     form: {
       title: "Embaucher à l'heure",
+      titleMonthly: 'Embaucher au mois',
       who: 'Qui',
       whoHint: 'Son identifiant Karwan.',
       whoFound: '{name} · @{tag} sur Karwan',
       whoMissing: "Personne sur Karwan n'a cet identifiant.",
       whoSelf: "C'est vous.",
+      whoNoTag: "Cette personne n'a pas encore d'identifiant Karwan, elle ne peut pas être embauchée ici.",
       how: 'Comment vous payez',
-      hourly: "À l'heure",
+      hourly: "À l'heure, par semaine",
       monthly: 'Au mois',
-      rate: 'Tarif horaire, USDC',
-      rateMonthly: 'Prix par mois, USDC',
+      rate: 'Tarif horaire',
+      rateMonthly: 'Prix par mois',
       hours: 'Heures maximum par semaine',
       weeks: 'Combien de semaines',
       months: 'Combien de mois',
@@ -295,7 +301,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     requests: {
       findTitle: 'Publiez plutôt',
       findBody: "Personne en tête ? Publiez, et votre agent trouve la meilleure personne d'après ce qu'elle a fait sur Karwan.",
-      form: { title: "Publier un travail à l'heure", most: "Le maximum par heure, USDC", mostMonthly: 'Le maximum par mois, USDC', briefHint: 'Dites quel est le travail, pour que les bonnes personnes le trouvent.', starts: 'Début dans, jours', startsHint: 'Les offres se ferment la veille du début.', post: 'Publier' },
+      form: { title: "Publier un travail à l'heure", most: "Le maximum par heure", mostMonthly: 'Le maximum par mois', briefHint: 'Dites quel est le travail, pour que les bonnes personnes le trouvent.', starts: 'Début dans, jours', startsHint: 'Les offres se ferment la veille du début.', post: 'Publier' },
       market: { title: "Travail à l'heure", upTo: "Jusqu'à {amount} USDC de l'heure", upToMonth: "Jusqu'à {amount} USDC par mois", closes: 'Offres jusqu’au {date}' },
       page: {
         status: { open: 'Reçoit des offres', hired: 'Quelqu’un a été embauché', closed: 'Fermé', expired: 'Fermé, personne embauché' },
@@ -305,8 +311,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
         hire: 'Embaucher',
         close: 'Fermer',
         yourOffer: 'Votre offre',
-        yourRate: 'Votre tarif horaire, USDC',
-        yourPrice: 'Votre prix par mois, USDC',
+        yourRate: 'Votre tarif horaire',
+        yourPrice: 'Votre prix par mois',
         note: 'Une courte note',
         send: 'Envoyer mon offre',
         change: 'Modifier mon offre',
@@ -326,16 +332,18 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     start: { title: 'التوظيف بالساعة', body: 'ادفع لشخص بالساعة أو شهرياً، أسبوعاً بأسبوع.' },
     form: {
       title: 'التوظيف بالساعة',
+      titleMonthly: 'التوظيف الشهري',
       who: 'من',
       whoHint: 'معرّفه على Karwan.',
       whoFound: '{name} · @{tag} على Karwan',
       whoMissing: 'لا أحد على Karwan بهذا المعرّف.',
       whoSelf: 'هذا أنت.',
+      whoNoTag: 'ليس لديه معرّف على Karwan بعد، لذا لا يمكن توظيفه هنا.',
       how: 'طريقة الدفع',
-      hourly: 'بالساعة',
+      hourly: 'بالساعة، أسبوعياً',
       monthly: 'شهرياً',
-      rate: 'السعر للساعة، USDC',
-      rateMonthly: 'السعر للشهر، USDC',
+      rate: 'السعر للساعة',
+      rateMonthly: 'السعر للشهر',
       hours: 'أقصى عدد ساعات في الأسبوع',
       weeks: 'كم أسبوعاً',
       months: 'كم شهراً',
@@ -405,7 +413,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     requests: {
       findTitle: 'انشره بدلاً من ذلك',
       findBody: 'لا يوجد شخص في بالك؟ انشره، ويجد وكيلك الأنسب مما أنجزه الناس على Karwan.',
-      form: { title: 'نشر عمل بالساعة', most: 'الحد الأقصى للساعة، USDC', mostMonthly: 'الحد الأقصى للشهر، USDC', briefHint: 'قل ما هو العمل، ليجده الأشخاص المناسبون.', starts: 'يبدأ بعد، بالأيام', startsHint: 'تُغلق العروض قبل يوم من البدء.', post: 'انشر' },
+      form: { title: 'نشر عمل بالساعة', most: 'الحد الأقصى للساعة', mostMonthly: 'الحد الأقصى للشهر', briefHint: 'قل ما هو العمل، ليجده الأشخاص المناسبون.', starts: 'يبدأ بعد، بالأيام', startsHint: 'تُغلق العروض قبل يوم من البدء.', post: 'انشر' },
       market: { title: 'عمل بالساعة', upTo: 'حتى {amount} USDC للساعة', upToMonth: 'حتى {amount} USDC للشهر', closes: 'تُغلق العروض {date}' },
       page: {
         status: { open: 'يستقبل العروض', hired: 'تم توظيف شخص', closed: 'مغلق', expired: 'مغلق، لم يُوظَّف أحد' },
@@ -415,8 +423,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
         hire: 'وظّف',
         close: 'أغلقه',
         yourOffer: 'عرضك',
-        yourRate: 'سعرك للساعة، USDC',
-        yourPrice: 'سعرك للشهر، USDC',
+        yourRate: 'سعرك للساعة',
+        yourPrice: 'سعرك للشهر',
         note: 'ملاحظة قصيرة',
         send: 'أرسل عرضي',
         change: 'غيّر عرضي',
@@ -436,16 +444,18 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     start: { title: 'घंटे के हिसाब से काम पर रखें', body: 'किसी को घंटे या महीने के हिसाब से भुगतान करें, एक हफ़्ता एक बार में।' },
     form: {
       title: 'घंटे के हिसाब से काम पर रखें',
+      titleMonthly: 'मासिक काम पर रखें',
       who: 'किसे',
       whoHint: 'उनका Karwan टैग।',
       whoFound: '{name} · Karwan पर @{tag}',
       whoMissing: 'Karwan पर इस टैग वाला कोई नहीं है।',
       whoSelf: 'यह आप हैं।',
+      whoNoTag: 'उनका अभी कोई Karwan टैग नहीं है, इसलिए उन्हें यहाँ काम पर नहीं रखा जा सकता।',
       how: 'आप कैसे भुगतान करेंगे',
-      hourly: 'घंटे के हिसाब से',
+      hourly: 'घंटे के हिसाब से, साप्ताहिक',
       monthly: 'मासिक',
-      rate: 'प्रति घंटा दर, USDC',
-      rateMonthly: 'प्रति माह कीमत, USDC',
+      rate: 'प्रति घंटा दर',
+      rateMonthly: 'प्रति माह कीमत',
       hours: 'हफ़्ते में अधिकतम घंटे',
       weeks: 'कितने हफ़्ते',
       months: 'कितने महीने',
@@ -515,7 +525,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     requests: {
       findTitle: 'इसके बजाय पोस्ट करें',
       findBody: 'कोई ध्यान में नहीं? पोस्ट करें, और आपका एजेंट Karwan पर लोगों के किए काम से सबसे सही व्यक्ति ढूँढता है।',
-      form: { title: 'घंटे के हिसाब से काम पोस्ट करें', most: 'प्रति घंटा अधिकतम, USDC', mostMonthly: 'प्रति माह अधिकतम, USDC', briefHint: 'बताएँ काम क्या है, ताकि सही लोग इसे ढूँढें।', starts: 'कितने दिनों में शुरू', startsHint: 'शुरू होने से एक दिन पहले प्रस्ताव बंद हो जाते हैं।', post: 'पोस्ट करें' },
+      form: { title: 'घंटे के हिसाब से काम पोस्ट करें', most: 'प्रति घंटा अधिकतम', mostMonthly: 'प्रति माह अधिकतम', briefHint: 'बताएँ काम क्या है, ताकि सही लोग इसे ढूँढें।', starts: 'कितने दिनों में शुरू', startsHint: 'शुरू होने से एक दिन पहले प्रस्ताव बंद हो जाते हैं।', post: 'पोस्ट करें' },
       market: { title: 'घंटे के हिसाब से काम', upTo: '{amount} USDC प्रति घंटा तक', upToMonth: '{amount} USDC प्रति माह तक', closes: 'प्रस्ताव {date} को बंद' },
       page: {
         status: { open: 'प्रस्ताव ले रहे हैं', hired: 'किसी को काम पर रखा गया', closed: 'बंद', expired: 'बंद, किसी को नहीं रखा गया' },
@@ -525,8 +535,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
         hire: 'काम पर रखें',
         close: 'बंद करें',
         yourOffer: 'आपका प्रस्ताव',
-        yourRate: 'आपकी प्रति घंटा दर, USDC',
-        yourPrice: 'आपकी प्रति माह कीमत, USDC',
+        yourRate: 'आपकी प्रति घंटा दर',
+        yourPrice: 'आपकी प्रति माह कीमत',
         note: 'एक छोटा नोट',
         send: 'मेरा प्रस्ताव भेजें',
         change: 'मेरा प्रस्ताव बदलें',
@@ -546,16 +556,18 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     start: { title: 'Ajiri kwa saa', body: 'Mlipe mtu kwa saa au kwa mwezi, wiki moja kwa wakati.' },
     form: {
       title: 'Ajiri kwa saa',
+      titleMonthly: 'Ajiri kwa mwezi',
       who: 'Nani',
       whoHint: 'Lebo yake ya Karwan.',
       whoFound: '{name} · @{tag} kwenye Karwan',
       whoMissing: 'Hakuna mtu kwenye Karwan mwenye lebo hiyo.',
       whoSelf: 'Huyo ni wewe.',
+      whoNoTag: 'Bado hana lebo ya Karwan, kwa hivyo hawezi kuajiriwa hapa.',
       how: 'Unavyolipa',
-      hourly: 'Kwa saa',
+      hourly: 'Kwa saa, kila wiki',
       monthly: 'Kwa mwezi',
-      rate: 'Kiwango kwa saa, USDC',
-      rateMonthly: 'Bei kwa mwezi, USDC',
+      rate: 'Kiwango kwa saa',
+      rateMonthly: 'Bei kwa mwezi',
       hours: 'Saa nyingi zaidi kwa wiki',
       weeks: 'Wiki ngapi',
       months: 'Miezi mingapi',
@@ -625,7 +637,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
     requests: {
       findTitle: 'Badala yake ichapishe',
       findBody: 'Huna mtu akilini? Ichapishe, na wakala wako atampata anayefaa zaidi kutokana na kazi watu walizofanya kwenye Karwan.',
-      form: { title: 'Chapisha kazi ya saa', most: 'Kiwango cha juu kwa saa, USDC', mostMonthly: 'Kiwango cha juu kwa mwezi, USDC', briefHint: 'Eleza kazi ni ipi, ili watu sahihi waipate.', starts: 'Inaanza baada ya, siku', startsHint: 'Ofa zinafungwa siku moja kabla ya kuanza.', post: 'Ichapishe' },
+      form: { title: 'Chapisha kazi ya saa', most: 'Kiwango cha juu kwa saa', mostMonthly: 'Kiwango cha juu kwa mwezi', briefHint: 'Eleza kazi ni ipi, ili watu sahihi waipate.', starts: 'Inaanza baada ya, siku', startsHint: 'Ofa zinafungwa siku moja kabla ya kuanza.', post: 'Ichapishe' },
       market: { title: 'Kazi ya saa', upTo: 'Hadi USDC {amount} kwa saa', upToMonth: 'Hadi USDC {amount} kwa mwezi', closes: 'Ofa zinafungwa {date}' },
       page: {
         status: { open: 'Inapokea ofa', hired: 'Mtu ameajiriwa', closed: 'Imefungwa', expired: 'Imefungwa, hakuna aliyeajiriwa' },
@@ -635,8 +647,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
         hire: 'Ajiri',
         close: 'Ifunge',
         yourOffer: 'Ofa yako',
-        yourRate: 'Kiwango chako kwa saa, USDC',
-        yourPrice: 'Bei yako kwa mwezi, USDC',
+        yourRate: 'Kiwango chako kwa saa',
+        yourPrice: 'Bei yako kwa mwezi',
         note: 'Ujumbe mfupi',
         send: 'Tuma ofa yangu',
         change: 'Badilisha ofa yangu',

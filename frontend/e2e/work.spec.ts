@@ -67,7 +67,7 @@ test('the hirer names someone by tag and sees the first week and the most it can
   await page.getByRole('button', { name: t.form.review }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toContainText('301.5 USDC');
-  await expect(sheet).toContainText('1206 USDC');
+  await expect(sheet).toContainText('1,206 USDC');
   await expect(sheet).toContainText('Ada Obi');
   await sheet.getByRole('button', { name: t.card.confirm.replace('{amount}', '301.5') }).click();
   await expect.poll(() => posted.path).toBe('/api/work');
@@ -99,7 +99,7 @@ test('the hirer approves and sees exactly what the worker receives', async ({ pa
   await expect(page.getByText('12 h 30 m of 20 h logged')).toBeVisible();
   await page.getByRole('button', { name: t.page.approve.replace('{hours}', '12 h 30 m') }).click();
   const sheet = page.getByRole('dialog');
-  await expect(sheet).toContainText('186.5625 USDC');
+  await expect(sheet).toContainText('186.56 USDC');
   await sheet.getByRole('button', { name: t.sheets.approve.confirm }).click();
   await expect.poll(() => posted.path).toBe('/api/work/w_demo/approve');
   expect(posted.body).toEqual({ k: 0 });

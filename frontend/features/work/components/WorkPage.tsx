@@ -64,7 +64,7 @@ export function WorkPage({ id }: { id: string }) {
       load();
     } catch (err) {
       const need = err instanceof ApiError ? (err.body as { needMicros?: string } | undefined)?.needMicros : undefined;
-      setError(need ? fill(t.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : t.failed);
+      setError(need ? mt.fill(t.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : t.failed);
     } finally {
       setBusy(false);
     }
@@ -86,7 +86,7 @@ export function WorkPage({ id }: { id: string }) {
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{other}</p>
       <div className={`${CARD_CLASS} mt-5 px-5 py-4`}>
       <p className="text-[24px] font-semibold tabular-nums text-[var(--ink)]">
-        {fill(hourly ? t.page.rateHour : t.page.rateMonth, { amount: microsToUsdc(v.rateMicros) })}
+        {mt.fill(hourly ? t.page.rateHour : t.page.rateMonth, { amount: microsToUsdc(v.rateMicros) })}
       </p>
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
         {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, fill(hourly ? t.page.weeks : t.page.months, { n: v.runs }), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}
@@ -128,7 +128,7 @@ export function WorkPage({ id }: { id: string }) {
           const line = weekLine(w, now);
           const status =
             line === 'settled'
-              ? [w.paidNetMicros && BigInt(w.paidNetMicros) > 0n ? fill(t.page.paid, { amount: microsToUsdc(w.paidNetMicros) }) : null, w.backMicros && BigInt(w.backMicros) > 0n ? fill(t.page.back, { amount: microsToUsdc(w.backMicros) }) : null].filter(Boolean).join(' · ')
+              ? [w.paidNetMicros && BigInt(w.paidNetMicros) > 0n ? mt.fill(t.page.paid, { amount: microsToUsdc(w.paidNetMicros) }) : null, w.backMicros && BigInt(w.backMicros) > 0n ? mt.fill(t.page.back, { amount: microsToUsdc(w.backMicros) }) : null].filter(Boolean).join(' · ')
               : line === 'with-review' ? t.page.withReview
               : line === 'in-review' ? fill(t.page.reviewBy, { date: day(w.reviewBy) })
               : line === 'logging' ? fill(t.page.logBy, { date: day(w.logBy) })
@@ -222,7 +222,7 @@ export function WorkPage({ id }: { id: string }) {
           <>
             <p className="text-[32px] font-semibold tabular-nums text-[var(--ink)]">{usdc(v.nextWeek?.totalMicros ?? '0')}</p>
             <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">{t.sheets.fund.body}</p>
-            {buttons(fill(t.sheets.fund.confirm, { amount: microsToUsdc(v.nextWeek?.totalMicros ?? '0') }), () => api.fundWork(v.id))}
+            {buttons(mt.fill(t.sheets.fund.confirm, { amount: microsToUsdc(v.nextWeek?.totalMicros ?? '0') }), () => api.fundWork(v.id))}
           </>
         );
       case 'approve':

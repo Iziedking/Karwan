@@ -298,6 +298,8 @@ test('the guide reads the work pages as the new look shows them (view 48, batch 
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('hourly-work'), /each week is its own card/);
   assert.match(said('hourly-work'), /Hire is green only on the best fit/);
+  assert.match(said('hourly-work'), /fills in their Karwan tag/);
+  assert.match(said('hourly-work'), /in the currency of the account/);
   assert.match(said('finance'), /an empty list is one line/);
 });
 

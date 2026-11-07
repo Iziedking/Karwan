@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLiveFeatures } from '@/shared/hooks/useLiveFeatures';
+import { isWalletAddress, usePersonTag } from '@/shared/hooks/usePersonTag';
 import { KindPicker } from './KindPicker';
 import { kindChoices, preselectedKind, type KindChoice, workKindHref } from '../kindChoices';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
@@ -151,6 +152,16 @@ export function DirectDealForm() {
 
   // One box takes an email, a Karwan tag, a Paytag or a wallet address.
   const [counterparty, setCounterparty] = useState(initialSeller || (search.get('sellerEmail') ?? ''));
+  // A link that names the seller by wallet shows and sends their Karwan tag.
+  const sellerTag = usePersonTag(initialSeller);
+  useEffect(() => {
+    if (sellerTag.state === 'tag') setCounterparty((now) => (now === initialSeller ? `@${sellerTag.tag}` : now));
+  }, [sellerTag, initialSeller]);
+  const withWho = !initialSeller
+    ? undefined
+    : isWalletAddress(initialSeller)
+      ? (sellerTag.state === 'tag' ? `@${sellerTag.tag}` : undefined)
+      : `@${initialSeller.replace(/^@/, '')}`;
   /// Trusted-match opt-in. When true, the seller's accept panel will surface a
   /// stake requirement. Default off, most casual deals don't need it.
   const [requireStake, setRequireStake] = useState(false);
@@ -517,7 +528,7 @@ export function DirectDealForm() {
     return (
       <KindPicker
         choices={kindChoices({ hourlyWork, withPerson: !!initialSeller })}
-        withWho={initialSeller ? `@${initialSeller.replace(/^@/, '')}` : undefined}
+        withWho={withWho}
         onPick={(next) => {
           if (next === 'hourly' || next === 'monthly') return router.push(workKindHref(next, counterparty));
           if (next === 'contest') return router.push('/contests/new');

@@ -55,7 +55,7 @@ export function WorkRequestPage({ id }: { id: string }) {
   const usdc = (m: string) => mt.text(microsToUsdc(m));
   const fail = (err: unknown) => {
     const need = err instanceof ApiError ? (err.body as { needMicros?: string } | undefined)?.needMicros : undefined;
-    setError(need ? fill(all.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : all.failed);
+    setError(need ? mt.fill(all.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : all.failed);
   };
   const run = async (step: () => Promise<unknown>) => {
     setBusy(true);
@@ -97,7 +97,7 @@ export function WorkRequestPage({ id }: { id: string }) {
       <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{t.page.status[r.status]}</p>
       <h1 dir="auto" className="mt-1 text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{r.title}</h1>
       <p className="mt-4 text-[24px] font-semibold tabular-nums text-[var(--ink)]">
-        {fill(hourly ? t.market.upTo : t.market.upToMonth, { amount: microsToUsdc(r.maxRateMicros) })}
+        {mt.fill(hourly ? t.market.upTo : t.market.upToMonth, { amount: microsToUsdc(r.maxRateMicros) })}
       </p>
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
         {[hourly ? fill(all.page.upTo, { n: r.maxHours }) : null, fill(hourly ? all.page.weeks : all.page.months, { n: r.periods }), fill(all.page.starts, { date: localDay(r.startsAt, locale) }), open ? fill(t.market.closes, { date: localDay(r.offersCloseAt, locale) }) : null].filter(Boolean).join(' · ')}
@@ -178,7 +178,7 @@ export function WorkRequestPage({ id }: { id: string }) {
             <p className="mt-4 text-[14px] text-[var(--ink-secondary)]">{t.hireSheet.body}</p>
             {error ? <p role="alert" className={`${ALERT} mt-4`}>{error}</p> : null}
             <div className="mt-6 space-y-3">
-              <button type="button" disabled={busy} onClick={() => void hire()} className={primaryButton}>{fill(t.hireSheet.confirm, { amount: microsToUsdc(hiring.card.totalMicros) })}</button>
+              <button type="button" disabled={busy} onClick={() => void hire()} className={primaryButton}>{mt.fill(t.hireSheet.confirm, { amount: microsToUsdc(hiring.card.totalMicros) })}</button>
               <button type="button" disabled={busy} onClick={() => setHiring(null)} className={quietButton}>{all.notNow}</button>
             </div>
           </>
