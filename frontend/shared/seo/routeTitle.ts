@@ -42,6 +42,7 @@ export const EXACT: Record<string, RouteTitleKey> = {
   '/profile/business/setup': 'businessSetup',
   '/profile/contact': 'contact',
   '/profile/edit': 'editProfile',
+  '/profile/devices': 'devices',
   '/profile/open-deals': 'openDeals',
   '/profile/setup': 'profileSetup',
   '/profile/sources': 'recordSources',

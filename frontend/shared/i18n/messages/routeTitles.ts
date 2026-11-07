@@ -51,6 +51,7 @@ export type RouteTitleKey =
   | 'contact'
   | 'theme'
   | 'editProfile'
+  | 'devices'
   | 'openDeals'
   | 'profileSetup'
   | 'recordSources'
@@ -136,6 +137,7 @@ const en: RouteTitleCopy = {
   contact: 'Contact details',
   theme: 'Theme',
   editProfile: 'Edit profile',
+  devices: 'Signed-in devices',
   openDeals: 'Open deals',
   profileSetup: 'Your agent',
   wallets: 'Wallets',
@@ -220,6 +222,7 @@ const ar: RouteTitleCopy = {
   contact: 'بيانات التواصل',
   theme: 'المظهر',
   editProfile: 'تعديل الملف',
+  devices: 'الأجهزة المسجّل دخولها',
   openDeals: 'الصفقات المفتوحة',
   profileSetup: 'وكيلك',
   wallets: 'المحافظ',
@@ -304,6 +307,7 @@ const fr: RouteTitleCopy = {
   contact: 'Coordonnées',
   theme: 'Thème',
   editProfile: 'Modifier le profil',
+  devices: 'Appareils connectés',
   openDeals: 'Deals ouverts',
   profileSetup: 'Votre agent',
   wallets: 'Portefeuilles',
@@ -388,6 +392,7 @@ const hi: RouteTitleCopy = {
   contact: 'संपर्क विवरण',
   theme: 'थीम',
   editProfile: 'प्रोफ़ाइल संपादित करें',
+  devices: 'साइन-इन डिवाइस',
   openDeals: 'खुली डील',
   profileSetup: 'आपका एजेंट',
   wallets: 'वॉलेट',
@@ -472,6 +477,7 @@ const sw: RouteTitleCopy = {
   contact: 'Mawasiliano',
   theme: 'Mwonekano',
   editProfile: 'Hariri wasifu',
+  devices: 'Vifaa vilivyoingia',
   openDeals: 'Mikataba iliyo wazi',
   profileSetup: 'Wakala wako',
   wallets: 'Pochi',

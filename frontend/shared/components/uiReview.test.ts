@@ -478,7 +478,8 @@ test('profile is tidy: one way to change the photo, rows say what they open, no 
   const menu = source('../../features/profile/components/PhotoMenu.tsx');
   assert.match(menu, /role="menu"/);
   assert.match(menu, /role="menuitem"/);
-  assert.doesNotMatch(hub, /hub\.devices/);
+  // Signed-in devices is a real page now (view 65), not a dead row.
+  assert.match(hub, /<Row label=\{hub\.devices\} href="\/profile\/devices" \/>/);
   assert.doesNotMatch(hub, /hub\.accountLabel|shortAddress\(address\)\}/);
 });
 
