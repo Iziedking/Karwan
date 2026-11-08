@@ -11,7 +11,7 @@ async function openEarnings(page: Page, currency: 'NGN' | 'USDC') {
     balances: funded,
     rates: RATES,
     settings: currency === 'NGN' ? { displayCurrency: 'NGN' } : {},
-    guarantee: { inPlaceUsdc: '125', heldUsdc: '0', freeUsdc: '125', comingBackUsdc: '0', ready: false, previousUsdc: '0', waitDays: 7 },
+    guarantee: { inPlaceUsdc: '125', heldUsdc: '0', freeUsdc: '125', comingBackUsdc: '0', ready: false, waitDays: 7 },
   });
   await page.route(`${API}/api/yield/**`, (route) => {
     const path = new URL(route.request().url()).pathname;
