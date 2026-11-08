@@ -35,9 +35,12 @@ for (const [locale, copy] of [['en', en], ['ar', ar]] as const) {
         return route.fulfill({ json: { ok: true } });
       });
       await page.goto('/account');
-      await page.evaluate(() => window.dispatchEvent(new CustomEvent('karwan:help-open', { detail: {} })));
+      // Help loads after the page, so ask again until it is there to answer.
       const help = page.getByRole('dialog', { name: copy.assistant.title });
-      await expect(help).toBeVisible();
+      await expect(async () => {
+        await page.evaluate(() => window.dispatchEvent(new CustomEvent('karwan:help-open', { detail: {} })));
+        await expect(help).toBeVisible({ timeout: 1_000 });
+      }).toPass({ timeout: 20_000 });
 
       const reply = help.locator('[data-bubble="operator"]');
       await expect(reply).toHaveCount(1);
