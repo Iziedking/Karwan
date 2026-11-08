@@ -30,3 +30,24 @@ test('a money tool takes a currency and runs in USDC underneath', async () => {
   const refused = await tools.send.execute!({ to: '@ada', amountUsdc: 100, currency: 'KES' }, {});
   assert.match((refused as { error: string }).error, /no fresh KES rate/);
 });
+
+test('a budget, price or rate said in naira is posted in USDC, never as the naira figure (8 Nov)', async () => {
+  const seen: unknown[] = [];
+  const tools = withLocalAmounts(
+    {
+      post: {
+        inputSchema: z.object({ brief: z.string(), budgetUsdc: z.number().positive().max(5_000), lowestUsdc: z.number().optional() }),
+        execute: async (args: unknown) => { seen.push(args); return 'ok'; },
+      },
+    },
+    async () => RATES,
+  );
+  const shape = (tools.post.inputSchema as z.ZodObject<z.ZodRawShape>).shape;
+  assert.ok('currency' in shape);
+  assert.equal(shape.budgetUsdc.safeParse(100_000).success, true, 'a naira figure passes the first check');
+  await tools.post.execute!({ brief: 'a dress', budgetUsdc: 100_000, currency: 'NGN' }, {});
+  assert.deepEqual(seen, [{ brief: 'a dress', budgetUsdc: 74.288133 }]);
+  const tooMuch = await tools.post.execute!({ brief: 'a dress', budgetUsdc: 100_000 }, {});
+  assert.match((tooMuch as { error: string }).error, /does not fit/);
+  assert.equal(seen.length, 1);
+});

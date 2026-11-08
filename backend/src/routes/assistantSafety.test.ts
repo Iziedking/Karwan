@@ -72,3 +72,12 @@ test('a change to a card just shown is part of building it, not an account quest
   assert.equal(after('did it go through?'), true);
   assert.equal(after('what is my balance'), true);
 });
+
+test('asking how escrow or money works is help, not account state (8 Nov)', () => {
+  for (const content of ['How does escrow work?', 'what is escrow', 'explain how withdrawals work', 'how do I cash out', "what's a bridge", 'tell me about yield']) {
+    assert.equal(requiresLiveAccountState([{ role: 'user', content }]), false, content);
+  }
+  for (const content of ['what is my balance?', 'what is the balance', 'how is my withdrawal going', 'how does my escrow look now', 'why did my bridge fail?', 'what is the status of the transfer']) {
+    assert.equal(requiresLiveAccountState([{ role: 'user', content }]), true, content);
+  }
+});

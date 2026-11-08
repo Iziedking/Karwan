@@ -244,6 +244,22 @@ export function DirectDealForm() {
       setTerms((current) => ({ ...current, parts: [{ pct: 50, what: current.parts[0]?.what ?? '' }, { pct: 50, what: '' }] }));
     }
   }
+  /// Opening Pay in parts splits one payment in two halves to start from;
+  /// closing it keeps the first part's words as what is delivered.
+  function togglePayInParts(open: boolean) {
+    setInParts(open);
+    if (open) {
+      setTerms((current) => {
+        const first = current.parts[0]?.what.trim() || delivered.trim();
+        const parts = current.parts.length > 1
+          ? current.parts.map((part, i) => (i === 0 ? { ...part, what: first } : part))
+          : [{ pct: 50, what: first }, { pct: 50, what: '' }];
+        return { ...current, parts };
+      });
+    } else if (!delivered.trim() && terms.parts[0]?.what.trim()) {
+      setDelivered(terms.parts[0].what.trim());
+    }
+  }
   useEffect(() => {
     if (kind) applyKind(kind);
     // Once, for a kind the link asked for.
@@ -702,17 +718,14 @@ export function DirectDealForm() {
       </div>
 
       <div className={cn(CARD_CLASS, 'divide-y divide-[var(--line)] overflow-hidden')}>
-        {inParts ? (
+        {/* Milestones are always one tap away on work, whichever way in was
+            picked (owner, 8 Nov 2026: "no way to add milestones"). */}
+        {inParts || tradeType === 'service' ? (
         <FoldRow
           label={rf.payInParts}
           fact={inParts ? terms.parts.map((part) => `${part.pct}%`).join(' / ') : t.offerFlow.onePayment}
           open={inParts}
-          onToggle={(open) => {
-            setInParts(open);
-            if (open && !terms.parts[0]?.what.trim() && delivered.trim()) {
-              setTerms((current) => ({ ...current, parts: current.parts.map((part, i) => (i === 0 ? { ...part, what: delivered.trim() } : part)) }));
-            }
-          }}
+          onToggle={togglePayInParts}
           payInParts
         >
           <TermsBuilder

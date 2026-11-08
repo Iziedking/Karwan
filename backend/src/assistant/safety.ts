@@ -68,6 +68,13 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
   // "My first deal" names a deal that does not exist yet, so it is not personal.
   const aboutNewDeal = text.replace(/\bmy\s+(?:first|new|next|own)\s+(?:deals?|agreements?|contracts?)\b/g, 'a deal');
   if ((startsDeal(text) || building || changingCard) && !outcomeOrAttention && !personal(aboutNewDeal)) return false;
+  // "How does escrow work?" asks how Karwan works, not about the account. A
+  // money word alone made it stateful, the answer was held back and Help
+  // called a person (owner, 8 Nov 2026). Asking after a figure or a status
+  // ("what is the balance", "how is my withdrawal going") stays stateful.
+  const explainsConcept = /^(?:how\s+(?:does|do|is|are|can|would)|what\s+(?:is|are|does)|what'?s|explain|tell me (?:about|how)|why (?:does|do|is|are))\b/.test(text.trim())
+    && !/\b(?:balance|status|history|state|pending|now|today|yet)\b/.test(text);
+  if (explainsConcept && !outcomeOrAttention && !personalContext) return false;
   return moneyOrAccount || outcomeOrAttention || personalContext || !(genericHelp || marketAction);
 }
 

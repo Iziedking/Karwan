@@ -76,3 +76,9 @@ test('Post an offer is three pages with Back and Next, every field kept (owner, 
   assert.match(offer, /<Button type="submit" size="lg" disabled=\{!canNext\}>/);
   assert.match(offer, /f\.stepBack/);
 });
+
+test('a deal for work can always be split into milestones, whichever way in was picked (owner, 8 Nov 2026)', () => {
+  assert.match(direct, /\{inParts \|\| tradeType === 'service' \? \(\s*<FoldRow\s+label=\{rf\.payInParts\}/);
+  assert.match(direct, /onToggle=\{togglePayInParts\}/);
+  assert.match(direct, /\[\{ pct: 50, what: first \}, \{ pct: 50, what: '' \}\]/);
+});
