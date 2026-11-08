@@ -3,8 +3,25 @@ import type { NextRequest } from 'next/server';
 import { WALLET_HOME, dealRouteBlocked, dealsAvailableOn } from './shared/utils/routes';
 import { adminGate } from './shared/admin/adminDesk';
 import { accessKeys, accessPassValid } from './shared/admin/accessPass';
+import { buildCsp, cspHeaderName, cspMode, makeNonce, originsOf } from './shared/security/csp';
 
 const DEALS_AVAILABLE = dealsAvailableOn(process.env.NEXT_PUBLIC_ARC_NETWORK);
+
+const API_ORIGIN = originsOf([process.env.NEXT_PUBLIC_BACKEND_URL])[0] ?? null;
+const REPORT_URL = API_ORIGIN ? `${API_ORIGIN}/api/security/csp-report` : null;
+const CSP_HEADER = cspHeaderName(cspMode(process.env.CSP_MODE));
+/// RPCs and the Circle client named in settings, written out so Next.js
+/// inlines each value at build time.
+const SETTING_ORIGINS = originsOf([
+  process.env.NEXT_PUBLIC_ARC_RPC_URL,
+  process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC,
+  process.env.NEXT_PUBLIC_SEPOLIA_RPC,
+  process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC,
+  process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC,
+  process.env.NEXT_PUBLIC_POLYGON_AMOY_RPC,
+  process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC,
+  process.env.NEXT_PUBLIC_CIRCLE_CLIENT_URL,
+]);
 
 function isPrivateRoute(pathname: string): boolean {
   return pathname === '/profile' || /^\/(deals|jobs)(\/|$)/.test(pathname);
@@ -51,41 +68,27 @@ export async function middleware(req: NextRequest) {
   if (dealRouteBlocked(req.nextUrl.pathname, DEALS_AVAILABLE)) {
     return NextResponse.redirect(new URL(WALLET_HOME, req.url));
   }
-  const res = NextResponse.next();
+  // The page policy (view 70): a fresh nonce per load. Next.js reads the
+  // policy from the request headers and puts the nonce on its own scripts.
+  const nonce = makeNonce();
+  const policy = buildCsp({ nonce, apiOrigin: API_ORIGIN, extraConnect: SETTING_ORIGINS, reportUrl: REPORT_URL });
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set(CSP_HEADER, policy);
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
+  res.headers.set(CSP_HEADER, policy);
+  if (REPORT_URL) res.headers.set('Reporting-Endpoints', `csp="${REPORT_URL}"`);
   if (isPrivateRoute(req.nextUrl.pathname) || req.nextUrl.pathname.startsWith('/admin')) {
     res.headers.set('Cache-Control', 'no-store, must-revalidate');
   }
   return res;
 }
 
+/// Every page, so each gets the page policy; built files and images are skipped.
 export const config = {
   matcher: [
-    '/',
-    '/admin',
-    '/admin/:path*',
-    '/api/admin-proxy/:path*',
-    '/profile',
-    '/app/:path*',
-    '/b2b/:path*',
-    '/p2p/:path*',
-    '/buyer/:path*',
-    '/seller/:path*',
-    '/supply/:path*',
-    '/deals/:path*',
-    '/jobs/:path*',
-    '/cashout/:path*',
-    '/invite/:path*',
-    '/market/:path*',
-    '/listings/:path*',
-    '/partners/:path*',
-    '/financier/:path*',
-    '/stake/:path*',
-    '/legacy/:path*',
-    '/business/:path*',
-    '/credit-passport/:path*',
-    '/x402/:path*',
-    '/profile/open-deals',
-    '/profile/agent-funds',
-    '/profile/business/:path*',
+    {
+      source: '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|avif|ico|txt|xml|webmanifest|woff2?|mp3|mp4|pdf)$).*)',
+    },
   ],
 };

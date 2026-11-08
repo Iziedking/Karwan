@@ -321,6 +321,7 @@ import { requireAccessPass } from './middleware/accessPass.js';
 import { adminDeskRoutes } from './routes/adminDesk.js';
 import { setDeskReplay } from './middleware/twoPeople.js';
 import { requestSizeLimit } from './middleware/requestSize.js';
+import { cspReportRoutes, pagePolicyAdminRoutes } from './routes/cspReport.js';
 import { adminRequestRoutes } from './routes/adminRequests.js';
 import { buildOperatorRouteCatalog } from './ops/routeCatalog.js';
 
@@ -546,6 +547,7 @@ app.route('/api/admin', adminRequestRoutes);
 setDeskReplay((req) => Promise.resolve(app.fetch(req)));
 app.route('/api/admin/support', supportTeamRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/admin', pagePolicyAdminRoutes);
 app.route('/api/admin/agent-runtime', adminAgentRuntimeRoutes);
 app.route('/api/admin/reviewed-operation-ingress', reviewedOperationIngressRoutes);
 app.route('/api/admin/disputes', adminDisputeRoutes);
@@ -684,6 +686,7 @@ app.route(
   }),
 );
 app.route('/api/feedback', feedbackRoutes);
+app.route('/api/security/csp-report', cspReportRoutes);
 app.route('/api/client-errors', clientErrorRoutes);
 app.route('/api/circle', circleWebhookRoutes);
 

@@ -11,6 +11,7 @@ type Health = Awaited<ReturnType<typeof api.adminHealth>>;
 type SeedStatus = Awaited<ReturnType<typeof api.adminAgentSeedStatus>>;
 type Older = Awaited<ReturnType<typeof api.adminOlderContracts>>['contracts'];
 type SeedRun = Awaited<ReturnType<typeof api.adminAgentSeedRun>>;
+type PagePolicy = Awaited<ReturnType<typeof api.adminPagePolicy>>;
 
 const PANEL = 'bg-[#161616] border border-white/10 rounded-2xl p-6';
 const CARD = 'bg-[#161616] border border-white/10 rounded-2xl p-5';
@@ -103,10 +104,43 @@ export default function AdminDiagnostics() {
         </p>
       </div>
       <HealthOverview />
+      <PagePolicyPanel />
       <DealRulesSwitch />
       <OlderContractsPanel />
       <AgentSeedPanel />
     </div>
+  );
+}
+
+/// What the page policy blocked in the last 30 days, by rule and host (view 70).
+/// Before the policy is enforced, every row here is either added to the host
+/// list or explained.
+function PagePolicyPanel() {
+  const [data, setData] = useState<PagePolicy | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    api.adminPagePolicy().then(setData, (e) => setError(errMsg(e)));
+  }, []);
+  return (
+    <HealthCard title="Blocked by the page policy">
+      {error ? <HealthItem ok={false}>Could not read: {error}</HealthItem> : null}
+      {data && data.blocked.length === 0 ? <HealthItem ok>Nothing blocked since {data.since}</HealthItem> : null}
+      {data && data.blocked.length > 0 ? (
+        <>
+          <p className="text-[12px] text-white/55 pb-1">
+            {data.total} reports since {data.since}
+          </p>
+          {data.blocked.slice(0, 40).map((b) => (
+            <HealthItem key={`${b.directive} ${b.blocked}`} ok={false}>
+              <span className="mono text-[11.5px]">{b.blocked}</span>{' '}
+              <span className="text-white/45">
+                {b.directive} · {b.count} · last {b.lastSeen}
+              </span>
+            </HealthItem>
+          ))}
+        </>
+      ) : null}
+    </HealthCard>
   );
 }
 

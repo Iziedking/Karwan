@@ -1,5 +1,6 @@
 ﻿import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { headers } from 'next/headers';
 import { Baloo_2, Baloo_Bhaijaan_2, Inter, Noto_Sans_Arabic, Noto_Sans_Devanagari } from 'next/font/google';
 import { DEFAULT_LOCALE } from '@/shared/i18n/locales';
 import './globals.css';
@@ -144,7 +145,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The page policy's nonce for this load (view 70), set by middleware.ts.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   // The layout used to read the karwan-locale cookie at SSR via `await
   // cookies()` so that <html lang/dir> shipped correctly on the first paint.
   // That single call forced every route into dynamic rendering on Vercel,
@@ -174,13 +177,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {API_ORIGIN ? <link rel="dns-prefetch" href={API_ORIGIN} /> : null}
         {/* Pre-paint theme. The markup is dark; this switches to light only
             when light was chosen in Profile, and never on the landing page. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_PREPAINT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_PREPAINT_SCRIPT }} />
         {/* Pre-hydration locale flip. Reads the karwan-locale cookie and
             applies <html lang/dir> before the React tree paints, so RTL
             users (Arabic) don't see an LTR → RTL jolt mid-frame. The
             translations still re-render after hydration, but the layout
             direction is already correct. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var c=document.cookie.split(';').map(function(s){return s.trim();}).find(function(s){return s.indexOf('karwan-locale=')===0;});if(!c)return;var v=decodeURIComponent(c.slice('karwan-locale='.length));var rtl={ar:1};if(['en','ar','fr','hi','sw'].indexOf(v)<0)return;document.documentElement.lang=v;document.documentElement.dir=rtl[v]?'rtl':'ltr';}catch(e){}})();`,
           }}
@@ -188,7 +192,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {/* After the head's own <title>, so this one wins until hydration. */}
-        <script dangerouslySetInnerHTML={{ __html: titlePrepaintScript() }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: titlePrepaintScript() }} />
         <AppProviders initialLocale={DEFAULT_LOCALE}>
           <ScrollbarWidthProbe />
           <ScrollReset />

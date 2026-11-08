@@ -3771,6 +3771,13 @@ export const api = {
       /// cross-references, the vault one-shot, and teller agreement.
       contracts: Array<{ label: string; ok: boolean; detail: string }>;
     }>('/api/admin/health', { headers: adminHeaders() }),
+  adminPagePolicy: () =>
+    json<{
+      since: string;
+      total: number;
+      days: number;
+      blocked: { directive: string; blocked: string; count: number; lastSeen: string }[];
+    }>('/api/admin/page-policy', { headers: adminHeaders() }),
   adminAgentSeedStatus: (address: string) =>
     json<{
       address: string;

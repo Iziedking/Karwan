@@ -14,7 +14,8 @@ import { pgEnabled, postgresExecutor } from './client.js';
 ///   suggested  key = owner|request  "ask me first" already told this owner about this request
 ///   guarantee-hold key = escrow deal id  a deal guarantee a person has to check (view 62)
 ///   guarantee-scan key = 'cursor'  the last block read for StakeHookFailed (view 62)
-export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'dm-read' | 'ratings-asked' | 'suggested' | 'record-nudge' | 'offer-revisions' | 'best-and-final' | 'guarantee-hold' | 'guarantee-scan' | 'owed-scan' | 'owed-address' | 'money-sweep' | 'money-alerts';
+///   csp-report key = YYYY-MM-DD  what the page policy blocked that day, by rule and origin (view 70)
+export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'dm-read' | 'ratings-asked' | 'suggested' | 'record-nudge' | 'offer-revisions' | 'best-and-final' | 'guarantee-hold' | 'guarantee-scan' | 'owed-scan' | 'owed-address' | 'money-sweep' | 'money-alerts' | 'csp-report';
 type UniqueKind = 'fp' | 'nullifier' | 'rc';
 
 const memory = new Map<string, unknown>();

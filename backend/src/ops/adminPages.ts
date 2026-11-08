@@ -47,6 +47,7 @@ export const ADMIN_PAGES: AdminPage[] = [
       r('\\w+ /api/admin/x402(/.*)?'),
       r('\\w+ /api/admin/market-seed(/.*)?'),
       r('GET /api/admin/health'),
+      r('GET /api/admin/page-policy'),
     ],
   },
   { key: 'errors', label: 'Errors', routes: [r('\\w+ /api/admin/errors(/.*)?'), r('\\w+ /api/admin/diagnose(/.*)?')] },
