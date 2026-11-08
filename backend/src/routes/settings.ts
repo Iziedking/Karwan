@@ -11,6 +11,7 @@ import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { DISPLAY_CURRENCIES } from '../rates/usdcRates.js';
+import { COME_TO_YOU_MAX_KM, validMeet } from '../find/settings.js';
 
 const localeSchema = z.enum(['en', 'ar', 'fr', 'hi', 'sw']);
 const themeSchema = z.enum(['light', 'dark', 'system']);
@@ -34,6 +35,14 @@ export const settingsSchema = z.object({
     acceptsOutsideAgents: z.boolean().optional(),
     /// How amounts read (view 51). Money stays in USDC.
     displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
+    /// Be found and be reached (view 72).
+    beFound: z.boolean().optional(),
+    meet: z
+      .object({ atMyPlace: z.boolean(), comeToYouKm: z.number().int().min(1).max(COME_TO_YOU_MAX_KM).nullable(), online: z.boolean() })
+      .refine(validMeet, 'choose at least one way to meet people')
+      .optional(),
+    contactFrom: z.enum(['anyone', 'verified']).optional(),
+    reachable: z.boolean().optional(),
   }),
 });
 

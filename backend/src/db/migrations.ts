@@ -1586,6 +1586,27 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX user_sessions_v1_closed_idx ON user_sessions_v1 (closed_at) WHERE closed_at IS NOT NULL;
     `,
   },
+  {
+    // What buyers regularly need, and who blocked whom (view 72).
+    version: 64,
+    name: 'standing_needs_and_find_blocks',
+    sql: `
+      CREATE TABLE standing_needs_v1 (
+        id TEXT PRIMARY KEY,
+        owner TEXT NOT NULL,
+        paused BOOLEAN NOT NULL DEFAULT FALSE,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX standing_needs_v1_owner_idx ON standing_needs_v1 (owner);
+      CREATE TABLE find_blocks_v1 (
+        owner TEXT NOT NULL,
+        blocked TEXT NOT NULL,
+        at BIGINT NOT NULL,
+        PRIMARY KEY (owner, blocked)
+      );
+      CREATE INDEX find_blocks_v1_blocked_idx ON find_blocks_v1 (blocked);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

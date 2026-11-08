@@ -74,6 +74,7 @@ import { requestTitle } from '../agents/bidOutcome.js';
 import { attachPosters } from '../listings/posters.js';
 import { liveSellerSummaries } from '../listings/sellerSummary.js';
 import { publicRequests, type PublicRequestRow } from '../market/publicRequests.js';
+import { canReadPrivate, isPublic } from '../market/visibility.js';
 
 const addrSchema = z
   .string()
@@ -591,14 +592,15 @@ jobsRoutes.get('/:jobId/attachments/:n', async (c) => {
   const n = Number(c.req.param('n'));
   const meta = brief?.attachments?.items[n];
   if (!brief?.attachments || !meta) return c.json({ error: 'not found' }, 404);
-  if (brief.visibility === 'agents') {
+  if (!isPublic(brief)) {
     const caller = viewerAddress(c);
     const offered = caller
-      ? caller === brief.postedBy.toLowerCase() ||
-        (await listDirectOffers(jobId)).some((o) => o.sellerUser.toLowerCase() === caller) ||
+      ? (await listDirectOffers(jobId)).some((o) => o.sellerUser.toLowerCase() === caller) ||
         (getBuyerJob(jobId)?.bids ?? []).some((b) => b.sellerUserAddress?.toLowerCase() === caller)
       : false;
-    if (!offered) return c.json({ error: 'only the buyer and sellers who offered see this' }, 403);
+    if (!canReadPrivate({ visibility: brief.visibility, buyer: brief.postedBy, invited: brief.invited }, caller, { offered })) {
+      return c.json({ error: 'only the buyer and sellers who offered see this' }, 403);
+    }
   }
   const file = requestAttachments.read(brief.attachments.folder, n);
   if (!file) return c.json({ error: 'not found' }, 404);

@@ -120,6 +120,7 @@ import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agen
 import { readSpendable, pickRoute, gatewayCanReach, insufficientMessage } from '../gateway/router.js';
 import { readPooledBalance } from '../gateway/pooledBalance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
+import { isPublic } from '../market/visibility.js';
 import {
   buildNavigateAction,
   buildPostOfferConfirm,
@@ -1957,7 +1958,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         if (refused) return { refused: true, category: refused.category, message: refused.message, next: 'Tell the user this plainly in one or two sentences and do not suggest other places to get it.' };
         try {
           const now = Date.now();
-          const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && l.visibility !== 'agents' && !prohibitedReason(l.title, l.description, l.terms)));
+          const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && isPublic(l) && !prohibitedReason(l.title, l.description, l.terms)));
           // Every request the open market shows (view 53), with where it stands.
           const placed = (await publicRequests()).filter((r) => !prohibitedReason(r.briefText));
           const stateOf = new Map(placed.map((r) => [r.jobId, r.state]));
@@ -2123,7 +2124,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           const offered = new Set(
             wallets?.sellerAddress ? getSellerSnapshot(wallets.sellerAddress).activeBids.map((b) => b.jobId) : [],
           );
-          const requests = getMarketplaceBriefs().filter((b) => b.visibility !== 'agents').map((b) => ({
+          const requests = getMarketplaceBriefs().filter((b) => isPublic(b)).map((b) => ({
             jobId: b.jobId,
             briefText: b.briefText,
             budgetUsdc: b.budgetUsdc,

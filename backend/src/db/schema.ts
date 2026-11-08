@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, bigint, index, uniqueIndex, primaryKey, integer, numeric } from 'drizzle-orm/pg-core';
+import { pgTable, text, jsonb, bigint, boolean, index, uniqueIndex, primaryKey, integer, numeric } from 'drizzle-orm/pg-core';
 import type { KarwanUser } from './users.js';
 import type { UserProfile } from './profiles.js';
 import type { DirectDeal } from './deals.js';
@@ -439,6 +439,34 @@ export const marketWatches = pgTable(
   },
   (t) => ({
     ownerIdx: index('market_watches_v1_owner_idx').on(t.owner),
+  }),
+);
+
+/// What buyers regularly need, when they let sellers reach them (view 72).
+export const standingNeeds = pgTable(
+  'standing_needs_v1',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull(),
+    paused: boolean('paused').notNull().default(false),
+    data: jsonb('data').notNull(),
+  },
+  (t) => ({
+    ownerIdx: index('standing_needs_v1_owner_idx').on(t.owner),
+  }),
+);
+
+/// Who stopped whom from sending deal alerts and pitches (view 72).
+export const findBlocks = pgTable(
+  'find_blocks_v1',
+  {
+    owner: text('owner').notNull(),
+    blocked: text('blocked').notNull(),
+    at: bigint('at', { mode: 'number' }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.owner, t.blocked] }),
+    blockedIdx: index('find_blocks_v1_blocked_idx').on(t.blocked),
   }),
 );
 

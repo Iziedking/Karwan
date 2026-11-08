@@ -1,6 +1,7 @@
 import type { Listing } from '../db/listings.js';
 import { topicalMatchScore, topicalOverlap } from '../llm/keywords.js';
 import { prohibitedReason } from '../policy/prohibited.js';
+import { isPublic } from '../market/visibility.js';
 
 export type FitOffer = Pick<Listing, 'id' | 'title' | 'description' | 'askingPriceUsdc' | 'sellerUser' | 'expiresAt'> &
   Partial<Pick<Listing, 'cancelledAt' | 'visibility' | 'seedKey' | 'terms'>>;
@@ -21,7 +22,7 @@ const TITLE_COVERED = 50;
 export function offersThatFit(request: FitRequest, offers: readonly FitOffer[]): OffersThatFit {
   const buyer = request.buyer?.toLowerCase() ?? null;
   const fits = offers
-    .filter((o) => !o.cancelledAt && o.expiresAt > request.now && o.visibility !== 'agents' && !o.seedKey)
+    .filter((o) => !o.cancelledAt && o.expiresAt > request.now && isPublic(o) && !o.seedKey)
     .filter((o) => o.sellerUser.toLowerCase() !== buyer)
     .filter((o) => o.askingPriceUsdc > 0 && o.askingPriceUsdc <= request.budgetUsdc)
     .filter((o) => !prohibitedReason(o.title, o.description, o.terms))

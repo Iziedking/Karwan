@@ -32,3 +32,12 @@ test('how we reach you saves as telegram, email or both, and nothing else', () =
   }
   assert.equal(settingsSchema.safeParse({ settings: { notifyVia: 'sms' } }).success, false);
 });
+
+test('be found and be reached save as settings; a way to meet must be real (view 72)', () => {
+  const ok = settingsSchema.parse({ settings: { beFound: true, reachable: true, contactFrom: 'verified', meet: { atMyPlace: true, comeToYouKm: 10, online: false } } });
+  assert.equal(ok.settings.beFound, true);
+  assert.equal(ok.settings.meet?.comeToYouKm, 10);
+  assert.equal(settingsSchema.safeParse({ settings: { meet: { atMyPlace: false, comeToYouKm: null, online: false } } }).success, false);
+  assert.equal(settingsSchema.safeParse({ settings: { meet: { atMyPlace: true, comeToYouKm: 500, online: false } } }).success, false);
+  assert.equal(settingsSchema.safeParse({ settings: { contactFrom: 'friends' } }).success, false);
+});

@@ -397,6 +397,11 @@ const envSchema = z.object({
   // Passkey recovery (mainnet). Off unless set to 1; production mainnet also
   // needs the KMS key that seals every stored backup.
   RECOVERY_ENABLED: z.preprocess(blankToUndefined, z.enum(['0', '1']).default('0')).transform((v) => v === '1'),
+  // Where people are on the map (view 72): OpenStreetMap's public geocoder,
+  // one lookup a second, Karwan's own name and contact on every call. Off
+  // unless set to 1; matching then uses place names alone.
+  GEO_ENABLED: z.preprocess(blankToUndefined, z.enum(['0', '1']).default('0')).transform((v) => v === '1'),
+  GEO_CONTACT: z.preprocess(blankToUndefined, z.string().email().default('admin@karwan.site')),
   RECOVERY_KMS_KEY_ID: z.preprocess(blankToUndefined, z.string().optional()),
   AWS_REGION: z.preprocess(blankToUndefined, z.string().optional()),
   // Delay-appeal grace: how long after the first milestone is released before

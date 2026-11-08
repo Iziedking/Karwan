@@ -38,6 +38,22 @@ export interface UserSettings {
   acceptsOutsideAgents?: boolean;
   /// How amounts read on screen (view 51). Money stays in USDC; absent means USDC.
   displayCurrency?: DisplayCurrency;
+  /// Let agents find me (view 72). Absent follows setup's "Find clients for
+  /// me" (find/settings.ts beFoundOf); nobody is found without choosing it.
+  beFound?: boolean;
+  /// How they meet people, for in-person work (view 72).
+  meet?: Meet;
+  /// Who may send them a deal alert or a pitch (view 72). Absent means anyone.
+  contactFrom?: 'anyone' | 'verified';
+  /// Let sellers reach me with their standing needs (view 72). Absent means off.
+  reachable?: boolean;
+}
+
+/// At my place, I come to you (how far), online (view 72).
+export interface Meet {
+  atMyPlace: boolean;
+  comeToYouKm: number | null;
+  online: boolean;
 }
 
 /// What a person told the setup conversation they want Karwan to do (view 19).

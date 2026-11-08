@@ -4,6 +4,7 @@ import { GENERIC_TAG_WORDS, NAIVE_STOPWORDS } from '../llm/keywords.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import type { Listing } from '../db/listings.js';
+import { isPublic } from '../market/visibility.js';
 
 /// When a new offer is posted, every activated account hears about it once, in
 /// one of two ways:
@@ -51,7 +52,7 @@ export function alertFor(
   const offered = topicWords([listing.title, listing.description]);
   const words = [...asked].filter((w) => offered.has(w)).slice(0, 3);
   if (words.length) return { kind: 'fits', words };
-  return listing.visibility === 'agents' ? null : { kind: 'new' };
+  return isPublic(listing) ? { kind: 'new' } : null;
 }
 
 export async function scanBuyersForListing(listing: Listing): Promise<{ fits: number; news: number }> {

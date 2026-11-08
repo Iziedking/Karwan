@@ -31,6 +31,7 @@ import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { computeFunding, getEscrowFeeBps } from '../chain/contracts.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { canReadPrivate, isPublic, type Visibility } from '../market/visibility.js';
 
 /// A seller's own offer on a request, from send to accept. The row is written
 /// before the on-chain bid so the buyer agent can tell it apart; accepting
@@ -51,8 +52,10 @@ export type PublicRequest = {
   chosenSeller?: string | null;
   /// Agent bids on it, for the public list. Never sent to a client as is.
   bids?: Array<{ sellerUser: string | null; priceUsdc: string; deadlineUnix: number }>;
-  /// A private request (view 53): only the buyer and sellers who offered see it.
-  visibility?: 'market' | 'agents';
+  /// A private request (view 53): only the buyer and sellers who offered see
+  /// it; an invited one (view 72) only the buyer and the people asked.
+  visibility?: Visibility;
+  invited?: string[];
   /// Photos or PDFs posted with it (view 56), read one at a time from their own links.
   attachments?: Array<{ name: string; contentType: string }>;
 };
@@ -121,7 +124,7 @@ export const defaultDeps: OfferDeps = {
   publicRequest: async (jobId) => {
     const b = await publicRequestOf(jobId);
     return b
-      ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null, state: b.state, chosenSeller: b.chosenSeller, bids: b.bids, visibility: b.visibility, attachments: attachmentList(getBrief(jobId)?.attachments) }
+      ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null, state: b.state, chosenSeller: b.chosenSeller, bids: b.bids, visibility: b.visibility, ...(b.invited ? { invited: b.invited } : {}), attachments: attachmentList(getBrief(jobId)?.attachments) }
       : null;
   },
   sellerSummaries: liveSellerSummaries,
@@ -344,12 +347,14 @@ export async function viewOffers(
   const isBuyer = !!v && !!brief && low(brief.postedBy) === v;
   let request: Omit<PublicRequest, 'chosenSeller' | 'bids' | 'visibility'> | null = null;
   let open: OpenOfferView[] = [];
-  if (found?.visibility === 'agents') {
-    // A private request (view 53): no public list, and its words only for the
-    // buyer and a seller who offered on it by hand or through their agent.
-    const { chosenSeller: _c, bids = [], visibility: _v, ...shown } = found;
+  if (found && !isPublic(found)) {
+    // A private request (views 53 and 72): no public list, and its words only
+    // for the buyer, a seller who offered on it by hand or through their
+    // agent, and, when invited, the people asked.
+    const { chosenSeller: _c, bids = [], visibility: _v, invited: _i, ...shown } = found;
     const offeredOn = !!v && (all.some((o) => low(o.sellerUser) === v) || bids.some((b) => b.sellerUser?.toLowerCase() === v));
-    request = isBuyer || offeredOn ? shown : null;
+    const readable = isBuyer || canReadPrivate({ visibility: found.visibility, buyer: brief?.postedBy ?? '', invited: found.invited }, v, { offered: offeredOn });
+    request = readable ? shown : null;
   } else if (found) {
     const { chosenSeller = null, bids = [], visibility: _v, ...shown } = found;
     request = shown;

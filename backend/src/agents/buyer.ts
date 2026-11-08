@@ -186,6 +186,7 @@ import {
   type LegacyPreFundingObservation,
 } from './financialCommandProjection.js';
 import { buildLegacyRaisedOfferShadowInput } from '../negotiation/legacyOfferProjection.js';
+import type { Visibility } from '../market/visibility.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -4979,9 +4980,11 @@ export interface MarketplaceBrief {
   partyKind?: 'person' | 'business';
   /// Seeded example stock rather than a real person's request.
   example: boolean;
-  /// Who can see it (view 53). A private request is never shown to people
-  /// browsing; seller agents still match it.
-  visibility?: 'market' | 'agents';
+  /// Who can see it (views 53 and 72, market/visibility.ts). A private
+  /// request is never shown to people browsing; an invited one is matched
+  /// only by the agents of the people asked.
+  visibility?: Visibility;
+  invited?: string[];
 }
 
 /// Open buyer briefs, packaged for the public marketplace surface. Strips
@@ -5021,7 +5024,8 @@ export function getRequestRows(): Array<
         tradeLane: brief?.tradeLane ?? 'service',
         partyKind: brief?.partyKind ?? 'person',
         example: Boolean(brief?.seedKey),
-        visibility: brief?.visibility === 'agents' ? ('agents' as const) : ('market' as const),
+        visibility: brief?.visibility ?? ('market' as const),
+        ...(brief?.invited?.length ? { invited: brief.invited } : {}),
         finalized: !!s.finalized,
         escrowFunded: !!s.escrowFunded,
         bids: [...s.bids.values()].map((b) => ({

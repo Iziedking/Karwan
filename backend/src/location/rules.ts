@@ -11,7 +11,25 @@ export interface PrivateLocation {
   area: string | null;
   /// What the person answered when their agent asked "do you ship there?".
   reach: Record<string, { ships: boolean; days: number | null; answeredAt: number }>;
+  /// Where they are on the map, from what they typed (view 72). Used only to
+  /// work out distance; never shown, logged or sent to anyone.
+  point?: Point & { precision: 'area' | 'city'; source: string; at: number };
 }
+
+export interface Point {
+  lat: number;
+  lng: number;
+}
+
+/// What another person reads about how far someone is (view 72).
+export type DistanceLine =
+  | { key: 'nearby' }
+  | { key: 'about'; km: number }
+  | { key: 'inCity'; city: string }
+  | { key: 'far'; km: number }
+  | { key: 'sameCity'; city: string }
+  | { key: 'sameCountry' }
+  | { key: 'unknown' };
 
 export interface Where {
   scope: 'near' | 'country' | 'anywhere';
@@ -80,6 +98,46 @@ export function needsDeliveryQuestion(seller: PrivateLocation | null, buyerCount
 export function publicLocation(l: PrivateLocation | null | undefined): { country: string | null } {
   return { country: l?.country ?? null };
 }
+
+const EARTH_KM = 6371;
+const rad = (d: number) => (d * Math.PI) / 180;
+
+/// Great-circle distance in km.
+export function distanceKm(a: Point, b: Point): number {
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_KM * Math.asin(Math.sqrt(h));
+}
+
+/// How far someone is, rounded so it never gives a place away: nearby under
+/// 1 km, about N km up to 20, then the city (or the km when the city is not
+/// shared). With no points, the place-name fit (`locationFit`) says it.
+export function distanceLine(km: number | null, fit: 0 | 1 | 2 | 3 | 4, city: string | null): DistanceLine {
+  if (km !== null) {
+    if (km < 1) return { key: 'nearby' };
+    if (km <= 20) return { key: 'about', km: Math.round(km) };
+    return fit >= 3 && city ? { key: 'inCity', city } : { key: 'far', km: Math.round(km) };
+  }
+  if (fit >= 3 && city) return { key: 'sameCity', city };
+  if (fit === 2) return { key: 'sameCountry' };
+  return { key: 'unknown' };
+}
+
+/// A new place for the person. The map point is kept only while the place is
+/// the same, so someone who moved is never matched from where they were.
+export function withPlace(current: PrivateLocation | null, next: Pick<PrivateLocation, 'country' | 'city' | 'area'>): PrivateLocation {
+  const base: PrivateLocation = current ?? { country: null, city: null, area: null, reach: {} };
+  const { point, ...rest } = base;
+  return { ...rest, ...next, ...(point && samePlace(base, next) ? { point } : {}) };
+}
+
+/// The same country, city and area, ignoring case.
+export function samePlace(a: Pick<PrivateLocation, 'country' | 'city' | 'area'>, b: Pick<PrivateLocation, 'country' | 'city' | 'area'>): boolean {
+  return a.country === b.country && sameOrBothEmpty(a.city, b.city) && sameOrBothEmpty(a.area, b.area);
+}
+
+const sameOrBothEmpty = (a: string | null, b: string | null) => (!a && !b) || same(a, b);
 
 const REGION_NAMES = new Intl.DisplayNames(['en'], { type: 'region' });
 /// Groupings Intl names that are not places a person lives.

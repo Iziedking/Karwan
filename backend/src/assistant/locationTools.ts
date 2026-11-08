@@ -1,7 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { updateProfile } from '../db/profiles.js';
-import { normalizeLocation, publicLocation, type PrivateLocation } from '../location/rules.js';
+import { normalizeLocation, publicLocation, samePlace, withPlace, type PrivateLocation } from '../location/rules.js';
+import { geoAdapter } from '../location/geo.js';
 import { currencyForCountry } from '../rates/countryCurrency.js';
 
 /// Where a person is and where they deliver, told to their agent in plain
@@ -13,6 +14,9 @@ export interface LocationToolDeps {
   /// Applies a change to the latest stored location under the profile lock,
   /// so two answers given at once both land.
   update: (address: string, change: (current: PrivateLocation | null) => PrivateLocation) => Promise<void>;
+  /// Looks the place up on the map after it is saved (view 72). Never awaited
+  /// by the reply; absent when the map is off.
+  locate?: (address: string, place: Pick<PrivateLocation, 'country' | 'city' | 'area'>) => Promise<void>;
 }
 
 const empty = (): PrivateLocation => ({ country: null, city: null, area: null, reach: {} });
@@ -30,7 +34,8 @@ export function locationTools(address: string, deps: LocationToolDeps) {
       execute: async ({ country, city, area }) => {
         const next = normalizeLocation({ country, city, area });
         if (!next.country) return { saved: false, error: 'Use the two-letter country code, for example NG for Nigeria or GH for Ghana.' };
-        await deps.update(address, (current) => ({ ...(current ?? empty()), ...next }));
+        await deps.update(address, (current) => withPlace(current, next));
+        if (deps.locate) void deps.locate(address, next).catch(() => {});
         return {
           saved: true,
           public: publicLocation(next as PrivateLocation),
@@ -65,6 +70,19 @@ export function locationTools(address: string, deps: LocationToolDeps) {
 
 export const liveLocationToolDeps: LocationToolDeps = {
   now: Date.now,
+  locate: async (address, place) => {
+    const geo = geoAdapter();
+    const text = [place.area, place.city].filter(Boolean).join(', ');
+    if (!geo || !text) return;
+    const found = await geo.place(text, place.country);
+    if (!found) return;
+    await updateProfile(address, (current) => {
+      // They may have moved while the map answered: keep a point only for the
+      // place they are at now.
+      if (!current.location || !samePlace(current.location, place)) return current;
+      return { ...current, location: { ...current.location, point: { lat: found.lat, lng: found.lng, precision: found.precision, source: 'osm', at: Date.now() } } };
+    });
+  },
   update: async (address, change) => {
     await updateProfile(address, (current) => {
       const location = change(current.location ?? null);

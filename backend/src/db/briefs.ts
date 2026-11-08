@@ -53,8 +53,11 @@ export interface Brief {
   trustedMatch?: boolean;
   /// Photos or PDFs posted with it (view 56).
   attachments?: AttachmentSet;
-  /// Who can see it (view 53): on the market (absent) or only to agents.
-  visibility?: 'market' | 'agents';
+  /// Who can see it (views 53 and 72, market/visibility.ts): on the market
+  /// (absent), only to agents, or only to the people invited by a find.
+  visibility?: 'market' | 'agents' | 'invited';
+  /// For an invited request: the people asked, lower case, at most 10.
+  invited?: string[];
   /// Match lane this brief belongs to. 'service' is the single-service P2P
   /// flow, open to every account type; 'finance' is the SME/B2B trade-finance
   /// flow, restricted to verified businesses on both sides. Stamped once at

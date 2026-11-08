@@ -3,6 +3,7 @@ import { getDeal } from '../db/deals.js';
 import { getMatchProposal, type MatchProposal } from '../db/matchProposals.js';
 import { getPendingNearMiss } from '../db/nearMiss.js';
 import { listed, requestState, type RequestState } from './requestState.js';
+import { isPublic } from './visibility.js';
 
 /// The requests the open market shows (view 53): open ones, ones in
 /// negotiation, and agreed ones for 7 days, each with its state.
@@ -45,7 +46,7 @@ const ORDER: Record<PublicRequestRow['state'], number> = { open: 0, negotiating:
 /// Open first, then in negotiation, then agreed; newest first within each.
 export async function publicRequests(deps: PublicRequestDeps = livePublicRequestDeps): Promise<PublicRequestRow[]> {
   // A private request (view 53) is never on the market.
-  const placed = await Promise.all(deps.rows().filter((row) => row.visibility !== 'agents').map((row) => place(row, deps)));
+  const placed = await Promise.all(deps.rows().filter((row) => isPublic(row)).map((row) => place(row, deps)));
   return placed
     .filter((r): r is PublicRequestRow => r !== null)
     .sort((a, b) => ORDER[a.state] - ORDER[b.state] || b.postedAt - a.postedAt);

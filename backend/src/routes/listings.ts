@@ -8,6 +8,7 @@ import { generateObject } from 'ai';
 import { llmModel } from '../llm/client.js';
 import { singleFlight } from '../llm/singleFlight.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
+import { isPublic } from '../market/visibility.js';
 import {
   cancelListing,
   createListing,
@@ -200,7 +201,7 @@ export function configureListingMatchingEngineShadow(
 listingsRoutes.get('/', async (c) => {
   // Rows that describe a trade Karwan does not support stay off the market.
   // A private offer (view 53) is never on the market; buyer agents and its link still reach it.
-  const all = listAllListings().filter((l) => l.visibility !== 'agents' && !prohibitedReason(l.title, l.description, l.terms));
+  const all = listAllListings().filter((l) => isPublic(l) && !prohibitedReason(l.title, l.description, l.terms));
   const page = marketPageQuery.safeParse(c.req.query());
   if (!page.success) return c.json({ error: 'invalid market page' }, 400);
   const picked = page.data.limit === undefined
