@@ -88,6 +88,21 @@ test('a fresh-enough reading answers at once while one refresh runs behind it (8
   assert.equal(after.updatedAt, NOW + 90_000);
 });
 
+test('a refresh still running when the cache is reset does not write its reading back', async () => {
+  const first = stub([() => coingecko()]);
+  await readUsdcRates(NOW, first.fetcher);
+  let release: (r: Response) => void = () => {};
+  const slow = stub([() => new Promise<Response>((r) => { release = r; })]);
+  await readUsdcRates(NOW + 61_000, slow.fetcher);
+  resetUsdcRatesCache();
+  release(coingecko());
+  await new Promise((r) => setTimeout(r, 10));
+  const fresh = stub([() => coingecko((NOW + 200_000) / 1000)]);
+  const out = await readUsdcRates(NOW + 200_000, fresh.fetcher);
+  assert.equal(fresh.calls.length, 1, 'the reset cache reads again');
+  assert.equal(out.updatedAt, NOW + 200_000);
+});
+
 test('staleAfter15Minutes', async () => {
   const sixteenMinutesAgo = (NOW - 16 * 60_000) / 1000;
   const { fetcher } = stub([() => coingecko(sixteenMinutesAgo), () => new Response('', { status: 503 })]);

@@ -36,22 +36,28 @@ interface Reading {
 
 let cache: { readAt: number; reading: Reading | null } | null = null;
 let inflight: Promise<void> | null = null;
+let generation = 0;
 
+/// A read still running when the cache is reset lands nowhere.
 export function resetUsdcRatesCache(): void {
   cache = null;
   inflight = null;
+  generation += 1;
 }
 
 /// One read of the sources at a time, however many callers ask.
 function refresh(fetcher: typeof fetch, now: number): Promise<void> {
-  inflight ??= read(fetcher, now)
+  if (inflight) return inflight;
+  const started = generation;
+  const run: Promise<void> = read(fetcher, now)
     .then((fresh) => {
-      cache = { readAt: now, reading: fresh ?? cache?.reading ?? null };
+      if (started === generation) cache = { readAt: now, reading: fresh ?? cache?.reading ?? null };
     })
     .finally(() => {
-      inflight = null;
+      if (inflight === run) inflight = null;
     });
-  return inflight;
+  inflight = run;
+  return run;
 }
 
 const EMPTY: UsdcRates = { rates: {}, updatedAt: null, source: null };
