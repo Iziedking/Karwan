@@ -18,7 +18,7 @@ Read from the code on 8 Nov 2026.
 | Agree for me: the agent agrees within budget, one tap to lock the money | view 30 | Built, testnet |
 | Find sellers who fit, ranked on their full record, sealed rows only | `find_counterparty` in `mcp/match.ts` | Outside agents only (MCP), not the website or Telegram assistant |
 | Find clients for me (setup answer) | `findClients` in agent prefs, view 19 | The seller's agent answers requests already posted. It never goes looking |
-| Private location: country, city, area | view 16 | Saved, but matching uses only the country (`hintScore` in `matching/sellerIndex.ts`, +1). The city never helps |
+| Private location: country, city, area | view 16 | Saved. Shortlists and market search rank by place name: same area, same city, same country (`locationFit` in `location/rules.ts`). There is no distance, and the sellers an agent considers are picked by country only (`hintScore` in `matching/sellerIndex.ts`) |
 | Where the request happens: near, country, anywhere | `propose_post_request` `where` | Asked, used as country only |
 | Message a person by tag | `message_person` | Built |
 | In-person deals with a handover code; shipped goods with tracking | view 33 | Built |
@@ -28,7 +28,7 @@ Read from the code on 8 Nov 2026.
 What is missing is the joining:
 
 1. **The website and Telegram assistant cannot search people.** A craftsman with a good record but no offer up is invisible unless their agent happens to answer a request.
-2. **Near means nothing yet.** A buyer in Wuse, Abuja is shown a seller in Lagos as readily as one two streets away.
+2. **Near is a name, not a distance.** Two people in Wuse match; a seller in Maitama, ten minutes away, counts only as the same city, and someone who types "Abuja" and someone who types "FCT" don't match at all.
 3. **Nobody contacts anyone on a person's behalf.** After a shortlist, the seller learns of the buyer only if they offered first; a seller's agent never tells a buyer it can help.
 4. **A profile can't say how you meet people.** At my shop, I come to you, or online is not saved.
 5. **A buyer can't say what they regularly need**, so a seller's agent has nothing to find except posted requests.
@@ -130,8 +130,7 @@ Location matching uses a map service. A person types their area or shares where 
 | 5 | Verification | Pending until mainnet; then automatic, through industry partners |
 | 6 | A seller with no price | Comes up on skill and reputation; the deal alert asks how much they would take |
 | 7 | Sellers finding buyers | Built the same way, the reverse direction |
-
-Proposed for the reverse, not yet decided: buyers say their standing needs; a pitch is reminded at most once; at most three pitches a day for each need (Find buyers, point 4).
+| 8 | Limits on pitches to buyers | Accepted as proposed: one reminder per pitch, at most three pitches a day for each need, "not interested" stops that seller for that need |
 
 ## Phases
 
@@ -146,4 +145,4 @@ Proposed for the reverse, not yet decided: buyers say their standing needs; a pi
 
 ## Status
 
-Decisions 1 to 7 given by the owner 8 Nov 2026. The reverse's limits wait for the owner; then spec and plan, no code before.
+Approved by the owner 8 Nov 2026, decisions 1 to 8. Spec written the same day (internal); plan next, no code before.
