@@ -34,14 +34,6 @@ const distributorAbi = [
   },
 ] as const;
 
-function fmt(s: string | undefined): string {
-  if (!s) return '0';
-  const n = Number(s);
-  if (!Number.isFinite(n) || n === 0) return '0';
-  if (n < 1) return n.toFixed(4);
-  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 export function YieldClaimPanel() {
   const money = useMoneyText({ compact: true });
   const t = useTranslations().yieldClaim;
@@ -68,7 +60,6 @@ export function YieldClaimPanel() {
 
   const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
   const claimableNum = Number(claimable);
-  const amount = fmt(claimable);
   const canClaim = !!address && !busy && claimableNum > 0 && !onWrongChain;
 
   const submit = useCallback(async () => {
@@ -107,7 +98,7 @@ export function YieldClaimPanel() {
     return <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.signedOut}</p>;
   }
 
-  const claimLabel = busy ? t.claiming : t.claimTemplate.replace('{amount}', amount);
+  const claimLabel = busy ? t.claiming : money.fill(t.claimTemplate, { amount: claimableNum }, undefined, { exact: true });
 
   return (
     <div className="divide-y divide-[var(--line)]">
@@ -152,7 +143,7 @@ export function YieldClaimPanel() {
       </div>
 
       <ConfirmSheetShell open={sheetOpen} labelledBy={titleId} busy={busy} onClose={() => setSheetOpen(false)}>
-        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--ink)]">{t.sheetTitleTemplate.replace('{amount}', amount)}</h2>
+        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--ink)]">{money.fill(t.sheetTitleTemplate, { amount: claimableNum }, undefined, { exact: true })}</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-secondary)] font-medium">{t.sheetBody}</p>
         {error ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{error}</p> : null}
         <RecordDoneLine show={recordSetUp} />

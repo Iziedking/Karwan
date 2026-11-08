@@ -5,6 +5,9 @@ import { LpHint } from '@/shared/components/LpHint';
 import { pickAxisLabelIndices } from '../axisLabels';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useYieldProtocol, useYieldHistory } from '../hooks/useYield';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { useDisplayCurrency } from '@/features/money/hooks/useDisplayCurrency';
+import { isLocal } from '@/features/money/localAmount';
 
 /// Network-side yield readout. Three tiles + a cumulative accrual chart.
 /// Both polls land every 30s through the shared react-query cache so the
@@ -26,7 +29,22 @@ function fmt(s: string | undefined): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
+/// Figures in the account's own currency when it has a fresh rate (view 55);
+/// in USDC otherwise, with the unit set beside the figure.
+function useFigures() {
+  const money = useMoneyText({ compact: true });
+  const { currency, rate } = useDisplayCurrency();
+  const local = isLocal(currency) && !!rate;
+  return {
+    local,
+    unit: local ? currency : 'USDC',
+    figure: (s: string | undefined) => (local && s !== undefined && Number.isFinite(Number(s)) ? money.text(s) : fmt(s)),
+  };
+}
+
 export function ReservesWidget() {
+  const t = useTranslations().guaranteeReserves;
+  const figures = useFigures();
   const protocol = useYieldProtocol();
   const historyQ = useYieldHistory();
 
@@ -46,21 +64,9 @@ export function ReservesWidget() {
     : null;
 
   const tiles: Array<{ label: string; value: string; hint: string }> = [
-    {
-      label: 'Total distributed',
-      value: fmt(data?.totalCreditedUsdc),
-      hint: 'Lifetime USDC credited to stakers',
-    },
-    {
-      label: 'Total claimed',
-      value: fmt(data?.totalClaimedUsdc),
-      hint: 'Withdrawn by stakers to date',
-    },
-    {
-      label: 'Total outstanding',
-      value: fmt(data?.outstandingUsdc),
-      hint: 'Accrued, awaiting claim',
-    },
+    { label: t.distributed, value: figures.figure(data?.totalCreditedUsdc), hint: t.distributedHint },
+    { label: t.claimed, value: figures.figure(data?.totalClaimedUsdc), hint: t.claimedHint },
+    { label: t.outstanding, value: figures.figure(data?.outstandingUsdc), hint: t.outstandingHint },
   ];
 
   return (
@@ -69,17 +75,17 @@ export function ReservesWidget() {
           amount, and money carries its own bordered card and lime edge wherever
           it appears. */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {tiles.map((t) => (
-          <MoneyCard key={t.label}>
+        {tiles.map((tile) => (
+          <MoneyCard key={tile.label}>
             <p className="inline-flex items-center gap-1.5 text-[14px] text-[var(--ink-muted)]">
-              {t.label}
-              <LpHint>{t.hint}</LpHint>
+              {tile.label}
+              <LpHint>{tile.hint}</LpHint>
             </p>
             {tilesLoading ? (
               <div className="mt-1.5 h-[28px] w-3/4 rounded-md bg-[var(--line)] animate-pulse" />
             ) : (
               <div className="mt-1.5">
-                <MoneyValue value={t.value} />
+                <MoneyValue value={tile.value} showUnit={!figures.local} />
               </div>
             )}
           </MoneyCard>
@@ -101,6 +107,8 @@ export function ReservesWidget() {
 /// CSS pixels on mobile and were illegible.
 function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: boolean }) {
   const a11y = useTranslations().a11y;
+  const t = useTranslations().guaranteeReserves;
+  const figures = useFigures();
   const padded = useMemo(() => {
     if (history.length === 0) return [];
     if (history.length === 1) {
@@ -135,10 +143,10 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
       >
         <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
           <p className="text-[14px] text-[var(--ink-muted)]">
-            Cumulative distribution
+            {t.chartTitle}
           </p>
           <p className="text-[14px] text-[var(--ink-secondary)]">
-            USDC
+            {figures.unit}
           </p>
         </div>
         <div
@@ -156,7 +164,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
         className="flex items-center justify-center text-[14px] text-[var(--ink-muted)] rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface)]"
         style={{ height: 220 }}
       >
-        Distribution chart appears once the first cron tick lands.
+        {t.chartEmpty}
       </div>
     );
   }
@@ -198,10 +206,10 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
     >
       <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
         <p className="text-[14px] text-[var(--ink-muted)]">
-          Cumulative distribution
+          {t.chartTitle}
         </p>
         <p className="text-[14px] text-[var(--ink-secondary)]">
-          USDC
+          {figures.unit}
         </p>
       </div>
       <svg
@@ -212,7 +220,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
         aria-label={a11y.cumulativeYieldDistributed}
       >
         {/* Y grid */}
-        {yTicks.map((t, i) => {
+        {yTicks.map((tick, i) => {
           const y = height - padY - (i / yGrid) * (height - padY * 2);
           return (
             <g key={`y${i}`}>
@@ -232,7 +240,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
                 fill="var(--ink-muted)"
                 fontFamily="var(--font-general-sans, sans-serif)"
               >
-                {fmt(t.toString())}
+                {figures.figure(tick.toString())}
               </text>
             </g>
           );

@@ -2077,6 +2077,17 @@ interface MessagesShape {
     poBody: string;
     roadmap: string;
   };
+  /// Guarantee earnings across everyone: three totals and a chart.
+  guaranteeReserves: {
+    distributed: string;
+    distributedHint: string;
+    claimed: string;
+    claimedHint: string;
+    outstanding: string;
+    outstandingHint: string;
+    chartTitle: string;
+    chartEmpty: string;
+  };
   /// The account yield panel on /stake.
   yieldClaim: {
     earned: string;
@@ -7621,6 +7632,16 @@ export const en: MessagesShape = {
     poTitle: 'Purchase-order financing',
     poBody: "Working capital against a purchase order, released to the supplier once delivery is confirmed.",
     roadmap: "See the roadmap",
+  },
+  guaranteeReserves: {
+    distributed: "Total distributed",
+    distributedHint: "Paid out on every guarantee since the start.",
+    claimed: "Total claimed",
+    claimedHint: "Taken out by guarantee holders so far.",
+    outstanding: "Total outstanding",
+    outstandingHint: "Earned and waiting to be claimed.",
+    chartTitle: "Paid out over time",
+    chartEmpty: "The chart starts after the first day of earnings.",
   },
   yieldClaim: {
     earned: "Earned so far",

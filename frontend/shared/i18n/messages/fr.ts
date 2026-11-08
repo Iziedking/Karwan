@@ -2305,6 +2305,16 @@ export const fr: Messages = {
     poBody: "Un fonds de roulement adossé à un bon de commande, versé au fournisseur une fois la livraison confirmée.",
     roadmap: "Voir la feuille de route",
   },
+  guaranteeReserves: {
+    distributed: "Total distribué",
+    distributedHint: "Versé sur toutes les garanties depuis le début.",
+    claimed: "Total retiré",
+    claimedHint: "Retiré par les titulaires de garantie à ce jour.",
+    outstanding: "Total en attente",
+    outstandingHint: "Gagné et en attente de retrait.",
+    chartTitle: "Versements dans le temps",
+    chartEmpty: "Le graphique commence après le premier jour de gains.",
+  },
   yieldClaim: {
     earned: "Gagné jusqu’ici",
     earnedHint: 'Gagné sur votre garantie de transaction depuis son dépôt.',

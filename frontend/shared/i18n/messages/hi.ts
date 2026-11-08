@@ -2303,6 +2303,16 @@ export const hi: Messages = {
     poBody: "खरीद आदेश के बदले कार्यशील पूंजी, डिलीवरी की पुष्टि होने पर सप्लायर को जारी.",
     roadmap: "रोडमैप देखें",
   },
+  guaranteeReserves: {
+    distributed: "कुल बांटा गया",
+    distributedHint: "शुरुआत से हर गारंटी पर दिया गया।",
+    claimed: "कुल क्लेम किया गया",
+    claimedHint: "गारंटी रखने वालों ने अब तक निकाला।",
+    outstanding: "कुल बाकी",
+    outstandingHint: "कमाया गया और क्लेम का इंतज़ार।",
+    chartTitle: "समय के साथ भुगतान",
+    chartEmpty: "पहले दिन की कमाई के बाद चार्ट शुरू होता है।",
+  },
   yieldClaim: {
     earned: "अब तक कमाया",
     earnedHint: 'डील गारंटी रखने के बाद से उस पर कमाया गया।',

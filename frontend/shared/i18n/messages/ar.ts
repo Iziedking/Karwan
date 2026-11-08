@@ -2305,6 +2305,16 @@ export const ar: Messages = {
     poBody: "رأس مال عامل مقابل أمر شراء، يُصرف للمورّد بعد تأكيد التسليم.",
     roadmap: "اطّلع على خارطة الطريق",
   },
+  guaranteeReserves: {
+    distributed: "إجمالي الموزّع",
+    distributedHint: "ما دُفع على كل الضمانات منذ البداية.",
+    claimed: "إجمالي المسحوب",
+    claimedHint: "ما سحبه أصحاب الضمانات حتى الآن.",
+    outstanding: "إجمالي المتبقي",
+    outstandingHint: "مكتسب وينتظر السحب.",
+    chartTitle: "المدفوعات عبر الوقت",
+    chartEmpty: "يبدأ الرسم البياني بعد أول يوم من الأرباح.",
+  },
   yieldClaim: {
     earned: "المكتسب حتى الآن",
     earnedHint: 'ما ربحته على ضمان صفقتك منذ وضعه.',

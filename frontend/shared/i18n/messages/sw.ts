@@ -2302,6 +2302,16 @@ export const sw: Messages = {
     poBody: "Mtaji wa kazi dhidi ya oda ya ununuzi, unatolewa kwa msambazaji baada ya uwasilishaji kuthibitishwa.",
     roadmap: "Tazama ramani ya njia",
   },
+  guaranteeReserves: {
+    distributed: "Jumla iliyogawanywa",
+    distributedHint: "Iliyolipwa kwa kila dhamana tangu mwanzo.",
+    claimed: "Jumla iliyodaiwa",
+    claimedHint: "Iliyochukuliwa na wenye dhamana hadi sasa.",
+    outstanding: "Jumla inayosubiri",
+    outstandingHint: "Imepatikana na inasubiri kudaiwa.",
+    chartTitle: "Malipo kwa muda",
+    chartEmpty: "Chati inaanza baada ya siku ya kwanza ya mapato.",
+  },
   yieldClaim: {
     earned: "Ulichopata hadi sasa",
     earnedHint: 'Ulichopata kwenye dhamana yako ya mpango tangu uliiweka.',
