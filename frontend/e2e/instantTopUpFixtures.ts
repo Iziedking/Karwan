@@ -105,12 +105,14 @@ export async function captureTopUpScreen(page: Page, testInfo: TestInfo, phase: 
   // A button still under the cursor from the last click shows its hover shade,
   // so measure resting colours with the mouse parked and transitions settled.
   await page.mouse.move(0, 0);
-  // Sheets fade in with script-driven animations, not only CSS transitions;
-  // wait on each one's own promise (real time, so a spec's fake clock cannot
-  // stall it), leaving out loops that never end.
-  await page.evaluate(() => Promise.all(document.getAnimations()
-    .filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity)
-    .map(animation => animation.finished.catch(() => undefined))));
+  await page.waitForFunction(() => document.getAnimations().every(animation => !(animation instanceof CSSTransition) || animation.playState !== 'running'));
+  // A sheet fades in with a script-driven animation, and under a spec's fake
+  // clock that fade can start late. Measure once the surface is fully shown.
+  await expect.poll(() => root.evaluate(element => {
+    let opacity = 1;
+    for (let node: Element | null = element; node; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity);
+    return opacity;
+  }), { timeout: 5_000 }).toBe(1);
   const metrics = await root.evaluate(surface => {
     const visible = (element: HTMLElement) => {
       const rect = element.getBoundingClientRect();
