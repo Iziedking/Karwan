@@ -1078,6 +1078,10 @@ const str = (v: unknown) => String(v ?? '');
 /// Account steps (view 31 phase E), each the call its own page makes.
 const ACCOUNT_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: P) => Promise<unknown>>> = {
   change_settings: (p) => api.saveSettings(str(p.address), p.settings as UserSettings),
+  save_standing_need: (p) => api.saveStandingNeed(p as Parameters<typeof api.saveStandingNeed>[0]),
+  remove_standing_need: (p) => api.removeStandingNeed(str(p.id)),
+  block_person: (p) => api.blockPerson(str(p.who)),
+  unblock_person: (p) => api.unblockPerson(str(p.who)),
   edit_profile: (p) => api.saveProfile(p as unknown as Parameters<typeof api.saveProfile>[0]),
   set_x_handle: (p) => api.setXHandle(str(p.address), (p.handle as string | null) ?? null),
   remove_email: (p) => api.removeEmail(str(p.address)),
@@ -1104,6 +1108,10 @@ const ACCOUNT_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: P) => P
 
 const ACCOUNT_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], [string, string]>> = {
   change_settings: ['Settings saved.', '/settings'],
+  save_standing_need: ['Need saved.', '/profile'],
+  remove_standing_need: ['Removed.', '/profile'],
+  block_person: ['Blocked. They are not told.', '/profile'],
+  unblock_person: ['Unblocked.', '/profile'],
   edit_profile: ['Profile updated.', '/profile'],
   set_x_handle: ['Saved.', '/profile'],
   remove_email: ['Email removed.', '/profile'],
@@ -1210,6 +1218,10 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   edit_listing: 'Saving…',
   pay_payment_link: 'Paying…',
   change_settings: 'Saving…',
+  save_standing_need: 'Saving…',
+  remove_standing_need: 'Removing…',
+  block_person: 'Blocking…',
+  unblock_person: 'Unblocking…',
   edit_profile: 'Saving…',
   set_x_handle: 'Saving…',
   remove_email: 'Removing…',

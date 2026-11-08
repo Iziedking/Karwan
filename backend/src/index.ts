@@ -24,6 +24,7 @@ import { profileRoutes } from './routes/profile.js';
 import { workspaceRoutes } from './routes/workspaces.js';
 import { newsletterRoutes } from './routes/newsletter.js';
 import { settingsRoutes } from './routes/settings.js';
+import { findRoutes } from './routes/find.js';
 import { createMeAttestationRoutes, profileSettingsSaver } from './routes/meAttestations.js';
 import { listAttestationsForSubject, revokeAttestation } from './db/attestations.js';
 import { upsertProfile } from './db/profiles.js';
@@ -490,6 +491,7 @@ app.route('/api/workspaces', workspaceRoutes);
 app.route('/api/paytag', paytagRoutes);
 app.route('/api/newsletter', newsletterRoutes);
 app.route('/api/settings', settingsRoutes);
+app.route('/api/find', findRoutes);
 app.route(
   '/api/me/attestations',
   createMeAttestationRoutes({

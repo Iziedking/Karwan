@@ -371,6 +371,29 @@ export interface UserSettings {
   displayCurrency?: import('@/features/money/displayCurrency').DisplayCurrency;
   /// Deals from agents outside Karwan (view 15); absent means on.
   acceptsOutsideAgents?: boolean;
+  /// Be found and be reached (view 72).
+  beFound?: boolean;
+  meet?: Meet;
+  contactFrom?: 'anyone' | 'verified';
+  reachable?: boolean;
+}
+
+/// How a seller meets people, for in-person work (view 72).
+export interface Meet {
+  atMyPlace: boolean;
+  comeToYouKm: number | null;
+  online: boolean;
+}
+
+/// Something a buyer regularly needs, said so sellers can reach them (view 72).
+export interface StandingNeed {
+  id: string;
+  what: string;
+  every: 'once' | 'week' | 'month' | 'season';
+  budgetUsdc: string | null;
+  kind: 'goods' | 'in_person' | 'remote';
+  paused: boolean;
+  createdAt: number;
 }
 
 export type WorkspaceKind = 'personal' | 'business';
@@ -455,6 +478,8 @@ export interface UserProfile {
   /// business status. Absent reads as 'person'.
   accountKind?: 'person' | 'business';
   settings?: UserSettings;
+  /// Where they are, on their own profile only; others see the country (view 16).
+  location?: { country: string | null; city: string | null; area: string | null };
   seller?: {
     skills: string[];
     /// Goods / Services / Both, chosen on the business profile. Absent for
@@ -2097,7 +2122,11 @@ export interface AssistantConfirmAction {
     | 'rename_business'
     | 'save_trade_line'
     | 'remove_trade_line'
-    | 'edit_company_card';
+    | 'edit_company_card'
+    | 'save_standing_need'
+    | 'remove_standing_need'
+    | 'block_person'
+    | 'unblock_person';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.
@@ -6404,6 +6433,13 @@ export const api = {
       `/api/deals/direct/${jobId}/decline`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
+  /// What a buyer regularly needs (view 72).
+  standingNeeds: () => json<{ needs: StandingNeed[]; max: number }>('/api/find/needs'),
+  saveStandingNeed: (need: { id?: string; what: string; every: StandingNeed['every']; budgetUsdc: number | null; kind: StandingNeed['kind']; paused?: boolean }) =>
+    json<{ need: StandingNeed }>('/api/find/needs', { method: 'POST', body: JSON.stringify(need) }),
+  removeStandingNeed: (id: string) => json<{ ok: true }>(`/api/find/needs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  blockPerson: (who: string) => json<{ ok: true }>('/api/find/block', { method: 'POST', body: JSON.stringify({ who }) }),
+  unblockPerson: (who: string) => json<{ ok: true }>('/api/find/unblock', { method: 'POST', body: JSON.stringify({ who }) }),
   removeTradeAvailability: (workspaceId: string, availabilityId: string) =>
     json<{ ok: true }>(
       `/api/workspaces/${encodeURIComponent(workspaceId)}/availability/${encodeURIComponent(availabilityId)}`,

@@ -145,4 +145,9 @@ Location matching uses a map service. A person types their area or shares where 
 
 ## Status
 
-Approved by the owner 8 Nov 2026, decisions 1 to 8. Spec approved and plan written the same day (internal), roadmap item T1.9. Nothing is built yet; Phase 1 starts once the plan is approved and the map provider chosen.
+Approved by the owner 8 Nov 2026, decisions 1 to 8; spec and plan approved the same day (internal), roadmap item T1.9.
+
+| Phase | State |
+|---|---|
+| 1 Be found, be reached, a point on the map | Built 8 Nov 2026, not deployed: private requests by invitation, Be found and Let sellers reach me on Your agent and through the assistant, standing needs, blocks, map points from OpenStreetMap (off until `GEO_ENABLED=1`). The setup question "How do you meet people?" moves to Phase 2, with the Telegram interview |
+| 2 to 6 | Planned |

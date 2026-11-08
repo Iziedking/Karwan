@@ -13,6 +13,8 @@ import { setupCopy } from '@/shared/i18n/messages/setup';
 import { yourAgentCopy } from '@/shared/i18n/messages/yourAgent';
 import { fill } from '@/features/deals/workspace/presentation';
 import { AgentPanel, type PanelKey } from './agentPanels';
+import { BeFoundPanel, NEEDS_KEY, ReachPanel, type FindPanelKey } from './findPanels';
+import { beFoundOf, meetLine, meetOf, reachableOf } from './findModel';
 import { daysOf, mainWay, paidKindOf, sellerUsualGiven } from './yourAgentModel';
 
 const money = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -48,11 +50,20 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
   const mode = profile.agentPrefs?.agentMode ?? 'offers';
   const waiting = offers.data?.length ?? 0;
 
+  const changeClass = 'inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]';
   const change = (key: PanelKey) => (
-    <button type="button" onClick={() => setOpen(key)} className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+    <button type="button" onClick={() => setOpen(key)} className={changeClass}>
       {t.change}
     </button>
   );
+  // Be found and be reached (view 72).
+  const [findOpen, setFindOpen] = useState<FindPanelKey | null>(null);
+  const needs = useQuery({ queryKey: NEEDS_KEY, queryFn: () => api.standingNeeds().then((r) => r.needs), staleTime: 30_000 });
+  const place = [profile.location?.area, profile.location?.city].filter(Boolean).join(', ') || null;
+  const meetText = meetLine(meetOf(profile), t.find);
+  const beFoundLine = beFoundOf(profile) ? fill(t.find.onWays, { ways: meetText }) : t.find.off;
+  const needCount = needs.data?.length ?? 0;
+  const reachLine = !reachableOf(profile) ? t.find.off : needCount === 0 ? t.find.onNoNeeds : needCount === 1 ? t.find.onOneNeed : fill(t.find.onNeeds, { n: needCount });
   const answer = (label: string, value: string, key: PanelKey) => (
     <Row inline label={<span className="block"><span className="block text-[13px] font-medium text-[var(--lp-text-sub)]">{label}</span><span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{value}</span></span>}>
       {change(key)}
@@ -105,11 +116,24 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
       </RowGroup>
 
       <RowGroup>
+        {profile.seller ? (
+          <Row inline label={<span className="block"><span className="block text-[13px] font-medium text-[var(--lp-text-sub)]">{t.find.beFound}</span><span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{beFoundLine}</span></span>}>
+            <button type="button" onClick={() => setFindOpen('beFound')} className={changeClass}>{t.change}</button>
+          </Row>
+        ) : null}
+        <Row inline label={<span className="block"><span className="block text-[13px] font-medium text-[var(--lp-text-sub)]">{t.find.reach}</span><span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{reachLine}</span></span>}>
+          <button type="button" onClick={() => setFindOpen('reach')} className={changeClass}>{t.change}</button>
+        </Row>
+      </RowGroup>
+
+      <RowGroup>
         {profile.seller ? <Row label={t.moreWays} href="/profile/ways" /> : null}
         <Row label={<span className="block"><span className="block">{t.askAssistant}</span><span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{t.assistant}</span></span>} onClick={() => { rememberReturn(pathname); router.push('/assistant'); }} />
       </RowGroup>
 
       {open ? <AgentPanel key={open} open={open} profile={profile} t={t} own={own} onClose={() => setOpen(null)} onSaved={saved} /> : null}
+      {findOpen === 'beFound' ? <BeFoundPanel profile={profile} t={t} place={place} onClose={() => setFindOpen(null)} onSaved={saved} /> : null}
+      {findOpen === 'reach' ? <ReachPanel profile={profile} t={t} onClose={() => setFindOpen(null)} onSaved={saved} /> : null}
     </div>
   );
 }

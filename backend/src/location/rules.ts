@@ -191,3 +191,10 @@ export function parsePlace(text: string): { country: string | null; city: string
   const city = other ? other.slice(0, 80) : null;
   return { country: hit[1], city };
 }
+
+/// The location without its map point, for anything that leaves Karwan's
+/// matching, the owner's own profile included (view 72).
+export function withoutPoint(l: PrivateLocation): PrivateLocation {
+  const { point: _point, ...rest } = l;
+  return rest;
+}

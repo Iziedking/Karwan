@@ -121,6 +121,7 @@ import { readSpendable, pickRoute, gatewayCanReach, insufficientMessage } from '
 import { readPooledBalance } from '../gateway/pooledBalance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
 import { isPublic } from '../market/visibility.js';
+import { findTools, liveFindToolDeps } from './findTools.js';
 import {
   buildNavigateAction,
   buildPostOfferConfirm,
@@ -3110,6 +3111,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       publishedDeals: async (who) => (await listAttestationsForSubject(who)).filter((a) => !a.revokedAt).length,
       businessOpen: config.BUSINESS_ACCOUNTS_OPEN,
     }),
+    ...findTools(address, actions, liveFindToolDeps),
     ...verificationTools(address),
     ...chatTools(address, liveChatToolDeps),
     ...locationTools(address, liveLocationToolDeps),

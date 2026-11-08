@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { distanceKm, distanceLine, publicLocation, withPlace, type PrivateLocation } from './rules.js';
+import { distanceKm, distanceLine, publicLocation, withoutPoint, withPlace, type PrivateLocation } from './rules.js';
 
 const WUSE = { lat: 9.07, lng: 7.479 };
 const MAITAMA = { lat: 9.09, lng: 7.491 };
@@ -37,4 +37,9 @@ test('moving drops the old point, so a stale one is never used', () => {
   assert.equal(withPlace(before, { country: 'NG', city: 'Lagos', area: null }).point, undefined);
   assert.deepEqual(withPlace(before, { country: 'NG', city: 'abuja', area: 'wuse 2' }).point, before.point, 'same place in other case keeps it');
   assert.deepEqual(withPlace(null, { country: 'NG', city: 'Abuja', area: null }).reach, {});
+});
+
+test('the owner\'s own profile carries the place but never the point', () => {
+  const loc = at({ lat: 9.07, lng: 7.479, precision: 'area', source: 'osm', at: 1 });
+  assert.deepEqual(withoutPoint(loc), { country: 'NG', city: 'Abuja', area: 'Wuse 2', reach: {} });
 });

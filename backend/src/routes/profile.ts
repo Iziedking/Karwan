@@ -14,7 +14,7 @@ import {
   deleteProfile,
 } from '../db/profiles.js';
 import type { UserProfile } from '../db/profiles.js';
-import { publicLocation } from '../location/rules.js';
+import { publicLocation, withoutPoint } from '../location/rules.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { deleteUser, getUserByAddress, getUserByEmail } from '../db/users.js';
 import { removeTelegramLink } from '../db/telegramLinks.js';
@@ -121,8 +121,10 @@ profileRoutes.get('/', async (c) => {
   if (!profile) return c.json({ profile: null });
   if (!callerFor(c, parsed.data)) return c.json({ profile: publicView(profile) });
   const skillCredentials = publicSkillCredentials(profile.skillVerifications);
+  // The map point stays inside Karwan, even from its owner (view 72).
+  const own = profile.location?.point ? { ...profile, location: withoutPoint(profile.location) } : profile;
   return c.json({
-    profile: skillCredentials.length ? { ...profile, skillCredentials } : profile,
+    profile: skillCredentials.length ? { ...own, skillCredentials } : own,
   });
 });
 

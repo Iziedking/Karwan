@@ -384,6 +384,15 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['frontend/shared/components/AssistantWidget.tsx', 'frontend/app/settings/page.tsx', 'backend/src/routes/telegram.ts'],
   },
   {
+    id: 'be_found', title: 'Be found and be reached', status: 'testnet', mainnet: 'planned', route: '/profile',
+    pages: ['/profile', '/setup'],
+    api: ['POST /api/settings', 'GET /api/find/needs', 'POST /api/find/needs', 'DELETE /api/find/needs/:id', 'POST /api/find/block', 'POST /api/find/unblock'],
+    tools: ['propose_change_settings', 'my_standing_needs', 'propose_standing_need', 'propose_remove_standing_need', 'propose_block_person', 'set_location'],
+    keywords: 'be found get found find me near me local shop craftsman tailor artisan come to you travel distance meet people online let agents find me let sellers reach me reach me standing need regular need every week every month order restaurant supplies block unblock deal alert pitch who can contact verified',
+    summary: 'View 72, being built in steps. A person who sells turns on Let agents find me in Your agent on /profile (or setup\'s Find clients for me counts as choosing it), and says how they meet people: at their shop or place, going to people up to a distance they choose (1 to 100 km), or online, and who may send them deal alerts (anyone on Karwan, or verified people only). A buyer turns on Let sellers reach me and lists up to 10 things they regularly need, each with how often (once, every week, every month, each season), a rough budget in their currency and how it reaches them (delivered, at their place, online); a need can be paused. Where they are is told to their agent (set_location) and turned into a private point on a map; only the distance to someone is ever shown, rounded (nearby, about 3 km, in Abuja), never an address. Anyone can block a person by tag (propose_block_person): neither gets deal alerts or pitches from the other, and the person blocked is not told. What is live now: these settings, standing needs and blocks. Agents finding people from them, deal alerts with reminders and pitches to buyers come in the next steps; until then say so plainly and offer to post a request instead. Verification is not required on testnet; it becomes required on both sides on mainnet. Nothing here moves money.',
+    steps: ['Be found: Profile, Your agent, Be found, then Save; or ask the assistant.', 'How you meet people: in the same panel.', 'Let sellers reach me: Profile, Your agent, Let sellers reach me, then Add a need.', 'Block someone: ask the assistant with their tag.'],
+    sources: ['docs/architecture/72-your-agent-finds-the-people.md', 'backend/src/routes/find.ts', 'backend/src/find/settings.ts', 'backend/src/assistant/findTools.ts'],
+  },  {
     id: 'assistant-mode', title: 'Assistant mode', status: 'testnet', mainnet: 'invite', route: '/assistant',
     pages: ['/assistant', '/app'],
     api: ['GET /api/assistant/conversations', 'GET /api/assistant/conversations/:id', 'POST /api/assistant/conversations', 'DELETE /api/assistant/conversations/:id', 'POST /api/assistant/attach'],

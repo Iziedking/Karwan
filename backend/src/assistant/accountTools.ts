@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { logger } from '../logger.js';
 import { DISPLAY_CURRENCIES } from '../rates/usdcRates.js';
+import { COME_TO_YOU_MAX_KM, validMeet } from '../find/settings.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import {
   buildChangeSettingsConfirm,
@@ -83,7 +84,7 @@ export function accountTools(address: string, actions: AssistantAction[], deps: 
   return {
     propose_change_settings: tool({
       description:
-        "Prepare a card to change account settings: language (en, ar, fr, hi, sw), theme, sounds, alerts on or off, the public passport, publishing settled deals, showing deal history on the passport, how Karwan reaches them (telegram, email or both), and which currency amounts are shown in (displayCurrency; money always stays in USDC, this only changes how amounts read). Pass only what changes.",
+        "Prepare a card to change account settings: language (en, ar, fr, hi, sw), theme, sounds, alerts on or off, the public passport, publishing settled deals, showing deal history on the passport, how Karwan reaches them (telegram, email or both), and which currency amounts are shown in (displayCurrency; money always stays in USDC, this only changes how amounts read). Also being found and reached (view 72): beFound (let agents find me, for people who sell), meet (how they meet people: at their shop or place, going to people up to comeToYouKm km away, online; at least one), contactFrom (who may send them deal alerts: anyone on Karwan or verified people only) and reachable (let sellers reach me with offers for their standing needs). Only the distance to someone is ever shown, never where they are. Pass only what changes.",
       inputSchema: z.object({
         locale: z.enum(['en', 'ar', 'fr', 'hi', 'sw']).optional(),
         theme: z.enum(['light', 'dark']).optional(),
@@ -94,6 +95,13 @@ export function accountTools(address: string, actions: AssistantAction[], deps: 
         publishHistory: z.boolean().optional(),
         notifyVia: z.enum(['telegram', 'email', 'both']).optional(),
         displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
+        beFound: z.boolean().optional(),
+        meet: z
+          .object({ atMyPlace: z.boolean(), comeToYouKm: z.number().int().min(1).max(COME_TO_YOU_MAX_KM).nullable(), online: z.boolean() })
+          .refine(validMeet, 'at least one way to meet people')
+          .optional(),
+        contactFrom: z.enum(['anyone', 'verified']).optional(),
+        reachable: z.boolean().optional(),
       }),
       execute: async ({ alertsOn, ...rest }) =>
         guarded('propose_change_settings', async () => {

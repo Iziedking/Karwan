@@ -1,5 +1,6 @@
 import { confirmNonce, type ConfirmActionBase } from './actions.js';
 import type { DisplayCurrency } from '../rates/usdcRates.js';
+import type { FindStepConfirm } from './findActions.js';
 
 /// Confirm cards for the account (view 31 phase E): profile, settings, links,
 /// memory, published deals, outside reads, agents, research credit, feedback
@@ -15,6 +16,11 @@ export type SettingsPatch = {
   publishHistory?: boolean;
   notifyVia?: 'telegram' | 'email' | 'both';
   displayCurrency?: DisplayCurrency;
+  /// Be found and be reached (view 72).
+  beFound?: boolean;
+  meet?: { atMyPlace: boolean; comeToYouKm: number | null; online: boolean };
+  contactFrom?: 'anyone' | 'verified';
+  reachable?: boolean;
 };
 
 export interface ChangeSettingsConfirm extends ConfirmActionBase {
@@ -118,9 +124,21 @@ export type AccountStepConfirm =
   | RenameBusinessConfirm
   | SaveTradeLineConfirm
   | RemoveTradeLineConfirm
-  | EditCompanyCardConfirm;
+  | EditCompanyCardConfirm
+  | FindStepConfirm;
 
 const LANGUAGE = { en: 'English', ar: 'Arabic', fr: 'French', hi: 'Hindi', sw: 'Swahili' } as const;
+
+/// "At your shop, you go to people up to 10 km away, online".
+export function meetLine(m: { atMyPlace: boolean; comeToYouKm: number | null; online: boolean }): string {
+  const ways = [
+    ...(m.atMyPlace ? ['at your shop or place'] : []),
+    ...(m.comeToYouKm ? [`you go to people up to ${m.comeToYouKm} km away`] : []),
+    ...(m.online ? ['online'] : []),
+  ];
+  const line = ways.join(', ');
+  return line ? line[0]!.toUpperCase() + line.slice(1) : 'Not set';
+}
 const onOff = (v: boolean) => (v ? 'On' : 'Off');
 
 /// One line per setting, in the words of the settings page.
@@ -135,6 +153,10 @@ function settingFields(s: SettingsPatch): Array<{ label: string; value: string }
   if (s.publishHistory !== undefined) rows.push({ label: 'Show deal history on my passport', value: onOff(s.publishHistory) });
   if (s.displayCurrency) rows.push({ label: 'Show amounts in', value: s.displayCurrency });
   if (s.notifyVia) rows.push({ label: 'How we reach you', value: s.notifyVia === 'both' ? 'Telegram and email' : s.notifyVia === 'telegram' ? 'Telegram' : 'Email' });
+  if (s.beFound !== undefined) rows.push({ label: 'Let agents find me', value: onOff(s.beFound) });
+  if (s.meet) rows.push({ label: 'How you meet people', value: meetLine(s.meet) });
+  if (s.contactFrom) rows.push({ label: 'Who can send you deal alerts', value: s.contactFrom === 'verified' ? 'Verified people only' : 'Anyone on Karwan' });
+  if (s.reachable !== undefined) rows.push({ label: 'Let sellers reach me', value: onOff(s.reachable) });
   return rows;
 }
 
