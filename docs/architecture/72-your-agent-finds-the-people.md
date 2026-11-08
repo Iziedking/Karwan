@@ -145,4 +145,4 @@ Location matching uses a map service. A person types their area or shares where 
 
 ## Status
 
-Approved by the owner 8 Nov 2026, decisions 1 to 8. Spec written the same day (internal); plan next, no code before.
+Approved by the owner 8 Nov 2026, decisions 1 to 8. Spec approved and plan written the same day (internal), roadmap item T1.9. Nothing is built yet; Phase 1 starts once the plan is approved and the map provider chosen.
