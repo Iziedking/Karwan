@@ -15,8 +15,10 @@
 # Real disaster restore, same inputs, on the rebuilt host:
 #   age -d -i KEY env.mainnet.age > ~/karwan/.env.mainnet  (then chmod 640)
 #   age -d -i KEY data-mainnet.tar.gz.age | tar -C ~/karwan -xzf -
-#   age -d -i KEY db.dump.age | docker exec -i karwan-postgres \
-#     pg_restore -U karwan -d karwan_mainnet --no-owner --role=karwan_mainnet --exit-on-error
+#   docker compose --profile mainnet up -d postgres-mainnet, create the role
+#   and database as scripts/ops/move-mainnet-db.sh step 2 does, then
+#   age -d -i KEY db.dump.age | docker exec -i karwan-postgres-mainnet \
+#     pg_restore -U postgres -d karwan_mainnet --no-owner --role=karwan_mainnet --exit-on-error
 set -euo pipefail
 
 IDENTITY="${1:?usage: restore-test-mainnet.sh <identity-file> [stamp]}"

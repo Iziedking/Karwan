@@ -108,12 +108,43 @@ services:
         max-size: "20m"
         max-file: "5"
 
+  # Arc mainnet Postgres (view 71). Its own container, volume and internal
+  # network, so testnet can neither reach it nor take it down. The admin user
+  # is postgres; the app connects as the non-superuser karwan_mainnet, which
+  # scripts/ops/move-mainnet-db.sh creates. POSTGRES_MAINNET_ADMIN_PASSWORD
+  # lives in .env and must be there before this file reaches the server.
+  postgres-mainnet:
+    image: postgres:17-alpine
+    container_name: karwan-postgres-mainnet
+    profiles: ["mainnet"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_MAINNET_ADMIN_PASSWORD:?set POSTGRES_MAINNET_ADMIN_PASSWORD in .env}
+    volumes:
+      - pgdata_mainnet:/var/lib/postgresql/data
+    networks:
+      - mainnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
   # Arc mainnet API. Same image as karwan-api, but its own env file, database,
-  # data directory and session secret, so testnet and mainnet share nothing
-  # except the Postgres server process. Behind the 'mainnet' profile: it starts
-  # only when asked for, and the deploy workflow asks only when .env.mainnet
-  # exists on the server. Until Karwan's contracts are deployed on mainnet it
-  # runs wallet-only (balances, deposits, bridging).
+  # data directory and session secret, so testnet and mainnet share nothing.
+  # Caddy reaches it on the default network; its database is on the mainnet
+  # network only. Behind the 'mainnet' profile: it starts only when asked for,
+  # and the deploy workflow asks only when .env.mainnet exists on the server.
+  # Until Karwan's contracts are deployed on mainnet it runs wallet-only
+  # (balances, deposits, bridging).
   karwan-api-mainnet:
     image: ghcr.io/iziedking/karwan/karwan-api:${KARWAN_API_TAG:-latest}
     container_name: karwan-api-mainnet
@@ -126,8 +157,11 @@ services:
       PORT: 8787
       ARC_NETWORK: mainnet
     depends_on:
-      postgres:
+      postgres-mainnet:
         condition: service_healthy
+    networks:
+      - default
+      - mainnet
     volumes:
       - ./data-mainnet:/app/backend/data
     expose:
@@ -215,5 +249,12 @@ services:
 
 volumes:
   pgdata:
+  pgdata_mainnet:
   caddy_data:
   caddy_config:
+
+networks:
+  # No way out to the internet and nothing else on it: only the mainnet API
+  # and its database.
+  mainnet:
+    internal: true

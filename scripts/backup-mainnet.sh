@@ -27,7 +27,8 @@ BUCKET="${BACKUP_BUCKET:?set BACKUP_BUCKET}"
 PREFIX="${BACKUP_PREFIX:-mainnet}"
 REGION="${BACKUP_REGION:-ca-central-1}"
 RECIPIENTS="${AGE_RECIPIENTS:-$KARWAN_DIR/backup/age-recipients.txt}"
-PG_CONTAINER="${PG_CONTAINER:-karwan-postgres}"
+PG_CONTAINER="${PG_CONTAINER:-karwan-postgres-mainnet}"
+PG_USER="${PG_USER:-postgres}"
 DB="${MAINNET_DB:-karwan_mainnet}"
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -51,8 +52,8 @@ put() { # $1 = object name, stdin = plaintext
 
 log "start $STAMP -> $DEST"
 
-docker exec "$PG_CONTAINER" pg_dump -U karwan -d "$DB" -Fc -Z 6 | put db.dump.age
-tables=$(docker exec "$PG_CONTAINER" psql -U karwan -d "$DB" -Atc \
+docker exec "$PG_CONTAINER" pg_dump -U "$PG_USER" -d "$DB" -Fc -Z 6 | put db.dump.age
+tables=$(docker exec "$PG_CONTAINER" psql -U "$PG_USER" -d "$DB" -Atc \
   "select count(*) from information_schema.tables where table_schema = 'public'")
 log "db.dump.age uploaded ($tables public tables)"
 
