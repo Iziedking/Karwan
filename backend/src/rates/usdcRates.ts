@@ -35,9 +35,23 @@ interface Reading {
 }
 
 let cache: { readAt: number; reading: Reading | null } | null = null;
+let inflight: Promise<void> | null = null;
 
 export function resetUsdcRatesCache(): void {
   cache = null;
+  inflight = null;
+}
+
+/// One read of the sources at a time, however many callers ask.
+function refresh(fetcher: typeof fetch, now: number): Promise<void> {
+  inflight ??= read(fetcher, now)
+    .then((fresh) => {
+      cache = { readAt: now, reading: fresh ?? cache?.reading ?? null };
+    })
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
 }
 
 const EMPTY: UsdcRates = { rates: {}, updatedAt: null, source: null };
@@ -106,12 +120,15 @@ export function localFigure(
 
 /// 1 USDC in each display currency, read at most once a minute. A rate older
 /// than 15 minutes is never returned: the screen reads USDC instead of an old
-/// figure.
+/// figure. While the reading held is still within that, a caller gets it at
+/// once and the next read runs behind it, so no page waits on the rate source.
 export async function readUsdcRates(now: number = Date.now(), fetcher: typeof fetch = fetch): Promise<UsdcRates> {
   if (!cache || now - cache.readAt >= READ_EVERY_MS) {
-    const fresh = await read(fetcher, now);
-    cache = { readAt: now, reading: fresh ?? cache?.reading ?? null };
+    const usable = !!cache?.reading && now - cache.reading.freshAt <= STALE_AFTER_MS;
+    if (usable) void refresh(fetcher, now);
+    else await refresh(fetcher, now);
   }
+  if (!cache) return EMPTY;
   const reading = cache.reading;
   if (!reading || now - reading.freshAt > STALE_AFTER_MS) return EMPTY;
   return { rates: { ...reading.rates }, updatedAt: reading.updatedAt, source: reading.source };

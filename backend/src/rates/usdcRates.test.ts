@@ -71,6 +71,23 @@ test('cachesForSixtySeconds', async () => {
   assert.equal(calls.length, 2);
 });
 
+test('a fresh-enough reading answers at once while one refresh runs behind it (8 Nov)', async () => {
+  const first = stub([() => coingecko()]);
+  await readUsdcRates(NOW, first.fetcher);
+  let release: (r: Response) => void = () => {};
+  const slow = stub([() => new Promise<Response>((r) => { release = r; })]);
+  const started = Date.now();
+  const [a, b] = await Promise.all([readUsdcRates(NOW + 90_000, slow.fetcher), readUsdcRates(NOW + 90_500, slow.fetcher)]);
+  assert.ok(Date.now() - started < 200, 'nobody waits on the rate source');
+  assert.equal(a.rates.NGN, 1346.11);
+  assert.equal(b.rates.NGN, 1346.11);
+  assert.equal(slow.calls.length, 1, 'one refresh for both');
+  release(coingecko((NOW + 90_000) / 1000));
+  await new Promise((r) => setTimeout(r, 10));
+  const after = await readUsdcRates(NOW + 91_000, stub([]).fetcher);
+  assert.equal(after.updatedAt, NOW + 90_000);
+});
+
 test('staleAfter15Minutes', async () => {
   const sixteenMinutesAgo = (NOW - 16 * 60_000) / 1000;
   const { fetcher } = stub([() => coingecko(sixteenMinutesAgo), () => new Response('', { status: 503 })]);

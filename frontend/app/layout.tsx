@@ -29,6 +29,16 @@ import { SITE_TITLE, titlePrepaintScript } from '@/shared/seo/routeTitle';
 // application errors in the console.
 const SPEED_INSIGHTS_AVAILABLE = process.env.VERCEL === '1';
 
+/// The API's origin, for the preconnect hint below. Read at build time.
+const API_ORIGIN = (() => {
+  try {
+    const raw = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
+    return raw ? new URL(raw).origin : null;
+  } catch {
+    return null;
+  }
+})();
+
 // General Sans, self-hosted. Previously pulled from Fontshare via a
 // render-blocking third-party stylesheet with no metric-matched fallback, which
 // reflowed every headline + paragraph on swap (the dominant CLS source).
@@ -157,6 +167,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        {/* The page's first data calls go to the API host. Opening that
+            connection while the page itself loads saves the DNS, TCP and TLS
+            round trips (about half a second on a slow line) on every load. */}
+        {API_ORIGIN ? <link rel="preconnect" href={API_ORIGIN} crossOrigin="use-credentials" /> : null}
+        {API_ORIGIN ? <link rel="dns-prefetch" href={API_ORIGIN} /> : null}
         {/* Pre-paint theme. The markup is dark; this switches to light only
             when light was chosen in Profile, and never on the landing page. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_PREPAINT_SCRIPT }} />

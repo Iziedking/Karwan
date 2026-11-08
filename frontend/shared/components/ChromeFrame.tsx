@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useShellSignedIn } from '@/shared/auth/shellSignedIn';
 import { getShellSurface, isAssistantRoute } from '@/shared/utils/routes';
 import { useScrollQuiet } from '@/shared/hooks/useScrollQuiet';
 import { useFloatGuard } from '@/shared/hooks/useFloatGuard';
@@ -95,7 +96,9 @@ function CustomerChromeFrame({
   children,
 }: ChromeFrameProps & { pathname: string }) {
   const auth = useAuth();
-  const shell = getShellSurface(pathname, auth.isAuthenticated);
+  // The frame is drawn before the sign-in check answers (shellSignedIn).
+  const signedIn = useShellSignedIn(pathname, auth);
+  const shell = getShellSurface(pathname, signedIn);
 
   // Lets the floating launchers step aside while someone is reading, and take
   // themselves away entirely while a guarded surface is under them.
@@ -105,8 +108,8 @@ function CustomerChromeFrame({
   const workspace = shell === 'workspace' || shell === 'admin';
   // Assistant mode takes the whole window: no rail, back row, bottom bar or
   // floating launchers over the composer.
-  const assistantMode = workspace && auth.isAuthenticated && isAssistantRoute(pathname);
-  const workspaceWithRail = workspace && auth.isAuthenticated && !assistantMode;
+  const assistantMode = workspace && signedIn && isAssistantRoute(pathname);
+  const workspaceWithRail = workspace && signedIn && !assistantMode;
   const focused = shell === 'focused';
   const fullWidth = pathname === '/' || pathname === '/start' || pathname === '/waitlist';
   const mainClass = assistantMode

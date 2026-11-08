@@ -8,6 +8,7 @@ import { ConnectWalletButton } from './ConnectWallet';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useShellSignedIn } from '@/shared/auth/shellSignedIn';
 import { useEntryHref } from '@/shared/auth/useEntryHref';
 import { TaskEntryLink } from './TaskEntryLink';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -41,14 +42,16 @@ export function TopNav() {
   } = useAuth();
   const openDeals = useOpenDeals();
   const { profile, address: profileAddress } = useUserProfile();
-  const shell = getShellSurface(pathname, isAuthenticated);
+  // The bar is drawn before the sign-in check answers (shellSignedIn).
+  const signedIn = useShellSignedIn(pathname, { isAuthenticated, isLoading: authLoading });
+  const shell = getShellSurface(pathname, signedIn);
   const publicSurface = shell === 'public';
   const workspaceSurface = shell === 'workspace' || shell === 'admin';
   const focusedSurface = shell === 'focused';
-  const showAppChrome = (workspaceSurface || focusedSurface) && isAuthenticated;
+  const showAppChrome = (workspaceSurface || focusedSurface) && signedIn;
   // Onboarding is a focused setup flow: strip the nav rail down to identity.
   // The full chrome returns once setup is complete.
-  const showFullChrome = workspaceSurface && isAuthenticated;
+  const showFullChrome = workspaceSurface && signedIn;
   const railShown = showFullChrome && !isAssistantRoute(pathname);
   const identityName = profile?.displayName ?? authEmail?.split('@')[0] ?? '';
 

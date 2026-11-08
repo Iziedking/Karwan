@@ -2399,7 +2399,11 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function jsonOnce<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = { 'content-type': 'application/json', ...(init?.headers ?? {}) };
+  // The content type goes only with a body. On a read it made every call a
+  // non-simple cross-origin request, so the browser asked the API's leave
+  // (an OPTIONS round trip) before each new address: one extra round trip per
+  // call on a first visit, a second or more on a slow line (8 Nov 2026).
+  const headers = { ...(init?.body != null ? { 'content-type': 'application/json' } : {}), ...(init?.headers ?? {}) };
   // Desk calls go through admin.karwan.site's own proxy, which carries
   // Cloudflare Access's pass to the backend (view 64).
   const url = isDeskRequest(headers) ? adminApiUrl(path) : `${BASE}${path}`;

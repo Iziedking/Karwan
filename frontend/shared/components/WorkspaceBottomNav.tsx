@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useShellSignedIn } from '@/shared/auth/shellSignedIn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
@@ -48,9 +49,11 @@ export function WorkspaceBottomNav() {
   const { unreadCount } = useNotifications();
   const openDeals = useOpenDeals();
   const t = useTranslations().nav;
-  const shell = getShellSurface(pathname, auth.isAuthenticated);
+  // The tabs are drawn before the sign-in check answers (shellSignedIn).
+  const signedIn = useShellSignedIn(pathname, auth);
+  const shell = getShellSurface(pathname, signedIn);
 
-  if (!auth.isAuthenticated || shell !== 'workspace') return null;
+  if (!signedIn || shell !== 'workspace') return null;
 
   const homeHref = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
   const isActive = (id: NavItemId, href: string): boolean => {
