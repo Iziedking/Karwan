@@ -320,6 +320,7 @@ import { sessionUpkeep, startClosedSessionRefresh } from './auth/session.js';
 import { requireAccessPass } from './middleware/accessPass.js';
 import { adminDeskRoutes } from './routes/adminDesk.js';
 import { setDeskReplay } from './middleware/twoPeople.js';
+import { requestSizeLimit } from './middleware/requestSize.js';
 import { adminRequestRoutes } from './routes/adminRequests.js';
 import { buildOperatorRouteCatalog } from './ops/routeCatalog.js';
 
@@ -373,6 +374,8 @@ function isAllowedOrigin(origin: string): boolean {
 /// untouched, so server-to-server callers, the Telegram bot, cron and
 /// admin-token routes keep working without an Origin header.
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+app.use('*', requestSizeLimit);
 
 app.use('*', async (c, next) => {
   if (!MUTATING.has(c.req.method)) return next();

@@ -204,6 +204,7 @@ docs/space-paytag-2026-08-16.md
 !/docs/why-karwan.md
 !/docs/work-verification.md
 !/docs/architecture/
+!/docs/security/
 !/docs/diagrams/
 /docs/diagrams/*
 !/docs/diagrams/architecture.png
@@ -235,6 +236,12 @@ docs/space-paytag-2026-08-16.md
 # Playwright browser tests: reports and failure artifacts are local output.
 /frontend/test-results/
 /frontend/playwright-report/
+
+# Tameion hackathon submission record (internal)
+/tameion/
+
+# Python bytecode from the ops scripts
+__pycache__/
 
 # Grant submission drafts (internal)
 /grant_submission/

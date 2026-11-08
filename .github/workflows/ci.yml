@@ -56,6 +56,9 @@ jobs:
       - name: Page to route map
         run: npm --prefix frontend run check:page-routes
 
+      - name: Dependency advisories
+        run: npm --prefix frontend run check:audit
+
   cre:
     name: CRE workflow
     runs-on: ubuntu-latest
