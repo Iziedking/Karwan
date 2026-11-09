@@ -11,7 +11,7 @@ import { FactRows } from '@/shared/components/FactRows';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ratingText } from '@/features/ratings/ratingText';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
-import { Price } from '@/features/money/components/Price';
+import { Price, PriceIn } from '@/features/money/components/Price';
 import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { rankedOffers, type RankedOffer } from '../rankedOffers';
@@ -88,6 +88,8 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const { locale } = useLocale();
   // Their record in one line: the rating when they have one, else how far they are verified.
   const shown = open ? ranked : ranked.slice(0, PREVIEW);
+  // View 73: a shortlist ordered by the blended score says so, and why each ranks there.
+  const scored = ranked.some((e) => e.why?.length);
   const recordLine = (e: RankedOffer) => (e.rating ? ratingText(e.rating, t.ratings, locale) : shortlistRowView(e, copy).levelLine);
   const waitingOn = worldCheck?.waitingOn === 'seller' && worldCheck.buyerConfirmed
     ? entries.find((e) => e.seller.toLowerCase() === worldCheck.sellerAgent.toLowerCase())?.name ?? null
@@ -121,7 +123,16 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
     <section data-guide="job-shortlist" className={`${CARD_CLASS} px-5 lg:px-6`}>
       <div className="pb-3 pt-5 lg:pt-6">
         <h2 className="text-[20px] font-semibold leading-tight text-[var(--ink)]">{copy.title}</h2>
-        {ranked.length ? <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.note}</p> : null}
+        {ranked.length ? (
+          scored ? (
+            <p className="mt-1 flex items-center gap-2 text-[14px] font-medium text-[var(--ink-secondary)]">
+              <span className="min-w-0 flex-1">{copy.noteScored}</span>
+              <Hint align="end">{copy.scoredTip}</Hint>
+            </p>
+          ) : (
+            <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.note}</p>
+          )
+        ) : null}
         {notice && notice !== copy.noneVerified ? <p className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{notice}</p> : null}
         {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
       </div>
@@ -138,13 +149,24 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
                 <span className="min-w-0 flex-1">
                   <span dir="auto" className="block truncate text-[16px] font-semibold text-[var(--ink)]">{e.name}</span>
                   <span className="block text-[13px] font-medium leading-snug text-[var(--ink-secondary)]">
-                    {e.tag ? <span dir="ltr">@{e.tag}</span> : null}
-                    {e.tag ? ' · ' : null}
-                    {recordLine(e)}
+                    {e.why?.length ? (
+                      e.why.map((k) => copy.why[k]).join(' · ')
+                    ) : (
+                      <>
+                        {e.tag ? <span dir="ltr">@{e.tag}</span> : null}
+                        {e.tag ? ' · ' : null}
+                        {recordLine(e)}
+                      </>
+                    )}
                   </span>
                 </span>
                 <span className="shrink-0 text-end">
                   <Price usdc={e.priceUsdc} compact className="text-[16px] font-semibold text-[var(--ink)]" />
+                  {e.movedFrom !== undefined ? (
+                    <span data-opened-at className="block text-[13px] font-medium text-[var(--ink-muted)]">
+                      <PriceIn template={copy.openedAt} usdc={e.movedFrom} />
+                    </span>
+                  ) : null}
                   {e.bestFit && e.state !== 'unavailable' ? (
                     <span data-best-fit className="mt-1 inline-block rounded-full bg-[var(--action)] px-2 py-0.5 text-[13px] font-semibold text-[var(--on-action)]">
                       {copy.pick}

@@ -12,6 +12,7 @@ import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { PriceRange } from '@/features/money/components/Price';
 import { splitRequestText } from '@/features/discovery/model';
 import { deliverByUnixFromDate, offerDefaults, offerErrorKey, type Offer } from '../model';
 import { lowerCheck, lowerErrorKey } from '../lowerOffer';
@@ -114,10 +115,14 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
         <div className="flex items-center justify-between gap-4 py-4">
           <dt className="text-[15px] text-[var(--lp-text-sub)]">{t.budget}</dt>
           <dd className="text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">
-            {money.text(view.request.budgetUsdc)}
+            {view.request.budgetRange ? (
+              <PriceRange template={all.marketShop.budgetRange} low={view.request.budgetRange.lowUsdc} high={view.request.budgetRange.highUsdc} />
+            ) : (
+              money.text(view.request.budgetUsdc ?? '0')
+            )}
           </dd>
         </div>
-        {quantityLine(all.requestPage, view.request.quantity, view.request.budgetUsdc) ? (
+        {view.request.budgetUsdc && quantityLine(all.requestPage, view.request.quantity, view.request.budgetUsdc) ? (
           <div className="py-4">
             <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{quantityLine(all.requestPage, view.request.quantity, view.request.budgetUsdc)}</p>
           </div>
@@ -166,7 +171,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
             ) : null}
             <MakeOffer
               jobId={jobId}
-              budgetUsdc={view.request.budgetUsdc}
+              budgetUsdc={view.request.budgetRange ? String(view.request.budgetRange.highUsdc) : view.request.budgetUsdc ?? '0'}
               deadlineUnix={view.request.deadlineUnix}
               onSent={load}
               preset={preset}

@@ -1350,12 +1350,20 @@ export interface DirectDeal {
   }[];
 }
 
+/// View 73: a bargaining request's budget as a seller reads it.
+export interface BudgetRange {
+  lowUsdc: number;
+  highUsdc: number;
+}
+
 export interface MarketplaceBrief {
   jobId: string;
   /// Pre-masked by the backend (0xabcd…wxyz) so the marketplace surface
   /// doesn't leak full wallet addresses to anyone who hits the endpoint.
   buyer: string;
-  budgetUsdc: string;
+  /// Absent on a bargaining request read by anyone but its buyer (view 73).
+  budgetUsdc?: string;
+  budgetRange?: BudgetRange | null;
   deadlineUnix: number;
   briefText: string;
   bidsCount: number;
@@ -3411,7 +3419,7 @@ export const api = {
       count: number;
       offers: Offer[];
       role: 'buyer' | 'seller' | 'visitor';
-      request: { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null; state?: RequestMarketState; attachments?: Array<{ name: string; contentType: string }> } | null;
+      request: { briefText: string; budgetUsdc?: string; budgetRange?: BudgetRange | null; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null; state?: RequestMarketState; attachments?: Array<{ name: string; contentType: string }> } | null;
       /// Every offer on the request, for everyone (view 53).
       public?: OpenOffer[];
       /// Who posted the request, when their passport is public.

@@ -19,6 +19,8 @@ export interface DiscoveryCard {
   title: string;
   body: string;
   priceUsdc: number;
+  /// View 73: a bargaining request shows its budget as a range.
+  priceRange?: { lowUsdc: number; highUsdc: number };
   postedAt: number;
   availableUntil: number;
   partyAddress: string;
@@ -93,7 +95,8 @@ export function buildDiscoveryCards(
         href: `/jobs/${brief.jobId}`,
         title,
         body,
-        priceUsdc: Number(brief.budgetUsdc),
+        priceUsdc: brief.budgetRange ? brief.budgetRange.highUsdc : Number(brief.budgetUsdc ?? 0),
+        ...(brief.budgetRange ? { priceRange: brief.budgetRange } : {}),
         postedAt: brief.postedAt,
         availableUntil: brief.deadlineUnix * 1000,
         partyAddress: brief.buyer,

@@ -67,6 +67,13 @@ export function Price({
 
 /// A sentence with a price in it, such as "Up to {amount}": the price reads
 /// the same way as everywhere else.
+/// A range in a sentence, each amount in the person's money (view 73).
+export function PriceRange({ template, low, high, className }: { template: string; low: number; high: number; className?: string }) {
+  const [before, rest = ''] = template.split('{low}');
+  const [middle, after = ''] = rest.split('{high}');
+  return <span className={className}>{before}<Price usdc={low} size="inline" />{middle}<Price usdc={high} size="inline" />{after}</span>;
+}
+
 export function PriceIn({ template, usdc, className }: { template: string; usdc: number; className?: string }) {
   const [before, after = ''] = template.split('{amount}');
   return <span className={className}>{before}<Price usdc={usdc} size="inline" />{after}</span>;

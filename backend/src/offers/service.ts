@@ -1,4 +1,5 @@
 import { formatUnits, parseUnits } from 'viem';
+import { forViewer, type ViewedBudget } from '../market/budgetView.js';
 import type { SealedSeller } from '../agents/sealedSellers.js';
 import { checkOffer, offerLapsesAt, type OfferInput } from './rules.js';
 import { jobActionsInFlight } from './jobLock.js';
@@ -335,7 +336,7 @@ export async function viewOffers(
   count: number;
   offers: BuyerOfferView[];
   role: OfferViewerRole;
-  request: Omit<PublicRequest, 'chosenSeller' | 'bids'> | null;
+  request: ViewedBudget<Omit<PublicRequest, 'chosenSeller' | 'bids'>> | null;
   public: OpenOfferView[];
 }> {
   const now = deps.now();
@@ -375,6 +376,8 @@ export async function viewOffers(
     });
     return { count: live.length, offers, role: 'buyer', request, public: open };
   }
-  if (v) return { count: live.length, offers: live.filter((o) => o.sellerUser === v), role: 'seller', request, public: open };
-  return { count: live.length, offers: [], role: 'visitor', request, public: open };
+  // View 73: everyone but the buyer reads a bargaining request's budget as a range.
+  const seen = request ? (({ jobId: _jobId, ...r }) => r)(forViewer({ jobId, ...request }, false)) : null;
+  if (v) return { count: live.length, offers: live.filter((o) => o.sellerUser === v), role: 'seller', request: seen, public: open };
+  return { count: live.length, offers: [], role: 'visitor', request: seen, public: open };
 }

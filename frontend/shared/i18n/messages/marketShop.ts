@@ -53,6 +53,8 @@ export interface MarketShopCopy {
   fitsFirst: string;
   fits: string;
   upTo: string;
+  /// View 73: a bargaining request's budget as a range, for sellers.
+  budgetRange: string;
   neededBy: string;
   offersNone: string;
   offersOne: string;
@@ -134,6 +136,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     fitsFirst: 'Fits you first',
     fits: 'Fits what you sell',
     upTo: 'Up to {amount}',
+    budgetRange: 'Budget {low} to {high}',
     neededBy: 'Needed by {date}',
     offersNone: 'No offers yet',
     offersOne: '1 offer so far',
@@ -212,6 +215,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     fitsFirst: 'Ce qui vous correspond d’abord',
     fits: 'Correspond à ce que vous vendez',
     upTo: 'Jusqu’à {amount}',
+    budgetRange: 'Budget de {low} à {high}',
     neededBy: 'Pour le {date}',
     offersNone: 'Pas encore d’offre',
     offersOne: '1 offre pour l’instant',
@@ -290,6 +294,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     fitsFirst: 'ما يناسبك أولًا',
     fits: 'يناسب ما تبيعه',
     upTo: 'حتى {amount}',
+    budgetRange: 'الميزانية من {low} إلى {high}',
     neededBy: 'مطلوب بحلول {date}',
     offersNone: 'لا عروض بعد',
     offersOne: 'عرض واحد حتى الآن',
@@ -368,6 +373,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     fitsFirst: 'जो आपसे मेल खाए, वह पहले',
     fits: 'आपकी बिक्री से मेल खाता है',
     upTo: '{amount} तक',
+    budgetRange: 'बजट {low} से {high}',
     neededBy: '{date} तक चाहिए',
     offersNone: 'अभी कोई ऑफ़र नहीं',
     offersOne: 'अब तक 1 ऑफ़र',
@@ -446,6 +452,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     fitsFirst: 'Vinavyokufaa kwanza',
     fits: 'Inalingana na unachouza',
     upTo: 'Hadi {amount}',
+    budgetRange: 'Bajeti {low} hadi {high}',
     neededBy: 'Inahitajika kufikia {date}',
     offersNone: 'Hakuna ofa bado',
     offersOne: 'Ofa 1 hadi sasa',
