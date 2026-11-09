@@ -2,6 +2,14 @@ import type { JobContext } from '../llm/prompts.js';
 import type { SellerProfile } from './seller-profile.js';
 import type { Tier } from './strategy.js';
 import { orderSize } from './limits.js';
+import type { BudgetRange } from './budgetRange.js';
+
+/// What seller pricing may read of the buyer's money (view 73, spec S3).
+export interface SellerSidePrice {
+  range: BudgetRange | null;
+  /// min(budget, range top), worked out on the server: the referee clamp.
+  refereeTargetUsdc: number;
+}
 
 /** Randomness is supplied by the caller so pricing can be characterized safely. */
 export type RandomSource = () => number;
@@ -79,12 +87,16 @@ export function sellerRevision(input: {
   standingUsdc: number;
   floorUsdc: number;
   reason: 'request-changed' | 'best-and-final';
-  budgetUsdc: number;
+  /// Today's input. With bargaining on (view 73) the caller passes `side`
+  /// instead: the range and the referee target, never the budget itself.
+  budgetUsdc?: number;
+  side?: SellerSidePrice;
   lowestOtherUsdc?: number;
   revisionsSoFar: number;
   random: RandomSource;
 }): SellerRevision {
-  const { standingUsdc, floorUsdc, budgetUsdc } = input;
+  const { standingUsdc, floorUsdc } = input;
+  const budgetUsdc = input.side ? input.side.refereeTargetUsdc : input.budgetUsdc ?? 0;
   if (input.revisionsSoFar >= MAX_OFFER_REVISIONS) return { action: 'keep' };
   if (floorUsdc > budgetUsdc * WITHDRAW_PAST_BUDGET_X) return { action: 'withdraw' };
   const aim = input.reason === 'best-and-final' && input.lowestOtherUsdc !== undefined && input.lowestOtherUsdc < standingUsdc

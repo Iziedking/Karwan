@@ -48,7 +48,10 @@ import { sellerViewOfRequest } from './sellerView.js';
 import { reviseStandingOffer, type ReviseOutcome } from './reviseOffer.js';
 import { limitDecision, orderSize } from './limits.js';
 import { askOwner } from './agentQuestion.js';
-import { getBrief } from '../db/briefs.js';
+import { bargainOn, getBrief } from '../db/briefs.js';
+import { profileOpening } from './bargainOpening.js';
+import { budgetRange } from './budgetRange.js';
+import { refereeTarget } from './opening.js';
 import { sellerAgentMaySee } from '../market/visibility.js';
 import { fittingWay, sellerForRequest } from './ways.js';
 import { oneAtATime, queuedPerKey } from './oneAtATime.js';
@@ -129,6 +132,8 @@ interface ActiveBid {
    *  profile's minBudgetUsdc when undefined. */
   listingFloorUsdc?: number;
   listingAskingPriceUsdc?: number;
+  /// False for a Fixed price over the budget: it stays put (view 73, decision 2).
+  counterable?: boolean;
   /** Set true by `adjustBidByTier` when the buyer is NEW-tier (see
    *  docs/reputation-model.md §6). The buyer agent reads this in
    *  `proposeMatch` to attach a `new-buyer` riskFlag on the resulting
@@ -398,6 +403,10 @@ export async function submitListingBid(
     deadlineDays?: number;
     /// The ad's lowest is above the buyer's ceiling: offered at it, outside the request.
     outsideRequest?: boolean;
+    /// View 73: a Fixed price over the budget is never countered.
+    counterable?: boolean;
+    /// View 73: where the agent opened, when it opened above the posted price.
+    openedUsdc?: number;
   },
 ): Promise<
   | { ok: true; txHash: string }
@@ -511,6 +520,7 @@ export async function submitListingBid(
       responding: false,
       listingAskingPriceUsdc: listing.askingPriceUsdc,
       listingFloorUsdc: listing.floorUsdc,
+      ...(listing.counterable === false ? { counterable: false } : {}),
       ...(buyerCheck ? { buyerCheck, humanReview: buyerCheck.verdict === 'review' } : {}),
     });
     scheduleActiveBidsPersist();
@@ -526,6 +536,8 @@ export async function submitListingBid(
         source: 'listing',
         listingFloorUsdc: listing.floorUsdc,
         ...(listing.outsideRequest ? { outsideRequest: 'price' } : {}),
+        ...(listing.openedUsdc !== undefined ? { openedUsdc: listing.openedUsdc.toFixed(2) } : {}),
+        ...(listing.counterable === false ? { counterable: false } : {}),
         txHash: txResult.txHash,
         buyerChecked: !!buyerCheck,
       },
@@ -1451,7 +1463,8 @@ async function judgeAndOffer(profile: SellerProfile, job: JobContext) {
   const outsideRequest = atOwnPrice && atOwnDays ? 'both' : atOwnPrice ? 'price' : atOwnDays ? 'time' : null;
   const opening = atOwnPrice
     ? Number(atOwnPrice)
-    : pureSellerOpeningBid(seller, job, buyerTier, heat, getCachedMarketPrice(dealKeywords), Math.random);
+    : (bargainOn(job.jobId) ? await bargainProfileOpening(seller, job, dealKeywords, heat) : null) ??
+      pureSellerOpeningBid(seller, job, buyerTier, heat, getCachedMarketPrice(dealKeywords), Math.random);
   if (opening === null) {
     // Seller floor sits above the buyer's ceiling, so no price clears both
     // ranges. When the gap is small, ask the blocked side to stretch instead of
@@ -1983,6 +1996,24 @@ export function abandonBid(jobId: string, sellerAgentAddress: string): boolean {
   return true;
 }
 
+/// View 73: a seller with a usual price opens from it toward the budget, never
+/// above it. Null when the seller set no usual price (today's opening stands).
+async function bargainProfileOpening(seller: SellerProfile, job: JobContext, keywords: string[], heat: number): Promise<number | null> {
+  const items = orderSize(seller, job);
+  const usual = seller.usualPriceUsdc && seller.usualPriceUsdc > 0 ? seller.usualPriceUsdc * items : null;
+  if (usual === null) return null;
+  const record = await actorSignalsFor(seller.address)
+    .then((sig) => sig.reputationBps / 10_000)
+    .catch(() => 0.5);
+  return profileOpening({ usualUsdc: usual, lowestUsdc: seller.minBudgetUsdc * items }, Number(job.budgetUsdc), {
+    marketUsdc: getCachedMarketPrice(keywords) ?? null,
+    fit: 0.6,
+    record,
+    heat,
+    seed: `${seller.address.toLowerCase()}:${job.jobId}`,
+  });
+}
+
 /// A seller's agent answers a change to a request it offered on (view 35):
 /// keep, lower with a new submitBid, or withdraw. The floor is the seller's
 /// own: their minimum, a listing's floor, a grounded market price.
@@ -2004,12 +2035,11 @@ export async function reviseOffer(
         : [...(active.seller.keywords ?? []), ...(active.seller.skills ?? [])];
       const market = getCachedMarketPrice(keywords);
       const marketFloor = market && market > 0 ? Math.min(market, budget * 2) : 0;
-      return {
-        priceUsdc: Number(active.lastBidPrice),
-        deadlineUnix: active.jobContext.deadlineUnix,
-        budgetUsdc: budget,
-        floorUsdc: Math.max(active.seller.minBudgetUsdc, active.listingFloorUsdc ?? 0, marketFloor),
-      };
+      const floorUsdc = Math.max(active.seller.minBudgetUsdc, active.listingFloorUsdc ?? 0, marketFloor);
+      const base = { priceUsdc: Number(active.lastBidPrice), deadlineUnix: active.jobContext.deadlineUnix, floorUsdc };
+      if (!bargainOn(jobId)) return { ...base, budgetUsdc: budget };
+      const range = budgetRange(budget);
+      return { ...base, side: { range, refereeTargetUsdc: refereeTarget(budget, range) } };
     },
     // A failed lookup counts as a hand offer: never replace a price a person set.
     handOffer: async () => (await directOfferLookup(jobId, sellerAgent.toLowerCase()).catch(() => 'unknown')) !== null,

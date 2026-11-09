@@ -31,7 +31,10 @@ import { buildDirectDealFundingQuote } from '../deals/fundingQuote.js';
 import { listingHeldByOrder, listingOrderTerms } from '../deals/listingOrder.js';
 import { getDeal } from '../db/deals.js';
 import { newDealFeeBps } from '../deals/newDealFee.js';
-import { getBrief, listAllBriefs } from '../db/briefs.js';
+import { bargainOn, getBrief, listAllBriefs } from '../db/briefs.js';
+import { listingBidTerms, type OpeningSignals } from '../agents/bargainOpening.js';
+import { marketHeat } from '../agents/marketDemand.js';
+import { getCachedMarketPrice } from '../x402/externalClient.js';
 import { config } from '../config.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { rateLimit } from '../middleware/rateLimit.js';
@@ -938,15 +941,22 @@ async function tryMatchListingToJobLegacy(
 
   const floor = listingFloor(listing);
   const buyerPct = job.negotiationMaxIncreasePct ?? 0;
-  const buyerCeiling = Number(job.budgetUsdc) * (1 + buyerPct / 100);
+  const bargain = bargainOn(job.jobId);
   // An ad whose lowest price sits above the buyer's ceiling still offers, at
   // that lowest, marked outside the request (view 41, decision 11). The buyer
   // sees it on the shortlist and decides; there is no near match to raise.
-  const outside = floor > buyerCeiling;
-  if (outside) {
+  // With bargaining on, the agent opens toward the budget (view 73).
+  const terms = listingBidTerms(
+    { askingPriceUsdc: listing.askingPriceUsdc, floorUsdc: floor },
+    { budgetUsdc: Number(job.budgetUsdc), leewayPct: buyerPct, bargain },
+    bargain
+      ? await listingOpeningSignals(job, seller.address, decision?.confidence ?? (topical ? 0.6 : 0.5))
+      : { marketUsdc: null, fit: 0, record: 0, heat: 0, seed: '' },
+  );
+  if (terms.outsideRequest) {
     logger.info(
-      { listingId: listing.id, jobId: job.jobId, listingFloor: floor, buyerCeiling },
-      'ad above the buyer ceiling: offering at its lowest, outside the request',
+      { listingId: listing.id, jobId: job.jobId, listingFloor: floor, offeredUsdc: terms.askingPriceUsdc },
+      'ad above the buyer ceiling: offering outside the request',
     );
   }
 
@@ -954,10 +964,11 @@ async function tryMatchListingToJobLegacy(
     { ...job, buyerReputationBps: job.buyerReputationBps ?? 5000 },
     seller,
     {
-      askingPriceUsdc: outside ? floor : listing.askingPriceUsdc,
-      floorUsdc: floor,
+      askingPriceUsdc: terms.askingPriceUsdc,
+      floorUsdc: terms.floorUsdc,
       description: listing.description,
-      ...(outside ? { outsideRequest: true } : {}),
+      ...(terms.outsideRequest ? { outsideRequest: true } : {}),
+      ...(bargain ? { counterable: terms.counterable, openedUsdc: terms.openedUsdc } : {}),
     },
   );
   if (!result.ok) return false;
@@ -980,6 +991,23 @@ async function tryMatchListingToJobLegacy(
     },
   });
   return true;
+}
+
+/// What the seller's opening reads (view 73): skill fit from the match, the
+/// seller's record, demand for the skill and a grounded market price.
+async function listingOpeningSignals(job: ListingMatchJob, sellerAddress: string, fit: number): Promise<OpeningSignals> {
+  const keywords = job.keywords ?? [];
+  const record = await actorSignalsFor(sellerAddress)
+    .then((s) => s.reputationBps / 10_000)
+    .catch(() => 0.5);
+  const heat = await marketHeat(keywords, sellerAddress).catch(() => 0.5);
+  return {
+    marketUsdc: keywords.length ? getCachedMarketPrice(keywords) ?? null : null,
+    fit,
+    record,
+    heat,
+    seed: `${sellerAddress.toLowerCase()}:${job.jobId}`,
+  };
 }
 
 export function buildListingMatchPrompt(listing: Listing, job: { briefText?: string; budgetUsdc: string; termsHash: string }): string {

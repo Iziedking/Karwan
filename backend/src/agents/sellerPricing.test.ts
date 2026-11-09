@@ -151,3 +151,12 @@ test('a seller who never gave a usual price opens from the budget, not from the 
     }
   }
 });
+
+test('sellerRevision never reads the exact budget', () => {
+  const side = { range: { lowUsdc: 84, highUsdc: 120 }, refereeTargetUsdc: 120 };
+  const input = { standingUsdc: 142.71, floorUsdc: 110, reason: 'request-changed' as const, side, revisionsSoFar: 0, random: () => 0.5 };
+  assert.equal('budgetUsdc' in input, false);
+  const bySide = sellerRevision(input);
+  assert.deepEqual(bySide, revise(), 'the referee target stands in for the budget');
+  assert.equal(JSON.stringify(side).includes('budget'), false);
+});
