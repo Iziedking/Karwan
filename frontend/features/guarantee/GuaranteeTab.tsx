@@ -1,5 +1,6 @@
 'use client';
 import { Price } from '@/features/money/components/Price';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { PageTour } from '@/shared/guide/PageTour';
 import { STAKE_STEPS, STAKE_TOUR_ID } from '@/shared/guide/tours';
 import { useState, type ReactNode } from 'react';
@@ -15,14 +16,13 @@ import { guaranteeStepHref } from '@/features/money/moneyRoutes';
 import { guaranteeView } from './guaranteeView';
 import { useGuarantee } from './useGuarantee';
 
-const fillIn = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_, k: string) => String(values[k] ?? ''));
-
 /// Money's Deal guarantee tab (view 51, fifth round), laid out like Balance:
 /// the label with its tip, the figure, Add and Withdraw, one card, then the
 /// earnings. Each move opens its own page.
 export function GuaranteeTab() {
   const { locale, t } = useLocale();
   const g = t.moneyPages.guarantee;
+  const mt = useMoneyText({ compact: true });
   const tips = t.moneyPages.tips;
   const c = t.dealGuarantee;
   const { query, data } = useGuarantee();
@@ -53,8 +53,8 @@ export function GuaranteeTab() {
     [g.earns, g.earnsValue],
     [g.holding, <Price key="held" usdc={Number(view.held)} size="inline" />],
     [g.ready, <Price key="free" usdc={Number(view.free)} size="inline" />],
-    ...(comingBack > 0 && !data.ready && data.readyAt ? [[g.comingBack, fillIn(g.comingBackValue, { amount: data.comingBackUsdc, date: day(data.readyAt) })] as [string, ReactNode]] : []),
-    ...(comingBack > 0 && data.ready ? [[g.comingBack, fillIn(g.readyToCollect, { amount: data.comingBackUsdc })] as [string, ReactNode]] : []),
+    ...(comingBack > 0 && !data.ready && data.readyAt ? [[g.comingBack, mt.fill(g.comingBackValue, { amount: data.comingBackUsdc }, { date: day(data.readyAt) })] as [string, ReactNode]] : []),
+    ...(comingBack > 0 && data.ready ? [[g.comingBack, mt.fill(g.readyToCollect, { amount: data.comingBackUsdc })] as [string, ReactNode]] : []),
   ];
 
   return (
@@ -81,7 +81,7 @@ export function GuaranteeTab() {
       </dl>
       {Number(data.previousUsdc) > 0 ? (
         <p className="text-[14px] font-medium text-[var(--ink-secondary)]">
-          {fillIn(c.previous.line, { amount: data.previousUsdc })}{' '}
+          {mt.fill(c.previous.line, { amount: data.previousUsdc })}{' '}
           <Link href="/legacy#previous-guarantee" className="font-semibold text-[var(--ink)] underline underline-offset-4">{c.previous.link}</Link>
         </p>
       ) : null}

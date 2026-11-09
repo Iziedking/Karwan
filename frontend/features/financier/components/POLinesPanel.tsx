@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
@@ -47,6 +48,7 @@ function LineRow({
 }) {
   const { locale } = useLocale();
   const copy = financeDeskCopy[locale].poLines;
+  const mt = useMoneyText({ compact: true });
   const proof = proofFor(line);
   const counterparty = side === 'financier' ? line.seller : line.financier;
   // A retired-rail line cannot progress: the contract holding it has no USDC
@@ -78,8 +80,8 @@ function LineRow({
         </p>
         <p className="shrink-0 text-[15px] tabular-nums text-[var(--ink)]">
           {side === 'financier'
-            ? copy.outAndBack.replace('{principal}', line.principalUsdc).replace('{repay}', line.repayUsdc)
-            : copy.advance.replace('{amount}', line.principalUsdc)}
+            ? mt.fill(copy.outAndBack, { principal: line.principalUsdc, repay: line.repayUsdc })
+            : mt.fill(copy.advance, { amount: line.principalUsdc })}
         </p>
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--ink-secondary)]">

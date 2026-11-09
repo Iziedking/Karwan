@@ -234,6 +234,7 @@ function MoveFromOtherAgent({
 }) {
   const { address } = useAuth();
   const copy = useTranslations().fundAgentOptions;
+  const mt = useMoneyText({ compact: true });
   const [state, setState] = useState<'idle' | 'moving' | 'done'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -275,7 +276,7 @@ function MoveFromOtherAgent({
           ? copy.moving
           : state === 'done'
             ? copy.moved
-            : copy.moveCta.replace('{amount}', String(amountUsdc))}
+            : mt.fill(copy.moveCta, { amount: amountUsdc })}
       </button>
       {error && (
         <p className="text-[14px] leading-snug text-[var(--color-critical)]">

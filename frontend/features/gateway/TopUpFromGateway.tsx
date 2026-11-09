@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useAccount } from 'wagmi';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { formatUsdc } from '@/shared/utils/format';
 import { useGatewayBalance } from './useGatewayBalance';
 import { gatewayEstimateSpend, gatewaySpend, openGatewayRail } from './lib';
 import { topUpWithFees } from '@/features/money/sendFromWhole';
@@ -37,6 +37,7 @@ export function TopUpFromGateway({
   primary?: boolean;
 }) {
   const t = useTranslations().gatewayTopUp;
+  const mt = useMoneyText({ compact: true });
   const amountLabel = useTranslations().fundAgentOptions.amount.label;
   const errCopy = useTranslations().chainErrors;
   const { connector, isConnected } = useAccount();
@@ -152,13 +153,8 @@ export function TopUpFromGateway({
       {!loading && (
         <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {covers || !valid
-            ? t.availableTemplate.replace(
-                '{amount}',
-                formatUsdc(String(confirmed), { withSuffix: false }),
-              )
-            : t.shortTemplate
-                .replace('{have}', formatUsdc(String(confirmed), { withSuffix: false }))
-                .replace('{need}', formatUsdc(String(value), { withSuffix: false }))}
+            ? mt.fill(t.availableTemplate, { amount: confirmed })
+            : mt.fill(t.shortTemplate, { have: confirmed, need: value })}
         </p>
       )}
 

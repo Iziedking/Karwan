@@ -24,6 +24,10 @@ export function Hint({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const pointer = useRef<string>('');
+  const leaveTimer = useRef(0);
+  // Focus goes back to the (i) after Got it; that focus must not reopen the note.
+  const quietFocus = useRef(false);
+  const closeToTrigger = () => { setOpen(false); quietFocus.current = true; triggerRef.current?.focus({ preventScroll: true }); };
   const [measured, setMeasured] = useState(0);
   const [pos, setPos] = useState<{ top: number; left: number; width: number; arrow: number; below: boolean } | null>(null);
 
@@ -91,9 +95,10 @@ export function Hint({
       aria-label={t.triggerAria}
       aria-expanded={open}
       // Hover is for a mouse only: a tap also fires a hover, which would open and then close it.
-      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setOpen(true); }}
-      onPointerLeave={(e) => { if (e.pointerType === 'mouse') setOpen(false); }}
-      onFocus={() => setOpen(true)}
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') { window.clearTimeout(leaveTimer.current); setOpen(true); } }}
+      // A short grace lets the mouse reach the note's Got it before it closes.
+      onPointerLeave={(e) => { if (e.pointerType === 'mouse') leaveTimer.current = window.setTimeout(() => setOpen(false), 200); }}
+      onFocus={() => { if (quietFocus.current) { quietFocus.current = false; return; } setOpen(true); }}
       onBlur={(e) => {
         // Don't close if focus moves into the tooltip itself.
         if (tooltipRef.current?.contains(e.relatedTarget as Node)) return;
@@ -143,7 +148,9 @@ export function Hint({
             role="tooltip"
             data-hint-tip
             // A soft green bubble whose tail points at the (i) (owner, 7 Nov 2026, Figma 202:637).
-            className="fixed z-[200] rounded-[16px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 py-3.5 text-start text-[14px] font-medium leading-[1.5] text-[var(--ink)] shadow-[0_8px_24px_-4px_rgba(0,0,0,0.18)] pointer-events-none normal-case tracking-normal"
+            onPointerEnter={() => window.clearTimeout(leaveTimer.current)}
+            onKeyDown={(e) => { if (e.key === 'Escape') closeToTrigger(); }}
+            className="fixed z-[200] rounded-[16px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 py-3.5 text-start text-[14px] font-medium leading-[1.5] text-[var(--ink)] shadow-[0_8px_24px_-4px_rgba(0,0,0,0.18)] normal-case tracking-normal"
             style={{
               top: pos.top - window.scrollY,
               left: pos.left - window.scrollX,
@@ -151,6 +158,17 @@ export function Hint({
             }}
           >
             {children}
+            {/* Every note closes with Got it (owner, 9 Nov 2026, Figma 218:570). */}
+            <span className="mt-3 flex justify-end">
+              <button
+                type="button"
+                data-hint-got-it
+                onClick={(e) => { e.stopPropagation(); closeToTrigger(); }}
+                className="min-h-9 rounded-full bg-[var(--action)] px-4 text-[14px] font-bold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
+              >
+                {t.gotIt}
+              </button>
+            </span>
             <span
               aria-hidden
               className={`absolute size-3 rotate-45 rounded-[2px] bg-[var(--soft-green)] ${pos.below ? '-top-[7px]' : '-bottom-[7px]'}`}

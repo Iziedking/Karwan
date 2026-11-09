@@ -71,6 +71,8 @@ export function ConfirmSheet({ open, title, consequence, irreversible, busy, err
           loadingLabel={copy.working}
           data-testid="deal-confirm"
           variant={confirmVariant === 'secondary' ? 'secondary' : 'primary'}
+          // A step that cannot be undone, money moving most of all, carries the lock.
+          lead={irreversible && confirmVariant !== 'secondary' ? 'lock' : undefined}
           size="lg"
           className="w-full"
         >

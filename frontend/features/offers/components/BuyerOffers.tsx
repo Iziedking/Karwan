@@ -164,7 +164,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
               {mt.fill(t.confirmBody, { price: chosenTotal })}
             </p>
             </> : <p role="alert" className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">{t.totalUnavailable}</p>}
-            {diff ? <p className="text-[14px] text-[var(--color-warning)]">{t.aboveBudget.replace('{diff}', diff)}</p> : null}
+            {diff ? <p className="text-[14px] text-[var(--color-warning)]">{mt.fill(t.aboveBudget, { diff })}</p> : null}
             {error ? (
               <p role="alert" className="text-[14px] text-[var(--color-critical)]">
                 {t.errors[error]}
@@ -194,7 +194,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
               </div>
             ) : null}
             {!funding && chosenTotal ? (
-              <Button id={`${titleId}-accept`} size="lg" className="w-full rounded-full" loading={busy} onClick={() => void accept(chosen)}>
+              <Button id={`${titleId}-accept`} size="lg" lead="lock" className="w-full rounded-full" loading={busy} onClick={() => void accept(chosen)}>
                 {mt.fill(t.accept, { price: chosenTotal })}
               </Button>
             ) : null}

@@ -1,5 +1,6 @@
 'use client';
 import { forwardRef } from 'react';
+import { CodeBoxes } from '@/shared/components/CodeBoxes';
 
 /// Six digits in one field: a phone opens its number pad, a pasted PIN with
 /// spaces is cleaned, and Enter submits.
@@ -15,20 +16,9 @@ export const PinField = forwardRef<HTMLInputElement, {
   return (
     <div>
       <label htmlFor={id} className="block text-[14px] font-medium text-[var(--lp-dark)]">{label}</label>
-      <input
-        ref={ref}
-        id={id}
-        type="password"
-        inputMode="numeric"
-        autoComplete="off"
-        maxLength={12}
-        value={value}
-        disabled={disabled}
-        aria-describedby={describedBy}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
-        onKeyDown={(e) => { if (e.key === 'Enter' && value.length === 6) onSubmit?.(); }}
-        className="mt-2 block min-h-12 w-full max-w-[220px] rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 text-center font-mono text-[22px] tracking-[0.5em] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-60"
-      />
+      <div className="mt-2">
+        <CodeBoxes ref={ref} id={id} value={value} onChange={onChange} onComplete={onSubmit} masked disabled={disabled} describedBy={describedBy} />
+      </div>
     </div>
   );
 });

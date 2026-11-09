@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { api, type MoneyOutStatus } from '@/core/api';
 import type { AnySourceChainKey } from '@/features/bridge/config';
 import { bridgeChainMeta } from '@/features/bridge/hooks/useBridge';
@@ -19,6 +20,7 @@ const fillIn = (template: string, values: Record<string, string>) =>
 export function SavedAddresses() {
   const copy = useTranslations().moneyOut;
   const { locale } = useLocale();
+  const mt = useMoneyText({ compact: true });
   const [status, setStatus] = useState<MoneyOutStatus | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +104,7 @@ export function SavedAddresses() {
       )}
 
       <p className="text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">
-        {fillIn(copy.limitLeft, { left: status.leftUsdc, limit: status.limitUsdc })}
+        {mt.fill(copy.limitLeft, { left: status.leftUsdc, limit: status.limitUsdc })}
       </p>
 
       {!status.paused ? (

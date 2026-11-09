@@ -1,5 +1,6 @@
 'use client';
 import { buttonClasses } from '@/shared/components/Button';
+import { Price } from '@/features/money/components/Price';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -162,7 +163,7 @@ export function BusinessHome({
           <BookTile label={bh.analytics.tiles.total} value={book.total} />
           <BookTile label={bh.analytics.tiles.active} value={book.active} />
           <BookTile label={bh.analytics.tiles.settled} value={book.settled} />
-          <BookTile label={bh.analytics.tiles.volume} value={book.volume} decimals={2} unit="USDC" />
+          <BookTile label={bh.analytics.tiles.volume} value={book.volume} decimals={2} money />
         </div>
 
         <div className="mt-5">
@@ -376,7 +377,7 @@ function BookSummaryCard({
       <div className="grid grid-cols-3 divide-x divide-[var(--line)]">
         <CardStat label={labels.active} value={active} />
         <CardStat label={labels.settled} value={settled} />
-        <CardStat label={labels.volume} value={volume} decimals={2} unit="USDC" />
+        <CardStat label={labels.volume} value={volume} decimals={2} money />
       </div>
     </div>
   );
@@ -387,19 +388,22 @@ function CardStat({
   value,
   decimals = 0,
   unit,
+  money = false,
 }: {
   label: string;
   value: number;
   decimals?: number;
   unit?: string;
+  /// A USDC amount, read in the account's currency (view 55).
+  money?: boolean;
   }) {
   return (
     <div className="px-4 py-5">
       <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{label}</p>
       <p className="mt-1.5 font-sans text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
-        <AnimatedNumber value={value} decimals={decimals} />
+        {money ? <Price usdc={value} size="inline" /> : <AnimatedNumber value={value} decimals={decimals} />}
       </p>
-      {unit && (
+      {unit && !money && (
         <p className="mt-0.5 text-[14px] font-semibold text-[var(--ink-secondary)]">{unit}</p>
       )}
     </div>
@@ -411,11 +415,14 @@ function BookTile({
   value,
   decimals = 0,
   unit,
+  money = false,
 }: {
   label: string;
   value: number;
   decimals?: number;
   unit?: string;
+  /// A USDC amount, read in the account's currency (view 55).
+  money?: boolean;
 }) {
   return (
     <div
@@ -431,9 +438,9 @@ function BookTile({
     >
       <p className="text-[14px] font-semibold text-[var(--ink-muted)]">{label}</p>
       <p className="mt-2 font-sans text-[28px] font-semibold tabular-nums tracking-[-0.025em] leading-none text-[var(--ink)]">
-        <AnimatedNumber value={value} decimals={decimals} />
+        {money ? <Price usdc={value} size="inline" /> : <AnimatedNumber value={value} decimals={decimals} />}
       </p>
-      {unit && (
+      {unit && !money && (
         <p className="mt-1 text-[14px] font-semibold text-[var(--ink-muted)]">
           {unit}
         </p>

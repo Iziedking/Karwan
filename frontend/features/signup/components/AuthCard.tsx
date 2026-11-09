@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { CodeBoxes } from '@/shared/components/CodeBoxes';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -720,9 +721,7 @@ function CodeForm(props: {
     <form onSubmit={props.onSubmit} className="mt-6 space-y-3">
       <p className="break-words text-[15px] leading-[1.5] text-[var(--ink-secondary)]">{props.hint}</p>
       <Field label={props.label}>
-        <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} value={props.code}
-          onChange={(e) => props.setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} disabled={!!props.busy}
-          className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--ash)] px-4 py-3 text-[18px] tabular-nums tracking-[0.3em] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
+        <CodeBoxes id="auth-email-code" value={props.code} onChange={props.setCode} disabled={!!props.busy} autoFocus />
       </Field>
       <Primary type="submit" disabled={!!props.busy || props.code.length !== 6}>{props.submit}</Primary>
       <button type="button" onClick={props.onResend} disabled={!!props.busy}

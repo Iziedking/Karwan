@@ -10,6 +10,8 @@ export interface ConfirmPresenceCopy {
   factor: string;
   fee: string;
   usePasskey: string;
+  /// Shows the PIN field under a passkey (owner, 9 Nov 2026).
+  usePinInstead: string;
   usePin: string;
   pinLabel: string;
   wrongPin: string;
@@ -44,7 +46,8 @@ const en: ConfirmPresenceCopy = {
   setupLine: 'Your agents run your deals for you. Your buying agent can pay up to {perPayment} USDC at a time and {total} USDC in total for one year.',
   factor: 'Change how you confirm',
   fee: 'Network fee about {fee} USDC',
-  usePasskey: 'Use passkey',
+  usePasskey: 'Confirm with passkey',
+  usePinInstead: 'Use PIN instead',
   usePin: 'Use PIN',
   pinLabel: 'Enter your PIN.',
   wrongPin: 'Wrong PIN. {left} tries left.',
@@ -80,6 +83,7 @@ const ar: ConfirmPresenceCopy = {
   factor: 'غيّر طريقة التأكيد',
   fee: 'رسوم الشبكة نحو {fee} USDC',
   usePasskey: 'استخدم مفتاح المرور',
+  usePinInstead: 'استخدم الرمز السري بدلاً من ذلك',
   usePin: 'استخدم الرمز',
   pinLabel: 'أدخل رمزك.',
   wrongPin: 'رمز غير صحيح. بقيت {left} محاولات.',
@@ -115,6 +119,7 @@ const fr: ConfirmPresenceCopy = {
   factor: 'Changer votre façon de confirmer',
   fee: 'Frais de réseau environ {fee} USDC',
   usePasskey: 'Utiliser la clé d’accès',
+  usePinInstead: 'Utiliser le code PIN',
   usePin: 'Utiliser le code',
   pinLabel: 'Saisissez votre code.',
   wrongPin: 'Code incorrect. Il reste {left} essais.',
@@ -150,6 +155,7 @@ const hi: ConfirmPresenceCopy = {
   factor: 'पुष्टि का तरीका बदलें',
   fee: 'नेटवर्क शुल्क लगभग {fee} USDC',
   usePasskey: 'पासकी का उपयोग करें',
+  usePinInstead: 'इसके बजाय PIN का उपयोग करें',
   usePin: 'PIN का उपयोग करें',
   pinLabel: 'अपना PIN डालें।',
   wrongPin: 'गलत PIN। {left} प्रयास बाकी।',
@@ -185,6 +191,7 @@ const sw: ConfirmPresenceCopy = {
   factor: 'Badilisha jinsi unavyothibitisha',
   fee: 'Ada ya mtandao karibu USDC {fee}',
   usePasskey: 'Tumia passkey',
+  usePinInstead: 'Tumia PIN badala yake',
   usePin: 'Tumia PIN',
   pinLabel: 'Weka PIN yako.',
   wrongPin: 'PIN si sahihi. Majaribio {left} yamebaki.',

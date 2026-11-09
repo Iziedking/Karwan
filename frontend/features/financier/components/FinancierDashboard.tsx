@@ -916,7 +916,7 @@ function FundSheet({
 
   const spread = repay - principal;
   const validRepay = principal > 0 && principal <= requested && repay > principal && repay <= face;
-  const amount = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const stakeMoney = useMoneyText({ compact: true });
 
   async function submit() {
     if (!isAuthed || !address) {
@@ -1030,10 +1030,10 @@ function FundSheet({
       : stakeBalance.total <= 0
         ? t.po.stakeNone
         : stakeBalance.free <= 0
-          ? t.po.stakeCommitted.replace('{total}', amount(stakeBalance.total))
+          ? stakeMoney.fill(t.po.stakeCommitted, { total: stakeBalance.total })
           : collateral <= stakeBalance.free
-            ? t.po.stakeCovers.replace('{collateral}', amount(collateral)).replace('{total}', amount(stakeBalance.total))
-            : t.po.stakeShort.replace('{collateral}', amount(collateral)).replace('{free}', amount(stakeBalance.free));
+            ? stakeMoney.fill(t.po.stakeCovers, { collateral, total: stakeBalance.total })
+            : stakeMoney.fill(t.po.stakeShort, { collateral, free: stakeBalance.free });
 
   return (
     <ConfirmSheetShell open labelledBy={titleId} busy={submitting} onClose={onClose}>

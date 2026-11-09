@@ -1,5 +1,6 @@
 'use client';
 import { MoneyInput } from '@/features/money/components/MoneyInput';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, m } from 'motion/react';
@@ -29,6 +30,7 @@ const QUIET =
 export function WaysEditor() {
   const { locale } = useLocale();
   const c = waysCopy[locale as keyof typeof waysCopy] ?? waysCopy.en;
+  const mt = useMoneyText();
   const { profile, address, fetchState } = useUserProfile();
   const qc = useQueryClient();
   const reduce = useHydratedReducedMotion();
@@ -92,7 +94,7 @@ export function WaysEditor() {
             >
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{c.shapes[w.shape]}</span>
-                <span className="mt-0.5 block break-words text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{waySummary(side, w, c)}</span>
+                <span className="mt-0.5 block break-words text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{waySummary(side, w, c, mt.fill)}</span>
               </span>
               <span className="shrink-0 text-[14px] font-semibold text-[var(--lp-dark)] underline-offset-4">{c.edit}</span>
             </button>
@@ -168,10 +170,16 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
   };
   const problem = wayProblem(side, open.draft);
   const f = c.fields;
-  const num = (key: string, label: string, unit: string) => (
+  // Money is typed in the person's own currency (view 55); a rate keeps its "an hour".
+  const num = (key: string, label: string, unit: string, per?: string) => (
     <Field label={label}>
       {unit === 'USDC' ? (
-        <MoneyInput value={Number.isFinite(w[key] as number) ? (w[key] as number) : null} onChange={(usdc) => set(key, usdc ?? NaN)} ariaLabel={label} />
+        <span className="flex items-center gap-2">
+          <span className="min-w-0 flex-1">
+            <MoneyInput value={Number.isFinite(w[key] as number) ? (w[key] as number) : null} onChange={(usdc) => set(key, usdc ?? NaN)} ariaLabel={label} />
+          </span>
+          {per ? <span className="shrink-0 text-[14px] font-medium text-[var(--lp-text-sub)]">{per}</span> : null}
+        </span>
       ) : (
         <span className="flex items-center gap-2">
           <NumberBox value={w[key] as number} onChange={(n) => set(key, n)} label={label} />
@@ -199,8 +207,8 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
   if (side === 'sell') {
     if (w.shape === 'goods') fields = <>{words('what', f.whatSell)}{num('priceMin', f.priceFrom, 'USDC')}{num('priceUsual', f.priceUsual, 'USDC')}{perItem()}{words('shipsTo', f.shipsTo)}{num('arriveDaysMin', f.daysFrom, c.unitDays)}{num('arriveDaysMax', f.daysTo, c.unitDays)}</>;
     else if (w.shape === 'deposit') fields = <>{words('what', f.whatRent)}{num('deposit', f.deposit, 'USDC')}{num('periodDays', f.period, c.unitDays)}</>;
-    else if (w.shape === 'hourly') fields = <>{num('rateMin', f.rateFrom, c.unitHour)}{num('rateUsual', f.rateUsual, c.unitHour)}{num('hoursMax', f.hoursMax, '')}</>;
-    else if (w.shape === 'monthly') fields = <>{num('priceMin', f.priceFrom, c.unitMonth)}{num('priceUsual', f.priceUsual, c.unitMonth)}</>;
+    else if (w.shape === 'hourly') fields = <>{num('rateMin', f.rateFrom, 'USDC', c.perHour.replace('{money}', '').trim())}{num('rateUsual', f.rateUsual, 'USDC', c.perHour.replace('{money}', '').trim())}{num('hoursMax', f.hoursMax, '')}</>;
+    else if (w.shape === 'monthly') fields = <>{num('priceMin', f.priceFrom, 'USDC', c.perMonth.replace('{money}', '').trim())}{num('priceUsual', f.priceUsual, 'USDC', c.perMonth.replace('{money}', '').trim())}</>;
     else fields = <>{num('priceMin', f.priceFrom, 'USDC')}{num('priceUsual', f.priceUsual, 'USDC')}{num('daysMin', f.daysFrom, c.unitDays)}{num('daysMax', f.daysTo, c.unitDays)}{w.shape === 'milestones' ? num('stages', f.stages, '') : null}</>;
   } else {
     if (w.shape === 'goods') fields = <>{num('maxPrice', f.maxPrice, 'USDC')}{words('deliverTo', f.deliverTo)}{num('waitDays', f.waitDays, c.unitDays)}</>;

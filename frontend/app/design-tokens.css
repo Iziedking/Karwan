@@ -75,7 +75,8 @@
   --radius-panel: 28px;
   --radius-sheet: 28px;
   --radius-input: 12px;
-  --radius-button: 14px;
+  /* Every button is a full pill (owner, 9 Nov 2026, Figma 218:570). */
+  --radius-button: 9999px;
   --radius-chip: 18px;
   --radius-pill: 9999px;
   --measure-content: 1240px;

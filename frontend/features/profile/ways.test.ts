@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { UserProfile } from '@/core/api';
 import { waysCopy } from '@/shared/i18n/messages/ways';
 import { blankWay, wayProblem, waysOf, waySummary, type AgentWays, type SellWay } from './ways';
+import { fillMoney } from '@/features/money/moneyText';
 
 /// The website's copy of the ways rules (view 26). The server decides; these
 /// keep the form honest about what is missing before Save.
@@ -30,6 +31,16 @@ test('each way reads as one line with its price, place and time', () => {
   assert.equal(waySummary('buy', ways.buy[0]!, c), 'Up to 5,000 USDC · within 30 days · Stage by stage');
   assert.equal(waySummary('sell', { shape: 'one_time', priceMin: 25, priceUsual: 25, daysMin: 3, daysMax: 3 }, c), '25 USDC · 3 days');
   assert.equal(waySummary('sell', { ...(ways.sell[0] as Extract<SellWay, { shape: 'goods' }>), perItem: true }, c), 'Wigs · Usually 190 USDC, lowest 80 per item · to Anywhere in Nigeria · 2 to 5 days');
+});
+
+test('a naira account reads its ways in naira, no USDC (owner, 9 Nov 2026)', () => {
+  const say = (template: string, money: Record<string, number>) => fillMoney(template, money, 'NGN', 1346.11, 'en');
+  const sell = waySummary('sell', ways.sell[0]!, c, say);
+  const buy = waySummary('buy', ways.buy[0]!, c, say);
+  assert.doesNotMatch(sell + buy, /USDC/);
+  assert.match(sell, /^Wigs · Usually ₦255,7\d\d, lowest ₦107,6\d\d · /);
+  assert.match(buy, /^Up to ₦6,730,5\d\d · within 30 days/);
+  assert.match(waySummary('sell', { shape: 'deposit', what: 'Servers', deposit: 100, periodDays: 30 }, c, say), /₦134,6\d\d deposit/);
 });
 
 test('the form says what stops a save', () => {

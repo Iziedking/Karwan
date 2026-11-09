@@ -31,7 +31,7 @@ test('canonical theme is the Figma new look: dark ground by default, light on re
   }
   assert.ok(light.includes('--hero-shadow: none'));
   for (const declaration of [
-    '--radius-card: 16px', '--radius-input: 12px', '--radius-button: 14px', '--radius-chip: 18px',
+    '--radius-card: 16px', '--radius-input: 12px', '--radius-button: 9999px', '--radius-chip: 18px',
     '--radius-sheet: 28px', '--ease-ui: cubic-bezier(0.2, 0, 0, 1)',
     '--dur-push: 350ms', '--dur-sheet: 350ms', '--dur-fade: 180ms', '--dur-press: 120ms',
     '--lp-dark: var(--ink)', '--lp-light: var(--canvas)',

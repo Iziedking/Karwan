@@ -24,6 +24,7 @@ import { countryName, howItWorks, howYouPay, whatYouGet } from '../listingPage';
 import { ReportOffer } from './ReportOffer';
 import type { WithPhotos } from '../photos';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { Price } from '@/features/money/components/Price';
 
 type FetchState = 'loading' | 'ok' | 'error';
@@ -439,6 +440,7 @@ function EditListingSheet({
 }) {
   const all = useTranslations();
   const em = all.listingDetail.editModal;
+  const money = useMoneyText({ compact: true });
   const [category, setCategory] = useState<CategoryId | null>(initialCategory);
   const categoryChanged = !!category && category !== initialCategory;
   const [title, setTitle] = useState(initialTitle);
@@ -497,7 +499,7 @@ function EditListingSheet({
         }}
       >
         <div className="px-6 pt-6 pb-3">
-          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+          <span className="text-[14px] font-semibold text-[var(--ink)]">
             {em.tag}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
@@ -511,7 +513,7 @@ function EditListingSheet({
           </p>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+            <span className="text-[14px] font-semibold text-[var(--ink)]">
               {em.titleEyebrow}
             </span>
             <input
@@ -528,7 +530,7 @@ function EditListingSheet({
           </label>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+            <span className="text-[14px] font-semibold text-[var(--ink)]">
               {em.descriptionEyebrow}
             </span>
             <textarea
@@ -545,36 +547,32 @@ function EditListingSheet({
           </label>
 
           <div className="space-y-1.5">
-            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+            <span className="text-[14px] font-semibold text-[var(--ink)]">
               {all.marketShop.categoriesLabel}
             </span>
             <CategoryChips withAll={false} value={category} onChange={(next) => next !== 'all' && setCategory(next)} />
           </div>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+            <span className="text-[14px] font-semibold text-[var(--ink)]">
               {em.askingPriceEyebrow}
             </span>
-            <input
-              type="number"
-              min={1}
-              max={5_000_000}
-              step={1}
-              value={price === '' ? '' : price}
-              onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+            <MoneyInput
+              value={price === '' ? null : price}
+              onChange={(usdc) => setPrice(usdc === null ? '' : usdc)}
               disabled={busy}
-              className="form-input form-input-num"
+              ariaLabel={em.askingPriceEyebrow}
             />
             {priceChanged && (
               <span className="mono text-[13px] text-[var(--ink-secondary)]">
-                {em.priceWasTemplate.replace('{n}', String(initialAskingPriceUsdc))}
+                {money.fill(em.priceWasTemplate, { n: initialAskingPriceUsdc })}
               </span>
             )}
           </label>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+              <span className="text-[14px] font-semibold text-[var(--ink)]">
                 {em.floorEyebrow}
               </span>
               <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
@@ -592,16 +590,13 @@ function EditListingSheet({
               className="w-full accent-[var(--lp-accent)]"
               aria-label={em.floorAria}
             />
-            <p className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--ink-muted)] leading-snug">
-              {em.floorFootTemplate.replace(
-                '{amount}',
-                typeof price === 'number' ? (price * (1 - floorPct / 100)).toFixed(2) : '0.00',
-              )}
+            <p className="text-[14px] font-medium leading-snug text-[var(--ink-secondary)]">
+              {money.fill(em.floorFootTemplate, { amount: typeof price === 'number' ? price * (1 - floorPct / 100) : 0 })}
             </p>
           </div>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+            <span className="text-[14px] font-semibold text-[var(--ink)]">
               {em.windowDaysEyebrow}
             </span>
             <input

@@ -606,7 +606,6 @@ export const hi: Messages = {
   dealCreation: {
     requestSteps: { describe: 'विवरण', price: 'कीमत और समय', payment: 'शर्तें', stepOf: 'चरण {n} / 3', continue: 'जारी रखें', back: 'वापस', days3: '3 दिन', week1: '1 सप्ताह', weeks2: '2 सप्ताह', month1: '1 महीना', pickDate: 'तारीख चुनें', until: "{date} तक", dueOn: '{date} तक', exactTime: 'घंटे या मिनट में तय करें', part: 'हिस्सा {n}', addPart: 'हिस्सा जोड़ें', removePart: 'हिस्सा {n} हटाएँ', total: 'कुल {sum}%', needs100: 'सभी हिस्सों का कुल 100% होना चाहिए', noDate: 'कोई समय सीमा नहीं', seller: 'विक्रेता', sendTo: '{name} को भेजें' },
     buyerRole: 'खरीदार',
-    currencyNote: 'भुगतान USDC में होता है। स्थानीय मुद्रा में रूपांतरण शामिल नहीं है।',
     documents: 'दस्तावेज़',
     priceDeadline: 'कीमत और समय सीमा',
     sellerRole: 'विक्रेता',
@@ -679,6 +678,7 @@ export const hi: Messages = {
   },
   hint: {
     triggerAria: 'विवरण',
+    gotIt: 'ठीक है',
   },
   liveDot: {
     live: 'लाइव',
@@ -1932,11 +1932,11 @@ export const hi: Messages = {
       body: 'संपादन तुरंत लागू होते हैं। सक्रिय मैच स्कैन अगले पास पर नई कॉपी का उपयोग करते हैं।',
       titleEyebrow: 'शीर्षक',
       descriptionEyebrow: 'विवरण',
-      askingPriceEyebrow: 'माँगा गया मूल्य USDC',
+      askingPriceEyebrow: 'माँगा गया मूल्य',
       priceWasTemplate: 'था {n} USDC',
       floorEyebrow: 'मूल्य फ्लोर',
       floorAria: 'वार्ता में अधिकतम कमी प्रतिशत',
-      floorFootTemplate: '↳ एजेंट {amount} USDC से नीचे के काउंटर अस्वीकार करता है',
+      floorFootTemplate: 'एजेंट {amount} USDC से नीचे के काउंटर अस्वीकार करता है',
       windowDaysEyebrow: 'विंडो दिन',
       windowReanchored: 'सहेजने पर विंडो अभी से फिर से शुरू होती है।',
       windowDefault: 'दिन जिनके लिए लिस्टिंग आज से खुली रहती है।',

@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CodeBoxes } from '@/shared/components/CodeBoxes';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useSignMessage } from 'wagmi';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { api, ApiError, type ConfirmRequired } from '@/core/api';
@@ -23,10 +25,13 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
 }) {
   const copy = useTranslations().confirmPresence;
   const { locale } = useLocale();
+  const mt = useMoneyText();
   const { signMessageAsync } = useSignMessage();
   const [state, setState] = useState(required);
   const [view, setView] = useState<ConfirmView>(() => confirmView(required, Date.now()));
   const [pin, setPin] = useState('');
+  // With a passkey, the PIN waits behind "Use PIN instead" (Figma 218:570).
+  const [pinOpen, setPinOpen] = useState(false);
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [resent, setResent] = useState(false);
@@ -34,6 +39,7 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
   const [error, setError] = useState<string | null>(null);
   const pinRef = useRef<HTMLInputElement>(null);
   const { headline, lines } = useMemo(() => actionLines(required.action, copy), [required.action, copy]);
+  useEffect(() => { if (pinOpen) pinRef.current?.focus(); }, [pinOpen]);
   const timeOf = (ms: number) => new Date(ms).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 
   useEffect(() => {
@@ -119,14 +125,9 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
       <label htmlFor="confirm-email-code" className="block text-[14px] font-medium text-[var(--lp-dark)]">
         {copy.emailCode}
       </label>
-      <input
-        id="confirm-email-code"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        value={code}
-        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-        className="mt-2 block min-h-12 w-full max-w-[220px] rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 font-mono text-[18px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
-      />
+      <div className="mt-2">
+        <CodeBoxes id="confirm-email-code" value={code} onChange={setCode} />
+      </div>
     </div>
   );
 
@@ -183,9 +184,16 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
           <button type="button" className={PRIMARY} disabled={busy} onClick={confirmByWallet}>{copy.walletSign}</button>
         ) : null}
         {view.methods.includes('passkey') ? (
-          <button type="button" className={PRIMARY} disabled={busy} onClick={confirmByPasskey} data-testid="confirm-passkey">{copy.usePasskey}</button>
+          <button type="button" className={`${PRIMARY} gap-2.5`} disabled={busy} onClick={confirmByPasskey} data-testid="confirm-passkey">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden className="shrink-0">
+              <path d="M12 11v3a8 8 0 0 0 1.5 4.6M8.5 9.5A3.5 3.5 0 0 1 15.5 10v2.5M5.5 13a9.6 9.6 0 0 0 .8 3.6M18 14.5a13 13 0 0 1-.4 3M4.5 9A8 8 0 0 1 19 8.2M9 13.5a12 12 0 0 0 1.6 6" />
+            </svg>
+            {copy.usePasskey}
+          </button>
         ) : null}
-        {view.methods.includes('pin') ? (
+        {view.methods.includes('pin') && view.methods.includes('passkey') && !pinOpen && !locked ? (
+          <button type="button" className={SECONDARY} disabled={busy} onClick={() => setPinOpen(true)} data-testid="confirm-use-pin">{copy.usePinInstead}</button>
+        ) : view.methods.includes('pin') ? (
           locked ? (
             <p className="text-[14px] text-[var(--lp-dark)]">{fillIn(copy.locked, { time: timeOf(view.pinLockedUntil!) })}</p>
           ) : (
@@ -197,7 +205,7 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
             </div>
           )
         ) : null}
-        {view.methods.includes('pin') ? (
+        {view.methods.includes('pin') && (pinOpen || !view.methods.includes('passkey')) ? (
           <button type="button" className={LINK} disabled={busy} onClick={() => { setError(null); setPin(''); setView({ step: 'reset' }); }}>
             {copy.forgot}
           </button>
@@ -209,7 +217,11 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
   return (
     <ConfirmSheetShell open labelledBy="confirm-presence-title" busy={busy} onClose={onClose} initialFocus={pinRef}>
       <p className="text-[14px] font-medium text-[var(--lp-dark)]">{copy.title}</p>
-      <h2 id="confirm-presence-title" className="mt-1 text-[20px] font-medium text-[var(--lp-dark)]">{headline}</h2>
+      {/* The amount reads in the person's currency; the exact USDC that moves stays on one line (view 54). */}
+      <h2 id="confirm-presence-title" className="mt-1 text-[20px] font-medium text-[var(--lp-dark)]">{mt.line(headline)}</h2>
+      {mt.currency !== 'USDC' && required.action.amountMicros !== null ? (
+        <p data-exact-usdc className="mt-1 text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{mt.usdc(Number(required.action.amountMicros) / 1_000_000, { exact: true })}</p>
+      ) : null}
       {lines.map((line) => <p key={line} className="mt-3 text-[15px] leading-relaxed text-[var(--lp-dark)]">{line}</p>)}
       {body}
       {error ? (

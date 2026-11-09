@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { api, type AgentKitResearchStatus } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -10,6 +11,7 @@ import { Row, RowGroup } from '../ui/ProfileUi';
 /// whether the person is verified.
 export function ResearchRows() {
   const s = useTranslations().profile.simple;
+  const mt = useMoneyText();
   const [price, setPrice] = useState<{ freshSearchUsdc: number; cachedSearchUsdc: number } | null>(null);
   const [kit, setKit] = useState<AgentKitResearchStatus | null>(null);
 
@@ -25,7 +27,7 @@ export function ResearchRows() {
   }, []);
 
   const cost = price
-    ? s.researchCostTemplate.replace('{fresh}', String(price.freshSearchUsdc)).replace('{cached}', String(price.cachedSearchUsdc))
+    ? mt.fill(s.researchCostTemplate, { fresh: price.freshSearchUsdc, cached: price.cachedSearchUsdc })
     : s.notAvailable;
   const reports = kit?.allowance
     ? s.reportsLeftTemplate.replace('{left}', String(kit.allowance.remaining)).replace('{total}', String(kit.allowance.allowance))

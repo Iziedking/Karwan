@@ -605,7 +605,6 @@ export const sw: Messages = {
   dealCreation: {
     requestSteps: { describe: 'Eleza', price: 'Bei na muda', payment: 'Masharti', stepOf: 'Hatua {n} kati ya 3', continue: 'Endelea', back: 'Rudi', days3: 'Siku 3', week1: 'Wiki 1', weeks2: 'Wiki 2', month1: 'Mwezi 1', pickDate: 'Chagua tarehe', until: "Hadi {date}", dueOn: 'Kabla ya {date}', exactTime: 'Weka kwa saa au dakika', part: 'Sehemu {n}', addPart: 'Ongeza sehemu', removePart: 'Ondoa sehemu {n}', total: 'Jumla {sum}%', needs100: 'Jumla ya sehemu lazima iwe 100%', noDate: 'Hakuna tarehe ya mwisho', seller: 'Muuzaji', sendTo: 'Tuma kwa {name}' },
     buyerRole: 'Mnunuzi',
-    currencyNote: 'Malipo hukamilishwa kwa USDC. Ubadilishaji kwenda sarafu ya ndani haujajumuishwa.',
     documents: 'Nyaraka',
     priceDeadline: 'Bei na tarehe ya mwisho',
     sellerRole: 'Muuzaji',
@@ -678,6 +677,7 @@ export const sw: Messages = {
   },
   hint: {
     triggerAria: 'Maelezo',
+    gotIt: 'Nimeelewa',
   },
   liveDot: {
     live: 'Moja kwa moja',
@@ -1931,11 +1931,11 @@ export const sw: Messages = {
       body: 'Mabadiliko yanatumika mara moja. Uchunguzaji wa kulinganisha hai unatumia nakala mpya katika upitishaji wao ujao.',
       titleEyebrow: 'Kichwa',
       descriptionEyebrow: 'Maelezo',
-      askingPriceEyebrow: 'Bei inayoombwa USDC',
+      askingPriceEyebrow: 'Bei inayoombwa',
       priceWasTemplate: 'ilikuwa {n} USDC',
       floorEyebrow: 'Kima cha bei',
       floorAria: 'Asilimia ya juu ya kupungua kwa bei katika majadiliano',
-      floorFootTemplate: '↳ wakala anakataa ofa chini ya {amount} USDC',
+      floorFootTemplate: 'wakala anakataa ofa chini ya {amount} USDC',
       windowDaysEyebrow: 'Siku za dirisha',
       windowReanchored: 'Dirisha linaanza upya kutoka sasa unapohifadhi.',
       windowDefault: 'Siku tangazo linabaki wazi kuanzia leo.',

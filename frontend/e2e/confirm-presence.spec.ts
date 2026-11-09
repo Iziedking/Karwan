@@ -183,6 +183,9 @@ for (const [theme, locale] of [['dark', 'en'], ['light', 'ar'], ['dark', 'ar']] 
     const words = locale === 'ar' ? ar.confirmPresence : copy;
     await expect(sheet.getByText(words.title)).toBeVisible();
     await expect(sheet.getByRole('button', { name: words.usePasskey })).toBeVisible();
+    // Passkey first; the PIN waits behind "Use PIN instead" (owner, 9 Nov 2026).
+    await expect(sheet.getByLabel(words.pinLabel)).toHaveCount(0);
+    await sheet.getByRole('button', { name: words.usePinInstead }).click();
     await expect(sheet.getByLabel(words.pinLabel)).toBeVisible();
     const fit = await sheet.evaluate((el) => {
       const r = el.getBoundingClientRect();

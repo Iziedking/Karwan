@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, type ChainEvent } from '@/core/api';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 /// Non-destructive overpay advisory. When the buyer agent finds the budget sits
 /// well above a grounded market price, it surfaces here — the operator decides
@@ -27,6 +28,7 @@ export const EDIT_REQUEST_EVENT = 'karwan:edit-request';
 export function MarketAdvisoryBanner({ jobId }: { jobId: string }) {
   const router = useRouter();
   const m = useTranslations().offersThatMove;
+  const mt = useMoneyText({ compact: true });
   const [adv, setAdv] = useState<Advisory | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -84,8 +86,8 @@ export function MarketAdvisoryBanner({ jobId }: { jobId: string }) {
 
   // Far under what sellers take (view 35): said plainly, the buyer decides.
   if (adv.kind === 'under') {
-    const fair = adv.fairPriceUsdc != null ? adv.fairPriceUsdc.toFixed(0) : '';
-    const budget = adv.budgetUsdc != null ? adv.budgetUsdc.toFixed(0) : '';
+    const fair = adv.fairPriceUsdc != null ? Math.round(adv.fairPriceUsdc) : null;
+    const budget = adv.budgetUsdc != null ? Math.round(adv.budgetUsdc) : null;
     return (
       <div role="status" className="rounded-[16px] border border-[var(--color-warning-soft)] bg-[var(--color-warning-soft)] p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
@@ -94,7 +96,7 @@ export function MarketAdvisoryBanner({ jobId }: { jobId: string }) {
             {m.underDismiss}
           </button>
         </div>
-        <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-dark)]">{m.underBody.replace('{fair}', fair).replace('{budget}', budget)}</p>
+        <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-dark)]">{mt.fill(m.underBody, { fair, budget })}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"

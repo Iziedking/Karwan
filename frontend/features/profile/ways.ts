@@ -149,10 +149,17 @@ export function wayProblem(side: Side, way: SellWay | BuyWay): 'missing' | 'orde
 const whole = (n: number) => n.toLocaleString('en-US');
 const fill = (t: string, v: Record<string, string>) => t.replace(/\{(\w+)\}/g, (m, k: string) => v[k] ?? m);
 
+/// Says a sentence's amounts in the reader's currency (view 55): useMoneyText().fill.
+export type FillAmounts = (template: string, money: Record<string, number>) => string;
+
 /// One line under the way's name: its price, time and place, in the reader's words.
-export function waySummary(side: Side, way: SellWay | BuyWay, c: WaysCopy): string {
+/// With `say`, amounts read in the account's currency ("Usually ₦269,222"); without
+/// it, in USDC as before.
+export function waySummary(side: Side, way: SellWay | BuyWay, c: WaysCopy, say?: FillAmounts): string {
   const n = whole;
-  const money = (lo: number, usual: number) => (lo === usual ? fill(c.usdc, { n: n(lo) }) : fill(c.usualLowest, { usual: n(usual), min: n(lo) }));
+  const amt = (template: string, money: Record<string, number>) =>
+    say ? say(template, money) : fill(template, Object.fromEntries(Object.entries(money).map(([k, v]) => [k, n(v)])));
+  const money = (lo: number, usual: number) => (lo === usual ? amt(c.usdc, { n: lo }) : amt(c.usualLowest, { usual, min: lo }));
   const time = (lo: number, hi: number) => (lo === hi ? fill(c.days, { n: n(lo) }) : fill(c.daysRange, { min: n(lo), max: n(hi) }));
   if (side === 'sell') {
     const w = way as SellWay;
@@ -160,7 +167,7 @@ export function waySummary(side: Side, way: SellWay | BuyWay, c: WaysCopy): stri
       case 'goods':
         return [w.what, money(w.priceMin, w.priceUsual) + (w.perItem ? ` ${c.perItemLine}` : ''), fill(c.shipsToLine, { place: w.shipsTo }), time(w.arriveDaysMin, w.arriveDaysMax)].join(' · ');
       case 'deposit':
-        return [w.what, fill(c.depositLine, { n: n(w.deposit) }), fill(c.days, { n: n(w.periodDays) })].join(' · ');
+        return [w.what, amt(c.depositLine, { n: w.deposit }), fill(c.days, { n: n(w.periodDays) })].join(' · ');
       case 'hourly':
         return [fill(c.perHour, { money: money(w.rateMin, w.rateUsual) }), fill(c.hoursWeek, { n: n(w.hoursMax) })].join(' · ');
       case 'monthly':
@@ -174,12 +181,12 @@ export function waySummary(side: Side, way: SellWay | BuyWay, c: WaysCopy): stri
   const w = way as BuyWay;
   switch (w.shape) {
     case 'goods':
-      return [fill(c.upTo, { n: n(w.maxPrice) }), fill(c.deliverToLine, { place: w.deliverTo }), fill(c.within, { n: n(w.waitDays) })].join(' · ');
+      return [amt(c.upTo, { n: w.maxPrice }), fill(c.deliverToLine, { place: w.deliverTo }), fill(c.within, { n: n(w.waitDays) })].join(' · ');
     case 'deposit':
-      return fill(c.upTo, { n: n(w.maxDeposit) });
+      return amt(c.upTo, { n: w.maxDeposit });
     case 'milestones':
-      return [fill(c.upTo, { n: n(w.maxPrice) }), fill(c.within, { n: n(w.needDays) }), w.pay === 'stages' ? c.payStages : c.payEnd].join(' · ');
+      return [amt(c.upTo, { n: w.maxPrice }), fill(c.within, { n: n(w.needDays) }), w.pay === 'stages' ? c.payStages : c.payEnd].join(' · ');
     default:
-      return [fill(c.upTo, { n: n(w.maxPrice) }), fill(c.within, { n: n(w.needDays) })].join(' · ');
+      return [amt(c.upTo, { n: w.maxPrice }), fill(c.within, { n: n(w.needDays) })].join(' · ');
   }
 }

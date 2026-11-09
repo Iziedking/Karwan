@@ -608,7 +608,6 @@ export const fr: Messages = {
   dealCreation: {
     requestSteps: { describe: 'Décrire', price: 'Prix et délai', payment: 'Conditions', stepOf: 'Étape {n} sur 3', continue: 'Continuer', back: 'Retour', days3: '3 jours', week1: '1 semaine', weeks2: '2 semaines', month1: '1 mois', pickDate: 'Choisir une date', until: "Jusqu’au {date}", dueOn: 'Avant le {date}', exactTime: 'Définir en heures ou minutes', part: 'Partie {n}', addPart: 'Ajouter une partie', removePart: 'Retirer la partie {n}', total: 'Total de {sum} %', needs100: 'Les parties doivent totaliser 100 %', noDate: 'Pas de date limite', seller: 'Vendeur', sendTo: 'Envoyer à {name}' },
     buyerRole: 'Acheteur',
-    currencyNote: 'Le règlement se fait en USDC. La conversion en monnaie locale n’est pas incluse.',
     documents: 'Documents',
     priceDeadline: 'Prix et délai',
     sellerRole: 'Vendeur',
@@ -681,6 +680,7 @@ export const fr: Messages = {
   },
   hint: {
     triggerAria: 'Détails',
+    gotIt: 'Compris',
   },
   liveDot: {
     live: 'En direct',
@@ -1934,11 +1934,11 @@ export const fr: Messages = {
       body: "Les modifications s'appliquent immédiatement. Les scans de match actifs utilisent la nouvelle copie au prochain passage.",
       titleEyebrow: 'Titre',
       descriptionEyebrow: 'Description',
-      askingPriceEyebrow: 'Prix demandé USDC',
+      askingPriceEyebrow: 'Prix demandé',
       priceWasTemplate: 'était {n} USDC',
       floorEyebrow: 'Plancher de prix',
       floorAria: 'Pourcentage maximum de baisse en négociation',
-      floorFootTemplate: '↳ l’agent rejette les contre-offres sous {amount} USDC',
+      floorFootTemplate: 'l’agent rejette les contre-offres sous {amount} USDC',
       windowDaysEyebrow: 'Jours de fenêtre',
       windowReanchored: "La fenêtre repart de maintenant à l'enregistrement.",
       windowDefault: "Jours pendant lesquels l'offre reste ouverte à partir d'aujourd'hui.",

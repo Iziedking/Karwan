@@ -789,3 +789,11 @@ Agree: yes.
 - Installed SDK: `viem` 2.55.11 (unchanged).
 - Read-only test, 7 Nov 2026, Arc Testnet public RPC from node-services: head 71,216,763; the first transaction of that block returned a receipt with status `0x1`; a receipt for a hash that does not exist returned `null`, which the check treats as unknown and never writes on.
 - Agree: yes.
+
+## 2026-11-09 · Instant top-up amounts read in the account's currency (T5, relatable UI pass)
+
+- Scope: `frontend/features/gateway/TopUpFromGateway.tsx` now says the Transfer balance line ("{amount} USDC available", have and need) through the shared money text, so a naira account reads naira. Display only: the balance still comes from `useGatewayBalance` (Karwan's `/api/gateway/balance`), and no Gateway, Arc or Circle call, amount, or signing step changed.
+- Docs: Circle docs, 9 Nov 2026, `gateway/references/technical-guide` (the `/v1/balances` endpoint returns the available balance for instant transfers; balances are eventually consistent with chain state) and `gateway/references/contract-interfaces-and-events` (`availableBalance(token, depositor)`). The screen reads that available figure, as before.
+- Installed SDK: `@circle-fin/app-kit` 1.15.2, `@circle-fin/adapter-viem-v2` 1.18.0, `viem` 2.55.11 (unchanged).
+- Read-only test: none needed for a text change; the browser tests for instant top-up and offers (which read the Transfer balance from a fixture) run on node-services with this change.
+- Agree: yes.

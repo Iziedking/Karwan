@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { presentMatchingState } from '@/features/jobs/matchingPresentation';
 import { requestRef } from '@/features/jobs/requestRef';
 import { labelFor } from '@/features/notifications/dealNextStep';
@@ -27,6 +28,7 @@ const toMs = (value: number) => (value < 10_000_000_000 ? value * 1_000 : value)
 export function useDealRows() {
   const { locale, t: messages } = useLocale();
   const p = messages.pending;
+  const mt = useMoneyText({ compact: true });
   const address = useAuth().address ?? '';
   const direct = useDirectDeals();
   const open = useOpenDeals();
@@ -108,7 +110,7 @@ export function useDealRows() {
           amount: item.advanced,
           unit: p.card.unit,
           status: p.financed.stages[item.deal ? financedStage(stageOf(item.deal), item.deal.deadlineUnix) : 'delivering'],
-          next: p.financed.backTemplate.replace('{amount}', item.back),
+          next: mt.fill(p.financed.backTemplate, { amount: item.back }),
           due: due(item.deal?.deadlineUnix),
           state: item.deal ? dealState({ yourMove: false, finished: false, deal: item.deal }) : 'active',
         },

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, type FindView } from '@/core/api';
@@ -119,6 +120,7 @@ function AskSheet({ open, find, picks, t, locale, onClose, onSent }: {
 }) {
   const { address } = useAuth();
   const client = useQueryClient();
+  const mt = useMoneyText({ compact: true });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ text: string; fund: boolean } | null>(null);
   const people = picks.map((i) => find.rows[i]!).filter(Boolean);
@@ -144,7 +146,7 @@ function AskSheet({ open, find, picks, t, locale, onClose, onSent }: {
       onSent();
     } catch (err) {
       const body = err instanceof ApiError ? (err.body as { code?: string; topUpNeededUsdc?: string } | undefined) : undefined;
-      if (body?.code === 'FUND_BUYER_AGENT' && body.topUpNeededUsdc) setError({ text: fillFind(t.fundFirst, { amount: `${body.topUpNeededUsdc} USDC` }), fund: true });
+      if (body?.code === 'FUND_BUYER_AGENT' && body.topUpNeededUsdc) setError({ text: fillFind(t.fundFirst, { amount: mt.text(body.topUpNeededUsdc) }), fund: true });
       else setError({ text: t.sendFailed, fund: false });
     } finally {
       setBusy(false);

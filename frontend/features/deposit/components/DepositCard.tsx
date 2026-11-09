@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api } from '@/core/api';
@@ -347,6 +348,7 @@ function DepositRow({
   };
 }) {
   const { stage } = deposit;
+  const mt = useMoneyText({ compact: true });
   const tone = stage === 'stuck' ? 'var(--color-warning)' : stage === 'arrived' ? 'var(--ink)' : 'var(--ink-secondary)';
   return (
     <li className="flex items-center justify-between gap-4 fade-up motion-reduce:animate-none" style={{ animationDuration: 'var(--dur-panel)', animationTimingFunction: 'var(--ease-ui)' }}>
@@ -362,9 +364,7 @@ function DepositRow({
           className="text-[14px] font-medium text-[var(--ink)] break-words"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
-          {copy.fromTemplate
-            .replace('{amount}', deposit.amountUsdc)
-            .replace('{chain}', deposit.chainName)}
+          {mt.fill(copy.fromTemplate, { amount: deposit.amountUsdc }, { chain: deposit.chainName })}
         </span>
       </span>
       <span className="text-[14px] shrink-0 text-[var(--ink-secondary)] font-medium">

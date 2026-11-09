@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useId, useRef, useState } from 'react';
+import { LeadIcon } from '@/shared/components/Button';
 import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import Link from 'next/link';
 import { Hint } from '@/shared/components/Hint';
@@ -405,6 +406,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               </p>
             ) : null}
             <button type="button" onClick={press} disabled={blocker !== null} className={`${PRIMARY} mt-6 w-full gap-2`}>
+              {move !== 'send' && amount !== null ? <LeadIcon name="lock" size={18} /> : null}
               {amount === null ? t.sheet.ctaNoAmount : money.fill(cta, { amount }, {}, { exact: true })}
               {move === 'send' && amount !== null ? <Icon name="send" size={16} directional /> : null}
             </button>

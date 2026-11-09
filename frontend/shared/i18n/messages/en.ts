@@ -570,7 +570,6 @@ interface MessagesShape {
       noDate: string; seller: string; sendTo: string;
     };
     buyerRole: string;
-    currencyNote: string;
     documents: string;
     priceDeadline: string;
     sellerRole: string;
@@ -651,6 +650,8 @@ interface MessagesShape {
   };
   hint: {
     triggerAria: string;
+    /// Closes a note opened from its (i).
+    gotIt: string;
   };
   liveDot: {
     live: string;
@@ -5898,7 +5899,6 @@ export const en: MessagesShape = {
   dealCreation: {
     requestSteps: { describe: 'Describe', price: 'Price and time', payment: 'Terms', stepOf: 'Step {n} of 3', continue: 'Continue', back: 'Back', days3: '3 days', week1: '1 week', weeks2: '2 weeks', month1: '1 month', pickDate: 'Pick a date', until: "Until {date}", dueOn: 'Due {date}', exactTime: 'Set hours or minutes', part: 'Part {n}', addPart: 'Add a part', removePart: 'Remove part {n}', total: 'Adds up to {sum}%', needs100: 'The parts must add up to 100%', noDate: 'No deadline', seller: 'Seller', sendTo: 'Send to {name}' },
     buyerRole: 'Buyer',
-    currencyNote: 'Settlement is in USDC. Local-currency conversion is not included.',
     documents: 'Documents',
     priceDeadline: 'Price and deadline',
     sellerRole: 'Seller',
@@ -5979,6 +5979,7 @@ export const en: MessagesShape = {
   },
   hint: {
     triggerAria: 'Details',
+    gotIt: 'Got it',
   },
   liveDot: {
     live: 'Live',
@@ -7248,11 +7249,11 @@ export const en: MessagesShape = {
       body: 'Edits apply right away. Active match scans use the new copy on their next pass.',
       titleEyebrow: 'Title',
       descriptionEyebrow: 'Description',
-      askingPriceEyebrow: 'Asking price USDC',
+      askingPriceEyebrow: 'Asking price',
       priceWasTemplate: 'was {n} USDC',
       floorEyebrow: 'Price floor',
       floorAria: 'Negotiation max decrease percent',
-      floorFootTemplate: '↳ agent rejects counters below {amount} USDC',
+      floorFootTemplate: 'Your agent turns down offers below {amount} USDC',
       windowDaysEyebrow: 'Window days',
       windowReanchored: 'Window re-anchors from now when you save.',
       windowDefault: 'Days the listing stays open from today.',

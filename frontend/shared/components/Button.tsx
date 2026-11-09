@@ -3,7 +3,10 @@ import { cn } from '@/shared/utils/cn';
 
 /// `primary` is the one green button on a screen (view 48). `secondary` is the
 /// surface button with a hairline; `outline` is the same look under its old name.
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'critical';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'critical' | 'tonal';
+/// The mark before the label: a lock on a button that moves money, plus and
+/// send on quick actions (owner, 9 Nov 2026, Figma 218:570).
+export type ButtonLead = 'lock' | 'plus' | 'send';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const BASE =
@@ -19,6 +22,8 @@ const VARIANTS: Record<ButtonVariant, string> = {
   secondary: SECONDARY,
   outline: SECONDARY,
   ghost: 'text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--raised)]',
+  // The quiet pair for quick actions such as Add money and Send.
+  tonal: 'bg-[var(--ash)] text-[var(--ink)] hover:opacity-90',
   critical:
     'border border-[var(--color-critical)] text-[var(--color-critical)] ' +
     'hover:bg-[var(--color-critical-soft)]',
@@ -54,6 +59,37 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   /// What is happening while it loads, such as "Releasing 600 USDC".
   loadingLabel?: ReactNode;
+  lead?: ButtonLead;
+  /// A round arrow at the end: this goes on to the next step.
+  go?: boolean;
+  /// The move went through: the lead turns into a check.
+  done?: boolean;
+}
+
+const LEAD_PATHS: Record<ButtonLead | 'check', ReactNode> = {
+  lock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>,
+  plus: <path d="M12 5v14M5 12h14" />,
+  send: <path d="M7 17 17 7M9 7h8v8" />,
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+};
+
+export function LeadIcon({ name, size }: { name: ButtonLead | 'check'; size: number }) {
+  return (
+    <svg data-button-lead={name} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden>
+      {LEAD_PATHS[name]}
+    </svg>
+  );
+}
+
+/// The round go-on mark: ink disc, green arrow, mirrored in Arabic.
+function GoMark() {
+  return (
+    <span data-button-go aria-hidden className="-me-2.5 ms-auto grid size-9 shrink-0 place-items-center rounded-full bg-[var(--on-action)] text-[var(--action)]">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
+    </span>
+  );
 }
 
 /// The turning mark (Figma Spinner). It keeps turning under reduced motion,
@@ -70,19 +106,21 @@ export function Spinner({ size = 20 }: { size?: number }) {
 /// and size, shows the spinner and says what is happening. Icon-only buttons
 /// must still pass an `aria-label`.
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = 'primary', size = 'md', loading = false, loadingLabel, disabled, className, children, ...rest },
+  { variant = 'primary', size = 'md', loading = false, loadingLabel, lead, go = false, done = false, disabled, className, children, ...rest },
   ref,
 ) {
+  const iconSize = size === 'lg' ? 20 : 16;
   return (
     <button
       ref={ref}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={buttonClasses({ variant, size, loading, className })}
+      className={buttonClasses({ variant, size, loading, className: cn(go && !loading && 'justify-between', className) })}
       {...rest}
     >
-      {loading && <Spinner size={size === 'lg' ? 20 : 16} />}
+      {loading ? <Spinner size={iconSize} /> : done ? <LeadIcon name="check" size={iconSize} /> : lead ? <LeadIcon name={lead} size={iconSize} /> : null}
       {loading && loadingLabel ? loadingLabel : children}
+      {go && !loading && !done ? <GoMark /> : null}
     </button>
   );
 });

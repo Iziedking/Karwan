@@ -608,7 +608,6 @@ export const ar: Messages = {
   dealCreation: {
     requestSteps: { describe: 'الوصف', price: 'السعر والموعد', payment: 'الشروط', stepOf: 'الخطوة {n} من 3', continue: 'متابعة', back: 'رجوع', days3: '3 أيام', week1: 'أسبوع واحد', weeks2: 'أسبوعان', month1: 'شهر واحد', pickDate: 'اختر تاريخًا', until: "حتى {date}", dueOn: 'قبل {date}', exactTime: 'حدّد بالساعات أو الدقائق', part: 'الجزء {n}', addPart: 'أضف جزءًا', removePart: 'احذف الجزء {n}', total: 'المجموع {sum}%', needs100: 'يجب أن يكون مجموع الأجزاء 100%', noDate: 'بلا موعد نهائي', seller: 'البائع', sendTo: 'أرسل إلى {name}' },
     buyerRole: 'المشتري',
-    currencyNote: 'تتم التسوية بعملة USDC. لا يشمل ذلك التحويل إلى العملة المحلية.',
     documents: 'المستندات',
     priceDeadline: 'السعر والموعد النهائي',
     sellerRole: 'البائع',
@@ -681,6 +680,7 @@ export const ar: Messages = {
   },
   hint: {
     triggerAria: 'تفاصيل',
+    gotIt: 'فهمت',
   },
   liveDot: {
     live: 'مباشر',
@@ -1934,11 +1934,11 @@ export const ar: Messages = {
       body: 'تُطبَّق التعديلات فوراً. تستخدم عمليات فحص التطابق النشطة النسخة الجديدة في تمريرها التالي.',
       titleEyebrow: 'العنوان',
       descriptionEyebrow: 'الوصف',
-      askingPriceEyebrow: 'السعر المطلوب USDC',
+      askingPriceEyebrow: 'السعر المطلوب',
       priceWasTemplate: 'كان {n} USDC',
       floorEyebrow: 'الحد الأدنى للسعر',
       floorAria: 'النسبة القصوى لخفض السعر في التفاوض',
-      floorFootTemplate: '↳ يرفض الوكيل العروض دون {amount} USDC',
+      floorFootTemplate: 'يرفض الوكيل العروض دون {amount} USDC',
       windowDaysEyebrow: 'أيام النافذة',
       windowReanchored: 'تُعاد النافذة من الآن عند الحفظ.',
       windowDefault: 'الأيام التي يبقى فيها العرض مفتوحاً من اليوم.',

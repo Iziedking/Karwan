@@ -941,7 +941,6 @@ export function DirectDealForm() {
       ]}>
         {drafted ? <p data-drafted className="mb-2 text-[var(--ink-secondary)]">{rf.drafted}</p> : null}
         <p>{c.directNext}</p>
-        <p className="mt-2 text-[var(--lp-text-sub)]">{c.currencyNote}</p>
       </CreationReview> : null}
 
       {/* SUBMIT: Review, checked once more, then sent (Figma, Batch 9 · Review deal). */}
