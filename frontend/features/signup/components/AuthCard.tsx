@@ -721,7 +721,7 @@ function CodeForm(props: {
     <form onSubmit={props.onSubmit} className="mt-6 space-y-3">
       <p className="break-words text-[15px] leading-[1.5] text-[var(--ink-secondary)]">{props.hint}</p>
       <Field label={props.label}>
-        <CodeBoxes id="auth-email-code" value={props.code} onChange={props.setCode} disabled={!!props.busy} autoFocus />
+        <CodeBoxes id="auth-email-code" value={props.code} onChange={props.setCode} disabled={!!props.busy} autoFocus ariaLabel={props.label} />
       </Field>
       <Primary type="submit" disabled={!!props.busy || props.code.length !== 6}>{props.submit}</Primary>
       <button type="button" onClick={props.onResend} disabled={!!props.busy}

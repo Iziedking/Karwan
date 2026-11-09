@@ -195,9 +195,10 @@ test('a direct deal names the seller in one box, and what was agreed in words be
   await expect(page.getByRole('button', { name: rs.noDate, exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.locator('[data-money-input]').first().fill('200');
   await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
-  // No seller deposit and no milestone setup on the form (owner, 6 Nov 2026): the words carry the parts.
+  // No seller deposit (owner, 6 Nov 2026). Parts stay one tap away on work but
+  // closed, so the words carry the parts (owner, 8 Nov 2026).
   await expect(page.getByText(en.dealCreation.security, { exact: true })).toHaveCount(0);
-  await expect(page.locator('[data-pay-in-parts]')).toHaveCount(0);
+  await expect(page.locator('[data-pay-in-parts]')).not.toHaveAttribute('open', /.*/);
   await page.getByLabel(en.editDealModal.deliverLabel, { exact: true }).fill('Product photos: 10 items first, then the other 10, then the edited set in one folder.');
   await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
   await expect(page.locator('[data-drafted]')).toHaveText(en.requestFlow.drafted);
