@@ -36,8 +36,8 @@ export function PersonAvatar({ address, name, size = 40 }: { address?: string; n
   return (
     <span
       aria-hidden
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}
-      className="grid shrink-0 place-items-center rounded-full bg-[var(--lp-light)] font-semibold text-[var(--lp-dark)]"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.38), background: tintOf(address || name) }}
+      className="grid shrink-0 place-items-center rounded-full font-semibold text-white"
     >
       {initialOf(profile.data?.profile?.displayName || profile.data?.profile?.handle || name)}
     </span>
@@ -46,4 +46,14 @@ export function PersonAvatar({ address, name, size = 40 }: { address?: string; n
 
 function initialOf(name: string): string {
   return name.replace(/^(seller|buyer)\s+/i, '').replace(/^0x/i, '').trim().charAt(0).toUpperCase() || '·';
+}
+
+/// A steady colour for each person without a photo, so a list of initials
+/// reads as different people (owner, 9 Nov 2026, Figma 228:570). Muted enough
+/// for white letters in both themes.
+const TINTS = ['#3F5A86', '#6A4A86', '#86553F', '#3F7A66', '#7A6A3A', '#3F6F86', '#864A5F', '#5A6A3F'];
+export function tintOf(key: string): string {
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return TINTS[h % TINTS.length];
 }

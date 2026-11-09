@@ -146,7 +146,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
                 <span className="shrink-0 text-end">
                   <Price usdc={e.priceUsdc} compact className="text-[16px] font-semibold text-[var(--ink)]" />
                   {e.bestFit && e.state !== 'unavailable' ? (
-                    <span data-best-fit className="mt-1 inline-block rounded-full bg-[var(--raised)] px-2 py-0.5 text-[13px] font-semibold text-[var(--ink)]">
+                    <span data-best-fit className="mt-1 inline-block rounded-full bg-[var(--action)] px-2 py-0.5 text-[13px] font-semibold text-[var(--on-action)]">
                       {copy.pick}
                     </span>
                   ) : (

@@ -13,7 +13,8 @@ import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { fill } from '@/features/deals/workspace/presentation';
-import { DepositCard } from '@/features/deposit/components/DepositCard';
+import { DepositCard, Qr } from '@/features/deposit/components/DepositCard';
+import { shortAddress } from '@/shared/utils/format';
 import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, type CctpChainKey } from '@/features/bridge/config';
 import { startedRecord } from '@/features/bridge/crossChainIntent';
 import { useBridges } from '@/features/bridge/hooks/useBridge';
@@ -21,7 +22,7 @@ import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/route
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
 import { gatewayDeposit, gatewayEstimateSpend, gatewaySpend } from '@/features/gateway/lib';
 import { pressKey } from '../amountEntry';
-import { chipAmount, fromWalletPoolSpend, parseAmount } from '../moneySheetModel';
+import { chipAmount, fromWalletPoolSpend } from '../moneySheetModel';
 import { topUpWithFees } from '../sendFromWhole';
 import { toMicros } from '../usdc';
 import { addSources, arrivesIn, readyIn, type MoveSource } from '../moveSources';
@@ -30,6 +31,7 @@ import { AmountHero } from './AmountHero';
 import { Keypad } from './Keypad';
 import { NetworkLogo } from './NetworkLogo';
 import { useMoneyText } from '../hooks/useMoneyText';
+import { useAmountInput } from '../hooks/useAmountInput';
 
 export type AddSheetMode = 'add' | 'moveToBalance' | 'addToPool';
 type Step = 'pick' | 'amount' | 'exchange' | 'progress' | 'done' | 'landed';
@@ -86,7 +88,9 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
 
   const [step, setStep] = useState<Step>('pick');
   const [chosen, setChosen] = useState<MoveSource | null>(null);
-  const [typed, setTyped] = useState('');
+  // Your currency leads and USDC sits small under it (owner, 9 Nov 2026, Figma 228:675).
+  const amt = useAmountInput(null);
+  const { typed, setTyped } = amt;
   const [declined, setDeclined] = useState(false);
   const [busy, setBusy] = useState(false);
   const [since, setSince] = useState(0);
@@ -123,7 +127,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
     setPickerOpen(false);
     if (mode === 'moveToBalance') {
       setChosen({ kind: 'pool', amount: balances.pool });
-      setTyped(balances.pool > 0 ? String(chipAmount(balances.pool, 'max')) : '');
+      amt.setFromUsdc(balances.pool > 0 ? chipAmount(balances.pool, 'max') : null, 'down');
       setStep('amount');
     } else {
       setChosen(null);
@@ -135,7 +139,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
 
   const chainName = (key: string) => SOURCE_CHAINS[key as CctpChainKey]?.name ?? key;
   const max = chosen && chosen.kind !== 'exchange' ? chosen.amount : null;
-  const amount = parseAmount(typed);
+  const amount = amt.usdc;
   const over = amount !== null && max !== null && toMicros(amount) > toMicros(max);
   const blocked = amount === null || max === null || over || busy;
 
@@ -165,7 +169,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
       return;
     }
     setChosen(source);
-    setTyped(String(chipAmount(source.amount, 'max')));
+    amt.setFromUsdc(chipAmount(source.amount, 'max'), 'down');
     setDeclined(false);
     // On a computer the network, the amount and the button share one screen.
     if (!(inline && source.kind === 'network')) setStep('amount');
@@ -274,7 +278,8 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
           ))}
         </dl>
       ) : null}
-      <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} sign="USDC" />
+      <AmountHero id={amountId} label={sheetCopy.amountLabel} value={typed} onChange={setTyped} keypad={keypad} sign={amt.sign} />
+      {amt.local && amount !== null ? <p data-exact-usdc dir="ltr" className="-mt-2 text-center text-[14px] font-medium tabular-nums text-[var(--ink-muted)]">{money.usdc(amount, { exact: true })}</p> : null}
       <p className="text-center text-[14px] font-medium text-[var(--ink-secondary)]" dir="auto">
         {source.kind === 'network'
           ? money.fill(t.add.there, { amount: source.amount }, { network: chainName(source.chain) })
@@ -282,7 +287,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
       </p>
       <div className="flex justify-center gap-2">
         {(['quarter', 'half', 'max'] as const).map((chip) => (
-          <button key={chip} type="button" className={CHIP} disabled={source.amount <= 0} onClick={() => setTyped(String(chipAmount(source.amount, chip)))}>
+          <button key={chip} type="button" className={CHIP} disabled={source.amount <= 0} onClick={() => amt.setFromUsdc(chipAmount(source.amount, chip), 'down')}>
             {sheetCopy[chip]}
           </button>
         ))}
@@ -305,7 +310,7 @@ export function AddMoneySheet({ open = true, page = false, mode, onClose, onLand
     <p data-other-ways className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px]">
       <span className="font-medium text-[var(--ink-muted)]">{pages.added.otherWays}</span>
       {poolSource ? (
-        <button type="button" onClick={() => { setChosen(poolSource); setTyped(String(chipAmount(poolSource.amount, 'max'))); setStep('amount'); }} className="min-h-11 font-semibold text-[var(--ink)] hover:underline">{t.pool.transferBalance}</button>
+        <button type="button" onClick={() => { setChosen(poolSource); amt.setFromUsdc(chipAmount(poolSource.amount, 'max'), 'down'); setStep('amount'); }} className="min-h-11 font-semibold text-[var(--ink)] hover:underline">{t.pool.transferBalance}</button>
       ) : null}
       <button type="button" onClick={() => pick({ kind: 'exchange' })} className="min-h-11 font-semibold text-[var(--ink)] hover:underline">{t.add.exchange}</button>
       {faucetLink}
@@ -577,6 +582,8 @@ function NetworkPicker({ sources, label, change, describe, open, setOpen, onPick
 /// wallet address takes USDC on Arc and on every other network listed here.
 function WalletDeposit({ address }: { address: string }) {
   const all = useTranslations();
+  const w = all.moneyPages.walletSteps;
+  const arc = ARC_NETWORK === 'testnet' ? 'Arc Testnet' : 'Arc';
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -587,15 +594,36 @@ function WalletDeposit({ address }: { address: string }) {
       // The address is on screen in full; nothing to fix if the clipboard says no.
     }
   };
+  // Three steps in one card (owner, 9 Nov 2026, Figma 228:641): the network, the
+  // address with its QR, and the note that it is being watched for.
   return (
-    <div data-wallet-deposit className="space-y-4 rounded-[16px] bg-[var(--raised)] p-5">
-      <p className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">
-        {fill(all.moneyPages.walletDeposit, { arc: ARC_NETWORK === 'testnet' ? 'Arc Testnet' : 'Arc' })}
-      </p>
-      <p dir="ltr" className="break-all font-mono text-[15px] font-semibold text-[var(--ink)]">{address}</p>
-      <button type="button" onClick={() => void copy()} className={buttonClasses({ size: 'lg', className: 'w-full' })}>
-        {copied ? all.deposit.copied : all.deposit.copy}
-      </button>
+    <div data-wallet-deposit className="divide-y divide-[var(--line)] rounded-[20px] border border-[var(--line)] bg-[var(--raised)] px-5">
+      <section className="py-5">
+        {/* What happens on another network is a note behind the (i), not a paragraph (owner, 9 Nov 2026). */}
+        <h3 className="flex items-center gap-2 text-[15px] font-semibold text-[var(--ink)]">
+          {fill(w.pick, { arc })}
+          <Hint align="end">{fill(w.pickNote, { arc })}</Hint>
+        </h3>
+      </section>
+      <section className="space-y-4 py-5">
+        <h3 className="text-[15px] font-semibold text-[var(--ink)]">{w.send}</h3>
+        <div className="flex justify-center"><Qr value={address} label={w.qrAlt} /></div>
+        <div className="flex items-center gap-3 rounded-[14px] bg-[var(--surface)] py-2 ps-4 pe-2">
+          <p dir="ltr" title={address} className="min-w-0 flex-1 truncate text-[16px] font-semibold tabular-nums text-[var(--ink)]">{shortAddress(address)}</p>
+          <button type="button" onClick={() => void copy()} className={buttonClasses({ size: 'md', className: 'shrink-0 px-5' })}>
+            {copied ? all.deposit.copied : all.deposit.copy}
+          </button>
+        </div>
+        <p dir="ltr" className="select-all break-all text-center font-mono text-[13px] text-[var(--ink-muted)]">{address}</p>
+        <p className="rounded-[12px] bg-[color-mix(in_srgb,var(--color-warning)_14%,transparent)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--ink)]">{w.onlyUsdc}</p>
+      </section>
+      <section className="space-y-1.5 py-5">
+        <h3 className="text-[15px] font-semibold text-[var(--ink)]">{w.wait}</h3>
+        <p role="status" className="flex items-center gap-2 text-[14px] text-[var(--ink-secondary)]">
+          <span aria-hidden className="size-2 rounded-full bg-[var(--action)] motion-safe:animate-pulse" />
+          {w.watching}
+        </p>
+      </section>
     </div>
   );
 }

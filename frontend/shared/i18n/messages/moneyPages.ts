@@ -5,6 +5,8 @@ export interface MoneyPagesCopy {
   tabs: { label: string; balance: string; agent: string; guarantee: string };
   /// From an exchange, for an account that signs with its own wallet.
   walletDeposit: string;
+  /// From an exchange in three steps (owner, 9 Nov 2026, Figma 228:641).
+  walletSteps: { pick: string; pickNote: string; send: string; onlyUsdc: string; wait: string; watching: string; qrAlt: string };
   tips: { balance: string; agent: string; guarantee: string };
   /// Shown once under the balance on a first visit; Got it is remembered (owner, 9 Nov 2026, Figma 218:604).
   firstVisit: string;
@@ -104,6 +106,7 @@ export interface MoneyPagesCopy {
 
 const en: MoneyPagesCopy = {
   walletDeposit: 'Send USDC to your wallet address. On {arc} it lands in your balance. On another network it shows under From your wallet.',
+  walletSteps: { pick: "1  On the exchange, pick USDC on {arc}", pickNote: "On {arc} it lands in your balance in seconds. On another network it waits under From your wallet, and you add it with one tap.", send: "2  Send it to this address", onlyUsdc: "Only USDC, on the network you picked. Other coins are not added.", wait: "3  We tell you when it lands", watching: "Watching for your money…", qrAlt: "QR code of your wallet address" },
   tabs: { label: 'Money', balance: 'Balance', agent: 'Agent', guarantee: 'Deal guarantee' },
   firstVisit: 'This is the money you can use. Money held in a deal shows on the deal until it is released.',
   tips: {
@@ -207,6 +210,7 @@ const en: MoneyPagesCopy = {
 
 const fr: MoneyPagesCopy = {
   walletDeposit: "Envoyez des USDC à l'adresse de votre portefeuille. Sur {arc}, ils arrivent dans votre solde. Sur un autre réseau, ils apparaissent sous Depuis votre portefeuille.",
+  walletSteps: { pick: "1  Sur la plateforme, choisissez USDC sur {arc}", pickNote: "Sur {arc}, ils arrivent dans votre solde en quelques secondes. Sur un autre réseau, ils attendent sous Depuis votre portefeuille, et vous les ajoutez en un geste.", send: "2  Envoyez-les à cette adresse", onlyUsdc: "Uniquement des USDC, sur le réseau choisi. Les autres jetons ne sont pas ajoutés.", wait: "3  Nous vous prévenons à leur arrivée", watching: "Nous surveillons votre argent…", qrAlt: "QR code de l’adresse de votre portefeuille" },
   tabs: { label: 'Argent', balance: 'Solde', agent: 'Agent', guarantee: 'Garantie de transaction' },
   firstVisit: 'Voici l’argent que vous pouvez utiliser. L’argent bloqué dans une transaction apparaît sur la transaction jusqu’à sa libération.',
   tips: {
@@ -310,6 +314,7 @@ const fr: MoneyPagesCopy = {
 
 const ar: MoneyPagesCopy = {
   walletDeposit: 'أرسل USDC إلى عنوان محفظتك. على {arc} تصل إلى رصيدك. على شبكة أخرى تظهر تحت من محفظتك.',
+  walletSteps: { pick: "1  في المنصة، اختر USDC على {arc}", pickNote: "على {arc} يصل إلى رصيدك خلال ثوانٍ. على شبكة أخرى ينتظر تحت من محفظتك، وتضيفه بلمسة واحدة.", send: "2  أرسله إلى هذا العنوان", onlyUsdc: "USDC فقط، على الشبكة التي اخترتها. العملات الأخرى لا تُضاف.", wait: "3  نخبرك عند وصوله", watching: "نراقب وصول أموالك…", qrAlt: "رمز QR لعنوان محفظتك" },
   tabs: { label: 'المال', balance: 'الرصيد', agent: 'الوكيل', guarantee: 'ضمان الصفقة' },
   firstVisit: 'هذا هو المال الذي يمكنك استخدامه. المال المحجوز في صفقة يظهر في الصفقة حتى يُفرج عنه.',
   tips: {
@@ -413,6 +418,7 @@ const ar: MoneyPagesCopy = {
 
 const hi: MoneyPagesCopy = {
   walletDeposit: 'अपने वॉलेट पते पर USDC भेजें। {arc} पर यह आपके शेष में आता है। किसी दूसरे नेटवर्क पर यह आपके वॉलेट से के नीचे दिखता है।',
+  walletSteps: { pick: "1  एक्सचेंज पर {arc} पर USDC चुनें", pickNote: "{arc} पर यह कुछ सेकंड में आपके शेष में आता है। किसी दूसरे नेटवर्क पर यह आपके वॉलेट से के नीचे रुकता है, और आप इसे एक टैप में जोड़ते हैं।", send: "2  इसे इस पते पर भेजें", onlyUsdc: "केवल USDC, आपके चुने नेटवर्क पर। दूसरे कॉइन नहीं जोड़े जाते।", wait: "3  पहुँचते ही हम आपको बताएँगे", watching: "आपके पैसे पर नज़र है…", qrAlt: "आपके वॉलेट पते का QR कोड" },
   tabs: { label: 'पैसा', balance: 'शेष', agent: 'एजेंट', guarantee: 'सौदा गारंटी' },
   firstVisit: 'यह वह पैसा है जिसे आप इस्तेमाल कर सकते हैं। किसी सौदे में रुका पैसा उस सौदे पर दिखता है, जब तक वह जारी नहीं हो जाता।',
   tips: {
@@ -516,6 +522,7 @@ const hi: MoneyPagesCopy = {
 
 const sw: MoneyPagesCopy = {
   walletDeposit: 'Tuma USDC kwenye anwani ya pochi yako. Kwenye {arc} inaingia kwenye salio lako. Kwenye mtandao mwingine inaonekana chini ya Kutoka kwenye pochi yako.',
+  walletSteps: { pick: "1  Kwenye soko, chagua USDC kwenye {arc}", pickNote: "Kwenye {arc} inaingia kwenye salio lako kwa sekunde. Kwenye mtandao mwingine inasubiri chini ya Kutoka kwenye pochi yako, na unaiongeza kwa mguso mmoja.", send: "2  Itume kwenye anwani hii", onlyUsdc: "USDC pekee, kwenye mtandao uliochagua. Sarafu nyingine haziongezwi.", wait: "3  Tutakuambia ikifika", watching: "Tunafuatilia pesa zako…", qrAlt: "Msimbo wa QR wa anwani ya pochi yako" },
   tabs: { label: 'Pesa', balance: 'Salio', agent: 'Wakala', guarantee: 'Dhamana ya mkataba' },
   firstVisit: 'Hii ndiyo pesa unayoweza kutumia. Pesa iliyoshikiliwa kwenye mpango inaonekana kwenye mpango huo hadi itakapotolewa.',
   tips: {

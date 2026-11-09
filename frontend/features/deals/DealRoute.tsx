@@ -6,7 +6,7 @@ import { StepsTrack } from './workspace/StepsTrack';
 
 /// A deal's route, or the one status line that replaces it once the deal has
 /// stopped moving forward (disputed, cancelled, refunded, settled by a ruling).
-export function DealRoute({ deal }: { deal: DirectDeal }) {
+export function DealRoute({ deal, vertical = false }: { deal: DirectDeal; vertical?: boolean }) {
   const t = useTranslations().dealPage;
   const route = dealRoute(deal);
   if (route.kind === 'status') {
@@ -16,5 +16,5 @@ export function DealRoute({ deal }: { deal: DirectDeal }) {
       </p>
     );
   }
-  return <StepsTrack steps={route.stops} />;
+  return <StepsTrack steps={route.stops} vertical={vertical} />;
 }

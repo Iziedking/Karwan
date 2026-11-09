@@ -9,11 +9,11 @@ import type { CheckSummary } from './checkSummary';
 /// Checked by Karwan (rule 5, view 48): a shield, the result as the line under
 /// the title, and what was compared. A gap or a pause is said in words in the
 /// warning colour; the reasons the page gives for a pause sit under it.
-export function CheckedCard({ summary, children }: { summary: CheckSummary; children?: ReactNode }) {
+export function CheckedCard({ summary, children, bare = false }: { summary: CheckSummary; children?: ReactNode; bare?: boolean }) {
   const t = useTranslations().dealPage;
   const warn = summary.result === 'gap' || summary.result === 'held' || summary.result === 'unverified';
   return (
-    <section data-checked-card aria-live="polite" className={cn(CARD_CLASS, 'flex gap-3 p-5 lg:p-6')}>
+    <section data-checked-card aria-live="polite" className={bare ? 'flex gap-3' : cn(CARD_CLASS, 'flex gap-3 p-5 lg:p-6')}>
       <Icon name="shield-check" size={20} className="mt-0.5 shrink-0 text-[var(--ink)]" />
       <div className="min-w-0 flex-1">
         <p className="text-[15px] font-semibold text-[var(--ink)]">{t.checkedTitle}</p>

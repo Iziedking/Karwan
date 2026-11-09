@@ -53,6 +53,8 @@ import { momentFor } from './momentLine';
 
 const PRIMARY_CLASS = buttonClasses({ variant: 'primary', size: 'lg', className: 'w-full' });
 const SECONDARY_CLASS = buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' });
+/// The one deal card sits a little off the page: a hairline shadow and a soft one below.
+const CARD_LIFT = 'shadow-[0_1px_2px_rgba(0,0,0,0.06),0_18px_40px_-14px_rgba(0,0,0,0.22)]';
 
 type Panel = 'record' | 'messages' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
 
@@ -230,14 +232,14 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           ? paused.sellerOff
           : paused.reasons[detail];
     moment = (
-      <CheckedCard summary={summary}>
+      <CheckedCard bare summary={summary}>
         <p className="text-[14px] leading-relaxed text-[var(--lp-dark)]">{reason}</p>
         <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{paused.stays}</p>
       </CheckedCard>
     );
   } else if (summary) {
     moment = (
-      <CheckedCard summary={summary}>
+      <CheckedCard bare summary={summary}>
         {summary.result === 'unverified' ? (
           <CheckNotRun jobId={deal.jobId} viewerIsBuyer={viewerIsBuyer} caller={address ?? null} onChanged={onChanged} />
         ) : null}
@@ -340,6 +342,84 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   }
 
   const settled = view.stage === 'settled';
+  const visibleRows = layers.filter(({ key }) => key !== 'progress' && key !== 'problem');
+  const rowsList = (
+      <ul aria-label={copy.protectedDeal} className={`${CARD_CLASS} mt-6 divide-y divide-[var(--line)] px-5 lg:px-6`}>
+        {visibleRows.map(({ key, attention }) => {
+          const isOpen = openRow === key;
+          return (
+            <li key={key} id={`deal-row-${key}`} className="scroll-mt-24">
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls={`deal-row-${key}-body`}
+                onClick={() => setOpenRow(isOpen ? null : key)}
+                className="flex min-h-[52px] w-full items-center gap-3 py-3 text-start text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
+              >
+                <span className="flex shrink-0 items-center gap-2 text-[var(--ink-secondary)]">
+                  {attention ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--ink)]" /> : null}
+                  {rowTitle[key]}
+                  {attention ? <span className="sr-only">{copy.layers.needsYou}</span> : null}
+                </span>
+                <span dir="auto" className="min-w-0 flex-1 truncate text-end font-medium text-[var(--ink)]">{rowSummary[key] ?? ''}</span>
+                <Icon
+                  name="chevron-right"
+                  size={16}
+                  className={cn('shrink-0 text-[var(--ink-muted)] transition-transform duration-[var(--dur-fade)] motion-reduce:transition-none', isOpen ? '-rotate-90' : 'rotate-90')}
+                />
+              </button>
+              {isOpen ? (
+                <div id={`deal-row-${key}-body`} className="pb-5">
+                  {rowBody(key)}
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+  );
+  // On a live deal the papers are small pills at the foot of the one card; the
+  // one that is open shows under them.
+  const openVisible = visibleRows.some(({ key }) => key === openRow) ? openRow : null;
+  const papers = settled ? null : (
+    <div className="mt-5 border-t border-[var(--line)] pt-5">
+      <ul aria-label={copy.protectedDeal} className="flex flex-wrap gap-2">
+        {visibleRows.map(({ key, attention }) => {
+          const isOpen = openRow === key;
+          return (
+            <li key={key} id={`deal-row-${key}`} className="scroll-mt-24">
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls={`deal-row-${key}-body`}
+                onClick={() => setOpenRow(isOpen ? null : key)}
+                className={cn(
+                  'inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]',
+                  isOpen ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--ash)] text-[var(--ink)] hover:opacity-90',
+                )}
+              >
+                {attention ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--color-warning)]" /> : null}
+                {rowTitle[key]}
+                {attention ? <span className="sr-only">{copy.layers.needsYou}</span> : null}
+                <Icon name="chevron-right" size={16} className={cn('size-3.5 shrink-0 transition-transform motion-reduce:transition-none', isOpen ? '-rotate-90' : 'rotate-90')} />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {openVisible ? (
+        <div id={`deal-row-${openVisible}-body`} className="mt-5">
+          {rowSummary[openVisible] ? <p dir="auto" className="mb-3 text-[13px] text-[var(--ink-secondary)]">{rowSummary[openVisible]}</p> : null}
+          {rowBody(openVisible)}
+        </div>
+      ) : null}
+    </div>
+  );
+  const moneyNow = moneySplit(deal);
+  const paidShare = moneyNow && Number(deal.dealAmountUsdc) > 0
+    ? Math.max(0, Math.min(100, Math.round((Number(moneyNow.paidOutUsdc) / Number(deal.dealAmountUsdc)) * 100)))
+    : null;
+
   const what = whatItIs(deal);
   const moneyLine = titleMoneyLine(deal, name, dp, locale, mt.fill) ?? copy.money[LINE_KEY[view.money.line]];
   const canProblem = !!address && problems.length > 0;
@@ -465,9 +545,6 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           </button>
         ) : null}
         </div>
-        {!settled && momentNow ? (
-          <DealMoment label={momentNow.label} yours={view.next.actor === 'you'} sentence={momentNow.sentence} automatic={null} />
-        ) : null}
       </header>
 
       {settled ? (
@@ -535,20 +612,38 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         </section>
       ) : (
         <>
-          <section data-steps-card aria-labelledby="deal-amount" className={`${CARD_CLASS} p-5 lg:p-6`}>
+          {/* One card holds the whole deal (owner, 9 Nov 2026, Figma 233:1067): what is
+              happening now, the money, the steps, Karwan's check and the papers. */}
+          <section data-steps-card aria-labelledby="deal-amount" className={`${CARD_CLASS} ${CARD_LIFT} p-5 lg:p-7`}>
+            {momentNow ? (
+              <div className="mb-5 flex gap-3 border-b border-[var(--line)] pb-5">
+                <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--action)_22%,transparent)] text-[var(--ink)]">
+                  <Icon name="clock" size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <DealMoment compact label={momentNow.label} yours={view.next.actor === 'you'} sentence={momentNow.sentence} automatic={null} />
+                </div>
+              </div>
+            ) : null}
             <div className="flex min-h-11 items-center justify-between gap-3">
               <p role="status" aria-live="polite" className="min-w-0 text-[13px] text-[var(--ink-secondary)]">{moneyLine}</p>
               {referenceButton}
             </div>
             <h1 id="deal-amount" className="mt-1">
-              <Price usdc={Number(deal.dealAmountUsdc)} agreed={deal.agreedLocal} size="hero" figureClassName="text-[56px] font-semibold leading-none tracking-[-0.04em] text-[var(--ink)]" />
+              <Price usdc={Number(deal.dealAmountUsdc)} agreed={deal.agreedLocal} size="hero" figureClassName="text-[44px] font-semibold leading-none tracking-[-0.03em] text-[var(--ink)] lg:text-[52px]" />
             </h1>
+            {paidShare !== null ? (
+              <div aria-hidden data-paid-bar className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--ash)]">
+                <div className="h-full rounded-full bg-[var(--action)]" style={{ width: `${paidShare}%` }} />
+              </div>
+            ) : null}
             <div className="mt-5 border-t border-[var(--line)] pt-5">
-              <DealRoute deal={deal} />
+              <DealRoute deal={deal} vertical />
             </div>
-            <div className="lg:mt-6 has-[>[data-move-bar]:empty]:hidden">{moveBar}</div>
+            {moment ? <div data-deal-check className="mt-5 border-t border-[var(--line)] pt-5">{moment}</div> : null}
+            {papers}
+            <div className="mt-5 has-[>[data-move-bar]:empty]:hidden lg:mt-6">{moveBar}</div>
           </section>
-          {moment ? <div>{moment}</div> : null}
         </>
       )}
       {settled ? moveBar : null}
@@ -558,39 +653,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       ) : null}
       </div>
 
-      <ul aria-label={copy.protectedDeal} className={`${CARD_CLASS} mt-6 divide-y divide-[var(--line)] px-5 lg:px-6`}>
-        {layers.filter(({ key }) => key !== 'progress' && key !== 'problem').map(({ key, attention }) => {
-          const isOpen = openRow === key;
-          return (
-            <li key={key} id={`deal-row-${key}`} className="scroll-mt-24">
-              <button
-                type="button"
-                aria-expanded={isOpen}
-                aria-controls={`deal-row-${key}-body`}
-                onClick={() => setOpenRow(isOpen ? null : key)}
-                className="flex min-h-[52px] w-full items-center gap-3 py-3 text-start text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
-              >
-                <span className="flex shrink-0 items-center gap-2 text-[var(--ink-secondary)]">
-                  {attention ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--ink)]" /> : null}
-                  {rowTitle[key]}
-                  {attention ? <span className="sr-only">{copy.layers.needsYou}</span> : null}
-                </span>
-                <span dir="auto" className="min-w-0 flex-1 truncate text-end font-medium text-[var(--ink)]">{rowSummary[key] ?? ''}</span>
-                <Icon
-                  name="chevron-right"
-                  size={16}
-                  className={cn('shrink-0 text-[var(--ink-muted)] transition-transform duration-[var(--dur-fade)] motion-reduce:transition-none', isOpen ? '-rotate-90' : 'rotate-90')}
-                />
-              </button>
-              {isOpen ? (
-                <div id={`deal-row-${key}-body`} className="pb-5">
-                  {rowBody(key)}
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+      {settled ? rowsList : null}
 
       {/* Room for the move bar, so it never covers the last row on a phone. */}
       <div aria-hidden className="h-44 lg:hidden" />

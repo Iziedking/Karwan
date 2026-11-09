@@ -256,7 +256,10 @@ test('a wallet account adding from an exchange sees its own wallet address, neve
   await page.getByRole('button', { name: /From an exchange/ }).click();
   const card = page.locator('[data-wallet-deposit]');
   await expect(card).toContainText(ME);
-  await expect(card).toContainText('On Arc Testnet it lands in your balance.');
+  // Three steps in one card; what happens on another network sits behind the (i) (owner, 9 Nov 2026).
+  await expect(card.getByRole('heading', { name: /On the exchange, pick USDC on Arc Testnet/ })).toBeVisible();
+  await expect(card).toContainText('Only USDC, on the network you picked.');
+  await expect(card).not.toContainText('it waits under From your wallet');
   await expect(card.getByRole('button', { name: 'Copy address' })).toBeVisible();
   await expect(page.getByText('Deposits are being set up for your account.', { exact: false })).toHaveCount(0);
 });
