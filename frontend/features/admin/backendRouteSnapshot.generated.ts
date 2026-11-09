@@ -349,6 +349,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/financier/eligibility" },
   { method: "GET", path: "/api/financing-chat/:kind/:positionId" },
   { method: "POST", path: "/api/financing-chat/:kind/:positionId" },
+  { method: "POST", path: "/api/find/alerts/:jobId/no" },
   { method: "POST", path: "/api/find/block" },
   { method: "GET", path: "/api/find/finds" },
   { method: "GET", path: "/api/find/finds/:id" },

@@ -1,4 +1,5 @@
-import { tg, type UserLocale } from '../i18n/telegram.js';
+import { tg } from '../i18n/telegram.js';
+import type { UserLocale } from '../db/profiles.js';
 import type { DistanceLine } from '../location/rules.js';
 import type { CreateResult, NewContact, Contact } from './contacts.js';
 import type { Find } from './finds.js';

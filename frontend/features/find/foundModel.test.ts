@@ -10,7 +10,7 @@ const t = findPeopleCopy.en;
 const person = (over: Partial<FoundPerson> = {}): FoundPerson => ({
   tag: 'ngozi', name: 'Ngozi Okafor', verified: true, tier: 'ESTABLISHED', rating: '4.8 from 12 deals', stars: 4.8, ratings: 12,
   distance: { key: 'about', km: 3 }, meet: { atMyPlace: true, comeToYouKm: null, online: false }, priceUsdc: '60', days: 5,
-  reasons: ['best_fit', 'nearby', 'verified'], recommended: true, photo: null, ...over,
+  reasons: ['best_fit', 'nearby', 'verified'], recommended: true, photo: null, asked: null, ...over,
 });
 
 test('only a find link with a real id is drawn as a card', () => {
