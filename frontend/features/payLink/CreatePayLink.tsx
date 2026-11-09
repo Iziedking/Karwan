@@ -106,7 +106,7 @@ export function CreatePayLink() {
           {keypad ? (
             <div data-request-amount className="flex items-center justify-between gap-3 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
               <div className="min-w-0">
-                <p className="text-[13px] font-medium text-[var(--ink-secondary)]">{copy.askingFor}</p>
+                <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{copy.askingFor}</p>
                 <p className="text-[20px] font-semibold tabular-nums text-[var(--ink)]">{amt.usdc === null ? '' : mt.text(amt.usdc)}</p>
               </div>
               <button
