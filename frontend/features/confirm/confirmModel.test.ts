@@ -68,6 +68,8 @@ test('an_address_stays_one_left_to_right_piece_in_arabic', () => {
 
 test('each_action_reads_as_its_consequence', () => {
   assert.deepEqual(actionLines(required().action, copy), { headline: 'Send 50 USDC to 0x1234…abcd', lines: [] });
+  // A known person is named by their tag, not their wallet address (owner, 9 Nov 2026).
+  assert.deepEqual(actionLines(required().action, copy, '@lawful'), { headline: 'Send 50 USDC to @lawful', lines: [] });
   assert.deepEqual(actionLines({ ...required().action, detail: { chain: 'baseSepolia', feeMicros: '120000' } }, copy), {
     headline: 'Send 50 USDC to 0x1234…abcd',
     lines: ['Network fee about 0.12 USDC'],

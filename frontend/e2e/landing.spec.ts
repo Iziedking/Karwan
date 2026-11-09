@@ -65,6 +65,8 @@ test('Talk to our team writes to the team, and the main action names the right p
   await open(page);
   const closing = page.locator('section[aria-labelledby="landing-closing"]');
   await expect(closing.getByRole('link', { name: t.closing.team })).toHaveAttribute('href', 'mailto:admin@karwan.site');
+  // Open Karwan lands on Home, not the market (owner, 9 Nov 2026).
+  await expect(closing.getByRole('link', { name: t.closing.open })).toHaveAttribute('href', '/app');
   await expect(closing.getByRole('link', { name: 'admin@karwan.site' })).toHaveAttribute('href', 'mailto:admin@karwan.site');
 });
 

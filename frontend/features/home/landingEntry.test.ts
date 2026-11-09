@@ -5,10 +5,12 @@ import { dealRouteBlocked, TESTNET_ORIGIN } from '../../shared/utils/routes';
 
 test('testnet discovery is public and creating a deal preserves direct mode and the form anchor', () => {
   const entry = landingEntryRoutes(true);
-  assert.equal(entry.primary, '/market');
+  // Open Karwan lands on Home (owner, 9 Nov 2026); the market keeps its own link.
+  assert.equal(entry.primary, '/app');
+  assert.equal(entry.home, entry.primary);
   assert.equal(entry.secondary, '/buyer?mode=direct#new-deal');
   assert.equal(entry.agreement, entry.secondary);
-  assert.equal(entry.market, entry.primary);
+  assert.equal(entry.market, '/market');
 });
 
 test('mainnet offers the waitlist and sends every public trade action to the testnet task', () => {

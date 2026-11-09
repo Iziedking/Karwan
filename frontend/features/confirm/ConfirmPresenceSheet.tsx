@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { CodeBoxes } from '@/shared/components/CodeBoxes';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useSignMessage } from 'wagmi';
@@ -38,7 +39,10 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pinRef = useRef<HTMLInputElement>(null);
-  const { headline, lines } = useMemo(() => actionLines(required.action, copy), [required.action, copy]);
+  const recipient = required.action.kind === 'move_out' ? required.action.recipient ?? '' : '';
+  const toProfile = useQuery({ queryKey: ['profile', recipient], queryFn: () => api.getProfile(recipient), enabled: !!recipient, staleTime: 60_000 });
+  const toTag = toProfile.data?.profile?.handle;
+  const { headline, lines } = useMemo(() => actionLines(required.action, copy, toTag ? `@${toTag}` : null), [required.action, copy, toTag]);
   useEffect(() => { if (pinOpen) pinRef.current?.focus(); }, [pinOpen]);
   const timeOf = (ms: number) => new Date(ms).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 

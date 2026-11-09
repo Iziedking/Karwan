@@ -42,12 +42,14 @@ export function shortAddress(address: string): string {
 }
 
 /// The consequence in words, then any line the person should read before confirming.
-export function actionLines(action: PresenceAction, copy: ConfirmPresenceCopy): { headline: string; lines: string[] } {
+/// `toName` is the recipient's tag when Karwan knows it; a person is named by
+/// their tag, never their wallet address (owner, 9 Nov 2026).
+export function actionLines(action: PresenceAction, copy: ConfirmPresenceCopy, toName?: string | null): { headline: string; lines: string[] } {
   const amount = action.amountMicros === null ? '' : formatMicros(action.amountMicros);
   switch (action.kind) {
     case 'move_out':
       return {
-        headline: fillIn(copy.moveOut, { amount, to: shortAddress(action.recipient ?? '') }),
+        headline: fillIn(copy.moveOut, { amount, to: toName || shortAddress(action.recipient ?? '') }),
         lines: action.detail.feeMicros ? [fillIn(copy.fee, { fee: formatMicros(action.detail.feeMicros) })] : [],
       };
     case 'deal_guarantee':

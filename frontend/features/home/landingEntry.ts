@@ -5,5 +5,7 @@ import { tradeEntryRoutes } from './tradeEntry';
 export function landingEntryRoutes(dealsAvailable: boolean) {
   const market = dealHref('/market', dealsAvailable);
   const agreement = dealHref(tradeEntryRoutes().agreement, dealsAvailable);
-  return { market, agreement, primary: dealsAvailable ? market : '/waitlist', secondary: dealsAvailable ? agreement : market };
+  // Open Karwan lands on Home, not the market (owner, 9 Nov 2026).
+  const home = dealHref('/app', dealsAvailable);
+  return { market, agreement, home, primary: dealsAvailable ? home : '/waitlist', secondary: dealsAvailable ? agreement : market };
 }
