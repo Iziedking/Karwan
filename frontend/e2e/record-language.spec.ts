@@ -34,12 +34,10 @@ async function sound(page:Page){
  expect(violations.filter(v=>v.impact==='serious'||v.impact==='critical')).toEqual([]);
 }
 async function openNote(page:Page,heading:string,lines:string[]){
+ await page.locator(heading).getByRole('button').click();
  const note=page.getByRole('tooltip');
- // The record's deal list can arrive after the first tap and re-render the page; tap again until the note shows.
- await expect(async()=>{
-  if(!await note.isVisible())await page.locator(heading).getByRole('button').click();
-  for(const line of lines)await expect(note.getByText(line,{exact:true})).toBeVisible({timeout:2000});
- }).toPass({timeout:15000});
+ // The note's text sits beside its Got it button, so match by containment.
+ for(const line of lines)await expect(note).toContainText(line);
  await note.locator('[data-hint-got-it]').click();
  await expect(note).toHaveCount(0);
 }
