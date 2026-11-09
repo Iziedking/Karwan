@@ -14,6 +14,10 @@ export interface PayLinkCopy {
     pickDate: string;
     until: string;
     directNote: string;
+    /// Phone step one: the amount and its keypad alone (owner, 9 Nov 2026, Figma 224:612).
+    howMuch: string;
+    /// Phone step two: the amount above the details, with Change back to step one.
+    askingFor: string;
     create: string;
     creating: string;
     error: string;
@@ -128,6 +132,8 @@ const en: PayLinkCopy = {
     pickDate: "Pick a date",
     until: "Until {date}",
     directNote: "Money goes directly to your account, outside deal escrow.",
+    howMuch: "How much do you want?",
+    askingFor: "You are asking for",
     create: "Create payment link",
     creating: 'Creating link',
     error: 'Could not create the link. Try again.',
@@ -241,6 +247,8 @@ const fr: PayLinkCopy = {
     pickDate: "Choisir une date",
     until: "Jusqu’au {date}",
     directNote: "L’argent arrive directement sur votre compte, hors séquestre d’un accord.",
+    howMuch: "Combien voulez-vous demander ?",
+    askingFor: "Vous demandez",
     create: "Créer un lien de paiement",
     creating: 'Création du lien',
     error: 'Impossible de créer le lien. Réessayez.',
@@ -354,6 +362,8 @@ const ar: PayLinkCopy = {
     pickDate: "اختر تاريخًا",
     until: "حتى {date}",
     directNote: "يصل المال مباشرة إلى حسابك، خارج ضمان الصفقات.",
+    howMuch: "كم تريد أن تطلب؟",
+    askingFor: "المبلغ المطلوب",
     create: "أنشئ رابط دفع",
     creating: 'جارٍ إنشاء الرابط',
     error: 'تعذّر إنشاء الرابط. حاول مرة أخرى.',
@@ -467,6 +477,8 @@ const hi: PayLinkCopy = {
     pickDate: "तारीख चुनें",
     until: "{date} तक",
     directNote: "राशि सीधे आपके खाते में आती है, सौदे के एस्क्रो में नहीं।",
+    howMuch: "आप कितना माँगना चाहते हैं?",
+    askingFor: "आप माँग रहे हैं",
     create: "भुगतान लिंक बनाएँ",
     creating: 'लिंक बन रहा है',
     error: 'लिंक नहीं बन सका। फिर से कोशिश करें।',
@@ -580,6 +592,8 @@ const sw: PayLinkCopy = {
     pickDate: "Chagua tarehe",
     until: "Hadi {date}",
     directNote: "Pesa zinaingia moja kwa moja kwenye akaunti yako, nje ya escrow ya makubaliano.",
+    howMuch: "Unataka kiasi gani?",
+    askingFor: "Unaomba",
     create: "Unda kiungo cha malipo",
     creating: 'Inaunda kiungo',
     error: 'Imeshindwa kuunda kiungo. Jaribu tena.',

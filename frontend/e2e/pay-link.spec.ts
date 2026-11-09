@@ -112,6 +112,38 @@ test('any signed-in account creates a link that lasts a week', async ({ page }) 
   expect(created).toEqual({ amountUsdc: '10', purpose: 'Logo, first draft', ttlMinutes: 7 * 24 * 60 });
 });
 
+test('on a phone the amount and its keypad come first, then the details with nothing under them', async ({ browser }, info) => {
+  // A real touch screen: (pointer: coarse) turns the keypad on (owner, 9 Nov 2026, Figma 224:570).
+  const context = await browser.newContext({ ...info.project.use, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  let created: unknown = null;
+  await mockApi(page, { signedInAs: BUYER, onCreate: (body) => (created = body) });
+  await page.goto('/request');
+  const amountStep = page.locator('[data-request-step="amount"]');
+  await expect(amountStep.getByText(copy.create.howMuch)).toBeVisible();
+  await expect(page.getByPlaceholder(copy.create.forPlaceholder)).toHaveCount(0);
+  const next = amountStep.getByRole('button', { name: en.money.sendFlow.next, exact: true });
+  await expect(next).toBeDisabled();
+  const keys = amountStep.getByRole('group', { name: en.money.entry.keypad });
+  await keys.getByRole('button', { name: '1', exact: true }).tap();
+  await keys.getByRole('button', { name: '0', exact: true }).tap();
+  await next.tap();
+  const details = page.locator('[data-request-step="details"]');
+  await expect(details.locator('[data-request-amount]')).toContainText(copy.create.askingFor);
+  await expect(details.locator('[data-request-amount]')).toContainText('10');
+  await expect(page.getByRole('group', { name: en.money.entry.keypad })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.screenshot({ path: info.outputPath('request-phone-details.png'), fullPage: true });
+  await details.getByRole('button', { name: en.money.sendFlow.change, exact: true }).tap();
+  await expect(amountStep.getByRole('group', { name: en.money.entry.keypad })).toBeVisible();
+  await amountStep.getByRole('button', { name: en.money.sendFlow.next, exact: true }).tap();
+  await page.getByPlaceholder(copy.create.forPlaceholder).fill('Logo, first draft');
+  await page.getByRole('button', { name: copy.create.create }).tap();
+  await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
+  expect(created).toEqual({ amountUsdc: '10', purpose: 'Logo, first draft', ttlMinutes: 7 * 24 * 60 });
+  await context.close();
+});
+
 test('the requester picks how long the link works, up to 90 days', async ({ page }) => {
   let created: unknown = null;
   await mockApi(page, { signedInAs: BUYER, onCreate: (body) => (created = body) });
