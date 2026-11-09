@@ -21,6 +21,9 @@ import { pgEnabled, withPostgresTransaction } from '../db/client.js';
 import { getDeal, listDealsForAddress } from '../db/deals.js';
 import { deleteRecord, keysHeldBy, listRecords, releaseUnique } from '../db/evidence.js';
 import { deleteFeedbackFromWallet } from '../db/feedback.js';
+import { deleteBlocksOf } from '../find/blocks.js';
+import { deleteFindsOf } from '../find/finds.js';
+import { deleteNeedsOf } from '../find/needs.js';
 import { deleteListingsBySeller, listListingsForSeller, listingStatus } from '../db/listings.js';
 import { deleteProfile } from '../db/profiles.js';
 import { deleteTelegramAccountByAddress } from '../db/telegramAccounts.js';
@@ -161,6 +164,14 @@ const eraser: Eraser = {
     { name: 'PIN and confirmation passkeys', run: (address) => presenceStore.forget(address) },
     { name: 'activity', run: deleteActivityFor },
     { name: 'assistant usage', run: deleteAssistantUsage },
+    {
+      name: 'finds, standing needs and blocks',
+      run: async (address) => {
+        await deleteFindsOf(address);
+        await deleteNeedsOf(address);
+        await deleteBlocksOf(address);
+      },
+    },
     {
       name: 'offers and requests',
       run: async (address) => {

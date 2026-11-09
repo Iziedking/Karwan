@@ -1607,6 +1607,20 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX find_blocks_v1_blocked_idx ON find_blocks_v1 (blocked);
     `,
   },
+  {
+    // A person's finds: who their agent found for them, private to them (view 72).
+    version: 65,
+    name: 'finds',
+    sql: `
+      CREATE TABLE finds_v1 (
+        id TEXT PRIMARY KEY,
+        owner TEXT NOT NULL,
+        created_at BIGINT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX finds_v1_owner_idx ON finds_v1 (owner, created_at DESC);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

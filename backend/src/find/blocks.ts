@@ -58,6 +58,19 @@ export async function blockedSet(owner: string): Promise<Set<string>> {
   return new Set(rows.map((r) => (r.owner === o ? r.blocked : r.owner)));
 }
 
+/// Account deletion: every block they made and every block on them.
+export async function deleteBlocksOf(person: string): Promise<void> {
+  const o = person.toLowerCase();
+  if (!pgEnabled) {
+    for (const k of [...mem.keys()]) {
+      const [a, b] = k.split('|');
+      if (a === o || b === o) mem.delete(k);
+    }
+    return;
+  }
+  await db().delete(findBlocks).where(or(eq(findBlocks.owner, o), eq(findBlocks.blocked, o)));
+}
+
 /// For tests only.
 export function resetBlocksForTests(): void {
   mem.clear();

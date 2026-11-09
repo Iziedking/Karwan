@@ -1,15 +1,25 @@
+import { randomUUID } from 'node:crypto';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { isVerified } from '../agents/shortlist.js';
+import { config } from '../config.js';
 import { getProfile, findProfileByHandle } from '../db/profiles.js';
+import { blockedSet } from '../find/blocks.js';
+import { directoryCandidates } from '../find/directory.js';
+import { liveDirectoryDeps } from '../find/directoryLive.js';
+import { findEndsAt, myFinds, saveFind, type Find } from '../find/finds.js';
+import { rankForFind, type FindCandidate, type FoundRow } from '../find/rank.js';
 import { reachableOf } from '../find/settings.js';
+import type { DeliveryKind, DistanceLine, PrivateLocation } from '../location/rules.js';
+import { levelOf } from '../verification/live.js';
 import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, type StandingNeed } from '../find/needs.js';
 import { formatLocalAmount } from '../rates/localAmounts.js';
 import { readUsdcRates } from '../rates/usdcRates.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import { buildBlockPersonConfirm, buildRemoveStandingNeedConfirm, buildSaveStandingNeedConfirm, EVERY_WORDS, REACHES_WORDS } from './findActions.js';
 
-/// Being reached and blocking, from any channel (view 72). Being found is a
-/// setting (propose_change_settings). Nothing here moves money.
+/// Finding people, being reached and blocking, from any channel (view 72).
+/// Being found is a setting (propose_change_settings). Nothing here moves money.
 
 export interface FindToolDeps {
   reachable: (address: string) => Promise<boolean>;
@@ -18,7 +28,37 @@ export interface FindToolDeps {
   byTag: (tag: string) => Promise<{ address: string; handle: string } | null>;
   /// A USDC figure as this person reads it ("₦45,000"), or "45 USDC".
   money: (address: string, usdc: number) => Promise<string>;
+  /// The people who chose to be found and share a word with the need.
+  people: (need: { keywords: string[]; text: string; kind: DeliveryKind }) => Promise<FindCandidate[]>;
+  /// Where the buyer is (never shown) and whether they are verified.
+  buyer: (address: string) => Promise<{ location: PrivateLocation | null; verified: boolean }>;
+  blocked: (address: string) => Promise<Set<string>>;
+  saveFind: (f: Find) => Promise<Find>;
+  finds: (address: string) => Promise<Find[]>;
+  cleanRecordCounts: boolean;
+  now: () => number;
+  newId: () => string;
 }
+
+/// How far someone is, in words for the assistant; never more than this.
+export function distanceWords(d: DistanceLine): string | null {
+  switch (d.key) {
+    case 'nearby': return 'nearby';
+    case 'about': return `about ${d.km} km away`;
+    case 'inCity': return `in ${d.city}`;
+    case 'far': return `${d.km} km away`;
+    case 'sameCity': return `in ${d.city}`;
+    case 'sameCountry': return 'in your country';
+    default: return null;
+  }
+}
+
+function meetWords(m: FoundRow['meet']): string {
+  const ways = [m.atMyPlace ? 'at their place' : null, m.comeToYouKm !== null ? `comes to you up to ${m.comeToYouKm} km` : null, m.online ? 'online' : null];
+  return ways.filter(Boolean).join(', ');
+}
+
+const keywordsOf = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
 
 function offer(actions: AssistantAction[], built: ConfirmAction | { error: string }) {
   if ('error' in built) return built;
@@ -28,6 +68,7 @@ function offer(actions: AssistantAction[], built: ConfirmAction | { error: strin
 
 const EVERY = z.enum(['once', 'week', 'month', 'season']);
 const KIND = z.enum(['goods', 'in_person', 'remote']);
+const DAY_MS = 86_400_000;
 
 export function findTools(address: string, actions: AssistantAction[], deps: FindToolDeps) {
   const me = address.toLowerCase();
@@ -35,6 +76,64 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
     [EVERY_WORDS[n.every], n.budgetUsdc ? `about ${await deps.money(me, Number(n.budgetUsdc))}` : null, REACHES_WORDS[n.kind].toLowerCase()].filter(Boolean).join(' · ');
 
   return {
+    find_people: tool({
+      description:
+        'Find people who sell what this person needs, near them or online, ranked by skill, then their record (verified, tier, rating), then distance (view 72). Use when they ask for someone: "I need a tailor near me", "find me a caterer in Abuja". Only people who chose to be found come up, at most five, the best fit recommended. Pass kind in_person for work done face to face, remote for online work, goods for things delivered. It moves no money and contacts nobody yet: show the list (name and tag, tier, rating, how far, how they work, price or Asks for a quote, reasons) and the link. Contacting them comes in a later step; until then offer to post a request or message one by tag. Nobody fits: say so plainly and offer to post it on the open market.',
+      inputSchema: z.object({
+        need: z.string().min(3).max(300).describe('What they need, in their words.'),
+        budgetUsdc: z.number().positive().max(10_000_000).describe('Their budget in USDC.'),
+        kind: KIND,
+        where: z.enum(['near', 'country', 'anywhere']).default('near'),
+        country: z.string().regex(/^[A-Za-z]{2}$/).optional().describe('ISO country code when where is country.'),
+        days: z.number().int().min(1).max(365).optional().describe('By when, in days.'),
+      }),
+      execute: async ({ need, budgetUsdc, kind, where, country, days }) => {
+        const buyer = await deps.buyer(me);
+        if (kind === 'in_person' && !buyer.location?.city && !buyer.location?.point) {
+          return { needsLocation: true, next: 'Ask once, roughly, where they should meet people (area and city), save it with set_location, then find again.' };
+        }
+        const keywords = keywordsOf(need);
+        const place = { scope: where, ...(country ? { country: country.toUpperCase() } : {}) };
+        const [candidates, blocked] = await Promise.all([deps.people({ keywords, text: need, kind }), deps.blocked(me)]);
+        const rows = rankForFind(
+          candidates,
+          { text: need, keywords, budgetUsdc, kind, where: place, buyer: me, buyerLocation: buyer.location, buyerVerified: buyer.verified },
+          { requireVerified: false, blocked, cleanRecordCounts: deps.cleanRecordCounts },
+        );
+        if (rows.length === 0) return { found: 0, next: 'Nobody who chose to be found fits yet. Nothing was paid. Offer to post it as a request on the open market.' };
+        const now = deps.now();
+        const saved = await deps.saveFind({
+          id: deps.newId(), owner: me, side: 'buyer', mode: 'choose', need, budgetUsdc: String(budgetUsdc), kind, where: place,
+          jobId: null, needId: null, rows, status: 'shortlisted', createdAt: now, endsAt: findEndsAt(now, days ? now + days * DAY_MS : null),
+        });
+        return {
+          found: rows.length,
+          link: `/find/${saved.id}`,
+          people: await Promise.all(rows.map(async (r) => ({
+            name: r.name,
+            tag: r.tag ? `@${r.tag}` : null,
+            verified: r.verified,
+            tier: r.tier,
+            rating: r.rating,
+            distance: distanceWords(r.distance),
+            meets: meetWords(r.meet),
+            price: r.priceUsdc ? await deps.money(me, Number(r.priceUsdc)) : 'Asks for a quote',
+            days: r.days,
+            reasons: r.reasons,
+            recommended: r.recommended,
+          }))),
+        };
+      },
+    }),
+
+    my_finds: tool({
+      description: 'List the people searches this person ran (find_people), newest first, each with what was needed, how many came up, its state and its link.',
+      inputSchema: z.object({}),
+      execute: async () => ({
+        finds: (await deps.finds(me)).map((f) => ({ need: f.need, found: f.rows.length, status: f.status, link: `/find/${f.id}` })),
+      }),
+    }),
+
     my_standing_needs: tool({
       description:
         "List what this person regularly needs (their standing needs, view 72), with each need's id, and whether Let sellers reach me is on. Sellers near them who fit can offer for a need only while that is on and the need is not paused.",
@@ -109,4 +208,15 @@ export const liveFindToolDeps: FindToolDeps = {
     const [profile, rates] = await Promise.all([getProfile(address), readUsdcRates()]);
     return formatLocalAmount(usdc, profile?.settings?.displayCurrency, rates) ?? `${Math.round(usdc * 100) / 100} USDC`;
   },
+  people: (need) => directoryCandidates(need, liveDirectoryDeps),
+  buyer: async (address) => {
+    const [profile, level] = await Promise.all([getProfile(address), levelOf(address)]);
+    return { location: profile?.location ?? null, verified: isVerified(level) };
+  },
+  blocked: blockedSet,
+  saveFind,
+  finds: (address) => myFinds(address),
+  cleanRecordCounts: config.ARC_NETWORK === 'testnet',
+  now: () => Date.now(),
+  newId: () => randomUUID(),
 };

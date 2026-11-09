@@ -150,4 +150,5 @@ Approved by the owner 8 Nov 2026, decisions 1 to 8; spec and plan approved the s
 | Phase | State |
 |---|---|
 | 1 Be found, be reached, a point on the map | Built 8 Nov 2026, not deployed: private requests by invitation, Be found and Let sellers reach me on Your agent and through the assistant, standing needs, blocks, map points from OpenStreetMap (off until `GEO_ENABLED=1`). The setup question "How do you meet people?" moves to Phase 2, with the Telegram interview |
-| 2 to 6 | Planned |
+| 2 Find sellers | Backend built 8 Nov 2026, not deployed: one ranking for the assistant, Telegram and outside agents (`find/rank.ts`; `find_counterparty` moved onto it), `find_people` and `my_finds`, finds kept private for a week. A find reads the records Karwan already keeps, so it costs nothing; paid record reads stay on the shortlist of offers. The shortlist card, `/find/{id}` and the setup question wait for the Figma review |
+| 3 to 6 | Planned |

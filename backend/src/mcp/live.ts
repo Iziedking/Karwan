@@ -1,11 +1,10 @@
 import { agentJobs } from '../agentJobs/agentJobsLive.js';
-import { sealedSellers } from '../agents/sealedSellers.js';
-import { sealedSellerDeps } from '../agents/sealedSellersLive.js';
 import { config } from '../config.js';
-import { findProfileByHandle, getProfile } from '../db/profiles.js';
+import { findProfileByHandle } from '../db/profiles.js';
 import { logger } from '../logger.js';
 import { checkPerson } from '../lookup/checkPerson.js';
-import { rankSellers, sellerIndex } from '../matching/sellerIndex.js';
+import { directoryCandidates } from '../find/directory.js';
+import { liveDirectoryDeps } from '../find/directoryLive.js';
 import { mayReadOutside } from '../reputation/consent.js';
 import { loadPublicPassport } from '../sealed/passportLoader.js';
 import { levelOf } from '../verification/live.js';
@@ -29,13 +28,9 @@ export async function liveMcpDeps(): Promise<McpDeps | null> {
     paid,
     find: (input) =>
       findForAgent(input, {
-        async sellers(request) {
-          if (!sellerIndex.isBuilt()) await sellerIndex.rebuild();
-          return rankSellers(sellerIndex.entries(), request).byWords;
-        },
-        profile: (user) => getProfile(user),
-        seal: (i) => sealedSellers(i, sealedSellerDeps, Date.now()),
-        nowMs: Date.now(),
+        candidates: (need) => directoryCandidates(need, liveDirectoryDeps),
+        cleanRecordCounts: config.ARC_NETWORK === 'testnet',
+        requireVerified: false,
       }),
     async check(handle) {
       const tag = handle.replace(/^@/, '').trim();

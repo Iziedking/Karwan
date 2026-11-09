@@ -3,6 +3,8 @@ import test from 'node:test';
 import type { AssistantAction } from './actions.js';
 import { findTools, type FindToolDeps } from './findTools.js';
 import type { StandingNeed } from '../find/needs.js';
+import type { Find } from '../find/finds.js';
+import type { FindCandidate } from '../find/rank.js';
 
 /// Being reached and blocking from the assistant (view 72).
 
@@ -17,6 +19,14 @@ function setup(over: Partial<FindToolDeps> = {}) {
     needs: async () => [TOMATOES],
     byTag: async (tag) => (tag === 'ada' ? { address: '0xADA0000000000000000000000000000000000000', handle: 'ada' } : null),
     money: async (_a, usdc) => `₦${Math.round(usdc * 1346).toLocaleString('en')}`,
+    people: async () => [],
+    buyer: async () => ({ location: null, verified: false }),
+    blocked: async () => new Set(),
+    saveFind: async (f) => f,
+    finds: async () => [],
+    cleanRecordCounts: false,
+    now: () => 1_000,
+    newId: () => 'find-1',
     ...over,
   };
   return { actions, tools: findTools(ME, actions, deps) };
@@ -78,4 +88,59 @@ test('a block is by tag, never yourself, and the person is not told', async () =
   assert.match((nobody as { error: string }).error, /Nobody on Karwan/);
   const self = setup({ byTag: async () => ({ address: ME, handle: 'me' }) });
   assert.match(((await self.tools.propose_block_person.execute!({ tag: 'me', block: true }, call)) as { error: string }).error, /their own tag/);
+});
+
+const TAILOR: FindCandidate = {
+  user: '0xtailor', sellerAgent: '0xtailoragent', name: 'Ngozi Stitches', tag: 'ngozi', words: ['tailor', 'dress', 'sewing'],
+  meet: { atMyPlace: true, comeToYouKm: null, online: false },
+  location: { country: 'NG', city: 'Abuja', area: 'Maitama', reach: {}, point: { lat: 9.09, lng: 7.491, precision: 'area', source: 'osm', at: 1 } },
+  verified: true, tier: 'ESTABLISHED', rating: { kind: 'rated', value: 4.8, count: 12, disputed: 0 }, price: { min: 40, usual: 60 }, days: { min: 2, max: 5 },
+  onTimeRate: 90, completed: 12, disputesLost: 0, contactFrom: 'anyone', outsideAgents: true,
+};
+const WUSE = { country: 'NG', city: 'Abuja', area: 'Wuse 2', reach: {}, point: { lat: 9.07, lng: 7.479, precision: 'area' as const, source: 'osm', at: 1 } };
+const FIND = { need: 'a tailor to make a dress', budgetUsdc: 70, kind: 'in_person' as const, where: 'near' as const };
+
+test('find_people asks once where they are before an in-person find', async () => {
+  const s = setup();
+  const out = (await s.tools.find_people.execute!(FIND, call)) as { needsLocation?: boolean };
+  assert.equal(out.needsLocation, true);
+});
+
+test('find_people lists who fits with distance in words, saves the find, and moves nothing', async () => {
+  const saved: Find[] = [];
+  const s = setup({
+    people: async () => [TAILOR, { ...TAILOR, user: '0xquote', tag: 'quote', name: 'Quote Tailors', verified: false, price: null, days: null }],
+    buyer: async () => ({ location: WUSE, verified: false }),
+    saveFind: async (f) => { saved.push(f); return f; },
+  });
+  const out = (await s.tools.find_people.execute!(FIND, call)) as { found: number; link: string; people: Array<Record<string, unknown>> };
+  assert.equal(out.found, 2);
+  assert.equal(out.link, '/find/find-1');
+  assert.equal(out.people[0]!.tag, '@ngozi');
+  assert.equal(out.people[0]!.distance, 'about 3 km away');
+  assert.equal(out.people[0]!.meets, 'at their place');
+  assert.equal(out.people[0]!.price, '₦80,760');
+  assert.equal(out.people[0]!.recommended, true);
+  assert.equal(out.people[1]!.price, 'Asks for a quote');
+  assert.equal(JSON.stringify(out).includes('7.491'), false);
+  assert.equal(JSON.stringify(out).includes('Maitama'), false);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0]!.owner, ME);
+  assert.equal(saved[0]!.endsAt, 1_000 + 7 * 86_400_000);
+  assert.equal(s.actions.length, 0, 'no card: finding contacts nobody');
+});
+
+test('find_people with nobody who fits says so and saves nothing', async () => {
+  const saved: Find[] = [];
+  const s = setup({ buyer: async () => ({ location: WUSE, verified: false }), saveFind: async (f) => { saved.push(f); return f; } });
+  const out = (await s.tools.find_people.execute!(FIND, call)) as { found: number; next: string };
+  assert.equal(out.found, 0);
+  assert.match(out.next, /open market/);
+  assert.equal(saved.length, 0);
+});
+
+test('people they blocked, or who blocked them, never come up', async () => {
+  const s = setup({ people: async () => [TAILOR], buyer: async () => ({ location: WUSE, verified: false }), blocked: async () => new Set(['0xtailor']) });
+  const out = (await s.tools.find_people.execute!(FIND, call)) as { found: number };
+  assert.equal(out.found, 0);
 });

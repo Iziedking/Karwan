@@ -470,6 +470,20 @@ export const findBlocks = pgTable(
   }),
 );
 
+/// A person's finds, private to them (view 72).
+export const finds = pgTable(
+  'finds_v1',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').notNull(),
+  },
+  (t) => ({
+    ownerIdx: index('finds_v1_owner_idx').on(t.owner, t.createdAt),
+  }),
+);
+
 /// Paid web research reads, kept so a restart does not lose them (view 48,
 /// step 4). Keyed by the normalised keyword set.
 export const marketReads = pgTable(

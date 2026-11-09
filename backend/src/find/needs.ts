@@ -76,6 +76,16 @@ export async function liveNeedsOf(owners: readonly string[]): Promise<StandingNe
   return rows.map((r) => r.data as StandingNeed).filter((n) => set.has(n.owner));
 }
 
+/// Account deletion.
+export async function deleteNeedsOf(owner: string): Promise<void> {
+  const o = owner.toLowerCase();
+  if (!pgEnabled) {
+    for (const [id, n] of mem) if (n.owner === o) mem.delete(id);
+    return;
+  }
+  await db().delete(standingNeeds).where(eq(standingNeeds.owner, o));
+}
+
 /// For tests only.
 export function resetNeedsForTests(): void {
   mem.clear();

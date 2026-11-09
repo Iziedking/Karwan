@@ -3,11 +3,12 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { block, unblock } from '../find/blocks.js';
+import { findOf, myFinds, ownerView } from '../find/finds.js';
 import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, removeNeed, saveNeed, TooManyNeeds, type StandingNeed } from '../find/needs.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
-/// Be reached and block (view 72): a person's standing needs, and who they
-/// stopped. Every route acts only for the signed-in person.
+/// Finds, being reached and blocks (view 72): a person's finds, standing needs
+/// and who they stopped. Every route acts only for the signed-in person.
 
 export const findRoutes = new Hono();
 
@@ -85,3 +86,17 @@ async function blockStep(c: Context, act: (owner: string, other: string) => Prom
 
 findRoutes.post('/block', (c) => blockStep(c, block));
 findRoutes.post('/unblock', (c) => blockStep(c, unblock));
+
+/// A person's own finds. Anyone else's find is not found, never forbidden.
+findRoutes.get('/finds', async (c) => {
+  const me = sessionAddress(c);
+  if (!me) return c.json({ error: 'not authenticated' }, 401);
+  return c.json({ finds: (await myFinds(me)).map(ownerView) });
+});
+
+findRoutes.get('/finds/:id', async (c) => {
+  const me = sessionAddress(c);
+  if (!me) return c.json({ error: 'not authenticated' }, 401);
+  const found = await findOf(me, c.req.param('id'));
+  return found ? c.json({ find: ownerView(found) }) : c.json({ error: 'find not found' }, 404);
+});
