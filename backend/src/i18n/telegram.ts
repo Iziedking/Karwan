@@ -121,6 +121,8 @@ type TgKey =
   | 'pitch.reminder'
   | 'pitch.offer'
   | 'pitch.offerOneDay'
+  | 'pitch.offerTwoDays'
+  | 'pitch.offerManyDays'
   | 'pitch.verified'
   | 'pitch.rated'
   | 'pitch.open'
@@ -251,9 +253,11 @@ const en: Record<TgKey, string> = {
   'pitch.reminder': 'Reminder: someone can help with what you need',
   'pitch.offer': '{name} offers {price}, ready in {days} days',
   'pitch.offerOneDay': '{name} offers {price}, ready in 1 day',
+  'pitch.offerTwoDays': '{name} offers {price}, ready in 2 days',
+  'pitch.offerManyDays': '{name} offers {price}, ready in {days} days',
   'pitch.verified': 'Verified',
   'pitch.rated': 'Rated {stars}',
-  'pitch.open': 'Open it to say interested, not now, or not interested.',
+  'pitch.open': 'Open it to answer: interested, not now, or not interested.',
   'pitch.interested': 'They are interested. Your offer is on their private request now.',
 };
 
@@ -382,6 +386,8 @@ const ar: Partial<Record<TgKey, string>> = {
   'pitch.reminder': 'تذكير: شخص يمكنه مساعدتك فيما تحتاجه',
   'pitch.offer': '{name} يعرض {price}، جاهز خلال {days} أيام',
   'pitch.offerOneDay': '{name} يعرض {price}، جاهز خلال يوم واحد',
+  'pitch.offerTwoDays': '{name} يعرض {price}، جاهز خلال يومين',
+  'pitch.offerManyDays': '{name} يعرض {price}، جاهز خلال {days} يومًا',
   'pitch.verified': 'موثّق',
   'pitch.rated': 'التقييم {stars}',
   'pitch.open': 'افتحه لتقول مهتم، أو ليس الآن، أو غير مهتم.',
@@ -513,6 +519,8 @@ const fr: Partial<Record<TgKey, string>> = {
   'pitch.reminder': 'Rappel : quelqu\'un peut vous aider pour votre besoin',
   'pitch.offer': '{name} propose {price}, prêt en {days} jours',
   'pitch.offerOneDay': '{name} propose {price}, prêt en 1 jour',
+  'pitch.offerTwoDays': '{name} propose {price}, prêt en 2 jours',
+  'pitch.offerManyDays': '{name} propose {price}, prêt en {days} jours',
   'pitch.verified': 'Vérifié',
   'pitch.rated': 'Noté {stars}',
   'pitch.open': 'Ouvrez-la pour dire intéressé, pas maintenant, ou pas intéressé.',
@@ -644,6 +652,8 @@ const hi: Partial<Record<TgKey, string>> = {
   'pitch.reminder': 'याद दिलाना: कोई आपकी ज़रूरत में मदद कर सकता है',
   'pitch.offer': '{name}: {price}, {days} दिन में तैयार',
   'pitch.offerOneDay': '{name}: {price}, 1 दिन में तैयार',
+  'pitch.offerTwoDays': '{name}: {price}, 2 दिन में तैयार',
+  'pitch.offerManyDays': '{name}: {price}, {days} दिन में तैयार',
   'pitch.verified': 'सत्यापित',
   'pitch.rated': 'रेटिंग {stars}',
   'pitch.open': 'खोलें और बताएँ: रुचि है, अभी नहीं, या रुचि नहीं।',
@@ -775,6 +785,8 @@ const sw: Partial<Record<TgKey, string>> = {
   'pitch.reminder': 'Kumbusho: mtu anaweza kukusaidia na unachohitaji',
   'pitch.offer': '{name} anatoa {price}, tayari ndani ya siku {days}',
   'pitch.offerOneDay': '{name} anatoa {price}, tayari ndani ya siku 1',
+  'pitch.offerTwoDays': '{name} anatoa {price}, tayari ndani ya siku 2',
+  'pitch.offerManyDays': '{name} anatoa {price}, tayari ndani ya siku {days}',
   'pitch.verified': 'Amethibitishwa',
   'pitch.rated': 'Ukadiriaji {stars}',
   'pitch.open': 'Fungua useme unavutiwa, si sasa, au huvutiwi.',

@@ -4,7 +4,7 @@ import { answerPitch } from './answers.js';
 import { contactOf, createContact, markPitchOffered, markPitchPosted, pitchByJob, resetContactsForTests, type Contact } from './contacts.js';
 import { DAY_MS } from './limits.js';
 import { ownerView, resetFindsForTests, saveFind, type Find } from './finds.js';
-import { pitchPicked, placePitchOffer, sendPitchDue, type PitchDeps, type PlaceDeps } from './pitches.js';
+import { pitchNote, pitchPicked, placePitchOffer, sendPitchDue, type PitchDeps, type PlaceDeps } from './pitches.js';
 import type { LeadRow } from './rankBuyers.js';
 
 /// Pitches (view 72, Phase 4): a seller offers to help buyers who let sellers
@@ -51,10 +51,23 @@ test('the buyer is told in their own language and money, with how far, never whe
   assert.deepEqual(out, { pitched: 2, refused: [] });
   assert.deepEqual(notes[0], {
     to: '0xrestaurant', pitchId: 'pitch-1', heading: 'Someone near you can help with what you need',
-    lines: ['"Lunch for 20 every Friday"', 'Chef Bisi offers ₦44,997, ready in 2 days', 'Verified · Rated 4.8', 'About 3 km from you', 'Open it to say interested, not now, or not interested.'],
+    lines: ['"Lunch for 20 every Friday"', 'Chef Bisi offers ₦44,997, ready in 2 days', 'Verified · Rated 4.8', 'About 3 km from you', 'Open it to answer: interested, not now, or not interested.'],
   });
   assert.match(notes[1]!.heading, /Quelqu'un près de chez vous/);
   assert.match(notes[1]!.lines[1]!, /33.43 €/);
+});
+
+test('the days read right in Arabic: one, two, three to ten, eleven and up', async () => {
+  const seller = { name: 'Bisi', verified: false, stars: null };
+  const line = async (days: number) =>
+    (await pitchNote(
+      { to: '0xar', what: 'Lunch', kind: 'remote', distance: { key: 'about', km: 3 }, seller, offer: { priceUsdc: '10', days, note: '' }, reminder: false },
+      { locale: async () => 'ar', money: async () => '10 USDC' },
+    )).lines[1];
+  assert.equal(await line(1), 'Bisi يعرض 10 USDC، جاهز خلال يوم واحد');
+  assert.equal(await line(2), 'Bisi يعرض 10 USDC، جاهز خلال يومين');
+  assert.equal(await line(7), 'Bisi يعرض 10 USDC، جاهز خلال 7 أيام');
+  assert.equal(await line(14), 'Bisi يعرض 10 USDC، جاهز خلال 14 يومًا');
 });
 
 test('one pitch per seller per need, and an open request is offered on, never pitched', async () => {

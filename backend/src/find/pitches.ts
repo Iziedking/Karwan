@@ -39,6 +39,10 @@ export interface PitchOutcome {
   refused: Array<{ what: string; reason: PitchRefusal }>;
 }
 
+/// Arabic counts 1, 2, 3 to 10 and 11 up with different words.
+const offerKey = (days: number) =>
+  days === 1 ? 'pitch.offerOneDay' : days === 2 ? 'pitch.offerTwoDays' : days > 10 ? 'pitch.offerManyDays' : 'pitch.offer';
+
 /// The pitch, or its one reminder, in the buyer's language and money.
 export async function pitchNote(
   input: { to: string; what: string; kind: DeliveryKind; distance: DistanceLine; seller: PitchSeller; offer: PitchOffer; reminder: boolean },
@@ -52,7 +56,7 @@ export async function pitchNote(
   const record = [input.seller.verified ? tg('pitch.verified', locale) : null, input.seller.stars !== null ? tg('pitch.rated', locale, { stars: input.seller.stars.toFixed(1) }) : null].filter(Boolean).join(' · ');
   const lines = [
     `"${input.what}"`,
-    tg(input.offer.days === 1 ? 'pitch.offerOneDay' : 'pitch.offer', locale, vars),
+    tg(offerKey(input.offer.days), locale, vars),
     record || null,
     near ? distanceText(input.distance, locale) : null,
     input.offer.note ? `"${input.offer.note}"` : null,
