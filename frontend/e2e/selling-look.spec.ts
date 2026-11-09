@@ -46,8 +46,9 @@ test('Start a deal is one screen with one green button, and fits a phone', async
   await page.getByRole('button', { name: new RegExp(`^${en.requestFlow.kinds.one}`) }).click();
   await expect(page.getByLabel(en.directDeal.counterparty.oneBoxLabel)).toBeVisible();
   await expect(page.getByLabel(en.editDealModal.deliverLabel, { exact: true })).toBeVisible();
-  // View 56: no milestone setup until the words make parts.
-  await expect(page.locator('[data-pay-in-parts]')).toHaveCount(0);
+  // Pay in parts stays one tap away on work (owner, 8 Nov 2026), closed until opened.
+  await expect(page.locator('[data-pay-in-parts]')).toHaveCount(1);
+  await expect(page.locator('[data-pay-in-parts]')).not.toHaveAttribute('open', /.*/);
   expect(await greenControls(page)).toEqual([en.dealCreation.review]);
   expect(await noSidewaysScroll(page)).toBe(true);
   await page.screenshot({ path: info.outputPath('start-deal.png'), fullPage: true });

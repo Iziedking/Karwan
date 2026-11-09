@@ -94,7 +94,7 @@ export function WaysEditor() {
             >
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{c.shapes[w.shape]}</span>
-                <span className="mt-0.5 block break-words text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{waySummary(side, w, c, mt.fill)}</span>
+                <span className="mt-0.5 block break-words text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{waySummary(side, w, c, mt.currency === 'USDC' ? undefined : mt.fill)}</span>
               </span>
               <span className="shrink-0 text-[14px] font-semibold text-[var(--lp-dark)] underline-offset-4">{c.edit}</span>
             </button>
