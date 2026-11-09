@@ -66,10 +66,9 @@ export function CreatePayLink() {
   }
 
   return (
-    <ProfileFrame title={url ? copy.ready : copy.title}>
+    <ProfileFrame title={url ? copy.ready : copy.title} hint={copy.directNote}>
       {url ? (
         <div className="space-y-6">
-          <p className="-mt-3 text-[15px] text-[var(--ink-secondary)]">{copy.directNote}</p>
           {address ? <PaymentCard recipient={address} amount={amountUsdc} purpose={purpose.trim() || null} state="open" expiresAt={expiresAt} url={url} /> : null}
           <ShareLink url={url} compact />
           <button
@@ -104,7 +103,6 @@ export function CreatePayLink() {
           </form>
         ) : (
         <form onSubmit={(event) => void create(event)} data-request-step="details" className="space-y-6" aria-busy={busy}>
-          <p className="-mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{copy.directNote}</p>
           {keypad ? (
             <div data-request-amount className="flex items-center justify-between gap-3 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
               <div className="min-w-0">

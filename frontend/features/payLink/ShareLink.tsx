@@ -5,13 +5,17 @@ import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
 
 /// The link, a copy button, the phone's share sheet when there is one, and a QR
-/// code for someone standing next to you.
+/// code for someone standing next to you. Share shows on touch screens only:
+/// desktop browsers report a share sheet that often opens nothing (owner, 9 Nov
+/// 2026), so there Copy link is the one button.
 /// `compact` leaves out the link and the QR when a payment card above already shows them.
 export function ShareLink({ url, compact = false }: { url: string; compact?: boolean }) {
   const copy = useTranslations().payLink.create;
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
-  useEffect(() => setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function'), []);
+  useEffect(() => setCanShare(
+    typeof navigator !== 'undefined' && typeof navigator.share === 'function' && window.matchMedia('(pointer: coarse)').matches,
+  ), []);
 
   async function copyLink() {
     try {
@@ -32,7 +36,10 @@ export function ShareLink({ url, compact = false }: { url: string; compact?: boo
           {copied ? copy.copied : copy.copy}
         </button>
         {canShare ? (
-          <button type="button" onClick={() => void navigator.share({ url }).catch(() => {})} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>
+          <button type="button" onClick={() => void navigator.share({ url }).catch((err: unknown) => {
+            // Closing the sheet is a choice; anything else falls back to copying the link.
+            if ((err as { name?: string })?.name !== 'AbortError') void copyLink();
+          })} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>
             {copy.share}
           </button>
         ) : null}

@@ -101,7 +101,11 @@ test('any signed-in account creates a link that lasts a week', async ({ page }) 
   await mockApi(page, { signedInAs: BUYER, onCreate: (body) => (created = body) });
   await page.goto('/request');
   await expect(page.getByRole('heading', { name: copy.create.title })).toBeVisible();
-  await expect(page.getByText(copy.create.directNote)).toBeVisible();
+  // Where the money goes sits behind the (i) by the title (owner, 9 Nov 2026).
+  await expect(page.getByText(copy.create.directNote)).toHaveCount(0);
+  await page.getByRole('heading', { name: copy.create.title }).getByRole('button').click();
+  await expect(page.getByRole('tooltip')).toContainText(copy.create.directNote);
+  await page.getByRole('tooltip').locator('[data-hint-got-it]').click();
   const create = page.getByRole('button', { name: copy.create.create });
   await expect(create).toBeDisabled();
   await page.getByPlaceholder('0').fill('10');
@@ -109,6 +113,8 @@ test('any signed-in account creates a link that lasts a week', async ({ page }) 
   await create.click();
   await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
   await expect(page.getByText(`/deposit/request/${TOKEN}`)).toBeVisible();
+  // A mouse and keyboard get Copy link only; Share is for a phone's share sheet.
+  await expect(page.getByRole('button', { name: copy.create.share, exact: true })).toHaveCount(0);
   expect(created).toEqual({ amountUsdc: '10', purpose: 'Logo, first draft', ttlMinutes: 7 * 24 * 60 });
 });
 
@@ -297,7 +303,7 @@ for (const [lang, messages] of batch3Locales) test('Batch 3 direct payment clari
  await page.screenshot({path:info.outputPath('payment-'+lang+'.png'),fullPage:true});
  await mockApi(page,{signedInAs:BUYER});
  await page.goto('/request');
- await expect(page.getByText(messages.payLink.create.directNote)).toBeVisible();
+ await expect(page.getByText(messages.payLink.create.directNote)).toHaveCount(0);
  await expect(page.getByRole('button',{name:messages.payLink.create.create})).toBeVisible();
  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
  await page.evaluate(() => document.fonts.ready);
