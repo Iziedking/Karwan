@@ -30,7 +30,7 @@ test('the first-visit note uses the same bubble, closes with Got it and is remem
   assert.match(coach, /bg-\[var\(--soft-green\)\]/);
   assert.match(coach, /data-coach-got-it/);
   assert.match(coach, /localStorage\.setItem\(key, '1'\)/);
-  assert.match(coach, /karwan:guide:disabled/, 'someone who turned the guide off sees no coach notes');
+  assert.match(coach, /if \(!show \|\| disabled \|\| hasActive\) return null;/, 'no note with the guide off or while a tour is open');
   assert.match(source('../../features/money/components/MoneyHome.tsx'), /<CoachNote id="money-balance">\{pages\.firstVisit\}<\/CoachNote>/);
   const { moneyPagesCopy } = await import('../i18n/messages/moneyPages');
   for (const copy of Object.values(moneyPagesCopy)) {

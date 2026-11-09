@@ -9,8 +9,12 @@ for (const locale of ['en', 'ar'] as const) {
   test(`the first-visit note on Money shows once and Got it is remembered, ${locale}`, async ({ page }, info) => {
     await page.context().addCookies([{ name: 'karwan-locale', value: locale, domain: '127.0.0.1', path: '/' }]);
     await serveMoney(page, { balances: funded });
-    // The money fixtures turn the page guide off; this person has it on.
-    await page.addInitScript(() => localStorage.removeItem('karwan:guide:disabled'));
+    // The money fixtures turn the page guide off; this person has it on and has
+    // already seen the first-run welcome, which goes first.
+    await page.addInitScript(() => {
+      localStorage.removeItem('karwan:guide:disabled');
+      localStorage.setItem('karwan:guide:seen', JSON.stringify(['welcome-v1']));
+    });
     await page.goto('/account');
     const note = page.locator('[data-coach-note="money-balance"]');
     await expect(note).toHaveText(new RegExp(moneyPagesCopy[locale].firstVisit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
