@@ -425,6 +425,8 @@ export interface FoundPerson {
   reasons: FindReason[];
   recommended: boolean;
   photo: string | null;
+  /// Where the deal alert to them stands, once they were asked (Phase 3).
+  asked: { answer: 'interested' | 'not_now' | 'no' | null; nextAt: number | null; closed: boolean } | null;
 }
 
 /// A person's find, private to them (view 72).
@@ -4234,9 +4236,14 @@ export const api = {
       attachments?: Array<{ name: string; dataUrl: string }>;
       /// Add the photos or PDFs sent to the assistant for it.
       heldAttachments?: boolean;
+      /// How and where the work happens.
+      deliveryKind?: 'goods' | 'in_person' | 'remote';
+      where?: { scope: 'near' | 'country' | 'anywhere'; country?: string };
+      /// Posted privately from a find (view 72): the people picked, by their place on its list.
+      find?: { id: string; picks: number[] };
     } & ({ deadlineSeconds: number } | { deadlineDays: number }),
   ) =>
-    json<{ jobId: string; deadlineUnix: number; txHash?: string }>(
+    json<{ jobId: string; deadlineUnix: number; txHash?: string; asked?: string[]; notAsked?: string[] }>(
       '/api/jobs',
       { method: 'POST', body: JSON.stringify(body) },
     ),

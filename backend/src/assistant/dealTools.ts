@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getBrief } from '../db/briefs.js';
+import { sellerAgentMaySee } from '../market/visibility.js';
 import { getDeal, type DirectDeal } from '../db/deals.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { getBuyerJob, getShortlist, listOpenJobContexts } from '../agents/buyer.js';
@@ -502,7 +503,7 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
           const entry = sellerIndex.get(address) ?? (await sellerIndex.refresh(address));
           if (!entry) return { requests: [], note: 'They have no selling profile yet. Offer set_up_my_agents.' };
           const nowSec = Math.floor(Date.now() / 1000);
-          const open = listOpenJobContexts().filter((j) => j.deadlineUnix > nowSec);
+          const open = listOpenJobContexts().filter((j) => j.deadlineUnix > nowSec && sellerAgentMaySee(getBrief(j.jobId) ?? {}, address));
           const fits = requestsForSeller(
             entry,
             open.map((j) => {

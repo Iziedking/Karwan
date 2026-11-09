@@ -1621,6 +1621,28 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX finds_v1_owner_idx ON finds_v1 (owner, created_at DESC);
     `,
   },
+  {
+    // Deal alerts and pitches sent from finds, with when each is next due (view 72).
+    version: 66,
+    name: 'find_contacts',
+    sql: `
+      CREATE TABLE find_contacts_v1 (
+        id TEXT PRIMARY KEY,
+        find_id TEXT NOT NULL,
+        from_addr TEXT NOT NULL,
+        to_addr TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        need_id TEXT,
+        sent_at BIGINT NOT NULL,
+        next_at BIGINT,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX find_contacts_v1_find_idx ON find_contacts_v1 (find_id);
+      CREATE INDEX find_contacts_v1_from_idx ON find_contacts_v1 (from_addr, sent_at);
+      CREATE INDEX find_contacts_v1_to_idx ON find_contacts_v1 (to_addr, sent_at);
+      CREATE INDEX find_contacts_v1_due_idx ON find_contacts_v1 (next_at) WHERE next_at IS NOT NULL;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

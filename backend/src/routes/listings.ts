@@ -8,7 +8,7 @@ import { generateObject } from 'ai';
 import { llmModel } from '../llm/client.js';
 import { singleFlight } from '../llm/singleFlight.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
-import { isPublic } from '../market/visibility.js';
+import { isPublic, sellerAgentMaySee } from '../market/visibility.js';
 import {
   cancelListing,
   createListing,
@@ -31,7 +31,7 @@ import { buildDirectDealFundingQuote } from '../deals/fundingQuote.js';
 import { listingHeldByOrder, listingOrderTerms } from '../deals/listingOrder.js';
 import { getDeal } from '../db/deals.js';
 import { newDealFeeBps } from '../deals/newDealFee.js';
-import { listAllBriefs } from '../db/briefs.js';
+import { getBrief, listAllBriefs } from '../db/briefs.js';
 import { config } from '../config.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { rateLimit } from '../middleware/rateLimit.js';
@@ -735,6 +735,8 @@ async function tryMatchListingToJob(
   job: ListingMatchJob,
   seller: NonNullable<Awaited<ReturnType<typeof resolveSellerProfile>>>,
 ): Promise<boolean> {
+  // A private request from a find reaches only the people asked (view 72).
+  if (!sellerAgentMaySee(getBrief(job.jobId) ?? {}, listing.sellerUser)) return false;
   let legacyMatched = false;
   const legacyStartedAt = performance.now();
   try {

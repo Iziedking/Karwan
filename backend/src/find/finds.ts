@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db, pgEnabled } from '../db/client.js';
 import { finds } from '../db/schema.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
@@ -42,13 +42,22 @@ export function asOf(f: Find, now: number): Find {
   return f.status !== 'ended' && now >= f.endsAt ? { ...f, status: 'ended' } : f;
 }
 
-/// What the owner's screen reads: people by name, tag and photo, never a wallet.
-export type FindView = Omit<Find, 'owner' | 'rows'> & { rows: Array<Omit<FoundRow, 'user' | 'sellerAgent'> & { photo: string | null }> };
+/// Where an alert to one person stands, as the buyer sees it.
+export interface AskedView {
+  answer: 'interested' | 'not_now' | 'no' | null;
+  /// When they are reminded next; null when nothing more goes to them.
+  nextAt: number | null;
+  closed: boolean;
+}
 
-/// `photos` maps a person to their profile photo, read when the page opens.
-export function ownerView(f: Find, photos: ReadonlyMap<string, string> = new Map()): FindView {
+/// What the owner's screen reads: people by name, tag and photo, never a wallet.
+export type FindView = Omit<Find, 'owner' | 'rows'> & { rows: Array<Omit<FoundRow, 'user' | 'sellerAgent'> & { photo: string | null; asked: AskedView | null }> };
+
+/// `photos` maps a person to their profile photo, read when the page opens;
+/// `asked` maps a person to where their deal alert stands.
+export function ownerView(f: Find, photos: ReadonlyMap<string, string> = new Map(), asked: ReadonlyMap<string, AskedView> = new Map()): FindView {
   const { owner: _owner, rows, ...rest } = f;
-  return { ...rest, rows: rows.map(({ user, sellerAgent: _a, ...r }) => ({ ...r, photo: photos.get(user.toLowerCase()) ?? null })) };
+  return { ...rest, rows: rows.map(({ user, sellerAgent: _a, ...r }) => ({ ...r, photo: photos.get(user.toLowerCase()) ?? null, asked: asked.get(user.toLowerCase()) ?? null })) };
 }
 
 export async function saveFind(f: Find): Promise<Find> {
@@ -73,6 +82,21 @@ export async function findOf(owner: string, id: string, now = Date.now()): Promi
   }
   const [r] = await db().select().from(finds).where(and(eq(finds.id, id), eq(finds.owner, o))).limit(1);
   return r ? asOf(r.data as Find, now) : null;
+}
+
+/// A find by its id alone, for the sweep that sends its alerts.
+export async function findById(id: string): Promise<Find | null> {
+  if (!pgEnabled) return mem.get(id) ?? null;
+  const [r] = await db().select().from(finds).where(eq(finds.id, id)).limit(1);
+  return r ? (r.data as Find) : null;
+}
+
+/// The find a private request was posted from, if any.
+export async function findByJob(jobId: string): Promise<Find | null> {
+  const j = jobId.toLowerCase();
+  if (!pgEnabled) return [...mem.values()].find((f) => f.jobId?.toLowerCase() === j) ?? null;
+  const [r] = await db().select().from(finds).where(sql`lower(${finds.data}->>'jobId') = ${j}`).limit(1);
+  return r ? (r.data as Find) : null;
 }
 
 /// Newest first.

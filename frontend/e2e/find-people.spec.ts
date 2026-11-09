@@ -23,7 +23,7 @@ const FIND = {
   ],
 };
 
-test('the find page lists the people, and a tap opens one with Message and their record', async ({ page }, info) => {
+test('the find page lists the people, and a tap opens one to pick, with their record', async ({ page }, info) => {
   await serveMoney(page, { balances: funded });
   await page.route(`${API}/api/find/finds/${ID}`, (route) => route.fulfill({ json: { find: FIND } }));
   await page.goto(`/find/${ID}`);
@@ -43,7 +43,7 @@ test('the find page lists the people, and a tap opens one with Message and their
   const sheet = page.locator('[data-found-sheet]');
   await expect(sheet.getByRole('heading', { name: 'Ngozi Okafor' })).toBeVisible();
   await expect(sheet).toContainText('@ngozi · Verified · Established');
-  await expect(sheet.getByRole('link', { name: 'Message Ngozi' })).toHaveAttribute('href', '/messages/ngozi');
+  await expect(sheet.getByRole('button', { name: 'Pick Ngozi' })).toBeVisible();
   await expect(sheet.getByRole('link', { name: 'See full record' })).toHaveAttribute('href', '/r/ngozi');
   await page.screenshot({ path: info.outputPath('find-sheet.png') });
   const text = await page.locator('body').innerText();
@@ -55,4 +55,44 @@ test('a find that is not yours reads as nothing here', async ({ page }) => {
   await page.route(`${API}/api/find/finds/${ID}`, (route) => route.fulfill({ status: 404, json: { error: 'find not found' } }));
   await page.goto(`/find/${ID}`);
   await expect(page.getByText('Nothing here. A list of people found is only for the person who asked.')).toBeVisible();
+});
+
+test('pick two, ask them, and see how each answered', async ({ page }, info) => {
+  await serveMoney(page, { balances: funded });
+  let sent: Record<string, unknown> | null = null;
+  await page.route(`${API}/api/find/finds/${ID}`, (route) => route.fulfill({ json: { find: sent
+    ? { ...FIND, jobId: '0xjob', status: 'contacting', rows: [
+        { ...FIND.rows[0], asked: { answer: 'interested', nextAt: null, closed: false } },
+        { ...FIND.rows[1], asked: { answer: null, nextAt: Date.now() + 2 * 3_600_000, closed: false } },
+        { ...FIND.rows[2], asked: null },
+      ] }
+    : FIND } }));
+  await page.route(`${API}/api/jobs`, async (route) => {
+    sent = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, asked: ['Ngozi Okafor', 'Amaka Obi'], notAsked: [] } });
+  });
+  await page.goto(`/find/${ID}`);
+  const rows = page.locator('[data-found-person]');
+  await rows.nth(0).click();
+  await page.locator('[data-found-sheet]').getByRole('button', { name: 'Pick Ngozi' }).click();
+  await rows.nth(1).click();
+  await page.locator('[data-found-sheet]').getByRole('button', { name: 'Pick Amaka' }).click();
+  await expect(rows.nth(0)).toHaveAttribute('data-picked', 'true');
+  await expect(page.locator('[data-ask-bar]')).toContainText('2 of 3 picked');
+  await page.locator('[data-ask]').click();
+  const ask = page.locator('[data-ask-sheet]');
+  await expect(ask.getByRole('heading', { name: 'Ask Ngozi and Amaka' })).toBeVisible();
+  await expect(ask).toContainText('How far you are, not where');
+  await page.screenshot({ path: info.outputPath('ask-sheet.png') });
+  await ask.getByRole('button', { name: 'Send to 2 people' }).click();
+  await expect.poll(() => sent).not.toBeNull();
+  expect((sent as unknown as { find: unknown }).find).toEqual({ id: ID, picks: [0, 1] });
+  await expect(page.getByRole('heading', { name: 'Asked 2 people' })).toBeVisible();
+  const asked = page.locator('[data-found-person]');
+  await expect(asked).toHaveCount(2);
+  await expect(asked.nth(0)).toContainText('Sent an offer');
+  await expect(asked.nth(1)).toContainText('Not answered yet · Reminder at');
+  await expect(page.getByRole('link', { name: 'Review offers' })).toHaveAttribute('href', '/jobs/0xjob');
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('asked.png'), fullPage: true });
 });

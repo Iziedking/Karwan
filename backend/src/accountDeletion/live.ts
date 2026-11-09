@@ -22,6 +22,7 @@ import { getDeal, listDealsForAddress } from '../db/deals.js';
 import { deleteRecord, keysHeldBy, listRecords, releaseUnique } from '../db/evidence.js';
 import { deleteFeedbackFromWallet } from '../db/feedback.js';
 import { deleteBlocksOf } from '../find/blocks.js';
+import { deleteContactsOf } from '../find/contacts.js';
 import { deleteFindsOf } from '../find/finds.js';
 import { deleteNeedsOf } from '../find/needs.js';
 import { deleteListingsBySeller, listListingsForSeller, listingStatus } from '../db/listings.js';
@@ -165,9 +166,10 @@ const eraser: Eraser = {
     { name: 'activity', run: deleteActivityFor },
     { name: 'assistant usage', run: deleteAssistantUsage },
     {
-      name: 'finds, standing needs and blocks',
+      name: 'finds, deal alerts, standing needs and blocks',
       run: async (address) => {
         await deleteFindsOf(address);
+        await deleteContactsOf(address);
         await deleteNeedsOf(address);
         await deleteBlocksOf(address);
       },

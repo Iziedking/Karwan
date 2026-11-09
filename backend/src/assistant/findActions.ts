@@ -1,4 +1,5 @@
-import { confirmNonce, type ConfirmActionBase } from './actions.js';
+import type { Where } from '../location/rules.js';
+import { buildPostRequestConfirm, confirmNonce, type ConfirmActionBase, type PostRequestConfirm } from './actions.js';
 
 /// Confirm cards for being reached and blocking (view 72). Each payload is the
 /// body the page sends. Being found rides the settings card (beFound, meet,
@@ -84,5 +85,40 @@ export function buildBlockPersonConfirm(i: { who: string; tag: string; block: bo
     payload: { who: i.who.toLowerCase() },
     confirmLabel: i.block ? 'Block' : 'Unblock',
     cancelLabel: 'Cancel',
+  };
+}
+
+/// Posting privately from a find and telling the people picked (view 72,
+/// Phase 3). It is the request card, private to those people, with the find
+/// on it so the server reads who they are; nothing is paid until the buyer
+/// picks an offer and locks the money.
+export function buildAlertPeopleConfirm(i: {
+  caller: string;
+  find: { id: string; need: string; budgetUsdc: string; kind: 'goods' | 'in_person' | 'remote'; where: Where; endsAt: number };
+  picks: number[];
+  names: string[];
+  budget: string;
+  now: number;
+}): PostRequestConfirm | { error: string } {
+  const n = i.names.length;
+  if (n < 1 || n > 3) return { error: 'Pick one to three people from the list.' };
+  const deadlineDays = Math.min(90, Math.max(1, Math.round((i.find.endsAt - i.now) / 86_400_000)));
+  const base = buildPostRequestConfirm({ caller: i.caller, brief: i.find.need, budgetUsdc: Number(i.find.budgetUsdc), deadlineDays, deliveryKind: i.find.kind, where: i.find.where });
+  if ('error' in base) return base;
+  const people = n === 1 ? '1 person' : `${n} people`;
+  return {
+    ...base,
+    id: `post_request:find:${i.find.id}:${confirmNonce()}`,
+    title: `Post privately and tell ${people}`,
+    fields: [
+      { label: 'You need', value: i.find.need.length > 140 ? `${i.find.need.slice(0, 137)}…` : i.find.need },
+      { label: 'Budget', value: i.budget },
+      { label: 'Asked', value: i.names.join(', ') },
+      { label: 'Who can see it', value: 'Only you and the people asked. Never on the market.' },
+      { label: 'They see', value: 'How far you are, not where' },
+    ],
+    payload: { ...base.payload, find: { id: i.find.id, picks: [...new Set(i.picks)] } },
+    confirmLabel: `Send to ${people}`,
+    cancelLabel: 'Not now',
   };
 }

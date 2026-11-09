@@ -28,6 +28,7 @@ function setup(over: Partial<FindToolDeps> = {}) {
     cleanRecordCounts: false,
     now: () => 1_000,
     newId: () => ID,
+    decline: async () => 'none',
     ...over,
   };
   return { actions, tools: findTools(ME, actions, deps) };

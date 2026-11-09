@@ -95,6 +95,9 @@ export interface PostRequestPayload {
   terms?: string;
   /// Add the photos or PDFs sent to the assistant for it (view 56).
   heldAttachments?: boolean;
+  /// Posted privately from a find (view 72): its id and the people picked, by
+  /// their place on the list. The server reads who they are from the find.
+  find?: { id: string; picks: number[] };
 }
 
 export interface ReleaseMilestonePayload {

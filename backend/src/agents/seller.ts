@@ -49,6 +49,7 @@ import { reviseStandingOffer, type ReviseOutcome } from './reviseOffer.js';
 import { limitDecision, orderSize } from './limits.js';
 import { askOwner } from './agentQuestion.js';
 import { getBrief } from '../db/briefs.js';
+import { sellerAgentMaySee } from '../market/visibility.js';
 import { fittingWay, sellerForRequest } from './ways.js';
 import { oneAtATime, queuedPerKey } from './oneAtATime.js';
 import { deliveryQuestions, reachGate } from '../location/deliveryQuestions.js';
@@ -709,14 +710,18 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
   // word with it, plus at most MATCH_CANDIDATE_LIMIT without one for the model
   // judge, read from the in-memory index instead of every profile in the store.
   if (!sellerIndex.isBuilt()) await sellerIndex.rebuild();
-  const candidates = rankSellers(sellerIndex.entries(), {
-    jobId,
-    keywords: briefKeywords,
-    briefText: brief?.briefText,
-    sourcingSector: brief?.counterpartyCompany?.sector ?? null,
-    tradeType: brief?.tradeType ?? null,
-    where: brief?.where ?? null,
-  });
+  // A private request from a find goes to the agents of the people asked, and only them.
+  const invited = brief?.visibility === 'invited' ? new Set((brief.invited ?? []).map((a) => a.toLowerCase())) : null;
+  const candidates = invited
+    ? { byWords: sellerIndex.entries().filter((s) => invited.has(s.userAddress)), toJudge: [], skipped: 0 }
+    : rankSellers(sellerIndex.entries(), {
+        jobId,
+        keywords: briefKeywords,
+        briefText: brief?.briefText,
+        sourcingSector: brief?.counterpartyCompany?.sector ?? null,
+        tradeType: brief?.tradeType ?? null,
+        where: brief?.where ?? null,
+      });
   if (!opts?.rescan) recordPosted(jobId, brief?.createdAt ?? Date.now());
   const sellers = await resolveSellerProfilesForUsers([...candidates.byWords, ...candidates.toJudge].map((s) => s.userAddress));
   logger.info(
@@ -1010,6 +1015,8 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
 }
 
 async function judgeAndOffer(profile: SellerProfile, job: JobContext) {
+  // A private request from a find reaches only the agents of the people asked (view 72).
+  if (!sellerAgentMaySee(getBrief(job.jobId) ?? {}, profile.userAddress)) return;
   const tradeType = getBrief(job.jobId)?.tradeType;
   const seller = sellerForRequest(profile, tradeType);
   // Limits decide whether the agent offers or asks its person, never whether

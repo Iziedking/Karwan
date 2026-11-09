@@ -75,6 +75,9 @@ import { attachPosters } from '../listings/posters.js';
 import { liveSellerSummaries } from '../listings/sellerSummary.js';
 import { publicRequests, type PublicRequestRow } from '../market/publicRequests.js';
 import { canReadPrivate, isPublic } from '../market/visibility.js';
+import { alertPicked } from '../find/alerts.js';
+import { liveAlertDeps } from '../find/alertsLive.js';
+import { findOf, type Find } from '../find/finds.js';
 
 const addrSchema = z
   .string()
@@ -149,6 +152,9 @@ const postJobSchema = z
     agreeForMe: z.boolean().optional(),
     /** Who can see it (view 53): the market, or only seller agents. */
     visibility: z.enum(['market', 'agents']).optional(),
+    /** Posted privately from the poster's own find (view 72): its id and the
+     *  people picked, by their place on its list. Who they are is read here. */
+    find: z.object({ id: z.string().uuid(), picks: z.array(z.number().int().min(0).max(4)).min(1).max(3) }).optional(),
     /** Per-brief milestone split the buyer stated in the request ("30% then
      *  70%"). Percentages must sum to 100. Overrides the buyer profile default
      *  at escrow funding. One part (100) is a single payment; both escrows
@@ -426,6 +432,17 @@ jobsRoutes.post('/', async (c) => {
     );
   }
 
+  // A private request from a find goes only to the people picked from it.
+  let fromFind: Find | null = null;
+  let invited: string[] = [];
+  if (body.find) {
+    fromFind = await findOf(body.posterAddress, body.find.id);
+    if (!fromFind || fromFind.status === 'ended') return c.json({ error: 'find not found' }, 404);
+    if (fromFind.jobId) return c.json({ error: 'The people on this list were already asked.', code: 'FIND_SENT' }, 409);
+    invited = [...new Set(body.find.picks)].map((i) => fromFind!.rows[i]?.user).filter((u): u is string => !!u).map((u) => u.toLowerCase());
+    if (invited.length === 0) return c.json({ error: 'Pick someone from the list.' }, 400);
+  }
+
   // The money has to be in the agent wallet before the request goes up.
   //
   // A deal opens on the agent's balance, not the identity wallet's: when a
@@ -512,7 +529,7 @@ ${body.terms}` : body.brief));
     terms: body.terms,
     reviewWindowDays: body.reviewWindowDays,
     trustedMatch: body.trustedMatch === true,
-    ...(body.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
+    ...(fromFind ? { visibility: 'invited' as const, invited } : body.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
     tradeLane: deriveJobLane(posterAccountType, body.tradeType),
     partyKind: posterAccountType,
     tradeType: body.tradeType,
@@ -573,8 +590,15 @@ ${body.terms}` : body.brief));
         .catch(() => {});
       jobId = realJobId as `0x${string}`;
     }
+    // The people picked from a find are told someone needs their work.
+    const alerted = fromFind && body.find
+      ? await alertPicked({ find: fromFind, picks: body.find.picks, jobId, byDay: null }, Date.now(), liveAlertDeps).catch((err: Error) => {
+          logger.warn({ jobId, err: err.message }, 'deal alerts not sent');
+          return null;
+        })
+      : null;
     // Only the old board leaves a transaction to link to.
-    return c.json({ jobId, deadlineUnix, ...(board.kind === 'chain' ? { txHash: posted.ref } : {}) });
+    return c.json({ jobId, deadlineUnix, ...(board.kind === 'chain' ? { txHash: posted.ref } : {}), ...(alerted ? { asked: alerted.asked, notAsked: alerted.refused.map((r) => r.name) } : {}) });
   } catch (err) {
     logger.error({ err: (err as Error).message }, 'postJob failed');
     return c.json({ error: 'postJob failed', detail: (err as Error).message }, 502);

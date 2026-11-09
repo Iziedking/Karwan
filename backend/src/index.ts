@@ -37,6 +37,7 @@ import { recoveryRoutes } from './routes/recovery.js';
 import { startRecoveryWatcher } from './recovery/watcher.js';
 import { startRecordReadSweep } from './reputation/recordReadSweep.js';
 import { startQuestionSweep } from './agents/questionSweep.js';
+import { startFindContactSweep } from './find/alertsLive.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
 import { creDeliveryRequestRoutes } from './routes/creDeliveryRequest.js';
@@ -723,6 +724,7 @@ stopFns.push(startDeliveryQuestionSweep());
 stopFns.push(startRatingAsker());
 stopFns.push(startRecordReadSweep());
 stopFns.push(startQuestionSweep());
+stopFns.push(startFindContactSweep());
 
 // Any event that mutates on-chain escrow state has to bust the readEscrow
 // cache so the next read pulls fresh data instead of serving the stale tuple.

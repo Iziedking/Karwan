@@ -103,7 +103,18 @@ type TgKey =
   | 'brief.dealsWaiting'
   | 'brief.dealsWaitingOne'
   | 'brief.open'
-  | 'note.heading';
+  | 'note.heading'
+  | 'alert.headingNear'
+  | 'alert.heading'
+  | 'alert.reminderNear'
+  | 'alert.reminder'
+  | 'alert.budget'
+  | 'alert.by'
+  | 'alert.nearby'
+  | 'alert.km'
+  | 'alert.city'
+  | 'alert.open'
+  | 'alert.thanks';
 
 const en: Record<TgKey, string> = {
   'cancelProposedFromOther.mutual':
@@ -213,6 +224,17 @@ const en: Record<TgKey, string> = {
   'brief.dealsWaitingOne': '1 deal is waiting on you.',
   'brief.open': 'Open Karwan',
   'note.heading': 'Your agent noticed',
+  'alert.headingNear': 'Someone near you needs your work',
+  'alert.heading': 'Someone needs your work',
+  'alert.reminderNear': 'Reminder: someone near you needs your work',
+  'alert.reminder': 'Reminder: someone needs your work',
+  'alert.budget': 'Budget about {amount}',
+  'alert.by': 'By {day}',
+  'alert.nearby': 'Very close to you',
+  'alert.km': 'About {km} km from you',
+  'alert.city': 'In {city}',
+  'alert.open': 'Open it to send your price, or say no thanks.',
+  'alert.thanks': 'Thanks. They have found someone. We will tell you about the next one.',
 };
 
 const ar: Partial<Record<TgKey, string>> = {
@@ -323,6 +345,17 @@ const ar: Partial<Record<TgKey, string>> = {
   'brief.dealsWaitingOne': 'صفقة واحدة بانتظارك.',
   'brief.open': 'افتح كروان',
   'note.heading': 'لاحظ وكيلك',
+  'alert.headingNear': 'شخص قريب منك يحتاج إلى عملك',
+  'alert.heading': 'شخص يحتاج إلى عملك',
+  'alert.reminderNear': 'تذكير: شخص قريب منك يحتاج إلى عملك',
+  'alert.reminder': 'تذكير: شخص يحتاج إلى عملك',
+  'alert.budget': 'الميزانية حوالي {amount}',
+  'alert.by': 'بحلول {day}',
+  'alert.nearby': 'قريب جدًا منك',
+  'alert.km': 'على بعد حوالي {km} كم منك',
+  'alert.city': 'في {city}',
+  'alert.open': 'افتحه لترسل سعرك، أو قل لا شكرًا.',
+  'alert.thanks': 'شكرًا. وجد هذا الشخص من يساعده. سنخبرك بالطلب التالي.',
 };
 
 const fr: Partial<Record<TgKey, string>> = {
@@ -433,6 +466,17 @@ const fr: Partial<Record<TgKey, string>> = {
   'brief.dealsWaitingOne': '1 transaction vous attend.',
   'brief.open': 'Ouvrir Karwan',
   'note.heading': 'Votre agent a remarqué',
+  'alert.headingNear': 'Quelqu\'un près de chez vous a besoin de votre travail',
+  'alert.heading': 'Quelqu\'un a besoin de votre travail',
+  'alert.reminderNear': 'Rappel : quelqu\'un près de chez vous a besoin de votre travail',
+  'alert.reminder': 'Rappel : quelqu\'un a besoin de votre travail',
+  'alert.budget': 'Budget environ {amount}',
+  'alert.by': 'D\'ici le {day}',
+  'alert.nearby': 'Tout près de vous',
+  'alert.km': 'À environ {km} km de vous',
+  'alert.city': 'À {city}',
+  'alert.open': 'Ouvrez-la pour donner votre prix, ou dites non merci.',
+  'alert.thanks': 'Merci. Cette personne a trouvé quelqu\'un. Nous vous parlerons de la prochaine.',
 };
 
 const hi: Partial<Record<TgKey, string>> = {
@@ -543,6 +587,17 @@ const hi: Partial<Record<TgKey, string>> = {
   'brief.dealsWaitingOne': '1 सौदा आपका इंतज़ार कर रहा है।',
   'brief.open': 'Karwan खोलें',
   'note.heading': 'आपके एजेंट ने देखा',
+  'alert.headingNear': 'आपके पास किसी को आपके काम की ज़रूरत है',
+  'alert.heading': 'किसी को आपके काम की ज़रूरत है',
+  'alert.reminderNear': 'याद दिलाना: आपके पास किसी को आपके काम की ज़रूरत है',
+  'alert.reminder': 'याद दिलाना: किसी को आपके काम की ज़रूरत है',
+  'alert.budget': 'बजट लगभग {amount}',
+  'alert.by': '{day} तक',
+  'alert.nearby': 'आपके बहुत पास',
+  'alert.km': 'आपसे लगभग {km} किमी दूर',
+  'alert.city': '{city} में',
+  'alert.open': 'अपनी कीमत भेजने के लिए खोलें, या मना कर दें।',
+  'alert.thanks': 'धन्यवाद। उन्हें कोई मिल गया है। अगली बार हम आपको बताएँगे।',
 };
 
 const sw: Partial<Record<TgKey, string>> = {
@@ -653,6 +708,17 @@ const sw: Partial<Record<TgKey, string>> = {
   'brief.dealsWaitingOne': 'Mkataba 1 unakusubiri.',
   'brief.open': 'Fungua Karwan',
   'note.heading': 'Wakala wako ameona',
+  'alert.headingNear': 'Mtu karibu nawe anahitaji kazi yako',
+  'alert.heading': 'Mtu anahitaji kazi yako',
+  'alert.reminderNear': 'Kumbusho: mtu karibu nawe anahitaji kazi yako',
+  'alert.reminder': 'Kumbusho: mtu anahitaji kazi yako',
+  'alert.budget': 'Bajeti takriban {amount}',
+  'alert.by': 'Kufikia {day}',
+  'alert.nearby': 'Karibu sana nawe',
+  'alert.km': 'Takriban km {km} kutoka kwako',
+  'alert.city': 'Ndani ya {city}',
+  'alert.open': 'Fungua utume bei yako, au sema hapana asante.',
+  'alert.thanks': 'Asante. Wamepata mtu. Tutakuambia kuhusu inayofuata.',
 };
 
 const TABLES: Record<UserLocale, Partial<Record<TgKey, string>>> = {

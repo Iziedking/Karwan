@@ -44,6 +44,35 @@ export interface FindPeopleCopy {
   failed: string;
   retry: string;
   notFound: string;
+  /// Phase 3: picking people and asking them.
+  pick: string;
+  unpick: string;
+  /// {n} picked of up to 3.
+  picked: string;
+  askOne: string;
+  /// {n} people.
+  askMany: string;
+  /// {names} are the first names picked.
+  confirmTitle: string;
+  confirmSub: string;
+  confirmFacts: { need: string; budget: string; by: string; theySee: string; theySeeValue: string };
+  nothingPaid: string;
+  sendOne: string;
+  /// {n} people.
+  sendMany: string;
+  sending: string;
+  sendFailed: string;
+  /// {amount} is what to add.
+  fundFirst: string;
+  addMoney: string;
+  askedOne: string;
+  /// {n} people.
+  askedMany: string;
+  askedSub: string;
+  status: { offered: string; waiting: string; declined: string; noAnswer: string };
+  /// {time} is the next reminder.
+  reminderAt: string;
+  reviewOffers: string;
 }
 
 type Locale = 'en' | 'fr' | 'ar' | 'hi' | 'sw';
@@ -84,6 +113,27 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     failed: 'The people could not load.',
     retry: 'Try again',
     notFound: 'Nothing here. A list of people found is only for the person who asked.',
+    pick: 'Pick {name}',
+    unpick: 'Unpick {name}',
+    picked: '{n} of 3 picked',
+    askOne: 'Ask 1 person',
+    askMany: 'Ask {n} people',
+    confirmTitle: 'Ask {names}',
+    confirmSub: 'Each gets one message from your agent',
+    confirmFacts: { need: 'Need', budget: 'Budget', by: 'By', theySee: 'They see', theySeeValue: 'How far you are, not where' },
+    nothingPaid: 'Nothing is paid until you pick an offer.',
+    sendOne: 'Send to 1 person',
+    sendMany: 'Send to {n} people',
+    sending: 'Sending',
+    sendFailed: 'It did not send. Try again.',
+    fundFirst: 'Add {amount} to your buyer agent first, then ask.',
+    addMoney: 'Add money',
+    askedOne: 'Asked 1 person',
+    askedMany: 'Asked {n} people',
+    askedSub: 'We tell you when they answer',
+    status: { offered: 'Sent an offer', waiting: 'Not answered yet', declined: 'Said no thanks', noAnswer: 'No answer' },
+    reminderAt: 'Reminder at {time}',
+    reviewOffers: 'Review offers',
   },
   fr: {
     back: 'Assistant',
@@ -156,6 +206,48 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     failed: 'تعذّر تحميل الأشخاص.',
     retry: 'حاول مرة أخرى',
     notFound: 'لا شيء هنا. قائمة الأشخاص الذين تم العثور عليهم خاصة بمن طلبها فقط.',
+    pick: 'اختر {name}',
+    unpick: 'ألغِ اختيار {name}',
+    picked: 'تم اختيار {n} من 3',
+    askOne: 'اسأل شخصًا واحدًا',
+    askMany: 'اسأل {n} أشخاص',
+    confirmTitle: 'اسأل {names}',
+    confirmSub: 'يتلقى كل منهم رسالة واحدة من وكيلك',
+    confirmFacts: { need: 'الحاجة', budget: 'الميزانية', by: 'بحلول', theySee: 'يرون', theySeeValue: 'المسافة، لا مكانك' },
+    nothingPaid: 'لا يُدفع شيء حتى تختار عرضًا.',
+    sendOne: 'أرسل إلى شخص واحد',
+    sendMany: 'أرسل إلى {n} أشخاص',
+    sending: 'جارٍ الإرسال',
+    sendFailed: 'لم يُرسل. حاول مرة أخرى.',
+    fundFirst: 'أضف {amount} إلى وكيل الشراء أولًا، ثم اسأل.',
+    addMoney: 'أضف مالًا',
+    askedOne: 'تم سؤال شخص واحد',
+    askedMany: 'تم سؤال {n} أشخاص',
+    askedSub: 'سنخبرك عندما يردّون',
+    status: { offered: 'أرسل عرضًا', waiting: 'لم يرد بعد', declined: 'قال لا شكرًا', noAnswer: 'لا رد' },
+    reminderAt: 'تذكير عند {time}',
+    reviewOffers: 'راجع العروض',
+    pick: 'Choisir {name}',
+    unpick: 'Retirer {name}',
+    picked: '{n} sur 3 choisis',
+    askOne: 'Demander à 1 personne',
+    askMany: 'Demander à {n} personnes',
+    confirmTitle: 'Demander à {names}',
+    confirmSub: 'Chacun reçoit un seul message de votre agent',
+    confirmFacts: { need: 'Besoin', budget: 'Budget', by: 'D\'ici le', theySee: 'Ils voient', theySeeValue: 'La distance, pas où vous êtes' },
+    nothingPaid: 'Rien n\'est payé avant que vous choisissiez une offre.',
+    sendOne: 'Envoyer à 1 personne',
+    sendMany: 'Envoyer à {n} personnes',
+    sending: 'Envoi',
+    sendFailed: 'L\'envoi n\'a pas abouti. Réessayez.',
+    fundFirst: 'Ajoutez d\'abord {amount} à votre agent acheteur, puis demandez.',
+    addMoney: 'Ajouter des fonds',
+    askedOne: '1 personne contactée',
+    askedMany: '{n} personnes contactées',
+    askedSub: 'Nous vous prévenons dès qu\'ils répondent',
+    status: { offered: 'A envoyé une offre', waiting: 'N\'a pas encore répondu', declined: 'A dit non merci', noAnswer: 'Pas de réponse' },
+    reminderAt: 'Rappel à {time}',
+    reviewOffers: 'Voir les offres',
   },
   hi: {
     back: 'सहायक',
@@ -192,6 +284,27 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     failed: 'लोग लोड नहीं हो सके।',
     retry: 'फिर कोशिश करें',
     notFound: 'यहाँ कुछ नहीं है। मिले हुए लोगों की सूची सिर्फ़ पूछने वाले के लिए है।',
+    pick: '{name} चुनें',
+    unpick: '{name} हटाएँ',
+    picked: '3 में से {n} चुने',
+    askOne: '1 व्यक्ति से पूछें',
+    askMany: '{n} लोगों से पूछें',
+    confirmTitle: '{names} से पूछें',
+    confirmSub: 'हर एक को आपके एजेंट से एक संदेश मिलेगा',
+    confirmFacts: { need: 'ज़रूरत', budget: 'बजट', by: 'तक', theySee: 'वे देखेंगे', theySeeValue: 'आप कितनी दूर हैं, कहाँ नहीं' },
+    nothingPaid: 'जब तक आप कोई ऑफ़र नहीं चुनते, कुछ भुगतान नहीं होता।',
+    sendOne: '1 व्यक्ति को भेजें',
+    sendMany: '{n} लोगों को भेजें',
+    sending: 'भेजा जा रहा है',
+    sendFailed: 'नहीं भेजा जा सका। फिर कोशिश करें।',
+    fundFirst: 'पहले अपने खरीदार एजेंट में {amount} जोड़ें, फिर पूछें।',
+    addMoney: 'पैसे जोड़ें',
+    askedOne: '1 व्यक्ति से पूछा',
+    askedMany: '{n} लोगों से पूछा',
+    askedSub: 'जवाब आते ही हम आपको बताएँगे',
+    status: { offered: 'ऑफ़र भेजा', waiting: 'अभी जवाब नहीं', declined: 'मना कर दिया', noAnswer: 'कोई जवाब नहीं' },
+    reminderAt: '{time} पर याद दिलाएँगे',
+    reviewOffers: 'ऑफ़र देखें',
   },
   sw: {
     back: 'Msaidizi',
@@ -228,5 +341,26 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     failed: 'Watu hawakuweza kupakia.',
     retry: 'Jaribu tena',
     notFound: 'Hakuna kitu hapa. Orodha ya watu waliopatikana ni ya aliyeuliza peke yake.',
+    pick: 'Chagua {name}',
+    unpick: 'Ondoa {name}',
+    picked: '{n} kati ya 3 wamechaguliwa',
+    askOne: 'Uliza mtu 1',
+    askMany: 'Uliza watu {n}',
+    confirmTitle: 'Uliza {names}',
+    confirmSub: 'Kila mmoja anapata ujumbe mmoja kutoka kwa wakala wako',
+    confirmFacts: { need: 'Hitaji', budget: 'Bajeti', by: 'Kufikia', theySee: 'Wanaona', theySeeValue: 'Umbali wako, si mahali ulipo' },
+    nothingPaid: 'Hakuna kinacholipwa hadi uchague ofa.',
+    sendOne: 'Tuma kwa mtu 1',
+    sendMany: 'Tuma kwa watu {n}',
+    sending: 'Inatuma',
+    sendFailed: 'Haikutumwa. Jaribu tena.',
+    fundFirst: 'Ongeza {amount} kwa wakala wako wa kununua kwanza, kisha uliza.',
+    addMoney: 'Ongeza pesa',
+    askedOne: 'Umemuuliza mtu 1',
+    askedMany: 'Umewauliza watu {n}',
+    askedSub: 'Tutakuambia watakapojibu',
+    status: { offered: 'Ametuma ofa', waiting: 'Bado hajajibu', declined: 'Amesema hapana asante', noAnswer: 'Hakuna jibu' },
+    reminderAt: 'Kumbusho saa {time}',
+    reviewOffers: 'Tazama ofa',
   },
 };

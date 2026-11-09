@@ -484,6 +484,28 @@ export const finds = pgTable(
   }),
 );
 
+/// Deal alerts and pitches sent from finds (view 72).
+export const findContacts = pgTable(
+  'find_contacts_v1',
+  {
+    id: text('id').primaryKey(),
+    findId: text('find_id').notNull(),
+    fromAddr: text('from_addr').notNull(),
+    toAddr: text('to_addr').notNull(),
+    kind: text('kind').notNull(),
+    needId: text('need_id'),
+    sentAt: bigint('sent_at', { mode: 'number' }).notNull(),
+    nextAt: bigint('next_at', { mode: 'number' }),
+    data: jsonb('data').notNull(),
+  },
+  (t) => ({
+    findIdx: index('find_contacts_v1_find_idx').on(t.findId),
+    fromIdx: index('find_contacts_v1_from_idx').on(t.fromAddr, t.sentAt),
+    toIdx: index('find_contacts_v1_to_idx').on(t.toAddr, t.sentAt),
+    dueIdx: index('find_contacts_v1_due_idx').on(t.nextAt),
+  }),
+);
+
 /// Paid web research reads, kept so a restart does not lose them (view 48,
 /// step 4). Keyed by the normalised keyword set.
 export const marketReads = pgTable(

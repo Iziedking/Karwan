@@ -16,7 +16,8 @@ import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, type StandingNeed } from '../find/ne
 import { formatLocalAmount } from '../rates/localAmounts.js';
 import { readUsdcRates } from '../rates/usdcRates.js';
 import { buildNavigateAction, hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
-import { buildBlockPersonConfirm, buildRemoveStandingNeedConfirm, buildSaveStandingNeedConfirm, EVERY_WORDS, REACHES_WORDS } from './findActions.js';
+import { buildAlertPeopleConfirm, buildBlockPersonConfirm, buildRemoveStandingNeedConfirm, buildSaveStandingNeedConfirm, EVERY_WORDS, REACHES_WORDS } from './findActions.js';
+import { declineAlert, type DeclineResult } from '../find/answers.js';
 
 /// Finding people, being reached and blocking, from any channel (view 72).
 /// Being found is a setting (propose_change_settings). Nothing here moves money.
@@ -38,6 +39,8 @@ export interface FindToolDeps {
   cleanRecordCounts: boolean;
   now: () => number;
   newId: () => string;
+  /// A seller says no thanks to a deal alert on this request.
+  decline: (seller: string, jobId: string) => Promise<DeclineResult>;
 }
 
 /// How far someone is, in words for the assistant; never more than this.
@@ -126,6 +129,37 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
             recommended: r.recommended,
           }))),
         };
+      },
+    }),
+
+    alert_people: tool({
+      description:
+        'Prepare a card that posts the need privately and tells the people the buyer picked from their last find (find_people), one to three, by their number on that list (1 is the first). Each gets one message, reminded at most three times, spaced out and never at night; their offers come back to the buyer, who still picks one and locks the money. Use when the buyer says who to ask ("ask Ngozi and Amaka", "ask the first two"). Nothing is paid by this.',
+      inputSchema: z.object({ people: z.array(z.number().int().min(1).max(5)).min(1).max(3) }),
+      execute: async ({ people }) => {
+        const find = (await deps.finds(me)).find((f) => f.status === 'shortlisted' && !f.jobId);
+        if (!find) return { error: 'There is no list of people to ask. Run find_people first.' };
+        const picks = [...new Set(people.map((n) => n - 1))].filter((i) => !!find.rows[i]);
+        if (picks.length === 0) return { error: `The list has ${find.rows.length} people; use their numbers from 1.` };
+        return offer(actions, buildAlertPeopleConfirm({
+          caller: me,
+          find,
+          picks,
+          names: picks.map((i) => find.rows[i]!.name),
+          budget: `About ${await deps.money(me, Number(find.budgetUsdc))}`,
+          now: deps.now(),
+        }));
+      },
+    }),
+
+    decline_deal_alert: tool({
+      description: 'For a SELLER who got a deal alert (someone needs your work): say no thanks to it, by the request id. Their agent stops on it and they get no more reminders for it. To say yes, make an offer on the request instead (make_offer).',
+      inputSchema: z.object({ jobId: z.string().min(3).max(80) }),
+      execute: async ({ jobId }) => {
+        const r = await deps.decline(me, jobId);
+        if (r === 'declined') return { ok: true, said: 'No thanks sent. No more reminders for it.' };
+        if (r === 'matched') return { ok: true, said: 'They have already found someone, so nothing more is needed.' };
+        return { error: 'There is no deal alert for them on that request.' };
       },
     }),
 
@@ -222,4 +256,5 @@ export const liveFindToolDeps: FindToolDeps = {
   cleanRecordCounts: config.ARC_NETWORK === 'testnet',
   now: () => Date.now(),
   newId: () => randomUUID(),
+  decline: (seller, jobId) => declineAlert(seller, jobId, Date.now()),
 };

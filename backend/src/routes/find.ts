@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { block, unblock } from '../find/blocks.js';
 import { getProfile } from '../db/profiles.js';
+import { declineAlert } from '../find/answers.js';
+import { contactsOfFind } from '../find/contacts.js';
 import { findOf, myFinds, ownerView, type Find } from '../find/finds.js';
 import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, removeNeed, saveNeed, TooManyNeeds, type StandingNeed } from '../find/needs.js';
 import { invalidBodyMessage } from './invalidBody.js';
@@ -110,5 +112,15 @@ findRoutes.get('/finds/:id', async (c) => {
   const me = sessionAddress(c);
   if (!me) return c.json({ error: 'not authenticated' }, 401);
   const found = await findOf(me, c.req.param('id'));
-  return found ? c.json({ find: ownerView(found, await photosOf(found)) }) : c.json({ error: 'find not found' }, 404);
+  if (!found) return c.json({ error: 'find not found' }, 404);
+  const asked = new Map((await contactsOfFind(found.id)).filter((x) => x.kind === 'alert').map((x) => [x.to, { answer: x.answer, nextAt: x.answer === null && x.closedAt === null ? x.nextAt : null, closed: x.closedAt !== null }]));
+  return c.json({ find: ownerView(found, await photosOf(found), asked) });
+});
+
+/// A seller says no thanks to a deal alert (view 72). Yes is an offer on the request.
+findRoutes.post('/alerts/:jobId/no', async (c) => {
+  const me = sessionAddress(c);
+  if (!me) return c.json({ error: 'not authenticated' }, 401);
+  const r = await declineAlert(me, c.req.param('jobId'), Date.now());
+  return r === 'none' ? c.json({ error: 'no deal alert on that request' }, 404) : c.json({ ok: true, state: r });
 });

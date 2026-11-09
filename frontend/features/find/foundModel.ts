@@ -69,3 +69,16 @@ export function endsText(f: Pick<FindView, 'status' | 'endsAt'>, t: FindPeopleCo
 }
 
 export { fill as fillFind };
+
+/// Where a person asked stands, in place of their record line.
+export function askedText(p: Pick<FoundPerson, 'asked'>, t: FindPeopleCopy, locale: string): string | null {
+  const a = p.asked;
+  if (!a) return null;
+  if (a.answer === 'interested') return t.status.offered;
+  if (a.answer === 'no' || a.answer === 'not_now') return t.status.declined;
+  if (a.closed || a.nextAt === null) return t.status.noAnswer;
+  const time = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(a.nextAt));
+  return `${t.status.waiting} · ${fill(t.reminderAt, { time })}`;
+}
+
+export const PICK_MAX = 3;

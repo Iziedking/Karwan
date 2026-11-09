@@ -402,7 +402,7 @@ async function runConfirmIntent(
     return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
   }
   if (action.intent === 'post_request') {
-    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number; visibility?: 'agents'; milestonePcts?: number[]; terms?: string; heldAttachments?: boolean };
+    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number; visibility?: 'agents'; milestonePcts?: number[]; terms?: string; heldAttachments?: boolean; deliveryKind?: 'goods' | 'in_person' | 'remote'; where?: { scope: 'near' | 'country' | 'anywhere'; country?: string }; find?: { id: string; picks: number[] } };
     const r = await api.postJob({
       posterAddress: p.posterAddress,
       brief: p.brief,
@@ -417,7 +417,12 @@ async function runConfirmIntent(
       ...(p.terms ? { terms: p.terms } : {}),
       // Photos or PDFs sent to the assistant for it (view 56).
       ...(p.heldAttachments ? { heldAttachments: true } : {}),
+      // Posted privately from a find (view 72): the people picked are told.
+      ...(p.find ? { find: p.find, ...(p.deliveryKind ? { deliveryKind: p.deliveryKind } : {}), ...(p.where ? { where: p.where } : {}) } : {}),
     });
+    if (p.find) {
+      return { successText: 'Sent. They each got one message; their offers come to you.', viewHref: `/find/${p.find.id}`, viewLabel: 'See who answers' };
+    }
     return {
       successText: 'Request posted. Your agent is finding developers now.',
       viewHref: `/jobs/${r.jobId}`,

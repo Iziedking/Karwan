@@ -41,6 +41,8 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
       ...(Array.isArray(p.milestonePcts) && p.milestonePcts.length > 1 ? { milestonePcts: p.milestonePcts } : {}),
       ...(p.terms ? { terms: p.terms } : {}),
       ...(p.heldAttachments === true ? { heldAttachments: true } : {}),
+      // A private request from a find (view 72): who to tell is read from the find.
+      ...(p.find && typeof p.find === 'object' ? { find: p.find } : {}),
     },
   }),
   release_milestone: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/release`, body: { caller: p.caller, ...(p.acceptedAfterReview === true ? { acceptedAfterReview: true } : {}) } }),

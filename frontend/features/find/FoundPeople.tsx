@@ -53,21 +53,38 @@ function Amount({ person, t }: { person: FoundPerson; t: FindPeopleCopy }) {
   return person.priceUsdc ? <Price usdc={Number(person.priceUsdc)} size="inline" /> : <span>{t.askPrice}</span>;
 }
 
-export function PersonRow({ person, index, t, onOpen }: { person: FoundPerson; index: number; t: FindPeopleCopy; onOpen: () => void }) {
+export function PersonRow({ person, index, t, onOpen, picked = false, status = null }: {
+  person: FoundPerson;
+  index: number;
+  t: FindPeopleCopy;
+  onOpen: () => void;
+  /// Picked to be asked: a check on their photo.
+  picked?: boolean;
+  /// Once asked, where their answer stands, in place of the record line.
+  status?: string | null;
+}) {
   return (
     <button
       type="button"
       data-found-person
+      data-picked={picked || undefined}
       onClick={onOpen}
       className="flex w-full items-center gap-3 rounded-[12px] px-3.5 py-3.5 text-start transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
     >
-      <PersonPhoto person={person} size={44} />
+      <span className="relative shrink-0">
+        <PersonPhoto person={person} size={44} />
+        {picked ? (
+          <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-5 place-items-center rounded-full bg-[var(--ink)] ring-2 ring-[var(--surface)]">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="var(--surface)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </span>
+        ) : null}
+      </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-[15px] font-medium text-[var(--ink)]">{person.name}</span>
           {person.verified ? <VerifiedMark label={t.verified} /> : null}
         </span>
-        <span className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">{personLine(person, t)}</span>
+        <span className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">{status ?? personLine(person, t)}</span>
       </span>
       <span className="shrink-0 text-end">
         <span className="block text-[15px] font-semibold text-[var(--ink)]"><Amount person={person} t={t} /></span>
@@ -78,19 +95,31 @@ export function PersonRow({ person, index, t, onOpen }: { person: FoundPerson; i
 }
 
 /// The people as one card of rows, separated by hairlines.
-export function PeopleList({ people, t, onOpen }: { people: FoundPerson[]; t: FindPeopleCopy; onOpen: (i: number) => void }) {
+export function PeopleList({ people, t, onOpen, picked, statusOf }: {
+  people: FoundPerson[];
+  t: FindPeopleCopy;
+  onOpen: (i: number) => void;
+  picked?: ReadonlySet<number>;
+  statusOf?: (p: FoundPerson) => string | null;
+}) {
   return (
     <div className="rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-1">
       {people.map((p, i) => (
         <div key={`${p.tag ?? p.name}-${i}`} className={i ? 'border-t border-[var(--line)]' : undefined}>
-          <PersonRow person={p} index={i} t={t} onOpen={() => onOpen(i)} />
+          <PersonRow person={p} index={i} t={t} onOpen={() => onOpen(i)} picked={picked?.has(i)} status={statusOf?.(p) ?? null} />
         </div>
       ))}
     </div>
   );
 }
 
-export function PersonSheet({ person, t, onClose }: { person: FoundPerson | null; t: FindPeopleCopy; onClose: () => void }) {
+export function PersonSheet({ person, t, onClose, pick }: {
+  person: FoundPerson | null;
+  t: FindPeopleCopy;
+  onClose: () => void;
+  /// While people can still be picked: Pick or Unpick is the main button.
+  pick?: { picked: boolean; full: boolean; onToggle: () => void };
+}) {
   const tiers = useTierLabels();
   const p = person;
   const away = p ? distanceText(p.distance, t) : null;
@@ -134,7 +163,18 @@ export function PersonSheet({ person, t, onClose }: { person: FoundPerson | null
               </div>
             ))}
           </dl>
-          {p.tag ? (
+          {pick ? (
+            <div className="grid w-full gap-2">
+              <button type="button" data-pick disabled={!pick.picked && pick.full} onClick={pick.onToggle} className={buttonClasses({ variant: pick.picked ? 'secondary' : 'primary', size: 'lg', className: 'w-full disabled:opacity-50' })}>
+                {fillFind(pick.picked ? t.unpick : t.pick, { name: firstName(p.name) })}
+              </button>
+              {p.tag ? (
+                <Link href={`/r/${encodeURIComponent(p.tag)}`} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>
+                  {t.record}
+                </Link>
+              ) : null}
+            </div>
+          ) : p.tag ? (
             <div className="grid w-full gap-2">
               <Link href={`/messages/${encodeURIComponent(p.tag)}`} className={buttonClasses({ variant: 'primary', size: 'lg', className: 'w-full' })}>
                 {fillFind(t.message, { name: firstName(p.name) })}
