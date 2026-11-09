@@ -2156,7 +2156,13 @@ async function publishShortlist(
 
   // View 73: every listed offer gets its own negotiation, at once.
   if (bargainOn(state.jobId)) {
-    if (!state.finalized && !state.escrowFunded) await openNegotiations(state, ranked);
+    // Over the budget is countered down too (decision 3): every live offer, one
+    // per person, the listed row first; an offer joins the list once its price fits.
+    if (!state.finalized && !state.escrowFunded) {
+      const listedPeople = new Set(ranked.map((r) => r.sellerUser.toLowerCase()));
+      const unlisted = onePerPerson(rankCandidates(candidates, budget)).filter((r) => !listedPeople.has(r.sellerUser.toLowerCase()));
+      await openNegotiations(state, [...ranked, ...unlisted]);
+    }
     return;
   }
 
