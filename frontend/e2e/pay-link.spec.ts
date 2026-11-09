@@ -111,7 +111,7 @@ test('a paid request says so, and the requester sees their own link to share', a
   await expect(owner.getByRole('button', { name: en.nav.backAria })).toBeVisible();
 });
 
-test('any signed-in account creates a link that lasts a week', async ({ page }) => {
+test('any signed-in account creates a link that lasts a week', async ({ page }, info) => {
   let created: unknown = null;
   await mockApi(page, { signedInAs: BUYER, onCreate: (body) => (created = body) });
   await page.goto('/request');
@@ -126,8 +126,23 @@ test('any signed-in account creates a link that lasts a week', async ({ page }) 
   await page.getByRole('button', { name: copy.create.create }).click();
   await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
   await expect(page.getByText(`/deposit/request/${TOKEN}`)).toBeVisible();
-  // A mouse and keyboard get Copy link only; Share is for a phone's share sheet.
-  await expect(page.getByRole('button', { name: copy.create.share, exact: true })).toHaveCount(0);
+  // On a computer Share opens Karwan's menu of direct links (owner, 9 Nov 2026, Figma 226:570).
+  if (info.project.name !== 'phone') {
+    const share = page.getByRole('button', { name: copy.create.share, exact: true });
+    await expect(share).toHaveAttribute('aria-haspopup', 'menu');
+    await share.click();
+    const menu = page.getByRole('menu', { name: copy.create.shareMenu });
+    await expect(menu.getByRole('menuitem')).toHaveText(['Telegram', 'WhatsApp', copy.create.shareEmail, 'X']);
+    const link = encodeURIComponent(`/deposit/request/${TOKEN}`);
+    for (const [target, start] of [['telegram', 'https://t.me/share/url?url='], ['whatsapp', 'https://wa.me/?text='], ['email', 'mailto:?subject='], ['x', 'https://x.com/intent/tweet?text=']]) {
+      const href = await menu.locator(`[data-share-target="${target}"]`).getAttribute('href');
+      expect(href?.startsWith(start), target).toBe(true);
+      expect(href, target).toContain(link);
+    }
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(share).toBeFocused();
+  }
   expect(created).toEqual({ amountUsdc: '10', purpose: 'Logo, first draft', ttlMinutes: 7 * 24 * 60 });
 });
 

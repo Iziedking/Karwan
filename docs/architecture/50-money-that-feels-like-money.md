@@ -27,6 +27,7 @@ flowchart LR
 - **A person comes with their record.** Wherever someone is named as the one paying or being paid, their tag and how many deals they settled sit beside the name, read from the same record the market shows. The tier stays on the profile and record pages, where its name has room (owner, 5 Nov 2026). A sealed record shows only its tier.
 - **Confirm says exactly what happens.** The sheet names who receives it, from where, and that a send cannot be undone. The button carries the amount.
 - **One card for a request.** The card holds the requester, the amount, what it is for, the QR and link, and when it expires. The payer sees the same card; once paid it reads Paid with the date and the reference.
+- **Sharing works on every screen.** Copy link is the green button and Share sits beside it. On a phone Share opens the phone's share sheet. On a computer, where that sheet often opens nothing, it opens a small menu of Telegram, WhatsApp, Email and X, each opening that app with the link ready to send (9 Nov 2026). Karwan sends nothing itself.
 - **Green is only for the one button to press.** Cards are one neutral style.
 - **Nothing about the money changes.** The same checks run before a send (tag or address, enough money, a contract address warned), the same double-press guard holds, and slow, failed, rejected and guarded sends read as before.
 - **Five languages, reduced motion.** Every word is in English, French, Arabic, Hindi and Swahili, Arabic reads right to left, numerals stay left to right, and with reduced motion nothing slides.

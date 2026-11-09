@@ -25,6 +25,11 @@ export interface PayLinkCopy {
     copy: string;
     copied: string;
     share: string;
+    /// The desktop Share menu (owner, 9 Nov 2026, Figma 226:570).
+    shareMenu: string;
+    shareEmail: string;
+    /// Goes with the link in the message or email subject.
+    shareMessage: string;
     another: string;
     qrAlt: string;
     requestedTitle: string;
@@ -141,6 +146,9 @@ const en: PayLinkCopy = {
     copy: 'Copy link',
     copied: 'Link copied',
     share: 'Share',
+    shareMenu: 'Share the link',
+    shareEmail: 'Email',
+    shareMessage: 'Here is my payment link on Karwan',
     another: "New payment request",
     qrAlt: 'QR code for this payment link',
     requestedTitle: "Your payment requests",
@@ -256,6 +264,9 @@ const fr: PayLinkCopy = {
     copy: 'Copier le lien',
     copied: 'Lien copié',
     share: 'Partager',
+    shareMenu: 'Partager le lien',
+    shareEmail: 'E-mail',
+    shareMessage: 'Voici mon lien de paiement Karwan',
     another: "Nouvelle demande de paiement",
     qrAlt: 'QR code de ce lien de paiement',
     requestedTitle: "Vos demandes de paiement",
@@ -371,6 +382,9 @@ const ar: PayLinkCopy = {
     copy: 'انسخ الرابط',
     copied: 'تم نسخ الرابط',
     share: 'مشاركة',
+    shareMenu: 'مشاركة الرابط',
+    shareEmail: 'البريد الإلكتروني',
+    shareMessage: 'هذا رابط الدفع الخاص بي على Karwan',
     another: "طلب دفع جديد",
     qrAlt: 'رمز QR لرابط الدفع هذا',
     requestedTitle: "طلبات الدفع الخاصة بك",
@@ -486,6 +500,9 @@ const hi: PayLinkCopy = {
     copy: 'लिंक कॉपी करें',
     copied: 'लिंक कॉपी हो गया',
     share: 'शेयर करें',
+    shareMenu: 'लिंक शेयर करें',
+    shareEmail: 'ईमेल',
+    shareMessage: 'Karwan पर मेरा भुगतान लिंक यह है',
     another: "नया भुगतान अनुरोध",
     qrAlt: 'इस भुगतान लिंक का QR कोड',
     requestedTitle: "आपके भुगतान अनुरोध",
@@ -601,6 +618,9 @@ const sw: PayLinkCopy = {
     copy: 'Nakili kiungo',
     copied: 'Kiungo kimenakiliwa',
     share: 'Shiriki',
+    shareMenu: 'Shiriki kiungo',
+    shareEmail: 'Barua pepe',
+    shareMessage: 'Hiki ni kiungo changu cha malipo kwenye Karwan',
     another: "Ombi jipya la malipo",
     qrAlt: 'Msimbo wa QR wa kiungo hiki cha malipo',
     requestedTitle: "Maombi yako ya malipo",
