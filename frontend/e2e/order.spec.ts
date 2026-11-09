@@ -112,7 +112,13 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   await expect(page.getByText('120.00 USDC', { exact: true })).toBeVisible();
   await expect(page.getByText('0.60 USDC', { exact: true })).toBeVisible();
   await expect(page.getByText('120.60 USDC', { exact: true })).toBeVisible();
-  await expect(page.getByText(/the seller may claim payment when it ends/)).toBeVisible();
+  // Who holds the money and until when opens from the (i) by Protected (owner, 9 Nov 2026).
+  await expect(page.getByText(/the seller may claim payment when it ends/)).toHaveCount(0);
+  await page.locator('p', { hasText: t.protectedTitle }).getByRole('button').click();
+  const note = page.getByRole('tooltip');
+  await expect(note.getByText(/the seller may claim payment when it ends/)).toBeVisible();
+  await note.locator('[data-hint-got-it]').click();
+  await expect(note).toHaveCount(0);
   await expect(page.getByRole('link', { name: en.landingEditorial.rulesLink })).toHaveAttribute('href', '/docs/escrow');
   await noSideways(page);
   await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
