@@ -39,6 +39,9 @@ export interface ShortlistBid {
   title?: string;
   /// The days the seller needs when the request was due sooner (view 41, step three).
   offeredDays?: number | null;
+  /// View 73: the price the offer first came in at, and clean deals the two had before.
+  openedUsdc?: string;
+  pastDealsTogether?: number;
 }
 
 function within<T>(p: Promise<T>, ms: number): Promise<T | null> {
@@ -93,6 +96,10 @@ export async function buildCandidates(
         askedUsdc: Number(b.priceUsdc),
         recordChecked: !!read,
         locationFit: locationFit(input.where, input.buyerLocation ?? null, location, input.deliveryKind),
+        topicalMatch: b.topicalMatch ?? null,
+        inPerson: input.deliveryKind === 'in_person',
+        openedUsdc: b.openedUsdc !== undefined ? Number(b.openedUsdc) : null,
+        pastDealsTogether: b.pastDealsTogether ?? 0,
         country: publicLocation(location).country,
         rating,
         linked,

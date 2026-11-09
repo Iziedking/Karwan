@@ -151,6 +151,11 @@ export interface ShortlistEntry {
   mustLink?: boolean;
   /// Days the offer needs beyond the request's date (view 41, step three).
   extraDays?: number;
+  /// View 73: the blended score's parts, the two that rank it, and the price
+  /// it opened at when that differs from the price shown.
+  scoreParts?: { fit: number; price: number; ratings: number; reputation: number };
+  why?: Array<'best_fit' | 'fair_price' | 'well_rated' | 'trusted'>;
+  movedFrom?: number;
 }
 
 export interface BuyerBid {

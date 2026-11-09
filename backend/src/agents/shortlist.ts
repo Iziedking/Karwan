@@ -1,6 +1,7 @@
 import type { Ladder } from '../verification/ladder.js';
 import { ratingLine, type PublicRating } from '../ratings/rules.js';
 import type { RecordCounts } from '../reputation/recordRead.js';
+import { blendedScore, type ScoreParts, type ScoreWhy } from './bargainScore.js';
 
 /// The shortlist a buyer chooses from (view 41, decisions 11 to 13). Pure. Every
 /// seller who fits and offered is listed: fit first (skill band, then place),
@@ -36,6 +37,14 @@ export interface ShortlistCandidate {
   linked?: boolean;
   /// Days the offer needs beyond what the request gives (view 41, step three).
   extraDays?: number;
+  /// View 73: the raw skill match (0 to 100), whether the work is in person,
+  /// the price the offer opened at, and clean deals the two have had before.
+  topicalMatch?: number | null;
+  inPerson?: boolean;
+  openedUsdc?: number | null;
+  pastDealsTogether?: number;
+  /// Set by `rankCandidates` when the request bargains (view 73).
+  bargain?: { score: number; parts: ScoreParts; why: ScoreWhy[] };
 }
 
 export interface ShortlistEntry {
@@ -66,6 +75,11 @@ export interface ShortlistEntry {
   mustLink?: boolean;
   /// Days the offer needs beyond what the request gives; 0 when it fits the date.
   extraDays?: number;
+  /// View 73: the blended score's parts, the two that rank it, and the price
+  /// it opened at when that differs from the price shown.
+  scoreParts?: ScoreParts;
+  why?: ScoreWhy[];
+  movedFrom?: number;
 }
 
 /// How many offers get a paid record read; every offer is listed.
@@ -84,7 +98,15 @@ const ratingRank = (r: PublicRating) => (r.kind === 'rated' ? r.value : NEW_RANK
 
 const linked = (c: ShortlistCandidate) => c.linked !== false;
 
-export function rankCandidates(cands: readonly ShortlistCandidate[], budgetUsdc?: number): ShortlistCandidate[] {
+/// With `bargain` (view 73, spec S12) the order is the blended score alone:
+/// offers it does not list drop out, and ties go to the lower price, then the
+/// earlier offer. Without it, the order is view 41's.
+export function rankCandidates(
+  cands: readonly ShortlistCandidate[],
+  budgetUsdc?: number,
+  opts: { bargain?: boolean; leewayPct?: number } = {},
+): ShortlistCandidate[] {
+  if (opts.bargain) return rankByScore(cands, budgetUsdc ?? 0, opts.leewayPct ?? 0);
   const over = (c: ShortlistCandidate) => (budgetUsdc === undefined ? 0 : Math.max(0, c.askedUsdc - budgetUsdc));
   const later = (c: ShortlistCandidate) => c.extraDays ?? 0;
   return [...cands].sort(
@@ -99,6 +121,29 @@ export function rankCandidates(cands: readonly ShortlistCandidate[], budgetUsdc?
       b.deterministicScore - a.deterministicScore ||
       a.askedUsdc - b.askedUsdc,
   );
+}
+
+function rankByScore(cands: readonly ShortlistCandidate[], budgetUsdc: number, leewayPct: number): ShortlistCandidate[] {
+  return cands
+    .map((c, index) => {
+      const s = blendedScore({
+        topicalMatch: c.topicalMatch ?? null,
+        locationFit: c.locationFit,
+        inPerson: c.inPerson === true,
+        priceUsdc: c.askedUsdc,
+        budgetUsdc,
+        leewayPct,
+        rating: c.rating,
+        verified: isVerified(c.level),
+        completed: c.counts.completed,
+        disputesLost: c.counts.disputesLost,
+        pastDealsTogether: c.pastDealsTogether ?? 0,
+      });
+      return { c: { ...c, bargain: { score: s.score, parts: s.parts, why: s.why } }, listed: s.listed, index };
+    })
+    .filter((x) => x.listed)
+    .sort((a, b) => b.c.bargain.score - a.c.bargain.score || a.c.askedUsdc - b.c.askedUsdc || a.index - b.index)
+    .map((x) => x.c);
 }
 
 /// One row per person (view 48, decision 1): when two agents of one account
@@ -195,8 +240,18 @@ export function toEntries(
       outsideRequest: c.askedUsdc > budgetUsdc || (c.extraDays ?? 0) > 0,
       mustLink: !linked(c),
       extraDays: c.extraDays ?? 0,
+      ...(c.bargain ? bargainFields(c.bargain, c.openedUsdc, agreedPrice ?? c.askedUsdc) : {}),
     };
   });
+}
+
+function bargainFields(
+  bargain: NonNullable<ShortlistCandidate['bargain']>,
+  opened: number | null | undefined,
+  shownUsdc: number,
+): Pick<ShortlistEntry, 'scoreParts' | 'why' | 'movedFrom'> {
+  const moved = typeof opened === 'number' && Number.isFinite(opened) && Math.abs(opened - shownUsdc) >= 0.01;
+  return { scoreParts: bargain.parts, why: bargain.why, ...(moved ? { movedFrom: opened } : {}) };
 }
 
 /// A seller who withdrew or whose offer expired stays on the list so the

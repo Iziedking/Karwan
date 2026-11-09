@@ -92,7 +92,7 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal, listDealsForAddress, patchDeal } from '../db/deals.js';
 import { compute as computeReputation } from '../reputation/engine.js';
 import { loadInputs } from '../reputation/signals.js';
-import { getBrief, listOpenBriefJobIds, patchBrief } from '../db/briefs.js';
+import { bargainOn, getBrief, listOpenBriefJobIds, patchBrief } from '../db/briefs.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { getProfile } from '../db/profiles.js';
 import {
@@ -227,6 +227,8 @@ interface Bid {
   /// deterministic price+reputation score alone. This is the dominant ranking
   /// key: a clearly better skill fit beats a higher-reputation weaker fit.
   topicalMatch?: number;
+  /// The price this offer first came in at; later lowers keep it (view 73).
+  openedUsdc?: string;
   /// Free stake (USDC) on the seller agent at bid time. Used as the secondary
   /// ranking key in Trusted Match mode after reputation tier: skin in the game
   /// breaks ties between sellers of the same tier. 0 when the vault read failed
@@ -1628,6 +1630,7 @@ async function handleBidSubmitted(log: Log) {
     priorCleanDealsWithBuyer,
     sellerCompletedDeals,
     sellerDisputedDeals,
+    openedUsdc: state.bids.get(args.seller)?.openedUsdc ?? priceUsdc,
     sellerFailedDeals,
   };
 
@@ -2112,6 +2115,7 @@ async function publishShortlist(
           ...e.bid,
           deterministicScore: e.deterministicScore,
           offeredDays: await offeredDaysOf(state.jobId, e.bid.seller),
+          pastDealsTogether: e.bid.priorCleanDealsWithBuyer ?? 0,
         })),
       ),
       requestDays: Math.max(1, Math.ceil((state.context.deadlineUnix - nowUnix) / 86_400)),
@@ -2122,7 +2126,9 @@ async function publishShortlist(
     },
     shortlistDeps(state),
   );
-  const ranked = onePerPerson(rankCandidates(candidates, budget));
+  const ranked = onePerPerson(
+    rankCandidates(candidates, budget, { bargain: bargainOn(state.jobId), leewayPct: state.context.negotiationMaxIncreasePct ?? 0 }),
+  );
   const limits = shortlistLimits(budget, state.context.negotiationMaxIncreasePct);
   const recommended = pickRecommended(ranked, limits.recommendUpTo, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS);
   state.shortlistCandidates = ranked;
