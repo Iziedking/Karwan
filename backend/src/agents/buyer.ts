@@ -111,6 +111,9 @@ import {
   setLowestOtherOfferReader,
 } from './seller.js';
 import { getRecord, putRecord } from '../db/evidence.js';
+import { resumeBook, stepBook, type Book, type BookContext, type BookEvent } from './negotiationBook.js';
+import { runBook, type BookDeps } from './bookRunner.js';
+import { budgetRange } from './budgetRange.js';
 import { withLlmRetry } from './llm-utils.js';
 import {
   actorSignalsFor,
@@ -387,6 +390,10 @@ interface JobState {
   /// stalled (seller declined off-chain, dropped event, or a seller-side crash)
   /// and the buyer cascades to the next candidate. See COUNTER_RESPONSE_TIMEOUT_MS.
   counterWatchdog?: NodeJS.Timeout | null;
+  /// View 73: one negotiation per offer, all at once (stored in the notes).
+  negotiations?: Book;
+  /// Each open negotiation's wait for the seller's reply (in memory only).
+  bookWaits?: Map<string, NodeJS.Timeout>;
   counterWatchdogSeller?: `0x${string}`;
   counterWatchdogDueAt?: number;
   counterWatchdogRound?: number;
@@ -1344,6 +1351,7 @@ function resumeOpenWaits(state: JobState): void {
   if (counter) safe('resumeCounter', () => resumeCounter(state, counter));
   const proposal = state.pendingProposal;
   if (proposal) safe('resumeProposal', () => resumeProposal(state, proposal));
+  if (bargainOn(state.jobId)) resumeBookWaits(state);
 }
 
 /// A counter written down but maybe not sent when Karwan stopped. Sending it
@@ -2146,6 +2154,12 @@ async function publishShortlist(
     'shortlist published',
   );
 
+  // View 73: every listed offer gets its own negotiation, at once.
+  if (bargainOn(state.jobId)) {
+    if (!state.finalized && !state.escrowFunded) await openNegotiations(state, ranked);
+    return;
+  }
+
   // No pick yet: the list stays open for the buyer to choose from, and late
   // offers keep joining it. The request ends when the buyer chooses or cancels,
   // or when it expires, never on the first look at the offers.
@@ -2156,6 +2170,149 @@ async function publishShortlist(
   state.candidateQueue = [head];
   notesChanged(state);
   await issueCounter(state, head);
+}
+
+// --- View 73: the buyer's agent bargains with every seller at once ----------
+// The negotiation book decides; these only read the request for it and carry
+// out what it returns (negotiationBook.ts, bookRunner.ts).
+
+function bookContext(state: JobState): BookContext {
+  const budget = Number(state.context.budgetUsdc);
+  const brief = getBrief(state.jobId);
+  const now = Date.now();
+  const posted = brief?.createdAt ?? state.trackedAt;
+  const span = Math.max(1, state.context.deadlineUnix * 1000 - posted);
+  const liveScores = new Map<string, { score: number; priceUsdc: number }>();
+  for (const c of state.shortlistCandidates ?? []) {
+    if (c.bargain) liveScores.set(c.seller.toLowerCase(), { score: c.bargain.score, priceUsdc: c.askedUsdc });
+  }
+  return {
+    jobId: state.jobId,
+    budgetUsdc: Number.isFinite(budget) ? budget : 0,
+    leewayPct: state.context.negotiationMaxIncreasePct ?? 0,
+    range: budgetRange(budget),
+    marketUsdc: state.marketRead?.fairPriceUsdc ?? null,
+    agreeForMe: brief?.agreeForMe === true,
+    timeUsed: Math.max(0, Math.min(1, (now - posted) / span)),
+    deadlineDays: Math.max(1, Math.ceil((state.context.deadlineUnix - Math.floor(now / 1000)) / 86_400)),
+    latestDays: null,
+    now,
+    watchdogMs: COUNTER_RESPONSE_TIMEOUT_MS,
+    liveScores,
+  };
+}
+
+function bookDeps(state: JobState): BookDeps {
+  return {
+    persist: () => {
+      notesChanged(state);
+      return notesConfirmed(state);
+    },
+    send: (counter, betterOffer) => sendBookCounter(state, counter, betterOffer),
+    agree: async (seller, priceUsdc) => {
+      const key = (sellerKey(state.bids, seller) ?? seller) as `0x${string}`;
+      await proposeMatch(state, key, priceUsdc, state.bids.get(key)?.pattern);
+    },
+    ask: (seller, priceUsdc, gapUsdc) => askOnShortlist(state, seller, priceUsdc, gapUsdc),
+    end: async (seller, reason) => {
+      bus.emitEvent({ type: 'negotiation.attempt-ended', jobId: state.jobId, actor: 'buyer', payload: { seller, reason } });
+    },
+    armWait: (seller, dueAt) => armBookWait(state, seller, dueAt),
+    clearWait: (seller) => clearBookWait(state, seller),
+    warn: (seller, err) => logger.warn({ jobId: state.jobId, seller, err: err.message }, 'bargaining step failed'),
+  };
+}
+
+async function feedBook(state: JobState, ev: BookEvent): Promise<void> {
+  const book = (state.negotiations ??= new Map());
+  await runBook(book, stepBook(book, ev, bookContext(state)), bookDeps(state));
+}
+
+/// Every listed offer not yet in the book opens its own negotiation. A seller's
+/// agent records whether its price can be countered and its posted price.
+async function openNegotiations(state: JobState, ranked: ShortlistCandidate[]): Promise<void> {
+  const book = (state.negotiations ??= new Map());
+  for (const row of ranked) {
+    const seller = row.seller.toLowerCase();
+    if (book.has(seller) || state.withdrawnSellers?.has(seller) || state.directOffers?.has(seller)) continue;
+    const terms = await getRecord<{ counterable: boolean; postedUsdc: string | null }>('offer-terms', `${state.jobId.toLowerCase()}:${seller}`).catch(() => null);
+    await feedBook(state, {
+      kind: 'offer',
+      seller: row.seller,
+      priceUsdc: String(row.askedUsdc),
+      counterable: terms?.counterable !== false,
+      postedUsdc: terms?.postedUsdc ?? null,
+    });
+  }
+}
+
+/// A counter from the book. The "better offer" flag is stored for the seller's
+/// agent before the counter goes out; the seller never learns who or how much.
+async function sendBookCounter(state: JobState, pending: PendingCounter, betterOffer: boolean): Promise<void> {
+  const seller = pending.seller as `0x${string}`;
+  await putRecord('better-offer', `${state.jobId.toLowerCase()}:${seller.toLowerCase()}`, { betterOffer, key: pending.key });
+  extendWorkingDeadline(state, pending.deadlineUnix);
+  state.lastCounterPriceBySeller.set(seller, pending.priceUsdc);
+  const { ref, replayed } = await marketBoard().counter({
+    walletId: state.buyer.walletId,
+    buyer: state.buyer.address as `0x${string}`,
+    jobId: state.jobId,
+    seller,
+    price: parseUnits(pending.priceUsdc, USDC_DECIMALS),
+    deadline: BigInt(pending.deadlineUnix),
+    key: pending.key,
+  });
+  if (replayed) return;
+  logger.info({ jobId: state.jobId, seller, round: pending.round, txHash: ref }, 'counter issued');
+  bus.emitEvent({
+    type: 'counter.issued',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: { seller, counterPriceUsdc: pending.priceUsdc, counterDeadlineDays: pending.deadlineDays, txHash: ref, ...(betterOffer ? { betterOffer: true } : {}) },
+  });
+}
+
+/// Agree for me is off: the seller's price goes on the shortlist, where the
+/// person chooses, with the gap from the agent's own counter.
+async function askOnShortlist(state: JobState, seller: string, priceUsdc: string, gapUsdc: string): Promise<void> {
+  const key = sellerKey(state.bids, seller) as `0x${string}` | null;
+  const bid = key ? state.bids.get(key) : undefined;
+  if (bid && Number(bid.priceUsdc) !== Number(priceUsdc)) {
+    bid.priceUsdc = priceUsdc;
+    bid.priceWei = parseUnits(priceUsdc, USDC_DECIMALS);
+    notesChanged(state);
+  }
+  bus.emitEvent({ type: 'agent.decision', jobId: state.jobId, actor: 'buyer', payload: { scope: 'bargain-ask', seller, priceUsdc, gapUsdc } });
+  if (shortlistLive(state)) await publishShortlist(state, rankBidEntries(state), Number(state.context.budgetUsdc), { counter: false });
+}
+
+function armBookWait(state: JobState, seller: string, dueAt: number): void {
+  clearBookWait(state, seller);
+  const timer = setTimeout(() => {
+    state.bookWaits?.delete(seller.toLowerCase());
+    if (state.finalized || state.expired) return;
+    safe('bookWait', () => feedBook(state, { kind: 'timeout', seller }));
+  }, Math.max(0, dueAt - Date.now()));
+  timer.unref?.();
+  (state.bookWaits ??= new Map()).set(seller.toLowerCase(), timer);
+}
+
+function clearBookWait(state: JobState, seller: string): void {
+  const timer = state.bookWaits?.get(seller.toLowerCase());
+  if (timer) clearTimeout(timer);
+  state.bookWaits?.delete(seller.toLowerCase());
+}
+
+/// After a restart: each open negotiation waits again until its own time, and
+/// every counter written but not sent goes out once under its key.
+function resumeBookWaits(state: JobState): void {
+  const book = state.negotiations;
+  if (!book?.size) return;
+  for (const n of book.values()) {
+    if (n.state === 'open' && !n.pending && n.watchdogDueAt) armBookWait(state, n.seller, Math.max(n.watchdogDueAt, Date.now()));
+  }
+  const resend = resumeBook(book);
+  if (resend.length) safe('resumeBook', () => runBook(book, resend, bookDeps(state)));
 }
 
 /// Whether a published shortlist is live and may change.
@@ -2233,7 +2390,10 @@ async function inviteBestAndFinal(state: JobState): Promise<void> {
   const round = getBrief(state.jobId)?.edits ?? 0;
   const key = `${state.jobId.toLowerCase()}:${round}`;
   if (await getRecord('best-and-final', key).catch(() => null)) return;
-  const sellers = bestAndFinalRecipients(liveOffers(state));
+  // View 73: a seller already in a negotiation hears it there, not here.
+  const sellers = bestAndFinalRecipients(
+    liveOffers(state).filter((o) => state.negotiations?.get(o.seller.toLowerCase())?.state !== 'open'),
+  );
   if (!sellers.length) return;
   await putRecord('best-and-final', key, { at: Date.now(), sellers });
   bus.emitEvent({ type: 'request.best-and-final', jobId: state.jobId, actor: 'buyer', payload: { round, sellers } });
@@ -2272,6 +2432,7 @@ export async function dropWithdrawnSeller(jobId: string, sellerAgent: string): P
   (state.withdrawnSellers ??= new Set()).add(sellerAgent.toLowerCase());
   notesChanged(state);
   state.pendingRevisions?.delete(sellerAgent.toLowerCase());
+  if (state.negotiations?.has(sellerAgent.toLowerCase())) await feedBook(state, { kind: 'withdrawn', seller: sellerAgent });
   if (!key) return;
   const fromUsdc = state.bids.get(key)?.priceUsdc ?? null;
   state.bids.delete(key);
@@ -3204,6 +3365,17 @@ async function handleCounterResponse(log: Log) {
   // A late response from a seller we already cascaded past (watchdog fired or
   // they declined off-chain first) must not reopen a closed negotiation.
   if (state.triedSellers.has(args.seller)) return;
+  // View 73: a reply moves that seller's own negotiation, nothing else.
+  if (bargainOn(state.jobId) && state.negotiations?.has(args.seller.toLowerCase())) {
+    clearBookWait(state, args.seller);
+    await feedBook(state, {
+      kind: 'reply',
+      seller: args.seller,
+      priceUsdc: formatUnits(args.newPrice, USDC_DECIMALS),
+      accepted: args.accepted,
+    });
+    return;
+  }
   // The seller replied in time; cancel the stall watchdog.
   clearCounterWatchdog(state);
   const buyer = state.buyer;

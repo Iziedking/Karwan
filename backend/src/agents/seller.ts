@@ -24,7 +24,7 @@ async function placeOffer(walletId: string, seller: string, jobId: string, price
 import { negotiationModel } from '../llm/client.js';
 import { bidDecisionSchema } from '../llm/schemas.js';
 import { buildBidEvaluationPrompt, type JobContext } from '../llm/prompts.js';
-import { nextSellerMove } from './concession.js';
+import { nextMove, nextSellerMove, type ConcessionMove } from './concession.js';
 import { buildReasonLinePrompt, checkReasonLine, fallbackReason, reasonLineSchema, type ReasonFacts } from '../llm/reasonLine.js';
 import { recordAgreement } from './negotiationMeasures.js';
 import { quantityWords } from '../llm/quantity.js';
@@ -134,6 +134,8 @@ interface ActiveBid {
   listingAskingPriceUsdc?: number;
   /// False for a Fixed price over the budget: it stays put (view 73, decision 2).
   counterable?: boolean;
+  /// View 73: this seller already met the buyer in the middle once.
+  midpointUsed?: boolean;
   /** Set true by `adjustBidByTier` when the buyer is NEW-tier (see
    *  docs/reputation-model.md §6). The buyer agent reads this in
    *  `proposeMatch` to attach a `new-buyer` riskFlag on the resulting
@@ -407,6 +409,8 @@ export async function submitListingBid(
     counterable?: boolean;
     /// View 73: where the agent opened, when it opened above the posted price.
     openedUsdc?: number;
+    /// View 73: the price on the listing, which the buyer's agent counters with first.
+    postedUsdc?: number;
   },
 ): Promise<
   | { ok: true; txHash: string }
@@ -506,6 +510,13 @@ export async function submitListingBid(
   const deadlineUnix = job.deadlineUnix;
   const priceUsdc = listing.askingPriceUsdc.toString();
   const priceWei = parseUnits(priceUsdc, USDC_DECIMALS);
+  // View 73: what the buyer's agent may read of this offer before it counters.
+  if (listing.counterable !== undefined) {
+    await putRecord('offer-terms', `${job.jobId.toLowerCase()}:${seller.address.toLowerCase()}`, {
+      counterable: listing.counterable,
+      postedUsdc: listing.postedUsdc !== undefined ? listing.postedUsdc.toFixed(2) : null,
+    }).catch((err: Error) => logger.warn({ jobId: job.jobId, err: err.message }, 'offer terms not stored'));
+  }
 
   try {
     const txResult = await placeOffer(seller.walletId, seller.address, job.jobId, priceWei, deadlineUnix);
@@ -1772,9 +1783,8 @@ async function runCounterEvaluation(
   const buyerDays = Math.max(1, Math.ceil((buyerCounterDeadlineUnix - nowSec) / 86_400));
   const tradeDays = seller.maxDeadlineDays > buyerDays ? Math.min(seller.maxDeadlineDays, buyerDays + Math.max(2, Math.ceil(buyerDays / 2))) : null;
   const agreeInsideLimits = (seller.agentMode ?? 'offers') === 'agree';
-  const move = nextSellerMove({
+  const scheduleInput = {
     opening: originalBid,
-    floor: minAcceptable,
     current: Number(active.lastBidPrice),
     timeUsed,
     exchanges: active.counterRounds,
@@ -1785,7 +1795,25 @@ async function runCounterEvaluation(
     tradeDays,
     traded: active.tradedTime === true,
     agreeInsideLimits,
-  });
+  };
+  // View 73: the same schedule as the buyer's, told whether the buyer holds a
+  // better offer (never who or how much), and free to meet in the middle once.
+  const bargain = bargainOn(args.jobId);
+  const better = bargain
+    ? await getRecord<{ betterOffer: boolean }>('better-offer', `${args.jobId.toLowerCase()}:${seller.address.toLowerCase()}`).catch(() => null)
+    : null;
+  const scheduled = bargain
+    ? nextMove({
+        ...scheduleInput,
+        role: 'seller',
+        limit: minAcceptable,
+        midpointUsed: active.midpointUsed === true,
+        budgetUsdc: refereeTarget(briefBudget, budgetRange(briefBudget)) || null,
+        betterOffer: better?.betterOffer === true,
+      })
+    : nextSellerMove({ ...scheduleInput, floor: minAcceptable });
+  if (scheduled.kind === 'midpoint') active.midpointUsed = true;
+  const move: ConcessionMove = scheduled.kind === 'midpoint' ? { kind: 'step', price: scheduled.price } : scheduled;
   logger.info(
     { jobId: args.jobId, seller: seller.address, move, timeUsed, competitors, exchanges: active.counterRounds, buyerTier, heat, marketRead: !!counterRead, buyerChecked: !!buyerPassport },
     'counter evaluated by the schedule',

@@ -968,7 +968,7 @@ async function tryMatchListingToJobLegacy(
       floorUsdc: terms.floorUsdc,
       description: listing.description,
       ...(terms.outsideRequest ? { outsideRequest: true } : {}),
-      ...(bargain ? { counterable: terms.counterable, openedUsdc: terms.openedUsdc } : {}),
+      ...(bargain ? { counterable: terms.counterable, openedUsdc: terms.openedUsdc, postedUsdc: listing.askingPriceUsdc } : {}),
     },
   );
   if (!result.ok) return false;

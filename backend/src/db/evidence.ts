@@ -15,7 +15,9 @@ import { pgEnabled, postgresExecutor } from './client.js';
 ///   guarantee-hold key = escrow deal id  a deal guarantee a person has to check (view 62)
 ///   guarantee-scan key = 'cursor'  the last block read for StakeHookFailed (view 62)
 ///   csp-report key = YYYY-MM-DD  what the page policy blocked that day, by rule and origin (view 70)
-export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'dm-read' | 'ratings-asked' | 'suggested' | 'record-nudge' | 'offer-revisions' | 'best-and-final' | 'guarantee-hold' | 'guarantee-scan' | 'owed-scan' | 'owed-address' | 'money-sweep' | 'money-alerts' | 'csp-report';
+///   offer-terms key = request|seller agent  whether a listing offer can be countered, and its posted price (view 73)
+///   better-offer key = request|seller agent  whether the buyer's latest counter says a better offer is in (view 73)
+export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'dm-read' | 'ratings-asked' | 'suggested' | 'record-nudge' | 'offer-revisions' | 'best-and-final' | 'guarantee-hold' | 'guarantee-scan' | 'owed-scan' | 'owed-address' | 'money-sweep' | 'money-alerts' | 'csp-report' | 'offer-terms' | 'better-offer';
 type UniqueKind = 'fp' | 'nullifier' | 'rc';
 
 const memory = new Map<string, unknown>();
