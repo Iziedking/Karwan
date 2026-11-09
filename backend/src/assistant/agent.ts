@@ -5,16 +5,13 @@
 import { draftDeal } from '../deals/drafter.js';
 import { modelSplit } from '../routes/dealDraft.js';
 import { locationOf, withBuyerLocations, withSellerLocations } from '../location/live.js';
-import { getBrief, listAllBriefs } from '../db/briefs.js';
+import { getBrief } from '../db/briefs.js';
 import { randomUUID } from 'node:crypto';
-import { requestsThatFit } from '../listings/fits.js';
 import { offersThatFit } from '../marketplace/offersThatFit.js';
 import { requestAttachments } from '../attachments/attachments.js';
-import { CATEGORY_NAMES, categoryOf } from '../listings/categories.js';
-import { findCustomers } from '../intelligence/customers.js';
+import { CATEGORY_NAMES } from '../listings/categories.js';
 import { newWatch, watchRefusal } from '../intelligence/watches.js';
 import { liveWatchesFor, saveWatch, stopWatch } from '../db/marketWatches.js';
-import { sellerCategories } from '../agents/trendScout.js';
 import { currentMarket } from '../intelligence/marketStoreLive.js';
 import { onPreviousEscrow } from '../deals/previousEscrow.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
@@ -2104,56 +2101,6 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           }
           logger.warn({ err: (err as Error).message }, 'assistant research_market failed');
           return { error: 'The research did not go through, and nothing was paid. Try again shortly.' };
-        }
-      },
-    }),
-
-    find_customers: tool({
-      description:
-        "Who might buy from the user now, as a seller: open requests whose shortlist already names them (alreadyFit), open requests in the market categories they serve that they have not offered on (openInYourCategories, newest first), and the categories they serve that are rising this week. Never shows who the buyer is. Use it when the user asks for customers, clients, buyers or work. Offer make_offer on one of them, or propose_post_offer if they have no offer yet.",
-      inputSchema: z.object({}),
-      execute: async () => {
-        try {
-          const now = Date.now();
-          const profile = await getProfile(address).catch(() => null);
-          const wallets = await getAgentWallets(address).catch(() => null);
-          const own = listListingsForSeller(address).filter((l) => l.expiresAt > now);
-          const categories = sellerCategories(
-            [...(profile?.seller?.skills ?? []), ...(profile?.seller?.keywords ?? [])],
-            own.map((l) => categoryOf(l)).filter((c): c is NonNullable<typeof c> => !!c),
-          );
-          const offered = new Set(
-            wallets?.sellerAddress ? getSellerSnapshot(wallets.sellerAddress).activeBids.map((b) => b.jobId) : [],
-          );
-          const requests = getMarketplaceBriefs().filter((b) => isPublic(b)).map((b) => ({
-            jobId: b.jobId,
-            briefText: b.briefText,
-            budgetUsdc: b.budgetUsdc,
-            deadlineUnix: b.deadlineUnix,
-            postedAt: b.postedAt,
-            postedBy: getBrief(b.jobId)?.postedBy,
-            bidsCount: b.bidsCount,
-            example: b.example,
-          }));
-          const found = findCustomers({
-            me: address,
-            categories,
-            requests,
-            fits: new Set(requestsThatFit(address, listAllBriefs())),
-            offered,
-            rising: currentMarket(now).demand,
-          });
-          return {
-            ...found,
-            servesCategories: [...categories].map((c) => CATEGORY_NAMES[c]),
-            next:
-              categories.size === 0
-                ? 'Say their agent does not know what they sell yet, and offer to set it up (set_up_my_agents) or post an offer (propose_post_offer).'
-                : 'Name the requests by title, up to amount and date. Offer to make an offer on one (make_offer), and mention any rising category.',
-          };
-        } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant find_customers failed');
-          return { error: 'Could not look for customers right now. Try again shortly.' };
         }
       },
     }),
