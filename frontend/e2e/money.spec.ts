@@ -361,23 +361,25 @@ test('the balance says what is held in your deals, and the agents fold under one
     { jobId: `0x${'ab'.repeat(32)}`, buyer: ME, seller: '0x2222222222222222222222222222222222222222', dealAmountUsdc: '120', firstReleasePct: 100, terms: 'Logo', delivered: false, createdAt: 0, updatedAt: 0, acceptedAt: 1, onChain: null },
   ] } }));
   await page.goto('/account');
-  await expect(page.locator('[data-held-in-deals]')).toHaveText(/^Held in your deals\s*120\.00 USDC$/);
+  await expect(page.locator('[data-held-in-deals]')).toHaveText(/^Held in your deals\s*1 deal\s*120\.00 USDC$/);
   await expect(page.getByRole('tab', { name: 'Balance' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('listitem').filter({ hasText: 'Buying agent' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Ask for money' })).toHaveAttribute('href', '/request');
   // Add money is the one green button (view 48); Send and Withdraw sit beside it.
   const green = await page.locator('main a, main button').evaluateAll((els) => els.filter((el) => getComputedStyle(el).backgroundColor === 'rgb(175, 201, 91)').map((el) => el.textContent?.trim()));
   expect(green).toEqual(['Add money']);
-  // On a wide screen the deals holding the money sit beside the balance, with the total.
-  const side = page.locator('[data-held-deals]');
-  if (testInfo.project.name === 'desktop') {
-    await expect(side).toBeVisible();
-    await expect(side.getByRole('link', { name: /Logo/ })).toHaveAttribute('href', `/deals/0x${'ab'.repeat(32)}`);
-    await expect(side).toContainText('Total held');
-    await expect(side).toContainText('120.00 USDC');
-  } else {
-    await expect(side).toBeHidden();
-  }
+  // One centred column on every screen (owner, 9 Nov 2026): the card opens to the deals and the total.
+  const card = page.locator('[data-held-in-deals]');
+  const list = page.locator('[data-held-deals]');
+  await expect(card).toHaveAttribute('aria-expanded', 'false');
+  await expect(list).toBeHidden();
+  await expect(page.locator('[data-held-shield]')).toBeVisible();
+  await card.click();
+  await expect(card).toHaveAttribute('aria-expanded', 'true');
+  await expect(list.getByRole('link', { name: /Logo/ })).toHaveAttribute('href', `/deals/0x${'ab'.repeat(32)}`);
+  await expect(list).toContainText('Total held');
+  await expect(list).toContainText('120.00 USDC');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   await page.screenshot({ path: testInfo.outputPath('money-held.png'), fullPage: true });
 });
 
@@ -413,5 +415,5 @@ test('an old ?money=v1 link to the money page opens the money page (view 44, Bat
     { jobId: `0x${'ab'.repeat(32)}`, buyer: ME, seller: '0x2222222222222222222222222222222222222222', dealAmountUsdc: '120', firstReleasePct: 100, terms: 'Logo', delivered: false, createdAt: 0, updatedAt: 0, acceptedAt: 1, onChain: null },
   ] } }));
   await page.goto('/account?money=v1');
-  await expect(page.locator('[data-held-in-deals]')).toHaveText(/^Held in your deals\s*120\.00 USDC$/);
+  await expect(page.locator('[data-held-in-deals]')).toHaveText(/^Held in your deals\s*1 deal\s*120\.00 USDC$/);
 });

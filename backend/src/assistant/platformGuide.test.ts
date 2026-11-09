@@ -403,7 +403,8 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.doesNotMatch(all, /The answer date passed\. Karwan is checking/);
   // The money page in the new look (view 48, batch 4).
   assert.match(all, /Add money \(the one green button\), Send and Withdraw/);
-  assert.match(all, /listed beside the balance with Total held/);
+  assert.match(all, /a tap opens the deals holding that money with Total held/);
+  assert.doesNotMatch(all, /listed beside the balance/);
 });
 
 test('the guide gives the record one line on Profile and one balance on Arc (1 Nov, batch 9e)', () => {

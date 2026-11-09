@@ -4,6 +4,9 @@ export interface MoneyPageCopy {
   /// The Held in your deals row and side card, and its total (view 48).
   heldLabel: string;
   totalHeld: string;
+  /// Under Held in your deals: how many deals hold it.
+  heldDeals: string;
+  heldOneDeal: string;
   addMoney: string;
   send: string;
   withdraw: string;
@@ -51,6 +54,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     heldInDeals: '{amount} USDC held in your deals',
     heldLabel: 'Held in your deals',
     totalHeld: 'Total held',
+    heldDeals: '{count} deals',
+    heldOneDeal: '1 deal',
     addMoney: 'Add money',
     send: 'Send',
     withdraw: 'Withdraw',
@@ -93,6 +98,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     heldInDeals: '{amount} USDC gardés dans vos transactions',
     heldLabel: 'Gardé dans vos transactions',
     totalHeld: 'Total gardé',
+    heldDeals: '{count} transactions',
+    heldOneDeal: '1 transaction',
     addMoney: 'Ajouter de l’argent',
     send: 'Envoyer',
     withdraw: 'Retirer',
@@ -135,6 +142,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     heldInDeals: '{amount} USDC محفوظة في صفقاتك',
     heldLabel: 'محفوظ في صفقاتك',
     totalHeld: 'إجمالي المحفوظ',
+    heldDeals: '{count} صفقات',
+    heldOneDeal: 'صفقة واحدة',
     addMoney: 'إضافة مال',
     send: 'إرسال',
     withdraw: 'سحب',
@@ -177,6 +186,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     heldInDeals: '{amount} USDC आपकी डील में सुरक्षित',
     heldLabel: 'आपके सौदों में रखा',
     totalHeld: 'कुल रखा गया',
+    heldDeals: '{count} सौदे',
+    heldOneDeal: '1 सौदा',
     addMoney: 'पैसे जोड़ें',
     send: 'भेजें',
     withdraw: 'निकालें',
@@ -219,6 +230,8 @@ export const moneyPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MoneyPageCo
     heldInDeals: 'USDC {amount} zinashikiliwa kwenye mipango yako',
     heldLabel: 'Kinachoshikiliwa kwenye mikataba yako',
     totalHeld: 'Jumla kinachoshikiliwa',
+    heldDeals: 'Mikataba {count}',
+    heldOneDeal: 'Mkataba 1',
     addMoney: 'Ongeza pesa',
     send: 'Tuma',
     withdraw: 'Toa',

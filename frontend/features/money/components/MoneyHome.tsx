@@ -22,9 +22,6 @@ import { SavedAddresses } from '@/features/moneyOut/SavedAddresses';
 import { RecoveryRow } from '@/features/recovery/components/RecoveryRow';
 import { useHeldDeals, useHeldInDeals } from '../useHeldInDeals';
 import { buttonClasses } from '@/shared/components/Button';
-import { CARD_CLASS } from '@/shared/components/Card';
-import { whatItIs } from '@/features/deals/workspace/titleLine';
-import { dealReference } from '@/features/deals/dealReference';
 import { Segmented } from '@/shared/components/Segmented';
 import { AgentsTab } from './AgentsTab';
 import { WhereItIsSheet } from './WhereItIsSheet';
@@ -36,7 +33,7 @@ import { CoachNote } from '@/shared/components/CoachNote';
 import { GuaranteeTab } from '@/features/guarantee/GuaranteeTab';
 import { ADD_HREF, WITHDRAW_HREF, agentMoveHref, moneyTab, type MoneyTab } from '../moneyRoutes';
 import { useMoneyText } from '../hooks/useMoneyText';
-import { Price } from './Price';
+import { HeldInDealsCard } from './HeldInDealsCard';
 
 
 const SECONDARY = buttonClasses({ variant: 'secondary' });
@@ -114,11 +111,9 @@ function MoneyHomeInner() {
     : null;
 
   return (
-    // One centred column (owner, 5 Nov 2026); the deals holding money sit beside it on a wide screen when there are any.
-    <div className={heldDeals.length > 0
-      ? 'product-surface mx-auto max-w-[1180px] px-4 pb-24 pt-6 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-10'
-      : 'product-surface mx-auto max-w-[800px] px-4 pb-24 pt-6 sm:px-6'}>
-      <div data-own-back className="-ms-2 empty:hidden lg:col-span-2">
+    // One centred column on every screen (owner, 9 Nov 2026): the deals holding money open inside their own card.
+    <div className="product-surface mx-auto max-w-[640px] px-4 pb-24 pt-6 sm:px-6">
+      <div data-own-back className="-ms-2 empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated />
       </div>
       <div className="min-w-0 divide-y divide-[var(--line)] [&>*]:py-8">
@@ -148,8 +143,8 @@ function MoneyHomeInner() {
             </div>
           ) : (
             <div className="space-y-5">
-              <div className="flex items-start justify-between gap-3">
-                <h1 id="money-balance" className="space-y-1.5">
+              <div className="relative flex justify-center text-center">
+                <h1 id="money-balance" className="flex flex-col items-center space-y-1.5">
                   <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{mm.one.yourBalance}<Hint>{pages.tips.balance}</Hint></span>
                   <span className="flex items-baseline gap-2 tabular-nums" dir="ltr">
                     {/* Counts to a new value; under reduced motion it fades instead. */}
@@ -172,10 +167,10 @@ function MoneyHomeInner() {
                     {mm.one.whereItIs}<span aria-hidden className="ms-1 rtl:rotate-180">›</span>
                   </button>
                 </h1>
-                <NetworkHint />
+                <span className="absolute end-0 top-0"><NetworkHint /></span>
               </div>
               <CoachNote id="money-balance">{pages.firstVisit}</CoachNote>
-              <p role="status" aria-live="polite" className="flex items-start gap-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
+              <p role="status" aria-live="polite" className="flex items-start justify-center gap-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
                 <span
                   aria-hidden
                   className="mt-[7px] size-2 shrink-0 rounded-full"
@@ -192,17 +187,10 @@ function MoneyHomeInner() {
                 <Link href="/send" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.send}</Link>
                 <Link href={WITHDRAW_HREF} className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{mp.withdraw}</Link>
               </div>
-              {held && held !== '0' ? (
-                <div className={`${CARD_CLASS} px-5 lg:px-6`}>
-                  <dl>
-                    <div data-held-in-deals className="flex min-h-[52px] items-center justify-between gap-3 py-3 text-[15px] tabular-nums">
-                      <dt className="text-[var(--ink-secondary)]">{mp.heldLabel}</dt>
-                      <dd className="font-medium text-[var(--ink)]"><Price usdc={Number(held)} size="inline" /></dd>
-                    </div>
-                  </dl>
-                </div>
-              ) : null}
-              <Link href="/request" className={QUIET}>{mp.askForMoney}</Link>
+              {held && held !== '0' ? <HeldInDealsCard held={held} deals={heldDeals} /> : null}
+              <div className="flex justify-center">
+                <Link href="/request" className={QUIET}>{mp.askForMoney}</Link>
+              </div>
             </div>
           )}
         </section>
@@ -219,8 +207,6 @@ function MoneyHomeInner() {
           </>
         ) : null}
       </div>
-
-      <HeldDealsCard />
 
       <WhereItIsSheet
         open={whereOpen}
@@ -245,36 +231,5 @@ function MoneyHomeInner() {
         agents={activation.agents}
       />
     </div>
-  );
-}
-
-/// On a wide screen, the deals holding your money beside the balance, the
-/// most held first, with the total under them (view 48).
-function HeldDealsCard() {
-  const mp = useTranslations().moneyPage;
-  const deals = useHeldDeals();
-  if (deals.length === 0) return null;
-  const total = deals.reduce((sum, d) => sum + Number(d.held), 0);
-  return (
-    <aside aria-labelledby="money-held" data-held-deals className="hidden pt-8 lg:block">
-      <h2 id="money-held" className="text-[17px] font-semibold text-[var(--ink)]">{mp.heldLabel}</h2>
-      <ul className={`${CARD_CLASS} mt-3 divide-y divide-[var(--line)] px-5`}>
-        {deals.map(({ deal, held }) => (
-          <li key={deal.jobId}>
-            <Link href={`/deals/${deal.jobId}`} className="flex min-h-16 items-center justify-between gap-3 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]">
-              <span className="min-w-0">
-                <span dir="auto" className="block truncate text-[15px] font-medium text-[var(--ink)]">{whatItIs(deal) || dealReference(deal.jobId)}</span>
-                <span dir="ltr" className="block text-[13px] tabular-nums text-[var(--ink-secondary)]">{dealReference(deal.jobId)}</span>
-              </span>
-              <Price usdc={Number(held)} className="shrink-0 text-end text-[15px] font-medium text-[var(--ink)]" />
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 flex items-center justify-between gap-3 px-5 text-[15px] tabular-nums">
-        <span className="text-[var(--ink-secondary)]">{mp.totalHeld}</span>
-        <Price usdc={total} className="text-end font-semibold text-[var(--ink)]" />
-      </p>
-    </aside>
   );
 }
