@@ -15,7 +15,7 @@ import { levelOf } from '../verification/live.js';
 import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, type StandingNeed } from '../find/needs.js';
 import { formatLocalAmount } from '../rates/localAmounts.js';
 import { readUsdcRates } from '../rates/usdcRates.js';
-import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
+import { buildNavigateAction, hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import { buildBlockPersonConfirm, buildRemoveStandingNeedConfirm, buildSaveStandingNeedConfirm, EVERY_WORDS, REACHES_WORDS } from './findActions.js';
 
 /// Finding people, being reached and blocking, from any channel (view 72).
@@ -78,7 +78,7 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
   return {
     find_people: tool({
       description:
-        'Find people who sell what this person needs, near them or online, ranked by skill, then their record (verified, tier, rating), then distance (view 72). Use when they ask for someone: "I need a tailor near me", "find me a caterer in Abuja". Only people who chose to be found come up, at most five, the best fit recommended. Pass kind in_person for work done face to face, remote for online work, goods for things delivered. It moves no money and contacts nobody yet: show the list (name and tag, tier, rating, how far, how they work, price or Asks for a quote, reasons) and the link. Contacting them comes in a later step; until then offer to post a request or message one by tag. Nobody fits: say so plainly and offer to post it on the open market.',
+        'Find people who sell what this person needs, near them or online, ranked by skill, then their record (verified, tier, rating), then distance (view 72). Use when they ask for someone: "I need a tailor near me", "find me a caterer in Abuja". Only people who chose to be found come up, at most five, the best fit recommended. Pass kind in_person for work done face to face, remote for online work, goods for things delivered. It moves no money and contacts nobody yet. A card with the people and a See all button is shown under your reply, so say in one or two sentences who fits best and why; do not list every row. Contacting them comes in a later step; until then offer to post a request or message one by tag. Nobody fits: say so plainly and offer to post it on the open market.',
       inputSchema: z.object({
         need: z.string().min(3).max(300).describe('What they need, in their words.'),
         budgetUsdc: z.number().positive().max(10_000_000).describe('Their budget in USDC.'),
@@ -106,6 +106,9 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
           id: deps.newId(), owner: me, side: 'buyer', mode: 'choose', need, budgetUsdc: String(budgetUsdc), kind, where: place,
           jobId: null, needId: null, rows, status: 'shortlisted', createdAt: now, endsAt: findEndsAt(now, days ? now + days * DAY_MS : null),
         });
+        // The web shows the people as a card; chat apps get the link.
+        const open = buildNavigateAction({ destination: 'find', token: saved.id, label: rows.length === 1 ? 'See them' : `See all ${rows.length}` });
+        if (!('error' in open)) actions.push(open);
         return {
           found: rows.length,
           link: `/find/${saved.id}`,

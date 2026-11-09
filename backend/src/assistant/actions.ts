@@ -480,6 +480,7 @@ export const NAVIGATE_DESTINATIONS = [
   'legacy',
   'settings',
   'feedback',
+  'find',
 ] as const;
 export type NavigateDestination = (typeof NAVIGATE_DESTINATIONS)[number];
 
@@ -585,6 +586,11 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   legacy: { label: 'Earlier deals', build: () => '/legacy' },
   settings: { label: 'Settings', build: () => '/settings' },
   feedback: { label: 'Send feedback', build: () => '/feedback' },
+  // A person's own find (view 72), by its id; only they can open it.
+  find: {
+    label: 'See the people found',
+    build: (p) => (p.token && /^[0-9a-f-]{36}$/i.test(p.token) ? `/find/${p.token.toLowerCase()}` : null),
+  },
 };
 
 /// Uniqueness suffix for confirm-card ids. The frontend keeps a durable

@@ -55,12 +55,14 @@ test('deleting an account clears its finds, needs and blocks both ways', async (
 });
 
 test('the owner reads people by name and tag, never a wallet', () => {
-  const row = { user: '0xseller', sellerAgent: '0xagent', tag: 'ngozi', name: 'Ngozi', verified: true, tier: 'ESTABLISHED' as const, rating: 'New, 0 ratings so far',
+  const row = { user: '0xseller', sellerAgent: '0xagent', tag: 'ngozi', name: 'Ngozi', verified: true, tier: 'ESTABLISHED' as const, rating: 'New, 0 ratings so far', stars: null, ratings: 0,
     distance: { key: 'nearby' as const }, meet: { atMyPlace: true, comeToYouKm: null, online: false }, priceUsdc: '60', days: 5, reasons: [], recommended: true };
-  const view = ownerView(find(1, { rows: [row] }));
+  const view = ownerView(find(1, { rows: [row] }), new Map([['0xseller', 'data:image/jpeg;base64,AAAA']]));
   const text = JSON.stringify(view);
   assert.equal(text.includes('0xseller'), false);
   assert.equal(text.includes('0xagent'), false);
   assert.equal(text.includes('0xBUYER'), false);
   assert.equal(view.rows[0]!.tag, 'ngozi');
+  assert.equal(view.rows[0]!.photo, 'data:image/jpeg;base64,AAAA');
+  assert.equal(ownerView(find(1, { rows: [row] })).rows[0]!.photo, null);
 });

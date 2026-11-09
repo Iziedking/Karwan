@@ -79,6 +79,8 @@ export function getProductBackHref(
 
   if (matchesRoute(pathname, '/financier') && pathname !== '/financier') return dealsAvailable ? '/financier' : home;
   if (matchesRoute(pathname, '/messages') && pathname !== '/messages') return '/messages';
+  // People an agent found come from the assistant (view 72).
+  if (matchesRoute(pathname, '/find')) return '/assistant';
   if (matchesRoute(pathname, '/work') || matchesRoute(pathname, '/contests')) return dealsAvailable ? '/market' : home;
   if (matchesRoute(pathname, '/agent-jobs') && !matchesRoute(pathname, '/agent-jobs/release')) return pathname === '/agent-jobs' ? home : '/agent-jobs';
   if (matchesRoute(pathname, '/developers') && pathname !== '/developers') return '/developers';

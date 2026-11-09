@@ -12,6 +12,8 @@ import { CARD_CLASS } from '@/shared/components/Card';
 import { FactRows } from '@/shared/components/FactRows';
 import { Button, buttonClasses } from '@/shared/components/Button';
 import { DealRoute } from '@/features/deals/DealRoute';
+import { FindCard } from '@/features/find/FindCard';
+import { findIdOf } from '@/features/find/foundModel';
 import { Icon } from '@/shared/components/Icon';
 import {
   api,
@@ -118,6 +120,8 @@ export function ActionButtons({
       {actions.map((a) =>
         a.kind === 'confirm' ? (
           <ConfirmCard key={a.id} action={a} onNavigate={onNavigate} />
+        ) : findIdOf(a.href) ? (
+          <FindCard key={a.id} id={findIdOf(a.href)!} href={a.href} onNavigate={onNavigate} />
         ) : (
           <NavigateButton key={a.id} action={a} onNavigate={onNavigate} />
         ),

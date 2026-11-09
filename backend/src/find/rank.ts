@@ -61,6 +61,9 @@ export interface FoundRow {
   verified: boolean;
   tier: Tier;
   rating: string;
+  /// The rating and how many deals it is from, for each language to word; null while New.
+  stars: number | null;
+  ratings: number;
   distance: DistanceLine;
   meet: Meet;
   /// What they would likely ask inside the budget, or null for a quote.
@@ -161,6 +164,8 @@ export function rankForFind(candidates: readonly FindCandidate[], need: FindNeed
     verified: s.c.verified,
     tier: s.c.tier,
     rating: ratingLine(s.c.rating),
+    stars: s.c.rating.kind === 'rated' ? s.c.rating.value : null,
+    ratings: s.c.rating.count,
     distance: need.kind === 'in_person' ? distanceLine(s.km, s.fit, city) : { key: 'unknown' },
     meet: s.c.meet,
     priceUsdc: s.c.price ? String(Math.min(s.c.price.usual, need.budgetUsdc)) : null,

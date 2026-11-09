@@ -42,12 +42,13 @@ export function asOf(f: Find, now: number): Find {
   return f.status !== 'ended' && now >= f.endsAt ? { ...f, status: 'ended' } : f;
 }
 
-/// What the owner's screen reads: people by name and tag, never a wallet.
-export type FindView = Omit<Find, 'owner' | 'rows'> & { rows: Array<Omit<FoundRow, 'user' | 'sellerAgent'>> };
+/// What the owner's screen reads: people by name, tag and photo, never a wallet.
+export type FindView = Omit<Find, 'owner' | 'rows'> & { rows: Array<Omit<FoundRow, 'user' | 'sellerAgent'> & { photo: string | null }> };
 
-export function ownerView(f: Find): FindView {
+/// `photos` maps a person to their profile photo, read when the page opens.
+export function ownerView(f: Find, photos: ReadonlyMap<string, string> = new Map()): FindView {
   const { owner: _owner, rows, ...rest } = f;
-  return { ...rest, rows: rows.map(({ user: _u, sellerAgent: _a, ...r }) => r) };
+  return { ...rest, rows: rows.map(({ user, sellerAgent: _a, ...r }) => ({ ...r, photo: photos.get(user.toLowerCase()) ?? null })) };
 }
 
 export async function saveFind(f: Find): Promise<Find> {

@@ -396,6 +396,54 @@ export interface StandingNeed {
   createdAt: number;
 }
 
+/// How far someone is, rounded (view 72). Never an area or an address.
+export type DistanceLine =
+  | { key: 'nearby' }
+  | { key: 'about'; km: number }
+  | { key: 'inCity'; city: string }
+  | { key: 'far'; km: number }
+  | { key: 'sameCity'; city: string }
+  | { key: 'sameCountry' }
+  | { key: 'unknown' };
+
+export type FindReason = 'best_fit' | 'nearby' | 'verified' | 'within_budget' | 'on_time_record';
+
+/// One person an agent found, as the person who asked sees them.
+export interface FoundPerson {
+  tag: string | null;
+  name: string;
+  verified: boolean;
+  tier: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
+  /// "4.8 from 12 deals" or "New, 2 ratings so far", in English; screens word it from stars and ratings.
+  rating: string;
+  stars: number | null;
+  ratings: number;
+  distance: DistanceLine;
+  meet: Meet;
+  priceUsdc: string | null;
+  days: number | null;
+  reasons: FindReason[];
+  recommended: boolean;
+  photo: string | null;
+}
+
+/// A person's find, private to them (view 72).
+export interface FindView {
+  id: string;
+  side: 'buyer' | 'seller';
+  mode: 'choose' | 'agree';
+  need: string;
+  budgetUsdc: string;
+  kind: 'goods' | 'in_person' | 'remote';
+  where: { scope: 'near' | 'country' | 'anywhere'; country?: string };
+  jobId: string | null;
+  needId: string | null;
+  rows: FoundPerson[];
+  status: 'shortlisted' | 'contacting' | 'matched' | 'ended';
+  createdAt: number;
+  endsAt: number;
+}
+
 export type WorkspaceKind = 'personal' | 'business';
 export type WorkspaceStatus = 'active' | 'setup' | 'suspended' | 'closed';
 export type BusinessVerificationStatus = 'not_started' | 'in_progress' | 'submitted' | 'needs_information' | 'verified' | 'rejected' | 'expired';
@@ -6437,6 +6485,7 @@ export const api = {
   standingNeeds: () => json<{ needs: StandingNeed[]; max: number }>('/api/find/needs'),
   saveStandingNeed: (need: { id?: string; what: string; every: StandingNeed['every']; budgetUsdc: number | null; kind: StandingNeed['kind']; paused?: boolean }) =>
     json<{ need: StandingNeed }>('/api/find/needs', { method: 'POST', body: JSON.stringify(need) }),
+  findView: (id: string) => json<{ find: FindView }>(`/api/find/finds/${encodeURIComponent(id)}`),
   removeStandingNeed: (id: string) => json<{ ok: true }>(`/api/find/needs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   blockPerson: (who: string) => json<{ ok: true }>('/api/find/block', { method: 'POST', body: JSON.stringify({ who }) }),
   unblockPerson: (who: string) => json<{ ok: true }>('/api/find/unblock', { method: 'POST', body: JSON.stringify({ who }) }),

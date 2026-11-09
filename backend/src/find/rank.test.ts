@@ -123,3 +123,12 @@ test('on testnet a clean record can be recommended when nobody is verified', () 
   assert.equal(rank([seller('a')], need(), { cleanRecordCounts: true })[0]!.recommended, true);
   assert.equal(rank([seller('a', { disputesLost: 1 })], need(), { cleanRecordCounts: true })[0]!.recommended, false);
 });
+
+test('the rating goes out as a number and a count, so each language words it', () => {
+  const [rated] = rank([seller('a')]);
+  assert.equal(rated!.stars, 4.5);
+  assert.equal(rated!.ratings, 6);
+  const [fresh] = rank([seller('b', { rating: { kind: 'new', count: 2 } })]);
+  assert.equal(fresh!.stars, null);
+  assert.equal(fresh!.ratings, 2);
+});

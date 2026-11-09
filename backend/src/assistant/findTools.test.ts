@@ -9,6 +9,7 @@ import type { FindCandidate } from '../find/rank.js';
 /// Being reached and blocking from the assistant (view 72).
 
 const call = { toolCallId: 't1', messages: [] };
+const ID = '6f1c2a3b-0000-4000-8000-000000000001';
 const ME = '0xrestaurant';
 const TOMATOES: StandingNeed = { id: 'n1', owner: ME, what: 'Fresh tomatoes for my restaurant', every: 'week', budgetUsdc: '33.43', currency: null, kind: 'goods', paused: false, createdAt: 1 };
 
@@ -26,7 +27,7 @@ function setup(over: Partial<FindToolDeps> = {}) {
     finds: async () => [],
     cleanRecordCounts: false,
     now: () => 1_000,
-    newId: () => 'find-1',
+    newId: () => ID,
     ...over,
   };
   return { actions, tools: findTools(ME, actions, deps) };
@@ -115,7 +116,7 @@ test('find_people lists who fits with distance in words, saves the find, and mov
   });
   const out = (await s.tools.find_people.execute!(FIND, call)) as { found: number; link: string; people: Array<Record<string, unknown>> };
   assert.equal(out.found, 2);
-  assert.equal(out.link, '/find/find-1');
+  assert.equal(out.link, `/find/${ID}`);
   assert.equal(out.people[0]!.tag, '@ngozi');
   assert.equal(out.people[0]!.distance, 'about 3 km away');
   assert.equal(out.people[0]!.meets, 'at their place');
@@ -127,7 +128,8 @@ test('find_people lists who fits with distance in words, saves the find, and mov
   assert.equal(saved.length, 1);
   assert.equal(saved[0]!.owner, ME);
   assert.equal(saved[0]!.endsAt, 1_000 + 7 * 86_400_000);
-  assert.equal(s.actions.length, 0, 'no card: finding contacts nobody');
+  assert.equal(s.actions.length, 1, 'one link to the people, no confirm card: finding contacts nobody');
+  assert.deepEqual(s.actions[0], { kind: 'navigate', id: `/find/${ID}`, label: 'See all 2', href: `/find/${ID}`, description: undefined });
 });
 
 test('find_people with nobody who fits says so and saves nothing', async () => {

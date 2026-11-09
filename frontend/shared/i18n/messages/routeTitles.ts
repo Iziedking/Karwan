@@ -36,6 +36,7 @@ export type RouteTitleKey =
   | 'howItWorks'
   | 'invite'
   | 'messages'
+  | 'peopleFound'
   | 'request'
   | 'legacy'
   | 'offers'
@@ -121,6 +122,7 @@ const en: RouteTitleCopy = {
   howItWorks: 'How it works',
   invite: 'Invitation',
   messages: 'Messages',
+  peopleFound: 'People found',
   request: 'Request',
   legacy: 'Earlier deals',
   offers: 'Offers',
@@ -206,6 +208,7 @@ const ar: RouteTitleCopy = {
   howItWorks: 'كيف يعمل',
   invite: 'دعوة',
   messages: 'الرسائل',
+  peopleFound: 'Personnes trouvées',
   request: 'طلب',
   legacy: 'الصفقات السابقة',
   offers: 'العروض',
@@ -291,6 +294,7 @@ const fr: RouteTitleCopy = {
   howItWorks: 'Comment ça marche',
   invite: 'Invitation',
   messages: 'Messages',
+  peopleFound: 'الأشخاص الذين تم العثور عليهم',
   request: 'Demande',
   legacy: 'Accords précédents',
   offers: 'Offres',
@@ -376,6 +380,7 @@ const hi: RouteTitleCopy = {
   howItWorks: 'यह कैसे काम करता है',
   invite: 'आमंत्रण',
   messages: 'संदेश',
+  peopleFound: 'मिले हुए लोग',
   request: 'अनुरोध',
   legacy: 'पिछले सौदे',
   offers: 'ऑफ़र',
@@ -461,6 +466,7 @@ const sw: RouteTitleCopy = {
   howItWorks: 'Jinsi inavyofanya kazi',
   invite: 'Mwaliko',
   messages: 'Ujumbe',
+  peopleFound: 'Watu waliopatikana',
   request: 'Ombi',
   legacy: 'Mikataba ya awali',
   offers: 'Ofa',

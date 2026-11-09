@@ -3,7 +3,8 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { block, unblock } from '../find/blocks.js';
-import { findOf, myFinds, ownerView } from '../find/finds.js';
+import { getProfile } from '../db/profiles.js';
+import { findOf, myFinds, ownerView, type Find } from '../find/finds.js';
 import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, removeNeed, saveNeed, TooManyNeeds, type StandingNeed } from '../find/needs.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
@@ -91,12 +92,23 @@ findRoutes.post('/unblock', (c) => blockStep(c, unblock));
 findRoutes.get('/finds', async (c) => {
   const me = sessionAddress(c);
   if (!me) return c.json({ error: 'not authenticated' }, 401);
-  return c.json({ finds: (await myFinds(me)).map(ownerView) });
+  return c.json({ finds: (await myFinds(me)).map((f) => ownerView(f)) });
 });
+
+/// Each person's photo, read now so a changed photo shows at once.
+async function photosOf(f: Find): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  await Promise.all(f.rows.map(async (r) => {
+    const p = await getProfile(r.user).catch(() => null);
+    const photo = (p?.profileImageDataUrl || p?.xProfileImageUrl)?.trim();
+    if (photo) out.set(r.user.toLowerCase(), photo);
+  }));
+  return out;
+}
 
 findRoutes.get('/finds/:id', async (c) => {
   const me = sessionAddress(c);
   if (!me) return c.json({ error: 'not authenticated' }, 401);
   const found = await findOf(me, c.req.param('id'));
-  return found ? c.json({ find: ownerView(found) }) : c.json({ error: 'find not found' }, 404);
+  return found ? c.json({ find: ownerView(found, await photosOf(found)) }) : c.json({ error: 'find not found' }, 404);
 });
