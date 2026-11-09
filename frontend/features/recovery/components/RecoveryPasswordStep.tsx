@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@/shared/components/Icon';
 import { useState } from 'react';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { api } from '@/core/api';
@@ -54,9 +55,9 @@ export function RecoveryPasswordStep({ walletAddress, onDone, headingLevel = 'h1
           <input type={visible ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password" disabled={busy} autoFocus aria-describedby="recovery-password-hint"
             className="h-[46px] w-full bg-transparent px-4 text-[16px] sm:h-[50px] text-[var(--lp-dark)] outline-none" />
-          <button type="button" onClick={() => setVisible((v) => !v)}
-            className="me-2 min-h-11 shrink-0 px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">
-            {visible ? t.hide : t.show}
+          <button type="button" onClick={() => setVisible((v) => !v)} aria-label={visible ? t.hide : t.show} aria-pressed={visible}
+            className="me-1 grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
+            <Icon name={visible ? 'eye-off' : 'eye'} size={20} />
           </button>
         </span>
         <span id="recovery-password-hint" aria-live="polite" className="block min-h-5 text-[14px] text-[var(--lp-text-sub)] font-medium">{hint}</span>

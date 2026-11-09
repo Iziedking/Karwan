@@ -1,7 +1,7 @@
 import React, { type SVGProps } from 'react';
 import {
   Activity, ArrowDown, ArrowDownLeft, ArrowLeft, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
-  ChartColumn, Check, ChevronLeft, Clock, ChevronRight, Clapperboard, Code, Coins, Copy, CornerDownLeft, FileText, Globe,
+  ChartColumn, Check, ChevronLeft, Clock, Eye, EyeOff, ChevronRight, Clapperboard, Code, Coins, Copy, CornerDownLeft, FileText, Globe,
   GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
   Package, Paperclip, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
   BadgeCheck, KeyRound, Shield, ShieldCheck, Sofa, Sprout, Utensils, Wrench,
@@ -12,6 +12,8 @@ const icons = {
   alert: CircleAlert,
   bell: Bell,
   clock: Clock,
+  eye: Eye,
+  'eye-off': EyeOff,
   'arrow-left-right': ArrowLeftRight,
   'arrow-right': ArrowRight,
   'arrow-up-right': ArrowUpRight,

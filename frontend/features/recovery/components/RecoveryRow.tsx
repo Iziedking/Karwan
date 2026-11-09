@@ -1,5 +1,6 @@
 'use client';
 
+import { PasswordField } from '@/shared/components/PasswordField';
 import { useEffect, useId, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { formatUnits, type Hex } from 'viem';
@@ -195,7 +196,7 @@ function TurnOnSheet({ open, walletAddress, onClose, onDone }: { open: boolean; 
           ) : (
             <label className="block space-y-1.5">
               <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.password}</span>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
+              <PasswordField value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
                 disabled={state !== 'ready'} className="form-input min-h-[52px]" />
             </label>
           )}

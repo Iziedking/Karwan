@@ -1,5 +1,6 @@
 'use client';
 
+import { PasswordField } from '@/shared/components/PasswordField';
 import { useState } from 'react';
 import type { Hex } from 'viem';
 import { api, ApiError } from '@/core/api';
@@ -198,7 +199,7 @@ export function RecoverFlow({ onBack, signInWithStoredPasskey }: {
           {step !== 'password' && <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.readyBody}</p>}
           <label className="block space-y-1.5">
             <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.password}</span>
-            <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
+            <PasswordField autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
               disabled={busy} className={input} autoFocus />
           </label>
           <button type="submit" className={primary} disabled={busy || !password}>
