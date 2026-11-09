@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api, type SellerActiveBid } from '@/core/api';
+import { api, type SellerActiveBid, type SellerWorldCheck } from '@/core/api';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
 import { DealAmountProvider } from '@/features/balances/dealAmount';
@@ -16,6 +16,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
 import { useSearchV2 } from '@/features/search/useSearchV2';
 import { SellerDesk } from '@/features/search/components/SellerDesk';
+import { SellerWorldChecks } from '@/features/seller/components/SellerWorldChecks';
 
 export default function SellerPage() {
   const sh = useTranslations().sellerHub;
@@ -34,24 +35,29 @@ function SellerPageInner() {
   // Your agent's offers on requests sit in Your offers, under the posted offer
   // each came from: one list, not a second table (owner, 7 Nov 2026).
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
+  const [worldChecks, setWorldChecks] = useState<SellerWorldCheck[]>([]);
+  const [reload, setReload] = useState(0);
   const v2 = useSearchV2();
 
   useEffect(() => {
     if (!address) {
       setActiveBids([]);
+      setWorldChecks([]);
       return;
     }
     let cancelled = false;
     api
       .seller(address)
       .then((d) => {
-        if (!cancelled) setActiveBids((d.activeBids ?? []).filter((b) => !b.finalized));
+        if (cancelled) return;
+        setActiveBids((d.activeBids ?? []).filter((b) => !b.finalized));
+        setWorldChecks(d.worldChecks ?? []);
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [address]);
+  }, [address, reload]);
 
 
 if (v2) return <SellerDesk />;
@@ -65,6 +71,16 @@ if (v2) return <SellerDesk />;
       {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches
           the dead end where a seller profile is saved but no agent was ever
           provisioned, so the seller agent silently never bids. */}
+
+      {worldChecks.length > 0 && address ? (
+        <Band tone="light" compact>
+          <PageCard>
+            <div className="p-6 md:p-8">
+              <SellerWorldChecks checks={worldChecks} me={address} onDone={() => setReload((n) => n + 1)} />
+            </div>
+          </PageCard>
+        </Band>
+      ) : null}
 
       {/* POST LISTING */}
       <Band tone="light" compact>

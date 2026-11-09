@@ -310,7 +310,7 @@ export function contentFor(
         heading: 'A buyer chose your offer',
         body: `A buyer chose your offer${priceSuffix}. Before escrow is funded, confirm with World ID that you are a real person. Open World App to complete the check, then return to Karwan to review the funding status.`,
         ctaLabel: 'Confirm with World ID',
-        ctaUrl: base() ? `${base()}/seller` : undefined,
+        ctaUrl: base() ? `${base()}/seller#world-checks` : undefined,
       };
     }
     case 'request.shortlist': {
