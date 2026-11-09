@@ -130,33 +130,33 @@ type TgKey =
 
 const en: Record<TgKey, string> = {
   'cancelProposedFromOther.mutual':
-    '*The {role} is proposing to cancel this deal* (mutual). Open the deal to accept or decline.',
+    '*The {role} wants to cancel this deal*. Open the deal to accept or decline.',
   'cancelProposedFromOther.platform':
-    '*The {role} flagged this deal as a platform misroute*. Open the deal to accept or decline.',
+    '*The {role} says Karwan matched this deal by mistake*. Open the deal to accept or decline.',
   'cancelProposedFromSelf':
     '*Cancellation proposed*. Waiting on the other party to accept or decline.',
   'cancelDeclinedToProposer':
-    '*Your cancellation proposal was declined*. The deal continues as normal.',
+    '*They want to keep the deal*. It carries on as before.',
   'cancelDeclinedBySelf':
-    '*You declined the cancellation proposal*. The deal continues as normal.',
+    '*You kept the deal*. It carries on as before.',
   'milestoneReleasedToSeller.first':
-    '*First milestone released*. Funds are on their way to your agent wallet.',
+    '*First payment released*. The money is on its way to you.',
   'milestoneReleasedToSeller.final':
-    '*Final milestone released*. Funds are on their way to your agent wallet.',
-  'milestoneReleasedToBuyer.first': '*First milestone released* to the seller.',
-  'milestoneReleasedToBuyer.final': '*Final milestone released* to the seller.',
+    '*Last payment released*. The money is on its way to you.',
+  'milestoneReleasedToBuyer.first': '*First payment sent* to the seller.',
+  'milestoneReleasedToBuyer.final': '*Last payment sent* to the seller.',
   'bidAcceptedToSeller':
-    "*Your bid was accepted*. Escrow funds next; you'll get another note when it lands.",
-  'bidAcceptedToBuyer': '*Bid accepted*. Escrow is being funded.',
+    "*Your offer was accepted*. The buyer's money is being held for you; you'll hear when it is.",
+  'bidAcceptedToBuyer': '*Offer accepted*. Your money is being held for the deal.',
   'reputationRecordedSuccessSeller':
-    '*Reputation updated on chain* for a successful settlement. View your passport for the new score.',
+    '*Your trade record grew* with a deal paid in full. Open it to see where you stand.',
   'reputationRecordedSuccessBuyer':
-    '*Reputation recorded on chain* for a successful settlement.',
+    '*Your trade record grew* with a deal paid in full.',
   'dealCancelled': '*Deal cancelled*.',
   'dealDeliveredToBuyer':
-    '*Seller marked the work delivered*. Open the deal to verify and release.',
+    '*The seller says it is delivered*. Open the deal to check it and release the payment.',
   'dealDeliveredToSeller':
-    '*You marked the deal delivered*. The buyer review window is open.',
+    '*You marked the deal delivered*. The buyer is checking it now.',
   'openInKarwan': 'Open in Karwan',
   'insight.questions': "Your agent asked you {asked} questions: you answered {answered}, and {byDefault} went its stated way with no answer.",
   'insight.testnetBudget': "*{title}*: this is the test network, where deals settled at {low} to {high} USDC. Lower your budget from {budget} to {suggested} USDC to land a deal faster.",
@@ -263,33 +263,33 @@ const en: Record<TgKey, string> = {
 
 const ar: Partial<Record<TgKey, string>> = {
   'cancelProposedFromOther.mutual':
-    '*{role} يقترح إلغاء هذه الصفقة* (بالتراضي). افتح الصفقة للقبول أو الرفض.',
+    "*يريد {role} إلغاء هذه الصفقة*. افتح الصفقة للقبول أو الرفض.",
   'cancelProposedFromOther.platform':
-    '*{role} أبلغ عن هذه الصفقة كخطأ توجيه من المنصة*. افتح الصفقة للقبول أو الرفض.',
+    "*يقول {role} إن كروان طابق هذه الصفقة بالخطأ*. افتح الصفقة للقبول أو الرفض.",
   'cancelProposedFromSelf':
     '*تم اقتراح الإلغاء*. في انتظار الطرف الآخر للقبول أو الرفض.',
   'cancelDeclinedToProposer':
-    '*تم رفض اقتراح الإلغاء*. تستمر الصفقة كالمعتاد.',
+    "*الطرف الآخر يريد إبقاء الصفقة*. تستمر كما كانت.",
   'cancelDeclinedBySelf':
-    '*لقد رفضت اقتراح الإلغاء*. تستمر الصفقة كالمعتاد.',
+    "*أبقيت الصفقة*. تستمر كما كانت.",
   'milestoneReleasedToSeller.first':
-    '*تم الإفراج عن المرحلة الأولى*. الأموال في طريقها إلى محفظة وكيلك.',
+    "*صُرفت الدفعة الأولى*. المال في طريقه إليك.",
   'milestoneReleasedToSeller.final':
-    '*تم الإفراج عن المرحلة النهائية*. الأموال في طريقها إلى محفظة وكيلك.',
-  'milestoneReleasedToBuyer.first': '*تم الإفراج عن المرحلة الأولى* إلى البائع.',
-  'milestoneReleasedToBuyer.final': '*تم الإفراج عن المرحلة النهائية* إلى البائع.',
+    "*صُرفت الدفعة الأخيرة*. المال في طريقه إليك.",
+  'milestoneReleasedToBuyer.first': "*أُرسلت الدفعة الأولى* إلى البائع.",
+  'milestoneReleasedToBuyer.final': "*أُرسلت الدفعة الأخيرة* إلى البائع.",
   'bidAcceptedToSeller':
-    '*تم قبول عرضك*. تمويل الضمان قادم؛ ستصلك ملاحظة أخرى عند اكتماله.',
-  'bidAcceptedToBuyer': '*تم قبول العرض*. يتم تمويل الضمان الآن.',
+    "*قُبل عرضك*. يُحجز مال المشتري لك الآن، وستصلك رسالة عند اكتمال ذلك.",
+  'bidAcceptedToBuyer': "*قُبل العرض*. يُحجز مالك للصفقة.",
   'reputationRecordedSuccessSeller':
-    '*تم تحديث السمعة على السلسلة* لتسوية ناجحة. اطّلع على جواز السمعة للنتيجة الجديدة.',
+    "*نما سجل تداولك* بصفقة دُفعت كاملة. افتحه لترى مكانتك.",
   'reputationRecordedSuccessBuyer':
-    '*تم تسجيل السمعة على السلسلة* لتسوية ناجحة.',
+    "*نما سجل تداولك* بصفقة دُفعت كاملة.",
   'dealCancelled': '*تم إلغاء الصفقة*.',
   'dealDeliveredToBuyer':
-    '*وضع البائع علامة تم التسليم*. افتح الصفقة للتحقق والإفراج.',
+    "*يقول البائع إن الطلب سُلّم*. افتح الصفقة لتتحقق منه وتصرف الدفعة.",
   'dealDeliveredToSeller':
-    '*لقد علّمت الصفقة كتم التسليم*. نافذة مراجعة المشتري مفتوحة.',
+    "*وضعت علامة التسليم على الصفقة*. المشتري يتحقق منها الآن.",
   'openInKarwan': 'افتح في كروان',
   'insight.questions': "طرح عليك وكيلك {asked} أسئلة: أجبت عن {answered}، و{byDefault} مضت كما أُعلن دون إجابة.",
   'insight.testnetBudget': "*{title}*: هذه شبكة الاختبار، وقد أُبرمت الصفقات فيها بين {low} و{high} USDC. خفّض ميزانيتك من {budget} إلى {suggested} USDC لتُبرم صفقة أسرع.",
@@ -396,33 +396,33 @@ const ar: Partial<Record<TgKey, string>> = {
 
 const fr: Partial<Record<TgKey, string>> = {
   'cancelProposedFromOther.mutual':
-    "*Le/la {role} propose d'annuler cette transaction* (mutuel). Ouvrez la transaction pour accepter ou refuser.",
+    "*Le {role} veut annuler cet accord*. Ouvrez l’accord pour accepter ou refuser.",
   'cancelProposedFromOther.platform':
-    "*Le/la {role} a signalé cette transaction comme une erreur de la plateforme*. Ouvrez la transaction pour accepter ou refuser.",
+    "*Le {role} dit que Karwan a fait ce rapprochement par erreur*. Ouvrez l’accord pour accepter ou refuser.",
   'cancelProposedFromSelf':
     "*Annulation proposée*. En attente de la décision de l'autre partie.",
   'cancelDeclinedToProposer':
-    "*Votre proposition d'annulation a été refusée*. La transaction se poursuit normalement.",
+    "*L’autre partie veut garder l’accord*. Il continue comme avant.",
   'cancelDeclinedBySelf':
-    "*Vous avez refusé la proposition d'annulation*. La transaction se poursuit normalement.",
+    "*Vous avez gardé l’accord*. Il continue comme avant.",
   'milestoneReleasedToSeller.first':
-    '*Première étape libérée*. Les fonds arrivent vers votre portefeuille agent.',
+    "*Premier paiement versé*. L’argent arrive chez vous.",
   'milestoneReleasedToSeller.final':
-    '*Étape finale libérée*. Les fonds arrivent vers votre portefeuille agent.',
-  'milestoneReleasedToBuyer.first': '*Première étape libérée* au vendeur.',
-  'milestoneReleasedToBuyer.final': '*Étape finale libérée* au vendeur.',
+    "*Dernier paiement versé*. L’argent arrive chez vous.",
+  'milestoneReleasedToBuyer.first': "*Premier paiement envoyé* au vendeur.",
+  'milestoneReleasedToBuyer.final': "*Dernier paiement envoyé* au vendeur.",
   'bidAcceptedToSeller':
-    "*Votre offre a été acceptée*. Le séquestre se finance ensuite; vous recevrez un autre message.",
-  'bidAcceptedToBuyer': "*Offre acceptée*. Le séquestre est en cours de financement.",
+    "*Votre offre a été acceptée*. L’argent de l’acheteur est mis de côté pour vous ; vous serez prévenu quand ce sera fait.",
+  'bidAcceptedToBuyer': "*Offre acceptée*. Votre argent est mis de côté pour l’accord.",
   'reputationRecordedSuccessSeller':
-    '*Réputation mise à jour on-chain* pour un règlement réussi. Consultez votre passeport.',
+    "*Votre historique s’enrichit* d’un accord payé en entier. Ouvrez-le pour voir où vous en êtes.",
   'reputationRecordedSuccessBuyer':
-    '*Réputation enregistrée on-chain* pour un règlement réussi.',
+    "*Votre historique s’enrichit* d’un accord payé en entier.",
   'dealCancelled': '*Transaction annulée*.',
   'dealDeliveredToBuyer':
-    "*Le vendeur a marqué le travail comme livré*. Ouvrez la transaction pour vérifier et libérer.",
+    "*Le vendeur dit que c’est livré*. Ouvrez l’accord pour vérifier et verser le paiement.",
   'dealDeliveredToSeller':
-    "*Vous avez marqué la transaction comme livrée*. La fenêtre d'examen acheteur est ouverte.",
+    "*Vous avez marqué l’accord comme livré*. L’acheteur vérifie maintenant.",
   'openInKarwan': 'Ouvrir dans Karwan',
   'insight.questions': "Votre agent vous a posé {asked} questions : vous avez répondu à {answered}, et {byDefault} ont suivi la réponse annoncée faute de réponse.",
   'insight.testnetBudget': "*{title}* : c'est le réseau de test, où les transactions se sont conclues entre {low} et {high} USDC. Baissez votre budget de {budget} à {suggested} USDC pour conclure plus vite.",
@@ -529,33 +529,33 @@ const fr: Partial<Record<TgKey, string>> = {
 
 const hi: Partial<Record<TgKey, string>> = {
   'cancelProposedFromOther.mutual':
-    '*{role} इस सौदे को रद्द करने का प्रस्ताव दे रहा है* (आपसी)। स्वीकार या अस्वीकार करने के लिए सौदा खोलें।',
+    "*{role} यह सौदा रद्द करना चाहता है*. स्वीकार या अस्वीकार करने के लिए सौदा खोलें.",
   'cancelProposedFromOther.platform':
-    '*{role} ने इस सौदे को प्लेटफ़ॉर्म त्रुटि के रूप में चिह्नित किया*। स्वीकार या अस्वीकार करने के लिए खोलें।',
+    "*{role} कहता है कि Karwan ने यह सौदा गलती से जोड़ा*. स्वीकार या अस्वीकार करने के लिए सौदा खोलें.",
   'cancelProposedFromSelf':
     '*रद्दीकरण प्रस्तावित*। दूसरे पक्ष की स्वीकृति या अस्वीकृति का इंतज़ार है।',
   'cancelDeclinedToProposer':
-    '*आपका रद्दीकरण प्रस्ताव अस्वीकृत हुआ*। सौदा सामान्य रूप से जारी रहेगा।',
+    "*दूसरा पक्ष सौदा जारी रखना चाहता है*. यह पहले की तरह चलता रहेगा.",
   'cancelDeclinedBySelf':
-    '*आपने रद्दीकरण प्रस्ताव अस्वीकार किया*। सौदा सामान्य रूप से जारी रहेगा।',
+    "*आपने सौदा जारी रखा*. यह पहले की तरह चलता रहेगा.",
   'milestoneReleasedToSeller.first':
-    '*पहली मील का पत्थर जारी*। राशि आपके एजेंट वॉलेट में आ रही है।',
+    "*पहला भुगतान जारी हुआ*. पैसा आपके पास आ रहा है.",
   'milestoneReleasedToSeller.final':
-    '*अंतिम मील का पत्थर जारी*। राशि आपके एजेंट वॉलेट में आ रही है।',
-  'milestoneReleasedToBuyer.first': '*पहली मील का पत्थर जारी* विक्रेता को।',
-  'milestoneReleasedToBuyer.final': '*अंतिम मील का पत्थर जारी* विक्रेता को।',
+    "*आखिरी भुगतान जारी हुआ*. पैसा आपके पास आ रहा है.",
+  'milestoneReleasedToBuyer.first': "*पहला भुगतान* विक्रेता को भेजा गया.",
+  'milestoneReleasedToBuyer.final': "*आखिरी भुगतान* विक्रेता को भेजा गया.",
   'bidAcceptedToSeller':
-    '*आपकी बोली स्वीकृत*। एस्क्रो आगे फंड होगा; उसकी सूचना अलग से मिलेगी।',
-  'bidAcceptedToBuyer': '*बोली स्वीकृत*। एस्क्रो फंड हो रहा है।',
+    "*आपका ऑफ़र स्वीकार हुआ*. खरीदार का पैसा आपके लिए रोका जा रहा है; हो जाने पर आपको बताया जाएगा.",
+  'bidAcceptedToBuyer': "*ऑफ़र स्वीकार हुआ*. आपका पैसा सौदे के लिए रोका जा रहा है.",
   'reputationRecordedSuccessSeller':
-    '*प्रतिष्ठा ऑन-चेन अपडेट* सफल निपटान के लिए। पासपोर्ट पर नई स्कोर देखें।',
+    "*आपका ट्रेड रिकॉर्ड बढ़ा*, एक पूरा भुगतान हुए सौदे से. अपनी स्थिति देखने के लिए इसे खोलें.",
   'reputationRecordedSuccessBuyer':
-    '*प्रतिष्ठा ऑन-चेन दर्ज* सफल निपटान के लिए।',
+    "*आपका ट्रेड रिकॉर्ड बढ़ा*, एक पूरा भुगतान हुए सौदे से.",
   'dealCancelled': '*सौदा रद्द*।',
   'dealDeliveredToBuyer':
-    '*विक्रेता ने डिलीवरी चिह्नित की*। सत्यापन और रिलीज़ के लिए सौदा खोलें।',
+    "*विक्रेता कहता है कि डिलीवरी हो गई*. जाँचने और भुगतान जारी करने के लिए सौदा खोलें.",
   'dealDeliveredToSeller':
-    '*आपने सौदा डिलीवर चिह्नित किया*। खरीदार समीक्षा विंडो खुली है।',
+    "*आपने सौदे को डिलीवर हुआ बताया*. खरीदार अभी इसे जाँच रहा है.",
   'openInKarwan': 'Karwan में खोलें',
   'insight.questions': "आपके एजेंट ने आपसे {asked} सवाल पूछे: आपने {answered} का जवाब दिया, और {byDefault} बिना जवाब के बताए गए तरीके से तय हुए।",
   'insight.testnetBudget': "*{title}*: यह टेस्ट नेटवर्क है, जहाँ सौदे {low} से {high} USDC में हुए। जल्दी सौदा पाने के लिए अपना बजट {budget} से घटाकर {suggested} USDC करें।",
@@ -662,33 +662,33 @@ const hi: Partial<Record<TgKey, string>> = {
 
 const sw: Partial<Record<TgKey, string>> = {
   'cancelProposedFromOther.mutual':
-    '*{role} anapendekeza kufuta mkataba huu* (kwa makubaliano). Fungua mkataba kukubali au kukataa.',
+    "*{role} anataka kughairi makubaliano haya*. Fungua makubaliano ukubali au ukatae.",
   'cancelProposedFromOther.platform':
-    '*{role} ameashiria mkataba kama hitilafu ya jukwaa*. Fungua kukubali au kukataa.',
+    "*{role} anasema Karwan iliunganisha makubaliano haya kimakosa*. Fungua makubaliano ukubali au ukatae.",
   'cancelProposedFromSelf':
     '*Pendekezo la kufuta limewasilishwa*. Tunasubiri upande mwingine kukubali au kukataa.',
   'cancelDeclinedToProposer':
-    '*Pendekezo lako la kufuta limekataliwa*. Mkataba unaendelea kawaida.',
+    "*Upande mwingine unataka kuendelea na makubaliano*. Yanaendelea kama kawaida.",
   'cancelDeclinedBySelf':
-    '*Umekataa pendekezo la kufuta*. Mkataba unaendelea kawaida.',
+    "*Umeendelea na makubaliano*. Yanaendelea kama kawaida.",
   'milestoneReleasedToSeller.first':
-    '*Hatua ya kwanza imeachiliwa*. Fedha zinakuja kwenye pochi yako ya wakala.',
+    "*Malipo ya kwanza yametolewa*. Pesa zinakuja kwako.",
   'milestoneReleasedToSeller.final':
-    '*Hatua ya mwisho imeachiliwa*. Fedha zinakuja kwenye pochi yako ya wakala.',
-  'milestoneReleasedToBuyer.first': '*Hatua ya kwanza imeachiliwa* kwa muuzaji.',
-  'milestoneReleasedToBuyer.final': '*Hatua ya mwisho imeachiliwa* kwa muuzaji.',
+    "*Malipo ya mwisho yametolewa*. Pesa zinakuja kwako.",
+  'milestoneReleasedToBuyer.first': "*Malipo ya kwanza yametumwa* kwa muuzaji.",
+  'milestoneReleasedToBuyer.final': "*Malipo ya mwisho yametumwa* kwa muuzaji.",
   'bidAcceptedToSeller':
-    '*Toleo lako limekubaliwa*. Eskrowi inafuata; utapokea ujumbe mwingine.',
-  'bidAcceptedToBuyer': '*Toleo limekubaliwa*. Eskrowi inafadhiliwa.',
+    "*Ofa yako imekubaliwa*. Pesa za mnunuzi zinashikiliwa kwa ajili yako; utaarifiwa zikishashikiliwa.",
+  'bidAcceptedToBuyer': "*Ofa imekubaliwa*. Pesa zako zinashikiliwa kwa ajili ya makubaliano.",
   'reputationRecordedSuccessSeller':
-    '*Sifa imesasishwa kwenye mnyororo* kwa malipo yenye mafanikio. Tazama pasi yako.',
+    "*Rekodi yako ya biashara imekua* kwa makubaliano yaliyolipwa kikamilifu. Ifungue uone ulipo.",
   'reputationRecordedSuccessBuyer':
-    '*Sifa imerekodiwa kwenye mnyororo* kwa malipo yenye mafanikio.',
+    "*Rekodi yako ya biashara imekua* kwa makubaliano yaliyolipwa kikamilifu.",
   'dealCancelled': '*Mkataba umefutwa*.',
   'dealDeliveredToBuyer':
-    '*Muuzaji ameashiria kazi imewasilishwa*. Fungua kuthibitisha na kuachilia.',
+    "*Muuzaji anasema imewasilishwa*. Fungua makubaliano uikague na utoe malipo.",
   'dealDeliveredToSeller':
-    '*Umeashiria mkataba kuwa umewasilishwa*. Dirisha la mapitio la mnunuzi limefunguliwa.',
+    "*Umeweka makubaliano kuwa yamewasilishwa*. Mnunuzi anayakagua sasa.",
   'openInKarwan': 'Fungua katika Karwan',
   'insight.questions': "Wakala wako alikuuliza maswali {asked}: ulijibu {answered}, na {byDefault} yalienda kama ilivyosemwa bila jibu.",
   'insight.testnetBudget': "*{title}*: huu ni mtandao wa majaribio, ambapo mikataba ilifungwa kwa {low} hadi {high} USDC. Punguza bajeti yako kutoka {budget} hadi {suggested} USDC ili kupata mkataba haraka.",

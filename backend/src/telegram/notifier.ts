@@ -509,8 +509,8 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       const price = (e.payload?.priceUsdc as string | undefined) ?? '';
       const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
       return withLink(
-        `*A buyer chose your offer${price ? ` at ${price} USDC` : ''}.* Before escrow is funded, confirm with World ID that you are a real person. Escrow funds as soon as you do.`,
-        base ? `${base}/seller` : null,
+        `*A buyer chose your offer${price ? ` at ${price} USDC` : ''}.* Before the buyer's money is held for you, confirm with World ID that you are a real person. It is held as soon as you do.`,
+        base ? `${base}/seller#world-checks` : null,
       );
     }
     case 'request.shortlist': {
@@ -630,8 +630,8 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       }
       return withLink(
         role === 'seller'
-          ? `*Karwan matched your bid with a buyer*${price ? ` at ${price} USDC` : ''}. Tap to accept; escrow funds the moment you do.`
-          : `*Your agent found you a match*${price ? ` at ${price} USDC` : ''}. Waiting on the seller to accept. Escrow funds automatically once they do.`,
+          ? `*Karwan matched your offer with a buyer*${price ? ` at ${price} USDC` : ''}. Tap to accept; the buyer's money is held the moment you do.`
+          : `*Your agent found you a match*${price ? ` at ${price} USDC` : ''}. Waiting on the seller to accept. Your money is held for the deal once they do.`,
         link,
       );
     }
@@ -639,8 +639,8 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
       return withLink(
         role === 'seller'
-          ? `*Match accepted.* Escrow is funded${price ? ` (${price} USDC)` : ''}. Deliver in Karwan when ready.`
-          : `*Your match is live.* The seller accepted and escrow funded${price ? ` (${price} USDC)` : ''}. Standby for delivery.`,
+          ? `*Deal on.* Karwan is holding the buyer's money${price ? ` (${price} USDC)` : ''}. Deliver in Karwan when ready.`
+          : `*Deal on.* The seller accepted and Karwan is holding your money${price ? ` (${price} USDC)` : ''}. You will hear when they deliver.`,
         url,
       );
     }
@@ -681,8 +681,8 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       /// the same "you have a deal" call to action.
       return withLink(
         role === 'seller'
-          ? `*Deal bound to your wallet*${amount ? ` at ${amount} USDC` : ''}. Review and agree to the terms. The buyer funds escrow afterward.`
-          : `*Your invited counterparty just joined*${amount ? ` (${amount} USDC deal)` : ''}. Waiting for them to agree to the terms.`,
+          ? `*A deal is waiting for you*${amount ? ` at ${amount} USDC` : ''}. Review and agree to the terms. The buyer pays in afterward.`
+          : `*The person you invited just joined*${amount ? ` (a ${amount} USDC deal)` : ''}. Waiting for them to agree to the terms.`,
         url,
       );
     case 'deal.direct.edited': {
@@ -881,8 +881,8 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
     case 'deal.fund.insufficient':
       return withLink(
         role === 'buyer'
-          ? "*Buyer agent doesn't have enough USDC* on Arc to fund this escrow. Top it up from your profile so the seller can accept."
-          : '*Buyer agent is underfunded*. They have been notified.',
+          ? "*Your buying agent doesn't have enough money* to pay into this deal. Add money to it from Money so the seller can accept."
+          : "*The buyer's agent doesn't have enough money yet*. They have been told.",
         url,
       );
     case 'chat.message': {
@@ -894,9 +894,9 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       return withLink(`${header}\n${trimmed}`, url);
     }
     case 'bridge.minted':
-      return withLink('*Bridge complete*. USDC minted on Arc.', null);
+      return withLink('*Money arrived*. It is in your balance.', null);
     case 'bridge.error':
-      return withLink('*Bridge failed*. Check the activity feed.', null);
+      return withLink("*Your money didn't arrive*. Open Activity to see what happened.", null);
     case 'wallet.credited': {
       const credited = (e.payload?.amountUsdc as string | undefined) ?? '0';
       const label = plainWallet(e.payload?.walletRole);
@@ -920,7 +920,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.amountUsdc as string | undefined) ?? '0';
       const amount = trimUsdcLabel(raw);
       return withLink(
-        `*Staked ${amount} USDC.* Your reputation tier may rise as the position matures.`,
+        `*${amount} USDC is now your deal guarantee.* It can raise your standing over time.`,
         stakeUrl(),
       );
     }
@@ -928,7 +928,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
       const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
       return withLink(
-        `*Cooldown started on ${amount}.* Claimable in 3 days.`,
+        `*Taking back ${amount}.* It is yours to take in 3 days.`,
         stakeUrl(),
       );
     }
@@ -936,7 +936,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
       const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'the position';
       return withLink(
-        `*Cooldown cancelled.* ${amount} is back to active stake.`,
+        `*You kept ${amount} in your deal guarantee.*`,
         stakeUrl(),
       );
     }
@@ -944,7 +944,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
       const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your stake';
       return withLink(
-        `*Withdrew ${amount} from the vault.*`,
+        `*${amount} is back in your balance* from your deal guarantee.`,
         stakeUrl(),
       );
     }
@@ -952,7 +952,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
       const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
       return withLink(
-        `*Cooldown finished.* ${amount} is ready to claim.`,
+        `*${amount} is ready to take back* from your deal guarantee.`,
         stakeUrl(),
       );
     }
@@ -960,7 +960,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.amountUsdc as string | undefined) ?? '0';
       const amount = trimUsdcLabel(raw);
       return withLink(
-        `*Cashed out ${amount} USDC* to your wallet on Arc.`,
+        `*${amount} USDC is in your balance.*`,
         url,
       );
     }
@@ -971,8 +971,8 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const seed = e.payload?.seed === true;
       return withLink(
         seed
-          ? `*Seeded ${amount} USDC* into your ${which} agent wallet.`
-          : `*Funded ${amount} USDC* into your ${which} agent wallet.`,
+          ? `*${amount} USDC added* to your ${which} agent.`
+          : `*${amount} USDC added* to your ${which} agent.`,
         profileUrl(),
       );
     }
@@ -981,7 +981,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const amount = trimUsdcLabel(raw);
       const which = (e.payload?.agent as string | undefined) ?? 'agent';
       return withLink(
-        `*Pulled ${amount} USDC* out of your ${which} agent wallet.`,
+        `*${amount} USDC moved back* from your ${which} agent to your balance.`,
         profileUrl(),
       );
     }
@@ -990,14 +990,14 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const addr = e.payload?.address as string | undefined;
       const blurb = TIER_BLURB[toTier] ?? '';
       const body = blurb
-        ? `*Tier up. you reached ${toTier} on Karwan.*\n${blurb}`
-        : `*Tier up.* You reached ${toTier} on Karwan.`;
+        ? `*You reached ${toTier} on Karwan.*\n${blurb}`
+        : `*You reached ${toTier} on Karwan.*`;
       return withLink(body, passportUrl(addr));
     }
     case 'factoring.funding_needed': {
       const short = (e.payload?.shortfallUsdc as string | undefined) ?? '';
       return withLink(
-        `*A seller tried to take your financing offer.* Your wallet does not hold the advance yet. Add ${short} USDC and they can accept it. Nothing has moved.`,
+        `*A seller tried to take your financing offer.* Your balance does not hold the advance yet. Add ${short} USDC and they can accept it. Nothing has moved.`,
         financierUrl(),
       );
     }
