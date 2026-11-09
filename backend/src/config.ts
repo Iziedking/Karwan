@@ -100,6 +100,10 @@ const envSchema = z.object({
   RECORD_COUNTERPARTY_PEPPER: optionalString,
   /// Buyers get a shortlist and choose; the agent no longer commits a match.
   SHORTLIST_MODE: envBool('SHORTLIST_MODE'),
+  /// View 73: agents bargain on every offer, the shortlist orders by one
+  /// blended score and sellers see the budget as a range. Read once per
+  /// request, when it is posted (`Brief.bargainV73`).
+  BARGAIN_V73: envBool('BARGAIN_V73'),
   /// Chainlink CRE is the expected source of delivery checks for deals. On
   /// before the workflow is fully wired, checks fall back to Karwan and the
   /// deal records it. The other CRE_* flags keep their meaning.

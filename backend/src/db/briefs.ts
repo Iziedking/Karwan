@@ -11,6 +11,7 @@ import type { AttachmentSet } from '../attachments/attachments.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
+import { config } from '../config.js';
 
 export interface Brief {
   jobId: string;
@@ -58,6 +59,10 @@ export interface Brief {
   visibility?: 'market' | 'agents' | 'invited';
   /// For an invited request: the people asked, lower case, at most 10.
   invited?: string[];
+  /// View 73: this request bargains. Stamped once when posted from
+  /// `config.BARGAIN_V73`, never changed, so a negotiation in flight finishes
+  /// on the rules it started with. Absent reads as off.
+  bargainV73?: boolean;
   /// Match lane this brief belongs to. 'service' is the single-service P2P
   /// flow, open to every account type; 'finance' is the SME/B2B trade-finance
   /// flow, restricted to verified businesses on both sides. Stamped once at
@@ -141,10 +146,25 @@ export function getBrief(jobId: string): Brief | null {
   return store.get(jobId.toLowerCase()) ?? null;
 }
 
+/// Stamps whether a new request bargains (view 73). A request that already
+/// carries the choice keeps it.
+export function stampBargain<T extends Omit<Brief, 'createdAt'>>(input: T, switchOn: boolean): T {
+  return input.bargainV73 === undefined ? { ...input, bargainV73: switchOn } : input;
+}
+
+export function bargainOnBrief(brief: Brief | null): boolean {
+  return brief?.bargainV73 === true;
+}
+
+/// Whether this request bargains (view 73); false for unknown and old requests.
+export function bargainOn(jobId: string): boolean {
+  return bargainOnBrief(getBrief(jobId));
+}
+
 export function createBrief(input: Omit<Brief, 'createdAt'>): Brief {
   load();
   const brief: Brief = {
-    ...input,
+    ...stampBargain(input, config.BARGAIN_V73),
     jobId: input.jobId.toLowerCase(),
     postedBy: input.postedBy.toLowerCase(),
     createdAt: Date.now(),
