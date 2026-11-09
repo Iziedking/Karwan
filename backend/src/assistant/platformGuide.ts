@@ -84,7 +84,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['backend/src/money/depositAddresses.ts', 'backend/src/routes/deposit.ts', 'frontend/app/bridge/page.tsx'],
   },
   {
-    id: 'send', title: 'Send USDC to a Karwan tag', status: 'testnet', mainnet: 'invite', route: '/send',
+    id: 'send', title: 'Send money to a Karwan tag', status: 'testnet', mainnet: 'invite', route: '/send',
     pages: ['/send', '/account'],
     api: ['GET /api/tags/:tag', 'POST /api/cashout/arc-send'],
     tools: ['find_karwan_tag', 'propose_send_to_tag'],
