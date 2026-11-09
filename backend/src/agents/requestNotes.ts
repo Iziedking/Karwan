@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AddressMap, AddressSet } from '../identity/address.js';
+import type { Negotiation } from './negotiationBook.js';
 
 /// The buying mode's working notes on one request (view 48, decision 8). The
 /// row in Postgres is the truth; the agent's JobState is a copy of it.
@@ -73,6 +74,8 @@ export interface NotesFields {
   escrowFunded: boolean;
   pendingCounter?: PendingCounter;
   pendingProposal?: PendingProposal;
+  /// View 73: one negotiation per offer, keyed by seller.
+  negotiations?: Map<string, Negotiation>;
 }
 
 const bidSchema = z.object({
@@ -81,6 +84,32 @@ const bidSchema = z.object({
   priceWei: z.string().regex(/^\d+$/),
   deadlineUnix: z.number().finite(),
 }).passthrough();
+
+const pendingCounterSchema = z.object({
+  seller: z.string().min(1),
+  priceUsdc: z.string().min(1),
+  deadlineUnix: z.number().int().positive(),
+  deadlineDays: z.number().int().positive(),
+  round: z.number().int().positive(),
+  key: z.string().min(1),
+}).strict();
+
+const negotiationSchema = z.object({
+  seller: z.string().min(1),
+  openedUsdc: z.number().finite(),
+  standingUsdc: z.string().min(1),
+  mine: z.string().nullable(),
+  myOpeningUsdc: z.number().finite(),
+  exchanges: z.number().int().nonnegative(),
+  rounds: z.number().int().nonnegative(),
+  midpointUsed: z.boolean(),
+  traded: z.boolean(),
+  counterable: z.boolean(),
+  state: z.enum(['open', 'agreed', 'ended', 'asking']),
+  pending: pendingCounterSchema.nullable(),
+  pendingBetterOffer: z.boolean(),
+  watchdogDueAt: z.number().int().nonnegative().nullable(),
+}).strict();
 
 const lowerSchema = z.object({ priceUsdc: z.string().min(1), deadlineUnix: z.number().finite() }).strict();
 
@@ -111,19 +140,13 @@ export const requestNotesSchema = z.object({
   parkedAgreement: z.object({ seller: z.string(), priceUsdc: z.string(), pattern: z.unknown().optional() }).strict().nullable().optional(),
   latePreemptAttempted: z.boolean().optional(),
   escrowFunded: z.boolean(),
-  pendingCounter: z.object({
-    seller: z.string().min(1),
-    priceUsdc: z.string().min(1),
-    deadlineUnix: z.number().int().positive(),
-    deadlineDays: z.number().int().positive(),
-    round: z.number().int().positive(),
-    key: z.string().min(1),
-  }).strict().optional(),
+  pendingCounter: pendingCounterSchema.optional(),
   pendingProposal: z.object({
     seller: z.string().min(1),
     priceUsdc: z.string().min(1),
     humanChosen: z.boolean().optional(),
   }).strict().optional(),
+  negotiations: z.record(negotiationSchema).optional(),
 }).strict();
 
 export type RequestNotes = z.infer<typeof requestNotesSchema>;
@@ -161,6 +184,12 @@ export function toNotes(f: NotesFields): RequestNotes {
     escrowFunded: f.escrowFunded,
     ...opt('pendingCounter', f.pendingCounter),
     ...opt('pendingProposal', f.pendingProposal),
+    ...opt(
+      'negotiations',
+      f.negotiations
+        ? Object.fromEntries([...f.negotiations].map(([seller, { resumed: _resumed, ...stored }]) => [seller, stored]))
+        : undefined,
+    ),
   });
 }
 
@@ -206,6 +235,7 @@ export function fromNotes(raw: unknown): NotesFields {
     escrowFunded: n.escrowFunded,
     ...opt('pendingCounter', n.pendingCounter),
     ...opt('pendingProposal', n.pendingProposal),
+    ...opt('negotiations', n.negotiations ? addressMap(n.negotiations) : undefined),
   };
 }
 

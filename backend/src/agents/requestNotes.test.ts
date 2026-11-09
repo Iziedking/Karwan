@@ -96,6 +96,32 @@ test('the stored request and the deal win over the notes', () => {
   assert.equal(open.finalized, false);
 });
 
+test('notes round-trip negotiations', () => {
+  const negotiation = {
+    seller: A,
+    openedUsdc: 258,
+    standingUsdc: '240.00',
+    mine: '200.00',
+    myOpeningUsdc: 188.7,
+    exchanges: 2,
+    rounds: 3,
+    midpointUsed: false,
+    traded: true,
+    counterable: true,
+    state: 'open' as const,
+    pending: { seller: A, priceUsdc: '200.00', deadlineUnix: 3_000, deadlineDays: 7, round: 3, key: 'counter:0xjob:a:3' },
+    pendingBetterOffer: true,
+    watchdogDueAt: 1_180_000,
+    resumed: true,
+  };
+  const withBook = { ...fields(), negotiations: new Map([[A.toLowerCase(), negotiation]]) };
+  const back = fromNotes(JSON.parse(JSON.stringify(toNotes(withBook))));
+  const { resumed: _resumed, ...stored } = negotiation;
+  assert.deepEqual(back.negotiations?.get(A), stored, 'kept except the in-process resend mark');
+  assert.equal(fromNotes(toNotes(fields())).negotiations, undefined, 'absent stays absent');
+  assert.throws(() => fromNotes({ ...toNotes(withBook), negotiations: { a: { ...stored, state: 'won' } } }));
+});
+
 test('an open window or wait is armed again at its own time, or now if it has passed', () => {
   assert.equal(resumeAt(5_000, 4_000), 5_000);
   assert.equal(resumeAt(3_000, 4_000), 4_000);
