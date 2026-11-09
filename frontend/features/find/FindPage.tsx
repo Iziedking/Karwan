@@ -84,7 +84,7 @@ export function FindPage({ id }: { id: string }) {
             </div>
           ) : null}
           {canPick && n > 0 ? (
-            <div data-ask-bar className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 mx-auto w-full max-w-[560px] px-6 md:bottom-6">
+            <div data-ask-bar className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 mx-auto w-full max-w-[560px] px-6 lg:bottom-6">
               <div className="rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
                 <div className="mb-2.5 flex items-center justify-between px-1">
                   <PhotoStack people={[...picked].map((i) => f.rows[i]!)} size={24} ring="ring-[var(--surface)]" />
