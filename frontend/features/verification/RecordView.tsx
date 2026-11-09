@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/shared/components/Hint';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -203,7 +204,13 @@ export function RecordView({ tag }: { tag: string }) {
       </section>
 
       <section className="mt-8" aria-labelledby="record-sources">
-        <h2 id="record-sources" className="text-[17px] font-semibold text-[var(--ink)]">{t.sources}</h2>
+        <h2 id="record-sources" className="flex items-center gap-2 text-[17px] font-semibold text-[var(--ink)]">
+          {t.sources}
+          <Hint side="bottom">
+            <span className="block">{t.meaning}</span>
+            <span className="mt-2 block">{t.privacy}</span>
+          </Hint>
+        </h2>
         <dl className={`${CARD_CLASS} mt-3 divide-y divide-[var(--line)] px-4`}>
           <div className="flex justify-between gap-4 py-3">
             <dt className="text-[15px] text-[var(--ink)]">{t.sourceKarwan}</dt>
@@ -216,8 +223,6 @@ export function RecordView({ tag }: { tag: string }) {
         </dl>
       </section>
 
-      <p className="mt-6 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{t.meaning}</p>
-      <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{t.privacy}</p>
 
       <a href={api.recordCredentialUrl(tag)} download={`karwan-record-${tag}.json`} className={`mt-6 ${buttonClasses({ variant: 'secondary' })}`}>
         {t.download}

@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/shared/components/Hint';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -173,9 +174,9 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
       <section className={`${CARD_CLASS} mt-4 flex gap-3 p-4`}>
         <Icon name="shield-check" size={20} className="mt-0.5 shrink-0 text-[var(--ink)]" />
         <div>
-          <p className="text-[15px] font-semibold text-[var(--ink)]">{t.protectedTitle}</p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
-            {deliverBy ? fill(t.protectedBody, { name, date: deliverBy }) : fill(t.protectedBodyNoDate, { name })}
+          <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--ink)]">
+            {t.protectedTitle}
+            <Hint>{deliverBy ? fill(t.protectedBody, { name, date: deliverBy }) : fill(t.protectedBodyNoDate, { name })}</Hint>
           </p>
           <Link href="/docs/escrow" className="mt-2 inline-flex min-h-11 items-center text-[14px] font-medium underline underline-offset-4">{copy.landingEditorial.rulesLink}</Link>
         </div>

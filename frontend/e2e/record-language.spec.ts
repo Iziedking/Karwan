@@ -33,20 +33,28 @@ async function sound(page:Page){
  const violations=(await new AxeBuilder({page}).include('main').analyze()).violations;
  expect(violations.filter(v=>v.impact==='serious'||v.impact==='critical')).toEqual([]);
 }
+async function openNote(page:Page,heading:string,lines:string[]){
+ await page.locator(heading).getByRole('button').click();
+ const note=page.getByRole('tooltip');
+ for(const line of lines)await expect(note.getByText(line,{exact:true})).toBeVisible();
+ await note.locator('[data-hint-got-it]').click();
+ await expect(note).toHaveCount(0);
+}
 for(const locale of ['en','fr','ar','hi','sw'] as const){
  test('trade signals and privacy '+locale,async({page},info)=>{
   const mutations=await world(page,locale);const c=recordCopy[locale];
   await page.goto('/r/ada');await expect(page.getByRole('heading',{level:1,name:'Ada Builds'})).toBeVisible();
   await expect(page.getByText(c.levels.registered,{exact:true})).toBeVisible();
   await expect(page.getByText(TIER_NAMES[locale].COLD,{exact:true})).toBeVisible();
-  await expect(page.getByText(c.meaning,{exact:true})).toBeVisible();
-  await expect(page.getByText(c.privacy,{exact:true})).toBeVisible();
+  // What the record means and what stays private sit behind the (i) by Sources, closed with Got it (owner, 9 Nov 2026).
+  await expect(page.getByText(c.meaning,{exact:true})).toHaveCount(0);
+  await openNote(page,'#record-sources',[c.meaning,c.privacy]);
   await expect(page.getByText('512',{exact:true})).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('dir',locale==='ar'?'rtl':'ltr');
   await sound(page);await page.screenshot({path:info.outputPath('public-'+locale+'.png'),fullPage:true});
   const link=page.getByRole('link',{name:c.download,exact:true});await link.focus();await expect(link).toBeFocused();
   await page.goto('/credit-passport/'+A);await expect(page.getByRole('heading',{level:1,name:'Ada Builds'})).toBeVisible();
-  await expect(page.getByText(sealedRecordCopy[locale].noNumbers,{exact:true})).toBeVisible();
+  await openNote(page,'#passport-record',[sealedRecordCopy[locale].noNumbers]);
   await sound(page);await page.screenshot({path:info.outputPath('sealed-'+locale+'.png'),fullPage:true});
   await page.goto('/docs/reputation');await expect(page.getByText(c.meaning,{exact:true})).toBeVisible();
   await expect(page.getByText(TIER_NAMES[locale].COLD+' (200–399).',{exact:true})).toBeVisible();

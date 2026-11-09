@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/shared/components/Hint';
 import { Price } from '@/features/money/components/Price';
 import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useEffect, useState } from 'react';
@@ -218,8 +219,10 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
   return (
     <Shell>
       {/* The record is its own page (owner, 3 Nov 2026); Profile keeps one line for it. */}
-      <p className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{pc.record}</p>
-      <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{t.record.meaning}</p>
+      <p className="flex items-center gap-2 text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]">
+        {pc.record}
+        <Hint side="bottom">{t.record.meaning}</Hint>
+      </p>
       {sharedLine ? <p className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{sharedLine}</p> : null}
       <div className="mt-6 flex flex-wrap items-center gap-4">
         <PassportPhoto src={profilePhotoOf(profile)} address={address} />

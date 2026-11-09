@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/shared/components/Hint';
 import { useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError } from '@/core/api';
@@ -85,8 +86,10 @@ export function FinancierApply({
   return (
     <div className="mx-auto max-w-[640px] px-5 py-12">
       <PageTour id={FINANCIER_APPLY_TOUR_ID} steps={FINANCIER_APPLY_STEPS} />
-      <h1 className="text-[26px] font-semibold leading-tight text-[var(--ink)]">{copy.title}</h1>
-      <p className="mt-3 max-w-[52ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{copy.intro}</p>
+      <h1 className="flex items-center gap-2 text-[26px] font-semibold leading-tight text-[var(--ink)]">
+        {copy.title}
+        <Hint side="bottom">{copy.intro}</Hint>
+      </h1>
 
       <ul className={`${CARD_CLASS} mt-6 divide-y divide-[var(--line)] px-5`}>
         {checks.map((c) => (

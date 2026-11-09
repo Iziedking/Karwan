@@ -24,3 +24,26 @@ test('the older info bubble opens the same note', () => {
   assert.match(lp, /<Hint side=\{side\} align=\{align\}>/);
   assert.doesNotMatch(lp, /role="tooltip"/);
 });
+
+test('the first-visit note uses the same bubble, closes with Got it and is remembered (owner, 9 Nov 2026)', async () => {
+  const coach = source('./CoachNote.tsx');
+  assert.match(coach, /bg-\[var\(--soft-green\)\]/);
+  assert.match(coach, /data-coach-got-it/);
+  assert.match(coach, /localStorage\.setItem\(key, '1'\)/);
+  assert.match(coach, /karwan:guide:disabled/, 'someone who turned the guide off sees no coach notes');
+  assert.match(source('../../features/money/components/MoneyHome.tsx'), /<CoachNote id="money-balance">\{pages\.firstVisit\}<\/CoachNote>/);
+  const { moneyPagesCopy } = await import('../i18n/messages/moneyPages');
+  for (const copy of Object.values(moneyPagesCopy)) {
+    assert.ok(copy.firstVisit.trim().length > 0);
+    assert.doesNotMatch(copy.firstVisit, /—|USDC/);
+  }
+});
+
+test('long notes on record, financier and order screens open from an (i) (owner, 9 Nov 2026)', () => {
+  const read = (p: string) => source(p);
+  assert.match(read('../../features/reputation/components/CreditPassport.tsx'), /<Hint side="bottom">\{t\.record\.meaning\}<\/Hint>/);
+  assert.match(read('../../features/reputation/components/PublicPassport.tsx'), /<Hint side="bottom">\{sr\.noNumbers\}<\/Hint>/);
+  assert.doesNotMatch(read('../../features/verification/RecordView.tsx'), /<p className="mt-6[^"]*">\{t\.meaning\}<\/p>/);
+  assert.match(read('../../features/financier/components/FinancierApply.tsx'), /<Hint side="bottom">\{copy\.intro\}<\/Hint>/);
+  assert.match(read('../../features/order/OrderPage.tsx'), /<Hint>\{deliverBy \? fill\(t\.protectedBody/);
+});

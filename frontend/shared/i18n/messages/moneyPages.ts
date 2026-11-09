@@ -6,6 +6,8 @@ export interface MoneyPagesCopy {
   /// From an exchange, for an account that signs with its own wallet.
   walletDeposit: string;
   tips: { balance: string; agent: string; guarantee: string };
+  /// Shown once under the balance on a first visit; Got it is remembered (owner, 9 Nov 2026, Figma 218:604).
+  firstVisit: string;
   added: {
     title: string;
     fromLine: string;
@@ -103,6 +105,7 @@ export interface MoneyPagesCopy {
 const en: MoneyPagesCopy = {
   walletDeposit: 'Send USDC to your wallet address. On {arc} it lands in your balance. On another network it shows under From your wallet.',
   tabs: { label: 'Money', balance: 'Balance', agent: 'Agent', guarantee: 'Deal guarantee' },
+  firstVisit: 'This is the money you can use. Money held in a deal shows on the deal until it is released.',
   tips: {
     balance: 'Money you can spend now: your wallet, your Transfer balance and anything still with your agent.',
     agent: 'Money set aside for your agent. It pays for record checks and finding sellers, up to your weekly limit. Deals always wait for your OK.',
@@ -205,6 +208,7 @@ const en: MoneyPagesCopy = {
 const fr: MoneyPagesCopy = {
   walletDeposit: "Envoyez des USDC à l'adresse de votre portefeuille. Sur {arc}, ils arrivent dans votre solde. Sur un autre réseau, ils apparaissent sous Depuis votre portefeuille.",
   tabs: { label: 'Argent', balance: 'Solde', agent: 'Agent', guarantee: 'Garantie de transaction' },
+  firstVisit: 'Voici l’argent que vous pouvez utiliser. L’argent bloqué dans une transaction apparaît sur la transaction jusqu’à sa libération.',
   tips: {
     balance: 'L’argent que vous pouvez dépenser maintenant : votre portefeuille, votre solde de transfert et ce qui reste chez votre agent.',
     agent: 'L’argent mis de côté pour votre agent. Il paie les vérifications et la recherche de vendeurs, dans votre limite hebdomadaire. Les accords attendent toujours votre accord.',
@@ -307,6 +311,7 @@ const fr: MoneyPagesCopy = {
 const ar: MoneyPagesCopy = {
   walletDeposit: 'أرسل USDC إلى عنوان محفظتك. على {arc} تصل إلى رصيدك. على شبكة أخرى تظهر تحت من محفظتك.',
   tabs: { label: 'المال', balance: 'الرصيد', agent: 'الوكيل', guarantee: 'ضمان الصفقة' },
+  firstVisit: 'هذا هو المال الذي يمكنك استخدامه. المال المحجوز في صفقة يظهر في الصفقة حتى يُفرج عنه.',
   tips: {
     balance: 'المال الذي يمكنك إنفاقه الآن: محفظتك ورصيد التحويل وما بقي لدى وكيلك.',
     agent: 'مال مخصص لوكيلك. يدفع منه فحوص السجل والبحث عن البائعين، ضمن حدك الأسبوعي. الصفقات تنتظر موافقتك دائمًا.',
@@ -409,6 +414,7 @@ const ar: MoneyPagesCopy = {
 const hi: MoneyPagesCopy = {
   walletDeposit: 'अपने वॉलेट पते पर USDC भेजें। {arc} पर यह आपके शेष में आता है। किसी दूसरे नेटवर्क पर यह आपके वॉलेट से के नीचे दिखता है।',
   tabs: { label: 'पैसा', balance: 'शेष', agent: 'एजेंट', guarantee: 'सौदा गारंटी' },
+  firstVisit: 'यह वह पैसा है जिसे आप इस्तेमाल कर सकते हैं। किसी सौदे में रुका पैसा उस सौदे पर दिखता है, जब तक वह जारी नहीं हो जाता।',
   tips: {
     balance: 'वह पैसा जो आप अभी खर्च कर सकते हैं: आपका वॉलेट, आपका ट्रांसफ़र शेष और जो आपके एजेंट के पास बचा है।',
     agent: 'आपके एजेंट के लिए अलग रखा पैसा। यह रिकॉर्ड जाँच और विक्रेता खोजने का भुगतान करता है, आपकी साप्ताहिक सीमा तक। सौदे हमेशा आपकी हाँ का इंतज़ार करते हैं।',
@@ -511,6 +517,7 @@ const hi: MoneyPagesCopy = {
 const sw: MoneyPagesCopy = {
   walletDeposit: 'Tuma USDC kwenye anwani ya pochi yako. Kwenye {arc} inaingia kwenye salio lako. Kwenye mtandao mwingine inaonekana chini ya Kutoka kwenye pochi yako.',
   tabs: { label: 'Pesa', balance: 'Salio', agent: 'Wakala', guarantee: 'Dhamana ya mkataba' },
+  firstVisit: 'Hii ndiyo pesa unayoweza kutumia. Pesa iliyoshikiliwa kwenye mpango inaonekana kwenye mpango huo hadi itakapotolewa.',
   tips: {
     balance: 'Pesa unayoweza kutumia sasa: pochi yako, salio lako la uhamisho na chochote kilichobaki kwa wakala wako.',
     agent: 'Pesa iliyotengwa kwa wakala wako. Inalipia ukaguzi wa rekodi na kutafuta wauzaji, hadi kikomo chako cha wiki. Mikataba husubiri ridhaa yako kila wakati.',

@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/shared/components/Hint';
 import { useTierLabels } from '@/features/reputation/useTierLabels';
 import Link from 'next/link';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -51,10 +52,13 @@ export function PublicPassport({ address, notice }: { address: string; notice?: 
       <p className="mt-4 inline-flex items-center gap-2 text-[15px] font-medium text-[var(--lp-dark)]">
         <span className="text-[var(--lp-text-sub)]">{sr.tier}</span>
         <span className="rounded-full px-2.5 py-0.5 font-semibold" style={{ background: tierBg(sealed.tier), color: tierInk(sealed.tier) }}>{TIER_LABEL[sealed.tier]}</span>
+        <Hint side="bottom">{t.record.meaning}</Hint>
       </p>
-      <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.record.meaning}</p>
       <section aria-labelledby="passport-record" className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
-        <h2 id="passport-record" className="text-[17px] font-semibold text-[var(--lp-dark)]">{sr.record}</h2>
+        <h2 id="passport-record" className="flex items-center gap-2 text-[17px] font-semibold text-[var(--lp-dark)]">
+          {sr.record}
+          <Hint side="bottom">{sr.noNumbers}</Hint>
+        </h2>
         <ul className="mt-3 divide-y divide-[var(--lp-border-light)]">
           {reasonLabels(sealed.reasons, sr).map((label) => (
             <li key={label} className="py-3 text-[15px] text-[var(--lp-dark)]">{label}</li>
@@ -70,7 +74,6 @@ export function PublicPassport({ address, notice }: { address: string; notice?: 
         >
           {sr.startDeal}
         </Link>
-        <p className="mt-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{sr.noNumbers}</p>
       </div>
     </article>
   );

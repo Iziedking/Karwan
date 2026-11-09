@@ -32,6 +32,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { formatDisplay } from '../displayCurrency';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
 import { Hint } from '@/shared/components/Hint';
+import { CoachNote } from '@/shared/components/CoachNote';
 import { GuaranteeTab } from '@/features/guarantee/GuaranteeTab';
 import { ADD_HREF, WITHDRAW_HREF, agentMoveHref, moneyTab, type MoneyTab } from '../moneyRoutes';
 import { useMoneyText } from '../hooks/useMoneyText';
@@ -173,6 +174,7 @@ function MoneyHomeInner() {
                 </h1>
                 <NetworkHint />
               </div>
+              <CoachNote id="money-balance">{pages.firstVisit}</CoachNote>
               <p role="status" aria-live="polite" className="flex items-start gap-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
                 <span
                   aria-hidden
