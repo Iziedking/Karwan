@@ -50,6 +50,7 @@ import { jobActionsInFlight } from '../offers/jobLock.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { MAX_QUANTITY, readQuantity } from '../llm/quantity.js';
 import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
+import { forViewer } from '../market/budgetView.js';
 import { findAgentWalletByAgentAddress, getAgentWallets } from '../db/agentWallets.js';
 import { buyerFundingNeed } from '../agents/buyerFundingNeed.js';
 import { logger } from '../logger.js';
@@ -273,7 +274,9 @@ jobsRoutes.get('/marketplace', async (c) => {
   }
   // Who posted each request, by name (view 44, Market Sell); never the address.
   const briefs = await attachPosters(out, (jobId) => getBrief(jobId)?.postedBy, liveSellerSummaries);
-  return c.json({ briefs });
+  // A bargaining request shows its budget as a range to all but its buyer (view 73).
+  const viewer = viewerAddress(c)?.toLowerCase() ?? null;
+  return c.json({ briefs: briefs.map((b) => forViewer(b, !!viewer && getBrief(b.jobId)?.postedBy?.toLowerCase() === viewer)) });
 });
 
 /// What "Start the search" will move before posting. Same arithmetic as the
@@ -381,8 +384,9 @@ jobsRoutes.get('/:jobId', async (c) => {
   c.header('Cache-Control', 'no-store');
   // Merge the off-chain brief metadata (human-readable text, negotiation
   // ceiling) into the response so the job page can render it inline. The
-  // on-chain snapshot only carries the termsHash for integrity.
-  return c.json({
+  // on-chain snapshot only carries the termsHash for integrity. A matched
+  // seller sees a bargaining request's budget as a range (view 73).
+  return c.json(forViewer({
     ...job,
     isParty: true,
     viewerIsBuyer,
@@ -406,7 +410,7 @@ jobsRoutes.get('/:jobId', async (c) => {
     sourcingSector: brief?.counterpartyCompany?.sector ?? null,
     sourcingRegion: brief?.counterpartyCompany?.region ?? null,
     attachments: attachmentList(brief?.attachments),
-  });
+  }, viewerIsBuyer));
 });
 
 jobsRoutes.post('/', async (c) => {

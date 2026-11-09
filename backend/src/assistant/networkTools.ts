@@ -21,6 +21,13 @@ import { searchMarket } from './marketSearch.js';
 import { paidReadView } from './paidReadView.js';
 import { personName } from '../channels/personName.js';
 import { isPublic } from '../market/visibility.js';
+import { forViewer } from '../market/budgetView.js';
+
+/// A request's budget as a seller may read it: a range on a bargaining request (view 73).
+function budgetFor(jobId: string, budgetUsdc: number) {
+  const { jobId: _jobId, ...budget } = forViewer({ jobId, budgetUsdc }, false);
+  return budget;
+}
 
 /// The verified network from the assistant: find people agents may offer, and
 /// ask their agent about price, timeline and terms. Answers come from what the
@@ -80,7 +87,7 @@ export function networkTools(address: string) {
             customers.push({
               jobId: hit.jobId,
               request: hit.title,
-              budgetUsdc: hit.budgetUsdc,
+              ...budgetFor(hit.jobId, hit.budgetUsdc),
               due: new Date(hit.dueUnix * 1000).toISOString().slice(0, 10),
               name: personName(profile, 'A Karwan buyer'),
               level,

@@ -22,6 +22,7 @@ import { contactOf, pitchesTo } from '../find/contacts.js';
 import { customerLeads } from '../find/customersLive.js';
 import { pitchView, type PitchView } from '../find/pitchView.js';
 import { rankBuyersFor, type LeadCandidate, type LeadSeller } from '../find/rankBuyers.js';
+import { budgetWords } from '../market/budgetView.js';
 
 /// Finding people, being reached and blocking, from any channel (view 72).
 /// Being found is a setting (propose_change_settings). Nothing here moves money.
@@ -199,7 +200,11 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
             ...(r.kind === 'request' ? { jobId: r.ref } : {}),
             what: r.what,
             every: r.every ? EVERY_WORDS[r.every] : null,
-            budget: r.budgetUsdc ? `about ${await deps.money(me, Number(r.budgetUsdc))}` : 'no budget said',
+            budget: !r.budgetUsdc
+              ? 'no budget said'
+              : r.kind === 'request'
+                ? await budgetWords(r.ref, Number(r.budgetUsdc), (usdc) => deps.money(me, usdc))
+                : `about ${await deps.money(me, Number(r.budgetUsdc))}`,
             distance: distanceWords(r.distance),
             dueDays: r.dueDays,
             verifiedBuyer: r.buyerVerified,

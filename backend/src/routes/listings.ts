@@ -33,6 +33,7 @@ import { getDeal } from '../db/deals.js';
 import { newDealFeeBps } from '../deals/newDealFee.js';
 import { bargainOn, getBrief, listAllBriefs } from '../db/briefs.js';
 import { listingBidTerms, type OpeningSignals } from '../agents/bargainOpening.js';
+import { budgetRange } from '../agents/budgetRange.js';
 import { marketHeat } from '../agents/marketDemand.js';
 import { getCachedMarketPrice } from '../x402/externalClient.js';
 import { config } from '../config.js';
@@ -993,6 +994,13 @@ async function tryMatchListingToJobLegacy(
   return true;
 }
 
+/// A seller's agent sees a bargaining request's budget as a range (view 73).
+function budgetLine(job: { jobId?: string; budgetUsdc: string }): string {
+  if (!job.jobId || !bargainOn(job.jobId)) return `- Budget: ${job.budgetUsdc} USDC`;
+  const r = budgetRange(Number(job.budgetUsdc));
+  return r ? `- Budget: ${r.lowUsdc} to ${r.highUsdc} USDC` : '- Budget: not said';
+}
+
 /// What the seller's opening reads (view 73): skill fit from the match, the
 /// seller's record, demand for the skill and a grounded market price.
 async function listingOpeningSignals(job: ListingMatchJob, sellerAddress: string, fit: number): Promise<OpeningSignals> {
@@ -1010,7 +1018,7 @@ async function listingOpeningSignals(job: ListingMatchJob, sellerAddress: string
   };
 }
 
-export function buildListingMatchPrompt(listing: Listing, job: { briefText?: string; budgetUsdc: string; termsHash: string }): string {
+export function buildListingMatchPrompt(listing: Listing, job: { jobId?: string; briefText?: string; budgetUsdc: string; termsHash: string }): string {
   const brief = job.briefText ?? `(opaque, only terms hash ${job.termsHash})`;
   return [
     'You are a marketplace matcher. A seller posted the listing below as something they sell. Decide whether it gives the buyer what their brief asks for.',
@@ -1022,7 +1030,7 @@ export function buildListingMatchPrompt(listing: Listing, job: { briefText?: str
     '',
     'Buyer brief:',
     `- Text: ${brief}`,
-    `- Budget: ${job.budgetUsdc} USDC`,
+    budgetLine(job),
     '',
     'Steps:',
     '1. briefNeeds: in a few words, the thing the buyer wants delivered (a person to do a job, a piece of work, an item).',
