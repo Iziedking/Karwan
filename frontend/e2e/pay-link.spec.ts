@@ -151,7 +151,7 @@ test('on a phone the amount and its keypad come first, then the details with not
   await expect(details.locator('[data-request-amount]')).toContainText('10');
   await expect(page.getByRole('group', { name: en.money.entry.keypad })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
-  await page.screenshot({ path: info.outputPath('request-phone-details.png'), fullPage: true });
+  await page.screenshot({ path: info.outputPath('request-phone-details.png') }); // not fullPage: it resets the touch emulation for a moment
   await details.getByRole('button', { name: en.money.sendFlow.change, exact: true }).click();
   await expect(amountStep.getByRole('group', { name: en.money.entry.keypad })).toBeVisible();
   await amountStep.getByRole('button', { name: en.money.sendFlow.next, exact: true }).click();

@@ -4728,7 +4728,7 @@ export const fr: Messages = {
       concession: 'Votre agent négocie d\'abord avec le meilleur candidat. Les deux côtés cèdent par paliers décroissants, comme les gens le font: un grand pas au début, des pas plus petits à mesure qu\'on se rapproche. Si le meilleur candidat ne rentre pas dans votre fourchette, votre agent passe au suivant au lieu d\'abandonner.',
       privacy: 'Chaque agent ne voit que la fourchette de son propre mandant. L\'agent acheteur connaît le budget et le plafond de tolérance, l\'agent vendeur connaît le prix demandé et le plancher. Aucun camp ne lit jamais la réserve de l\'autre. Les deux agents se rejoignent au milieu sur une courbe de concession déterministe, avec la médiane actuelle du marché et la réputation récente de la contrepartie comme références publiques partagées.',
     },
-    timelineFigure: { alt: 'Chronologie d\'activité montrant les tours d\'offres entre les agents acheteur et vendeur', caption: 'Une négociation en direct, tour par tour, dans la chronologie de la transaction' },
+    timelineFigure: { alt: 'Une demande avec les offres ouvertes, chacune avec son prix, pendant que l’agent les compare', caption: 'Les offres arrivent sur votre demande et votre agent les compare' },
     whyHuman: {
       heading: 'Pourquoi cela semble humain',
       anchors: { label: 'Il ancre et concède.', body: 'Un vendeur ouvre au-dessus de son plancher, un acheteur reste près de son budget. Chaque tour réduit une partie de l\'écart, avec des pas plus petits à l\'approche de l\'accord.' },
@@ -4941,8 +4941,8 @@ export const fr: Messages = {
         elite: 'Palier supérieur. Les agents acceptent au premier coup d\'œil dans la fourchette, sans enchère.',
       },
       breakpoints: 'Les seuils de palier sont fixés aux mêmes chiffres sur le testnet et le mainnet. L\'échelle de score fait le travail, et les étiquettes ont le même sens où que vous les lisiez.',
-      figureAlt: 'Score de réputation et échelle des paliers sur la page de profil',
-      figureCaption: 'Votre score et votre palier sur la page de profil.',
+      figureAlt: 'Niveau et score sur la page de votre historique, avec les cinq niveaux',
+      figureCaption: 'Votre niveau et votre score sur votre historique.',
     },
     resistance: {
       heading: 'Comment le score résiste au jeu',

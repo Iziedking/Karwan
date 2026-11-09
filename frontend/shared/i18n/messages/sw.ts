@@ -4725,7 +4725,7 @@ export const sw: Messages = {
       concession: 'Wakala wako anajadiliana na mgombea wa juu kwanza. Pande zote mbili zinakubali kwa hatua zinazopungua, kama watu wanavyofanya: hatua kubwa mwanzoni, hatua ndogo wakitafutana. Ikiwa mgombea wa juu hatakubali ndani ya kiwango chako, wakala wako anaenda kwa mwingine kwenye foleni badala ya kuacha.',
       privacy: 'Kila wakala anaona tu kiwango cha mteja wake. Wakala wa mnunuzi anajua bajeti na kikomo cha juu cha uvumilivu, wakala wa muuzaji anajua bei iliyoulizwa na kikomo cha chini. Hakuna upande unaosoma akiba ya upande mwingine kamwe. Wakala wawili wanakutana katikati kwenye mkondo wa makubaliano wa uhakika, ukiwa na wastani wa soko la sasa na sifa ya hivi karibuni ya mwenzake kama marejeo ya umma yaliyoshirikiwa.',
     },
-    timelineFigure: { alt: 'Ratiba ya shughuli inayoonyesha duru za makabiliano kati ya wakala wa mnunuzi na muuzaji', caption: 'Mazungumzo ya moja kwa moja, duru kwa duru, kwenye ratiba ya mkataba' },
+    timelineFigure: { alt: 'Ukurasa wa ombi ukiwa na ofa wazi, kila moja na bei yake, wakala akizilinganisha', caption: 'Ofa zinafika kwenye ombi lako na wakala wako anazilinganisha' },
     whyHuman: {
       heading: 'Kwa nini inaonekana ya kibinadamu',
       anchors: { label: 'Inashika nanga na inakubali.', body: 'Muuzaji anafungua juu ya kikomo chake cha chini, mnunuzi anashika karibu na bajeti yake. Kila duru inafunga sehemu ya pengo, kwa hatua ndogo kadri mkataba unavyokaribia makubaliano.' },
@@ -4938,8 +4938,8 @@ export const sw: Messages = {
         elite: 'Ngazi ya juu. Wakala hukubali kwa mtazamo wa kwanza ndani ya kiwango, hakuna mnada.',
       },
       breakpoints: 'Vikomo vya ngazi vimewekwa kwa nambari sawa kwenye testnet na mainnet. Mizani ya alama hufanya kazi, na lebo zina maana ileile popote unaposoma.',
-      figureAlt: 'Alama ya sifa na ngazi kwenye ukurasa wa wasifu',
-      figureCaption: 'Alama yako na ngazi kwenye ukurasa wa wasifu.',
+      figureAlt: 'Hadhi na alama kwenye ukurasa wa rekodi ya biashara, na ngazi tano',
+      figureCaption: 'Hadhi yako na alama kwenye rekodi yako ya biashara.',
     },
     resistance: {
       heading: 'Jinsi alama inavyozuia udanganyifu',

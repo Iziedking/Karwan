@@ -10136,10 +10136,7 @@ export const en: MessagesShape = {
       concession: 'Your agent starts with the strongest candidate. The negotiation can move in smaller steps as the terms get closer. If the candidate cannot land inside your range, the agent can continue with another match instead of forcing a bad deal.',
       privacy: 'Each agent only sees its own principal\'s range. The buyer agent knows the budget and the tolerance ceiling; the seller agent knows the asking price and the floor. Neither side ever reads the other\'s reservation. The two agents meet in the middle on a deterministic concession curve, with the current market median and recent counterparty reputation as shared, public references.',
     },
-    timelineFigure: {
-      alt: 'Activity timeline showing counter rounds between buyer and seller agents',
-      caption: 'A live negotiation, round by round, in the deal timeline',
-    },
+    timelineFigure: { alt: 'A request page with the offers open, each with its price, while the agent compares them', caption: 'Offers come in on your request and your agent compares them' },
     whyHuman: {
       heading: 'What the agent is trying to do',
       anchors: { label: 'It starts with a position.', body: 'The seller protects the floor they set. The buyer protects the budget they set. The agent looks for a workable middle ground.' },
@@ -10376,8 +10373,8 @@ export const en: MessagesShape = {
         elite: 'The highest reputation tier. It is still not a guarantee of performance.',
       },
       breakpoints: 'The product displays the breakpoints and tier requirements currently in force. Testnet settings are not a promise of future mainnet policy.',
-      figureAlt: 'Reputation score and tier ladder on the profile page',
-      figureCaption: 'Your score and tier on the profile page.',
+      figureAlt: 'Standing and score on the trade record page, with the five levels',
+      figureCaption: 'Your standing and score on your trade record.',
     },
     resistance: {
       heading: 'Controls around the score',
