@@ -53,6 +53,21 @@ async function mockApi(page: Page, opts: { signedInAs?: string; request?: Record
   });
 }
 
+
+/// On a touch screen the amount comes first on its own (owner, 9 Nov 2026); elsewhere it sits on the one form.
+async function toDetails(page: Page, amount: string) {
+  await expect(page.locator('[data-request-step]')).toBeVisible();
+  const step = page.locator('[data-request-step="amount"]');
+  if (await step.count()) {
+    await page.getByPlaceholder('0').fill(amount);
+    await step.getByRole('button', { name: en.money.sendFlow.next, exact: true }).click();
+    await expect(page.locator('[data-request-step="details"]')).toBeVisible();
+  } else {
+    await expect(page.getByRole('button', { name: copy.create.create })).toBeDisabled();
+    await page.getByPlaceholder('0').fill(amount);
+  }
+}
+
 test('a payment link opens its own page: who asks, how much, Arc first, one button', async ({ page }) => {
   await mockApi(page);
   await page.goto(`/deposit/request/${TOKEN}`);
@@ -106,11 +121,9 @@ test('any signed-in account creates a link that lasts a week', async ({ page }) 
   await page.getByRole('heading', { name: copy.create.title }).getByRole('button').click();
   await expect(page.getByRole('tooltip')).toContainText(copy.create.directNote);
   await page.getByRole('tooltip').locator('[data-hint-got-it]').click();
-  const create = page.getByRole('button', { name: copy.create.create });
-  await expect(create).toBeDisabled();
-  await page.getByPlaceholder('0').fill('10');
+  await toDetails(page, '10');
   await page.getByPlaceholder(copy.create.forPlaceholder).fill('Logo, first draft');
-  await create.click();
+  await page.getByRole('button', { name: copy.create.create }).click();
   await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
   await expect(page.getByText(`/deposit/request/${TOKEN}`)).toBeVisible();
   // A mouse and keyboard get Copy link only; Share is for a phone's share sheet.
@@ -118,10 +131,9 @@ test('any signed-in account creates a link that lasts a week', async ({ page }) 
   expect(created).toEqual({ amountUsdc: '10', purpose: 'Logo, first draft', ttlMinutes: 7 * 24 * 60 });
 });
 
-test('on a phone the amount and its keypad come first, then the details with nothing under them', async ({ browser }, info) => {
-  // A real touch screen: (pointer: coarse) turns the keypad on (owner, 9 Nov 2026, Figma 224:570).
-  const context = await browser.newContext({ ...info.project.use, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  const page = await context.newPage();
+test('on a phone the amount and its keypad come first, then the details with nothing under them', async ({ page }, info) => {
+  // The phone project is a touch screen: (pointer: coarse) turns the keypad on (owner, 9 Nov 2026, Figma 224:570).
+  test.skip(info.project.name !== 'phone', 'a touch screen only');
   let created: unknown = null;
   await mockApi(page, { signedInAs: BUYER, onCreate: (body) => (created = body) });
   await page.goto('/request');
@@ -131,36 +143,35 @@ test('on a phone the amount and its keypad come first, then the details with not
   const next = amountStep.getByRole('button', { name: en.money.sendFlow.next, exact: true });
   await expect(next).toBeDisabled();
   const keys = amountStep.getByRole('group', { name: en.money.entry.keypad });
-  await keys.getByRole('button', { name: '1', exact: true }).tap();
-  await keys.getByRole('button', { name: '0', exact: true }).tap();
-  await next.tap();
+  await keys.getByRole('button', { name: '1', exact: true }).click();
+  await keys.getByRole('button', { name: '0', exact: true }).click();
+  await next.click();
   const details = page.locator('[data-request-step="details"]');
   await expect(details.locator('[data-request-amount]')).toContainText(copy.create.askingFor);
   await expect(details.locator('[data-request-amount]')).toContainText('10');
   await expect(page.getByRole('group', { name: en.money.entry.keypad })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: info.outputPath('request-phone-details.png'), fullPage: true });
-  await details.getByRole('button', { name: en.money.sendFlow.change, exact: true }).tap();
+  await details.getByRole('button', { name: en.money.sendFlow.change, exact: true }).click();
   await expect(amountStep.getByRole('group', { name: en.money.entry.keypad })).toBeVisible();
-  await amountStep.getByRole('button', { name: en.money.sendFlow.next, exact: true }).tap();
+  await amountStep.getByRole('button', { name: en.money.sendFlow.next, exact: true }).click();
   await page.getByPlaceholder(copy.create.forPlaceholder).fill('Logo, first draft');
-  await page.getByRole('button', { name: copy.create.create }).tap();
+  await page.getByRole('button', { name: copy.create.create }).click();
   await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
   expect(created).toEqual({ amountUsdc: '10', purpose: 'Logo, first draft', ttlMinutes: 7 * 24 * 60 });
-  await context.close();
 });
 
 test('the requester picks how long the link works, up to 90 days', async ({ page }) => {
   let created: unknown = null;
   await mockApi(page, { signedInAs: BUYER, onCreate: (body) => (created = body) });
   await page.goto('/request');
+  await toDetails(page, '10');
   const expiry = page.getByRole('group', { name: copy.create.expiresLabel });
   await expect(expiry.getByRole('button', { name: new RegExp(copy.create.days7) })).toHaveAttribute('aria-pressed', 'true');
   await expiry.getByRole('button', { name: new RegExp(copy.create.days30) }).click();
   await expect(expiry.getByRole('button', { name: new RegExp(copy.create.days30) })).toHaveAttribute('aria-pressed', 'true');
   const calendar = expiry.getByLabel(copy.create.pickDate);
   await expect(calendar).toHaveAttribute('max', /^\d{4}-\d{2}-\d{2}$/);
-  await page.getByPlaceholder('0').fill('10');
   await page.getByRole('button', { name: copy.create.create }).click();
   await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
   expect(created).toEqual({ amountUsdc: '10', purpose: undefined, ttlMinutes: 30 * 24 * 60 });
@@ -304,7 +315,7 @@ for (const [lang, messages] of batch3Locales) test('Batch 3 direct payment clari
  await mockApi(page,{signedInAs:BUYER});
  await page.goto('/request');
  await expect(page.getByText(messages.payLink.create.directNote)).toHaveCount(0);
- await expect(page.getByRole('button',{name:messages.payLink.create.create})).toBeVisible();
+ await expect(page.locator('[data-request-step]')).toBeVisible();
  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
  await page.evaluate(() => document.fonts.ready);
  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
@@ -338,9 +349,8 @@ test('9d: the payer page, signed out, has one green button and an ink pick', asy
 test('9d: a new link is ready with Copy link as its one green button', async ({ page }, info) => {
   await mockApi(page, { signedInAs: BUYER });
   await page.goto('/request');
-  await expect(page.getByRole('button', { name: copy.create.create })).toBeVisible();
+  await toDetails(page, '120');
   expect(await greenControls(page)).toEqual([copy.create.create]);
-  await page.getByPlaceholder('0').fill('120');
   await page.getByPlaceholder(copy.create.forPlaceholder).fill('Logo, first draft');
   await page.getByRole('button', { name: copy.create.create }).click();
   await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
