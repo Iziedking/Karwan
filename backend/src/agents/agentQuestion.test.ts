@@ -107,3 +107,19 @@ test('asking the same thing again says nothing; a new suggested answer is told o
     off();
   }
 });
+
+test('a seller reading a bargaining request gets a range, never the budget (view 73)', async () => {
+  const { budgetFor, questionForOwner } = await import('./agentQuestion.js');
+  const on = () => true;
+  assert.deepEqual(budgetFor('seller', '0xjob', '222', on), { budgetRange: { lowUsdc: 150, highUsdc: 230 } });
+  assert.deepEqual(budgetFor('buyer', '0xjob', '222', on), { budgetUsdc: '222' });
+  assert.deepEqual(budgetFor('seller', '0xjob', '222', () => false), { budgetUsdc: '222' });
+  const q = { id: 'q', owner: SELLER, side: 'seller' as const, jobId: '0xjob', kind: 'price-below-floor' as const, title: '', facts: { budgetUsdc: '222', dueDays: 5, limit: 240 }, suggested: { priceUsdc: '240', days: 3 }, state: 'input-required' as const, createdAt: 1, updatedAt: 1 };
+  const seen = questionForOwner(q as never, on);
+  assert.equal(JSON.stringify(seen).includes('222'), false);
+  assert.deepEqual((seen.facts as { budgetRange?: unknown }).budgetRange, { lowUsdc: 150, highUsdc: 230 });
+  assert.equal(
+    questionLine({ kind: 'price-below-floor', budgetRange: { lowUsdc: 150, highUsdc: 230 }, limit: 240, priceUsdc: '240' }),
+    'The budget is 150 to 230 USDC, under your lowest of 240 USDC. Offer 240 USDC?',
+  );
+});

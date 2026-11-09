@@ -50,7 +50,7 @@ import { limitDecision, orderSize } from './limits.js';
 import { askOwner } from './agentQuestion.js';
 import { bargainOn, getBrief } from '../db/briefs.js';
 import { profileOpening } from './bargainOpening.js';
-import { budgetRange } from './budgetRange.js';
+import { budgetRange, type BudgetRange } from './budgetRange.js';
 import { refereeTarget } from './opening.js';
 import { sellerAgentMaySee } from '../market/visibility.js';
 import { fittingWay, sellerForRequest } from './ways.js';
@@ -136,6 +136,8 @@ interface ActiveBid {
   counterable?: boolean;
   /// View 73: this seller already met the buyer in the middle once.
   midpointUsed?: boolean;
+  /// View 73: the buyer's latest counter said a better offer is in (never who or how much).
+  betterOffer?: boolean;
   /** Set true by `adjustBidByTier` when the buyer is NEW-tier (see
    *  docs/reputation-model.md §6). The buyer agent reads this in
    *  `proposeMatch` to attach a `new-buyer` riskFlag on the resulting
@@ -1813,6 +1815,7 @@ async function runCounterEvaluation(
       })
     : nextSellerMove({ ...scheduleInput, floor: minAcceptable });
   if (scheduled.kind === 'midpoint') active.midpointUsed = true;
+  if (bargain) active.betterOffer = better?.betterOffer === true;
   const move: ConcessionMove = scheduled.kind === 'midpoint' ? { kind: 'step', price: scheduled.price } : scheduled;
   logger.info(
     { jobId: args.jobId, seller: seller.address, move, timeUsed, competitors, exchanges: active.counterRounds, buyerTier, heat, marketRead: !!counterRead, buyerChecked: !!buyerPassport },
@@ -1926,7 +1929,12 @@ export interface SellerActiveBidSnapshot {
   jobId: string;
   seller: string;
   jobBuyer: string;
-  budgetUsdc: string;
+  /// Absent on a bargaining request, which shows `budgetRange` instead (view 73).
+  budgetUsdc?: string;
+  budgetRange?: BudgetRange | null;
+  /// View 73: where the agent opened, when the price has moved since.
+  openedUsdc?: string;
+  betterOffer?: boolean;
   deadlineUnix: number;
   lastBidPrice: string;
   counterRounds: number;
@@ -2135,7 +2143,7 @@ export function getSellerSnapshot(
       jobId: b.jobContext.jobId,
       seller: b.seller.address,
       jobBuyer: b.jobContext.buyer,
-      budgetUsdc: b.jobContext.budgetUsdc,
+      ...sellerBudget(b),
       deadlineUnix: b.jobContext.deadlineUnix,
       lastBidPrice: b.lastBidPrice,
       counterRounds: b.counterRounds,
@@ -2299,4 +2307,16 @@ export async function rescanRequest(jobId: string, opts: { fresh?: boolean } = {
   const job = listOpenJobContexts().find((j) => j.jobId.toLowerCase() === jobId.toLowerCase());
   if (!job) return;
   await handleJobPosted(jobLogFor(job), { rescan: true });
+}
+
+/// A bid as its seller sees it (view 73): a bargaining request's budget as a
+/// range, the opening when the price has moved, and whether a better offer is in.
+function sellerBudget(b: ActiveBid): Pick<SellerActiveBidSnapshot, 'budgetUsdc' | 'budgetRange' | 'openedUsdc' | 'betterOffer'> {
+  if (!bargainOn(b.jobContext.jobId)) return { budgetUsdc: b.jobContext.budgetUsdc };
+  const moved = Math.abs(Number(b.originalBidPriceUsdc) - Number(b.lastBidPrice)) >= 0.01;
+  return {
+    budgetRange: budgetRange(Number(b.jobContext.budgetUsdc)),
+    ...(moved ? { openedUsdc: b.originalBidPriceUsdc } : {}),
+    ...(b.betterOffer ? { betterOffer: true } : {}),
+  };
 }

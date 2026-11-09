@@ -4569,6 +4569,8 @@ export const fr: Messages = {
       abandonConfirm: 'Confirmer',
       onRequest: 'Proposé {price} sur « {title} »',
       onRequestUntitled: 'Proposé {price} sur la demande d’un acheteur',
+      openedAt: 'Votre agent a proposé d’abord {price}',
+      betterOffer: 'L’acheteur a une meilleure offre',
       withdraw: 'Retirer',
       withdrawConfirm: 'Oui, retirer',
       talking: 'En discussion',

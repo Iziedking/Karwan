@@ -1,5 +1,6 @@
 import { bus } from '../events.js';
-import { getBrief } from '../db/briefs.js';
+import { bargainOn, getBrief } from '../db/briefs.js';
+import { budgetRange, type BudgetRange } from './budgetRange.js';
 import { answerQuestion, openFor, putQuestion, type AgentQuestion, type QuestionAnswer, type QuestionKind, type QuestionSide } from '../db/agentQuestions.js';
 
 /// Asking the person instead of going quiet (view 41). The question is stored
@@ -53,6 +54,8 @@ export async function askOwner(input: AskInput, now = Date.now()): Promise<Agent
     now,
   });
   const owner = input.owner.toLowerCase();
+  // View 73: a seller reads a bargaining request's budget as a range.
+  const budget = budgetFor(input.side, input.jobId, input.budgetUsdc);
   if (isNew && input.notify !== false) bus.emitEvent({
     type: 'agent.suggestion',
     actor: input.side,
@@ -62,7 +65,7 @@ export async function askOwner(input: AskInput, now = Date.now()): Promise<Agent
       questionId: q.id,
       kind: q.kind,
       title: input.title,
-      budgetUsdc: input.budgetUsdc,
+      ...budget,
       dueDays: input.dueDays,
       limit: input.limit,
       priceUsdc: input.suggested.priceUsdc,
@@ -141,7 +144,8 @@ export function questionLine(p: Record<string, unknown> | undefined): string | n
   const kind = p?.kind as QuestionKind | undefined;
   if (!kind) return null;
   const price = String(p?.priceUsdc ?? '');
-  const budget = String(p?.budgetUsdc ?? '');
+  const range = p?.budgetRange as BudgetRange | null | undefined;
+  const budget = range ? `${range.lowUsdc} to ${range.highUsdc}` : String(p?.budgetUsdc ?? '');
   const limit = p?.limit;
   const days = Number(p?.days);
   const due = Number(p?.dueDays);
@@ -165,4 +169,23 @@ export function questionLine(p: Record<string, unknown> | undefined): string | n
     default:
       return null;
   }
+}
+
+/// The budget a question shows its owner (view 73): a seller reads a bargaining
+/// request's budget as a range; the buyer, and requests from before, the figure.
+export function budgetFor(
+  side: QuestionSide,
+  jobId: string,
+  budgetUsdc: string,
+  bargain: (jobId: string) => boolean = bargainOn,
+): { budgetUsdc: string } | { budgetRange: BudgetRange | null } {
+  if (side !== 'seller' || !bargain(jobId)) return { budgetUsdc };
+  return { budgetRange: budgetRange(Number(budgetUsdc)) };
+}
+
+/// A stored question as its owner reads it: the same projection on its facts.
+export function questionForOwner(q: AgentQuestion, bargain: (jobId: string) => boolean = bargainOn): AgentQuestion | (Omit<AgentQuestion, 'facts'> & { facts: Omit<AgentQuestion['facts'], 'budgetUsdc'> & { budgetRange?: BudgetRange | null } }) {
+  if (q.side !== 'seller' || !bargain(q.jobId) || q.facts.budgetUsdc === undefined) return q;
+  const { budgetUsdc, ...facts } = q.facts;
+  return { ...q, facts: { ...facts, budgetRange: budgetRange(Number(budgetUsdc)) } };
 }

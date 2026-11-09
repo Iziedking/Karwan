@@ -42,6 +42,12 @@ export function OfferBidLine({ bid, nested, onWithdrawn }: { bid: SellerActiveBi
       <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--action)]" />
       <span className="min-w-0 flex-1 text-[14px] font-medium leading-snug text-[var(--ink)]">
         <span dir="auto" className="break-words">{said}</span>
+        {bid.openedUsdc ? (
+          <span data-opened-at className="block text-[13px] font-medium text-[var(--ink-muted)]">{row.openedAt.replace('{price}', money.text(bid.openedUsdc))}</span>
+        ) : null}
+        {bid.betterOffer ? (
+          <span data-better-offer className="mt-1 block text-[14px] font-semibold text-[var(--ink)]">{row.betterOffer}</span>
+        ) : null}
         <span className="ms-2 rounded-full bg-[var(--tint)] px-2 py-0.5 text-[13px] font-semibold text-[var(--ink-secondary)]">
           {bid.counterRounds > 0 ? row.round.replace('{n}', String(bid.counterRounds)) : row.talking}
         </span>

@@ -4250,7 +4250,7 @@ interface MessagesShape {
     empty: { idle: string; dismissed: string };
     columns: { job: string; buyer: string; bid: string; rounds: string; status: string; open: string };
     status: { finalized: string; negotiating: string };
-    row: { openJobAria: string; dismissTitle: string; dismissAria: string; open: string; abandon: string; abandonConfirm: string; onRequest: string; onRequestUntitled: string; withdraw: string; withdrawConfirm: string; talking: string; round: string; };
+    row: { openJobAria: string; dismissTitle: string; dismissAria: string; open: string; abandon: string; abandonConfirm: string; onRequest: string; onRequestUntitled: string; openedAt: string; betterOffer: string; withdraw: string; withdrawConfirm: string; talking: string; round: string; };
   };
   releaseMilestones: {
     button: { released: string; releasing: string; release: string };
@@ -9962,6 +9962,8 @@ export const en: MessagesShape = {
       abandonConfirm: 'Confirm',
       onRequest: 'Offered {price} on "{title}"',
       onRequestUntitled: 'Offered {price} on a buyer\'s request',
+      openedAt: 'Your agent opened at {price}',
+      betterOffer: 'The buyer has a better offer',
       withdraw: 'Withdraw',
       withdrawConfirm: 'Yes, withdraw',
       talking: 'Talking',

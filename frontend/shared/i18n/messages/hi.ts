@@ -4567,6 +4567,8 @@ export const hi: Messages = {
       abandonConfirm: 'पुष्टि करें',
       onRequest: '"{title}" पर {price} की पेशकश की',
       onRequestUntitled: 'एक खरीदार के अनुरोध पर {price} की पेशकश की',
+      openedAt: 'आपके एजेंट ने {price} से शुरुआत की',
+      betterOffer: 'खरीदार के पास बेहतर ऑफ़र है',
       withdraw: 'वापस लें',
       withdrawConfirm: 'हाँ, वापस लें',
       talking: 'बातचीत जारी',

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { getQuestion, openQuestionsFor, type AgentQuestion } from '../db/agentQuestions.js';
-import { closeQuestion, decideTime } from '../agents/agentQuestion.js';
+import { closeQuestion, decideTime, questionForOwner } from '../agents/agentQuestion.js';
 import { getBrief } from '../db/briefs.js';
 
 /// What a person's agent is asking them (view 41). Identity is the signed
@@ -34,7 +34,7 @@ export const agentQuestionsRoutes = new Hono();
 agentQuestionsRoutes.get('/', async (c) => {
   const me = session(c);
   if (!me) return c.json({ error: 'Sign in to see your questions.', code: 'sign_in' }, 401);
-  return c.json({ questions: await openQuestionsFor(me) });
+  return c.json({ questions: (await openQuestionsFor(me)).map((q) => questionForOwner(q)) });
 });
 
 agentQuestionsRoutes.post('/:id/answer', async (c) => {

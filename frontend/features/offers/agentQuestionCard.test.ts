@@ -55,3 +55,11 @@ test('with a money filler, every amount in the line reads in the chosen currency
     'It is due in 2 days. You usually take 7 days. Offer ₦107,689 in 7 days?',
   );
 });
+
+test('a bargaining request reads its budget as a range, in the chosen currency too (view 73)', () => {
+  const ranged: AgentQuestion = { ...base, facts: { budgetRange: { lowUsdc: 150, highUsdc: 230 }, dueDays: 5, limit: 240 }, suggested: { priceUsdc: '240', days: 3 } };
+  assert.equal(questionLine(copy, ranged), 'The budget is 150 to 230 USDC, under your lowest of 240 USDC. Offer 240 USDC?');
+  const money = (template: string, amounts: Record<string, string | number | null | undefined>, vars: Record<string, string>) =>
+    fillMoney(template, Object.fromEntries(Object.entries(amounts).map(([k, v]) => [k, v === null || v === undefined ? null : Number(v)])), 'NGN', 1000, 'en', vars);
+  assert.equal(questionLine(copy, ranged, money), 'The budget is ₦150,000 to ₦230,000, under your lowest of ₦240,000. Offer ₦240,000?');
+});

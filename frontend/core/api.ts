@@ -307,7 +307,13 @@ export interface SellerActiveBid {
   jobId: string;
   seller?: string;
   jobBuyer: string;
-  budgetUsdc: string;
+  /// Absent on a bargaining request, which shows `budgetRange` instead (view 73).
+  budgetUsdc?: string;
+  budgetRange?: BudgetRange | null;
+  /// View 73: where your agent opened, when the price has moved since.
+  openedUsdc?: string;
+  /// View 73: the buyer has a better offer (never who or how much).
+  betterOffer?: boolean;
   deadlineUnix: number;
   lastBidPrice: string;
   counterRounds: number;
@@ -2246,7 +2252,7 @@ export interface AgentQuestion {
   jobId: string;
   kind: 'price-below-floor' | 'price-above-cap' | 'price-above-usual' | 'time' | 'place' | 'no-way' | 'ask-first' | 'counter-below-floor' | 'last-price-passed';
   title: string;
-  facts: { budgetUsdc?: string; dueDays?: number; limit?: number | null; theirPriceUsdc?: string };
+  facts: { budgetUsdc?: string; budgetRange?: BudgetRange | null; dueDays?: number; limit?: number | null; theirPriceUsdc?: string };
   suggested: { priceUsdc?: string; days?: number };
   state: 'input-required' | 'answered' | 'expired';
   createdAt: number;

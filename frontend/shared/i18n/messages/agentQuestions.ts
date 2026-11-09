@@ -16,6 +16,8 @@ export interface AgentQuestionsCopy {
   /// {budget}, {limit}, {price} and {their} are USDC amounts; {days} and {due}
   /// are day counts already worded with dayOne or days.
   noWay: string;
+  /// View 73: the budget as a range inside a sentence; {low} and {high} are USDC amounts.
+  budgetRange: string;
   belowFloor: string;
   aboveUsual: string;
   time: string;
@@ -45,6 +47,7 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
     copyLink: 'Copy the link',
     copied: 'Link copied',
     cardTitle: 'Your agent has a question',
+    budgetRange: '{low} to {high}',
     noWay: 'The budget is {budget} USDC. You have not told your agent how you sell this yet. Offer {price} USDC, ready in {days}?',
     belowFloor: 'The budget is {budget} USDC, under your lowest of {limit} USDC. Offer {price} USDC?',
     aboveUsual: 'The budget is {budget} USDC, above your usual {limit} USDC. Offer {price} USDC?',
@@ -73,6 +76,7 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
     copyLink: 'Copier le lien',
     copied: 'Lien copié',
     cardTitle: 'Votre agent a une question',
+    budgetRange: '{low} à {high}',
     noWay: 'Le budget est de {budget} USDC. Vous n’avez pas encore dit à votre agent comment vous vendez cela. Offrir {price} USDC, prêt en {days} ?',
     belowFloor: 'Le budget est de {budget} USDC, sous votre minimum de {limit} USDC. Offrir {price} USDC ?',
     aboveUsual: 'Le budget est de {budget} USDC, au-dessus de votre prix habituel de {limit} USDC. Offrir {price} USDC ?',
@@ -101,6 +105,7 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
     copyLink: 'انسخ الرابط',
     copied: 'تم نسخ الرابط',
     cardTitle: 'لدى وكيلك سؤال',
+    budgetRange: 'من {low} إلى {high}',
     noWay: 'الميزانية {budget} USDC. لم تخبر وكيلك بعد كيف تبيع هذا. هل تقدم عرضًا بـ {price} USDC، جاهزًا خلال {days}؟',
     belowFloor: 'الميزانية {budget} USDC، أقل من حدك الأدنى {limit} USDC. هل تقدم عرضًا بـ {price} USDC؟',
     aboveUsual: 'الميزانية {budget} USDC، أعلى من سعرك المعتاد {limit} USDC. هل تقدم عرضًا بـ {price} USDC؟',
@@ -129,6 +134,7 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
     copyLink: 'लिंक कॉपी करें',
     copied: 'लिंक कॉपी हो गया',
     cardTitle: 'आपके एजेंट का एक सवाल है',
+    budgetRange: '{low} से {high}',
     noWay: 'बजट {budget} USDC है। आपने अभी एजेंट को नहीं बताया कि आप यह कैसे बेचते हैं। {price} USDC का ऑफ़र दें, {days} में तैयार?',
     belowFloor: 'बजट {budget} USDC है, आपके न्यूनतम {limit} USDC से कम। {price} USDC का ऑफ़र दें?',
     aboveUsual: 'बजट {budget} USDC है, आपके सामान्य {limit} USDC से ऊपर। {price} USDC का ऑफ़र दें?',
@@ -157,6 +163,7 @@ export const agentQuestionsCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentQ
     copyLink: 'Nakili kiungo',
     copied: 'Kiungo kimenakiliwa',
     cardTitle: 'Wakala wako ana swali',
+    budgetRange: '{low} hadi {high}',
     noWay: 'Bajeti ni {budget} USDC. Bado hujamwambia wakala wako jinsi unavyouza hiki. Toa ofa ya {price} USDC, tayari baada ya {days}?',
     belowFloor: 'Bajeti ni {budget} USDC, chini ya kiwango chako cha chini cha {limit} USDC. Toa ofa ya {price} USDC?',
     aboveUsual: 'Bajeti ni {budget} USDC, juu ya bei yako ya kawaida ya {limit} USDC. Toa ofa ya {price} USDC?',

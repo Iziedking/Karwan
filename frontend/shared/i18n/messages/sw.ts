@@ -4566,6 +4566,8 @@ export const sw: Messages = {
       abandonConfirm: 'Thibitisha',
       onRequest: 'Ulitoa {price} kwa "{title}"',
       onRequestUntitled: 'Ulitoa {price} kwa ombi la mnunuzi',
+      openedAt: 'Wakala wako alianza kwa {price}',
+      betterOffer: 'Mnunuzi ana ofa bora zaidi',
       withdraw: 'Ondoa',
       withdrawConfirm: 'Ndiyo, ondoa',
       talking: 'Mnazungumza',

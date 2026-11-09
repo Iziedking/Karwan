@@ -26,8 +26,12 @@ export type MoneyFill = (template: string, money: Record<string, string | number
 /// With a money filler, every USDC amount reads in the chosen currency too.
 export function questionLine(copy: AgentQuestionsCopy, q: AgentQuestion, money?: MoneyFill): string {
   const limit = q.facts.limit;
+  // View 73: a bargaining request's budget reads as a range.
+  const range = q.facts.budgetRange ?? null;
   const values = {
     budget: q.facts.budgetUsdc ?? '',
+    low: range ? String(range.lowUsdc) : '',
+    high: range ? String(range.highUsdc) : '',
     limit: q.kind === 'time' ? dayCount(copy, Number(limit)) : limit == null ? '' : String(limit),
     price: q.suggested.priceUsdc ?? '',
     days: dayCount(copy, q.suggested.days),
@@ -45,9 +49,16 @@ export function questionLine(copy: AgentQuestionsCopy, q: AgentQuestion, money?:
     'last-price-passed': copy.counter,
     'price-above-cap': copy.counter,
   };
-  if (!money) return fill(template[q.kind], values);
-  const amounts: Record<string, string | null> = { budget: q.facts.budgetUsdc ?? null, price: q.suggested.priceUsdc ?? null, their: q.facts.theirPriceUsdc ?? null };
+  const sentence = range ? template[q.kind].replace('{budget}', copy.budgetRange) : template[q.kind];
+  if (!money) return fill(sentence, values);
+  const amounts: Record<string, string | null> = {
+    budget: q.facts.budgetUsdc ?? null,
+    low: range ? String(range.lowUsdc) : null,
+    high: range ? String(range.highUsdc) : null,
+    price: q.suggested.priceUsdc ?? null,
+    their: q.facts.theirPriceUsdc ?? null,
+  };
   if (q.kind !== 'time' && limit != null) amounts.limit = String(limit);
   const rest = Object.fromEntries(Object.entries(values).filter(([key]) => !(key in amounts) || amounts[key] === null));
-  return money(template[q.kind], amounts, rest);
+  return money(sentence, amounts, rest);
 }

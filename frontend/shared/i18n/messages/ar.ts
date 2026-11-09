@@ -4569,6 +4569,8 @@ export const ar: Messages = {
       abandonConfirm: 'تأكيد',
       onRequest: 'عرضت {price} على «{title}»',
       onRequestUntitled: 'عرضت {price} على طلب مشترٍ',
+      openedAt: 'بدأ وكيلك بسعر {price}',
+      betterOffer: 'لدى المشتري عرض أفضل',
       withdraw: 'سحب',
       withdrawConfirm: 'نعم، اسحب',
       talking: 'قيد التفاوض',
