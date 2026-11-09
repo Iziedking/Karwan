@@ -114,7 +114,17 @@ type TgKey =
   | 'alert.km'
   | 'alert.city'
   | 'alert.open'
-  | 'alert.thanks';
+  | 'alert.thanks'
+  | 'pitch.headingNear'
+  | 'pitch.heading'
+  | 'pitch.reminderNear'
+  | 'pitch.reminder'
+  | 'pitch.offer'
+  | 'pitch.offerOneDay'
+  | 'pitch.verified'
+  | 'pitch.rated'
+  | 'pitch.open'
+  | 'pitch.interested';
 
 const en: Record<TgKey, string> = {
   'cancelProposedFromOther.mutual':
@@ -235,6 +245,16 @@ const en: Record<TgKey, string> = {
   'alert.city': 'In {city}',
   'alert.open': 'Open it to send your price, or say no thanks.',
   'alert.thanks': 'Thanks. They have found someone. We will tell you about the next one.',
+  'pitch.headingNear': 'Someone near you can help with what you need',
+  'pitch.heading': 'Someone can help with what you need',
+  'pitch.reminderNear': 'Reminder: someone near you can help with what you need',
+  'pitch.reminder': 'Reminder: someone can help with what you need',
+  'pitch.offer': '{name} offers {price}, ready in {days} days',
+  'pitch.offerOneDay': '{name} offers {price}, ready in 1 day',
+  'pitch.verified': 'Verified',
+  'pitch.rated': 'Rated {stars}',
+  'pitch.open': 'Open it to say interested, not now, or not interested.',
+  'pitch.interested': 'They are interested. Your offer is on their private request now.',
 };
 
 const ar: Partial<Record<TgKey, string>> = {
@@ -356,6 +376,16 @@ const ar: Partial<Record<TgKey, string>> = {
   'alert.city': 'في {city}',
   'alert.open': 'افتحه لترسل سعرك، أو قل لا شكرًا.',
   'alert.thanks': 'شكرًا. وجد هذا الشخص من يساعده. سنخبرك بالطلب التالي.',
+  'pitch.headingNear': 'شخص قريب منك يمكنه مساعدتك فيما تحتاجه',
+  'pitch.heading': 'شخص يمكنه مساعدتك فيما تحتاجه',
+  'pitch.reminderNear': 'تذكير: شخص قريب منك يمكنه مساعدتك فيما تحتاجه',
+  'pitch.reminder': 'تذكير: شخص يمكنه مساعدتك فيما تحتاجه',
+  'pitch.offer': '{name} يعرض {price}، جاهز خلال {days} أيام',
+  'pitch.offerOneDay': '{name} يعرض {price}، جاهز خلال يوم واحد',
+  'pitch.verified': 'موثّق',
+  'pitch.rated': 'التقييم {stars}',
+  'pitch.open': 'افتحه لتقول مهتم، أو ليس الآن، أو غير مهتم.',
+  'pitch.interested': 'الشخص مهتم. عرضك الآن على طلبه الخاص.',
 };
 
 const fr: Partial<Record<TgKey, string>> = {
@@ -477,6 +507,16 @@ const fr: Partial<Record<TgKey, string>> = {
   'alert.city': 'À {city}',
   'alert.open': 'Ouvrez-la pour donner votre prix, ou dites non merci.',
   'alert.thanks': 'Merci. Cette personne a trouvé quelqu\'un. Nous vous parlerons de la prochaine.',
+  'pitch.headingNear': 'Quelqu\'un près de chez vous peut vous aider pour votre besoin',
+  'pitch.heading': 'Quelqu\'un peut vous aider pour votre besoin',
+  'pitch.reminderNear': 'Rappel : quelqu\'un près de chez vous peut vous aider pour votre besoin',
+  'pitch.reminder': 'Rappel : quelqu\'un peut vous aider pour votre besoin',
+  'pitch.offer': '{name} propose {price}, prêt en {days} jours',
+  'pitch.offerOneDay': '{name} propose {price}, prêt en 1 jour',
+  'pitch.verified': 'Vérifié',
+  'pitch.rated': 'Noté {stars}',
+  'pitch.open': 'Ouvrez-la pour dire intéressé, pas maintenant, ou pas intéressé.',
+  'pitch.interested': 'Cette personne est intéressée. Votre offre est maintenant sur sa demande privée.',
 };
 
 const hi: Partial<Record<TgKey, string>> = {
@@ -598,6 +638,16 @@ const hi: Partial<Record<TgKey, string>> = {
   'alert.city': '{city} में',
   'alert.open': 'अपनी कीमत भेजने के लिए खोलें, या मना कर दें।',
   'alert.thanks': 'धन्यवाद। उन्हें कोई मिल गया है। अगली बार हम आपको बताएँगे।',
+  'pitch.headingNear': 'आपके पास कोई आपकी ज़रूरत में मदद कर सकता है',
+  'pitch.heading': 'कोई आपकी ज़रूरत में मदद कर सकता है',
+  'pitch.reminderNear': 'याद दिलाना: आपके पास कोई आपकी ज़रूरत में मदद कर सकता है',
+  'pitch.reminder': 'याद दिलाना: कोई आपकी ज़रूरत में मदद कर सकता है',
+  'pitch.offer': '{name}: {price}, {days} दिन में तैयार',
+  'pitch.offerOneDay': '{name}: {price}, 1 दिन में तैयार',
+  'pitch.verified': 'सत्यापित',
+  'pitch.rated': 'रेटिंग {stars}',
+  'pitch.open': 'खोलें और बताएँ: रुचि है, अभी नहीं, या रुचि नहीं।',
+  'pitch.interested': 'उन्हें रुचि है। आपका ऑफ़र अब उनके निजी अनुरोध पर है।',
 };
 
 const sw: Partial<Record<TgKey, string>> = {
@@ -719,6 +769,16 @@ const sw: Partial<Record<TgKey, string>> = {
   'alert.city': 'Ndani ya {city}',
   'alert.open': 'Fungua utume bei yako, au sema hapana asante.',
   'alert.thanks': 'Asante. Wamepata mtu. Tutakuambia kuhusu inayofuata.',
+  'pitch.headingNear': 'Mtu karibu nawe anaweza kukusaidia na unachohitaji',
+  'pitch.heading': 'Mtu anaweza kukusaidia na unachohitaji',
+  'pitch.reminderNear': 'Kumbusho: mtu karibu nawe anaweza kukusaidia na unachohitaji',
+  'pitch.reminder': 'Kumbusho: mtu anaweza kukusaidia na unachohitaji',
+  'pitch.offer': '{name} anatoa {price}, tayari ndani ya siku {days}',
+  'pitch.offerOneDay': '{name} anatoa {price}, tayari ndani ya siku 1',
+  'pitch.verified': 'Amethibitishwa',
+  'pitch.rated': 'Ukadiriaji {stars}',
+  'pitch.open': 'Fungua useme unavutiwa, si sasa, au huvutiwi.',
+  'pitch.interested': 'Wanavutiwa. Ofa yako sasa iko kwenye ombi lao la faragha.',
 };
 
 const TABLES: Record<UserLocale, Partial<Record<TgKey, string>>> = {

@@ -76,6 +76,14 @@ export async function liveNeedsOf(owners: readonly string[]): Promise<StandingNe
   return rows.map((r) => r.data as StandingNeed).filter((n) => set.has(n.owner));
 }
 
+/// Every need not paused, for a seller's agent to look through (whose owners
+/// let sellers reach them is checked by the reader).
+export async function openNeeds(limit = 500): Promise<StandingNeed[]> {
+  if (!pgEnabled) return [...mem.values()].filter((n) => !n.paused).slice(0, limit);
+  const rows = await db().select().from(standingNeeds).where(eq(standingNeeds.paused, false)).limit(limit);
+  return rows.map((r) => r.data as StandingNeed);
+}
+
 /// Account deletion.
 export async function deleteNeedsOf(owner: string): Promise<void> {
   const o = owner.toLowerCase();

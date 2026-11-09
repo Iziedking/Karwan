@@ -98,6 +98,9 @@ export interface PostRequestPayload {
   /// Posted privately from a find (view 72): its id and the people picked, by
   /// their place on the list. The server reads who they are from the find.
   find?: { id: string; picks: number[] };
+  /// Posted from a seller's pitch the buyer is interested in (view 72, Phase
+  /// 4): only that seller sees it, and their pitch becomes their offer on it.
+  pitch?: { id: string };
 }
 
 export interface ReleaseMilestonePayload {

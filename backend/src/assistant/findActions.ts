@@ -27,7 +27,12 @@ export interface BlockPersonConfirm extends ConfirmActionBase {
   payload: { who: string };
 }
 
-export type FindStepConfirm = SaveStandingNeedConfirm | RemoveStandingNeedConfirm | BlockPersonConfirm;
+export interface PitchBuyersConfirm extends ConfirmActionBase {
+  intent: 'pitch_buyers';
+  payload: { findId: string; picks: number[]; priceUsdc: string; days: number; note: string };
+}
+
+export type FindStepConfirm = SaveStandingNeedConfirm | RemoveStandingNeedConfirm | BlockPersonConfirm | PitchBuyersConfirm;
 
 export const EVERY_WORDS: Record<NeedPayload['every'], string> = { once: 'Once', week: 'Every week', month: 'Every month', season: 'Each season' };
 export const REACHES_WORDS: Record<NeedPayload['kind'], string> = { goods: 'Delivered', in_person: 'At my place', remote: 'Online' };
@@ -119,6 +124,73 @@ export function buildAlertPeopleConfirm(i: {
     ],
     payload: { ...base.payload, find: { id: i.find.id, picks: [...new Set(i.picks)] } },
     confirmLabel: `Send to ${people}`,
+    cancelLabel: 'Not now',
+  };
+}
+
+/// A seller offering to help buyers who let sellers reach them (view 72,
+/// Phase 4). Each buyer is told once and reminded once; nothing is paid, and
+/// the buyer who says interested still picks the offer and locks the money.
+export function buildPitchBuyersConfirm(i: {
+  findId: string;
+  picks: number[];
+  needs: string[];
+  priceUsdc: string;
+  price: string;
+  days: number;
+  note: string;
+}): PitchBuyersConfirm | { error: string } {
+  const n = i.needs.length;
+  if (n < 1 || n > 5) return { error: 'Pick one to five needs from the list.' };
+  if (!(Number(i.priceUsdc) > 0)) return { error: 'Say the price for it.' };
+  const buyers = n === 1 ? '1 buyer' : `${n} buyers`;
+  return {
+    kind: 'confirm',
+    id: `pitch_buyers:${i.findId}:${confirmNonce()}`,
+    intent: 'pitch_buyers',
+    title: `Offer to help ${buyers}`,
+    summary: 'Each buyer gets one message from your agent and one reminder the next morning. Nothing is paid until they say yes and lock the money.',
+    fields: [
+      { label: 'They need', value: i.needs.map((w) => (w.length > 80 ? `${w.slice(0, 77)}…` : w)).join('; ') },
+      { label: 'Your price', value: i.price },
+      { label: 'Ready in', value: i.days === 1 ? '1 day' : `${i.days} days` },
+      ...(i.note ? [{ label: 'Your note', value: i.note }] : []),
+      { label: 'They see', value: 'Your name, rating and how far you are, not where' },
+    ],
+    payload: { findId: i.findId, picks: [...new Set(i.picks)], priceUsdc: i.priceUsdc, days: i.days, note: i.note },
+    confirmLabel: `Send to ${buyers}`,
+    cancelLabel: 'Not now',
+  };
+}
+
+/// A buyer interested in a pitch: the request card, private to that seller,
+/// with the pitch on it so the server places the seller's offer. Posting pays
+/// nothing; the money moves only as on any request.
+export function buildPitchInterestedConfirm(i: {
+  caller: string;
+  pitchId: string;
+  what: string;
+  kind: 'goods' | 'in_person' | 'remote';
+  priceUsdc: string;
+  days: number;
+  sellerName: string;
+  price: string;
+}): PostRequestConfirm | { error: string } {
+  const deadlineDays = Math.min(90, i.days + 3);
+  const base = buildPostRequestConfirm({ caller: i.caller, brief: i.what, budgetUsdc: Number(i.priceUsdc), deadlineDays, deliveryKind: i.kind });
+  if ('error' in base) return base;
+  return {
+    ...base,
+    id: `post_request:pitch:${i.pitchId}:${confirmNonce()}`,
+    title: `Ask ${i.sellerName} for it`,
+    summary: `Posts it privately to ${i.sellerName} with their offer on it. ${base.summary ?? ''}`.trim(),
+    fields: [
+      { label: 'You need', value: i.what.length > 140 ? `${i.what.slice(0, 137)}…` : i.what },
+      { label: 'Their offer', value: `${i.price}, ready in ${i.days === 1 ? '1 day' : `${i.days} days`}` },
+      { label: 'Who can see it', value: `Only you and ${i.sellerName}. Never on the market.` },
+    ],
+    payload: { ...base.payload, pitch: { id: i.pitchId } },
+    confirmLabel: 'Post privately',
     cancelLabel: 'Not now',
   };
 }

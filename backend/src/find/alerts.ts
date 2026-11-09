@@ -28,7 +28,7 @@ export interface AlertOutcome {
   refused: Array<{ name: string; reason: LimitReason }>;
 }
 
-function distanceLine(d: DistanceLine, locale: UserLocale): string | null {
+export function distanceText(d: DistanceLine, locale: UserLocale): string | null {
   switch (d.key) {
     case 'nearby': return tg('alert.nearby', locale);
     case 'about':
@@ -51,7 +51,7 @@ export async function alertNote(
   const lines = [
     `"${input.need}"`,
     [budget, input.byDay ? tg('alert.by', locale, { day: input.byDay }) : null].filter(Boolean).join(' · '),
-    near ? distanceLine(input.distance, locale) : null,
+    near ? distanceText(input.distance, locale) : null,
     tg('alert.open', locale),
   ].filter((l): l is string => !!l);
   return { heading, lines };

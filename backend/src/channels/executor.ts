@@ -43,6 +43,8 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
       ...(p.heldAttachments === true ? { heldAttachments: true } : {}),
       // A private request from a find (view 72): who to tell is read from the find.
       ...(p.find && typeof p.find === 'object' ? { find: p.find } : {}),
+      // From a seller's pitch (Phase 4): only that seller sees it, their pitch is their offer.
+      ...(p.pitch && typeof p.pitch === 'object' ? { pitch: p.pitch } : {}),
     },
   }),
   release_milestone: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/release`, body: { caller: p.caller, ...(p.acceptedAfterReview === true ? { acceptedAfterReview: true } : {}) } }),
@@ -203,6 +205,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   save_standing_need: (p) => ({ method: 'POST', path: '/api/find/needs', body: p }),
   remove_standing_need: (p) => ({ method: 'DELETE', path: `/api/find/needs/${encodeURIComponent(String(p.id))}` }),
   block_person: (p) => ({ method: 'POST', path: '/api/find/block', body: { who: p.who } }),
+  pitch_buyers: (p) => ({ method: 'POST', path: '/api/find/pitches', body: { findId: p.findId, picks: p.picks, priceUsdc: p.priceUsdc, days: p.days, note: p.note ?? '' } }),
   unblock_person: (p) => ({ method: 'POST', path: '/api/find/unblock', body: { who: p.who } }),
   edit_profile: (p) => ({ method: 'POST', path: '/api/profile', body: p }),
   set_x_handle: (p) => ({ method: 'POST', path: '/api/profile/x-handle', body: { address: p.address, handle: p.handle } }),
@@ -309,6 +312,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   save_standing_need: 'Need saved.',
   remove_standing_need: 'Removed.',
   block_person: 'Blocked. They are not told.',
+  pitch_buyers: 'Sent. Each buyer got one message; you hear when one is interested.',
   unblock_person: 'Unblocked.',
   edit_profile: 'Profile updated.',
   set_x_handle: 'Saved.',

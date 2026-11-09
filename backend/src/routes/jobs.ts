@@ -76,7 +76,8 @@ import { liveSellerSummaries } from '../listings/sellerSummary.js';
 import { publicRequests, type PublicRequestRow } from '../market/publicRequests.js';
 import { canReadPrivate, isPublic } from '../market/visibility.js';
 import { alertPicked } from '../find/alerts.js';
-import { liveAlertDeps } from '../find/alertsLive.js';
+import { liveAlertDeps, placePitchOn } from '../find/alertsLive.js';
+import { contactOf, markPitchPosted, type Contact } from '../find/contacts.js';
 import { findOf, type Find } from '../find/finds.js';
 
 const addrSchema = z
@@ -155,6 +156,9 @@ const postJobSchema = z
     /** Posted privately from the poster's own find (view 72): its id and the
      *  people picked, by their place on its list. Who they are is read here. */
     find: z.object({ id: z.string().uuid(), picks: z.array(z.number().int().min(0).max(4)).min(1).max(3) }).optional(),
+    /** Posted from a seller's pitch the poster said interested to (view 72,
+     *  Phase 4): only that seller sees it, and their pitch is their offer on it. */
+    pitch: z.object({ id: z.string().min(1).max(80) }).optional(),
     /** Per-brief milestone split the buyer stated in the request ("30% then
      *  70%"). Percentages must sum to 100. Overrides the buyer profile default
      *  at escrow funding. One part (100) is a single payment; both escrows
@@ -437,10 +441,21 @@ jobsRoutes.post('/', async (c) => {
   let invited: string[] = [];
   if (body.find) {
     fromFind = await findOf(body.posterAddress, body.find.id);
-    if (!fromFind || fromFind.status === 'ended') return c.json({ error: 'find not found' }, 404);
+    if (!fromFind || fromFind.status === 'ended' || fromFind.side !== 'buyer') return c.json({ error: 'find not found' }, 404);
     if (fromFind.jobId) return c.json({ error: 'The people on this list were already asked.', code: 'FIND_SENT' }, 409);
     invited = [...new Set(body.find.picks)].map((i) => fromFind!.rows[i]?.user).filter((u): u is string => !!u).map((u) => u.toLowerCase());
     if (invited.length === 0) return c.json({ error: 'Pick someone from the list.' }, 400);
+  }
+  // A private request from a pitch goes only to the seller who pitched.
+  let fromPitch: Contact | null = null;
+  if (body.pitch) {
+    if (body.find) return c.json({ error: 'A request comes from a find or a pitch, not both.' }, 400);
+    const p = await contactOf(body.pitch.id);
+    if (!p || p.kind !== 'pitch' || p.to !== body.posterAddress.toLowerCase() || !p.offer) return c.json({ error: 'pitch not found' }, 404);
+    if (p.answer !== null || p.closedAt !== null) return c.json({ error: 'You already answered this offer.', code: 'PITCH_ANSWERED' }, 409);
+    if (Number(p.offer.priceUsdc) > body.budgetUsdc) return c.json({ error: 'The budget must cover their price.', code: 'PITCH_BUDGET' }, 400);
+    fromPitch = p;
+    invited = [p.from];
   }
 
   // The money has to be in the agent wallet before the request goes up.
@@ -529,7 +544,7 @@ ${body.terms}` : body.brief));
     terms: body.terms,
     reviewWindowDays: body.reviewWindowDays,
     trustedMatch: body.trustedMatch === true,
-    ...(fromFind ? { visibility: 'invited' as const, invited } : body.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
+    ...(fromFind || fromPitch ? { visibility: 'invited' as const, invited } : body.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
     tradeLane: deriveJobLane(posterAccountType, body.tradeType),
     partyKind: posterAccountType,
     tradeType: body.tradeType,
@@ -597,6 +612,9 @@ ${body.terms}` : body.brief));
           return null;
         })
       : null;
+    // The pitch is answered and becomes the seller's offer once the request is tracked.
+    const pitched = fromPitch ? await markPitchPosted(fromPitch.id, body.posterAddress, jobId, Date.now()).catch(() => null) : null;
+    if (pitched) void placePitchOn(jobId).catch((err: Error) => logger.warn({ jobId, err: err.message }, 'pitch offer not placed'));
     // Only the old board leaves a transaction to link to.
     return c.json({ jobId, deadlineUnix, ...(board.kind === 'chain' ? { txHash: posted.ref } : {}), ...(alerted ? { asked: alerted.asked, notAsked: alerted.refused.map((r) => r.name) } : {}) });
   } catch (err) {

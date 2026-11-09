@@ -37,6 +37,12 @@ function jobUrl(jobId: string | undefined): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/jobs/${jobId}`;
 }
 
+/// A seller's pitch to a buyer (view 72), where the buyer answers it.
+function pitchUrl(pitchId: string | undefined): string | null {
+  if (!pitchId || !/^[\w-]{1,80}$/.test(pitchId) || !config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/find/pitch/${pitchId}`;
+}
+
 /// The person's own agent page (view 45), where its budget and weekly line live.
 function yourAgentUrl(): string | null {
   return config.FRONTEND_BASE_URL ? `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/profile/setup` : null;
@@ -589,6 +595,7 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       if (!lines.length) return null;
       const heading = typeof p.heading === 'string' ? `*${p.heading}*\n` : '';
       const text = `${heading}${lines.map((l) => `• ${l}`).join('\n')}`;
+      if (e.type === 'agent.note' && typeof p.pitchId === 'string') return withLink(text, pitchUrl(p.pitchId));
       return withLink(text, e.type === 'agent.note' ? jobUrl(p.jobId as string | undefined) : yourAgentUrl());
     }
     case 'agent.question.decided': {

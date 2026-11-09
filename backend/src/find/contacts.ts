@@ -10,6 +10,14 @@ import { allowedToContact, DAY_MS, type ContactCounts, type LimitReason } from '
 export type ContactKind = 'alert' | 'pitch';
 export type ContactAnswer = 'interested' | 'not_now' | 'no';
 
+/// What a seller offered in a pitch: it becomes their offer on the request
+/// the buyer posts by saying interested.
+export interface PitchOffer {
+  priceUsdc: string;
+  days: number;
+  note: string;
+}
+
 export interface Contact {
   id: string;
   findId: string;
@@ -28,6 +36,12 @@ export interface Contact {
   answeredAt: number | null;
   /// The find matched or ended, or the last reminder passed.
   closedAt: number | null;
+  /// A pitch: the seller's price and days.
+  offer?: PitchOffer | null;
+  /// A pitch the buyer said interested to: the private request it posted,
+  /// and whether the seller's offer is on it yet.
+  jobId?: string | null;
+  offered?: boolean;
 }
 
 export type CreateResult = { ok: true; contact: Contact } | { ok: false; reason: LimitReason };
@@ -39,6 +53,7 @@ export interface NewContact {
   to: string;
   kind: ContactKind;
   needId: string | null;
+  offer?: PitchOffer | null;
 }
 
 const lower = (s: string) => s.toLowerCase();
@@ -84,6 +99,7 @@ export async function createContact(c: NewContact, now: number, firstDue: (sentA
     return {
       id: c.id, findId: c.findId, from, to, kind: c.kind, needId: c.needId, sentAt: deliverAt, delivered,
       nextAt: delivered ? await firstDue(deliverAt) : deliverAt, reminders: 0, answer: null, answeredAt: null, closedAt: null,
+      ...(c.offer ? { offer: c.offer } : {}),
     };
   };
   if (!pgEnabled) {
@@ -133,6 +149,34 @@ async function update(id: string, change: (c: Contact) => Contact | null): Promi
 /// Only the person contacted answers, once. A second answer changes nothing.
 export async function answerContact(id: string, by: string, answer: ContactAnswer, now: number): Promise<Contact | null> {
   return update(id, (c) => (c.to !== lower(by) || c.answer !== null ? null : { ...c, answer, answeredAt: now, nextAt: null }));
+}
+
+/// The buyer said interested to a pitch and its request is posted: the
+/// pitch is answered and remembers the request, once.
+export async function markPitchPosted(id: string, buyer: string, jobId: string, now: number): Promise<Contact | null> {
+  return update(id, (c) => (c.kind !== 'pitch' || c.to !== lower(buyer) || c.answer !== null || c.closedAt !== null ? null : { ...c, answer: 'interested', answeredAt: now, nextAt: null, jobId: lower(jobId), offered: false }));
+}
+
+/// The seller's offer from a pitch is on the request. True for the one
+/// caller that moved it, so it is placed once.
+export async function markPitchOffered(id: string): Promise<boolean> {
+  return (await update(id, (c) => (c.offered === false ? { ...c, offered: true } : null))) !== null;
+}
+
+/// The pitch a private request was posted from, if any.
+export async function pitchByJob(jobId: string): Promise<Contact | null> {
+  const j = lower(jobId);
+  if (!pgEnabled) return [...mem.values()].find((c) => c.kind === 'pitch' && c.jobId === j) ?? null;
+  const r = await postgresExecutor().query<{ data: unknown }>(`SELECT data FROM find_contacts_v1 WHERE kind = 'pitch' AND data->>'jobId' = $1 LIMIT 1`, [j]);
+  return r.rows[0] ? rowOf(r.rows[0]) : null;
+}
+
+/// Pitches a buyer was sent, newest first.
+export async function pitchesTo(buyer: string, limit = 50): Promise<Contact[]> {
+  const b = lower(buyer);
+  if (!pgEnabled) return [...mem.values()].filter((c) => c.kind === 'pitch' && c.to === b && c.delivered).sort((a, z) => z.sentAt - a.sentAt).slice(0, limit);
+  const r = await postgresExecutor().query<{ data: unknown }>(`SELECT data FROM find_contacts_v1 WHERE kind = 'pitch' AND to_addr = $1 ORDER BY sent_at DESC LIMIT $2`, [b, limit]);
+  return r.rows.map(rowOf);
 }
 
 /// The find matched or ended: nothing more goes out for it.

@@ -408,6 +408,23 @@ export type DistanceLine =
 
 export type FindReason = 'best_fit' | 'nearby' | 'verified' | 'within_budget' | 'on_time_record';
 
+/// A seller's offer to help with one of a buyer's regular needs (view 72,
+/// Phase 4), as the buyer reads it: who, their price and days, how far.
+export interface PitchView {
+  id: string;
+  what: string;
+  kind: 'goods' | 'in_person' | 'remote';
+  distance: DistanceLine;
+  seller: { name: string; verified: boolean; stars: number | null; tag: string | null; photo: string | null };
+  priceUsdc: string | null;
+  days: number | null;
+  note: string;
+  sentAt: number;
+  answer: 'interested' | 'not_now' | 'no' | null;
+  jobId: string | null;
+  closed: boolean;
+}
+
 /// One person an agent found, as the person who asked sees them.
 export interface FoundPerson {
   tag: string | null;
@@ -2176,7 +2193,8 @@ export interface AssistantConfirmAction {
     | 'save_standing_need'
     | 'remove_standing_need'
     | 'block_person'
-    | 'unblock_person';
+    | 'unblock_person'
+    | 'pitch_buyers';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.
@@ -4241,6 +4259,8 @@ export const api = {
       where?: { scope: 'near' | 'country' | 'anywhere'; country?: string };
       /// Posted privately from a find (view 72): the people picked, by their place on its list.
       find?: { id: string; picks: number[] };
+      /// Posted from a seller's pitch: only that seller sees it, their pitch is their offer on it.
+      pitch?: { id: string };
     } & ({ deadlineSeconds: number } | { deadlineDays: number }),
   ) =>
     json<{ jobId: string; deadlineUnix: number; txHash?: string; asked?: string[]; notAsked?: string[] }>(
@@ -6496,6 +6516,15 @@ export const api = {
   removeStandingNeed: (id: string) => json<{ ok: true }>(`/api/find/needs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   blockPerson: (who: string) => json<{ ok: true }>('/api/find/block', { method: 'POST', body: JSON.stringify({ who }) }),
   unblockPerson: (who: string) => json<{ ok: true }>('/api/find/unblock', { method: 'POST', body: JSON.stringify({ who }) }),
+  /// A seller offers to help buyers from their own find (view 72, Phase 4).
+  pitchBuyers: (body: { findId: string; picks: number[]; priceUsdc: string; days: number; note: string }) =>
+    json<{ pitched: number; refused: Array<{ what: string; reason: string }> }>('/api/find/pitches', { method: 'POST', body: JSON.stringify(body) }),
+  /// Offers sellers sent this buyer for their regular needs, and one of them.
+  pitches: () => json<{ pitches: PitchView[] }>('/api/find/pitches'),
+  pitchView: (id: string) => json<{ pitch: PitchView }>(`/api/find/pitches/${encodeURIComponent(id)}`),
+  /// Not now or not interested. Interested posts the request with the pitch on it.
+  answerPitch: (id: string, answer: 'not_now' | 'no') =>
+    json<{ ok: true; state: 'answered' | 'already' }>(`/api/find/pitches/${encodeURIComponent(id)}/answer`, { method: 'POST', body: JSON.stringify({ answer }) }),
   removeTradeAvailability: (workspaceId: string, availabilityId: string) =>
     json<{ ok: true }>(
       `/api/workspaces/${encodeURIComponent(workspaceId)}/availability/${encodeURIComponent(availabilityId)}`,

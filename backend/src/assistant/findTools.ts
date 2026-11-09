@@ -16,8 +16,12 @@ import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, type StandingNeed } from '../find/ne
 import { formatLocalAmount } from '../rates/localAmounts.js';
 import { readUsdcRates } from '../rates/usdcRates.js';
 import { buildNavigateAction, hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
-import { buildAlertPeopleConfirm, buildBlockPersonConfirm, buildRemoveStandingNeedConfirm, buildSaveStandingNeedConfirm, EVERY_WORDS, REACHES_WORDS } from './findActions.js';
-import { declineAlert, type DeclineResult } from '../find/answers.js';
+import { buildAlertPeopleConfirm, buildBlockPersonConfirm, buildPitchBuyersConfirm, buildPitchInterestedConfirm, buildRemoveStandingNeedConfirm, buildSaveStandingNeedConfirm, EVERY_WORDS, REACHES_WORDS } from './findActions.js';
+import { answerPitch, declineAlert, type DeclineResult } from '../find/answers.js';
+import { contactOf, pitchesTo } from '../find/contacts.js';
+import { customerLeads } from '../find/customersLive.js';
+import { pitchView, type PitchView } from '../find/pitchView.js';
+import { rankBuyersFor, type LeadCandidate, type LeadSeller } from '../find/rankBuyers.js';
 
 /// Finding people, being reached and blocking, from any channel (view 72).
 /// Being found is a setting (propose_change_settings). Nothing here moves money.
@@ -41,6 +45,12 @@ export interface FindToolDeps {
   newId: () => string;
   /// A seller says no thanks to a deal alert on this request.
   decline: (seller: string, jobId: string) => Promise<DeclineResult>;
+  /// What a seller's agent reads to find buyers (Phase 4).
+  customers: (seller: string) => Promise<{ seller: LeadSeller | null; leads: LeadCandidate[] }>;
+  /// Pitches sent to this buyer, newest first, and one by id (theirs only).
+  pitches: (buyer: string) => Promise<PitchView[]>;
+  pitch: (buyer: string, id: string) => Promise<PitchView | null>;
+  answerPitch: (buyer: string, id: string, answer: 'not_now' | 'no') => Promise<'answered' | 'already' | 'none'>;
 }
 
 /// How far someone is, in words for the assistant; never more than this.
@@ -137,7 +147,7 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
         'Prepare a card that posts the need privately and tells the people the buyer picked from their last find (find_people), one to three, by their number on that list (1 is the first). Each gets one message, reminded at most three times, spaced out and never at night; their offers come back to the buyer, who still picks one and locks the money. Use when the buyer says who to ask ("ask Ngozi and Amaka", "ask the first two"). Nothing is paid by this.',
       inputSchema: z.object({ people: z.array(z.number().int().min(1).max(5)).min(1).max(3) }),
       execute: async ({ people }) => {
-        const find = (await deps.finds(me)).find((f) => f.status === 'shortlisted' && !f.jobId);
+        const find = (await deps.finds(me)).find((f) => f.side === 'buyer' && f.status === 'shortlisted' && !f.jobId);
         if (!find) return { error: 'There is no list of people to ask. Run find_people first.' };
         const picks = [...new Set(people.map((n) => n - 1))].filter((i) => !!find.rows[i]);
         if (picks.length === 0) return { error: `The list has ${find.rows.length} people; use their numbers from 1.` };
@@ -163,11 +173,99 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
       },
     }),
 
+    find_customers: tool({
+      description:
+        "For a SELLER: find buyers for what they sell (view 72): open requests on the market that fit them, and the standing needs of buyers near them who let sellers reach them, best skill fit first, then distance, then the buyer's record. At most five, numbered from 1. Buyers are not named; each row says what they need, how often, the rough budget and how far they are. It contacts nobody. For a request, offer as on any request (propose_make_offer with its jobId; never show the jobId). For a need, offer with pitch_buyers and their numbers. Nobody fits: say so plainly.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { seller, leads } = await deps.customers(me);
+        if (!seller) return { found: 0, next: 'They have no selling profile yet. Offer set_up_my_agents.' };
+        const rows = rankBuyersFor(leads, seller, { blocked: await deps.blocked(me) });
+        if (rows.length === 0) return { found: 0, next: 'No open request or reachable buyer fits what they sell right now. Their agent tells them when one does.' };
+        const now = deps.now();
+        const saved = await deps.saveFind({
+          id: deps.newId(), owner: me, side: 'seller', mode: 'choose', need: 'Buyers for what I sell', budgetUsdc: '0', kind: 'remote', where: { scope: 'anywhere' },
+          jobId: null, needId: null, rows: [], leads: rows, status: 'shortlisted', createdAt: now, endsAt: findEndsAt(now, null),
+        });
+        return {
+          found: rows.length,
+          link: `/find/${saved.id}`,
+          buyers: await Promise.all(rows.map(async (r, i) => ({
+            number: i + 1,
+            kind: r.kind === 'request' ? 'open request' : 'regular need',
+            ...(r.kind === 'request' ? { jobId: r.ref } : {}),
+            what: r.what,
+            every: r.every ? EVERY_WORDS[r.every] : null,
+            budget: r.budgetUsdc ? `about ${await deps.money(me, Number(r.budgetUsdc))}` : 'no budget said',
+            distance: distanceWords(r.distance),
+            dueDays: r.dueDays,
+            verifiedBuyer: r.buyerVerified,
+          }))),
+        };
+      },
+    }),
+
+    pitch_buyers: tool({
+      description:
+        'For a SELLER: prepare a card that offers to help buyers from their last find_customers list, by number, for their regular needs only (one to five), with one price in USDC, the days it takes and a short note. Each buyer gets one message and one reminder the next morning; a buyer who said not interested is never asked again for that need. The buyer who says interested posts a private request with this offer on it, then accepts it as any offer. Nothing is paid by this.',
+      inputSchema: z.object({
+        buyers: z.array(z.number().int().min(1).max(5)).min(1).max(5),
+        priceUsdc: z.number().positive().max(10_000_000),
+        days: z.number().int().min(1).max(90),
+        note: z.string().max(280).optional(),
+      }),
+      execute: async ({ buyers, priceUsdc, days, note }) => {
+        const find = (await deps.finds(me)).find((f) => f.side === 'seller' && f.status !== 'ended' && (f.leads?.length ?? 0) > 0);
+        const leads = find?.leads;
+        if (!find || !leads) return { error: 'There is no list of buyers. Run find_customers first.' };
+        const picks = [...new Set(buyers.map((n) => n - 1))].filter((i) => !!leads[i]);
+        const requests = picks.filter((i) => leads[i]!.kind === 'request');
+        if (requests.length) return { error: `Number ${requests.map((i) => i + 1).join(', ')} is an open request: offer on it with propose_make_offer instead.` };
+        if (picks.length === 0) return { error: `The list has ${leads.length} rows; use their numbers from 1.` };
+        const price = String(Math.round(priceUsdc * 1e6) / 1e6);
+        return offer(actions, buildPitchBuyersConfirm({
+          findId: find.id, picks, needs: picks.map((i) => leads[i]!.what), priceUsdc: price, price: await deps.money(me, priceUsdc), days, note: note?.trim() ?? '',
+        }));
+      },
+    }),
+
+    my_pitches: tool({
+      description: 'For a BUYER: the offers sellers sent them for their regular needs (pitches), newest first, each with its id, what it is for, who sent it, their price and days, and whether they answered.',
+      inputSchema: z.object({}),
+      execute: async () => ({
+        pitches: await Promise.all((await deps.pitches(me)).map(async (p) => ({
+          id: p.id, for: p.what, from: p.seller.name, verified: p.seller.verified, rating: p.seller.stars,
+          price: p.priceUsdc ? await deps.money(me, Number(p.priceUsdc)) : null, days: p.days, distance: distanceWords(p.distance),
+          answered: p.answer, closed: p.closed,
+        }))),
+      }),
+    }),
+
+    answer_pitch: tool({
+      description:
+        "For a BUYER: answer a seller's offer for one of their regular needs (id from my_pitches). interested prepares a card that posts it privately to that seller with their offer on it, which they then accept as any offer. not_now stops offers from that seller for 30 days; no stops that seller offering for this need again. The seller is not told a no.",
+      inputSchema: z.object({ id: z.string().min(1).max(80), answer: z.enum(['interested', 'not_now', 'no']) }),
+      execute: async ({ id, answer }) => {
+        const p = await deps.pitch(me, id);
+        if (!p) return { error: 'There is no such offer for them. Read my_pitches for the ids.' };
+        if (p.answer !== null || p.closed) return { error: 'They already answered this offer.' };
+        if (answer !== 'interested') {
+          const r = await deps.answerPitch(me, id, answer);
+          if (r !== 'answered') return { error: 'That offer could not be answered.' };
+          return { ok: true, said: answer === 'no' ? 'Not interested. That seller will not offer for this need again.' : 'Not now. No offers from that seller for 30 days.' };
+        }
+        if (!p.priceUsdc || !p.days) return { error: 'That offer has no price on it.' };
+        return offer(actions, buildPitchInterestedConfirm({
+          caller: me, pitchId: p.id, what: p.what, kind: p.kind, priceUsdc: p.priceUsdc, days: p.days, sellerName: p.seller.name, price: await deps.money(me, Number(p.priceUsdc)),
+        }));
+      },
+    }),
+
     my_finds: tool({
       description: 'List the people searches this person ran (find_people), newest first, each with what was needed, how many came up, its state and its link.',
       inputSchema: z.object({}),
       execute: async () => ({
-        finds: (await deps.finds(me)).map((f) => ({ need: f.need, found: f.rows.length, status: f.status, link: `/find/${f.id}` })),
+        finds: (await deps.finds(me)).map((f) => ({ side: f.side, need: f.need, found: f.side === 'seller' ? (f.leads?.length ?? 0) : f.rows.length, status: f.status, link: `/find/${f.id}` })),
       }),
     }),
 
@@ -257,4 +355,11 @@ export const liveFindToolDeps: FindToolDeps = {
   now: () => Date.now(),
   newId: () => randomUUID(),
   decline: (seller, jobId) => declineAlert(seller, jobId, Date.now()),
+  customers: customerLeads,
+  pitches: async (buyer) => Promise.all((await pitchesTo(buyer)).map(pitchView)),
+  pitch: async (buyer, id) => {
+    const c = await contactOf(id);
+    return c && c.kind === 'pitch' && c.to === buyer.toLowerCase() && c.delivered ? pitchView(c) : null;
+  },
+  answerPitch: (buyer, id, answer) => answerPitch(buyer, id, answer, Date.now()),
 };

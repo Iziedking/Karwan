@@ -38,6 +38,9 @@ export function sellerNudge(type: string, payload: Record<string, unknown> | und
   if (type === 'agent.weekly' || type === 'agent.budget' || type === 'agent.research.failed' || type === 'agent.brief') return { id: `${type}-${ts}`, href: '/profile/setup' };
   // A live note is about one request (view 52, step 4).
   if (type === 'agent.note') {
+    // A seller's pitch has no request yet; it opens the pitch (view 72).
+    const pitchId = typeof payload?.pitchId === 'string' && /^[\w-]{1,80}$/.test(payload.pitchId) ? payload.pitchId : '';
+    if (pitchId) return { id: `agent.note-pitch-${pitchId}-${ts}`, href: `/find/pitch/${pitchId}` };
     const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
     return { id: `agent.note-${jobId}-${ts}`, href: jobId ? `/jobs/${jobId}` : '/profile/setup' };
   }

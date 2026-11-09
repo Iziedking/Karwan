@@ -92,20 +92,26 @@ interface Scored {
 const lower = (s: string) => s.toLowerCase();
 const ratingRank = (r: PublicRating) => (r.kind === 'rated' ? r.value : NEW_RATING);
 
-function kmBetween(a: PrivateLocation | null, b: PrivateLocation | null): number | null {
+export function kmBetween(a: PrivateLocation | null, b: PrivateLocation | null): number | null {
   return a?.point && b?.point ? distanceKm(a.point, b.point) : null;
 }
 
-/// Whether they can do it for this buyer at all.
-function canServe(c: FindCandidate, need: FindNeed, km: number | null, fit: number): boolean {
-  if (need.kind === 'remote') return c.meet.online;
+/// Whether a seller who meets people this way can do it for this buyer at
+/// all. The same rule whichever side is looking (finding sellers or buyers).
+export function canMeet(
+  seller: { meet: Meet; location: PrivateLocation | null },
+  need: { kind: DeliveryKind; where: Where; buyerLocation: PrivateLocation | null },
+  km: number | null,
+  fit: number,
+): boolean {
+  if (need.kind === 'remote') return seller.meet.online;
   if (need.kind === 'goods') {
     const country = need.where.country?.toUpperCase() ?? need.buyerLocation?.country ?? null;
-    return servesCountry(c.location, country, 'goods') === 'yes';
+    return servesCountry(seller.location, country, 'goods') === 'yes';
   }
-  if (km !== null) return (c.meet.atMyPlace && km <= AT_MY_PLACE_KM) || (c.meet.comeToYouKm !== null && km <= c.meet.comeToYouKm);
+  if (km !== null) return (seller.meet.atMyPlace && km <= AT_MY_PLACE_KM) || (seller.meet.comeToYouKm !== null && km <= seller.meet.comeToYouKm);
   // No points: the same city by name, for someone who meets people in person.
-  return fit >= 3 && (c.meet.atMyPlace || c.meet.comeToYouKm !== null);
+  return fit >= 3 && (seller.meet.atMyPlace || seller.meet.comeToYouKm !== null);
 }
 
 function compare(a: Scored, b: Scored): number {
@@ -145,7 +151,7 @@ export function rankForFind(candidates: readonly FindCandidate[], need: FindNeed
     if (c.price && c.price.min > need.budgetUsdc) continue;
     const km = kmBetween(need.buyerLocation, c.location);
     const fit = locationFit(need.where, need.buyerLocation, c.location, need.kind);
-    if (!canServe(c, need, km, fit)) continue;
+    if (!canMeet(c, need, km, fit)) continue;
     seen.add(user);
     scored.push({ c, band: Math.ceil(match / MATCH_BAND), km, fit });
   }

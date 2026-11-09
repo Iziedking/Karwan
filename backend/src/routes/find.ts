@@ -4,8 +4,11 @@ import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { block, unblock } from '../find/blocks.js';
 import { getProfile } from '../db/profiles.js';
-import { declineAlert } from '../find/answers.js';
-import { contactsOfFind } from '../find/contacts.js';
+import { answerPitch, declineAlert } from '../find/answers.js';
+import { contactOf, contactsOfFind, pitchesTo } from '../find/contacts.js';
+import { livePitchDeps } from '../find/alertsLive.js';
+import { pitchPicked } from '../find/pitches.js';
+import { pitchView } from '../find/pitchView.js';
 import { findOf, myFinds, ownerView, type Find } from '../find/finds.js';
 import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, removeNeed, saveNeed, TooManyNeeds, type StandingNeed } from '../find/needs.js';
 import { invalidBodyMessage } from './invalidBody.js';
@@ -113,8 +116,10 @@ findRoutes.get('/finds/:id', async (c) => {
   if (!me) return c.json({ error: 'not authenticated' }, 401);
   const found = await findOf(me, c.req.param('id'));
   if (!found) return c.json({ error: 'find not found' }, 404);
-  const asked = new Map((await contactsOfFind(found.id)).filter((x) => x.kind === 'alert').map((x) => [x.to, { answer: x.answer, nextAt: x.answer === null && x.closedAt === null ? x.nextAt : null, closed: x.closedAt !== null }]));
-  return c.json({ find: ownerView(found, await photosOf(found), asked) });
+  const contacts = await contactsOfFind(found.id);
+  const asked = new Map(contacts.filter((x) => x.kind === 'alert').map((x) => [x.to, { answer: x.answer, nextAt: x.answer === null && x.closedAt === null ? x.nextAt : null, closed: x.closedAt !== null }]));
+  const pitched = new Set(contacts.filter((x) => x.kind === 'pitch' && x.needId).map((x) => x.needId!));
+  return c.json({ find: ownerView(found, await photosOf(found), asked, pitched) });
 });
 
 /// A seller says no thanks to a deal alert (view 72). Yes is an offer on the request.
@@ -123,4 +128,60 @@ findRoutes.post('/alerts/:jobId/no', async (c) => {
   if (!me) return c.json({ error: 'not authenticated' }, 401);
   const r = await declineAlert(me, c.req.param('jobId'), Date.now());
   return r === 'none' ? c.json({ error: 'no deal alert on that request' }, 404) : c.json({ ok: true, state: r });
+});
+
+export const pitchBody = z.object({
+  findId: z.string().uuid(),
+  picks: z.array(z.number().int().min(0).max(4)).min(1).max(5),
+  priceUsdc: z.string().regex(/^\d+(\.\d{1,6})?$/),
+  days: z.number().int().min(1).max(90),
+  note: z.string().trim().max(280).default(''),
+});
+
+/// A seller pitches the needs they picked from their own find (view 72, Phase 4).
+findRoutes.post('/pitches', async (c) => {
+  const me = sessionAddress(c);
+  if (!me) return c.json({ error: 'not authenticated' }, 401);
+  let body: z.infer<typeof pitchBody>;
+  try {
+    body = pitchBody.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!(Number(body.priceUsdc) > 0)) return c.json({ error: 'Say a price.' }, 400);
+  const find = await findOf(me, body.findId);
+  if (!find || find.side !== 'seller' || find.status === 'ended') return c.json({ error: 'find not found' }, 404);
+  const out = await pitchPicked({ find, picks: body.picks, offer: { priceUsdc: body.priceUsdc, days: body.days, note: body.note } }, Date.now(), livePitchDeps);
+  return c.json(out);
+});
+
+/// Pitches sent to this buyer, newest first.
+findRoutes.get('/pitches', async (c) => {
+  const me = sessionAddress(c);
+  if (!me) return c.json({ error: 'not authenticated' }, 401);
+  return c.json({ pitches: await Promise.all((await pitchesTo(me)).map(pitchView)) });
+});
+
+/// One pitch, only for the buyer it went to.
+findRoutes.get('/pitches/:id', async (c) => {
+  const me = sessionAddress(c);
+  if (!me) return c.json({ error: 'not authenticated' }, 401);
+  const p = await contactOf(c.req.param('id'));
+  if (!p || p.kind !== 'pitch' || p.to !== me.toLowerCase() || !p.delivered) return c.json({ error: 'pitch not found' }, 404);
+  return c.json({ pitch: await pitchView(p) });
+});
+
+/// Not now or not interested. Interested posts the request (POST /api/jobs with the pitch).
+findRoutes.post('/pitches/:id/answer', async (c) => {
+  const me = sessionAddress(c);
+  if (!me) return c.json({ error: 'not authenticated' }, 401);
+  let body: { answer: 'not_now' | 'no' };
+  try {
+    body = z.object({ answer: z.enum(['not_now', 'no']) }).parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  const r = await answerPitch(me, c.req.param('id'), body.answer, Date.now());
+  if (r === 'none') return c.json({ error: 'pitch not found' }, 404);
+  return c.json({ ok: true, state: r });
 });

@@ -402,7 +402,7 @@ async function runConfirmIntent(
     return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
   }
   if (action.intent === 'post_request') {
-    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number; visibility?: 'agents'; milestonePcts?: number[]; terms?: string; heldAttachments?: boolean; deliveryKind?: 'goods' | 'in_person' | 'remote'; where?: { scope: 'near' | 'country' | 'anywhere'; country?: string }; find?: { id: string; picks: number[] } };
+    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number; visibility?: 'agents'; milestonePcts?: number[]; terms?: string; heldAttachments?: boolean; deliveryKind?: 'goods' | 'in_person' | 'remote'; where?: { scope: 'near' | 'country' | 'anywhere'; country?: string }; find?: { id: string; picks: number[] }; pitch?: { id: string } };
     const r = await api.postJob({
       posterAddress: p.posterAddress,
       brief: p.brief,
@@ -419,7 +419,12 @@ async function runConfirmIntent(
       ...(p.heldAttachments ? { heldAttachments: true } : {}),
       // Posted privately from a find (view 72): the people picked are told.
       ...(p.find ? { find: p.find, ...(p.deliveryKind ? { deliveryKind: p.deliveryKind } : {}), ...(p.where ? { where: p.where } : {}) } : {}),
+      // From a seller's pitch: only that seller sees it, their pitch is their offer on it.
+      ...(p.pitch ? { pitch: p.pitch, ...(p.deliveryKind ? { deliveryKind: p.deliveryKind } : {}) } : {}),
     });
+    if (p.pitch) {
+      return { successText: 'Posted privately. Their offer goes on it in a moment; accept it when you are ready.', viewHref: `/jobs/${r.jobId}`, viewLabel: 'See their offer' };
+    }
     if (p.find) {
       return { successText: 'Sent. They each got one message; their offers come to you.', viewHref: `/find/${p.find.id}`, viewLabel: 'See who answers' };
     }
@@ -1090,6 +1095,7 @@ const ACCOUNT_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: P) => P
   save_standing_need: (p) => api.saveStandingNeed(p as Parameters<typeof api.saveStandingNeed>[0]),
   remove_standing_need: (p) => api.removeStandingNeed(str(p.id)),
   block_person: (p) => api.blockPerson(str(p.who)),
+  pitch_buyers: (p) => api.pitchBuyers(p as Parameters<typeof api.pitchBuyers>[0]),
   unblock_person: (p) => api.unblockPerson(str(p.who)),
   edit_profile: (p) => api.saveProfile(p as unknown as Parameters<typeof api.saveProfile>[0]),
   set_x_handle: (p) => api.setXHandle(str(p.address), (p.handle as string | null) ?? null),
@@ -1120,6 +1126,7 @@ const ACCOUNT_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], [strin
   save_standing_need: ['Need saved.', '/profile'],
   remove_standing_need: ['Removed.', '/profile'],
   block_person: ['Blocked. They are not told.', '/profile'],
+  pitch_buyers: ['Sent. Each buyer got one message; you hear when one is interested.', '/assistant'],
   unblock_person: ['Unblocked.', '/profile'],
   edit_profile: ['Profile updated.', '/profile'],
   set_x_handle: ['Saved.', '/profile'],
@@ -1230,6 +1237,7 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   save_standing_need: 'Saving…',
   remove_standing_need: 'Removing…',
   block_person: 'Blocking…',
+  pitch_buyers: 'Sending…',
   unblock_person: 'Unblocking…',
   edit_profile: 'Saving…',
   set_x_handle: 'Saving…',

@@ -222,6 +222,8 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/find/needs': { by: 'assistant', via: 'save_standing_need' },
   'DELETE /api/find/needs/:': { by: 'assistant', via: 'remove_standing_need' },
   'POST /api/find/block': { by: 'assistant', via: 'block_person' },
+  'POST /api/find/pitches': { by: 'assistant', via: 'pitch_buyers' },
+  'POST /api/find/pitches/:/answer': { by: 'assistant', via: 'answer_pitch' },
   'POST /api/find/unblock': { by: 'assistant', via: 'unblock_person' },
   'POST /api/telegram/link/start': { by: 'page', why: 'Linking Telegram opens the bot from the account page with a one-time link.' },
   'POST /api/telegram/link/remove': { by: 'assistant', via: 'unlink_telegram' },

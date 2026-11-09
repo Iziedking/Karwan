@@ -29,6 +29,10 @@ function setup(over: Partial<FindToolDeps> = {}) {
     now: () => 1_000,
     newId: () => ID,
     decline: async () => 'none',
+    customers: async () => ({ seller: null, leads: [] }),
+    pitches: async () => [],
+    pitch: async () => null,
+    answerPitch: async () => 'none',
     ...over,
   };
   return { actions, tools: findTools(ME, actions, deps) };
@@ -146,4 +150,76 @@ test('people they blocked, or who blocked them, never come up', async () => {
   const s = setup({ people: async () => [TAILOR], buyer: async () => ({ location: WUSE, verified: false }), blocked: async () => new Set(['0xtailor']) });
   const out = (await s.tools.find_people.execute!(FIND, call)) as { found: number };
   assert.equal(out.found, 0);
+});
+
+const CHEF_LEADS = [
+  { kind: 'need' as const, ref: 'n9', buyer: '0xrestaurant', what: 'Lunch for 20 every Friday', keywords: ['lunch'], budgetUsdc: 40, every: 'week' as const, deliveryKind: 'in_person' as const, where: { scope: 'near' as const }, buyerLocation: null, buyerVerified: true, buyerTier: 'ESTABLISHED' as const, dueDays: null, open: true, contactFrom: 'anyone' as const },
+  { kind: 'request' as const, ref: '0xjob1', buyer: '0xoffice', what: 'Lunch for a launch party', keywords: ['lunch'], budgetUsdc: 90, every: null, deliveryKind: 'remote' as const, where: { scope: 'anywhere' as const }, buyerLocation: null, buyerVerified: false, buyerTier: 'NEW' as const, dueDays: 3, open: true, contactFrom: 'anyone' as const },
+];
+const CHEF = { user: ME, words: ['lunch', 'catering'], meet: { atMyPlace: false, comeToYouKm: 20, online: true }, location: null, verified: true, priceMin: null };
+
+test('find_customers lists open requests and reachable needs, numbered, with no buyer named', async () => {
+  const saved: Find[] = [];
+  const s = setup({
+    customers: async () => ({ seller: { ...CHEF, location: WUSE }, leads: CHEF_LEADS.map((l) => ({ ...l, buyerLocation: WUSE })) }),
+    saveFind: async (f) => { saved.push(f); return f; },
+  });
+  const out = (await s.tools.find_customers.execute!({}, call)) as { found: number; buyers: Array<Record<string, unknown>> };
+  assert.equal(out.found, 2);
+  assert.deepEqual(out.buyers.map((b) => [b.number, b.kind]), [[1, 'regular need'], [2, 'open request']]);
+  assert.equal(out.buyers[0]!.budget, 'about ₦53,840');
+  assert.equal(out.buyers[1]!.jobId, '0xjob1');
+  assert.doesNotMatch(JSON.stringify(out), /0xrestaurant|0xoffice/);
+  assert.equal(saved[0]!.side, 'seller');
+  assert.equal(saved[0]!.leads!.length, 2);
+  assert.equal(s.actions.length, 0, 'finding buyers contacts nobody');
+});
+
+test('pitch_buyers is a card for needs only, in the seller money, saying nothing is paid', async () => {
+  const find: Find = {
+    id: ID, owner: ME, side: 'seller', mode: 'choose', need: 'Buyers for what I sell', budgetUsdc: '0', kind: 'remote', where: { scope: 'anywhere' }, jobId: null, needId: null, rows: [],
+    leads: [
+      { kind: 'need', ref: 'n9', buyer: '0xrestaurant', what: 'Lunch for 20 every Friday', budgetUsdc: '40', every: 'week', deliveryKind: 'in_person', dueDays: null, distance: { key: 'about', km: 3 }, buyerVerified: true, buyerTier: 'ESTABLISHED' },
+      { kind: 'request', ref: '0xjob1', buyer: '0xoffice', what: 'Lunch for a launch party', budgetUsdc: '90', every: null, deliveryKind: 'remote', dueDays: 3, distance: { key: 'unknown' }, buyerVerified: false, buyerTier: 'NEW' },
+    ],
+    status: 'shortlisted', createdAt: 1, endsAt: 10_000,
+  };
+  const s = setup({ finds: async () => [find] });
+  const refused = (await s.tools.pitch_buyers.execute!({ buyers: [1, 2], priceUsdc: 33.43, days: 2 }, call)) as { error: string };
+  assert.match(refused.error, /open request.*propose_make_offer/);
+  await s.tools.pitch_buyers.execute!({ buyers: [1], priceUsdc: 33.43, days: 2, note: 'Jollof and chicken' }, call);
+  const c = card(s.actions);
+  assert.equal(c.intent, 'pitch_buyers');
+  assert.equal(c.title, 'Offer to help 1 buyer');
+  assert.match(c.summary, /Nothing is paid/);
+  assert.deepEqual(c.fields.map((f) => f.value).slice(1, 3), ['₦44,997', '2 days']);
+  assert.deepEqual(c.payload, { findId: ID, picks: [0], priceUsdc: '33.43', days: 2, note: 'Jollof and chicken' });
+});
+
+const PITCH = {
+  id: 'p1', what: 'Lunch for 20 every Friday', kind: 'in_person' as const, distance: { key: 'about' as const, km: 3 },
+  seller: { name: 'Chef Bisi', verified: true, stars: 4.8, tag: 'bisi', photo: null }, priceUsdc: '33.43', days: 2, note: '', sentAt: 1, answer: null, jobId: null, closed: false,
+};
+
+test('interested on a pitch is a private request card to that seller, the budget covering their price', async () => {
+  const s = setup({ pitch: async (_b, id) => (id === 'p1' ? PITCH : null) });
+  await s.tools.answer_pitch.execute!({ id: 'p1', answer: 'interested' }, call);
+  const c = card(s.actions);
+  assert.equal(c.intent, 'post_request');
+  assert.equal(c.title, 'Ask Chef Bisi for it');
+  assert.match(c.fields.find((f) => f.label === 'Who can see it')!.value, /Only you and Chef Bisi/);
+  assert.deepEqual(c.payload.pitch, { id: 'p1' });
+  assert.equal(c.payload.budgetUsdc, 33.43);
+  assert.equal(c.payload.deadlineDays, 5);
+});
+
+test('not now and not interested answer at once, with no card; an answered pitch is not answered again', async () => {
+  const said: string[] = [];
+  const s = setup({ pitch: async () => PITCH, answerPitch: async (_b, _id, a) => { said.push(a); return 'answered'; } });
+  const out = (await s.tools.answer_pitch.execute!({ id: 'p1', answer: 'no' }, call)) as { said: string };
+  assert.match(out.said, /will not offer for this need again/);
+  assert.deepEqual(said, ['no']);
+  assert.equal(s.actions.length, 0);
+  const done = setup({ pitch: async () => ({ ...PITCH, answer: 'no' as const }) });
+  assert.match(((await done.tools.answer_pitch.execute!({ id: 'p1', answer: 'interested' }, call)) as { error: string }).error, /already answered/);
 });

@@ -3,6 +3,7 @@ import { db, pgEnabled } from '../db/client.js';
 import { finds } from '../db/schema.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
 import type { FoundRow } from './rank.js';
+import type { LeadRow } from './rankBuyers.js';
 
 /// A person's finds (view 72): what they asked their agent for and who it
 /// found. Private to them. A find ends at the request's deadline or after a week.
@@ -20,6 +21,8 @@ export interface Find {
   jobId: string | null;
   needId: string | null;
   rows: FoundRow[];
+  /// A seller's find (find_customers): the requests and needs that fit them.
+  leads?: LeadRow[];
   status: 'shortlisted' | 'contacting' | 'matched' | 'ended';
   createdAt: number;
   endsAt: number;
@@ -51,13 +54,27 @@ export interface AskedView {
 }
 
 /// What the owner's screen reads: people by name, tag and photo, never a wallet.
-export type FindView = Omit<Find, 'owner' | 'rows'> & { rows: Array<Omit<FoundRow, 'user' | 'sellerAgent'> & { photo: string | null; asked: AskedView | null }> };
+export type FindView = Omit<Find, 'owner' | 'rows' | 'leads'> & {
+  rows: Array<Omit<FoundRow, 'user' | 'sellerAgent'> & { photo: string | null; asked: AskedView | null }>;
+  /// Buyers stay unnamed to a seller: no address, only the need.
+  leads?: Array<Omit<LeadRow, 'buyer'> & { pitched: boolean }>;
+};
 
 /// `photos` maps a person to their profile photo, read when the page opens;
 /// `asked` maps a person to where their deal alert stands.
-export function ownerView(f: Find, photos: ReadonlyMap<string, string> = new Map(), asked: ReadonlyMap<string, AskedView> = new Map()): FindView {
-  const { owner: _owner, rows, ...rest } = f;
-  return { ...rest, rows: rows.map(({ user, sellerAgent: _a, ...r }) => ({ ...r, photo: photos.get(user.toLowerCase()) ?? null, asked: asked.get(user.toLowerCase()) ?? null })) };
+/// `pitched` holds the needs this seller already pitched from this find.
+export function ownerView(
+  f: Find,
+  photos: ReadonlyMap<string, string> = new Map(),
+  asked: ReadonlyMap<string, AskedView> = new Map(),
+  pitched: ReadonlySet<string> = new Set(),
+): FindView {
+  const { owner: _owner, rows, leads, ...rest } = f;
+  return {
+    ...rest,
+    rows: rows.map(({ user, sellerAgent: _a, ...r }) => ({ ...r, photo: photos.get(user.toLowerCase()) ?? null, asked: asked.get(user.toLowerCase()) ?? null })),
+    ...(leads ? { leads: leads.map(({ buyer: _b, ...l }) => ({ ...l, pitched: l.kind === 'need' && pitched.has(l.ref) })) } : {}),
+  };
 }
 
 export async function saveFind(f: Find): Promise<Find> {

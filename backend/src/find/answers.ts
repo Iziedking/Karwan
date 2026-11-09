@@ -1,4 +1,4 @@
-import { answerContact, contactsOfFind } from './contacts.js';
+import { answerContact, contactOf, contactsOfFind } from './contacts.js';
 import { findByJob } from './finds.js';
 
 /// A seller's no thanks to a deal alert (view 72). Yes is an offer on the
@@ -15,4 +15,15 @@ export async function declineAlert(seller: string, jobId: string, now: number): 
   if (find.status === 'matched') return 'matched';
   if (contact.answer !== null) return 'declined';
   return (await answerContact(contact.id, me, 'no', now)) ? 'declined' : 'none';
+}
+
+/// A buyer's not now (no pitches from that seller for 30 days) or not
+/// interested (none from them for that need again) to a pitch. Interested
+/// posts the request instead (POST /api/jobs with the pitch).
+export async function answerPitch(buyer: string, id: string, answer: 'not_now' | 'no', now: number): Promise<'answered' | 'already' | 'none'> {
+  const c = await contactOf(id);
+  const me = buyer.toLowerCase();
+  if (!c || c.kind !== 'pitch' || c.to !== me) return 'none';
+  if (c.answer !== null) return 'already';
+  return (await answerContact(id, me, answer, now)) ? 'answered' : 'none';
 }
