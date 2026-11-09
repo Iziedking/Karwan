@@ -43,7 +43,7 @@ interface World {
   codes: number;
 }
 
-async function mock(page: Page, opts: { pinSet?: boolean; wrongPins?: number; wrongCodes?: number } = {}): Promise<World> {
+async function mock(page: Page, opts: { pinSet?: boolean; wrongPins?: number; wrongCodes?: number; passkeyOnly?: boolean } = {}): Promise<World> {
   const world: World = { outs: [], pins: [], confirms: [], codes: 0 };
   let wrong = opts.wrongPins ?? 0;
   let wrongCodes = opts.wrongCodes ?? 0;
@@ -56,13 +56,19 @@ async function mock(page: Page, opts: { pinSet?: boolean; wrongPins?: number; wr
     if (pathname === '/api/bridge/circle-bridge-out' && method === 'POST') {
       const confirm = route.request().headers()['x-karwan-confirm'] ?? null;
       world.outs.push({ confirm });
-      if (confirm !== 'grant-1') return route.fulfill({ status: 428, json: required(opts.pinSet ? { pinSet: true, enrol: null } : {}) });
+      if (confirm !== 'grant-1') return route.fulfill({ status: 428, json: required(opts.passkeyOnly ? { passkeys: 1, enrol: null } : opts.pinSet ? { pinSet: true, enrol: null } : {}) });
       return route.fulfill({ json: { bridgeId: 'b-1', reference: 'KWN-OUT1-OUT2-OUT3' } });
     }
     if (pathname === '/api/bridge/b-1') return route.fulfill({ json: { bridgeId: 'b-1', status: 'minted', movementState: 'completed', burnTxHash: '0x' + 'b'.repeat(64) } });
     if (pathname === '/api/confirm/email-code' && method === 'POST') {
       world.codes += 1;
       return route.fulfill({ json: { sent: true } });
+    }
+    // A passkey kept on another device: the phone has none to offer.
+    if (pathname === '/api/confirm/options' && method === 'POST') return route.fulfill({ status: 400, json: { error: 'no passkey here' } });
+    if (pathname === '/api/confirm/pin/reset' && method === 'POST') {
+      world.pins.push(route.request().postDataJSON());
+      return route.fulfill({ json: { ok: true } });
     }
     if (pathname === '/api/confirm/pin' && method === 'POST') {
       world.pins.push(route.request().postDataJSON());
@@ -130,6 +136,25 @@ test('a wrong email code says so, keeps the new PIN, and a new code can be sent'
   await sheet.getByTestId('confirm-set-pin').click();
   await expect.poll(() => world.pins.at(-1)).toEqual({ pin: PIN, emailCode: '246802' });
   await expect(sheet.getByLabel(copy.pinLabel)).toBeVisible();
+});
+
+test('a passkey this phone does not have leads to a PIN set by email code, and the money goes', async ({ page }) => {
+  const world = await mock(page, { passkeyOnly: true });
+  await startSend(page);
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByTestId('confirm-no-passkey')).toHaveCount(0);
+  await sheet.getByTestId('confirm-passkey').click();
+  await expect(sheet.getByRole('alert')).toHaveText(copy.failed);
+  await sheet.getByTestId('confirm-no-passkey').click();
+  await sheet.getByRole('button', { name: copy.sendCode }).click();
+  await expect.poll(() => world.codes).toBe(1);
+  await sheet.getByLabel(copy.emailCode).fill('135790');
+  await sheet.getByLabel(copy.setHint).fill(PIN);
+  await sheet.getByTestId('confirm-set-pin').click();
+  await expect.poll(() => world.pins).toEqual([{ pin: PIN, emailCode: '135790' }]);
+  await sheet.getByLabel(copy.pinLabel).fill(PIN);
+  await sheet.getByTestId('confirm-pin-submit').click();
+  await expect.poll(() => world.outs.map((o) => o.confirm)).toEqual([null, 'grant-1']);
 });
 
 test('a wrong PIN says how many tries are left, then the right one sends', async ({ page }) => {

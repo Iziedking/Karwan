@@ -12,6 +12,8 @@ export interface ConfirmPresenceCopy {
   usePasskey: string;
   /// Shows the PIN field under a passkey (owner, 9 Nov 2026).
   usePinInstead: string;
+  /// After a passkey fails with no PIN set: set one with an email code.
+  noPasskeyHere: string;
   usePin: string;
   pinLabel: string;
   wrongPin: string;
@@ -48,6 +50,7 @@ const en: ConfirmPresenceCopy = {
   fee: 'Network fee about {fee} USDC',
   usePasskey: 'Confirm with passkey',
   usePinInstead: 'Use PIN instead',
+  noPasskeyHere: 'No passkey on this phone? Set a PIN with an email code',
   usePin: 'Use PIN',
   pinLabel: 'Enter your PIN.',
   wrongPin: 'Wrong PIN. {left} tries left.',
@@ -84,6 +87,7 @@ const ar: ConfirmPresenceCopy = {
   fee: 'رسوم الشبكة نحو {fee} USDC',
   usePasskey: 'استخدم مفتاح المرور',
   usePinInstead: 'استخدم الرمز السري بدلاً من ذلك',
+  noPasskeyHere: 'لا يوجد مفتاح مرور على هذا الهاتف؟ عيّن رمز PIN برمز يصلك بالبريد',
   usePin: 'استخدم الرمز',
   pinLabel: 'أدخل رمزك.',
   wrongPin: 'رمز غير صحيح. بقيت {left} محاولات.',
@@ -120,6 +124,7 @@ const fr: ConfirmPresenceCopy = {
   fee: 'Frais de réseau environ {fee} USDC',
   usePasskey: 'Utiliser la clé d’accès',
   usePinInstead: 'Utiliser le code PIN',
+  noPasskeyHere: 'Pas de clé d’accès sur ce téléphone ? Créez un code PIN avec un code reçu par e-mail',
   usePin: 'Utiliser le code',
   pinLabel: 'Saisissez votre code.',
   wrongPin: 'Code incorrect. Il reste {left} essais.',
@@ -156,6 +161,7 @@ const hi: ConfirmPresenceCopy = {
   fee: 'नेटवर्क शुल्क लगभग {fee} USDC',
   usePasskey: 'पासकी का उपयोग करें',
   usePinInstead: 'इसके बजाय PIN का उपयोग करें',
+  noPasskeyHere: 'इस फ़ोन पर पासकी नहीं है? ईमेल कोड से PIN सेट करें',
   usePin: 'PIN का उपयोग करें',
   pinLabel: 'अपना PIN डालें।',
   wrongPin: 'गलत PIN। {left} प्रयास बाकी।',
@@ -192,6 +198,7 @@ const sw: ConfirmPresenceCopy = {
   fee: 'Ada ya mtandao karibu USDC {fee}',
   usePasskey: 'Tumia passkey',
   usePinInstead: 'Tumia PIN badala yake',
+  noPasskeyHere: 'Hakuna passkey kwenye simu hii? Weka PIN kwa msimbo wa barua pepe',
   usePin: 'Tumia PIN',
   pinLabel: 'Weka PIN yako.',
   wrongPin: 'PIN si sahihi. Majaribio {left} yamebaki.',

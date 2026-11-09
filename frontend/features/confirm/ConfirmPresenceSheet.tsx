@@ -33,6 +33,7 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
   const [pin, setPin] = useState('');
   // With a passkey, the PIN waits behind "Use PIN instead" (Figma 218:570).
   const [pinOpen, setPinOpen] = useState(false);
+  const [passkeyFailed, setPasskeyFailed] = useState(false);
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [resent, setResent] = useState(false);
@@ -85,7 +86,15 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
   };
 
   const confirmPin = () => run(async () => finish((await api.confirmPresence(state.challengeId, { pin })).grant));
-  const confirmByPasskey = () => run(async () => finish(await confirmWithPasskey(state.challengeId)));
+  const confirmByPasskey = () =>
+    run(async () => {
+      try {
+        finish(await confirmWithPasskey(state.challengeId));
+      } catch (err) {
+        setPasskeyFailed(true);
+        throw err;
+      }
+    });
   const confirmByWallet = () =>
     run(async () => {
       const signature = await signMessageAsync({ message: state.text });
@@ -121,6 +130,8 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
       setState(next);
       setPin('');
       setCode('');
+      // The PIN was just set to use now: open its field, not the passkey again.
+      setPinOpen(true);
       setView(confirmView(next, Date.now()));
     });
 
@@ -208,6 +219,13 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
               </button>
             </div>
           )
+        ) : null}
+        {/* A passkey kept on another device leaves no way to confirm here
+            without a PIN; the emailed code sets one (support, 9 Nov 2026). */}
+        {passkeyFailed && !view.methods.includes('pin') ? (
+          <button type="button" className={LINK} disabled={busy} onClick={() => { setError(null); setPin(''); setView({ step: 'reset' }); }} data-testid="confirm-no-passkey">
+            {copy.noPasskeyHere}
+          </button>
         ) : null}
         {view.methods.includes('pin') && (pinOpen || !view.methods.includes('passkey')) ? (
           <button type="button" className={LINK} disabled={busy} onClick={() => { setError(null); setPin(''); setView({ step: 'reset' }); }}>
