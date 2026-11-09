@@ -175,7 +175,7 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
 
     find_customers: tool({
       description:
-        "For a SELLER: find buyers for what they sell (view 72): open requests on the market that fit them, and the standing needs of buyers near them who let sellers reach them, best skill fit first, then distance, then the buyer's record. At most five, numbered from 1. Buyers are not named; each row says what they need, how often, the rough budget and how far they are. It contacts nobody. For a request, offer as on any request (propose_make_offer with its jobId; never show the jobId). For a need, offer with pitch_buyers and their numbers. Nobody fits: say so plainly.",
+        "For a SELLER: find buyers for what they sell (view 72): open requests on the market that fit them, and the standing needs of buyers near them who let sellers reach them, best skill fit first, then distance, then the buyer's record. At most five, numbered from 1. Buyers are not named; each row says what they need, how often, the rough budget and how far they are. A card with the buyers and a See all button is shown under your reply. It contacts nobody. For a request, offer as on any request (propose_make_offer with its jobId; never show the jobId). For a need, offer with pitch_buyers and their numbers. Nobody fits: say so plainly.",
       inputSchema: z.object({}),
       execute: async () => {
         const { seller, leads } = await deps.customers(me);
@@ -187,6 +187,9 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
           id: deps.newId(), owner: me, side: 'seller', mode: 'choose', need: 'Buyers for what I sell', budgetUsdc: '0', kind: 'remote', where: { scope: 'anywhere' },
           jobId: null, needId: null, rows: [], leads: rows, status: 'shortlisted', createdAt: now, endsAt: findEndsAt(now, null),
         });
+        // The web shows the buyers as a card; chat apps get the link.
+        const open = buildNavigateAction({ destination: 'find', token: saved.id, label: rows.length === 1 ? 'See them' : `See all ${rows.length}` });
+        if (!('error' in open)) actions.push(open);
         return {
           found: rows.length,
           link: `/find/${saved.id}`,

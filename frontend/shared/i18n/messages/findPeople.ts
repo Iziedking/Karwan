@@ -73,6 +73,51 @@ export interface FindPeopleCopy {
   /// {time} is the next reminder.
   reminderAt: string;
   reviewOffers: string;
+  /// Phase 4, a seller's buyers. {n} buyers.
+  buyers: string;
+  buyersOne: string;
+  buyersSub: string;
+  every: Record<'once' | 'week' | 'month' | 'season', string>;
+  /// {n} days.
+  dueIn: string;
+  dueOne: string;
+  noBudget: string;
+  leadKind: Record<'need' | 'request', string>;
+  offeredTag: string;
+  /// {n} picked.
+  pickedCount: string;
+  offerOne: string;
+  /// {n} buyers.
+  offerMany: string;
+  offerFields: { price: string; days: string; note: string; notePlaceholder: string; theySee: string; theySeeValue: string };
+  offerSub: string;
+  sendBuyersOne: string;
+  /// {n} buyers.
+  sendBuyersMany: string;
+  notNow: string;
+  pitchSent: string;
+  /// {n} needs.
+  pitchRefused: string;
+  /// Phase 4, the buyer's side of a pitch. {name} is the seller's first name.
+  yourNeed: string;
+  theirOffer: string;
+  noteLabel: string;
+  interested: string;
+  notInterested: string;
+  askFor: string;
+  askForSub: string;
+  whoSees: string;
+  whoSeesValue: string;
+  payNote: string;
+  postPrivately: string;
+  postedTitle: string;
+  postedSub: string;
+  offerWord: string;
+  reviewOffer: string;
+  backToNeeds: string;
+  saidNotNow: string;
+  saidNo: string;
+  pitchGone: string;
 }
 
 type Locale = 'en' | 'fr' | 'ar' | 'hi' | 'sw';
@@ -134,6 +179,44 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     status: { offered: 'Sent an offer', waiting: 'Not answered yet', declined: 'Said no thanks', noAnswer: 'No answer' },
     reminderAt: 'Reminder at {time}',
     reviewOffers: 'Review offers',
+    buyers: '{n} buyers near you',
+    buyersOne: '1 buyer near you',
+    buyersSub: 'Buyers are not named',
+    every: { once: 'Once', week: 'Every week', month: 'Every month', season: 'Each season' },
+    dueIn: 'due in {n} days',
+    dueOne: 'due tomorrow',
+    noBudget: 'No budget said',
+    leadKind: { need: 'Regular need', request: 'Open request' },
+    offeredTag: 'Offered',
+    pickedCount: '{n} picked',
+    offerOne: 'Offer to help 1 buyer',
+    offerMany: 'Offer to help {n} buyers',
+    offerFields: { price: 'Your price', days: 'Ready in (days)', note: 'Note', notePlaceholder: 'What you would bring', theySee: 'They see', theySeeValue: 'Your name, rating, how far' },
+    offerSub: 'Each gets one message and one reminder. Nothing is paid until they say yes.',
+    sendBuyersOne: 'Send to 1 buyer',
+    sendBuyersMany: 'Send to {n} buyers',
+    notNow: 'Not now',
+    pitchSent: 'Sent. You hear when one is interested.',
+    pitchRefused: '{n} could not be told today.',
+    yourNeed: 'Your regular need',
+    theirOffer: 'Their offer',
+    noteLabel: 'Note',
+    interested: 'I’m interested',
+    notInterested: 'Not interested',
+    askFor: 'Ask {name} for it',
+    askForSub: 'Posted privately to {name}, with their offer on it',
+    whoSees: 'Who sees it',
+    whoSeesValue: 'Only you and {name}',
+    payNote: 'Nothing is paid until you accept and lock the money.',
+    postPrivately: 'Post privately',
+    postedTitle: 'Posted privately to {name}',
+    postedSub: 'Their offer is on it. Accept it when you are ready.',
+    offerWord: 'Offer',
+    reviewOffer: 'Review {name}’s offer',
+    backToNeeds: 'Back to my needs',
+    saidNotNow: 'You said not now. No offers from them for 30 days.',
+    saidNo: 'You said not interested. They will not offer for this need again.',
+    pitchGone: 'This offer has closed.',
   },
   fr: {
     back: 'Assistant',
@@ -191,6 +274,44 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     status: { offered: 'A envoyé une offre', waiting: 'N\'a pas encore répondu', declined: 'A dit non merci', noAnswer: 'Pas de réponse' },
     reminderAt: 'Rappel à {time}',
     reviewOffers: 'Voir les offres',
+    buyers: '{n} acheteurs près de chez vous',
+    buyersOne: '1 acheteur près de chez vous',
+    buyersSub: 'Les acheteurs ne sont pas nommés',
+    every: { once: 'Une fois', week: 'Chaque semaine', month: 'Chaque mois', season: 'Chaque saison' },
+    dueIn: 'dans {n} jours',
+    dueOne: 'pour demain',
+    noBudget: 'Pas de budget indiqué',
+    leadKind: { need: 'Besoin régulier', request: 'Demande ouverte' },
+    offeredTag: 'Proposé',
+    pickedCount: '{n} choisis',
+    offerOne: 'Proposer à 1 acheteur',
+    offerMany: 'Proposer à {n} acheteurs',
+    offerFields: { price: 'Votre prix', days: 'Prêt en (jours)', note: 'Note', notePlaceholder: 'Ce que vous apporteriez', theySee: 'Ils voient', theySeeValue: 'Votre nom, votre note, la distance' },
+    offerSub: 'Chacun reçoit un message et un rappel. Rien n’est payé avant leur accord.',
+    sendBuyersOne: 'Envoyer à 1 acheteur',
+    sendBuyersMany: 'Envoyer à {n} acheteurs',
+    notNow: 'Pas maintenant',
+    pitchSent: 'Envoyé. Vous serez prévenu si l’un est intéressé.',
+    pitchRefused: '{n} n’ont pas pu être prévenus aujourd’hui.',
+    yourNeed: 'Votre besoin régulier',
+    theirOffer: 'Son offre',
+    noteLabel: 'Note',
+    interested: 'Je suis intéressé',
+    notInterested: 'Pas intéressé',
+    askFor: 'Demander à {name}',
+    askForSub: 'Publié en privé pour {name}, avec son offre',
+    whoSees: 'Qui la voit',
+    whoSeesValue: 'Seulement vous et {name}',
+    payNote: 'Rien n’est payé avant que vous acceptiez et bloquiez l’argent.',
+    postPrivately: 'Publier en privé',
+    postedTitle: 'Publié en privé pour {name}',
+    postedSub: 'Son offre y est. Acceptez-la quand vous êtes prêt.',
+    offerWord: 'Offre',
+    reviewOffer: 'Voir l’offre de {name}',
+    backToNeeds: 'Retour à mes besoins',
+    saidNotNow: 'Vous avez dit pas maintenant. Aucune offre de sa part pendant 30 jours.',
+    saidNo: 'Vous avez dit pas intéressé. Il ne proposera plus pour ce besoin.',
+    pitchGone: 'Cette offre est fermée.',
   },
   ar: {
     back: 'المساعد',
@@ -248,6 +369,44 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     status: { offered: 'أرسل عرضًا', waiting: 'لم يرد بعد', declined: 'قال لا شكرًا', noAnswer: 'لا رد' },
     reminderAt: 'تذكير عند {time}',
     reviewOffers: 'راجع العروض',
+    buyers: '{n} مشترين بالقرب منك',
+    buyersOne: 'مشترٍ واحد بالقرب منك',
+    buyersSub: 'لا تظهر أسماء المشترين',
+    every: { once: 'مرة واحدة', week: 'كل أسبوع', month: 'كل شهر', season: 'كل موسم' },
+    dueIn: 'خلال {n} أيام',
+    dueOne: 'غدًا',
+    noBudget: 'لم تُذكر ميزانية',
+    leadKind: { need: 'حاجة منتظمة', request: 'طلب مفتوح' },
+    offeredTag: 'تم العرض',
+    pickedCount: 'تم اختيار {n}',
+    offerOne: 'اعرض المساعدة على مشترٍ واحد',
+    offerMany: 'اعرض المساعدة على {n} مشترين',
+    offerFields: { price: 'سعرك', days: 'جاهز خلال (أيام)', note: 'ملاحظة', notePlaceholder: 'ما الذي ستقدمه', theySee: 'يرون', theySeeValue: 'اسمك وتقييمك والمسافة' },
+    offerSub: 'يتلقى كل منهم رسالة واحدة وتذكيرًا واحدًا. لا يُدفع شيء حتى يوافقوا.',
+    sendBuyersOne: 'أرسل إلى مشترٍ واحد',
+    sendBuyersMany: 'أرسل إلى {n} مشترين',
+    notNow: 'ليس الآن',
+    pitchSent: 'تم الإرسال. ستعرف عندما يهتم أحدهم.',
+    pitchRefused: 'تعذّر إبلاغ {n} اليوم.',
+    yourNeed: 'حاجتك المنتظمة',
+    theirOffer: 'عرضه',
+    noteLabel: 'ملاحظة',
+    interested: 'أنا مهتم',
+    notInterested: 'غير مهتم',
+    askFor: 'اطلبها من {name}',
+    askForSub: 'يُنشر بشكل خاص إلى {name} مع عرضه عليه',
+    whoSees: 'من يراه',
+    whoSeesValue: 'أنت و{name} فقط',
+    payNote: 'لا يُدفع شيء حتى تقبل وتحجز المال.',
+    postPrivately: 'انشر بشكل خاص',
+    postedTitle: 'نُشر بشكل خاص إلى {name}',
+    postedSub: 'عرضه عليه الآن. اقبله عندما تكون مستعدًا.',
+    offerWord: 'عرض',
+    reviewOffer: 'راجع عرض {name}',
+    backToNeeds: 'العودة إلى احتياجاتي',
+    saidNotNow: 'قلت ليس الآن. لا عروض منه لمدة 30 يومًا.',
+    saidNo: 'قلت غير مهتم. لن يعرض على هذه الحاجة مرة أخرى.',
+    pitchGone: 'أُغلق هذا العرض.',
   },
   hi: {
     back: 'सहायक',
@@ -305,6 +464,44 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     status: { offered: 'ऑफ़र भेजा', waiting: 'अभी जवाब नहीं', declined: 'मना कर दिया', noAnswer: 'कोई जवाब नहीं' },
     reminderAt: '{time} पर याद दिलाएँगे',
     reviewOffers: 'ऑफ़र देखें',
+    buyers: 'आपके पास {n} खरीदार',
+    buyersOne: 'आपके पास 1 खरीदार',
+    buyersSub: 'खरीदारों के नाम नहीं दिखते',
+    every: { once: 'एक बार', week: 'हर हफ़्ते', month: 'हर महीने', season: 'हर मौसम' },
+    dueIn: '{n} दिन में',
+    dueOne: 'कल तक',
+    noBudget: 'बजट नहीं बताया',
+    leadKind: { need: 'नियमित ज़रूरत', request: 'खुला अनुरोध' },
+    offeredTag: 'ऑफ़र भेजा',
+    pickedCount: '{n} चुने',
+    offerOne: '1 खरीदार को ऑफ़र दें',
+    offerMany: '{n} खरीदारों को ऑफ़र दें',
+    offerFields: { price: 'आपकी कीमत', days: 'कितने दिन में तैयार', note: 'नोट', notePlaceholder: 'आप क्या देंगे', theySee: 'वे देखेंगे', theySeeValue: 'आपका नाम, रेटिंग, दूरी' },
+    offerSub: 'हर एक को एक संदेश और एक याद दिलाना मिलेगा। उनकी हाँ तक कुछ भुगतान नहीं होता।',
+    sendBuyersOne: '1 खरीदार को भेजें',
+    sendBuyersMany: '{n} खरीदारों को भेजें',
+    notNow: 'अभी नहीं',
+    pitchSent: 'भेज दिया। किसी को रुचि होने पर आपको पता चलेगा।',
+    pitchRefused: '{n} को आज नहीं बताया जा सका।',
+    yourNeed: 'आपकी नियमित ज़रूरत',
+    theirOffer: 'उनका ऑफ़र',
+    noteLabel: 'नोट',
+    interested: 'मुझे रुचि है',
+    notInterested: 'रुचि नहीं',
+    askFor: '{name} से माँगें',
+    askForSub: '{name} को निजी रूप से भेजा जाएगा, उनके ऑफ़र के साथ',
+    whoSees: 'कौन देखेगा',
+    whoSeesValue: 'सिर्फ़ आप और {name}',
+    payNote: 'जब तक आप स्वीकार करके पैसा लॉक नहीं करते, कुछ भुगतान नहीं होता।',
+    postPrivately: 'निजी रूप से भेजें',
+    postedTitle: '{name} को निजी रूप से भेजा',
+    postedSub: 'उनका ऑफ़र उस पर है। तैयार हों तो स्वीकार करें।',
+    offerWord: 'ऑफ़र',
+    reviewOffer: '{name} का ऑफ़र देखें',
+    backToNeeds: 'मेरी ज़रूरतों पर वापस',
+    saidNotNow: 'आपने अभी नहीं कहा। 30 दिन तक उनसे कोई ऑफ़र नहीं।',
+    saidNo: 'आपने रुचि नहीं कहा। वे इस ज़रूरत के लिए फिर ऑफ़र नहीं देंगे।',
+    pitchGone: 'यह ऑफ़र बंद हो गया है।',
   },
   sw: {
     back: 'Msaidizi',
@@ -362,5 +559,43 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     status: { offered: 'Ametuma ofa', waiting: 'Bado hajajibu', declined: 'Amesema hapana asante', noAnswer: 'Hakuna jibu' },
     reminderAt: 'Kumbusho saa {time}',
     reviewOffers: 'Tazama ofa',
+    buyers: 'Wanunuzi {n} karibu nawe',
+    buyersOne: 'Mnunuzi 1 karibu nawe',
+    buyersSub: 'Majina ya wanunuzi hayaonyeshwi',
+    every: { once: 'Mara moja', week: 'Kila wiki', month: 'Kila mwezi', season: 'Kila msimu' },
+    dueIn: 'ndani ya siku {n}',
+    dueOne: 'kesho',
+    noBudget: 'Bajeti haikutajwa',
+    leadKind: { need: 'Hitaji la kawaida', request: 'Ombi lililo wazi' },
+    offeredTag: 'Umetuma ofa',
+    pickedCount: '{n} wamechaguliwa',
+    offerOne: 'Mpe ofa mnunuzi 1',
+    offerMany: 'Wape ofa wanunuzi {n}',
+    offerFields: { price: 'Bei yako', days: 'Tayari ndani ya (siku)', note: 'Maelezo', notePlaceholder: 'Utaleta nini', theySee: 'Wanaona', theySeeValue: 'Jina lako, ukadiriaji, umbali' },
+    offerSub: 'Kila mmoja anapata ujumbe mmoja na kumbusho moja. Hakuna kinacholipwa hadi wakubali.',
+    sendBuyersOne: 'Tuma kwa mnunuzi 1',
+    sendBuyersMany: 'Tuma kwa wanunuzi {n}',
+    notNow: 'Si sasa',
+    pitchSent: 'Imetumwa. Utajua mmoja akivutiwa.',
+    pitchRefused: '{n} hawakuweza kuambiwa leo.',
+    yourNeed: 'Hitaji lako la kawaida',
+    theirOffer: 'Ofa yao',
+    noteLabel: 'Maelezo',
+    interested: 'Ninavutiwa',
+    notInterested: 'Sivutiwi',
+    askFor: 'Mwombe {name}',
+    askForSub: 'Inatumwa kwa faragha kwa {name}, pamoja na ofa yao',
+    whoSees: 'Nani anaiona',
+    whoSeesValue: 'Wewe na {name} tu',
+    payNote: 'Hakuna kinacholipwa hadi ukubali na kufunga pesa.',
+    postPrivately: 'Tuma kwa faragha',
+    postedTitle: 'Imetumwa kwa faragha kwa {name}',
+    postedSub: 'Ofa yao iko juu yake. Ikubali ukiwa tayari.',
+    offerWord: 'Ofa',
+    reviewOffer: 'Tazama ofa ya {name}',
+    backToNeeds: 'Rudi kwenye mahitaji yangu',
+    saidNotNow: 'Umesema si sasa. Hakuna ofa kutoka kwao kwa siku 30.',
+    saidNo: 'Umesema huvutiwi. Hawatatoa ofa tena kwa hitaji hili.',
+    pitchGone: 'Ofa hii imefungwa.',
   },
 };

@@ -37,6 +37,7 @@ export type RouteTitleKey =
   | 'invite'
   | 'messages'
   | 'peopleFound'
+  | 'offerForYou'
   | 'request'
   | 'legacy'
   | 'offers'
@@ -123,6 +124,7 @@ const en: RouteTitleCopy = {
   invite: 'Invitation',
   messages: 'Messages',
   peopleFound: 'People found',
+  offerForYou: 'Offer for you',
   request: 'Request',
   legacy: 'Earlier deals',
   offers: 'Offers',
@@ -209,6 +211,7 @@ const ar: RouteTitleCopy = {
   invite: 'دعوة',
   messages: 'الرسائل',
   peopleFound: 'Personnes trouvées',
+  offerForYou: 'Offre pour vous',
   request: 'طلب',
   legacy: 'الصفقات السابقة',
   offers: 'العروض',
@@ -295,6 +298,7 @@ const fr: RouteTitleCopy = {
   invite: 'Invitation',
   messages: 'Messages',
   peopleFound: 'الأشخاص الذين تم العثور عليهم',
+  offerForYou: 'عرض لك',
   request: 'Demande',
   legacy: 'Accords précédents',
   offers: 'Offres',
@@ -381,6 +385,7 @@ const hi: RouteTitleCopy = {
   invite: 'आमंत्रण',
   messages: 'संदेश',
   peopleFound: 'मिले हुए लोग',
+  offerForYou: 'आपके लिए ऑफ़र',
   request: 'अनुरोध',
   legacy: 'पिछले सौदे',
   offers: 'ऑफ़र',
@@ -467,6 +472,7 @@ const sw: RouteTitleCopy = {
   invite: 'Mwaliko',
   messages: 'Ujumbe',
   peopleFound: 'Watu waliopatikana',
+  offerForYou: 'Ofa kwako',
   request: 'Ombi',
   legacy: 'Mikataba ya awali',
   offers: 'Ofa',

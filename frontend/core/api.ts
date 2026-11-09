@@ -425,6 +425,23 @@ export interface PitchView {
   closed: boolean;
 }
 
+/// A buyer a seller's agent found (view 72, Phase 4): what they need, never who they are.
+export interface FoundLead {
+  kind: 'request' | 'need';
+  /// The request's id, or the need's.
+  ref: string;
+  what: string;
+  budgetUsdc: string | null;
+  every: 'once' | 'week' | 'month' | 'season' | null;
+  deliveryKind: 'goods' | 'in_person' | 'remote';
+  dueDays: number | null;
+  distance: DistanceLine;
+  buyerVerified: boolean;
+  buyerTier: FoundPerson['tier'];
+  /// This seller already offered for this need from this list.
+  pitched: boolean;
+}
+
 /// One person an agent found, as the person who asked sees them.
 export interface FoundPerson {
   tag: string | null;
@@ -458,6 +475,8 @@ export interface FindView {
   jobId: string | null;
   needId: string | null;
   rows: FoundPerson[];
+  /// A seller's find (Phase 4): requests and needs that fit them, buyers unnamed.
+  leads?: FoundLead[];
   status: 'shortlisted' | 'contacting' | 'matched' | 'ended';
   createdAt: number;
   endsAt: number;

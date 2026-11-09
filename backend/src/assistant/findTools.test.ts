@@ -153,7 +153,7 @@ test('people they blocked, or who blocked them, never come up', async () => {
 });
 
 const CHEF_LEADS = [
-  { kind: 'need' as const, ref: 'n9', buyer: '0xrestaurant', what: 'Lunch for 20 every Friday', keywords: ['lunch'], budgetUsdc: 40, every: 'week' as const, deliveryKind: 'in_person' as const, where: { scope: 'near' as const }, buyerLocation: null, buyerVerified: true, buyerTier: 'ESTABLISHED' as const, dueDays: null, open: true, contactFrom: 'anyone' as const },
+  { kind: 'need' as const, ref: 'n9', buyer: '0xcafe', what: 'Lunch for 20 every Friday', keywords: ['lunch'], budgetUsdc: 40, every: 'week' as const, deliveryKind: 'in_person' as const, where: { scope: 'near' as const }, buyerLocation: null, buyerVerified: true, buyerTier: 'ESTABLISHED' as const, dueDays: null, open: true, contactFrom: 'anyone' as const },
   { kind: 'request' as const, ref: '0xjob1', buyer: '0xoffice', what: 'Lunch for a launch party', keywords: ['lunch'], budgetUsdc: 90, every: null, deliveryKind: 'remote' as const, where: { scope: 'anywhere' as const }, buyerLocation: null, buyerVerified: false, buyerTier: 'NEW' as const, dueDays: 3, open: true, contactFrom: 'anyone' as const },
 ];
 const CHEF = { user: ME, words: ['lunch', 'catering'], meet: { atMyPlace: false, comeToYouKm: 20, online: true }, location: null, verified: true, priceMin: null };
@@ -169,10 +169,10 @@ test('find_customers lists open requests and reachable needs, numbered, with no 
   assert.deepEqual(out.buyers.map((b) => [b.number, b.kind]), [[1, 'regular need'], [2, 'open request']]);
   assert.equal(out.buyers[0]!.budget, 'about ₦53,840');
   assert.equal(out.buyers[1]!.jobId, '0xjob1');
-  assert.doesNotMatch(JSON.stringify(out), /0xrestaurant|0xoffice/);
+  assert.doesNotMatch(JSON.stringify(out), /0xcafe|0xoffice/);
   assert.equal(saved[0]!.side, 'seller');
   assert.equal(saved[0]!.leads!.length, 2);
-  assert.equal(s.actions.length, 0, 'finding buyers contacts nobody');
+  assert.deepEqual(s.actions.map((a) => a.kind), ['navigate'], 'a link to the buyers, no card: finding buyers contacts nobody');
 });
 
 test('pitch_buyers is a card for needs only, in the seller money, saying nothing is paid', async () => {

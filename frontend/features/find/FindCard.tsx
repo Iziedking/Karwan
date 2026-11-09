@@ -7,6 +7,7 @@ import { buttonClasses } from '@/shared/components/Button';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { findPeopleCopy } from '@/shared/i18n/messages/findPeople';
 import { findKey } from './FindPage';
+import { BuyersCard } from './BuyersCard';
 import { fillFind } from './foundModel';
 import { PersonRow, PersonSheet, PhotoStack } from './FoundPeople';
 
@@ -33,6 +34,8 @@ export function FindCard({ id, href, onNavigate }: { id: string; href: string; o
           <p className="text-[14px] text-[var(--ink-secondary)]">{find.isPending ? t.loading : t.failed}</p>
           <button type="button" onClick={go} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>{t.seeOne}</button>
         </div>
+      ) : f.side === 'seller' ? (
+        <BuyersCard find={f} t={t} onOpen={go} />
       ) : (
         <>
           <div className="flex items-center justify-between gap-3 px-3.5 pb-1.5 pt-3.5">

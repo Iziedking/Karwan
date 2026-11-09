@@ -11,6 +11,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { findPeopleCopy, type FindPeopleCopy } from '@/shared/i18n/messages/findPeople';
 import { askedText, endsText, fillFind, firstName, PICK_MAX, titleOf } from './foundModel';
+import { BuyersFound } from './BuyersFound';
 import { PeopleList, PersonSheet, PhotoStack } from './FoundPeople';
 
 export const findKey = (id: string) => ['find', id] as const;
@@ -52,6 +53,8 @@ export function FindPage({ id }: { id: string }) {
             <button type="button" onClick={() => void find.refetch()} className={buttonClasses({ variant: 'secondary', size: 'md', className: 'mt-4' })}>{t.retry}</button>
           ) : null}
         </div>
+      ) : f.side === 'seller' ? (
+        <BuyersFound find={f} t={t} locale={locale} />
       ) : (
         <>
           {sent ? (

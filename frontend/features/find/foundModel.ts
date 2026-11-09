@@ -1,4 +1,4 @@
-import type { DistanceLine, FindView, FoundPerson, Meet } from '@/core/api';
+import type { DistanceLine, FindView, FoundLead, FoundPerson, Meet } from '@/core/api';
 import type { FindPeopleCopy } from '@/shared/i18n/messages/findPeople';
 
 /// How the people an agent found read on a screen (view 72). Pure.
@@ -82,3 +82,17 @@ export function askedText(p: Pick<FoundPerson, 'asked'>, t: FindPeopleCopy, loca
 }
 
 export const PICK_MAX = 3;
+
+/// Needs a seller may offer for at once (Phase 4).
+export const PITCH_MAX = 5;
+
+/// The line under a buyer's need: how often or when it is due, how far, verified.
+export function leadLine(l: FoundLead, t: FindPeopleCopy): string {
+  const when = l.every ? t.every[l.every] : l.dueDays !== null ? (l.dueDays <= 1 ? t.dueOne : fill(t.dueIn, { n: l.dueDays })) : null;
+  return [when, distanceText(l.distance, t), l.buyerVerified ? t.verified : null].filter(Boolean).join(' · ');
+}
+
+/// "3 buyers near you".
+export function buyersTitle(n: number, t: FindPeopleCopy): string {
+  return n === 1 ? t.buyersOne : fill(t.buyers, { n });
+}
