@@ -10,6 +10,7 @@ import { OpenWorkRequests } from '@/features/work/components/OpenWorkRequests';
 import { Band, FullBleed } from '@/shared/components/Bands';
 import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
+import { ADDRESS_CHANGED } from '@/shared/components/TaskEntryLink';
 import { Icon } from '@/shared/components/Icon';
 import { Skeleton } from '@/shared/components/Skeleton';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -78,6 +79,7 @@ function Shop() {
       // Next merges its router state when handling a native URL update.
       // Passing its private __NA marker would bypass that update.
       window.history.replaceState(null, '', href);
+      window.dispatchEvent(new Event(ADDRESS_CHANGED));
     }
   }
   const setSide = (next: MarketSide) => updateFilters({ side: next });

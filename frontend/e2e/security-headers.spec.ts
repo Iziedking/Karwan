@@ -61,7 +61,10 @@ test('a script put on the page without the nonce is caught', async ({ page }) =>
       document.body.appendChild(s);
     });
   });
-  expect(found.some((v) => v.directive.startsWith('script-src'))).toBe(true);
+  // The handler runs only once the image fails to load, which can take longer
+  // than the helper's short wait on a busy runner, so wait for the report itself.
+  const caught = () => page.evaluate(() => (window as unknown as { __csp: { directive: string }[] }).__csp.some((v) => v.directive.startsWith('script-src')));
+  if (!found.some((v) => v.directive.startsWith('script-src'))) await expect.poll(caught, { timeout: 10_000 }).toBe(true);
 });
 
 test('a call to a host the policy does not name is caught', async ({ page }) => {
