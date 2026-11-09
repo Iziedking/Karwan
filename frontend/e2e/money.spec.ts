@@ -255,7 +255,7 @@ test('send is its own page: who, then the amount, then a confirm sheet (view 50)
     },
   });
   await page.goto('/send');
-  const flow = page.getByRole('region', { name: 'Send USDC' });
+  const flow = page.getByRole('region', { name: 'Send money' });
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const to = flow.getByLabel('Send to');
   const next = flow.getByRole('button', { name: 'Continue', exact: true });
@@ -286,7 +286,7 @@ test('send is its own page: who, then the amount, then a confirm sheet (view 50)
 test('a link that names the person opens on the amount, with the keypad on a touch screen (view 50)', async ({ page }, testInfo) => {
   await serveMoney(page, { balances: funded, tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } } });
   await page.goto('/send?to=@ada');
-  const flow = page.getByRole('region', { name: 'Send USDC' });
+  const flow = page.getByRole('region', { name: 'Send money' });
   const amount = flow.getByLabel('Amount', { exact: true });
   await expect(amount).toBeVisible();
   const keypad = flow.getByRole('group', { name: 'Amount keypad' });
@@ -312,7 +312,7 @@ test('recent people start a send, and a note goes with it to the server (view 50
     },
   });
   await page.goto('/send');
-  const flow = page.getByRole('region', { name: 'Send USDC' });
+  const flow = page.getByRole('region', { name: 'Send money' });
   await expect(flow).toContainText('Recent');
   await flow.getByRole('button', { name: /@ada/ }).click();
   await expect(flow.getByLabel('Send to')).toHaveValue('@ada');
@@ -334,7 +334,7 @@ test('an email account sends from its own wallet; a pool is never counted', asyn
     tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } },
   });
   await page.goto('/send?to=@ada');
-  const flow = page.getByRole('region', { name: 'Send USDC' });
+  const flow = page.getByRole('region', { name: 'Send money' });
   await expect(flow).toContainText('Available 100.00 USDC');
   await expect(flow).not.toContainText('150.00');
 });

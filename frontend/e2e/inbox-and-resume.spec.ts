@@ -33,7 +33,7 @@ test('messages people sent you are read in the app, the ones waiting for you fir
 test('an email account has no send from another network; its money is already on Arc', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/send');
-  await expect(page.getByRole('region', { name: 'Send USDC' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Send money' })).toBeVisible();
   await expect(page.getByRole('link', { name: /another network/ })).toHaveCount(0);
 });
 

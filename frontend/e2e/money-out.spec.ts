@@ -97,7 +97,7 @@ test('a send to a new address says so and offers to add it with World ID, for ex
     },
   });
   await page.goto('/send');
-  const sheet = page.getByRole('region', { name: 'Send USDC' });
+  const sheet = page.getByRole('region', { name: 'Send money' });
   await sheet.getByLabel('Send to').fill(STRANGER);
   await sheet.getByRole('button', { name: 'Continue', exact: true }).click();
   await sheet.getByLabel('Amount', { exact: true }).fill('25');
