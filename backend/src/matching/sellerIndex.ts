@@ -58,7 +58,7 @@ export function indexEntry(agents: Pick<AgentWallets, 'userAddress' | 'sellerAdd
     shapes: waysOf(profile).sell.map((w) => w.shape),
     country: profile.location?.country ?? null,
     example: Boolean((profile as { seedKey?: string }).seedKey),
-    onMarket: agentPrefsOf(profile).findClients !== false,
+    onMarket: agentPrefsOf(profile).findClients !== false && agentPrefsOf(profile).agentOn !== false,
     updatedAt: now,
   };
 }

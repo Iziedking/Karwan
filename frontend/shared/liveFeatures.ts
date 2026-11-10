@@ -2,6 +2,8 @@
 /// answer arrives every feature counts as off, so nothing flashes and vanishes.
 export interface LiveFeatures {
   hourlyWork: boolean;
+  /// View 75: a chosen seller is asked first, and the agent can be switched off.
+  sellerAsked?: boolean;
 }
 
 export const LIVE_FEATURES_OFF: LiveFeatures = { hourlyWork: false };

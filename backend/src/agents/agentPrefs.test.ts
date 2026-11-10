@@ -26,6 +26,14 @@ test('the market sweep leaves out someone who said they have their own clients o
   assert.equal(joinsMarket(profile({ findClients: false })), false);
 });
 
+test('a person whose agent is switched off makes no offers, and still resolves when chosen', () => {
+  assert.equal(joinsMarket(profile({ agentOn: false })), false);
+  assert.equal(joinsMarket(profile({ agentOn: true })), true);
+  assert.equal(joinsMarket(profile({ agentOn: false, findClients: true })), false);
+  // An offer already made stands: the seller is still found when a buyer chooses it.
+  assert.ok(toSellerProfile(agents, profile({ agentOn: false })));
+});
+
 test('the seller profile carries how much the agent may do on its own', () => {
   assert.equal(toSellerProfile(agents, profile())?.agentMode, 'offers');
   assert.equal(toSellerProfile(agents, profile({ agentMode: 'ask' }))?.agentMode, 'ask');

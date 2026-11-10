@@ -72,3 +72,37 @@ test('how you get paid keeps a carried-over price marked as not given', async ({
   const paid = saves.find((s) => s.path === '/api/setup/ways')!.body as { ways: { sell: Record<string, unknown>[] } };
   expect(paid.ways.sell[0]).toMatchObject({ shape: 'milestones', usualGuessed: true, stages: 2 });
 });
+
+test('the agent switch turns the agent off and on, only where it is open', async ({ page }) => {
+  const saves: { path: string; body: unknown }[] = [];
+  await serveAgent(page, saves);
+  const changes: unknown[] = [];
+  // The saved switch comes back with the profile, as it does from the server.
+  let agentOn = true;
+  await page.route(`${API}/api/profile**`, (route) => route.fulfill({ json: { profile: { ...profile, agentPrefs: { agentOn } } } }));
+  await page.route(`${API}/api/agents/mandate`, (route) => {
+    const body = route.request().postDataJSON() as { patch: { on: boolean } };
+    changes.push(body);
+    agentOn = body.patch.on;
+    return route.fulfill({ json: { lines: [], replan: { judged: 0, offered: 0, closedQuestions: 0, line: 'Done.' } } });
+  });
+  await page.goto('/profile/setup');
+  await expect(page.getByRole('heading', { name: 'Your agent' })).toBeVisible();
+  // Not open on this network: no switch.
+  await expect(page.locator('[data-agent-power]')).toHaveCount(0);
+
+  await page.route(`${API}/api/features`, (route) => route.fulfill({ json: { hourlyWork: false, sellerAsked: true } }));
+  await page.reload();
+  const power = page.locator('[data-agent-power]').getByRole('switch', { name: /Agent on/ });
+  await expect(power).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('[data-agent-power]')).toContainText('It offers, bargains and finds people for you.');
+  await power.click();
+  await expect(power).toHaveAttribute('aria-checked', 'false');
+  await expect(page.locator('[data-agent-power]')).toContainText('It does nothing for you. Deals already running go on.');
+  await expect(page.locator('[data-agent-state="switched-off"]')).toContainText('Switched off');
+  expect((changes[0] as { patch: unknown }).patch).toEqual({ part: 'power', on: false });
+  expect(String((changes[0] as { cardId: string }).cardId).length).toBeGreaterThanOrEqual(8);
+  await power.click();
+  await expect(power).toHaveAttribute('aria-checked', 'true');
+  expect((changes[1] as { patch: unknown }).patch).toEqual({ part: 'power', on: true });
+});

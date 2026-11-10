@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { AGENT_OFF_ANSWER, agentIsOn } from '../agents/agentPower.js';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { isVerified } from '../agents/shortlist.js';
@@ -84,6 +85,7 @@ const EVERY = z.enum(['once', 'week', 'month', 'season']);
 const KIND = z.enum(['goods', 'in_person', 'remote']);
 const DAY_MS = 86_400_000;
 
+/// View 75: finding people is the agent's work; it rests while the agent is off.
 export function findTools(address: string, actions: AssistantAction[], deps: FindToolDeps) {
   const me = address.toLowerCase();
   const line = async (n: StandingNeed) =>
@@ -102,6 +104,7 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
         days: z.number().int().min(1).max(365).optional().describe('By when, in days.'),
       }),
       execute: async ({ need, budgetUsdc, kind, where, country, days }) => {
+        if (!(await agentIsOn(me))) return AGENT_OFF_ANSWER;
         const buyer = await deps.buyer(me);
         if (kind === 'in_person' && !buyer.location?.city && !buyer.location?.point) {
           return { needsLocation: true, next: 'Ask once, roughly, where they should meet people (area and city), save it with set_location, then find again.' };
@@ -148,6 +151,7 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
         'Prepare a card that posts the need privately and tells the people the buyer picked from their last find (find_people), one to three, by their number on that list (1 is the first). Each gets one message, reminded at most three times, spaced out and never at night; their offers come back to the buyer, who still picks one and locks the money. Use when the buyer says who to ask ("ask Ngozi and Amaka", "ask the first two"). Nothing is paid by this.',
       inputSchema: z.object({ people: z.array(z.number().int().min(1).max(5)).min(1).max(3) }),
       execute: async ({ people }) => {
+        if (!(await agentIsOn(me))) return AGENT_OFF_ANSWER;
         const find = (await deps.finds(me)).find((f) => f.side === 'buyer' && f.status === 'shortlisted' && !f.jobId);
         if (!find) return { error: 'There is no list of people to ask. Run find_people first.' };
         const picks = [...new Set(people.map((n) => n - 1))].filter((i) => !!find.rows[i]);
@@ -179,6 +183,7 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
         "For a SELLER: find buyers for what they sell (view 72): open requests on the market that fit them, and the standing needs of buyers near them who let sellers reach them, best skill fit first, then distance, then the buyer's record. At most five, numbered from 1. Buyers are not named; each row says what they need, how often, the rough budget and how far they are. A card with the buyers and a See all button is shown under your reply. It contacts nobody. For a request, offer as on any request (propose_make_offer with its jobId; never show the jobId). For a need, offer with pitch_buyers and their numbers. Nobody fits: say so plainly.",
       inputSchema: z.object({}),
       execute: async () => {
+        if (!(await agentIsOn(me))) return AGENT_OFF_ANSWER;
         const { seller, leads } = await deps.customers(me);
         if (!seller) return { found: 0, next: 'They have no selling profile yet. Offer set_up_my_agents.' };
         const rows = rankBuyersFor(leads, seller, { blocked: await deps.blocked(me) });
@@ -223,6 +228,7 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
         note: z.string().max(280).optional(),
       }),
       execute: async ({ buyers, priceUsdc, days, note }) => {
+        if (!(await agentIsOn(me))) return AGENT_OFF_ANSWER;
         const find = (await deps.finds(me)).find((f) => f.side === 'seller' && f.status !== 'ended' && (f.leads?.length ?? 0) > 0);
         const leads = find?.leads;
         if (!find || !leads) return { error: 'There is no list of buyers. Run find_customers first.' };

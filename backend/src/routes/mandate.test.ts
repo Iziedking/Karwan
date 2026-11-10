@@ -142,3 +142,27 @@ test('the re-plan sees the mandate from before the change', async () => {
   await h.post({ patch: { part: 'alone', mode: 'offers' }, cardId: fresh() });
   assert.equal(h.replans[0]!.before.alone, 'ask');
 });
+
+test('the agent switch is saved on the profile, and refused where it is not open', async () => {
+  const h = harness();
+  const off = await h.post({ patch: { part: 'power', on: false }, cardId: fresh() });
+  assert.equal(off.status, 200);
+  const body = (await off.json()) as { mandate: Mandate; lines: string[] };
+  assert.equal(body.mandate.on, false);
+  assert.match(body.lines[0]!, /Your agent is off/);
+  assert.equal(h.profile().agentPrefs?.agentOn, false);
+  // What they chose before is kept for when it comes back on.
+  assert.equal(h.profile().agentPrefs?.agentMode, 'ask');
+  assert.equal(h.replans.at(-1)?.before.on, true);
+  const on = await h.post({ patch: { part: 'power', on: true }, cardId: fresh() });
+  assert.equal(((await on.json()) as { mandate: Mandate }).mandate.on, true);
+  assert.equal(h.profile().agentPrefs?.agentOn, true);
+
+  const closed = harness({ powerOpen: () => false });
+  const res = await closed.post({ patch: { part: 'power', on: false }, cardId: fresh() });
+  assert.equal(res.status, 400);
+  assert.equal(((await res.json()) as { code: string }).code, 'POWER_CLOSED');
+  assert.equal(closed.saved.length, 0);
+  // Every other part still works there.
+  assert.equal((await closed.post({ patch: { part: 'quiet-off' }, cardId: fresh() })).status, 200);
+});

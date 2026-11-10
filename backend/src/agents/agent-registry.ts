@@ -44,8 +44,10 @@ function toBuyerProfile(agents: AgentWallets, profile: UserProfile): BuyerProfil
 
 /// Whether this person's selling agent looks for clients on the market. Off when
 /// they said they only work with clients they already have (view 19).
+/// A person whose agent is switched off makes no offers either (view 75).
 export function joinsMarket(profile: UserProfile): boolean {
-  return agentPrefsOf(profile).findClients !== false;
+  const prefs = agentPrefsOf(profile);
+  return prefs.findClients !== false && prefs.agentOn !== false;
 }
 
 export function toSellerProfile(agents: AgentWallets, profile: UserProfile): SellerProfile | null {

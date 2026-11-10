@@ -7,6 +7,7 @@ import { categoryOfRequest } from '../intelligence/marketStore.js';
 import { currentMarket } from '../intelligence/marketStoreLive.js';
 import { checkWatch } from '../intelligence/watches.js';
 import { leased } from '../ops/leasedLoop.js';
+import { agentIsOn } from './agentPower.js';
 
 /// The sweep behind watch_market (view 48, step 5). Every half hour each live
 /// watch is compared with the market as it is now, and its owner hears once
@@ -23,6 +24,8 @@ export async function sweepWatches(now = Date.now()): Promise<number> {
     .map((b) => ({ jobId: b.jobId, category: categoryOfRequest(b), postedAt: b.createdAt }));
   let told = 0;
   for (const w of watches) {
+    // View 75: a watch rests while its owner's agent is off.
+    if (!(await agentIsOn(w.owner))) continue;
     const { hit, watch } = checkWatch(w, market, requests, now);
     await saveWatch(watch).catch((err: Error) => logger.warn({ err: err.message, watch: w.id }, 'market watch not saved'));
     if (!hit) continue;

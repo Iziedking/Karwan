@@ -6,7 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api, type UserProfile } from '@/core/api';
 import { rememberReturn } from '@/features/assistant/assistantReturn';
 import { waysOf } from '@/features/profile/ways';
-import { Row, RowGroup } from '@/features/profile/ui/ProfileUi';
+import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
+import { useLiveFeatures } from '@/shared/hooks/useLiveFeatures';
 import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { setupCopy } from '@/shared/i18n/messages/setup';
@@ -49,6 +50,24 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
   const given = sellerUsualGiven(profile);
   const mode = profile.agentPrefs?.agentMode ?? 'offers';
   const waiting = offers.data?.length ?? 0;
+  // The agent switch (view 75). One change at a time; a failure leaves it as it was.
+  const features = useLiveFeatures();
+  const agentOn = profile.agentPrefs?.agentOn !== false;
+  const [switching, setSwitching] = useState(false);
+  const [switchFailed, setSwitchFailed] = useState(false);
+  async function setPower(on: boolean) {
+    if (switching) return;
+    setSwitching(true);
+    setSwitchFailed(false);
+    try {
+      await api.changeMandate({ part: 'power', on }, `page:${crypto.randomUUID()}`);
+      saved({ ...profile, agentPrefs: { ...(profile.agentPrefs ?? {}), agentOn: on } });
+    } catch {
+      setSwitchFailed(true);
+    } finally {
+      setSwitching(false);
+    }
+  }
 
   const changeClass = 'inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]';
   const change = (key: PanelKey) => (
@@ -79,10 +98,10 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
   return (
     <div data-your-agent className="space-y-7">
       {activationLoading ? null : activated ? (
-        <p data-agent-state="on" className="flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
-          <span aria-hidden className="size-2.5 rounded-full bg-[var(--lp-accent)]" />
-          {t.on}
-          {profile.seller && waiting > 0 ? <span className="font-medium text-[var(--lp-text-sub)]">· {waiting === 1 ? t.oneOfferWaiting : fill(t.offersWaiting, { n: waiting })}</span> : null}
+        <p data-agent-state={agentOn ? 'on' : 'switched-off'} className="flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
+          <span aria-hidden className={`size-2.5 rounded-full ${agentOn ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-text-sub)]'}`} />
+          {agentOn ? t.on : t.power.offState}
+          {agentOn && profile.seller && waiting > 0 ? <span className="font-medium text-[var(--lp-text-sub)]">· {waiting === 1 ? t.oneOfferWaiting : fill(t.offersWaiting, { n: waiting })}</span> : null}
         </p>
       ) : (
         <section data-agent-state="off" className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
@@ -93,6 +112,15 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
           </button>
         </section>
       )}
+
+      {activated && !activationLoading && features.sellerAsked ? (
+        <div data-agent-power>
+          <RowGroup>
+            <ToggleRow label={t.power.label} note={agentOn ? t.power.onNote : t.power.offNote} checked={agentOn} onChange={(next) => void setPower(next)} />
+          </RowGroup>
+          {switchFailed ? <p role="alert" className="mt-2 text-[14px] font-medium text-[var(--lp-dark)]">{t.failed}</p> : null}
+        </div>
+      ) : null}
 
       {profile.seller && !given && main ? (
         <section data-price-notice className="rounded-[20px] border border-[var(--lp-accent)] bg-[var(--offer-surface)] p-5">

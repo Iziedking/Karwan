@@ -95,6 +95,7 @@ import { loadInputs } from '../reputation/signals.js';
 import { bargainOn, getBrief, listOpenBriefJobIds, patchBrief } from '../db/briefs.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { getProfile } from '../db/profiles.js';
+import { agentIsOn } from './agentPower.js';
 import {
   getMatchProposal as dbGetMatchProposal,
   upsertMatchProposal as dbUpsertMatchProposal,
@@ -1946,8 +1947,16 @@ function clearCollectionClose(state: JobState, publish = true): void {
 /// once per auction. Stores the read on the state for the proposal, pushes the
 /// demand into the shared heat cache so both agents negotiate tuned to it, and
 /// meters the account's credit only on a fresh (uncached) call. Best-effort.
+/// View 75: with the buyer's agent switched off it lists the offers and does
+/// nothing else: no paid checks, no recommendation, no bargaining.
+async function buyerAgentOff(state: JobState): Promise<boolean> {
+  const owner = getBrief(state.jobId)?.postedBy ?? (await findAgentWalletByAgentAddress(state.buyer.address).catch(() => null))?.userAddress;
+  return !!owner && !(await agentIsOn(owner));
+}
+
 async function maybeResearchMarket(state: JobState): Promise<void> {
   if (state.marketRead) return;
+  if (await buyerAgentOff(state)) return;
   if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return;
   const keywords = state.context.keywords ?? [];
   if (keywords.length === 0) return;
@@ -2114,6 +2123,7 @@ async function publishShortlist(
   const buyerUser = brief?.postedBy ?? state.context.buyer;
   const before = state.shortlist?.find((e) => e.recommended)?.seller ?? null;
   const nowUnix = Math.floor(Date.now() / 1000);
+  const agentOff = await buyerAgentOff(state);
   const candidates = await buildCandidates(
     {
       jobId: state.jobId,
@@ -2133,13 +2143,13 @@ async function publishShortlist(
       deliveryKind: brief ? kindOf(brief) : undefined,
       buyerLocation: await locationOf(buyerUser),
     },
-    shortlistDeps(state),
+    agentOff ? { ...shortlistDeps(state), readRecord: async () => null } : shortlistDeps(state),
   );
   const ranked = onePerPerson(
     rankCandidates(candidates, budget, { bargain: bargainOn(state.jobId), leewayPct: state.context.negotiationMaxIncreasePct ?? 0 }),
   );
   const limits = shortlistLimits(budget, state.context.negotiationMaxIncreasePct);
-  const recommended = pickRecommended(ranked, limits.recommendUpTo, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS);
+  const recommended = agentOff ? null : pickRecommended(ranked, limits.recommendUpTo, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS);
   state.shortlistCandidates = ranked;
   state.shortlist = toEntries(ranked, recommended, budget, null, state.shortlist ?? []);
   notesChanged(state);
@@ -2154,6 +2164,8 @@ async function publishShortlist(
     { jobId: state.jobId, count: state.shortlist.length, recommended: recommended?.seller ?? null },
     'shortlist published',
   );
+  // The person chooses by hand from the list as it stands.
+  if (agentOff) return;
 
   // View 73: every listed offer gets its own negotiation, at once.
   if (bargainOn(state.jobId)) {
@@ -3391,6 +3403,8 @@ async function handleCounterResponse(log: Log) {
   // View 73: a reply moves that seller's own negotiation, nothing else.
   if (bargainOn(state.jobId) && state.negotiations?.has(args.seller.toLowerCase())) {
     clearBookWait(state, args.seller);
+    // Switched off mid-bargain: the reply is not answered, and the offer stands.
+    if (await buyerAgentOff(state)) return;
     await feedBook(state, {
       kind: 'reply',
       seller: args.seller,

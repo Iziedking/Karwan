@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { newAgentRecord } from './agentRecord.js';
-import { DEFAULT_BRIEF, DEFAULT_QUIET, MAX_GOALS, mandateOf, sayMandate, validatePatch, type Mandate } from './mandate.js';
+import { DEFAULT_BRIEF, DEFAULT_QUIET, MAX_GOALS, mandateOf, mandatePatchSchema, previewPatch, sayMandate, validatePatch, type Mandate } from './mandate.js';
 import type { MarketWatch } from '../intelligence/watches.js';
 
 ///   npx tsx --test src/agents/mandate.test.ts
@@ -131,4 +131,24 @@ test('sayMandateLinesInFiveLanguages', () => {
   assert.ok(off.includes('Your agent is not selling anything yet.'));
   assert.ok(off.includes('Your daily brief is off.'));
   assert.ok(off.includes('Quiet hours are off.'));
+});
+
+test('the agent is on unless the person switched it off, and off is said first', () => {
+  assert.equal(base().on, true);
+  const off = mandateOf({ ...profile, agentPrefs: { agentMode: 'ask' as const, agentOn: false } }, null, []);
+  assert.equal(off.on, false);
+  assert.equal(validatePatch(base(), { part: 'power', on: false }), null);
+  assert.equal(validatePatch(off, { part: 'power', on: true }), null);
+  assert.equal(previewPatch(base(), { part: 'power', on: false }, NOW).on, false);
+  assert.equal(previewPatch(off, { part: 'power', on: true }, NOW).on, true);
+  assert.equal(mandatePatchSchema.safeParse({ part: 'power', on: false }).success, true);
+  assert.equal(mandatePatchSchema.safeParse({ part: 'power' }).success, false);
+  const en = sayMandate(off, 'en');
+  assert.equal(en[0], 'Your agent is off. It does nothing for you until you turn it back on.');
+  assert.equal(sayMandate(base(), 'en').some((l) => l.includes('is off. It does nothing')), false);
+  for (const locale of ['fr', 'ar', 'hi', 'sw'] as const) {
+    const first = sayMandate(off, locale)[0]!;
+    assert.notEqual(first, en[0], locale);
+    assert.doesNotMatch(first, /\{\w+\}|—|undefined/, locale);
+  }
 });

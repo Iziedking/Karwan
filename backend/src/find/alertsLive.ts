@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { agentIsOn } from '../agents/agentPower.js';
 import { DEFAULT_BRIEF, DEFAULT_QUIET } from '../agents/mandate.js';
 import { CLOSES_REQUEST } from '../agents/questionSweep.js';
 import { getAgentRecord } from '../db/agentRecords.js';
@@ -130,6 +131,8 @@ export function startFindContactSweep(): () => void {
         zoneOf,
         send: async (claimed) => {
           const find = await findById(claimed.contact.findId);
+          // View 75: nothing is sent for a person whose agent is off.
+          if (find && !(await agentIsOn(find.owner))) return;
           return claimed.contact.kind === 'pitch' ? sendPitchDue(claimed, find, livePitchDeps) : sendDue(claimed, find, liveAlertDeps);
         },
       });

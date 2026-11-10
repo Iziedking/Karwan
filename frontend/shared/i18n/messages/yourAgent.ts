@@ -8,6 +8,8 @@ export interface YourAgentCopy {
   off: string;
   offBody: string;
   turnOn: string;
+  /// The agent switch (view 75).
+  power: { label: string; onNote: string; offNote: string; offState: string };
   priceNotice: string;
   setPrice: string;
   rows: { sell: string; price: string; paid: string; alone: string; buy: string };
@@ -117,6 +119,7 @@ export const yourAgentCopy: Record<Locale, YourAgentCopy> = {
     off: 'Your agent is off',
     offBody: 'Turn it on to offer on requests that fit what you sell.',
     turnOn: 'Turn on your agent',
+    power: { label: 'Agent on', onNote: 'It offers, bargains and finds people for you.', offNote: 'It does nothing for you. Deals already running go on.', offState: 'Switched off' },
     priceNotice: "Set your usual price. Until you do, your agent offers at the buyer's budget.",
     setPrice: 'Set price',
     rows: { sell: 'What you sell', price: 'Your price', paid: 'How you get paid', alone: "Agent permissions", buy: 'When you buy' },
@@ -222,6 +225,7 @@ export const yourAgentCopy: Record<Locale, YourAgentCopy> = {
     off: 'Votre agent est désactivé',
     offBody: 'Activez-le pour faire des offres sur les demandes qui correspondent à ce que vous vendez.',
     turnOn: 'Activer votre agent',
+    power: { label: 'Agent activé', onNote: 'Il fait des offres, négocie et trouve des personnes pour vous.', offNote: 'Il ne fait rien pour vous. Les transactions en cours continuent.', offState: 'Arrêté' },
     priceNotice: 'Indiquez votre prix habituel. D’ici là, votre agent propose le budget de l’acheteur.',
     setPrice: 'Indiquer le prix',
     rows: { sell: 'Ce que vous vendez', price: 'Votre prix', paid: 'Comment vous êtes payé', alone: "Autorisations de l’agent", buy: 'Quand vous achetez' },
@@ -327,6 +331,7 @@ export const yourAgentCopy: Record<Locale, YourAgentCopy> = {
     off: 'وكيلك متوقف',
     offBody: 'فعّله ليقدّم عروضًا على الطلبات التي تناسب ما تبيعه.',
     turnOn: 'فعّل وكيلك',
+    power: { label: 'الوكيل يعمل', onNote: 'يقدّم العروض ويساوم ويبحث عن أشخاص لك.', offNote: 'لا يفعل شيئًا لك. الصفقات الجارية تستمر.', offState: 'متوقف' },
     priceNotice: 'حدّد سعرك المعتاد. حتى تفعل ذلك، يعرض وكيلك ميزانية المشتري.',
     setPrice: 'حدّد السعر',
     rows: { sell: 'ما تبيعه', price: 'سعرك', paid: 'كيف تتقاضى أجرك', alone: "صلاحيات الوكيل", buy: 'عندما تشتري' },
@@ -432,6 +437,7 @@ export const yourAgentCopy: Record<Locale, YourAgentCopy> = {
     off: 'आपका एजेंट बंद है',
     offBody: 'इसे चालू करें ताकि यह आपके बेचे जाने वाले काम से मेल खाते अनुरोधों पर ऑफ़र दे।',
     turnOn: 'अपना एजेंट चालू करें',
+    power: { label: 'एजेंट चालू', onNote: 'यह आपके लिए पेशकश करता है, मोलभाव करता है और लोगों को खोजता है।', offNote: 'यह आपके लिए कुछ नहीं करता। चल रहे सौदे जारी रहते हैं।', offState: 'बंद किया गया' },
     priceNotice: 'अपनी सामान्य कीमत बताएं। तब तक आपका एजेंट खरीदार के बजट पर ऑफ़र देता है।',
     setPrice: 'कीमत बताएं',
     rows: { sell: 'आप क्या बेचते हैं', price: 'आपकी कीमत', paid: 'आपको भुगतान कैसे मिलता है', alone: "एजेंट की अनुमतियाँ", buy: 'जब आप खरीदते हैं' },
@@ -537,6 +543,7 @@ export const yourAgentCopy: Record<Locale, YourAgentCopy> = {
     off: 'Wakala wako amezimwa',
     offBody: 'Mwashe ili atoe ofa kwa maombi yanayolingana na unachouza.',
     turnOn: 'Washa wakala wako',
+    power: { label: 'Wakala amewashwa', onNote: 'Anatoa ofa, anajadiliana bei na kukutafutia watu.', offNote: 'Hakufanyii chochote. Mikataba inayoendelea inaendelea.', offState: 'Amezimwa' },
     priceNotice: 'Weka bei yako ya kawaida. Hadi utakapoiweka, wakala wako hutoa ofa kwa bajeti ya mnunuzi.',
     setPrice: 'Weka bei',
     rows: { sell: 'Unachouza', price: 'Bei yako', paid: 'Unavyolipwa', alone: "Ruhusa za wakala", buy: 'Unaponunua' },

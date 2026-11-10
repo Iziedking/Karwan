@@ -16,6 +16,7 @@ import { goalFits, goalWords, type BriefFacts } from './brief.js';
 import { getBuyerSnapshot, type BuyerJobSnapshot } from './buyer.js';
 import { briefTick, onOfferOnRequest, type BriefGathered, type PersonAgentDeps } from './personAgent.js';
 import { leased } from '../ops/leasedLoop.js';
+import { agentIsOn } from './agentPower.js';
 
 /// The live stores behind the person agent (view 52, step 4). Reads only what
 /// the person already has: their requests and the offers on them, their open
@@ -109,8 +110,13 @@ async function gather(owner: string, ctx: { since: number; now: number; record: 
 
 export const livePersonAgentDeps: PersonAgentDeps = {
   now: Date.now,
-  people: () => listAgentRecords(),
-  recordFor: (owner) => getAgentRecord(owner),
+  // View 75: a person whose agent is off gets no brief and no notes.
+  people: async () => {
+    const out: AgentRecord[] = [];
+    for (const r of await listAgentRecords()) if (await agentIsOn(r.owner)) out.push(r);
+    return out;
+  },
+  recordFor: async (owner) => ((await agentIsOn(owner)) ? getAgentRecord(owner) : null),
   locale: async (owner) => ((await getProfile(owner).catch(() => null))?.settings?.locale ?? 'en') as UserLocale,
   // Resolved on use: the database pool opens after this module loads.
   progress: {

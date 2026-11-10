@@ -53,6 +53,7 @@ type TgKey =
   | 'mandate.briefOff'
   | 'mandate.quiet'
   | 'mandate.quietOff'
+  | 'mandate.off'
   | 'mandate.refuse.noWay'
   | 'mandate.refuse.price'
   | 'mandate.refuse.lowestAboveUsual'
@@ -79,6 +80,8 @@ type TgKey =
   | 'effect.briefTomorrow'
   | 'effect.quiet'
   | 'effect.quietOff'
+  | 'effect.powerOff'
+  | 'effect.powerOn'
   | 'replan.done'
   | 'replan.reopened'
   | 'replan.reopenedOne'
@@ -190,6 +193,7 @@ const en: Record<TgKey, string> = {
   'mandate.briefOff': 'Your daily brief is off.',
   'mandate.quiet': 'Quiet hours: {from}:00 to {to}:00.',
   'mandate.quietOff': 'Quiet hours are off.',
+  'mandate.off': 'Your agent is off. It does nothing for you until you turn it back on.',
   'mandate.refuse.noWay': "You don't sell that way yet. Add it in your setup first.",
   'mandate.refuse.price': 'Use a price above 0 USDC.',
   'mandate.refuse.lowestAboveUsual': "Your lowest price can't be above your usual price.",
@@ -216,6 +220,8 @@ const en: Record<TgKey, string> = {
   'effect.briefTomorrow': 'Your next brief comes tomorrow at {hour}:00, {zone} time.',
   'effect.quiet': 'From {from}:00 to {to}:00 your agent holds its notes for the morning brief.',
   'effect.quietOff': 'Your agent may send notes at any hour.',
+  'effect.powerOff': 'It stops making offers, bargaining, finding people and sending briefs. Deals already running go on, offers it already made stand, and you are asked if a buyer chooses one.',
+  'effect.powerOn': 'It starts again from now. It does not act on what it missed.',
   'replan.done': 'Done. Your agent works this way from now on.',
   'replan.reopened': 'Done. Your agent looked again at {judged} of the requests you passed on, now at {lowest} USDC, and {offered} became offers.',
   'replan.reopenedOne': 'Done. Your agent looked again at {judged} of the requests you passed on, now at {lowest} USDC, and 1 became an offer.',
@@ -328,6 +334,7 @@ const ar: Partial<Record<TgKey, string>> = {
   'mandate.briefOff': 'ملخصك اليومي متوقف.',
   'mandate.quiet': 'ساعات الهدوء: من {from}:00 إلى {to}:00.',
   'mandate.quietOff': 'ساعات الهدوء متوقفة.',
+  'mandate.off': 'وكيلك متوقف. لا يفعل شيئًا لك حتى تعيد تشغيله.',
   'mandate.refuse.noWay': 'أنت لا تبيع بهذه الطريقة بعد. أضفها في الإعداد أولًا.',
   'mandate.refuse.price': 'استخدم سعرًا أعلى من 0 USDC.',
   'mandate.refuse.lowestAboveUsual': 'لا يمكن أن يكون أدنى سعر لديك أعلى من سعرك المعتاد.',
@@ -354,6 +361,8 @@ const ar: Partial<Record<TgKey, string>> = {
   'effect.briefTomorrow': 'يصلك ملخصك التالي غدًا الساعة {hour}:00 بتوقيت {zone}.',
   'effect.quiet': 'من {from}:00 إلى {to}:00 يحتفظ وكيلك بملاحظاته لملخص الصباح.',
   'effect.quietOff': 'يمكن لوكيلك إرسال الملاحظات في أي ساعة.',
+  'effect.powerOff': 'يتوقف عن تقديم العروض والمساومة والبحث عن أشخاص وإرسال الملخصات. الصفقات الجارية تستمر، والعروض التي قدّمها تبقى، وتُسأل إذا اختار مشترٍ أحدها.',
+  'effect.powerOn': 'يبدأ من جديد من الآن. لا يتصرف بناءً على ما فاته.',
   'replan.done': 'تم. يعمل وكيلك بهذه الطريقة من الآن.',
   'replan.reopened': 'تم. أعاد وكيلك النظر في {judged} من الطلبات التي تجاوزتها، الآن بسعر {lowest} USDC، وصار {offered} منها عروضًا.',
   'replan.reopenedOne': 'تم. أعاد وكيلك النظر في {judged} من الطلبات التي تجاوزتها، الآن بسعر {lowest} USDC، وصار واحد منها عرضًا.',
@@ -466,6 +475,7 @@ const fr: Partial<Record<TgKey, string>> = {
   'mandate.briefOff': 'Votre résumé quotidien est désactivé.',
   'mandate.quiet': 'Heures calmes : de {from}:00 à {to}:00.',
   'mandate.quietOff': 'Les heures calmes sont désactivées.',
+  'mandate.off': "Votre agent est arrêté. Il ne fait rien pour vous tant que vous ne le rallumez pas.",
   'mandate.refuse.noWay': "Vous ne vendez pas encore de cette façon. Ajoutez-la d'abord dans votre configuration.",
   'mandate.refuse.price': 'Indiquez un prix supérieur à 0 USDC.',
   'mandate.refuse.lowestAboveUsual': 'Votre prix le plus bas ne peut pas dépasser votre prix habituel.',
@@ -492,6 +502,8 @@ const fr: Partial<Record<TgKey, string>> = {
   'effect.briefTomorrow': 'Votre prochain résumé arrive demain à {hour}:00, heure de {zone}.',
   'effect.quiet': 'De {from}:00 à {to}:00, votre agent garde ses messages pour le résumé du matin.',
   'effect.quietOff': "Votre agent peut envoyer des messages à toute heure.",
+  'effect.powerOff': "Il arrête de faire des offres, de négocier, de chercher des personnes et d'envoyer des résumés. Les transactions en cours continuent, ses offres déjà faites restent, et on vous demande si un acheteur en choisit une.",
+  'effect.powerOn': "Il reprend à partir de maintenant. Il n'agit pas sur ce qu'il a manqué.",
   'replan.done': 'C’est fait. Votre agent fonctionne ainsi à partir de maintenant.',
   'replan.reopened': 'C’est fait. Votre agent a revu {judged} des demandes écartées, désormais à {lowest} USDC, et {offered} sont devenues des offres.',
   'replan.reopenedOne': 'C’est fait. Votre agent a revu {judged} des demandes écartées, désormais à {lowest} USDC, et 1 est devenue une offre.',
@@ -604,6 +616,7 @@ const hi: Partial<Record<TgKey, string>> = {
   'mandate.briefOff': 'आपका दैनिक सारांश बंद है।',
   'mandate.quiet': 'शांत समय: {from}:00 से {to}:00 तक।',
   'mandate.quietOff': 'शांत समय बंद है।',
+  'mandate.off': 'आपका एजेंट बंद है। जब तक आप इसे फिर चालू नहीं करते, यह आपके लिए कुछ नहीं करता।',
   'mandate.refuse.noWay': 'आप अभी इस तरह नहीं बेचते। पहले इसे अपनी सेटअप में जोड़ें।',
   'mandate.refuse.price': '0 USDC से ऊपर की कीमत दें।',
   'mandate.refuse.lowestAboveUsual': 'आपकी सबसे कम कीमत आपकी सामान्य कीमत से ज़्यादा नहीं हो सकती।',
@@ -630,6 +643,8 @@ const hi: Partial<Record<TgKey, string>> = {
   'effect.briefTomorrow': 'आपका अगला सारांश कल {zone} समय से {hour}:00 बजे आएगा।',
   'effect.quiet': '{from}:00 से {to}:00 तक आपका एजेंट अपने संदेश सुबह के सारांश के लिए रखता है।',
   'effect.quietOff': 'आपका एजेंट किसी भी समय संदेश भेज सकता है।',
+  'effect.powerOff': 'यह पेशकश करना, मोलभाव करना, लोगों को खोजना और सारांश भेजना बंद कर देता है। चल रहे सौदे जारी रहते हैं, इसकी की हुई पेशकशें बनी रहती हैं, और कोई खरीदार उनमें से एक चुने तो आपसे पूछा जाता है।',
+  'effect.powerOn': 'यह अभी से फिर शुरू होता है। जो छूट गया उस पर यह कुछ नहीं करता।',
   'replan.done': 'हो गया। अब से आपका एजेंट इसी तरह काम करेगा।',
   'replan.reopened': 'हो गया। आपके एजेंट ने छोड़े गए अनुरोधों में से {judged} को फिर देखा, अब {lowest} USDC पर, और {offered} पेशकश बन गए।',
   'replan.reopenedOne': 'हो गया। आपके एजेंट ने छोड़े गए अनुरोधों में से {judged} को फिर देखा, अब {lowest} USDC पर, और 1 पेशकश बन गया।',
@@ -742,6 +757,7 @@ const sw: Partial<Record<TgKey, string>> = {
   'mandate.briefOff': 'Muhtasari wako wa kila siku umezimwa.',
   'mandate.quiet': 'Saa za utulivu: {from}:00 hadi {to}:00.',
   'mandate.quietOff': 'Saa za utulivu zimezimwa.',
+  'mandate.off': 'Wakala wako amezimwa. Hakufanyii chochote hadi umwashe tena.',
   'mandate.refuse.noWay': 'Bado huuzi kwa njia hiyo. Iongeze kwenye mipangilio yako kwanza.',
   'mandate.refuse.price': 'Tumia bei iliyo juu ya 0 USDC.',
   'mandate.refuse.lowestAboveUsual': 'Bei yako ya chini kabisa haiwezi kuwa juu ya bei yako ya kawaida.',
@@ -768,6 +784,8 @@ const sw: Partial<Record<TgKey, string>> = {
   'effect.briefTomorrow': 'Muhtasari wako ujao unakuja kesho saa {hour}:00, saa za {zone}.',
   'effect.quiet': 'Kuanzia {from}:00 hadi {to}:00 wakala wako anahifadhi ujumbe wake kwa muhtasari wa asubuhi.',
   'effect.quietOff': 'Wakala wako anaweza kutuma ujumbe saa yoyote.',
+  'effect.powerOff': 'Anaacha kutoa ofa, kujadiliana bei, kutafuta watu na kutuma muhtasari. Mikataba inayoendelea inaendelea, ofa alizokwisha kutoa zinabaki, na unaulizwa mnunuzi akichagua moja.',
+  'effect.powerOn': 'Anaanza tena kuanzia sasa. Hashughulikii alichokosa.',
   'replan.done': 'Imekamilika. Wakala wako atafanya kazi hivi kuanzia sasa.',
   'replan.reopened': 'Imekamilika. Wakala wako aliangalia tena maombi {judged} uliyoyapita, sasa kwa {lowest} USDC, na {offered} yakawa ofa.',
   'replan.reopenedOne': 'Imekamilika. Wakala wako aliangalia tena maombi {judged} uliyoyapita, sasa kwa {lowest} USDC, na 1 likawa ofa.',

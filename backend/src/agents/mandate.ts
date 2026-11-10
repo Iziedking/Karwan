@@ -16,6 +16,9 @@ export interface QuietHours { from: number; to: number }
 export interface MandateSellWay { shape: string; what?: string; lowestUsdc?: number; usualUsdc?: number; days?: [number, number]; hours?: number }
 
 export interface Mandate {
+  /// View 75: off stops the agent altogether. Running deals, money and the
+  /// assistant go on.
+  on: boolean;
   sell: MandateSellWay[];
   buy: { mostUsdc: number | null; days: [number, number] | null; split: number[] | null };
   alone: 'offers' | 'ask' | 'agree';
@@ -35,7 +38,8 @@ export type MandatePatch =
   | { part: 'goal-remove'; id: string }
   | { part: 'brief'; on?: boolean; hour?: number; timeZone?: string }
   | { part: 'quiet'; from: number; to: number }
-  | { part: 'quiet-off' };
+  | { part: 'quiet-off' }
+  | { part: 'power'; on: boolean };
 
 const hourSchema = z.number().int().min(0).max(23);
 const usdcSchema = z.number().finite();
@@ -51,6 +55,7 @@ export const mandatePatchSchema = z.discriminatedUnion('part', [
   z.object({ part: z.literal('brief'), on: z.boolean().optional(), hour: z.number().int().optional(), timeZone: z.string().max(64).optional() }),
   z.object({ part: z.literal('quiet'), from: hourSchema, to: hourSchema }),
   z.object({ part: z.literal('quiet-off') }),
+  z.object({ part: z.literal('power'), on: z.boolean() }),
 ]) as unknown as z.ZodType<MandatePatch>;
 
 export const DEFAULT_BRIEF: BriefPrefs = { on: true, hour: 8, timeZone: 'Africa/Lagos' };
@@ -85,6 +90,7 @@ export function mandateOf(
   const b = profile.buyer;
   const wayMost = ways.buy.map((w) => ('maxPrice' in w ? w.maxPrice : w.maxDeposit));
   return {
+    on: agentPrefsOf(profile).agentOn !== false,
     sell: ways.sell.map(sellOf),
     buy: {
       mostUsdc: b ? b.maxBudgetUsdc : wayMost.length ? Math.max(...wayMost) : null,
@@ -147,6 +153,8 @@ export function validatePatch(m: Mandate, p: MandatePatch, locale: UserLocale = 
       return isHour(p.from) && isHour(p.to) && p.from !== p.to ? null : no('mandate.refuse.hour');
     case 'quiet-off':
       return null;
+    case 'power':
+      return typeof p.on === 'boolean' ? null : no('mandate.refuse.mode');
   }
 }
 
@@ -172,6 +180,8 @@ export function previewPatch(m: Mandate, p: MandatePatch, now: number): Mandate 
       return { ...m, quiet: { from: p.from, to: p.to } };
     case 'quiet-off':
       return { ...m, quiet: null };
+    case 'power':
+      return { ...m, on: p.on };
   }
 }
 
@@ -196,7 +206,8 @@ function sellLine(w: MandateSellWay, locale: UserLocale): string {
 
 /// The mandate in the person's words, one line per part. Templates only.
 export function sayMandate(m: Mandate, locale: UserLocale = 'en'): string[] {
-  const lines: string[] = m.sell.length ? m.sell.map((w) => sellLine(w, locale)) : [tg('mandate.sellNone', locale)];
+  const lines: string[] = m.on === false ? [tg('mandate.off', locale)] : [];
+  lines.push(...(m.sell.length ? m.sell.map((w) => sellLine(w, locale)) : [tg('mandate.sellNone', locale)]));
   if (m.buy.mostUsdc !== null) lines.push(tg('mandate.buy', locale, { most: num(m.buy.mostUsdc) }));
   lines.push(tg(m.alone === 'ask' ? 'mandate.alone.ask' : m.alone === 'agree' ? 'mandate.alone.agree' : 'mandate.alone.offers', locale));
   lines.push(tg('mandate.weeklyLimit', locale, { usdc: num(m.weeklyLimitUsdc) }));

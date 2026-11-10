@@ -76,5 +76,7 @@ export function effectOf(m: Mandate, p: MandatePatch, facts: EffectFacts, locale
       return { line: tg('effect.quiet', locale, { from: String(p.from), to: String(p.to) }), numbers: {} };
     case 'quiet-off':
       return { line: tg('effect.quietOff', locale), numbers: {} };
+    case 'power':
+      return { line: tg(p.on ? 'effect.powerOn' : 'effect.powerOff', locale), numbers: {} };
   }
 }

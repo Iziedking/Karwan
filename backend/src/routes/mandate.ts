@@ -9,6 +9,7 @@ import { waysOf, waysSchema, type AgentWays, type SellWay } from '../agents/ways
 import type { UserLocale, UserProfile } from '../db/profiles.js';
 import type { MarketWatch } from '../intelligence/watches.js';
 import { patchForWays } from './setup.js';
+import { config } from '../config.js';
 
 /// The person's mandate, read as one thing and changed one part at a time
 /// (view 52, step 3). A change comes only from a confirm card the person
@@ -25,6 +26,8 @@ export interface MandateRouteDeps {
   replan: (owner: string, before: Mandate, patch: MandatePatch, locale: UserLocale) => Promise<Replan>;
   now: () => number;
   newId: () => string;
+  /// Whether the agent switch is open on this network (view 75). Open when absent.
+  powerOpen?: () => boolean;
 }
 
 const bodySchema = z.object({ patch: mandatePatchSchema, cardId: z.string().trim().min(8).max(120) });
@@ -63,6 +66,8 @@ function profilePatchFor(current: UserProfile, p: MandatePatch): ProfilePatch | 
       return patchForWays(withSellPrice(ways, p), current);
     case 'alone':
       return { agentPrefs: { ...(current.agentPrefs ?? {}), agentMode: p.mode } };
+    case 'power':
+      return { agentPrefs: { ...(current.agentPrefs ?? {}), agentOn: p.on } };
     case 'buy-most':
       if (current.agentWays && ways.buy.length) return patchForWays(withBuyMost(ways, p.usdc), current);
       return {
@@ -137,6 +142,7 @@ export function createMandateRoutes(deps: MandateRouteDeps): Hono {
     const before = await read(owner, now);
     if (!before) return c.json({ error: 'profile not found' }, 404);
     const { patch, cardId } = parsed.data;
+    if (patch.part === 'power' && deps.powerOpen && !deps.powerOpen()) return c.json({ error: 'Turning your agent off is not open here yet.', code: 'POWER_CLOSED' }, 400);
     const refusal = validatePatch(before.mandate, patch, before.locale);
     if (refusal) return c.json({ error: refusal }, 400);
     const profileChange = profilePatchFor(before.profile, patch);
@@ -171,4 +177,5 @@ export const mandateRoutes = createMandateRoutes({
   replan: async (o, b, p, l) => (await live()).replan(o, b, p, l),
   now: Date.now,
   newId: () => `g_${randomUUID().slice(0, 12)}`,
+  powerOpen: () => config.SELLER_ASKED,
 });

@@ -63,6 +63,7 @@ import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
 import { withLocalAmounts } from './localAmountTools.js';
 import { moneyVoice } from './moneyVoice.js';
 import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
+import { AGENT_OFF_ANSWER, agentIsOn } from '../agents/agentPower.js';
 import { currencyDigits, makeQuote } from '../rates/quote.js';
 import type { LocalCurrency } from '../rates/usdcRates.js';
 import { nowLine } from './nowLine.js';
@@ -2059,6 +2060,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         confirm: z.boolean().optional(),
       }),
       execute: async ({ keywords, focus, confirm }) => {
+        if (!(await agentIsOn(address))) return AGENT_OFF_ANSWER;
         if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return { error: 'Research is not available right now.' };
         const wallets = await getAgentWallets(address).catch(() => null);
         if (!wallets?.buyerAddress) return { error: 'Turn on your agents first; your buying agent pays for research.' };
@@ -2123,6 +2125,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         category: z.enum(CATEGORY_IDS),
       }),
       execute: async ({ kind, category }) => {
+        if (!(await agentIsOn(address))) return AGENT_OFF_ANSWER;
         try {
           const now = Date.now();
           const live = await liveWatchesFor(address, now);
@@ -2242,9 +2245,9 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_change_mandate: tool({
       description:
-        "Show a card that changes one part of what the user's agent may do (view 52). Nothing changes until the user confirms the card; then the agent acts on it at once (a lower selling price looks again at requests it passed on). One part per call: sell-price (shape and lowestUsdc, optional usualUsdc), alone (mode offers, ask or agree), weekly-limit (usdc, 0 to 5, for paid checks), buy-most (usdc, the most per new request), goal-add (kind buy, sell or watch, text in their words, optional untilDays), goal-remove (id from show_my_mandate), brief (on, hour 0 to 23, timeZone like Africa/Lagos), quiet (from and to hours), quiet-off. Only when the user asks for the change.",
+        "Show a card that changes one part of what the user's agent may do (view 52). Nothing changes until the user confirms the card; then the agent acts on it at once (a lower selling price looks again at requests it passed on). One part per call: sell-price (shape and lowestUsdc, optional usualUsdc), alone (mode offers, ask or agree), weekly-limit (usdc, 0 to 5, for paid checks), buy-most (usdc, the most per new request), goal-add (kind buy, sell or watch, text in their words, optional untilDays), goal-remove (id from show_my_mandate), brief (on, hour 0 to 23, timeZone like Africa/Lagos), quiet (from and to hours), quiet-off, power (on true or false: turn my agent off, turn it back on; off stops offers, bargaining, finding people, watches and briefs, while running deals, money and this assistant go on). Only when the user asks for the change.",
       inputSchema: z.object({
-        part: z.enum(['sell-price', 'alone', 'weekly-limit', 'buy-most', 'goal-add', 'goal-remove', 'brief', 'quiet', 'quiet-off']),
+        part: z.enum(['sell-price', 'alone', 'weekly-limit', 'buy-most', 'goal-add', 'goal-remove', 'brief', 'quiet', 'quiet-off', 'power']),
         shape: z.enum(['one_time', 'milestones', 'goods', 'deposit', 'hourly', 'monthly']).optional(),
         lowestUsdc: z.number().optional(),
         usualUsdc: z.number().optional(),
@@ -2262,6 +2265,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       }),
       execute: async (input) => {
         try {
+          if (input.part === 'power' && !config.SELLER_ASKED) return { error: 'Turning the agent off is not open here yet. They can set it to Ask me first, or turn the morning brief off.' };
           const { liveMandateToolDeps } = await import('../agents/mandateLive.js');
           const r = await proposeChangeMandate(liveMandateToolDeps, address, input, Date.now());
           if ('error' in r) return r;

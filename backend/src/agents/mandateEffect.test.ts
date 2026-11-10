@@ -89,6 +89,8 @@ test('every effect line has no empty slot in every language', () => {
     { part: 'brief', hour: 8 },
     { part: 'brief', on: false },
     { part: 'quiet', from: 22, to: 6 },
+    { part: 'power', on: false },
+    { part: 'power', on: true },
     { part: 'quiet-off' },
   ] as const;
   for (const locale of ['en', 'fr', 'ar', 'hi', 'sw'] as const) {
@@ -98,4 +100,14 @@ test('every effect line has no empty slot in every language', () => {
       assert.doesNotMatch(line, /\{\w+\}|—|undefined|NaN/, `${p.part} ${locale}: ${line}`);
     }
   }
+});
+
+test('switching the agent off says what stops and what goes on; on starts from now', () => {
+  const off = effectOf(m, { part: 'power', on: false }, facts).line;
+  assert.match(off, /stops making offers/);
+  assert.match(off, /Deals already running go on/);
+  assert.match(off, /you are asked if a buyer chooses one/);
+  const on = effectOf(m, { part: 'power', on: true }, facts).line;
+  assert.match(on, /starts again from now/);
+  assert.match(on, /does not act on what it missed/);
 });

@@ -557,7 +557,7 @@ export interface Workspace {
 export interface UserProfile {
   /// The setup conversation's answers (view 19).
   goals?: Goal[];
-  agentPrefs?: { findClients?: boolean; agentMode?: 'offers' | 'ask' | 'agree'; sellerPriceSet?: boolean; buyerPriceSet?: boolean };
+  agentPrefs?: { findClients?: boolean; agentMode?: 'offers' | 'ask' | 'agree'; agentOn?: boolean; sellerPriceSet?: boolean; buyerPriceSet?: boolean };
   /// The ways this person deals, one per kind of deal (view 26). Absent until saved.
   agentWays?: import('@/features/profile/ways').AgentWays;
   ownWords?: { what?: string; price?: string; buy?: string; business?: string };
