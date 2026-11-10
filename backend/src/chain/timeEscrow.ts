@@ -72,6 +72,8 @@ const DAY = 86_400;
 export const WORK_TIMINGS = {
   hourly: { cycleSecs: 7 * DAY, unitScale: 60 },
   monthly: { cycleSecs: 30 * DAY, unitScale: 1 },
+  /// A month of sessions is four weeks, so three a week is exactly 12 (view 76).
+  sessionMonthSecs: 28 * DAY,
   claimGrace: 2 * DAY,
   reviewWindow: 3 * DAY,
   noticeCycles: 1,
@@ -81,15 +83,18 @@ export const WORK_TIMINGS = {
 export function buildTimeTerms(i: {
   kind: WorkKind; asset: Hex; worker: Hex; rateMicros: bigint; maxHours: number;
   periods: number; startsAt: bigint; agreementHash: Hex;
+  /// Monthly work billed by the session: a session is one unit of the month's price.
+  sessions?: number;
 }): TimeTermsT {
   const k = WORK_TIMINGS[i.kind];
+  const sessions = i.kind === 'monthly' && i.sessions ? i.sessions : 0;
   return {
     asset: i.asset,
     worker: i.worker,
     rate: i.rateMicros,
-    unitScale: k.unitScale,
-    maxUnits: i.kind === 'hourly' ? i.maxHours * 60 : 1,
-    cycleSecs: k.cycleSecs,
+    unitScale: sessions || k.unitScale,
+    maxUnits: i.kind === 'hourly' ? i.maxHours * 60 : sessions || 1,
+    cycleSecs: sessions ? WORK_TIMINGS.sessionMonthSecs : k.cycleSecs,
     cycles: i.periods,
     startsAt: i.startsAt,
     acceptBy: i.startsAt,

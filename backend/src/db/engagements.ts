@@ -33,7 +33,9 @@ export interface EngagementWeek {
   loggedMinutes: number;
   approvedMinutes: number;
   objectedMinutes: number;
-  log: { at: number; minutes: number; note: string }[];
+  /// For monthly work with sessions, one entry is one session: its note, an
+  /// optional link, and the hirer's note when they say it did not happen.
+  log: { at: number; minutes: number; note: string; link?: string; flagged?: { at: number; note: string } }[];
   status: WeekStatus;
   paidNetMicros?: string;
   backMicros?: string;
@@ -61,6 +63,9 @@ export interface Engagement {
   rateMicros: string;
   /// Most hours a week; 1 for a monthly retainer.
   maxHours: number;
+  /// Sessions a month holds, on monthly work billed by the session (view 76).
+  /// The week counters then count sessions, not minutes.
+  sessions?: number;
   periods: number;
   /// Milliseconds.
   startsAt: number;

@@ -582,6 +582,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/work/:id/approve" },
   { method: "POST", path: "/api/work/:id/cancel" },
   { method: "POST", path: "/api/work/:id/decline" },
+  { method: "POST", path: "/api/work/:id/flag" },
   { method: "POST", path: "/api/work/:id/fund" },
   { method: "POST", path: "/api/work/:id/hours" },
   { method: "POST", path: "/api/work/:id/notice" },

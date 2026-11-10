@@ -4,6 +4,7 @@ import { encodeAbiParameters, encodeEventTopics, getAddress, toFunctionSelector,
 import {
   buildTimeTerms,
   engagementIdFor,
+  grossOf,
   payFor,
   proveApproved,
   proveOffered,
@@ -106,4 +107,18 @@ test('approval and settle report what the worker was paid and what went back', (
   assert.throws(() => proveApproved(approved, { escrow: ESCROW, id: ID, k: 0, units: 751, worker: WORKER }), /UnitsApproved/);
   const settled = receipt([log('CycleSettled', { id: ID, cycle: 0 }, enc(['uint256', 'uint256', 'bool'], [187_500_000n, 113_062_500n, false]))]);
   assert.deepEqual(proveSettled(settled, { escrow: ESCROW, id: ID, k: 0, worker: WORKER }), { gross: 187_500_000n, back: 113_062_500n, paidNow: 0n });
+});
+
+test('a month of sessions is four weeks, and a session is one unit of the month\'s price', () => {
+  const t = buildTimeTerms({ kind: 'monthly', asset: '0x3600000000000000000000000000000000000000', worker: '0x2222222222222222222222222222222222222222', rateMicros: 300_000_000n, maxHours: 1, periods: 3, startsAt: 1_800_000_000n, agreementHash: `0x${'ab'.repeat(32)}`, sessions: 12 });
+  assert.equal(t.unitScale, 12);
+  assert.equal(t.maxUnits, 12);
+  assert.equal(t.cycleSecs, 28 * 86_400);
+  assert.equal(weekCost(t, 100).budget, 300_000_000n);
+  assert.equal(grossOf(t, 1), 25_000_000n);
+  assert.equal(grossOf(t, 9), 225_000_000n);
+  const plain = buildTimeTerms({ kind: 'monthly', asset: t.asset, worker: t.worker, rateMicros: 300_000_000n, maxHours: 1, periods: 3, startsAt: 1_800_000_000n, agreementHash: t.agreementHash });
+  assert.equal(plain.unitScale, 1);
+  assert.equal(plain.maxUnits, 1);
+  assert.equal(plain.cycleSecs, 30 * 86_400);
 });

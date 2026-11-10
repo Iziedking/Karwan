@@ -30,6 +30,8 @@ export interface WorkInput {
   maxHours?: number;
   /// Weeks for hourly work, months for a retainer.
   periods: number;
+  /// Sessions a month holds; monthly only (view 76).
+  sessions?: number;
   /// Days from now the first week or month starts; 2 by default.
   startsInDays?: number;
   title: string;
@@ -44,6 +46,7 @@ export interface WorkCard {
   rateMicros: string;
   maxHours: number;
   periods: number;
+  sessions?: number;
   startsAt: number;
   budgetMicros: string;
   feeHalfMicros: string;
@@ -110,6 +113,8 @@ export function hoursText(minutes: number): string {
   return h ? `${h} h` : `${m} m`;
 }
 
+export const sessionsText = (n: number) => (n === 1 ? '1 session' : `${n} sessions`);
+
 export const termsOf = (s: StoredTimeTerms): TimeTermsT => ({
   ...s, rate: BigInt(s.rate), startsAt: BigInt(s.startsAt), acceptBy: BigInt(s.acceptBy),
 });
@@ -133,7 +138,9 @@ export function settleAt(e: Engagement, w: EngagementWeek): number {
   return w.loggedMinutes > w.approvedMinutes ? win.reviewBy : win.logBy;
 }
 
-const unitsOf = (e: Engagement, minutes: number) => (e.kind === 'hourly' ? minutes : minutes > 0 ? 1 : 0);
+const unitsOf = (e: Engagement, minutes: number) => (e.kind === 'hourly' || e.sessions ? minutes : minutes > 0 ? 1 : 0);
+const amountText = (e: Engagement, n: number) => (e.sessions ? sessionsText(n) : hoursText(n));
+const dayText = (ms: number) => new Date(ms).toUTCString().slice(0, 16);
 const periodWord = (e: Pick<Engagement, 'kind'>) => (e.kind === 'hourly' ? 'week' : 'month');
 const runsOf = (e: Engagement) => e.runs ?? e.periods;
 
@@ -181,6 +188,8 @@ export function createEngagements(p: WorkPorts) {
     }
     const startsIn = input.startsInDays ?? 2;
     if (!Number.isInteger(startsIn) || startsIn < 1 || startsIn > 30) return refuse('BAD_TERMS', 'Start 1 to 30 days from today.');
+    const sessions = hourly ? undefined : input.sessions;
+    if (sessions !== undefined && (!Number.isInteger(sessions) || sessions < 1 || sessions > 60)) return refuse('BAD_TERMS', 'Set the sessions a month, 1 to 60.');
     const worker = await p.resolveWorker(input.worker);
     if (!worker) return refuse('NO_WORKER', 'Nobody on Karwan has that tag.');
     if (same(worker, hirer)) return refuse('OWN_WORK', 'You cannot hire yourself.');
@@ -190,10 +199,11 @@ export function createEngagements(p: WorkPorts) {
     if (!workerAgent) return refuse('NO_SELLER_AGENT', 'They have not set up selling on Karwan yet, so they cannot be paid by the hour. Ask them to set it up.');
     if (await ownWallet(hirer, hirerAgent.address, worker, workerAgent.address)) return refuse('OWN_WORK', 'You cannot hire yourself.');
     const startsAt = Math.floor((p.now() + startsIn * DAY) / 1000) * 1000;
-    const agreement = { kind: input.kind, title, brief, rate: rate.toString(), maxHours, periods: input.periods, startsAt, hirer, worker };
+    const agreement = { kind: input.kind, title, brief, rate: rate.toString(), maxHours, periods: input.periods, startsAt, hirer, worker, ...(sessions ? { sessions } : {}) };
     const terms = buildTimeTerms({
       kind: input.kind, asset: p.asset, worker: workerAgent.address, rateMicros: rate, maxHours, periods: input.periods,
       startsAt: BigInt(startsAt / 1000), agreementHash: keccak256(toBytes(JSON.stringify(agreement))),
+      ...(sessions ? { sessions } : {}),
     });
     const w = weekCost(terms, cfg.feeBps);
     if (w.total > cfg.perDealCap) {
@@ -205,10 +215,11 @@ export function createEngagements(p: WorkPorts) {
     return {
       ok: true, terms, feeBps: cfg.feeBps, hirerAgent, workerAgent,
       card: {
-        kind: input.kind, title, brief, worker, rateMicros: rate.toString(), maxHours, periods: input.periods, startsAt,
+        kind: input.kind, title, brief, worker, rateMicros: rate.toString(), maxHours, periods: input.periods, startsAt, ...(sessions ? { sessions } : {}),
         budgetMicros: w.budget.toString(), feeHalfMicros: w.feeHalf.toString(), totalMicros: w.total.toString(),
         mostMicros: (w.total * BigInt(input.periods)).toString(),
-        note: hourly ? 'You pay one week at a time. Hours not worked come back to you each week.' : 'You pay one month at a time.',
+        note: hourly ? 'You pay one week at a time. Hours not worked come back to you each week.'
+          : sessions ? 'You pay one month of four weeks at a time. Sessions not held come back to you after each month.' : 'You pay one month at a time.',
       },
     };
   }
@@ -230,6 +241,7 @@ export function createEngagements(p: WorkPorts) {
         title: d.card.title, brief: d.card.brief, rateMicros: d.card.rateMicros, maxHours: d.card.maxHours, periods: d.card.periods,
         startsAt: d.card.startsAt, feeBps: d.feeBps, termsHash: timeTermsHash(d.terms), terms: storeTerms(d.terms),
         status: 'offering', weeks: [], tx: {}, createdAt: at, updatedAt: at,
+        ...(d.card.sessions ? { sessions: d.card.sessions } : {}),
         ...(opts.conversationId ? { conversationId: opts.conversationId } : {}),
         ...(opts.fromJob ? { fromJob: opts.fromJob } : {}), ...(opts.fromOffer ? { fromOffer: opts.fromOffer } : {}),
       };
@@ -252,7 +264,7 @@ export function createEngagements(p: WorkPorts) {
           return a;
         }
       }
-      p.tellPerson(live.worker, `${live.title}: you are offered ${usdcText(live.rateMicros)} USDC ${live.kind === 'hourly' ? `an hour, up to ${live.maxHours} hours a week, for ${live.periods} weeks` : `a month, for ${live.periods} months`}. The first ${periodWord(live)} is already paid in. Accept before it starts.`, id);
+      p.tellPerson(live.worker, `${live.title}: you are offered ${usdcText(live.rateMicros)} USDC ${live.kind === 'hourly' ? `an hour, up to ${live.maxHours} hours a week, for ${live.periods} weeks` : `a month${live.sessions ? ` for ${sessionsText(live.sessions)}` : ''}, for ${live.periods} months`}. The first ${periodWord(live)} is already paid in. Accept before it starts.`, id);
       return { ok: true, work: live };
     });
   }
@@ -334,7 +346,7 @@ export function createEngagements(p: WorkPorts) {
     return { w: e.weeks.find((x) => x.k === runsOf(e) - 1), k: runsOf(e) - 1 };
   }
 
-  async function logHours(worker: Address, id: string, i: { minutes: number; note?: string; k?: number }) {
+  async function logHours(worker: Address, id: string, i: { minutes: number; note?: string; k?: number; link?: string }) {
     const e = await workFor(id, worker, 'worker');
     if (isRefusal(e)) return e;
     if (e.status !== 'active' && e.status !== 'ending') return refuse('NOT_ACTIVE', 'This work is not running.');
@@ -342,6 +354,8 @@ export function createEngagements(p: WorkPorts) {
     if (!Number.isInteger(minutes) || minutes < 1) return refuse('BAD_HOURS', 'Log at least one minute.');
     const note = (i.note ?? '').trim();
     if (note.length > 300) return refuse('BAD_HOURS', 'Keep the note under 300 characters.');
+    const link = (i.link ?? '').trim();
+    if (link && (!e.sessions || link.length > 300 || !/^https:\/\/\S+$/.test(link))) return refuse('BAD_HOURS', 'A link goes with a session, starts with https:// and is under 300 characters.');
     const now = p.now();
     if (now < e.startsAt) return refuse('NOT_STARTED', `Work starts ${new Date(e.startsAt).toUTCString().slice(0, 16)}; log hours from then.`);
     const named = i.k === undefined ? currentWeek(e) : { w: e.weeks.find((x) => x.k === i.k), k: i.k };
@@ -355,19 +369,27 @@ export function createEngagements(p: WorkPorts) {
     if (now >= win.logBy) return refuse('LOG_CLOSED', `Logging for that ${periodWord(e)} closed 2 days after it ended.`);
     if (w.status !== 'funded' && w.status !== 'logged') return refuse('LOG_CLOSED', `That ${periodWord(e)} is already being settled.`);
     const most = e.terms.maxUnits;
-    const total = e.kind === 'hourly' ? w.loggedMinutes + minutes : 1;
-    if (e.kind === 'monthly' && w.loggedMinutes > 0) return refuse('ALREADY_LOGGED', 'This month is already claimed.');
-    if (total > most) return refuse('OVER_HOURS', `This week allows ${hoursText(most)}; ${hoursText(Math.max(0, most - w.loggedMinutes))} is left to log.`);
+    const total = e.kind === 'hourly' ? w.loggedMinutes + minutes : e.sessions ? w.loggedMinutes + 1 : 1;
+    if (e.kind === 'monthly' && !e.sessions && w.loggedMinutes > 0) return refuse('ALREADY_LOGGED', 'This month is already claimed.');
+    if (total > most) {
+      return e.sessions
+        ? refuse('OVER_SESSIONS', `This month holds ${sessionsText(most)}, and all of them are recorded.`)
+        : refuse('OVER_HOURS', `This week allows ${hoursText(most)}; ${hoursText(Math.max(0, most - w.loggedMinutes))} is left to log.`);
+    }
     const agent = await p.sellerAgentFor(worker);
     if (!agent || !same(agent.address, e.workerAgent)) return refuse('NO_SELLER_AGENT', 'Your selling agent is not set up.');
     return locked(`log:${id}`, 'Your hours are already on their way.', async () => {
-      const log = [...w.log, { at: now, minutes: e.kind === 'hourly' ? minutes : 0, note }];
+      const log = [...w.log, { at: now, minutes: e.kind === 'hourly' ? minutes : 0, note, ...(link ? { link } : {}) }];
       const evidence = keccak256(toBytes(JSON.stringify(log)));
       try {
         const tx = await p.chain.submit(agent.walletId, { id: e.chainId!, k: w.k, units: total, evidence });
         const weeks = e.weeks.map((x) => (x.k === w.k ? { ...x, loggedMinutes: total, log, status: 'logged' as const } : x));
         const live = (await p.store.patch(id, { weeks, tx: { ...e.tx, [`log:${w.k}:${log.length}`]: tx } }))!;
         const label = e.kind === 'hourly' ? `${hoursText(total)} logged for week ${w.k + 1}` : `Month ${w.k + 1} claimed`;
+        if (e.sessions) {
+          p.tellPerson(e.hirer, `${e.title}: Session ${total} of ${e.sessions} recorded${note ? `: ${note}` : ''}. Say now if it did not happen. You review the month after it ends, ${dayText(win.end)}, and pay for the sessions that happened.`, id);
+          return { ok: true as const, work: live };
+        }
         p.tellPerson(e.hirer, `${e.title}: ${label}. Approve it, or say which hours are wrong, by ${new Date(win.reviewBy).toUTCString().slice(0, 16)}. If you say nothing, it is paid then.`, id);
         return { ok: true as const, work: live };
       } catch (err) {
@@ -381,6 +403,7 @@ export function createEngagements(p: WorkPorts) {
     if (isRefusal(e)) return e;
     const w = e.weeks.find((x) => x.k === k);
     if (!w || w.status !== 'logged' || w.loggedMinutes <= w.approvedMinutes) return refuse('NOTHING_TO_APPROVE', 'There are no new hours to approve.');
+    if (e.sessions && p.now() < windowsOf(e, k).end) return refuse('TOO_EARLY', `You review the month after it ends, ${dayText(windowsOf(e, k).end)}. Until then you can say a session did not happen.`);
     const agent = await p.buyerAgentFor(hirer);
     if (!agent) return refuse('NO_BUYER_AGENT', 'Your agent is not set up.');
     return locked(`pay:${id}:${k}`, 'Those hours are already being paid.', async () => {
@@ -390,7 +413,7 @@ export function createEngagements(p: WorkPorts) {
         const paidNet = BigInt(w.paidNetMicros ?? '0') + r.paid;
         const weeks = e.weeks.map((x) => (x.k === k ? { ...x, approvedMinutes: w.loggedMinutes, paidNetMicros: paidNet.toString() } : x));
         const live = (await p.store.patch(id, { weeks, tx: { ...e.tx, [`approve:${k}:${units}`]: r.txHash } }))!;
-        p.tellPerson(e.worker, `${e.title}: ${e.kind === 'hourly' ? hoursText(w.loggedMinutes) : `Month ${k + 1}`} approved, ${usdcText(r.paid)} USDC paid to you.`, id);
+        p.tellPerson(e.worker, `${e.title}: ${e.kind === 'hourly' ? hoursText(w.loggedMinutes) : e.sessions ? `${sessionsText(w.loggedMinutes)} of month ${k + 1}` : `Month ${k + 1}`} approved, ${usdcText(r.paid)} USDC paid to you.`, id);
         return { ok: true as const, work: live, paidMicros: r.paid.toString() };
       } catch (err) {
         return refuse('APPROVE_FAILED', `The hours were not paid: ${(err as Error).message}`);
@@ -409,9 +432,9 @@ export function createEngagements(p: WorkPorts) {
     const now = p.now();
     if (now < win.logBy) return refuse('TOO_EARLY', `The worker can log until ${new Date(win.logBy).toUTCString().slice(0, 16)}; say which hours are wrong after that.`);
     if (now >= settleAt(e, w)) return refuse('TOO_LATE', 'The review time has ended and the hours are being paid.');
-    const minutes = e.kind === 'hourly' ? i.minutes : 1;
+    const minutes = e.kind === 'hourly' || e.sessions ? i.minutes : 1;
     const open = w.loggedMinutes - w.approvedMinutes;
-    if (!Number.isInteger(minutes) || minutes < 1 || minutes > open) return refuse('BAD_HOURS', `You can object to up to ${hoursText(open)}.`);
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > open) return refuse('BAD_HOURS', `You can object to up to ${amountText(e, open)}.`);
     const agent = await p.buyerAgentFor(hirer);
     if (!agent) return refuse('NO_BUYER_AGENT', 'Your agent is not set up.');
     return locked(`pay:${id}:${i.k}`, 'Your answer is already on its way.', async () => {
@@ -423,8 +446,9 @@ export function createEngagements(p: WorkPorts) {
           ? { ...x, status: 'objected' as const, objectedMinutes: minutes, approvedMinutes: w.loggedMinutes - minutes, paidNetMicros: paidNet.toString(), reason, objectedAt: now }
           : x));
         const live = (await p.store.patch(id, { weeks, tx: { ...e.tx, [`object:${i.k}`]: r.txHash } }))!;
-        const rest = r.paid > 0n ? ` The other hours were paid, ${usdcText(r.paid)} USDC.` : '';
-        p.tellPerson(e.worker, `${e.title}: the hirer says ${hoursText(minutes)} of week ${i.k + 1} are wrong: "${reason}".${rest} You have 72 hours to give your side; then Karwan's review team decides.`, id);
+        const rest = r.paid > 0n ? ` The other ${e.sessions ? 'sessions' : 'hours'} were paid, ${usdcText(r.paid)} USDC.` : '';
+        const said = e.sessions ? `${sessionsText(minutes)} of month ${i.k + 1} did not happen` : `${hoursText(minutes)} of week ${i.k + 1} are wrong`;
+        p.tellPerson(e.worker, `${e.title}: the hirer says ${said}: "${reason}".${rest} You have 72 hours to give your side; then Karwan's review team decides.`, id);
         p.tellPerson(e.hirer, `${e.title}: your objection is in. You have 72 hours to give your side; then Karwan's review team decides.`, id);
         p.emit('work.objected', { workId: id, k: i.k, minutes });
         return { ok: true as const, work: live };
@@ -432,6 +456,24 @@ export function createEngagements(p: WorkPorts) {
         return refuse('OBJECT_FAILED', `Your objection did not go in: ${(err as Error).message}`);
       }
     });
+  }
+
+  /// The hirer says a recorded session did not happen (view 76). It is a note
+  /// for the month's review: no money moves and nothing is disputed.
+  async function flagSession(hirer: Address, id: string, i: { k: number; n: number; note: string }) {
+    const e = await workFor(id, hirer, 'hirer');
+    if (isRefusal(e)) return e;
+    if (!e.sessions) return refuse('NO_SESSIONS', 'This work has no sessions to mark.');
+    const w = e.weeks.find((x) => x.k === i.k);
+    if (!w || (w.status !== 'funded' && w.status !== 'logged')) return refuse('LOG_CLOSED', 'That month is already being settled.');
+    if (w.log.length === 0) return refuse('BAD_HOURS', 'No session is recorded for that month yet.');
+    if (!Number.isInteger(i.n) || i.n < 1 || i.n > w.log.length) return refuse('BAD_HOURS', `Name a recorded session, 1 to ${w.log.length}.`);
+    const note = i.note.trim();
+    if (!note || note.length > 300) return refuse('BAD_REASON', 'Say what happened, in up to 300 characters.');
+    const log = w.log.map((x, n) => (n === i.n - 1 ? { ...x, flagged: { at: p.now(), note } } : x));
+    const live = (await p.store.patch(id, { weeks: e.weeks.map((x) => (x.k === i.k ? { ...x, log } : x)) }))!;
+    p.tellPerson(e.worker, `${e.title}: the hirer says session ${i.n} of month ${i.k + 1} did not happen: "${note}". It is looked at when the month is reviewed.`, id);
+    return { ok: true as const, work: live };
   }
 
   /// What the next week costs, or why it cannot be paid for yet.
@@ -546,14 +588,14 @@ export function createEngagements(p: WorkPorts) {
           if (w.loggedMinutes === 0 && now >= win.logBy - DAY) {
             const r = remindOnce(e, w, 'log');
             if (r) {
-              p.tellPerson(e.worker, `${e.title}: logging for ${periodWord(e)} ${w.k + 1} closes ${new Date(win.logBy).toUTCString().slice(0, 16)}. Log your hours before then.`, e.id);
+              p.tellPerson(e.worker, `${e.title}: logging for ${periodWord(e)} ${w.k + 1} closes ${new Date(win.logBy).toUTCString().slice(0, 16)}. ${e.sessions ? 'Record your sessions' : 'Log your hours'} before then.`, e.id);
               e = (await p.store.patch(e.id, { weeks: e.weeks.map((x) => (x.k === w.k ? { ...x, reminded: r } : x)) }))!;
             }
           }
           if (w.loggedMinutes > w.approvedMinutes && now >= win.logBy && now >= win.reviewBy - DAY) {
             const r = remindOnce(e, w, 'review');
             if (r) {
-              p.tellPerson(e.hirer, `${e.title}: your review of ${periodWord(e)} ${w.k + 1} ends ${new Date(win.reviewBy).toUTCString().slice(0, 16)}. If you say nothing, the hours are paid then.`, e.id);
+              p.tellPerson(e.hirer, `${e.title}: your review of ${periodWord(e)} ${w.k + 1} ends ${new Date(win.reviewBy).toUTCString().slice(0, 16)}. If you say nothing, the ${e.sessions ? 'recorded sessions' : 'hours'} are paid then.`, e.id);
               e = (await p.store.patch(e.id, { weeks: e.weeks.map((x) => (x.k === w.k ? { ...x, reminded: r } : x)) }))!;
             }
           }
@@ -614,7 +656,8 @@ export function createEngagements(p: WorkPorts) {
     const weeks = e.weeks.map((w) => {
       const win = windowsOf(e, w.k);
       return { ...w, ...win, settleAt: settleAt(e, w), canLog: role === 'worker' && (w.status === 'funded' || w.status === 'logged') && now >= win.start && now < win.logBy,
-        canApprove: role === 'hirer' && w.status === 'logged' && w.loggedMinutes > w.approvedMinutes && now < settleAt(e, w),
+        canApprove: role === 'hirer' && w.status === 'logged' && w.loggedMinutes > w.approvedMinutes && now < settleAt(e, w) && (!e.sessions || now >= win.end),
+        canFlag: role === 'hirer' && !!e.sessions && (w.status === 'funded' || w.status === 'logged') && w.log.length > 0,
         canObject: role === 'hirer' && w.status === 'logged' && w.loggedMinutes > w.approvedMinutes && now >= win.logBy && now < settleAt(e, w),
         ifPaid: preview(e, w.loggedMinutes) };
     });
@@ -636,6 +679,7 @@ export function createEngagements(p: WorkPorts) {
     return all.map((e) => ({
       id: e.id, kind: e.kind, title: e.title, status: e.status, role: same(viewer, e.hirer) ? 'hirer' : 'worker',
       rateMicros: e.rateMicros, maxHours: e.maxHours, periods: e.periods, startsAt: e.startsAt, weeks: e.weeks.length, updatedAt: e.updatedAt,
+      ...(e.sessions ? { sessions: e.sessions } : {}),
     }));
   }
 
@@ -647,7 +691,7 @@ export function createEngagements(p: WorkPorts) {
     return { netMicros: r.net.toString(), backMicros: r.back.toString(), feeMicros: r.fee.toString() };
   }
 
-  return { draft, offer, accept, decline, cancel, logHours, approveHours, objectHours, fundNext, giveNotice, runDue, view, mine, preview, get: (id: string) => p.store.get(id) };
+  return { draft, offer, accept, decline, cancel, logHours, flagSession, approveHours, objectHours, fundNext, giveNotice, runDue, view, mine, preview, get: (id: string) => p.store.get(id) };
 }
 
 export type Engagements = ReturnType<typeof createEngagements>;

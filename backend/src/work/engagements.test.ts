@@ -326,3 +326,114 @@ test('a monthly retainer is claimed once and paid in full by silence', async () 
   assert.equal(s.weeks[0]!.paidNetMicros, '398000000');
   assert.equal(s.status, 'closed');
 });
+
+/// View 76: monthly work, session by session.
+const lessons: WorkInput = { worker: '@ada', kind: 'monthly', rateUsdc: '300', periods: 2, sessions: 12, title: 'Maths lessons', brief: 'Three a week' };
+const SESSION_TERMS = { rate: 300_000_000n, unitScale: 12 };
+
+test('a month of sessions: each one recorded, flagged by a note, paid after the month, the rest back', async () => {
+  const { work, calls, told, at } = world();
+  const d = await work.draft(HIRER, lessons);
+  assert.ok(d.ok);
+  assert.equal(d.card.totalMicros, '301500000');
+  assert.equal(d.card.sessions, 12);
+  await work.offer(HIRER, lessons);
+  await work.accept(WORKER, 'w_1');
+  const e = (await work.get('w_1'))!;
+  assert.equal(e.sessions, 12);
+  const win = windowsOf(e, 0);
+  assert.equal(win.end - win.start, 28 * DAY);
+
+  at(win.start + DAY);
+  const badLink = await work.logHours(WORKER, 'w_1', { minutes: 1, note: 'Fractions', link: 'ftp://files/rec' });
+  assert.ok(!badLink.ok && badLink.code === 'BAD_HOURS');
+  assert.ok((await work.logHours(WORKER, 'w_1', { minutes: 1, note: 'Fractions', link: 'https://example.com/rec1' })).ok);
+  at(win.start + 3 * DAY);
+  assert.ok((await work.logHours(WORKER, 'w_1', { minutes: 1, note: 'Decimals' })).ok);
+  at(win.start + 5 * DAY);
+  assert.ok((await work.logHours(WORKER, 'w_1', { minutes: 1 })).ok);
+  assert.deepEqual(calls.slice(2), ['submit:0:1', 'submit:0:2', 'submit:0:3']);
+  assert.ok(told.some((t) => t.to === HIRER && /Session 2 of 12 recorded: Decimals\. Say now if it did not happen/.test(t.text)));
+  const logged = (await work.get('w_1'))!.weeks[0]!;
+  assert.equal(logged.log[0]!.link, 'https://example.com/rec1');
+
+  const early = await work.approveHours(HIRER, 'w_1', 0);
+  assert.ok(!early.ok && early.code === 'TOO_EARLY', 'the month is reviewed after it ends');
+  assert.equal((await work.view('w_1', HIRER))!.weeks[0]!.canApprove, false);
+
+  const before = calls.length;
+  assert.ok(!(await work.flagSession(WORKER, 'w_1', { k: 0, n: 2, note: 'x' })).ok, 'only the hirer flags');
+  const none = await work.flagSession(HIRER, 'w_1', { k: 0, n: 4, note: 'Nobody came' });
+  assert.ok(!none.ok && none.code === 'BAD_HOURS');
+  assert.ok((await work.flagSession(HIRER, 'w_1', { k: 0, n: 2, note: 'Nobody came' })).ok);
+  assert.equal(calls.length, before, 'a flag is a note: nothing goes on chain');
+  assert.equal((await work.get('w_1'))!.weeks[0]!.log[1]!.flagged?.note, 'Nobody came');
+  assert.ok(told.some((t) => t.to === WORKER && /session 2 of month 1 did not happen: "Nobody came"/.test(t.text)));
+
+  at(win.end);
+  const ok = await work.approveHours(HIRER, 'w_1', 0);
+  assert.ok(ok.ok);
+  const want = payFor(SESSION_TERMS, 100, 3, 301_500_000n);
+  assert.equal(ok.paidMicros, want.net.toString());
+  assert.ok(told.some((t) => t.to === WORKER && /3 sessions of month 1 approved/.test(t.text)));
+  at(win.logBy);
+  await work.runDue();
+  const done = (await work.get('w_1'))!.weeks[0]!;
+  assert.equal(done.status, 'settled');
+  assert.equal(done.backMicros, want.back.toString());
+});
+
+test('no more sessions than the month holds, and sessions only on monthly work', async () => {
+  const { work, at } = world();
+  const code = async (i: Partial<WorkInput>) => {
+    const r = await work.draft(HIRER, { ...lessons, ...i });
+    return r.ok ? 'ok' : r.code;
+  };
+  assert.equal(await code({ sessions: 0 }), 'BAD_TERMS');
+  assert.equal(await code({ sessions: 61 }), 'BAD_TERMS');
+  assert.equal(await code({ sessions: 2.5 }), 'BAD_TERMS');
+  const hourly = await work.draft(HIRER, { ...va, sessions: 12 });
+  assert.ok(hourly.ok && hourly.card.sessions === undefined, 'by the hour has no sessions');
+
+  await work.offer(HIRER, { ...lessons, sessions: 2, periods: 1 });
+  await work.accept(WORKER, 'w_1');
+  const win = windowsOf((await work.get('w_1'))!, 0);
+  at(win.start + 1);
+  assert.ok((await work.logHours(WORKER, 'w_1', { minutes: 1 })).ok);
+  assert.ok((await work.logHours(WORKER, 'w_1', { minutes: 1 })).ok);
+  const third = await work.logHours(WORKER, 'w_1', { minutes: 1 });
+  assert.ok(!third.ok && third.code === 'OVER_SESSIONS');
+  assert.match(third.message, /holds 2 sessions/);
+});
+
+test('sessions the hirer objects to go to review, and the others are paid at once', async () => {
+  const { work, told, at } = world();
+  await work.offer(HIRER, lessons);
+  await work.accept(WORKER, 'w_1');
+  const win = windowsOf((await work.get('w_1'))!, 0);
+  at(win.start + 1);
+  for (let i = 0; i < 3; i += 1) await work.logHours(WORKER, 'w_1', { minutes: 1 });
+  at(win.logBy);
+  const tooMany = await work.objectHours(HIRER, 'w_1', { k: 0, minutes: 4, reason: 'x' });
+  assert.ok(!tooMany.ok && tooMany.code === 'BAD_HOURS');
+  assert.match(tooMany.message, /up to 3 sessions/);
+  assert.ok((await work.objectHours(HIRER, 'w_1', { k: 0, minutes: 1, reason: 'Nobody came on the 9th' })).ok);
+  const w = (await work.get('w_1'))!.weeks[0]!;
+  assert.equal(w.paidNetMicros, payFor(SESSION_TERMS, 100, 2, 301_500_000n).net.toString());
+  assert.ok(told.some((t) => t.to === WORKER && /1 session of month 1 did not happen/.test(t.text)));
+});
+
+test('silence pays the recorded sessions when the review ends', async () => {
+  const { work, at } = world();
+  await work.offer(HIRER, { ...lessons, periods: 1 });
+  await work.accept(WORKER, 'w_1');
+  const win = windowsOf((await work.get('w_1'))!, 0);
+  at(win.start + 1);
+  for (let i = 0; i < 9; i += 1) await work.logHours(WORKER, 'w_1', { minutes: 1 });
+  at(win.reviewBy);
+  await work.runDue();
+  const s = (await work.get('w_1'))!;
+  const want = payFor(SESSION_TERMS, 100, 9, 301_500_000n);
+  assert.equal(s.weeks[0]!.paidNetMicros, want.net.toString());
+  assert.equal(s.weeks[0]!.backMicros, want.back.toString());
+});
