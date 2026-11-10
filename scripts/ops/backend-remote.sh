@@ -36,9 +36,13 @@ trap cleanup EXIT
 
 # The backend's guide and release-notes tests read frontend pages, docs, README.md and RELEASE_NOTES.md;
 # the contract-list test reads contracts/deployments.
-tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
-  --exclude=.next --exclude=test-results --exclude=playwright-report \
+# Only what git tracks, plus new files it does not ignore. Private notes, env
+# files, recovery files and anything else git ignores stay on the laptop.
+git -C "$ROOT" ls-files -z -co --exclude-standard -- \
   package.json package-lock.json README.md RELEASE_NOTES.md docs backend frontend cre/shared scripts contracts/deployments \
+  | (cd "$ROOT" && while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done) \
+  | tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
+    --exclude=.next --exclude=test-results --exclude=playwright-report --null -T - \
   | ssh -o BatchMode=yes $H "mkdir -p $W/repo $NPM_CACHE && tar -C $W/repo -xzf -"
 
 ssh -o BatchMode=yes $H "docker run -d --rm --name $PG -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=karwan_test $PG_IMAGE >/dev/null
@@ -46,7 +50,7 @@ ssh -o BatchMode=yes $H "docker run -d --rm --name $PG -e POSTGRES_PASSWORD=post
 
 # Runs as the host user, so the workspace never holds root-owned files, and
 # shares the database container's network so the tests see it on 127.0.0.1.
-ssh -o BatchMode=yes $H "docker run --rm --name karwan-backend-run-$RUN --network container:$PG --cpus=8 --memory=8g \
+ssh -o BatchMode=yes $H "docker run --rm --name karwan-backend-run-$RUN --network container:$PG --cpus=\$(n=\$(nproc); [ \$n -lt 8 ] && echo \$n || echo 8) --memory=8g \
   --user \$(id -u):\$(id -g) -e HOME=/tmp -e npm_config_cache=/npm-cache -v $NPM_CACHE:/npm-cache -v $W/repo:/repo -w /repo \
   -e TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/karwan_test \
   -e KARWAN_JOBBOARD_ADDR=0x0000000000000000000000000000000000000001 \

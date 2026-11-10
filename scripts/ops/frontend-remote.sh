@@ -38,9 +38,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
-  --exclude=.next --exclude=test-results --exclude=playwright-report \
+# Only what git tracks, plus new files it does not ignore. Private notes, env
+# files and anything else git ignores stay on the laptop.
+git -C "$ROOT" ls-files -z -co --exclude-standard -- \
   package.json package-lock.json README.md RELEASE_NOTES.md CIRCLE.md SETUP.md LICENSE docs backend frontend cre/shared scripts contracts/deployments contracts/README.md \
+  | (cd "$ROOT" && while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done) \
+  | tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
+    --exclude=.next --exclude=test-results --exclude=playwright-report --null -T - \
   | ssh -o BatchMode=yes $H "mkdir -p $W/repo $NPM_CACHE && tar -C $W/repo -xzf -"
 
 ssh -o BatchMode=yes $H "docker run --rm --name karwan-frontend-run-$RUN --cpus=\$(n=\$(nproc); [ \$n -lt 8 ] && echo \$n || echo 8) --memory=8g \
