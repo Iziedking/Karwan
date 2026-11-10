@@ -805,3 +805,11 @@ Agree: yes.
 - Installed tooling: arc-foundry v0.8.0-2 (anvil fork), `viem` 2.55.11 (unchanged).
 - Read-only test, 10 Nov 2026, node-services, anvil fork of the Arc Testnet public RPC at the new default with no override: `arc-fork.sh up` reported block 71,722,000; `arc-fork.sh e2e parity` passed 4 of 4 (terms hash matches `termsHashOf`, deal id matches `dealIdFor`, bind digest matches `bindDigest`, check report digest matches `reportDigest`); fork taken down after.
 - Agree: yes. Move the default forward again when a later contract is added to the runs.
+
+## 2026-11-11 · A month of sessions on the Time escrow (T1 with T2, view 76)
+
+- Scope: monthly work billed by the session on the deployed `KarwanTimeEscrow`, with no contract change. Terms: `rate` is the month's price, `unitScale` and `maxUnits` are the sessions agreed, `cycleSecs` is 28 days. The calls are the ones hourly work already makes (`open`, `accept`, `submit`, `approve`, `settle`), through Circle contract execution as before. No new SDK call.
+- Docs: none relied on beyond the earlier Time escrow check for view 32. Contract source read, 11 Nov 2026: `contracts/src/suite/time/TimeLib.sol` (`unitScale` 1 to 10,000, `maxUnits` over 0, cycle 1 to 31 days, `submit` takes the running total up to `maxUnits`, gross is `rate * units / unitScale`).
+- Installed tooling: arc-foundry v0.8.0-2 (anvil fork), `viem` 2.55.11, `@circle-fin/developer-controlled-wallets` 10.8.0 (unchanged).
+- Test, 11 Nov 2026, node-services, anvil fork of Arc Testnet at block 71,722,000 (`arc-fork.sh e2e hourly`, which now ends with this case): a 300 USDC month of 12 sessions opened with 301.5 paid in and `termsHashOf` equal to the backend's hash; one session is 25 USDC; sessions recorded as running totals 1, 5 and 9 on different days; a 13th refused; approving 9 after the month paid the worker exactly 223.875; settling returned exactly 75.375 to the hirer. The older hourly and retainer checks in the same run still pass. Fork taken down after.
+- Agree: yes.

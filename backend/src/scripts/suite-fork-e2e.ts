@@ -950,6 +950,42 @@ async function hourlyRun(): Promise<void> {
   const back = proveCancelled(await send('hirer', cancelOfferCall(escrow, lapsed.id)), { escrow, id: lapsed.id });
   const gone = await pub.readContract({ address: escrow, abi: timeEscrowAbi, functionName: 'getEngagement', args: [lapsed.id] });
   check('an offer nobody accepted is taken back in full', back === lapsed.total && gone.state === 4, `${back} back, state ${gone.state}`);
+
+  // View 76: a four-week month of 12 sessions at 300 USDC. A session is one
+  // unit, so 9 recorded sessions pay nine twelfths and 3 come back.
+  const sStarts = BigInt((await chainNow()) + 3_600);
+  const sTerms = { ...buildTimeTerms({ kind: 'monthly', asset: USDC, worker, rateMicros: 300_000_000n, maxHours: 1, periods: 2, startsAt: sStarts, agreementHash }), unitScale: 12, maxUnits: 12, cycleSecs: 28 * DAY };
+  const sTotal = weekCost(sTerms, fee).total;
+  const sCalls = offerCalls({ escrow, usdc: USDC, salt: salt(4), terms: sTerms, feeBps: fee });
+  await send('hirer', sCalls[0]!);
+  const sId = proveOffered(await send('hirer', sCalls[1]!), { escrow, employer: hirer, worker, termsHash: timeTermsHash(sTerms), total: sTotal });
+  const onChainHash = await pub.readContract({ address: escrow, abi: timeEscrowAbi, functionName: 'termsHashOf', args: [sTerms] });
+  check('a month of 12 sessions is offered with the month paid in, and its terms hash matches', onChainHash === timeTermsHash(sTerms) && sTotal === weekCost(sTerms, fee).budget + weekCost(sTerms, fee).feeHalf && grossOf(sTerms, 1) === 25_000_000n, `id ${sId}, ${sTotal}, one session ${grossOf(sTerms, 1)}`);
+  proveAccepted(await send('worker', acceptCall(escrow, sId, timeTermsHash(sTerms))), { escrow, id: sId });
+  const sStart = Number(sStarts);
+  let recorded = 0;
+  for (const [day, total] of [[1, 1], [8, 5], [20, 9]] as const) {
+    await warp(sStart + day * DAY - (await chainNow()));
+    const ev = `0x${total.toString(16).padStart(64, '0')}` as Hex;
+    proveSubmitted(await send('worker', submitCall(escrow, sId, 0, total, ev)), { escrow, id: sId, k: 0, units: total, evidence: ev });
+    recorded = total;
+  }
+  check('sessions are recorded one day at a time: 1, then 5, then 9', recorded === 9);
+  let refused = false;
+  try {
+    await send('worker', submitCall(escrow, sId, 0, 13, evidence));
+  } catch {
+    refused = true;
+  }
+  check('a 13th session is refused', refused);
+  await warp(sStart + sTerms.cycleSecs + sTerms.claimGrace - (await chainNow()));
+  const ws = await balance(worker);
+  const sPaid = proveApproved(await send('hirer', approveCall(escrow, sId, 0, 9)), { escrow, id: sId, k: 0, units: 9, worker });
+  const sExpect = payFor(sTerms, fee, 9, sTotal);
+  check('approving 9 sessions after the month pays nine twelfths, exactly', sPaid === sExpect.net && (await balance(worker)) - ws === sExpect.net && sExpect.gross === 225_000_000n, `${sPaid} (want ${sExpect.net})`);
+  const hs = await balance(hirer);
+  const sSettled = proveSettled(await send('anyone', settleCall(escrow, sId, 0)), { escrow, id: sId, k: 0, worker });
+  check('the 3 sessions not held come back to the hirer', sSettled.back === sExpect.back && (await balance(hirer)) - hs === sExpect.back, `${sSettled.back} back (want ${sExpect.back})`);
 }
 
 /// Outside-agent jobs on the job escrow (views 15 and 40): the outside agent's
