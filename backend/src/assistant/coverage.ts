@@ -248,6 +248,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/auth/sessions/:/close': { by: 'page', why: 'Signing out one device is picked from the list on Profile, Signed-in devices.' },
   'POST /api/survey/research': { by: 'page', why: 'The public research survey, answered without an account.' },
   'POST /api/feedback/:/status': { by: 'internal', why: "The team's triage of feedback." },
+  'POST /api/listings/:/remove': { by: 'internal', why: 'The team takes a reported offer off the market from the desk.' },
   'POST /api/diagnose': { by: 'internal', why: 'The help panel sends its own diagnostics.' },
   'POST /api/assistant/chat': ASSISTANT_OWN,
   'POST /api/assistant/conversations': ASSISTANT_OWN,
