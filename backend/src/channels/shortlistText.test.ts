@@ -26,6 +26,23 @@ const entry = (over: Partial<ShortlistEntry>): ShortlistEntry => ({
   ...over,
 });
 
+test('a bargaining list says how it is ranked, where each price opened, why it sits there and when it is your call', () => {
+  const text = shortlistText(
+    [entry({ why: ['best_fit', 'fair_price'], movedFrom: 300, yourCall: { priceUsdc: 262, offeredUsdc: 230 } })],
+    'https://karwan.site',
+    { readsBalanceEmpty: false },
+  );
+  assert.match(text, /\*Your shortlist\*\n\nRanked on fit, price, ratings and record\./);
+  assert.match(text, /\nOpened at 300 USDC\n/);
+  assert.match(text, /\nWhy here: Best fit, Fair price\n/);
+  assert.match(text, /\nYour call\. Your agent offered 230 USDC\. Agree at 262 USDC or keep bargaining\./);
+});
+
+test('a list from before view 73 has none of the bargaining lines', () => {
+  const text = shortlistText([entry({})], 'https://karwan.site', { readsBalanceEmpty: false });
+  assert.doesNotMatch(text, /Ranked on|Opened at|Why here|Your call/);
+});
+
 const kemi = entry({ rank: 2, name: 'Kemi B.', tag: null, level: 'registered', verified: false, score: 12, tier: 'NEW', counts: { completed: 0, onTimeRate: null, disputesLost: 0 }, priceUsdc: 60, askedUsdc: null, recordChecked: false, recommended: false, reasons: [] });
 
 test('each row shows level and tier, never a score, with price and the numbers it was given, and one recommendation', () => {

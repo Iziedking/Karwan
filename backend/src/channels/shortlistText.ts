@@ -14,6 +14,14 @@ const TIER_WORDS: Record<string, string> = {
   ELITE: 'Elite',
 };
 
+// View 73: the reasons a bargaining list ranks an offer where it is.
+const WHY_WORDS: Record<string, string> = {
+  best_fit: 'Best fit',
+  fair_price: 'Fair price',
+  well_rated: 'Well rated',
+  trusted: 'Trusted',
+};
+
 function numbersLine(e: Row): string | null {
   if (!e.counts) return e.recordChecked ? 'Record checked' : null;
   const nums =
@@ -37,6 +45,9 @@ function row(e: Row, webBase: string): string {
   const price = `${offer}${e.deliveryDays} days · ${e.priceUsdc} USDC${e.askedUsdc !== null ? ` (asked ${e.askedUsdc})` : ''}`;
   const numbers = numbersLine(e);
   const lines = [head, level, price, ...(numbers ? [numbers] : [])];
+  if (e.movedFrom !== undefined) lines.push(`Opened at ${e.movedFrom} USDC`);
+  if (e.why?.length) lines.push(`Why here: ${e.why.map((w) => WHY_WORDS[w] ?? w).join(', ')}`);
+  if (e.yourCall) lines.push(`Your call. Your agent offered ${e.yourCall.offeredUsdc} USDC. Agree at ${e.yourCall.priceUsdc} USDC or keep bargaining.`);
   if (e.state === 'unavailable') lines.push('No longer available');
   // view 41, decisions 11 and 13
   if (e.mustLink) lines.push('Not linked to their account yet. You can choose them once they link it.');
@@ -60,6 +71,7 @@ export function shortlistText(
     return parts.join('\n\n');
   }
   parts.push('*Your shortlist*');
+  if (entries.some((e) => e.why?.length)) parts.push('Ranked on fit, price, ratings and record.');
   if (!entries.some((e) => e.recommended)) {
     parts.push(
       entries.some((e) => e.verified)

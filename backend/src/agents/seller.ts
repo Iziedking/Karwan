@@ -1618,6 +1618,7 @@ async function askAtFloor(
     limit: Number(floorUsdc.toFixed(2)),
     suggested: { priceUsdc: (kind === 'last-price-passed' ? hold : floorUsdc).toFixed(2), days: dueDays },
     theirPriceUsdc: buyerPriceUsdc,
+    betterOffer: active.betterOffer === true,
     counterpartUser: getBrief(job.jobId)?.postedBy ?? null,
   });
   bus.emitEvent({

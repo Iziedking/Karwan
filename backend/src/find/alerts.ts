@@ -1,4 +1,5 @@
 import { tg } from '../i18n/telegram.js';
+import { budgetRange } from '../agents/budgetRange.js';
 import type { UserLocale } from '../db/profiles.js';
 import type { DistanceLine } from '../location/rules.js';
 import type { CreateResult, NewContact, Contact } from './contacts.js';
@@ -19,6 +20,8 @@ export interface AlertDeps {
   locale(person: string): Promise<UserLocale>;
   /// A USDC amount in the person's own currency.
   money(person: string, usdc: number): Promise<string>;
+  /// Whether the request bargains (view 73): its sellers read the budget as a range.
+  bargain?(jobId: string): boolean;
   note(to: string, data: { heading: string; lines: string[]; jobId: string }): void;
   newId(): string;
 }
@@ -41,13 +44,16 @@ export function distanceText(d: DistanceLine, locale: UserLocale): string | null
 
 /// The alert, or one of its reminders, in the seller's language.
 export async function alertNote(
-  input: { to: string; need: string; budgetUsdc: string; kind: Find['kind']; distance: DistanceLine; byDay: string | null; reminder: boolean },
-  deps: Pick<AlertDeps, 'locale' | 'money'>,
+  input: { to: string; need: string; budgetUsdc: string; jobId?: string; kind: Find['kind']; distance: DistanceLine; byDay: string | null; reminder: boolean },
+  deps: Pick<AlertDeps, 'locale' | 'money' | 'bargain'>,
 ): Promise<{ heading: string; lines: string[] }> {
   const locale = await deps.locale(input.to);
   const near = input.kind === 'in_person';
   const heading = tg(input.reminder ? (near ? 'alert.reminderNear' : 'alert.reminder') : near ? 'alert.headingNear' : 'alert.heading', locale);
-  const budget = tg('alert.budget', locale, { amount: await deps.money(input.to, Number(input.budgetUsdc)) });
+  const range = input.jobId && deps.bargain?.(input.jobId) ? budgetRange(Number(input.budgetUsdc)) : null;
+  const budget = range
+    ? tg('alert.budgetRange', locale, { low: await deps.money(input.to, range.lowUsdc), high: await deps.money(input.to, range.highUsdc) })
+    : tg('alert.budget', locale, { amount: await deps.money(input.to, Number(input.budgetUsdc)) });
   const lines = [
     `"${input.need}"`,
     [budget, input.byDay ? tg('alert.by', locale, { day: input.byDay }) : null].filter(Boolean).join(' · '),
@@ -79,7 +85,7 @@ export async function alertPicked(
     }
     out.asked.push(row.name);
     if (made.contact.delivered) {
-      deps.note(row.user, { ...(await alertNote({ to: row.user, need: input.find.need, budgetUsdc: input.find.budgetUsdc, kind: input.find.kind, distance: row.distance, byDay: input.byDay, reminder: false }, deps)), jobId: input.jobId });
+      deps.note(row.user, { ...(await alertNote({ to: row.user, need: input.find.need, budgetUsdc: input.find.budgetUsdc, jobId: input.jobId, kind: input.find.kind, distance: row.distance, byDay: input.byDay, reminder: false }, deps)), jobId: input.jobId });
     }
   }
   await deps.saveFind({ ...input.find, jobId: input.jobId, status: 'contacting', mode: 'choose' });
@@ -90,12 +96,12 @@ export async function alertPicked(
 export async function sendDue(
   claimed: { contact: Contact; step: 'deliver' | 'remind' },
   find: Find | null,
-  deps: Pick<AlertDeps, 'locale' | 'money' | 'note'>,
+  deps: Pick<AlertDeps, 'locale' | 'money' | 'note' | 'bargain'>,
 ): Promise<void> {
   const c = claimed.contact;
   if (!find?.jobId || c.kind !== 'alert') return;
   const row = find.rows.find((r) => r.user === c.to);
   if (!row) return;
-  const text = await alertNote({ to: c.to, need: find.need, budgetUsdc: find.budgetUsdc, kind: find.kind, distance: row.distance, byDay: null, reminder: claimed.step === 'remind' }, deps);
+  const text = await alertNote({ to: c.to, need: find.need, budgetUsdc: find.budgetUsdc, jobId: find.jobId, kind: find.kind, distance: row.distance, byDay: null, reminder: claimed.step === 'remind' }, deps);
   deps.note(c.to, { ...text, jobId: find.jobId });
 }

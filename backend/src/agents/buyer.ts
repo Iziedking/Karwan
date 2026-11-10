@@ -114,6 +114,7 @@ import { getRecord, putRecord } from '../db/evidence.js';
 import { resumeBook, stepBook, yourCalls, type Book, type BookContext, type BookEvent } from './negotiationBook.js';
 import { runBook, type BookDeps } from './bookRunner.js';
 import { budgetRange } from './budgetRange.js';
+import { requestTitle } from './bidOutcome.js';
 import { withLlmRetry } from './llm-utils.js';
 import {
   actorSignalsFor,
@@ -2288,7 +2289,23 @@ async function askOnShortlist(state: JobState, seller: string, priceUsdc: string
     bid.priceWei = parseUnits(priceUsdc, USDC_DECIMALS);
     notesChanged(state);
   }
-  bus.emitEvent({ type: 'agent.decision', jobId: state.jobId, actor: 'buyer', payload: { scope: 'bargain-ask', seller, priceUsdc, gapUsdc } });
+  // The buyer is told on Telegram (view 73): the seller's price, their agent's own and the gap.
+  const name = state.shortlist?.find((e) => e.seller.toLowerCase() === seller.toLowerCase())?.name;
+  bus.emitEvent({
+    type: 'agent.decision',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: {
+      scope: 'bargain-ask',
+      seller,
+      priceUsdc,
+      gapUsdc,
+      offeredUsdc: Math.max(0, Number(priceUsdc) - Number(gapUsdc)).toFixed(2),
+      buyerUser: getBrief(state.jobId)?.postedBy ?? null,
+      title: requestTitle(state.context.briefText) ?? '',
+      ...(name ? { sellerName: name } : {}),
+    },
+  });
   if (shortlistLive(state)) await publishShortlist(state, rankBidEntries(state), Number(state.context.budgetUsdc), { counter: false });
 }
 

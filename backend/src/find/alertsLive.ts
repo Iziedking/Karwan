@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { DEFAULT_BRIEF, DEFAULT_QUIET } from '../agents/mandate.js';
 import { CLOSES_REQUEST } from '../agents/questionSweep.js';
 import { getAgentRecord } from '../db/agentRecords.js';
+import { bargainOn } from '../db/briefs.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getProfile, type UserLocale } from '../db/profiles.js';
 import { bus, type KarwanEvent } from '../events.js';
@@ -39,6 +40,7 @@ export const liveAlertDeps: AlertDeps = {
   },
   note: (to, data) => bus.emitEvent({ type: 'agent.note', actor: 'platform', jobId: data.jobId, payload: { user: to, sellerUser: to, ...data } }),
   newId: () => randomUUID(),
+  bargain: bargainOn,
 };
 
 const localeOf = liveAlertDeps.locale;

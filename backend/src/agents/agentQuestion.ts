@@ -23,6 +23,8 @@ export interface AskInput {
   counterpartUser?: string | null;
   /// For a counter: the price the other side offered.
   theirPriceUsdc?: string;
+  /// For a seller's counter (view 73): the buyer holds a better offer, never who or how much.
+  betterOffer?: boolean;
   /// False when the person was already told through their own card (the
   /// buyer's near match): stored and shown, but no second notice.
   notify?: boolean;
@@ -71,6 +73,7 @@ export async function askOwner(input: AskInput, now = Date.now()): Promise<Agent
       priceUsdc: input.suggested.priceUsdc,
       days: input.suggested.days,
       ...(input.theirPriceUsdc ? { theirPriceUsdc: input.theirPriceUsdc } : {}),
+      ...(input.side === 'seller' && input.betterOffer ? { betterOffer: true } : {}),
       ...(q.defaultChoice ? { defaultChoice: q.defaultChoice, decideAt: q.decideAt } : {}),
     },
   });
@@ -163,7 +166,7 @@ export function questionLine(p: Record<string, unknown> | undefined): string | n
       return `Your agent would offer ${price} USDC, ready in ${dayWord(days)}. Send it?`;
     case 'counter-below-floor':
     case 'last-price-passed':
-      return `The buyer offers ${their} USDC. Your lowest is ${limit} USDC. Take ${their} USDC or hold at ${price} USDC?`;
+      return `The buyer offers ${their} USDC. Your lowest is ${limit} USDC. Take ${their} USDC or hold at ${price} USDC?${p?.betterOffer === true ? ' The buyer has a better offer.' : ''}`;
     case 'price-above-cap':
       return `A seller asks ${their} USDC, above the ${limit} USDC you allowed. Pay ${price} USDC?`;
     default:

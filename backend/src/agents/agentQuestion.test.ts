@@ -123,3 +123,22 @@ test('a seller reading a bargaining request gets a range, never the budget (view
     'The budget is 150 to 230 USDC, under your lowest of 240 USDC. Offer 240 USDC?',
   );
 });
+
+test('a seller asked about a counter is told when the buyer has a better offer, never who or how much (view 73)', async () => {
+  const job = '0x' + 'ef'.repeat(32);
+  const told: Array<Record<string, unknown> | undefined> = [];
+  const off = bus.subscribe((e) => {
+    if (e.type === 'agent.suggestion') told.push(e.payload);
+  });
+  try {
+    await askOwner({
+      owner: SELLER, side: 'seller', jobId: job, kind: 'counter-below-floor', title: 'Logo',
+      budgetUsdc: '222', dueDays: 3, limit: 230, suggested: { priceUsdc: '230.00', days: 3 }, theirPriceUsdc: '200', betterOffer: true,
+    });
+  } finally {
+    off();
+  }
+  assert.equal(told[0]?.betterOffer, true);
+  assert.match(questionLine(told[0]) ?? '', /The buyer has a better offer\.$/);
+  assert.equal(questionLine({ kind: 'price-below-floor', budgetUsdc: '12', limit: 20, priceUsdc: '20', betterOffer: true })?.includes('better offer'), false, 'only a counter question says it');
+});

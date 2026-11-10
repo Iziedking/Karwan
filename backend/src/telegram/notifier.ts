@@ -110,6 +110,7 @@ export const RELEVANT = new Set([
   'work.update',
   'agent.suggestion',
   'agent.question.decided',
+  'agent.decision',
   'offer.request-changed',
   'deal.review.ending',
   'record.setup_needed',
@@ -298,6 +299,11 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     if (!passed || !e.jobId) return out;
     const financiers = await financiersOfDeal(e.jobId).catch(() => []);
     return [...out, ...financiers.map((f) => ({ address: f.financier, role: 'financier', href: f.href }))];
+  }
+  // View 73: the buyer's agent stopped to ask; only the buyer hears it.
+  if (e.type === 'agent.decision') {
+    const buyer = e.payload?.scope === 'bargain-ask' ? (e.payload?.buyerUser as string | undefined)?.toLowerCase() : undefined;
+    return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
   if ((e.type === 'agent.suggestion' || e.type === 'agent.question.decided') && e.payload?.buyerUser) {
     return [{ address: (e.payload.buyerUser as string).toLowerCase(), role: 'buyer' }];
@@ -597,6 +603,21 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       const text = `${heading}${lines.map((l) => `• ${l}`).join('\n')}`;
       if (e.type === 'agent.note' && typeof p.pitchId === 'string') return withLink(text, pitchUrl(p.pitchId));
       return withLink(text, e.type === 'agent.note' ? jobUrl(p.jobId as string | undefined) : yourAgentUrl());
+    }
+    case 'agent.decision': {
+      if (role !== 'buyer' || e.payload?.scope !== 'bargain-ask') return null;
+      const p = e.payload ?? {};
+      const usdc = (v: unknown) => `${trimUsdcLabel(String(v ?? ''))} USDC`;
+      const price = usdc(p.priceUsdc);
+      const title = typeof p.title === 'string' ? p.title : '';
+      const heading = title ? tg('bargain.yourCallOn', locale, { title }) : tg('bargain.yourCall', locale);
+      const seller = (typeof p.sellerName === 'string' && p.sellerName) || who(p.seller);
+      return withLink(
+        `*${heading}*
+${tg('bargain.yourCallAsk', locale, { seller, price, offered: usdc(p.offeredUsdc), gap: usdc(p.gapUsdc) })}
+${tg('bargain.yourCallChoice', locale, { price })}`,
+        jobUrl(e.jobId),
+      );
     }
     case 'agent.question.decided': {
       if (role !== (e.payload?.buyerUser ? 'buyer' : 'seller')) return null;
@@ -1124,6 +1145,7 @@ export function startTelegramNotifier(): () => void {
     if (!RELEVANT.has(e.type)) return;
     try {
       const recipients = await recipientsFor(e);
+      if (!recipients.length) return;
       const named = [e.payload?.seller, e.payload?.buyer, e.payload?.sender, ...recipients.map((r) => r.counterparty)]
         .filter((a): a is string => typeof a === 'string' && /^0x[0-9a-fA-F]{40}$/.test(a));
       const names = named.length ? await personNames(named) : undefined;
@@ -1136,7 +1158,7 @@ export function startTelegramNotifier(): () => void {
         if (profile?.settings?.notificationsMuted) continue;
         if (!channelsFor(profile?.settings, true).telegram) continue;
         // An agent question, its reminder and its outcome go out on one channel (view 52).
-        if ((e.type === 'agent.question.decided' || (e.type === 'agent.suggestion' && e.payload?.questionId)) && !questionChannelFor(profile?.settings, true).telegram) continue;
+        if ((e.type === 'agent.question.decided' || e.type === 'agent.decision' || (e.type === 'agent.suggestion' && e.payload?.questionId)) && !questionChannelFor(profile?.settings, true).telegram) continue;
         if ((e.type === 'agent.brief' || e.type === 'agent.note') && !briefChannelFor(profile?.settings, true).telegram) continue;
         const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
         const summary = r.role === 'financier' ? financierSummaryFor(e, r.href, locale) : summaryFor(e, r.role, locale, { names, counterparty: r.counterparty });

@@ -115,6 +115,11 @@ type TgKey =
   | 'alert.city'
   | 'alert.open'
   | 'alert.thanks'
+  | 'alert.budgetRange'
+  | 'bargain.yourCall'
+  | 'bargain.yourCallOn'
+  | 'bargain.yourCallAsk'
+  | 'bargain.yourCallChoice'
   | 'pitch.headingNear'
   | 'pitch.heading'
   | 'pitch.reminderNear'
@@ -247,6 +252,11 @@ const en: Record<TgKey, string> = {
   'alert.city': 'In {city}',
   'alert.open': 'Open it to send your price, or say no thanks.',
   'alert.thanks': 'Thanks. They have found someone. We will tell you about the next one.',
+  'alert.budgetRange': "Budget {low} to {high}",
+  'bargain.yourCall': "Your call",
+  'bargain.yourCallOn': "Your call: {title}",
+  'bargain.yourCallAsk': "{seller} asks {price}. Your agent offered {offered}, {gap} less.",
+  'bargain.yourCallChoice': "Agree at {price}, or keep bargaining? Reply here. Agreeing moves no money.",
   'pitch.headingNear': 'Someone near you can help with what you need',
   'pitch.heading': 'Someone can help with what you need',
   'pitch.reminderNear': 'Reminder: someone near you can help with what you need',
@@ -380,6 +390,11 @@ const ar: Partial<Record<TgKey, string>> = {
   'alert.city': 'في {city}',
   'alert.open': 'افتحه لترسل سعرك، أو قل لا شكرًا.',
   'alert.thanks': 'شكرًا. وجد هذا الشخص من يساعده. سنخبرك بالطلب التالي.',
+  'alert.budgetRange': "الميزانية من {low} إلى {high}",
+  'bargain.yourCall': "القرار لك",
+  'bargain.yourCallOn': "القرار لك: {title}",
+  'bargain.yourCallAsk': "سعر {seller} هو {price}. عرض وكيلك {offered}، أي أقل بمقدار {gap}.",
+  'bargain.yourCallChoice': "وافق على {price}، أو واصل التفاوض؟ ردّ هنا. الموافقة لا تنقل أي أموال.",
   'pitch.headingNear': 'شخص قريب منك يمكنه مساعدتك فيما تحتاجه',
   'pitch.heading': 'شخص يمكنه مساعدتك فيما تحتاجه',
   'pitch.reminderNear': 'تذكير: شخص قريب منك يمكنه مساعدتك فيما تحتاجه',
@@ -513,6 +528,11 @@ const fr: Partial<Record<TgKey, string>> = {
   'alert.city': 'À {city}',
   'alert.open': 'Ouvrez-la pour donner votre prix, ou dites non merci.',
   'alert.thanks': 'Merci. Cette personne a trouvé quelqu\'un. Nous vous parlerons de la prochaine.',
+  'alert.budgetRange': "Budget de {low} à {high}",
+  'bargain.yourCall': "À vous de décider",
+  'bargain.yourCallOn': "À vous de décider : {title}",
+  'bargain.yourCallAsk': "{seller} demande {price}. Votre agent a proposé {offered}, soit {gap} de moins.",
+  'bargain.yourCallChoice': "Accepter à {price}, ou continuer à négocier ? Répondez ici. Accepter ne déplace pas d'argent.",
   'pitch.headingNear': 'Quelqu\'un près de chez vous peut vous aider pour votre besoin',
   'pitch.heading': 'Quelqu\'un peut vous aider pour votre besoin',
   'pitch.reminderNear': 'Rappel : quelqu\'un près de chez vous peut vous aider pour votre besoin',
@@ -646,6 +666,11 @@ const hi: Partial<Record<TgKey, string>> = {
   'alert.city': '{city} में',
   'alert.open': 'अपनी कीमत भेजने के लिए खोलें, या मना कर दें।',
   'alert.thanks': 'धन्यवाद। उन्हें कोई मिल गया है। अगली बार हम आपको बताएँगे।',
+  'alert.budgetRange': "बजट {low} से {high}",
+  'bargain.yourCall': "आपका फ़ैसला",
+  'bargain.yourCallOn': "आपका फ़ैसला: {title}",
+  'bargain.yourCallAsk': "{seller} {price} माँग रहे हैं। आपके एजेंट ने {offered} की पेशकश की, {gap} कम।",
+  'bargain.yourCallChoice': "{price} पर सहमति दें, या मोलभाव जारी रखें? यहीं जवाब दें। सहमति देने से कोई पैसा नहीं जाता।",
   'pitch.headingNear': 'आपके पास कोई आपकी ज़रूरत में मदद कर सकता है',
   'pitch.heading': 'कोई आपकी ज़रूरत में मदद कर सकता है',
   'pitch.reminderNear': 'याद दिलाना: आपके पास कोई आपकी ज़रूरत में मदद कर सकता है',
@@ -779,6 +804,11 @@ const sw: Partial<Record<TgKey, string>> = {
   'alert.city': 'Ndani ya {city}',
   'alert.open': 'Fungua utume bei yako, au sema hapana asante.',
   'alert.thanks': 'Asante. Wamepata mtu. Tutakuambia kuhusu inayofuata.',
+  'alert.budgetRange': "Bajeti {low} hadi {high}",
+  'bargain.yourCall': "Uamuzi ni wako",
+  'bargain.yourCallOn': "Uamuzi ni wako: {title}",
+  'bargain.yourCallAsk': "{seller} anaomba {price}. Wakala wako alitoa {offered}, pungufu kwa {gap}.",
+  'bargain.yourCallChoice': "Kubali kwa {price}, au endelea kujadiliana? Jibu hapa. Kukubali hakuhamishi pesa yoyote.",
   'pitch.headingNear': 'Mtu karibu nawe anaweza kukusaidia na unachohitaji',
   'pitch.heading': 'Mtu anaweza kukusaidia na unachohitaji',
   'pitch.reminderNear': 'Kumbusho: mtu karibu nawe anaweza kukusaidia na unachohitaji',
