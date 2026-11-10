@@ -4,6 +4,7 @@ import { WALLET_HOME, dealRouteBlocked, dealsAvailableOn } from './shared/utils/
 import { adminGate } from './shared/admin/adminDesk';
 import { accessKeys, accessPassValid } from './shared/admin/accessPass';
 import { buildCsp, cspHeaderName, cspMode, makeNonce, originsOf } from './shared/security/csp';
+import { REGION_COOKIE, regionFromHeader } from './shared/utils/region';
 
 const DEALS_AVAILABLE = dealsAvailableOn(process.env.NEXT_PUBLIC_ARC_NETWORK);
 
@@ -78,6 +79,11 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next({ request: { headers: requestHeaders } });
   res.headers.set(CSP_HEADER, policy);
   if (REPORT_URL) res.headers.set('Reporting-Endpoints', `csp="${REPORT_URL}"`);
+  // The visitor's country, so prices read in local money before sign-in (view 74).
+  const region = regionFromHeader(req.headers.get('cf-ipcountry'));
+  if (region && req.cookies.get(REGION_COOKIE)?.value !== region) {
+    res.cookies.set(REGION_COOKIE, region, { path: '/', sameSite: 'lax', maxAge: 86_400, secure: process.env.NODE_ENV === 'production' });
+  }
   if (isPrivateRoute(req.nextUrl.pathname) || req.nextUrl.pathname.startsWith('/admin')) {
     res.headers.set('Cache-Control', 'no-store, must-revalidate');
   }

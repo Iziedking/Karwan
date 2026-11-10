@@ -46,7 +46,7 @@
       "id": "an-open-market",
       "title": "An open market, where every offer is public unless you post privately",
       "status": "shipping",
-      "updated": "2026-11-07",
+      "updated": "2026-11-10",
       "tags": [
         "market",
         "offers",
@@ -60,7 +60,7 @@
           "date": "2026-11-05"
         }
       ],
-      "body": "Everything on the Karwan market can be read by anyone, signed in or not:\nrequests, offers for sale, and every offer made on a request. Each offer on a\nrequest shows the seller by name, with their verified mark and rating, the\nprice, the delivery date, the note, and whether the seller or their agent made\nit. Offers you make on a request are public in the same way. Sellers are shown\nby name, never by wallet address.\n\nA request stays on the market while it is open. Once a seller is matched it is\nmarked In negotiation, and once the deal is made it is marked Agreed for 7\ndays, with its offers still listed and the chosen one marked. It leaves the\nmarket when it is cancelled, expires or ends with no deal. New offers close\nonce a seller is matched.\n\nSome things stay private: the buyer's agent's ranking of the offers and its\nreasons, how far above the budget the buyer would go, the counter-offers in a\nnegotiation, and the deal itself, with its money, delivery, files and messages.\n\nOpen is the default, not the only choice. When you post a request or an offer\nfor sale, you pick who can see it: everyone on the market, private so only\nagents see it, or just one person. A private request never appears on the\nmarket or in search; seller agents still find it and offer on it, you see\nevery offer, and each seller sees only their own. A private offer for sale\nnever appears on the market or in search; buyer agents still find it, and\nanyone you send its link can open it. Just one person posts nothing: a buyer\nstarts a deal with the person they agreed with, and a seller sends their deal\nlink. You choose when you post; to change it, cancel and post again.\n\nReading needs no account. Making, lowering, withdrawing or accepting an offer\nneeds you to sign in. Your assistant can read the same list: ask it what offers\na request has.\n\nWhen a new offer goes up, each person with a Karwan agent hears of it once.\nIf it fits a request they posted in the last 30 days, the alert says so and\nnames the words it fits. Otherwise it reads New on the market. An offer posted\nprivately is never sent as news."
+      "body": "Everything on the Karwan market can be read by anyone, signed in or not:\nrequests, offers for sale, and every offer made on a request. Each offer on a\nrequest shows the seller by name, with their verified mark and rating, the\nprice, the delivery date, the note, and whether the seller or their agent made\nit. Offers you make on a request are public in the same way. Sellers are shown\nby name, never by wallet address.\n\nBefore you sign in, prices read in the money of the country you are in, with\nthe dollar figure small beside them. Once you sign in they read in the\ncurrency you chose, which you can change in Settings.\n\nA request stays on the market while it is open. Once a seller is matched it is\nmarked In negotiation, and once the deal is made it is marked Agreed for 7\ndays, with its offers still listed and the chosen one marked. It leaves the\nmarket when it is cancelled, expires or ends with no deal. New offers close\nonce a seller is matched.\n\nSome things stay private: the buyer's agent's ranking of the offers and its\nreasons, how far above the budget the buyer would go, the counter-offers in a\nnegotiation, and the deal itself, with its money, delivery, files and messages.\n\nOpen is the default, not the only choice. When you post a request or an offer\nfor sale, you pick who can see it: everyone on the market, private so only\nagents see it, or just one person. A private request never appears on the\nmarket or in search; seller agents still find it and offer on it, you see\nevery offer, and each seller sees only their own. A private offer for sale\nnever appears on the market or in search; buyer agents still find it, and\nanyone you send its link can open it. Just one person posts nothing: a buyer\nstarts a deal with the person they agreed with, and a seller sends their deal\nlink. You choose when you post; to change it, cancel and post again.\n\nReading needs no account. Making, lowering, withdrawing or accepting an offer\nneeds you to sign in. Your assistant can read the same list: ask it what offers\na request has.\n\nWhen a new offer goes up, each person with a Karwan agent hears of it once.\nIf it fits a request they posted in the last 30 days, the alert says so and\nnames the words it fits. Otherwise it reads New on the market. An offer posted\nprivately is never sent as news."
     },
     {
       "id": "assistant-mode-and-help",
@@ -296,7 +296,7 @@
       "id": "escrow-families-roadmap",
       "title": "Escrow families for every kind of trade",
       "status": "shipping",
-      "updated": "2026-10-31",
+      "updated": "2026-11-06",
       "tags": [
         "escrow",
         "contracts",
@@ -313,7 +313,7 @@
           "date": "2026-10-31"
         }
       ],
-      "body": "Karwan's next escrow contracts are deployed on Arc Testnet and not on mainnet.\nA timelock owns them, so every rule change waits a day in public, queued by a\nmulti-signature owner. On Arc Testnet, new deals have opened on the Agreement\nfamily since 24 October 2026. A deal that opened before keeps the escrow it\nstarted on and finishes there; all of them are listed together on the legacy\npage so they can be reconciled. The other families are not used by the app\nyet.\n\nArc limits each contract to 24,576 bytes, so escrow is split into families,\neach holding only its own deals' money, so a fault in one cannot reach another\nfamily's balance. Agreement covers fixed-price goods and services with up to 12\ntranches, instalment plans and disputes that freeze only the disputed part.\nTime covers hourly, daily and retainer work, cycle by cycle. Jobs covers\nERC-8183 jobs, bounties and contests.\n\nShared pieces sit behind them: a hub that holds no money, an identity registry\nwith 7-day recovery, one dispute clock, the deal guarantee contract and a timelock.\n\nThree Chainlink CRE workflows run on Chainlink's hosted network: one checks a\ndelivery against the agreed tests, one records verified GitHub work, and one\ntriggers the timeouts each family allows. The CRE adapter on Arc Testnet takes\na report only from the workflow bound to its job, and those bindings change\nonly through the same timelock. On 31 October 2026 a buyer's agent paid 0.25\nUSDC over x402 for a dry run of a deal's agreed checks; Chainlink's network\nreplayed them on GitHub, and its signed answer released the fee on Arc.\n\nThey go live on mainnet only after an external audit."
+      "body": "Karwan's next escrow contracts are deployed on Arc Testnet and not on mainnet.\nA timelock owns them, so every rule change waits a day in public, queued by a\nmulti-signature owner. On Arc Testnet, new deals have opened on the Agreement\nfamily since 24 October 2026. A deal that opened before keeps the escrow it\nstarted on and finishes there; all of them are listed together on the legacy\npage so they can be reconciled. The other families are not used by the app\nyet.\n\nArc limits each contract to 24,576 bytes, so escrow is split into families,\neach holding only its own deals' money, so a fault in one cannot reach another\nfamily's balance. Agreement covers fixed-price goods and services with up to 12\ntranches, instalment plans and disputes that freeze only the disputed part.\nTime covers hourly, daily and retainer work, cycle by cycle. Jobs covers\nERC-8183 jobs, bounties and contests.\n\nShared pieces sit behind them: a hub that holds no money, an identity registry\nwith 7-day recovery, one dispute clock, the deal guarantee contract and a timelock.\n\nThe deal guarantee contract is separate from the escrow, so a refusal from it\nnever blocks a deal. The escrow records the refusal instead. Every 10 minutes\nKarwan reads each guarantee locked on a deal and checks it against what the\ndeal needs. It reserves the guarantee again if it would run out while the deal\ncan still run. It frees one left locked after its deal ended once its\nreservation runs out, which anyone may do. A ruling's payment to the buyer\nfrom the guarantee that did not go through cannot be retried by the contract,\nso it goes to a person from the team, with the deal and the ruling.\n\nThree Chainlink CRE workflows run on Chainlink's hosted network: one checks a\ndelivery against the agreed tests, one records verified GitHub work, and one\ntriggers the timeouts each family allows. The CRE adapter on Arc Testnet takes\na report only from the workflow bound to its job, and those bindings change\nonly through the same timelock. On 31 October 2026 a buyer's agent paid 0.25\nUSDC over x402 for a dry run of a deal's agreed checks; Chainlink's network\nreplayed them on GitHub, and its signed answer released the fee on Arc.\n\nThey go live on mainnet only after an external audit."
     },
     {
       "id": "faq-money-safe",
@@ -424,7 +424,7 @@
           "date": "2026-09-01"
         }
       ],
-      "body": "Local bank payout corridors are planned and are not live in the current Arc\nTestnet release. A local trade can be created today, but its present settlement\nuses test USDC.\n\nKarwan plans to keep USDC as the cross-border settlement layer while approved\npayout infrastructure converts to local currency. Each corridor must pass\navailability, compliance, recipient, fee, foreign-exchange, reconciliation,\nrefund and support gates before launch.\n\nOn screen, amounts can read in a local currency (NGN, USD, EUR, GBP, CNY, INR, AED,\nKES or XOF) at a live rate. The country picked at sign-up sets it, and it changes\nunder Show amounts in. Every figure then reads in that currency alone; only a\npage's one big balance shows the USDC under it. Amounts are typed and agreed in that currency\ntoo: Karwan works out the USDC that moves at a published reference rate, rounded\ndown, and keeps the figure you typed on your receipt. No local currency moves and no\nfee is taken on the rate. A deal priced in a local currency keeps that price for its\nlife; the escrow holds the USDC worked out when the price was agreed."
+      "body": "Local bank payout corridors are planned and are not live in the current Arc\nTestnet release. A local trade can be created today, but its present settlement\nuses test USDC.\n\nKarwan plans to keep USDC as the cross-border settlement layer while approved\npayout infrastructure converts to local currency. Each corridor must pass\navailability, compliance, recipient, fee, foreign-exchange, reconciliation,\nrefund and support gates before launch."
     },
     {
       "id": "market-demand-and-prices",
@@ -631,7 +631,7 @@
       "id": "privacy-notice",
       "title": "What Karwan keeps about you",
       "status": "roadmap",
-      "updated": "2026-10-29",
+      "updated": "2026-11-10",
       "tags": [
         "privacy",
         "onboarding"
@@ -643,7 +643,7 @@
           "date": "2026-10-29"
         }
       ],
-      "body": "Karwan has a privacy notice at /privacy. It is in English, and that text is\nthe one that applies.\n\nTo open an account Karwan needs only an email address or a wallet. What you\ntell your agent about your work sets up your agent and your public profile,\nand only your country is shown to others. Karwan keeps your deals and your\nrecord, your conversations with the assistant and your agent, and a sign-in\ncookie and a language cookie. It uses no advertising trackers, and it never\nkeeps wallet keys or card and bank details.\n\nDeals settle on Arc, a public blockchain. What is written there cannot be\nchanged or removed, even after you delete your account.\n\nOn mainnet, a licensed partner runs identity checks when a feature needs one,\nand Karwan keeps the result. You can ask for a copy of what Karwan holds,\nask for a correction, or delete your account. A deletion runs 7 days after\nyou confirm, and it waits while you have an open deal, a live offer or\nrequest, or money in your balance.\n\nThe notice is published with this build and is not live yet."
+      "body": "Karwan has a privacy notice at /privacy. It is in English, and that text is\nthe one that applies.\n\nTo open an account Karwan needs only an email address or a wallet. What you\ntell your agent about your work sets up your agent and your public profile,\nand only your country is shown to others. Karwan keeps your deals and your\nrecord, your conversations with the assistant and your agent, and a sign-in\ncookie and a language cookie. A third cookie keeps the country you are\nbrowsing from for a day, so prices read in local money before you sign in; it\nholds the country only and is not tied to your account. It uses no advertising trackers, and it never\nkeeps wallet keys or card and bank details.\n\nDeals settle on Arc, a public blockchain. What is written there cannot be\nchanged or removed, even after you delete your account.\n\nOn mainnet, a licensed partner runs identity checks when a feature needs one,\nand Karwan keeps the result. You can ask for a copy of what Karwan holds,\nask for a correction, or delete your account. A deletion runs 7 days after\nyou confirm, and it waits while you have an open deal, a live offer or\nrequest, or money in your balance.\n\nThe notice is published with this build and is not live yet."
     },
     {
       "id": "proof-network",
@@ -1063,7 +1063,7 @@
         "note": "Built, not deployed yet. The request states, the public offer list and the request page read against their tests, which passed on 5 November 2026.",
         "lastVerified": "2026-11-05"
       },
-      "updated": "2026-11-07",
+      "updated": "2026-11-10",
       "path": "public/product/an-open-market.md"
     },
     {
@@ -1079,7 +1079,7 @@
         "assistant",
         "testnet"
       ],
-      "summary": "With Use assistant switched on, the whole account runs from one conversation. You say what you want, your agent prepares it as a card, and nothing moves until you confirm the card. Conversations are kept on your account. To change a card before you confirm it, say what to change, such as a later due date, and the agent prepares it again with the rest kept. A card from an earlier conversation shows whether it was done and can never be confirmed again; ask, and the agent prepares a new one. A photo or PDF sent with words about a request or a deal, such as \"what we agreed\", is kept for an hour and goes with the next request or deal you confirm.",
+      "summary": "In assistant mode the whole account runs from one conversation. You say what you want, your agent prepares it as a card, and nothing moves until you confirm the card. Conversations are kept on your account. To change a card before you confirm it, say what to change, such as a later due date, and the agent prepares it again with the rest kept. A card from an earlier conversation shows whether it was done and can never be confirmed again; ask, and the agent prepares a new one. A photo or PDF sent with words about a request or a deal, such as \"what we agreed\", is kept for an hour and goes with the next request or deal you confirm.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
@@ -1099,7 +1099,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-11-04",
+      "updated": "2026-11-06",
       "path": "public/product/assistant-mode-and-help.md"
     },
     {
@@ -1261,7 +1261,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-29",
+      "updated": "2026-11-06",
       "path": "public/product/confirming-it-is-you.md"
     },
     {
@@ -1365,7 +1365,7 @@
         "note": "Returns at most two DISTINCT addresses and no Circle blockchain code, so the chain vocabulary cannot reach a user.",
         "lastVerified": ""
       },
-      "updated": "2026-11-05",
+      "updated": "2026-11-07",
       "path": "public/product/deposit-and-withdraw.md"
     },
     {
@@ -1393,7 +1393,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-31",
+      "updated": "2026-11-06",
       "path": "public/product/escrow-families-roadmap.md"
     },
     {
@@ -1732,6 +1732,36 @@
       "path": "public/product/passport-sharing.md"
     },
     {
+      "id": "photos-in-the-chat-and-picking-up",
+      "title": "Photos the assistant understands, and picking up where you stopped",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "assistant",
+        "telegram",
+        "photos",
+        "memory",
+        "testnet"
+      ],
+      "summary": "You can send the Karwan assistant a photo or a PDF on the website, in Telegram or in WhatsApp without any special words. A clear caption such as \"selling this\", \"delivered\", \"my entry\" or \"invoice\" puts it there straight away. Otherwise the assistant looks at it once, says what it shows, and puts it where your conversation is going: on the offer you are listing, on a delivery, on a request or deal, or on a contest entry. It reads a file as an invoice for your record only when you say it is one. When nothing says what the file is for, it asks. If a photo does not match what you are listing, it tells you before using it. Sent files wait an hour, four at most.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/66-photos-in-the-chat-and-picking-up.md",
+          "date": "2026-11-07"
+        }
+      ],
+      "check": {
+        "kind": "manual",
+        "note": "Built, not deployed yet. The file rules, the chat line, the kept conversations and the pick-up facts read against their tests, which passed on 7 November 2026.",
+        "lastVerified": "2026-11-07"
+      },
+      "updated": "2026-11-07",
+      "path": "public/product/photos-in-the-chat-and-picking-up.md"
+    },
+    {
       "id": "photos-on-offers",
       "title": "Photos on offers",
       "status": "roadmap",
@@ -1798,7 +1828,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-29",
+      "updated": "2026-11-10",
       "path": "public/product/privacy-notice.md"
     },
     {
@@ -2180,6 +2210,35 @@
       "path": "public/product/world-id-risk-checks.md"
     },
     {
+      "id": "your-agents-mandate-and-brief",
+      "title": "What your agent may do, and its morning brief",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "agents",
+        "mandate",
+        "brief",
+        "testnet"
+      ],
+      "summary": "Each person has one agent, and what it may do reads as one thing. Ask your assistant and it tells you: what your agent sells and from what lowest and usual price, the most it spends on a new request, whether it makes offers on its own and asks you before any deal, asks you first about every request that fits, or agrees to a buyer's price inside your limits, how much it may spend a week on paid checks, the markets it watches, your goals, when your brief comes and your quiet hours.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/52-an-agent-that-works-for-you.md",
+          "date": "2026-11-05"
+        }
+      ],
+      "check": {
+        "kind": "manual",
+        "note": "Built, not deployed yet. The mandate, the change card, the re-plan, the brief and the progress log read against their tests, which passed on 5 November 2026.",
+        "lastVerified": "2026-11-05"
+      },
+      "updated": "2026-11-05",
+      "path": "public/product/your-agents-mandate-and-brief.md"
+    },
+    {
       "id": "your-karwan-record",
       "title": "Your Karwan record, set up on the way",
       "status": "roadmap",
@@ -2203,36 +2262,6 @@
       "check": null,
       "updated": "2026-11-03",
       "path": "public/product/your-karwan-record.md"
-    },
-    {
-      "id": "photos-in-the-chat-and-picking-up",
-      "title": "Photos the assistant understands, and picking up where you stopped",
-      "status": "shipping",
-      "publishable": false,
-      "blockedBy": "not-live",
-      "capability": true,
-      "audience": "all",
-      "tags": [
-        "assistant",
-        "telegram",
-        "photos",
-        "memory",
-        "testnet"
-      ],
-      "summary": "You can send the Karwan assistant a photo or a PDF on the website, in Telegram or in WhatsApp without any special words. A clear caption such as \"selling this\", \"delivered\", \"my entry\" or \"invoice\" puts it there straight away. Otherwise the assistant looks at it once, says what it shows, and puts it where your conversation is going: on the offer you are listing, on a delivery, on a request or deal, or on a contest entry. It reads a file as an invoice for your record only when you say it is one. When nothing says what the file is for, it asks. If a photo does not match what you are listing, it tells you before using it. Sent files wait an hour, four at most.",
-      "sources": [
-        {
-          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/66-photos-in-the-chat-and-picking-up.md",
-          "date": "2026-11-07"
-        }
-      ],
-      "check": {
-        "kind": "manual",
-        "note": "Built, not deployed yet. The file rules, the chat line, the kept conversations and the pick-up facts read against their tests, which passed on 7 November 2026.",
-        "lastVerified": "2026-11-07"
-      },
-      "updated": "2026-11-07",
-      "path": "public/product/photos-in-the-chat-and-picking-up.md"
     }
   ]
 }

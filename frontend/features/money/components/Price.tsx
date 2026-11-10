@@ -5,6 +5,8 @@ import { usdcFigure } from '../moneyText';
 import { formatLocal } from '../displayCurrency';
 import { formatTyped } from '../localAmount';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
+import { aboutUsdFigure } from '../visitorCurrency';
+import { marketShopCopy } from '@/shared/i18n/messages/marketShop';
 
 /// Every price on Karwan reads in the currency the person chose (view 54):
 /// one figure, "₦26,885". Only a page's one block balance also shows the USDC
@@ -38,7 +40,7 @@ export function Price({
   agreed?: { currency: string; amount: string } | null;
 }) {
   const { locale } = useLocale();
-  const { currency, rate } = useDisplayCurrency();
+  const { currency, rate, visitor } = useDisplayCurrency();
   const sign = signed && usdc > 0 ? '+' : signed && usdc < 0 ? '−' : '';
   const figure = usdcFigure(usdc, locale, { compact });
   const usdcText = `${sign}${figure} USDC`;
@@ -58,9 +60,17 @@ export function Price({
     );
   }
 
+  // Before sign-in a card's price reads in local money with the dollar figure
+  // small beside it (view 74).
+  const dollars = local && size === 'stack' ? aboutUsdFigure(usdc, currency, visitor) : null;
   return (
-    <span data-price dir="ltr" className={cn('tabular-nums', size === 'stack' && 'inline-flex', className)}>
+    <span data-price dir="ltr" className={cn('tabular-nums', size === 'stack' && 'inline-flex', dollars && 'flex-wrap items-baseline gap-x-2', className)}>
       {local ?? usdcText}
+      {dollars ? (
+        <span data-price-usd dir="auto" className="text-[13px] font-normal text-[var(--ink-secondary)]">
+          {marketShopCopy[locale].aboutUsd.replace('{amount}', dollars)}
+        </span>
+      ) : null}
     </span>
   );
 }

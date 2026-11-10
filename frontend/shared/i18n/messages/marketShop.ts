@@ -17,6 +17,8 @@ export interface MarketShopCopy {
   /// The market's promise before sign-in, and the note behind its (i) (view 74).
   promise: string;
   promiseNote: string;
+  /// The dollar figure small beside a visitor's local price (view 74).
+  aboutUsd: string;
   samplePhoto: string;
   /// A request matched or agreed stays on the market, marked (view 53).
   requestStates: { negotiating: string; agreed: string };
@@ -107,6 +109,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Protected',
     promise: 'Your money is held until you get what you paid for',
     promiseNote: 'Karwan holds your payment, so the seller does not get it at once. It is released under the rules you both agree, and you can read them before you pay.',
+    aboutUsd: 'about {amount} USD',
     samplePhoto: 'Sample photo',
     requestStates: { negotiating: 'In negotiation', agreed: 'Agreed' },
     whoCanSee: {
@@ -189,6 +192,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Protégé',
     promise: 'Votre argent est gardé jusqu’à ce que vous receviez ce que vous avez payé',
     promiseNote: 'Karwan garde votre paiement, le vendeur ne le reçoit donc pas tout de suite. Il est versé selon les règles que vous acceptez tous les deux, et vous pouvez les lire avant de payer.',
+    aboutUsd: 'environ {amount} USD',
     samplePhoto: 'Photo d’exemple',
     requestStates: { negotiating: 'En négociation', agreed: 'Accord conclu' },
     whoCanSee: {
@@ -271,6 +275,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'محمي',
     promise: 'يُحفظ مالك حتى تستلم ما دفعت ثمنه',
     promiseNote: 'يحتفظ Karwan بدفعتك، فلا يستلمها البائع فورًا. تُصرف وفق القواعد التي تتفقان عليها، ويمكنك قراءتها قبل الدفع.',
+    aboutUsd: 'نحو {amount} USD',
     samplePhoto: 'صورة توضيحية',
     requestStates: { negotiating: 'قيد التفاوض', agreed: 'تم الاتفاق' },
     whoCanSee: {
@@ -353,6 +358,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'सुरक्षित',
     promise: 'आपका पैसा तब तक रखा जाता है जब तक आपको वह नहीं मिलता जिसके लिए आपने भुगतान किया',
     promiseNote: 'Karwan आपका भुगतान अपने पास रखता है, इसलिए विक्रेता को यह तुरंत नहीं मिलता। यह उन नियमों के अनुसार जारी होता है जिन पर आप दोनों सहमत होते हैं, और आप भुगतान से पहले उन्हें पढ़ सकते हैं।',
+    aboutUsd: 'लगभग {amount} USD',
     samplePhoto: 'नमूना फ़ोटो',
     requestStates: { negotiating: 'बातचीत में', agreed: 'सहमति हो गई' },
     whoCanSee: {
@@ -435,6 +441,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     protected: 'Imelindwa',
     promise: 'Pesa zako zinashikiliwa hadi upate ulicholipia',
     promiseNote: 'Karwan inashikilia malipo yako, kwa hiyo muuzaji hayapati mara moja. Yanatolewa kwa masharti mnayokubaliana nyote wawili, na unaweza kuyasoma kabla ya kulipa.',
+    aboutUsd: 'takriban {amount} USD',
     samplePhoto: 'Picha ya mfano',
     requestStates: { negotiating: 'Kwenye mazungumzo', agreed: 'Imekubaliwa' },
     whoCanSee: {
