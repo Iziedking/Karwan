@@ -43,6 +43,6 @@ tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/da
   package.json package-lock.json README.md RELEASE_NOTES.md CIRCLE.md SETUP.md LICENSE docs backend frontend cre/shared scripts contracts/deployments contracts/README.md \
   | ssh -o BatchMode=yes $H "mkdir -p $W/repo $NPM_CACHE && tar -C $W/repo -xzf -"
 
-ssh -o BatchMode=yes $H "docker run --rm --name karwan-frontend-run-$RUN --cpus=8 --memory=8g \
+ssh -o BatchMode=yes $H "docker run --rm --name karwan-frontend-run-$RUN --cpus=\$(n=\$(nproc); [ \$n -lt 8 ] && echo \$n || echo 8) --memory=8g \
   --user \$(id -u):\$(id -g) -e HOME=/tmp -e npm_config_cache=/npm-cache -v $NPM_CACHE:/npm-cache -v $W/repo:/repo -w /repo \
   --entrypoint sh $NODE_IMAGE -c $(printf '%q' "npm ci --no-audit --no-fund >/dev/null && $CMD")" < /dev/null
