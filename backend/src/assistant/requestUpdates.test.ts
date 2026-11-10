@@ -53,6 +53,13 @@ test('agree for me: an agreed deal within budget, waiting for one tap', () => {
   assert.equal(u.cards[0]?.kind, 'choose');
 });
 
+test('the budget reads as the buyer said it when that figure was kept', () => {
+  const ready = { seller: '0xs1', name: 'Pam Collins', tag: 'pamcollins', priceUsdc: 90, recommended: true, verified: true, state: 'ready' as const };
+  const said = requestUpdate({ ...base, agreeForMe: true, shortlist: [ready], budgetSaid: '₦300,000' });
+  assert.match(said.content, /within your budget of ₦300,000\. Tap to lock the money/);
+  assert.doesNotMatch(said.content, /budget of 100 USDC/);
+});
+
 test('agree for me never agrees above budget; the person chooses instead', () => {
   const over = shortlist.map((e) => (e.recommended ? { ...e, priceUsdc: 116 } : e));
   assert.match(requestUpdate({ ...base, agreeForMe: true, shortlist: over }).content, /^Your shortlist is ready/);

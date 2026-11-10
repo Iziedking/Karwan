@@ -19,6 +19,8 @@ export interface ShortlistPick {
 export interface RequestView {
   jobId: string;
   budgetUsdc: number;
+  /// The budget as the buyer said it in their own currency (view 55), when kept.
+  budgetSaid?: string;
   agreeForMe: boolean;
   offers: { count: number; lowestUsdc: number | null };
   shortlist: ShortlistPick[] | null;
@@ -72,7 +74,7 @@ export function requestUpdate(v: RequestView): RequestUpdate {
     const lowest = Math.min(...ready.map((e) => e.priceUsdc));
     if (v.agreeForMe && pick && pick.priceUsdc <= v.budgetUsdc) {
       return {
-        content: `Agreed for you: your agent agreed ${usdc(pick.priceUsdc)} USDC with ${who(pick)}, the seller it recommends, within your budget of ${usdc(v.budgetUsdc)} USDC. Tap to lock the money in escrow; nothing moves until you do.`,
+        content: `Agreed for you: your agent agreed ${usdc(pick.priceUsdc)} USDC with ${who(pick)}, the seller it recommends, within your budget of ${v.budgetSaid ?? `${usdc(v.budgetUsdc)} USDC`}. Tap to lock the money in escrow; nothing moves until you do.`,
         cards: [{ kind: 'choose', seller: pick.seller, label: who(pick), priceUsdc: pick.priceUsdc, unverified: !pick.verified }, { kind: 'request' }],
       };
     }

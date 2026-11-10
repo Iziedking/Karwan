@@ -120,3 +120,8 @@ export function budgetLocalFromQuote(
   if (!q || budgetInCents(Number(q.usdcMicros) / 1_000_000) !== budgetUsdc) return undefined;
   return { currency: q.currency, amount: q.amount, rate: q.rate, at: q.at };
 }
+
+/// A kept figure as it reads to its owner, for example ₦300,000 (view 55).
+export function localAmountText(local: { currency: LocalCurrency; amount: string }): string {
+  return new Intl.NumberFormat('en', { style: 'currency', currency: local.currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: currencyDigits(local.currency) }).format(Number(local.amount));
+}

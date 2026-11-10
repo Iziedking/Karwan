@@ -7,6 +7,7 @@ import { personNameOf } from '../channels/personName.js';
 import { buildApproveMatchConfirm, buildNavigateAction } from './actions.js';
 import { buildChooseOfferConfirm } from './dealActions.js';
 import { requestUpdate, updateTurn, type CardBuilders, type RequestView } from './requestUpdates.js';
+import { localAmountText } from '../rates/quote.js';
 
 /// The live reads behind view 30: each request this conversation posted, as
 /// one up-to-date turn with its card.
@@ -42,6 +43,7 @@ export async function requestViewOf(brief: Brief): Promise<RequestView | null> {
   return {
     jobId: brief.jobId,
     budgetUsdc: Number.isFinite(budget) ? budget : Number(deal?.dealAmountUsdc ?? 0),
+    ...(brief.budgetLocal ? { budgetSaid: localAmountText(brief.budgetLocal) } : {}),
     agreeForMe: brief.agreeForMe === true,
     offers: { count: prices.length, lowestUsdc: prices.length ? Math.min(...prices) : null },
     shortlist: (getShortlist(brief.jobId) ?? []).map((e) => ({
