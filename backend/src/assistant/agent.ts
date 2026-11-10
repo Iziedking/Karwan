@@ -62,6 +62,8 @@ import { readOwnedBalance } from '../money/ownedBalance.js';
 import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
 import { withLocalAmounts } from './localAmountTools.js';
 import { moneyVoice } from './moneyVoice.js';
+import { nowLine } from './nowLine.js';
+import { budgetInCents } from '../agents/budgetCents.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
 import { mergeSetupAnswers } from './setupTool.js';
@@ -2612,6 +2614,9 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         if (deadlineDays === undefined) {
           return { error: 'Ask them for a deadline: a calendar date (pass deadlineDate) or how many days from now (deadlineDays).' };
         }
+        // Agents price in cents; a budget from another currency is finer.
+        args = { ...args, budgetUsdc: budgetInCents(args.budgetUsdc) };
+        if (args.budgetUsdc <= 0) return { error: 'That budget is under one cent. Ask them for a larger figure.' };
         // View 56: a brief that describes stages becomes the parts it is paid in.
         const { parts } = await draftDeal({ brief: args.brief }, { split: modelSplit });
         // View 56: requests check the market first.
@@ -3092,9 +3097,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
 /// The authenticated-assistant preamble, appended to the shared knowledge base.
 /// It grants the read tools and draws the hard read-only line.
-function authenticatedPreamble(address: string, method: string): string {
+function authenticatedPreamble(address: string, method: string, timeZone: string): string {
   return [
-    `Today is ${new Date().toISOString()} UTC. Signed-in account: ${address}; method: ${method}.`,
+    nowLine(Date.now(), timeZone),
+    `Signed-in account: ${address}; method: ${method}.`,
     ARC.testnet
       ? 'This server runs on Arc Testnet: USDC here is test money with no value.'
       : 'This server runs on Arc mainnet: USDC here is real money. Deals are not enabled on mainnet; deal pages open on testnet.karwan.site.',
@@ -3157,7 +3163,9 @@ export async function runAssistantAgent(input: {
   const voice = await Promise.all([getProfile(input.address), readUsdcRates()])
     .then(([profile, rates]) => moneyVoice(profile?.settings?.displayCurrency, rates))
     .catch(() => '');
-  const system = systemPromptFor({ mode: input.mode, hidden: hiddenGuideIds(liveFeatures) }) +'\n' + authenticatedPreamble(input.address, input.method)
+  // The person's own time zone, from their agent's settings; Lagos until set.
+  const timeZone = await getAgentRecord(input.address).then((r) => r.brief?.timeZone).catch(() => undefined) ?? 'Africa/Lagos';
+  const system = systemPromptFor({ mode: input.mode, hidden: hiddenGuideIds(liveFeatures) }) +'\n' + authenticatedPreamble(input.address, input.method, timeZone)
     + (voice ? '\n' + voice : '')
     + (input.memory ? '\n' + memoryPreamble(input.memory) : '')
     + (input.viewingDeal ? '\n' + viewingDealLine(input.viewingDeal) : '')

@@ -39,6 +39,7 @@ import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../d
 import { approvalGate, isRequestOwner } from '../agents/chooseOffer.js';
 import { config } from '../config.js';
 import { isVerified, sealEntries, shortlistChoiceCheck } from '../agents/shortlist.js';
+import { budgetInCents } from '../agents/budgetCents.js';
 import { readsForRef } from '../db/recordReads.js';
 import { levelOf } from '../verification/live.js';
 import { matchDecliner } from '../agents/matchDecline.js';
@@ -425,6 +426,9 @@ jobsRoutes.post('/', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  // Agents price in cents; a budget worked out from another currency is finer.
+  body.budgetUsdc = budgetInCents(body.budgetUsdc);
+  if (body.budgetUsdc <= 0) return c.json({ error: 'The budget must be at least 0.01 USDC.' }, 400);
   const prohibited = prohibitedBody(body);
   if (prohibited) return c.json(prohibited, 422);
   if (!isSessionSelf(c, body.posterAddress)) {
