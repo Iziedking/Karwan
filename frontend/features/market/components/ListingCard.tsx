@@ -19,7 +19,7 @@ export function ListingCard({ card }: { card: DiscoveryCard }) {
   const t = messages.marketShop;
   const [failed, setFailed] = useState<{ own: string | null; sample: boolean }>({ own: null, sample: false });
   const picture: Picture = cardPicture(card.photo, failed);
-  const src = picture === 'own' && card.photo ? photoSrc(card.photo) : samplePhoto(card.category, card.id, card.deliveryKind);
+  const src = picture === 'own' && card.photo ? photoSrc(card.photo) : samplePhoto(card.category, card.id, card.deliveryKind, card.examplePhoto);
   const rating = ratingText(card.seller?.rating ?? { kind: 'new', count: 0 }, messages.ratings, locale);
 
   return (

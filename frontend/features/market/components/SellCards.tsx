@@ -98,7 +98,7 @@ export function YourOffersStrip() {
 function OwnOffer({ listing }: { listing: Listing }) {
   const own = (listing as Listing & { photoUrls?: string[] }).photoUrls?.[0];
   const [failed, setFailed] = useState<string | null>(null);
-  const src = own && failed !== own ? photoSrc(own) : samplePhoto(listingCategory(listing), listing.id, listing.deliveryKind);
+  const src = own && failed !== own ? photoSrc(own) : samplePhoto(listingCategory(listing), listing.id, listing.deliveryKind, listing.examplePhoto);
   return (
     <Link href={`/listings/${listing.id}`} className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}

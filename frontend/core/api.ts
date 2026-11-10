@@ -1433,6 +1433,8 @@ export interface Listing {
   partyKind?: 'person' | 'business';
   /// Example stock Karwan seeded, not a real person's offer.
   example?: boolean;
+  /// The kind of work an example offer is about; its photograph is picked by it.
+  examplePhoto?: string | null;
   /// Days the seller needs once a deal starts.
   readyInDays?: number;
   /// The agreement the offer is sold on, and the parts it was built from.

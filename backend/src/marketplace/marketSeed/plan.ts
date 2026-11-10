@@ -50,6 +50,15 @@ function price(amount: number): number {
   return amount < 50 ? Math.max(1, Math.round(amount)) : Math.round(amount / 5) * 5;
 }
 
+const SPECIALTY_IDS: ReadonlySet<string> = new Set(SPECIALTIES.map((s) => s.id));
+
+/// The kind of work a seeded offer is about, read from its seed key, or null
+/// for anything else. It is the only part of the key the market may show.
+export function seedSpecialty(seedKey: string | undefined): string | null {
+  const found = /^mk1-.+?-o-([a-z0-9-]+)-\d+-\d+$/.exec(seedKey ?? '');
+  return found && SPECIALTY_IDS.has(found[1]!) ? found[1]! : null;
+}
+
 function specialty(id: string): Specialty {
   const found = SPECIALTIES.find((s) => s.id === id);
   if (!found) throw new Error(`unknown specialty ${id}`);

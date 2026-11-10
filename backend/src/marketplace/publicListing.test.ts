@@ -24,3 +24,12 @@ test('the public view links to the photos and never carries the images', () => {
   assert.equal(JSON.stringify(view).includes('base64'), false);
   assert.deepEqual(publicListing(base).photoUrls, []);
 });
+
+test('an example offer names the photograph that fits it, and nothing else of its seed', () => {
+  assert.equal(publicListing({ ...base, seedKey: 'mk1-a03-o-brand-design-0-1' }).examplePhoto, 'brand-design');
+  assert.equal(publicListing({ ...base, seedKey: 'mk1-a11-o-phones-electronics-9-2' }).examplePhoto, 'phones-electronics');
+  for (const seedKey of ['mk1-offer-3', 'mk1-a03-r-brand-design-4', 'mk1-a03-o-not-a-specialty-0-1', 'offer-lagos-design-studio', undefined]) {
+    assert.equal(publicListing({ ...base, seedKey }).examplePhoto, null, String(seedKey));
+  }
+  assert.equal('seedKey' in (publicListing({ ...base, seedKey: 'mk1-a03-o-brand-design-0-1' }) as Record<string, unknown>), false);
+});

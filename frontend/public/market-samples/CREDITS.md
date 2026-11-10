@@ -48,3 +48,30 @@ Shown on a listing that has no photo of its own, marked as a sample. All from Un
 | `services-2.jpg` | Brandy Kennedy | https://unsplash.com/photos/person-using-macbook-air-on-brown-wooden-table-wB9VldR8OHM |
 | `services-3.jpg` | Qwerqu McBrew | https://unsplash.com/photos/a-man-sitting-on-a-bench-working-on-a-piece-of-wood-2l3E_gZ8edw |
 | `services-4.jpg` | Vije Vijendranath | https://unsplash.com/photos/a-group-of-colorful-bags-sitting-on-top-of-a-table-9o5zeS6QbgM |
+| `seed-brand-design.jpg` | Kwami Fattah Al Sissi | https://unsplash.com/photos/person-drawing-in-a-notebook-with-a-pen-P0I3pqo1RWo |
+| `seed-social-content.jpg` | Wesley Tingey | https://unsplash.com/photos/a-woman-taking-a-picture-of-herself-in-a-kitchen-RAH1ipSQh24 |
+| `seed-copywriting.jpg` | Thought Catalog | https://unsplash.com/photos/person-holding-ballpoint-pen-writing-on-notebook-505eectW54k |
+| `seed-game-3d-art.jpg` | Taitopia Render | https://unsplash.com/photos/a-chair-with-a-wooden-seat-and-a-shadow-on-the-wall-XZSaBW-k39U |
+| `seed-event-planning.jpg` | CHUTTERSNAP | https://unsplash.com/photos/elegant-table-setting-with-floral-centerpiece-aEnH4hJ_Mrs |
+| `seed-web-development.jpg` | Florian Olivo | https://unsplash.com/photos/lines-of-html-codes-4hbJ-eymZ1o |
+| `seed-qa-testing.jpg` | Jakub Żerdzicki | https://unsplash.com/photos/a-hand-marks-off-items-on-a-checklist-yKnIbJV0RbY |
+| `seed-technical-writing.jpg` | Mikhail Pushkarev | https://unsplash.com/photos/an-open-book-sitting-next-to-a-computer-keyboard-Gd4x1BHBjrg |
+| `seed-software-ai.jpg` | Emilipothèse | https://unsplash.com/photos/blue-plastic-robot-toy-R4WCbazrD1g |
+| `seed-smart-contracts.jpg` | Shubham Dhage | https://unsplash.com/photos/a-group-of-cubes-that-are-connected-to-each-other-R2HtYWs5-QA |
+| `seed-bookkeeping.jpg` | Aaron Lefler | https://unsplash.com/photos/a-calculator-and-a-pen-sitting-on-top-of-a-piece-of-paper-Vs6ip7fsld8 |
+| `seed-data-analysis.jpg` | Isaac Smith | https://unsplash.com/photos/line-graph-with-ruler-and-pens-6EnTPvPPL6I |
+| `seed-virtual-assistance.jpg` | Eric Rothermel | https://unsplash.com/photos/open-monthly-planner-on-wooden-desk-FoKO4DpXamQ |
+| `seed-legal-docs.jpg` | Cytonn Photography | https://unsplash.com/photos/person-writing-on-white-paper-GJao3ZTX9gU |
+| `seed-hr-recruiting.jpg` | Christina @ wocintechchat.com | https://unsplash.com/photos/two-women-sitting-on-chair-eF7HN40WbAQ |
+| `seed-photo-video.jpg` | Voyage Pro | https://unsplash.com/photos/a-white-tent-with-a-camera-on-it-ZEhkny-7w1c |
+| `seed-translation.jpg` | Waldemar Brandt | https://unsplash.com/photos/open-dictionary-U3Ptj3jafX8 |
+| `seed-voice-audio.jpg` | Michal Czyz | https://unsplash.com/photos/gray-microphone-in-room-ALM7RNZuDH8 |
+| `seed-music-production.jpg` | Caught In Joy | https://unsplash.com/photos/recording-studio-with-guitars-and-console-ptVBlniJi50 |
+| `seed-tutoring.jpg` | Antoine Dautry | https://unsplash.com/photos/linear-equations-system-on-paper-05A-kdOH6Hw |
+| `seed-phones-electronics.jpg` | Vojtech Bruzek | https://unsplash.com/photos/smartphone-with-blank-screen-on-wood-J82GxqnwKSs |
+| `seed-fashion-tailoring.jpg` | Eva Blue | https://unsplash.com/photos/assorted-color-textiles-SfPOkp6-2eA |
+| `seed-home-crafts.jpg` | mana5280 | https://unsplash.com/photos/colorful-woven-baskets-and-containers-at-a-market-5r_fVYHXY48 |
+| `seed-beauty-products.jpg` | Megumi Nachev | https://unsplash.com/photos/jar-of-butter-with-spoon-xhOUnxVVb6s |
+| `seed-packaging-printing.jpg` | With Mahdy | https://unsplash.com/photos/a-brown-paper-bag-sitting-on-top-of-a-white-table-wizWrRZJXSg |
+
+The `seed-` files are shown on example offers, one for each kind of work Karwan seeds. `seed-game-3d-art.jpg` and `seed-smart-contracts.jpg` are 3D renders by their authors, not photographs.

@@ -248,5 +248,5 @@ export function RecordView({ tag }: { tag: string }) {
 /// The offer's own first photo, else the sample for its kind.
 function offerPicture(listing: Listing): string {
   const own = (listing as Listing & WithPhotos).photoUrls?.[0];
-  return own ? photoSrc(own) : samplePhoto(listingCategory(listing), listing.id, listing.deliveryKind);
+  return own ? photoSrc(own) : samplePhoto(listingCategory(listing), listing.id, listing.deliveryKind, listing.examplePhoto);
 }

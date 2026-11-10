@@ -1,9 +1,29 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { marketShopCopy } from '../../shared/i18n/messages/marketShop';
 import { CATEGORY_IDS } from './marketModel';
-import { CATEGORY_ICON, SAMPLE_COUNT, cardPicture, samplePhoto, sellerLine } from './listingFacts';
+import { CATEGORY_ICON, SAMPLE_COUNT, SEED_PHOTOS, cardPicture, samplePhoto, sellerLine } from './listingFacts';
+
+/// View 74: each kind of example offer has a photograph that fits it.
+test('an example offer shows the photograph fitted to its kind of work', () => {
+  assert.equal(samplePhoto('design', 'lst_1', 'remote', 'brand-design'), '/market-samples/seed-brand-design.jpg');
+  assert.equal(samplePhoto(null, 'lst_1', 'goods', 'home-crafts'), '/market-samples/seed-home-crafts.jpg');
+  assert.equal(samplePhoto(null, 'lst_1', 'goods', 'unknown-kind'), samplePhoto(null, 'lst_1', 'goods'));
+  assert.equal(samplePhoto('design', 'lst_1', 'remote', null), samplePhoto('design', 'lst_1', 'remote'));
+});
+
+test('every fitted photograph is a file with a credit, one per kind the seed has', () => {
+  const credits = readFileSync('public/market-samples/CREDITS.md', 'utf8');
+  const catalog = readFileSync('../backend/src/marketplace/marketSeed/catalog.ts', 'utf8');
+  const seeded = [...catalog.matchAll(/^ {4}id: '([a-z0-9-]+)', lane: /gm)].map((m) => m[1]);
+  assert.equal(seeded.length, 25);
+  assert.deepEqual([...SEED_PHOTOS].sort(), [...seeded].sort());
+  for (const id of SEED_PHOTOS) {
+    assert.ok(existsSync(`public/market-samples/seed-${id}.jpg`), id);
+    assert.ok(credits.includes('`seed-' + id + '.jpg`'), id);
+  }
+});
 
 /// What a listing card says under its title (view 44, Figma Listing card).
 ///

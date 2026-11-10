@@ -42,6 +42,35 @@ export const SAMPLE_COUNT: Record<CategoryId | 'goods' | 'services', number> = {
   services: 4,
 };
 
+/// One photograph for each kind of example offer Karwan seeds (view 74).
+export const SEED_PHOTOS = [
+  'brand-design',
+  'social-content',
+  'copywriting',
+  'game-3d-art',
+  'event-planning',
+  'web-development',
+  'qa-testing',
+  'technical-writing',
+  'software-ai',
+  'smart-contracts',
+  'bookkeeping',
+  'data-analysis',
+  'virtual-assistance',
+  'legal-docs',
+  'hr-recruiting',
+  'photo-video',
+  'translation',
+  'voice-audio',
+  'music-production',
+  'tutoring',
+  'phones-electronics',
+  'fashion-tailoring',
+  'home-crafts',
+  'beauty-products',
+  'packaging-printing',
+] as const;
+
 function spread(seed: string, count: number): number {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
@@ -49,8 +78,10 @@ function spread(seed: string, count: number): number {
 }
 
 /// The same listing always shows the same photograph, and a row of listings
-/// from one category spreads across that category's photographs.
-export function samplePhoto(category: CategoryId | null, seed = '', kind?: 'goods' | 'in_person' | 'remote'): string {
+/// from one category spreads across that category's photographs. An example
+/// offer shows the photograph fitted to its kind of work.
+export function samplePhoto(category: CategoryId | null, seed = '', kind?: 'goods' | 'in_person' | 'remote', examplePhoto?: string | null): string {
+  if (examplePhoto && (SEED_PHOTOS as readonly string[]).includes(examplePhoto)) return `/market-samples/seed-${examplePhoto}.jpg`;
   const group = category ?? (kind === 'goods' ? 'goods' : 'services');
   return `/market-samples/${group}-${spread(seed, SAMPLE_COUNT[group])}.jpg`;
 }

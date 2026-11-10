@@ -33,6 +33,8 @@ export interface DiscoveryCard {
   bidsCount?: number;
   /// The offer's first photo link, when it has one (view 28).
   photo?: string;
+  /// The kind of work an example offer is about (view 74).
+  examplePhoto?: string | null;
   /// The market category (view 44); for a request the server reads it from its
   /// words. Null when none fits.
   category: CategoryId | null;
@@ -80,6 +82,7 @@ export function buildDiscoveryCards(
       seller: listing.seller ?? null,
       ...(listing.readyInDays ? { readyInDays: listing.readyInDays } : {}),
       ...(listing.deliveryKind ? { deliveryKind: listing.deliveryKind } : {}),
+      ...(listing.examplePhoto ? { examplePhoto: listing.examplePhoto } : {}),
       ...((listing as { photoUrls?: string[] }).photoUrls?.[0] ? { photo: (listing as { photoUrls?: string[] }).photoUrls![0] } : {}),
     }));
 
