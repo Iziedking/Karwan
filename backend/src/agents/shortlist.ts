@@ -80,6 +80,8 @@ export interface ShortlistEntry {
   scoreParts?: ScoreParts;
   why?: ScoreWhy[];
   movedFrom?: number;
+  /// View 73: the agent stopped to ask its person (Agree for me off): the seller's price and its own.
+  yourCall?: { priceUsdc: number; offeredUsdc: number };
 }
 
 /// How many offers get a paid record read; every offer is listed.
@@ -340,5 +342,8 @@ export function assistantView(entries: readonly ShortlistEntry[], sealed: boolea
       outsideRequest: e.outsideRequest,
       mustLink: e.mustLink,
       extraDays: e.extraDays ?? 0,
+      ...(e.movedFrom !== undefined ? { openedUsdc: e.movedFrom } : {}),
+      ...(e.why ? { why: e.why } : {}),
+      ...(e.yourCall ? { yourCall: e.yourCall } : {}),
     }));
 }

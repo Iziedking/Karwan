@@ -111,7 +111,7 @@ import {
   setLowestOtherOfferReader,
 } from './seller.js';
 import { getRecord, putRecord } from '../db/evidence.js';
-import { resumeBook, stepBook, type Book, type BookContext, type BookEvent } from './negotiationBook.js';
+import { resumeBook, stepBook, yourCalls, type Book, type BookContext, type BookEvent } from './negotiationBook.js';
 import { runBook, type BookDeps } from './bookRunner.js';
 import { budgetRange } from './budgetRange.js';
 import { withLlmRetry } from './llm-utils.js';
@@ -5278,7 +5278,27 @@ export function deleteBuyerJobsForBuyer(buyerAddressLower: string): number {
 }
 
 export function getShortlist(jobId: string): ShortlistEntry[] | null {
-  return jobs.get(jobId as `0x${string}`)?.shortlist ?? null;
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state?.shortlist) return null;
+  // View 73: an offer the agent stopped on says so, with both prices.
+  const calls = state.negotiations ? yourCalls(state.negotiations) : null;
+  if (!calls?.size) return state.shortlist;
+  return state.shortlist.map((e) => {
+    const call = calls.get(e.seller.toLowerCase());
+    return call ? { ...e, yourCall: call } : e;
+  });
+}
+
+export type YourCallResult = { ok: true } | { ok: false; code: 'not-found' | 'not-waiting' };
+
+/// The person answers "your call" on one offer (view 73, spec S11): agree at the
+/// seller's price, or let the agent keep bargaining.
+export async function answerYourCall(jobId: string, seller: string, choice: 'agree' | 'keep'): Promise<YourCallResult> {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state || state.finalized || state.escrowFunded || !bargainOn(jobId)) return { ok: false, code: 'not-found' };
+  if (!state.negotiations || !yourCalls(state.negotiations).has(seller.toLowerCase())) return { ok: false, code: 'not-waiting' };
+  await feedBook(state, { kind: choice, seller });
+  return { ok: true };
 }
 
 export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {

@@ -39,7 +39,10 @@ export type BookEvent =
   | { kind: 'offer'; seller: string; priceUsdc: string; counterable: boolean; postedUsdc?: string | null }
   | { kind: 'reply'; seller: string; priceUsdc: string; accepted: boolean }
   | { kind: 'timeout'; seller: string }
-  | { kind: 'withdrawn'; seller: string };
+  | { kind: 'withdrawn'; seller: string }
+  /// The person answered the agent's question (Agree for me off, spec S11).
+  | { kind: 'agree'; seller: string }
+  | { kind: 'keep'; seller: string };
 
 export type BookAction =
   | { kind: 'counter'; seller: string; counter: PendingCounter; betterOffer: boolean }
@@ -103,6 +106,7 @@ function agreeOrAsk(n: Negotiation, price: number, ctx: BookContext): BookAction
 
 /// The person decides: the seller's price and how far it is from the buyer's.
 function ask(n: Negotiation, price: number): BookAction {
+  n.standingUsdc = money(price);
   n.pending = null;
   n.watchdogDueAt = null;
   n.state = 'asking';
@@ -203,11 +207,36 @@ export function stepBook(book: Book, ev: BookEvent, ctx: BookContext): BookActio
     // A new price from a seller already in the book is their answer.
     return n.state === 'open' ? answer(n, Number(ev.priceUsdc), ctx) : [];
   }
+  if (ev.kind === 'agree' || ev.kind === 'keep') return n ? personAnswered(n, ev.kind, ctx) : [];
   if (!n || n.state !== 'open') return [];
   if (ev.kind === 'withdrawn') return [end(n, 'withdrawn')];
   if (ev.kind === 'timeout') return [end(n, 'no-reply')];
   if (ev.accepted) return [agreeOrAsk(n, Number(n.mine ?? ev.priceUsdc), ctx)];
   return answer(n, Number(ev.priceUsdc), ctx);
+}
+
+/// The person's answer to "your call": agree at the seller's price, or let the
+/// agent keep bargaining (it holds at its own counter, once more), or, past the
+/// last exchange, end the negotiation.
+function personAnswered(n: Negotiation, choice: 'agree' | 'keep', ctx: BookContext): BookAction[] {
+  if (n.state !== 'asking') return [];
+  if (choice === 'agree') {
+    n.state = 'agreed';
+    return [{ kind: 'agree', seller: n.seller, priceUsdc: money(Number(n.standingUsdc)) }];
+  }
+  if (n.exchanges >= 5) return [end(n, 'no-agreement')];
+  n.state = 'open';
+  n.exchanges += 1;
+  return [writeCounter(n, Number(n.mine ?? n.myOpeningUsdc), ctx.deadlineDays, ctx)];
+}
+
+/// The negotiations waiting on the person: the seller's price and the agent's own.
+export function yourCalls(book: Book): Map<string, { priceUsdc: number; offeredUsdc: number }> {
+  const out = new Map<string, { priceUsdc: number; offeredUsdc: number }>();
+  for (const n of book.values()) {
+    if (n.state === 'asking') out.set(key(n.seller), { priceUsdc: Number(n.standingUsdc), offeredUsdc: Number(n.mine ?? n.myOpeningUsdc) });
+  }
+  return out;
 }
 
 /// After a restart: every counter written but not sent goes out again under

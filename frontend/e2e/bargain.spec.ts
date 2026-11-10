@@ -105,3 +105,31 @@ test('a seller sees the budget as a range', async ({ page }, info) => {
   await expect(row).not.toContainText('Up to');
   await page.screenshot({ path: info.outputPath('bargain-seller-range.png'), fullPage: true });
 });
+
+test('your call: the buyer agrees at the seller price or lets the agent keep bargaining', async ({ page }, info) => {
+  const answers: unknown[] = [];
+  await serveSearch(page, {
+    balances: funded,
+    job: makeJob({ budgetUsdc: '222', bids: [bid] }),
+    shortlist: {
+      entries: [entry(1, 'Grace Stitches', 210, { movedFrom: 240, why: ['best_fit', 'fair_price'], yourCall: { priceUsdc: 210, offeredUsdc: 200 } })],
+      closed: false,
+    },
+  });
+  await page.route(`${API}/api/jobs/${JOB}/your-call`, async (route) => {
+    answers.push(route.request().postDataJSON());
+    await route.fulfill({ json: { ok: true, choice: 'agree' } });
+  });
+  await page.goto(`/jobs/${JOB}`);
+  const list = page.locator('[data-guide="job-shortlist"]');
+  const row = list.locator('li').first();
+  await expect(row.locator('[data-your-call]')).toHaveText('Your call');
+  await expect(row).toContainText(/Your agent offered 200(\.00)? USDC/);
+  await expect(row.locator('[data-best-fit]')).toHaveCount(0);
+  const actions = row.locator('[data-your-call-actions]');
+  await expect(actions.getByRole('button', { name: 'Keep bargaining' })).toBeVisible();
+  await page.screenshot({ path: info.outputPath('bargain-your-call.png'), fullPage: true });
+  await actions.getByRole('button', { name: /^Agree at 210/ }).click();
+  await expect.poll(() => answers.length).toBe(1);
+  expect(answers[0]).toMatchObject({ seller: `0x${'1'.repeat(40)}`, choice: 'agree' });
+});

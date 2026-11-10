@@ -940,6 +940,15 @@ async function runConfirmIntent(
     });
     return { successText: 'Request updated. Your agent uses the new details from now on.', viewHref: `/jobs/${p.jobId}`, viewLabel: 'View the request' };
   }
+  if (action.intent === 'answer_your_call') {
+    const p = action.payload as { jobId: string; caller: string; seller: string; choice: 'agree' | 'keep' };
+    await api.answerYourCall(p.jobId, { caller: p.caller, seller: p.seller, choice: p.choice });
+    return {
+      successText: p.choice === 'agree' ? 'Agreed. Accept and fund it from your shortlist when you are ready.' : 'Your agent keeps bargaining.',
+      viewHref: `/jobs/${p.jobId}`,
+      viewLabel: 'View the request',
+    };
+  }
   if (action.intent === 'raise_offer') {
     const p = action.payload as { jobId: string; caller: string; priceUsdc: string };
     await api.raiseMatchOffer(p.jobId, p.caller, p.priceUsdc);

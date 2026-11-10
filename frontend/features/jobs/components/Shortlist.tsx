@@ -95,6 +95,21 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
     ? entries.find((e) => e.seller.toLowerCase() === worldCheck.sellerAgent.toLowerCase())?.name ?? null
     : null;
 
+  // View 73: the person answers their agent on one offer it stopped on.
+  const [answering, setAnswering] = useState<string | null>(null);
+  async function answer(seller: string, choice: 'agree' | 'keep') {
+    setAnswering(seller);
+    setError(null);
+    try {
+      await api.answerYourCall(jobId, { caller, seller, choice });
+      onChosen();
+    } catch {
+      setError(copy.answerFailed);
+    } finally {
+      setAnswering(null);
+    }
+  }
+
   async function choose(entry: ShortlistEntry | null = choosing) {
     if (!entry) return;
     setBusy(true);
@@ -149,7 +164,9 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
                 <span className="min-w-0 flex-1">
                   <span dir="auto" className="block truncate text-[16px] font-semibold text-[var(--ink)]">{e.name}</span>
                   <span className="block text-[13px] font-medium leading-snug text-[var(--ink-secondary)]">
-                    {e.why?.length ? (
+                    {e.yourCall ? (
+                      <PriceIn template={copy.offered} usdc={e.yourCall.offeredUsdc} />
+                    ) : e.why?.length ? (
                       e.why.map((k) => copy.why[k]).join(' · ')
                     ) : (
                       <>
@@ -167,7 +184,11 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
                       <PriceIn template={copy.openedAt} usdc={e.movedFrom} />
                     </span>
                   ) : null}
-                  {e.bestFit && e.state !== 'unavailable' ? (
+                  {e.yourCall ? (
+                    <span data-your-call className="mt-1 inline-block rounded-full bg-[var(--raised)] px-2 py-0.5 text-[13px] font-semibold text-[var(--ink)]">
+                      {copy.yourCall}
+                    </span>
+                  ) : e.bestFit && e.state !== 'unavailable' ? (
                     <span data-best-fit className="mt-1 inline-block rounded-full bg-[var(--action)] px-2 py-0.5 text-[13px] font-semibold text-[var(--on-action)]">
                       {copy.pick}
                     </span>
@@ -178,6 +199,26 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
                   )}
                 </span>
               </button>
+              {e.yourCall ? (
+                <div data-your-call-actions className="flex gap-2 pb-4">
+                  <button
+                    type="button"
+                    disabled={answering !== null}
+                    onClick={() => void answer(e.seller, 'agree')}
+                    className={buttonClasses({ variant: 'primary', size: 'sm', className: 'flex-1 rounded-full' })}
+                  >
+                    <PriceIn template={copy.agreeAt} usdc={e.yourCall.priceUsdc} />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={answering !== null}
+                    onClick={() => void answer(e.seller, 'keep')}
+                    className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'flex-1 rounded-full' })}
+                  >
+                    {copy.keepBargaining}
+                  </button>
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

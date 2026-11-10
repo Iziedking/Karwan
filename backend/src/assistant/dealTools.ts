@@ -21,7 +21,7 @@ import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import {
-  buildChooseOfferConfirm,
+  buildChooseOfferConfirm, buildYourCallConfirm,
   buildEditRequestConfirm,
   buildRaiseOfferConfirm,
   buildRequestExtensionConfirm,
@@ -278,6 +278,36 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
               sellerLabel: row?.name ?? bid.sellerDisplayName ?? 'A Karwan seller',
               priceUsdc: row ? String(row.priceUsdc) : bid.priceUsdc,
               unverified,
+            }),
+          );
+        }),
+    }),
+
+    propose_your_call: tool({
+      description:
+        "Prepare a confirm card for the BUYER to answer their agent on one offer it stopped on (yourCall in list_offers_on_request): 'agree' at the seller's price, or 'keep' bargaining. Agreeing moves no money; they still accept and fund. Use for 'agree to that price', 'yes, take 262', 'keep bargaining', 'push them lower'.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The request id.'),
+        seller: z.string().min(1).max(120).describe('The seller value from list_offers_on_request.'),
+        choice: z.enum(['agree', 'keep']),
+      }),
+      execute: async ({ jobId, seller, choice }) =>
+        guarded('propose_your_call', async () => {
+          const brief = getBrief(jobId);
+          if (!brief) return { error: `No request found with id ${jobId}.` };
+          if (!isRequestOwner(address, brief)) return { error: 'Only the person who posted the request answers their agent.' };
+          const row = (getShortlist(jobId) ?? []).find((e) => e.seller.toLowerCase() === seller.toLowerCase());
+          if (!row?.yourCall) return { error: 'Their agent is not waiting on them for that offer. Call list_offers_on_request again.' };
+          return offer(
+            actions,
+            buildYourCallConfirm({
+              caller: address,
+              jobId,
+              seller: row.seller,
+              sellerLabel: row.name,
+              priceUsdc: row.yourCall.priceUsdc,
+              offeredUsdc: row.yourCall.offeredUsdc,
+              choice,
             }),
           );
         }),

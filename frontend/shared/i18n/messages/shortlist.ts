@@ -50,6 +50,11 @@ export interface ShortlistCopy {
   noteScored: string;
   scoredTip: string;
   openedAt: string;
+  yourCall: string;
+  offered: string;
+  agreeAt: string;
+  keepBargaining: string;
+  answerFailed: string;
   why: { best_fit: string; fair_price: string; well_rated: string; trusted: string };
   tiers: { NEW: string; COLD: string; ESTABLISHED: string; STRONG: string; ELITE: string };
 }
@@ -106,6 +111,11 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     },
     noteScored: 'Ranked on fit, price, ratings and record',
     scoredTip: 'Your agent weighs skill, price against your budget, ratings and record together, and bargains each price toward your budget.',
+    yourCall: 'Your call',
+    offered: 'Your agent offered {amount}',
+    agreeAt: 'Agree at {amount}',
+    keepBargaining: 'Keep bargaining',
+    answerFailed: 'That did not go through. Try again.',
     openedAt: 'Opened at {amount}',
     why: { best_fit: 'Best fit', fair_price: 'Fair price', well_rated: 'Well rated', trusted: 'Trusted' },
     tiers: { NEW: 'New', COLD: 'Building', ESTABLISHED: 'Established', STRONG: 'Strong', ELITE: 'Elite' },
@@ -161,6 +171,11 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     },
     noteScored: 'Classés selon l’adéquation, le prix, les notes et l’historique',
     scoredTip: 'Votre agent pèse ensemble les compétences, le prix par rapport à votre budget, les notes et l’historique, et négocie chaque prix vers votre budget.',
+    yourCall: 'À vous de décider',
+    offered: 'Votre agent a proposé {amount}',
+    agreeAt: 'Accepter à {amount}',
+    keepBargaining: 'Continuer à négocier',
+    answerFailed: 'Cela n’a pas abouti. Réessayez.',
     openedAt: 'Proposé d’abord à {amount}',
     why: { best_fit: 'Le plus adapté', fair_price: 'Prix juste', well_rated: 'Bien noté', trusted: 'Fiable' },
     tiers: { NEW: 'Nouveau', COLD: 'En progression', ESTABLISHED: 'Établi', STRONG: 'Solide', ELITE: 'Élite' },
@@ -216,6 +231,11 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     },
     noteScored: 'مرتبة حسب الملاءمة والسعر والتقييمات والسجل',
     scoredTip: 'يوازن وكيلك بين المهارة والسعر مقارنةً بميزانيتك والتقييمات والسجل معًا، ويفاوض على كل سعر نحو ميزانيتك.',
+    yourCall: 'القرار لك',
+    offered: 'عرض وكيلك {amount}',
+    agreeAt: 'وافق على {amount}',
+    keepBargaining: 'واصل التفاوض',
+    answerFailed: 'لم يتم ذلك. حاول مرة أخرى.',
     openedAt: 'بدأ بسعر {amount}',
     why: { best_fit: 'الأنسب', fair_price: 'سعر عادل', well_rated: 'تقييم جيد', trusted: 'موثوق' },
     tiers: { NEW: 'جديد', COLD: 'في البداية', ESTABLISHED: 'راسخ', STRONG: 'قوي', ELITE: 'نخبة' },
@@ -271,6 +291,11 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     },
     noteScored: 'उपयुक्तता, कीमत, रेटिंग और रिकॉर्ड के आधार पर क्रम',
     scoredTip: 'आपका एजेंट कौशल, आपके बजट के मुकाबले कीमत, रेटिंग और रिकॉर्ड को साथ तौलता है, और हर कीमत पर आपके बजट की ओर मोलभाव करता है।',
+    yourCall: 'आपका फ़ैसला',
+    offered: 'आपके एजेंट ने {amount} की पेशकश की',
+    agreeAt: '{amount} पर सहमति दें',
+    keepBargaining: 'मोलभाव जारी रखें',
+    answerFailed: 'यह पूरा नहीं हुआ। फिर से कोशिश करें।',
     openedAt: 'शुरुआती कीमत {amount}',
     why: { best_fit: 'सबसे उपयुक्त', fair_price: 'उचित कीमत', well_rated: 'अच्छी रेटिंग', trusted: 'भरोसेमंद' },
     tiers: { NEW: 'नया', COLD: 'बढ़ रहा', ESTABLISHED: 'स्थापित', STRONG: 'मज़बूत', ELITE: 'उत्कृष्ट' },
@@ -326,6 +351,11 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     },
     noteScored: 'Wamepangwa kwa ufaafu, bei, ukadiriaji na rekodi',
     scoredTip: 'Wakala wako hupima ujuzi, bei ikilinganishwa na bajeti yako, ukadiriaji na rekodi kwa pamoja, na hujadiliana kila bei kuelekea bajeti yako.',
+    yourCall: 'Uamuzi ni wako',
+    offered: 'Wakala wako alitoa {amount}',
+    agreeAt: 'Kubali kwa {amount}',
+    keepBargaining: 'Endelea kujadiliana',
+    answerFailed: 'Haikufanikiwa. Jaribu tena.',
     openedAt: 'Ilianza kwa {amount}',
     why: { best_fit: 'Anafaa zaidi', fair_price: 'Bei nzuri', well_rated: 'Ukadiriaji mzuri', trusted: 'Anaaminika' },
     tiers: { NEW: 'Mpya', COLD: 'Anakua', ESTABLISHED: 'Imara', STRONG: 'Madhubuti', ELITE: 'Bora kabisa' },

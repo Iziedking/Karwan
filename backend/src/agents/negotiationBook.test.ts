@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { budgetRange } from './budgetRange.js';
-import { counterSent, resumeBook, stepBook, type Book, type BookAction, type BookContext } from './negotiationBook.js';
+import { counterSent, resumeBook, stepBook, yourCalls, type Book, type BookAction, type BookContext } from './negotiationBook.js';
 import { fromNotes, toNotes, type NotesFields } from './requestNotes.js';
 import { onePerPerson, rankCandidates, type ShortlistCandidate } from './shortlist.js';
 
@@ -163,4 +163,26 @@ test('two agents of one person: only the listed row is countered', () => {
   const actions = rows.flatMap((r) => stepBook(book, { kind: 'offer', seller: r.seller, priceUsdc: String(r.askedUsdc), counterable: true }, ctx()));
   assert.deepEqual(actions.map((a) => a.seller), ['0xCHEAP']);
   assert.equal(book.has('0xdear'), false);
+});
+
+test('your call: agree takes the asked price, keep bargaining counters once more', () => {
+  const off = ctx({ timeUsed: 1, agreeForMe: false });
+  const asked = () => {
+    const book: Book = new Map();
+    stepBook(book, { kind: 'offer', seller: '0xA', priceUsdc: '120', counterable: true, postedUsdc: '30' }, off);
+    stepBook(book, { kind: 'reply', seller: '0xA', priceUsdc: '35', accepted: false }, off);
+    return book;
+  };
+  const agreed = asked();
+  assert.deepEqual(yourCalls(agreed).get('0xa'), { priceUsdc: 35, offeredUsdc: 30 });
+  assert.deepEqual(stepBook(agreed, { kind: 'agree', seller: '0xA' }, off), [{ kind: 'agree', seller: '0xA', priceUsdc: '35.00' }]);
+  assert.equal(yourCalls(agreed).size, 0);
+  assert.deepEqual(stepBook(agreed, { kind: 'agree', seller: '0xA' }, off), [], 'answered once');
+
+  const kept = asked();
+  const [counter] = stepBook(kept, { kind: 'keep', seller: '0xA' }, off);
+  assert.equal(counter?.kind, 'counter');
+  if (counter?.kind === 'counter') assert.equal(counter.counter.priceUsdc, '30.00', 'the agent holds at its own counter');
+  assert.equal(kept.get('0xa')!.state, 'open');
+  assert.deepEqual(stepBook(new Map(), { kind: 'keep', seller: '0xZ' }, off), [], 'no such negotiation');
 });

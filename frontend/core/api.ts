@@ -156,6 +156,8 @@ export interface ShortlistEntry {
   scoreParts?: { fit: number; price: number; ratings: number; reputation: number };
   why?: Array<'best_fit' | 'fair_price' | 'well_rated' | 'trusted'>;
   movedFrom?: number;
+  /// View 73: your agent stopped to ask you: the seller's price and its own.
+  yourCall?: { priceUsdc: number; offeredUsdc: number };
 }
 
 export interface BuyerBid {
@@ -2170,6 +2172,7 @@ export interface AssistantConfirmAction {
     | 'fund_agent_web3'
     | 'choose_offer'
     | 'edit_request'
+    | 'answer_your_call'
     | 'raise_offer'
     | 'request_extension'
     | 'respond_extension'
@@ -3449,6 +3452,9 @@ export const api = {
     json<{ offer: Offer }>(`/api/jobs/${jobId}/offers/${offerId}/lower`, { method: 'POST', body: JSON.stringify({ priceUsdc }) }),
   acceptOffer: (jobId: string, offerId: string) =>
     json<{ ok: true; txHash: string }>(`/api/jobs/${jobId}/offers/${offerId}/accept`, { method: 'POST', body: '{}' }),
+  /// View 73: answer your agent on one offer: agree at the seller's price, or keep bargaining.
+  answerYourCall: (jobId: string, body: { caller: string; seller: string; choice: 'agree' | 'keep' }) =>
+    json<{ ok: true; choice: 'agree' | 'keep' }>(`/api/jobs/${jobId}/your-call`, { method: 'POST', body: JSON.stringify(body) }),
   raiseMatchOffer: (jobId: string, caller: string, priceUsdc: string) =>
     json<{ accepted: boolean; jobId: string; overCap: boolean }>(
       `/api/jobs/${jobId}/raise-offer`,

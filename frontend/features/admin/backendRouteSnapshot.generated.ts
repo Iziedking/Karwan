@@ -401,6 +401,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/jobs/:jobId/world-check/request" },
   { method: "POST", path: "/api/jobs/:jobId/world-check/skip" },
   { method: "POST", path: "/api/jobs/:jobId/world-check/verify" },
+  { method: "POST", path: "/api/jobs/:jobId/your-call" },
   { method: "GET", path: "/api/jobs/funding-quote" },
   { method: "GET", path: "/api/jobs/marketplace" },
   { method: "GET", path: "/api/jobs/matches/for" },

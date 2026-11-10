@@ -87,6 +87,11 @@ const addrSchema = z
 const callerSchema = z.object({ caller: addrSchema });
 const declineSchema = z.object({ caller: addrSchema, reason: z.string().min(1).max(400).optional() });
 const raiseSchema = z.object({ caller: addrSchema, priceUsdc: z.coerce.number().positive().max(1_000_000) });
+const yourCallSchema = z.object({
+  caller: addrSchema,
+  seller: addrSchema,
+  choice: z.enum(['agree', 'keep']),
+});
 const chooseOfferSchema = z.object({
   caller: addrSchema,
   seller: addrSchema,
@@ -798,6 +803,30 @@ async function fundHeldChoice(hold: AgentWorldHold): Promise<{ funded: boolean; 
 /// The buyer chooses one of the offers on their request at that offer's price.
 /// Only the person who posted the request can, and it funds escrow in the same
 /// step, so the frontend opens the confirm sheet before calling it.
+/// The buyer answers their agent's question on one offer (view 73): agree at
+/// the seller's price, or let the agent keep bargaining.
+jobsRoutes.post('/:jobId/your-call', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = yourCallSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  const brief = getBrief(jobId);
+  if (!brief || !isRequestOwner(body.caller, brief)) return c.json({ error: 'Only the buyer can answer this.', code: 'forbidden' }, 403);
+  const { answerYourCall } = await import('../agents/buyer.js');
+  const done = await answerYourCall(jobId, body.seller, body.choice);
+  if (!done.ok) {
+    return c.json(
+      { error: done.code === 'not-waiting' ? 'Your agent is not waiting on you for this offer.' : 'This request is not open for bargaining.', code: done.code },
+      409,
+    );
+  }
+  return c.json({ ok: true, choice: body.choice });
+});
+
 jobsRoutes.post('/:jobId/choose-offer', async (c) => {
   const jobId = c.req.param('jobId');
   let body;

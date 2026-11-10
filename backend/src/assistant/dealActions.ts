@@ -20,6 +20,10 @@ export interface ChooseOfferConfirm extends ConfirmActionBase {
   intent: 'choose_offer';
   payload: { jobId: string; caller: string; seller: string; amountUsdc?: number; acknowledgeUnverified?: boolean };
 }
+export interface YourCallConfirm extends ConfirmActionBase {
+  intent: 'answer_your_call';
+  payload: { jobId: string; caller: string; seller: string; choice: 'agree' | 'keep' };
+}
 export interface EditRequestConfirm extends ConfirmActionBase {
   intent: 'edit_request';
   payload: { jobId: string; caller: string; briefText?: string; negotiationMaxIncreasePct?: number };
@@ -168,6 +172,7 @@ export type DealStepConfirm =
   | ChangeDealTermsConfirm
   | ChooseOfferConfirm
   | EditRequestConfirm
+  | YourCallConfirm
   | RaiseOfferConfirm
   | RequestExtensionConfirm
   | RespondExtensionConfirm
@@ -251,6 +256,40 @@ export function buildEditRequestConfirm(i: {
     },
     confirmLabel: 'Save changes',
     cancelLabel: 'Keep as is',
+  };
+}
+
+/// The buyer answers their agent on one offer (view 73): agree at the seller's
+/// price, or let the agent keep bargaining. Agreeing does not move money; the
+/// buyer still accepts and funds from the shortlist.
+export function buildYourCallConfirm(i: {
+  caller: string;
+  jobId: string;
+  seller: string;
+  sellerLabel: string;
+  priceUsdc: number;
+  offeredUsdc: number;
+  choice: 'agree' | 'keep';
+}): YourCallConfirm | { error: string } {
+  if (!i.jobId) return { error: 'Missing the request id.' };
+  if (!i.seller) return { error: 'Missing which offer.' };
+  const agree = i.choice === 'agree';
+  return {
+    kind: 'confirm',
+    id: `answer_your_call:${i.jobId}:${i.seller.toLowerCase()}:${i.choice}:${confirmNonce()}`,
+    intent: 'answer_your_call',
+    title: agree ? `Agree at ${i.priceUsdc} USDC` : 'Keep bargaining',
+    summary: agree
+      ? `Your agent agrees with ${i.sellerLabel} at ${i.priceUsdc} USDC. You still accept and fund the deal yourself.`
+      : `Your agent stays at ${i.offeredUsdc} USDC and keeps bargaining with ${i.sellerLabel}.`,
+    fields: [
+      { label: 'Seller', value: i.sellerLabel },
+      { label: 'They ask', value: `${i.priceUsdc} USDC` },
+      { label: 'Your agent offered', value: `${i.offeredUsdc} USDC` },
+    ],
+    payload: { jobId: i.jobId, caller: i.caller, seller: i.seller, choice: i.choice },
+    confirmLabel: agree ? `Agree at ${i.priceUsdc} USDC` : 'Keep bargaining',
+    cancelLabel: 'Not now',
   };
 }
 
