@@ -13,6 +13,9 @@ test('hourly work is live only when both the engagements and the market requests
 });
 
 test('the guide hides the hourly entry while hourly work is off', () => {
-  assert.deepEqual(hiddenGuideIds({ hourlyWork: false }), ['hourly-work']);
-  assert.deepEqual(hiddenGuideIds({ hourlyWork: true }), []);
+  assert.deepEqual(hiddenGuideIds({ hourlyWork: false, sellerAsked: true }), ['hourly-work']);
+  assert.deepEqual(hiddenGuideIds({ hourlyWork: true, sellerAsked: true }), []);
+  assert.deepEqual(hiddenGuideIds({ hourlyWork: true, sellerAsked: false }), ['seller-asked']);
+  assert.equal(liveFeaturesFrom({ work: {}, workRequests: {} }).sellerAsked, false);
+  assert.equal(liveFeaturesFrom({ work: {}, workRequests: {}, sellerAsked: true }).sellerAsked, true);
 });

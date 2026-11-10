@@ -173,6 +173,13 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
     },
   }),
   raise_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/raise-offer`, body: { caller: p.caller, priceUsdc: p.priceUsdc } }),
+  // View 75: one card, four answers, each with its own route.
+  answer_choice: (p) =>
+    p.answer === 'raise'
+      ? { method: 'POST', path: `/api/jobs/${p.jobId}/choice/raise`, body: { caller: p.caller, priceUsdc: p.priceUsdc } }
+      : p.answer === 'take_back'
+        ? { method: 'POST', path: `/api/jobs/${p.jobId}/choice/cancel`, body: { caller: p.caller } }
+        : { method: 'POST', path: `/api/jobs/${p.jobId}/choice/answer`, body: { caller: p.caller, answer: p.answer === 'accept' ? 'accept' : 'decline' } },
   answer_your_call: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/your-call`, body: { caller: p.caller, seller: p.seller, choice: p.choice } }),
   request_extension: (p) => ({
     method: 'POST',
@@ -294,6 +301,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   choose_offer: 'Offer chosen. The escrow is funded and the deal is live.',
   edit_request: 'Request updated.',
   raise_offer: 'Asked for the new price. The buyer approves or declines.',
+  answer_choice: 'Done. The other side has been told.',
   answer_your_call: 'Your agent has your answer.',
   request_extension: 'Request sent. The current deadline stands until the buyer answers.',
   respond_extension: 'Answer recorded.',

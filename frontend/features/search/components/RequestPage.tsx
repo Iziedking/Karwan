@@ -8,6 +8,7 @@ import type { BuyerJob } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatDealDate } from '@/features/deals/workspace/presentation';
+import { ChosenOnRequest } from '@/features/seller/components/ChosenCard';
 import { requestRef } from '@/features/jobs/requestRef';
 import { useJobSnapshot } from '@/features/jobs/hooks/useJobSnapshot';
 import { useJobLiveState } from '@/features/jobs/hooks/useJobLiveState';
@@ -142,6 +143,8 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
           </div>
         </header>
         <AttachmentList on="request" jobId={job.jobId} items={job.attachments} from={firstPhoto ? 1 : 0} />
+        {/* View 75: the seller the buyer chose answers here. */}
+        <ChosenOnRequest jobId={job.jobId} me={address ?? null} />
 
         <section aria-labelledby="request-status" className={`${CARD} space-y-4`}>
           <div aria-live="polite">

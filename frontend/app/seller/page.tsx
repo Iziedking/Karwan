@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api, type SellerActiveBid, type SellerWorldCheck } from '@/core/api';
+import { api, type SellerActiveBid, type SellerChoice, type SellerWorldCheck } from '@/core/api';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
 import { DealAmountProvider } from '@/features/balances/dealAmount';
@@ -17,6 +17,7 @@ import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
 import { useSearchV2 } from '@/features/search/useSearchV2';
 import { SellerDesk } from '@/features/search/components/SellerDesk';
 import { SellerWorldChecks } from '@/features/seller/components/SellerWorldChecks';
+import { SellerChoices } from '@/features/seller/components/ChosenCard';
 
 export default function SellerPage() {
   const sh = useTranslations().sellerHub;
@@ -36,6 +37,8 @@ function SellerPageInner() {
   // each came from: one list, not a second table (owner, 7 Nov 2026).
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [worldChecks, setWorldChecks] = useState<SellerWorldCheck[]>([]);
+  // Buyers who chose this seller and wait for an answer (view 75).
+  const [choices, setChoices] = useState<SellerChoice[]>([]);
   const [reload, setReload] = useState(0);
   const v2 = useSearchV2();
 
@@ -43,6 +46,7 @@ function SellerPageInner() {
     if (!address) {
       setActiveBids([]);
       setWorldChecks([]);
+      setChoices([]);
       return;
     }
     let cancelled = false;
@@ -52,6 +56,7 @@ function SellerPageInner() {
         if (cancelled) return;
         setActiveBids((d.activeBids ?? []).filter((b) => !b.finalized));
         setWorldChecks(d.worldChecks ?? []);
+        setChoices(d.choices ?? []);
       })
       .catch(() => {});
     return () => {
@@ -71,6 +76,14 @@ if (v2) return <SellerDesk />;
       {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches
           the dead end where a seller profile is saved but no agent was ever
           provisioned, so the seller agent silently never bids. */}
+
+      {choices.length > 0 && address ? (
+        <Band tone="light" compact>
+          <div className="mx-auto max-w-[720px]">
+            <SellerChoices choices={choices} me={address} onDone={() => setReload((n) => n + 1)} />
+          </div>
+        </Band>
+      ) : null}
 
       {worldChecks.length > 0 && address ? (
         <Band tone="light" compact>

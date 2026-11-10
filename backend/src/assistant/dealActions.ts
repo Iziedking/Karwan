@@ -32,6 +32,12 @@ export interface RaiseOfferConfirm extends ConfirmActionBase {
   intent: 'raise_offer';
   payload: { jobId: string; caller: string; priceUsdc: string };
 }
+/// View 75: the seller a buyer chose answers, or the buyer takes the choice back.
+export type ChoiceAnswer = 'accept' | 'decline' | 'raise' | 'take_back';
+export interface AnswerChoiceConfirm extends ConfirmActionBase {
+  intent: 'answer_choice';
+  payload: { jobId: string; caller: string; answer: ChoiceAnswer; priceUsdc?: string };
+}
 export interface RequestExtensionConfirm extends ConfirmActionBase {
   intent: 'request_extension';
   payload: { jobId: string; caller: string; additionalSeconds: number; reason?: string };
@@ -174,6 +180,7 @@ export type DealStepConfirm =
   | EditRequestConfirm
   | YourCallConfirm
   | RaiseOfferConfirm
+  | AnswerChoiceConfirm
   | RequestExtensionConfirm
   | RespondExtensionConfirm
   | CancelDealConfirm
@@ -290,6 +297,43 @@ export function buildYourCallConfirm(i: {
     payload: { jobId: i.jobId, caller: i.caller, seller: i.seller, choice: i.choice },
     confirmLabel: agree ? `Agree at ${i.priceUsdc} USDC` : 'Keep bargaining',
     cancelLabel: 'Not now',
+  };
+}
+
+export function buildAnswerChoiceConfirm(i: {
+  caller: string;
+  jobId: string;
+  title: string | null;
+  answer: ChoiceAnswer;
+  chosenPriceUsdc: string;
+  priceUsdc?: number;
+}): AnswerChoiceConfirm | { error: string } {
+  if (!i.jobId) return { error: 'Missing the request id.' };
+  if (i.answer === 'raise' && !(Number(i.priceUsdc) > Number(i.chosenPriceUsdc))) {
+    return { error: `Ask for more than the ${i.chosenPriceUsdc} USDC the buyer chose.` };
+  }
+  const price = i.answer === 'raise' ? Number(i.priceUsdc).toFixed(2) : undefined;
+  const words: Record<ChoiceAnswer, { title: string; summary: string; confirm: string; cancel: string }> = {
+    accept: { title: 'Accept this buyer', summary: `The buyer's payment of ${i.chosenPriceUsdc} USDC is held for the deal as soon as you accept.`, confirm: 'Accept', cancel: 'Not now' },
+    decline: { title: 'Decline this buyer', summary: 'The buyer is told and chooses someone else. Nothing was held.', confirm: 'Decline', cancel: 'Keep it open' },
+    raise: { title: 'Ask for more', summary: `The buyer approves ${price} USDC or chooses someone else. You can ask once.`, confirm: `Ask for ${price} USDC`, cancel: 'Keep the price' },
+    take_back: { title: 'Choose someone else', summary: 'Your choice is taken back and the seller is told. Nothing was held.', confirm: 'Take it back', cancel: 'Keep waiting' },
+  };
+  const w = words[i.answer];
+  return {
+    kind: 'confirm',
+    id: `answer_choice:${i.jobId}:${i.answer}:${confirmNonce()}`,
+    intent: 'answer_choice',
+    title: w.title,
+    summary: w.summary,
+    fields: [
+      ...(i.title ? [{ label: 'Request', value: i.title }] : []),
+      { label: 'Price chosen', value: `${i.chosenPriceUsdc} USDC` },
+      ...(price ? [{ label: 'Your price', value: `${price} USDC` }] : []),
+    ],
+    payload: { jobId: i.jobId, caller: i.caller, answer: i.answer, ...(price ? { priceUsdc: price } : {}) },
+    confirmLabel: w.confirm,
+    cancelLabel: w.cancel,
   };
 }
 

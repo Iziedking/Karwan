@@ -1,4 +1,4 @@
-import type { BuyerCheck, Listing, MatchProposal, SellerActiveBid, SellerBidOutcome, SellerWorldCheck } from '@/core/api';
+import type { BuyerCheck, Listing, MatchProposal, SellerActiveBid, SellerBidOutcome, SellerChoice, SellerWorldCheck } from '@/core/api';
 
 export type BidState = 'offered' | 'negotiating' | 'won' | 'lost' | 'withdrawn' | 'expired' | 'passed';
 export type BuyerFlag = Exclude<BuyerCheck['reason'], 'record-ok'>;
@@ -27,6 +27,8 @@ export interface SellerDesk {
   offers: OfferLine[];
   /// Buyers who chose me and wait on my World ID check before escrow funds.
   worldChecks: SellerWorldCheck[];
+  /// Buyers who chose me and wait for my answer (view 75).
+  choices: SellerChoice[];
   empty: boolean;
 }
 
@@ -55,6 +57,7 @@ export function sellerDeskView(input: {
   recentBids: SellerBidOutcome[];
   listings: Listing[];
   worldChecks?: SellerWorldCheck[];
+  choices?: SellerChoice[];
   now: number;
 }): SellerDesk {
   const me = input.me.toLowerCase();
@@ -101,11 +104,13 @@ export function sellerDeskView(input: {
 
   const bidding = [...live, ...ended];
   const worldChecks = input.worldChecks ?? [];
+  const choices = input.choices ?? [];
   return {
     needsYou,
     bidding,
     offers,
     worldChecks,
-    empty: needsYou.length === 0 && bidding.length === 0 && offers.length === 0 && worldChecks.length === 0,
+    choices,
+    empty: needsYou.length === 0 && bidding.length === 0 && offers.length === 0 && worldChecks.length === 0 && choices.length === 0,
   };
 }

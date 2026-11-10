@@ -6,7 +6,7 @@ export function chooseErrorKey(status: number, code: string | undefined): Choose
   if (code === 'INSUFFICIENT_AGENT_BALANCE') return 'noFunds';
   if (code === 'CLOSED') return 'closed';
   if (code === 'ALREADY_FUNDED' || code === 'ALREADY_APPROVED') return 'taken';
-  if (code === 'NO_OFFER' || code === 'unavailable') return 'gone';
+  if (code === 'NO_OFFER' || code === 'unavailable' || code === 'SELLER_DECLINED') return 'gone';
   if (code === 'PRICE_CHANGED') return 'priceChanged';
   if (status === 403) return 'notYours';
   if (status === 409 && !code) return 'busy';

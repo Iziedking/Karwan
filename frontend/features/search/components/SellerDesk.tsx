@@ -13,6 +13,7 @@ import { sellerDeskView, type BidLine, type BuyerCheckLine, type SellerDesk as S
 import { deskNudges } from '../deskNudges';
 import { NudgeStack } from '@/features/jobs/components/AgentNudges';
 import { AgentWorldCheck } from '@/features/jobs/components/AgentWorldCheck';
+import { SellerChoices } from '@/features/seller/components/ChosenCard';
 import type { Messages } from '@/shared/i18n/messages';
 import { startPlan } from '../startPlan';
 import { useStartRun } from '../hooks/useStartRun';
@@ -51,6 +52,7 @@ export function SellerDesk() {
         recentBids: seller.recentBids ?? [],
         listings: listings.listings,
         worldChecks: seller.worldChecks ?? [],
+        choices: seller.choices ?? [],
         now: Date.now(),
       });
     },
@@ -121,6 +123,9 @@ export function SellerDesk() {
         <div aria-busy="true" className="mt-6 h-24 rounded-md bg-[var(--lp-light)] motion-safe:animate-pulse" />
       ) : (
         <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
+          {desk.data.choices.length > 0 ? (
+            <SellerChoices choices={desk.data.choices} me={me} onDone={() => void qc.invalidateQueries({ queryKey: deskKey })} />
+          ) : null}
           {desk.data.worldChecks.length > 0 ? (
             <section aria-labelledby="world-checks" className="space-y-3">
               <h2 id="world-checks" className="text-[17px] font-semibold text-[var(--lp-dark)]">{nudgeCopy.world.sellerTitle}</h2>

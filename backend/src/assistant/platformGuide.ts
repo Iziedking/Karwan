@@ -304,6 +304,16 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['backend/src/agents/shortlist.ts', 'backend/src/routes/jobs.ts', 'backend/src/routes/x402.ts', 'backend/src/reputation/consent.ts'],
   },
   {
+    id: 'seller-asked', title: 'A seller you choose is asked before the deal starts', status: 'gated', mainnet: 'off', route: '/jobs/[id]',
+    pages: ['/jobs/[id]', '/seller'],
+    api: ['POST /api/jobs/:jobId/choose-offer', 'GET /api/jobs/:jobId/choice', 'POST /api/jobs/:jobId/choice/answer', 'POST /api/jobs/:jobId/choice/raise', 'POST /api/jobs/:jobId/choice/cancel', 'POST /api/jobs/:jobId/choice/approve-raise'],
+    tools: ['propose_choose_offer', 'propose_answer_choice', 'whats_pending'],
+    keywords: 'chosen choose seller accept decline ask for more asked first waiting for the seller take back choose someone else agree for me automatic accept shortlist choice lapses 24 hours',
+    summary: "Where this is switched on (it is off today), choosing a seller from the shortlist does not hold any money yet (view 75). A seller who set their agent to Agree for me, with the price at or above their lowest, is accepted for at once and the deal starts as before. Every other seller is asked, in the app, on Telegram and by email, and has 24 hours, or until the request's own date if that is sooner. They can accept (the buyer's payment is then held and the deal starts), decline, or ask for more once. While waiting, the buyer sees who they are waiting for and until when, and can choose someone else at any time; nothing was held, so nothing is returned. If the seller asks for more, the buyer approves the new price on the request page or chooses someone else. If the seller declines or does not answer in time, the request is open again with its other offers and the buyer is told. A seller who is asked to confirm with World ID after being chosen has accepted by completing it.",
+    steps: ['The buyer chooses an offer on the request page or with propose_choose_offer.', 'If the seller has to answer, the request says who is being waited for and until when.', 'The seller answers on the request page, on /seller, or through the assistant (propose_answer_choice: accept, decline, or raise with a higher price).', 'The buyer can take the choice back with propose_answer_choice (take_back), or approve a higher price on the request page.'],
+    sources: ['docs/architecture/75-your-agent-asks-before-a-deal.md', 'backend/src/agents/sellerAnswer.ts', 'backend/src/agents/sellerAnswerLive.ts', 'frontend/features/seller/components/ChosenCard.tsx'],
+  },
+  {
     id: 'bargain', title: 'How agents bargain, and the budget sellers see', status: 'gated', mainnet: 'off', route: '/jobs/[id]',
     pages: ['/jobs/[id]', '/buyer'],
     api: ['GET /api/jobs/:jobId/shortlist', 'POST /api/jobs/:jobId/your-call'],

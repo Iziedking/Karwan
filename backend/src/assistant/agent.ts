@@ -62,6 +62,7 @@ import { readOwnedBalance } from '../money/ownedBalance.js';
 import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
 import { withLocalAmounts } from './localAmountTools.js';
 import { moneyVoice } from './moneyVoice.js';
+import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
 import { currencyDigits, makeQuote } from '../rates/quote.js';
 import type { LocalCurrency } from '../rates/usdcRates.js';
 import { nowLine } from './nowLine.js';
@@ -861,6 +862,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           actionNeeded.push(...proposalLines.actionNeeded);
           waitingOnOthers.push(...proposalLines.waitingOnOthers);
           const proposalJobs = new Set(proposals.map((p) => p.jobId));
+          // View 75: buyers who chose this person and wait for their answer.
+          for (const c of await choicesWaitingOnSeller(address, now).catch(() => [])) {
+            actionNeeded.push(`A buyer chose you on request ${c.jobId} at ${c.priceUsdc} USDC and waits for your answer by ${new Date(c.answerBy).toISOString()}. Offer to accept, ask for more or decline (propose_answer_choice). Nothing is held until they accept.`);
+          }
           for (const job of getBuyerSnapshot().jobs) {
             if (!job.bids.length || proposalJobs.has(job.jobId)) continue;
             const brief = getBrief(job.jobId);

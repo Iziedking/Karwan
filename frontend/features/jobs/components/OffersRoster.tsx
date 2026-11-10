@@ -55,7 +55,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   // An empty shortlist next to offers means it has not been rebuilt yet (a
   // restart, a late offer): the offers are shown so the buyer can still choose.
   if (shortlist && caller && (shortlist.entries.length > 0 || bids.length === 0)) {
-    return <Shortlist jobId={jobId} caller={caller} entries={shortlist.entries} closed={shortlist.closed || !choosable} worldCheck={shortlist.worldCheck ?? null} recordChecks={shortlist.recordChecks} onChosen={onChosen} />;
+    return <Shortlist jobId={jobId} caller={caller} entries={shortlist.entries} closed={shortlist.closed || !choosable} worldCheck={shortlist.worldCheck ?? null} choice={shortlist.choice ?? null} recordChecks={shortlist.recordChecks} onChosen={onChosen} />;
   }
 
   const ranked = rankOffers(bids);

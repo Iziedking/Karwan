@@ -1,4 +1,4 @@
-import type { AgentWorldCheckView, ShortlistEntry } from '@/core/api';
+import type { AgentWorldCheckView, ChoiceView, ShortlistEntry } from '@/core/api';
 import type { ShortlistCopy } from '@/shared/i18n/messages/shortlist';
 import { fill } from '@/features/deals/workspace/presentation';
 
@@ -19,6 +19,8 @@ export interface ShortlistState {
   entries: ShortlistEntry[];
   closed: boolean;
   worldCheck?: AgentWorldCheckView | null;
+  /// The choice waiting on the seller's answer (view 75).
+  choice?: ChoiceView | null;
   recordChecks?: { count: number; usdc: number };
 }
 

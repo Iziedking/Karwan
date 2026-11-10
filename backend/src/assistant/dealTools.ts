@@ -6,6 +6,9 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getBrief } from '../db/briefs.js';
+import { choiceState, roleOn } from '../agents/sellerAnswer.js';
+import { getChoice } from '../agents/sellerAnswerLive.js';
+import { requestTitle } from '../agents/bidOutcome.js';
 import { sellerAgentMaySee } from '../market/visibility.js';
 import { getDeal, type DirectDeal } from '../db/deals.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
@@ -24,6 +27,7 @@ import {
   buildChooseOfferConfirm, buildYourCallConfirm,
   buildEditRequestConfirm,
   buildRaiseOfferConfirm,
+  buildAnswerChoiceConfirm,
   buildRequestExtensionConfirm,
   buildRespondExtensionConfirm,
   buildCancelDealConfirm,
@@ -334,6 +338,31 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
               ...(briefText ? { briefText } : {}),
               ...(negotiationMaxIncreasePct !== undefined ? { negotiationMaxIncreasePct } : {}),
             }),
+          );
+        }),
+    }),
+
+    propose_answer_choice: tool({
+      description:
+        "A buyer chose a seller from the shortlist and the seller is asked before anything is held (view 75). SELLER: answer 'accept', 'decline', or 'raise' with a higher priceUsdc (once). BUYER, while waiting: 'take_back' to choose someone else. Use for 'accept the buyer who chose me', 'decline it', 'ask for 150 instead', 'I want to pick another seller'. A buyer approves a higher price on the request page, where the payment is confirmed.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The request id.'),
+        answer: z.enum(['accept', 'decline', 'raise', 'take_back']),
+        priceUsdc: z.number().positive().max(1_000_000).optional().describe('The higher price, only with raise.'),
+      }),
+      execute: async ({ jobId, answer, priceUsdc }) =>
+        guarded('propose_answer_choice', async () => {
+          const hold = await getChoice(jobId);
+          const role = roleOn(hold, address);
+          if (!hold || !role) return { error: `No choice is waiting on ${jobId} for this account.` };
+          const state = choiceState(hold, Date.now());
+          if (state === 'expired' || state === 'declined') return { error: 'That choice is no longer waiting.' };
+          if (role === 'buyer' && answer !== 'take_back') return { error: 'You are the buyer here. You can take the choice back, or approve a higher price on the request page.' };
+          if (role === 'seller' && answer === 'take_back') return { error: 'Only the buyer can take the choice back. You can accept, decline or ask for more.' };
+          if (role === 'seller' && state === 'raised' && answer !== 'decline') return { error: 'You already asked for more. The buyer has to answer first.' };
+          return offer(
+            actions,
+            buildAnswerChoiceConfirm({ caller: address, jobId, title: requestTitle(getBrief(jobId)?.briefText), answer, chosenPriceUsdc: hold.priceUsdc, priceUsdc }),
           );
         }),
     }),

@@ -286,6 +286,23 @@ export interface BuyerCheck {
 /// Why the trust rules ask someone for World ID before escrow funds.
 export type WorldCheckReason = 'first_deal' | 'large_deal' | 'fast_new_account' | 'flagged_link_before';
 
+/// The buyer's choice while it waits on the seller's answer (view 75).
+export interface ChoiceView {
+  sellerAgent: string;
+  priceUsdc: string;
+  state: 'waiting' | 'raised' | 'declined';
+  answerBy: number;
+  raisedPriceUsdc?: string;
+}
+
+/// A buyer who chose this seller and waits for their answer.
+export interface SellerChoice {
+  jobId: string;
+  title: string | null;
+  priceUsdc: string;
+  answerBy: number;
+}
+
 /// The open World ID step on an agent request, as the buyer sees it.
 export interface AgentWorldCheckView {
   sellerAgent: string;
@@ -2180,6 +2197,7 @@ export interface AssistantConfirmAction {
     | 'edit_request'
     | 'answer_your_call'
     | 'raise_offer'
+    | 'answer_choice'
     | 'request_extension'
     | 'respond_extension'
     | 'cancel_deal'
@@ -3379,7 +3397,7 @@ export const api = {
       `/api/agents/buyer${address ? `?address=${address}` : ''}`,
     ),
   seller: (address?: string) =>
-    json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[]; recentBids?: SellerBidOutcome[]; worldChecks?: SellerWorldCheck[] }>(
+    json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[]; recentBids?: SellerBidOutcome[]; worldChecks?: SellerWorldCheck[]; choices?: SellerChoice[] }>(
       `/api/agents/seller${address ? `?address=${address}` : ''}`,
     ),
   /// Abandon one of the signed-in seller's own in-flight bids. Identity is the
@@ -3479,7 +3497,7 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ caller, ...answers }) },
     ),
   chooseOffer: (jobId: string, caller: string, seller: string, opts: { acknowledgeUnverified?: boolean; expectedPriceUsdc?: number | string } = {}) =>
-    json<{ accepted: boolean; jobId: string; txHash?: string; code?: 'SELLER_CHECK_PENDING'; reason?: WorldCheckReason }>(
+    json<{ accepted: boolean; jobId: string; txHash?: string; code?: 'SELLER_CHECK_PENDING' | 'SELLER_ANSWER_PENDING'; reason?: WorldCheckReason; choice?: ChoiceView | null }>(
       `/api/jobs/${jobId}/choose-offer`,
       {
         method: 'POST',
@@ -3492,7 +3510,18 @@ export const api = {
       },
     ),
   shortlist: (jobId: string, caller: string) =>
-    json<{ entries: ShortlistEntry[]; closed: boolean; worldCheck?: AgentWorldCheckView | null; recordChecks?: { count: number; usdc: number } }>(`/api/jobs/${jobId}/shortlist?caller=${encodeURIComponent(caller)}`),
+    json<{ entries: ShortlistEntry[]; closed: boolean; worldCheck?: AgentWorldCheckView | null; choice?: ChoiceView | null; recordChecks?: { count: number; usdc: number } }>(`/api/jobs/${jobId}/shortlist?caller=${encodeURIComponent(caller)}`),
+  /// View 75: the buyer's choice while it waits on the seller.
+  choice: (jobId: string) =>
+    json<{ choice: ChoiceView | null; role: 'buyer' | 'seller' | null; title?: string | null }>(`/api/jobs/${jobId}/choice`),
+  answerChoice: (jobId: string, caller: string, answer: 'accept' | 'decline') =>
+    json<{ ok: true; answer: 'accept' | 'decline'; txHash?: string }>(`/api/jobs/${jobId}/choice/answer`, { method: 'POST', body: JSON.stringify({ caller, answer }) }),
+  raiseChoice: (jobId: string, caller: string, priceUsdc: number) =>
+    json<{ ok: true; choice: ChoiceView | null }>(`/api/jobs/${jobId}/choice/raise`, { method: 'POST', body: JSON.stringify({ caller, priceUsdc }) }),
+  cancelChoice: (jobId: string, caller: string) =>
+    json<{ ok: true }>(`/api/jobs/${jobId}/choice/cancel`, { method: 'POST', body: JSON.stringify({ caller }) }),
+  approveChoiceRaise: (jobId: string, caller: string, expectedPriceUsdc: string | number) =>
+    json<{ accepted: boolean; jobId: string; txHash?: string }>(`/api/jobs/${jobId}/choice/approve-raise`, { method: 'POST', body: JSON.stringify({ caller, expectedPriceUsdc }) }),
   cancelBrief: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/jobs/${jobId}/cancel`,

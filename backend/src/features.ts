@@ -2,15 +2,17 @@
 /// is off (product audit, Batch 1). The live value is in featuresLive.ts.
 export interface LiveFeatures {
   hourlyWork: boolean;
+  /// View 75: a seller chosen from the shortlist is asked first.
+  sellerAsked: boolean;
 }
 
 /// Hourly work needs both the engagements and the market requests bound to
 /// the Time escrow (work/workLive.ts, work/workRequestsLive.ts).
-export function liveFeaturesFrom(input: { work: unknown; workRequests: unknown }): LiveFeatures {
-  return { hourlyWork: input.work != null && input.workRequests != null };
+export function liveFeaturesFrom(input: { work: unknown; workRequests: unknown; sellerAsked?: boolean }): LiveFeatures {
+  return { hourlyWork: input.work != null && input.workRequests != null, sellerAsked: input.sellerAsked === true };
 }
 
 /// Guide entries the assistant must not offer while their feature is off.
 export function hiddenGuideIds(f: LiveFeatures): string[] {
-  return f.hourlyWork ? [] : ['hourly-work'];
+  return [...(f.hourlyWork ? [] : ['hourly-work']), ...(f.sellerAsked ? [] : ['seller-asked'])];
 }

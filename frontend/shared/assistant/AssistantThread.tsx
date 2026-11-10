@@ -951,6 +951,22 @@ async function runConfirmIntent(
       viewLabel: 'View the request',
     };
   }
+  if (action.intent === 'answer_choice') {
+    const p = action.payload as { jobId: string; caller: string; answer: 'accept' | 'decline' | 'raise' | 'take_back'; priceUsdc?: string };
+    const view = { viewHref: `/jobs/${p.jobId}`, viewLabel: 'View the request' };
+    if (p.answer === 'raise') {
+      await api.raiseChoice(p.jobId, p.caller, Number(p.priceUsdc));
+      return { successText: `Asked for ${p.priceUsdc} USDC. The buyer approves or chooses someone else.`, ...view };
+    }
+    if (p.answer === 'take_back') {
+      await api.cancelChoice(p.jobId, p.caller);
+      return { successText: 'Choice taken back. Nothing was held.', ...view };
+    }
+    await api.answerChoice(p.jobId, p.caller, p.answer);
+    return p.answer === 'accept'
+      ? { successText: 'Accepted. The buyer\'s payment is being held for this deal.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' }
+      : { successText: 'Declined. The buyer has been told.', ...view };
+  }
   if (action.intent === 'raise_offer') {
     const p = action.payload as { jobId: string; caller: string; priceUsdc: string };
     await api.raiseMatchOffer(p.jobId, p.caller, p.priceUsdc);
@@ -1227,6 +1243,7 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   choose_offer: 'Choosing…',
   edit_request: 'Saving…',
   raise_offer: 'Sending…',
+  answer_choice: 'Sending…',
   request_extension: 'Sending…',
   respond_extension: 'Saving…',
   cancel_deal: 'Sending…',

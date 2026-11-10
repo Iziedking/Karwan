@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { api, ApiError, type AgentWorldCheckView, type ShortlistEntry, type WorldCheckReason } from '@/core/api';
+import { api, ApiError, type AgentWorldCheckView, type ChoiceView, type ShortlistEntry, type WorldCheckReason } from '@/core/api';
+import { chosenCopy } from '@/shared/i18n/messages/chosen';
+import { answerByText, buyerChoiceLine } from '../chosenPresentation';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
@@ -59,12 +61,14 @@ export function useShortlist(jobId: string, caller: string | null) {
 
 /// The offers on a request in the agent's order, one line each: photo, name,
 /// price and place, with the agent's pick marked. A tap shows the rest (view 46).
-export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordChecks, onChosen }: {
+export function Shortlist({ jobId, caller, entries, closed, worldCheck, choice, recordChecks, onChosen }: {
   jobId: string;
   caller: string;
   entries: ShortlistEntry[];
   closed: boolean;
   worldCheck?: AgentWorldCheckView | null;
+  /// The choice waiting on the seller's answer (view 75).
+  choice?: ChoiceView | null;
   recordChecks?: { count: number; usdc: number };
   onChosen: () => void;
 }) {
@@ -94,6 +98,28 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const waitingOn = worldCheck?.waitingOn === 'seller' && worldCheck.buyerConfirmed
     ? entries.find((e) => e.seller.toLowerCase() === worldCheck.sellerAgent.toLowerCase())?.name ?? null
     : null;
+
+  // View 75: the seller chosen is asked first. The buyer waits, takes the
+  // choice back, or approves a higher price the seller asked for.
+  const chosenName = choice ? entries.find((e) => e.seller.toLowerCase() === choice.sellerAgent.toLowerCase())?.name ?? '' : '';
+  const choiceLine = choice && entries.some((e) => e.seller.toLowerCase() === choice.sellerAgent.toLowerCase())
+    ? buyerChoiceLine(choice, chosenName, answerByText(choice.answerBy, locale), chosenCopy[locale])
+    : null;
+  const [choiceBusy, setChoiceBusy] = useState<'back' | 'approve' | null>(null);
+  async function onChoice(kind: 'back' | 'approve') {
+    if (!choice) return;
+    setChoiceBusy(kind);
+    setError(null);
+    try {
+      if (kind === 'approve' && choice.raisedPriceUsdc) await api.approveChoiceRaise(jobId, caller, choice.raisedPriceUsdc);
+      else await api.cancelChoice(jobId, caller);
+      onChosen();
+    } catch (err) {
+      setError(kind === 'approve' ? roster[chooseErrorKey(err instanceof ApiError ? err.status : 0, err instanceof ApiError ? err.code : undefined)] : chosenCopy[locale].buyerFailed);
+    } finally {
+      setChoiceBusy(null);
+    }
+  }
 
   // View 73: the person answers their agent on one offer it stopped on.
   const [answering, setAnswering] = useState<string | null>(null);
@@ -150,6 +176,36 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
         ) : null}
         {notice && notice !== copy.noneVerified ? <p className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{notice}</p> : null}
         {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
+        {choiceLine ? (
+          <div data-choice-waiting className="mt-3 space-y-3">
+            <p role="status" className="text-[14px] font-semibold text-[var(--ink)]">
+              {choiceLine.amountUsdc !== null ? <PriceIn template={choiceLine.template} usdc={choiceLine.amountUsdc} /> : choiceLine.template}
+            </p>
+            {choiceLine.canTakeBack ? (
+              <div className="flex gap-2">
+                {choiceLine.approveUsdc !== null ? (
+                  <button
+                    type="button"
+                    disabled={choiceBusy !== null}
+                    onClick={() => void onChoice('approve')}
+                    className={buttonClasses({ variant: 'primary', size: 'sm', className: 'flex-1 rounded-full' })}
+                  >
+                    <PriceIn template={chosenCopy[locale].approve} usdc={choiceLine.approveUsdc} />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={choiceBusy !== null}
+                  onClick={() => void onChoice('back')}
+                  className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'flex-1 rounded-full' })}
+                >
+                  {chosenCopy[locale].takeBack}
+                </button>
+              </div>
+            ) : null}
+            {error && !choosing ? <p role="alert" className="text-[14px] font-medium text-[var(--ink)]">{error}</p> : null}
+          </div>
+        ) : null}
       </div>
       {ranked.length ? (
         <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--line)] border-t border-[var(--line)]">

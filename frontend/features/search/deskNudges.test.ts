@@ -8,7 +8,7 @@ const copy = agentNudgesCopy.en;
 const line = (over: Partial<BidLine> = {}): BidLine => ({
   jobId: '0xj1', title: 'Logo', state: 'offered', priceUsdc: '80', withdrawable: true, check: null, ...over,
 });
-const desk = (bidding: BidLine[], needsYou: SellerDesk['needsYou'] = []): SellerDesk => ({ needsYou, bidding, offers: [], worldChecks: [], empty: false });
+const desk = (bidding: BidLine[], needsYou: SellerDesk['needsYou'] = []): SellerDesk => ({ needsYou, bidding, offers: [], worldChecks: [], choices: [], empty: false });
 const check = { paidUsdc: 0.01, completed: 2, repeatSellers: 0, disputesLost: 0, score: 40, flag: null, late: false };
 
 test('the first load gives no nudges', () => {
