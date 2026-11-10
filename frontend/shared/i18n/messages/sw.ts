@@ -5747,7 +5747,7 @@ export const sw: Messages = {
       },
       pickMethod: {
         continueEmail: 'Endelea kwa barua pepe',
-        connectWallet: 'Unganisha mkoba',
+        connectWallet: 'Tumia pochi ya crypto',
         continueWallet: 'Endelea kwa mkoba',
         preparingWallet: 'Inaandaa kuingia salama…',
         checkWallet: 'Thibitisha kwenye mkoba wako',

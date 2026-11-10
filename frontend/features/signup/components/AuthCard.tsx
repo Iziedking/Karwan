@@ -472,7 +472,7 @@ export function AuthCard({
               {inStep === 'code' ? t.signIn.codeTitle : inStep === 'passkey' ? t.signIn.passkeyTitle : t.signIn.title}
             </h1>
             {inStep === 'email' && (
-              <p className="mt-1.5 text-[14px] leading-[1.45] font-medium text-[var(--ink-secondary)]">{DEALS_AVAILABLE ? t.welcome.testnetTagline : t.welcome.tagline}</p>
+              <p className="mt-1.5 text-[14px] leading-[1.45] font-medium text-[var(--ink-secondary)]">{DEALS_AVAILABLE ? t.welcome.demoTagline : t.welcome.tagline}</p>
             )}
           </div>
 

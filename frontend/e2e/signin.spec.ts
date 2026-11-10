@@ -239,7 +239,7 @@ for (const invited of [false, true]) {
       await expect(choice).toHaveAttribute('aria-pressed', 'true');
       await expect.poll(() => requests.find(r => r.path === '/api/waitlist/use-case')?.body)
         .toEqual({ token: 'fixture-waitlist-answer', useCases: ['sell_services'] });
-      await expect(page.getByRole('link', { name: en.waitlist.tryTestnet, exact: true })).toHaveAttribute('href', /\/start\?mode=signup$/);
+      await expect(page.getByRole('link', { name: en.waitlist.seeDemo, exact: true })).toHaveAttribute('href', /\/start\?mode=signup$/);
     }
   });
 }

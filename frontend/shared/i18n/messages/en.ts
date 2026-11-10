@@ -11195,7 +11195,7 @@ export const en: MessagesShape = {
       },
       pickMethod: {
         continueEmail: 'Continue with email',
-        connectWallet: 'Connect a wallet',
+        connectWallet: 'Use a crypto wallet',
         continueWallet: 'Continue with wallet',
         preparingWallet: 'Preparing secure sign in…',
         checkWallet: 'Confirm in your wallet',

@@ -134,9 +134,10 @@ export function Hero() {
           <div className={s.copyBlock} data-on={view.copy === 'hero' ? '' : undefined} {...block('hero')}>
             <p className={s.eyebrow}>{h.kicker}</p>
             <h1 id="landing-title" className={s.heroTitle}><span>{h.titleFirst}</span> <span>{h.titleLast}</span></h1>
+            <p className={s.heroLead}>{h.promise}</p>
             <div className={s.actions}>
               <Link className={s.primary} href={DEALS_AVAILABLE ? entry.agreement : '/waitlist'}>{DEALS_AVAILABLE ? h.create : h.waitlist}</Link>
-              <Link className={s.textLink} href={entry.market}>{DEALS_AVAILABLE ? h.explore : h.tryTestnet}<Icon name="arrow-right" size={16} directional aria-hidden /></Link>
+              <Link className={s.textLink} href={entry.market}>{DEALS_AVAILABLE ? h.explore : h.seeDemo}<Icon name="arrow-right" size={16} directional aria-hidden /></Link>
             </div>
             <p className={s.platformsLabel} id="landing-platforms">{h.platformsLabel}</p>
             <div className={s.platforms} role="tablist" aria-labelledby="landing-platforms" onPointerEnter={() => setHolding(true)} onPointerLeave={() => setHolding(false)} onFocus={() => setHolding(true)} onBlur={() => setHolding(false)}>

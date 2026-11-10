@@ -5748,7 +5748,7 @@ export const hi: Messages = {
       },
       pickMethod: {
         continueEmail: 'ईमेल से जारी रखें',
-        connectWallet: 'वॉलेट जोड़ें',
+        connectWallet: 'क्रिप्टो वॉलेट इस्तेमाल करें',
         continueWallet: 'वॉलेट से जारी रखें',
         preparingWallet: 'सुरक्षित साइन इन तैयार हो रहा है…',
         checkWallet: 'अपने वॉलेट में पुष्टि करें',

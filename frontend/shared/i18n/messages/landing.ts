@@ -25,7 +25,8 @@ export interface LandingCopy {
     create: string;
     explore: string;
     waitlist: string;
-    tryTestnet: string;
+    promise: string;
+    seeDemo: string;
     platformsLabel: string;
     platformNames: Record<Platform, string>;
     messages: Record<Platform, string>;
@@ -137,7 +138,8 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       create: 'Create a deal',
       explore: 'Explore the market',
       waitlist: 'Join the waitlist',
-      tryTestnet: 'Try it on testnet',
+      promise: "Karwan holds the payment until the work or the goods arrive.",
+      seeDemo: "See the demo",
       platformsLabel: 'Where the chat started',
       platformNames: NAMES,
       messages: {
@@ -291,7 +293,8 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       create: 'Créer un accord',
       explore: 'Explorer le marché',
       waitlist: 'Rejoindre la liste d’attente',
-      tryTestnet: 'Essayer sur le testnet',
+      promise: "Karwan garde le paiement jusqu’à l’arrivée du travail ou des marchandises.",
+      seeDemo: "Voir la démo",
       platformsLabel: 'Où la discussion a commencé',
       platformNames: NAMES,
       messages: {
@@ -445,7 +448,8 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       create: 'أنشئ صفقة',
       explore: 'تصفح السوق',
       waitlist: 'انضم إلى قائمة الانتظار',
-      tryTestnet: 'جرّبه على الشبكة التجريبية',
+      promise: "كاروان يحتفظ بالدفعة حتى يصل العمل أو البضاعة.",
+      seeDemo: "شاهد النسخة التجريبية",
       platformsLabel: 'أين بدأت المحادثة',
       platformNames: NAMES,
       messages: {
@@ -599,7 +603,8 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       create: 'सौदा बनाएँ',
       explore: 'मार्केट देखें',
       waitlist: 'वेटलिस्ट में जुड़ें',
-      tryTestnet: 'टेस्टनेट पर आज़माएँ',
+      promise: "काम या सामान पहुँचने तक कारवान भुगतान सुरक्षित रखता है।",
+      seeDemo: "डेमो देखें",
       platformsLabel: 'बातचीत कहाँ शुरू हुई',
       platformNames: NAMES,
       messages: {
@@ -753,7 +758,8 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       create: 'Unda mkataba',
       explore: 'Tazama soko',
       waitlist: 'Jiunge na orodha ya kusubiri',
-      tryTestnet: 'Jaribu kwenye testnet',
+      promise: "Karwan hushikilia malipo hadi kazi au bidhaa zifike.",
+      seeDemo: "Tazama onyesho",
       platformsLabel: 'Mazungumzo yalipoanzia',
       platformNames: NAMES,
       messages: {

@@ -43,7 +43,7 @@ for(const [locale,m] of [['en',en],['ar',ar]] as const)for(const theme of ['ligh
  test('returning customer keeps selected deal through code retry '+locale+' '+theme,async({page},info)=>{
   const w=await world(page,{locale,theme});await page.goto(target);
   await expect.poll(()=>new URL(page.url()).searchParams.get('next')).toBe(target);
-  await expect(page.getByText(m.signup.welcome.testnetTagline)).toBeVisible();
+  await expect(page.getByText(m.signup.welcome.demoTagline)).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('dir',locale==='ar'?'rtl':'ltr');
   await page.getByLabel(m.signup.signIn.emailLabel,{exact:true}).fill('entry@example.com');
   await page.getByRole('button',{name:m.signup.signIn.continue,exact:true}).click();
@@ -118,7 +118,7 @@ import {hi} from '../shared/i18n/messages/hi';
 import {sw} from '../shared/i18n/messages/sw';
 for(const [locale,m] of [['en',en],['fr',fr],['ar',ar],['hi',hi],['sw',sw]] as const)test('sign-in keeps the search context and current network '+locale,async({page},info)=>{
  await world(page,{locale});const next='/market?scope=services&q=logo';await page.goto('/start?next='+encodeURIComponent(next));
- await expect(page.getByText(m.signup.welcome.testnetTagline)).toBeVisible();
+ await expect(page.getByText(m.signup.welcome.demoTagline)).toBeVisible();
  await expect(page.getByText(m.signup.signIn.mainnetWaitlist)).toHaveCount(0);
  await expect(page.getByRole('link',{name:m.signup.signIn.browse,exact:true})).toHaveAttribute('href',next);
  const field=page.getByLabel(m.signup.signIn.emailLabel,{exact:true});await field.fill('focus@example.com');await field.focus();await page.keyboard.press('Tab');

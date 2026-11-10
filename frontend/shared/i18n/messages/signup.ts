@@ -1,5 +1,5 @@
 export interface SignupCopy {
-  welcome: { tagline: string; testnetTagline: string; backdropLabel: string };
+  welcome: { tagline: string; demoTagline: string; demoNote: string; backdropLabel: string };
   backdrop: {
     states: { agreed: string; locked: string; delivered: string; paid: string };
     deals: [string, string, string, string, string, string];
@@ -101,8 +101,9 @@ export interface SignupCopy {
     alreadyBody: string;
     invitedBody: string;
     createAccount: string;
-    tryTestnet: string;
-    tryTestnetNote: string;
+    lookFirst: string;
+    seeDemo: string;
+    seeDemoNote: string;
     useCaseTitle: string;
     useCaseHint: string;
     useCases: { sell_services: string; buy_services: string; sell_goods: string; buy_goods: string; business_trade: string };
@@ -137,8 +138,9 @@ export interface SignupCopy {
 
 const en: SignupCopy = {
   welcome: {
-    testnetTagline: "Sign in to continue. Trading here uses test USDC.",
-    tagline: "Find opportunities and build a record of completed trades. Mainnet access is by invitation.",
+    demoTagline: "Pay and get paid safely with people you meet online.",
+    demoNote: "This is the demo. The money here is not real.",
+    tagline: "Pay and get paid safely with people you meet online. Access is by invitation.",
     backdropLabel: "Illustrative deal examples, not live activity",
   },
   backdrop: {
@@ -235,7 +237,7 @@ const en: SignupCopy = {
   },
   waitlist: {
     title: "Join the Karwan waitlist",
-    body: "Karwan is live on Arc mainnet with account and wallet access. We invite one user at a time from the waitlist.",
+    body: "Karwan holds the payment between two people until the work or the goods arrive. We are letting people in a few at a time.",
     emailLabel: "Email",
     join: "Join the waitlist",
     sending: "Sending code",
@@ -252,8 +254,9 @@ const en: SignupCopy = {
     alreadyBody: "You joined on {date}. We'll email {email} when Karwan opens for you.",
     invitedBody: "Your email is already invited. You can create your account now.",
     createAccount: "Create your account",
-    tryTestnet: "Try Karwan now on testnet",
-    tryTestnetNote: "The full product, with test money.",
+    lookFirst: "Want to look first?",
+    seeDemo: "See the demo",
+    seeDemoNote: "The whole product, with practice money.",
     useCaseTitle: "What will you use Karwan for?",
     useCaseHint: "Pick all that apply.",
     useCases: { sell_services: "Selling services", buy_services: "Buying services", sell_goods: "Selling goods", buy_goods: "Buying goods", business_trade: "Business trade" },
@@ -288,8 +291,9 @@ const en: SignupCopy = {
 
 const ar: SignupCopy = {
   welcome: {
-    testnetTagline: "سجّل الدخول للمتابعة. تستخدم الصفقات هنا USDC تجريبية.",
-    tagline: "ابحث عن فرص وابنِ سجلاً من الصفقات المكتملة. الدخول إلى الشبكة الرئيسية بالدعوة.",
+    demoTagline: "ادفع واستلم أموالك بأمان مع من تتعرف عليهم عبر الإنترنت.",
+    demoNote: "هذه نسخة تجريبية. المال هنا ليس حقيقياً.",
+    tagline: "ادفع واستلم أموالك بأمان مع من تتعرف عليهم عبر الإنترنت. الدخول بالدعوة.",
     backdropLabel: "أمثلة توضيحية لصفقات وليست نشاطاً فعلياً",
   },
   backdrop: {
@@ -386,7 +390,7 @@ const ar: SignupCopy = {
   },
   waitlist: {
     title: "انضم إلى قائمة انتظار كاروان",
-    body: "كروان متاحة على Arc mainnet للحسابات والمحافظ. ندعو مستخدماً واحداً في كل مرة من قائمة الانتظار.",
+    body: "كاروان يحتفظ بالدفعة بين شخصين حتى يصل العمل أو البضاعة. نفتح الدخول لعدد قليل من الأشخاص في كل مرة.",
     emailLabel: "البريد الإلكتروني",
     join: "انضم إلى قائمة الانتظار",
     sending: "جارٍ إرسال الرمز",
@@ -403,8 +407,9 @@ const ar: SignupCopy = {
     alreadyBody: "انضممت في {date}. سنراسل {email} عندما يُفتح كاروان لك.",
     invitedBody: "بريدك مدعو بالفعل. يمكنك إنشاء حسابك الآن.",
     createAccount: "أنشئ حسابك",
-    tryTestnet: "جرّب كاروان الآن على شبكة الاختبار",
-    tryTestnetNote: "المنتج كاملًا، بأموال تجريبية.",
+    lookFirst: "تريد أن تلقي نظرة أولاً؟",
+    seeDemo: "شاهد النسخة التجريبية",
+    seeDemoNote: "المنتج كاملًا، بأموال للتجربة.",
     useCaseTitle: "لماذا ستستخدم كاروان؟",
     useCaseHint: "اختر كل ما ينطبق.",
     useCases: { sell_services: "بيع خدمات", buy_services: "شراء خدمات", sell_goods: "بيع سلع", buy_goods: "شراء سلع", business_trade: "تجارة بين الشركات" },
@@ -439,8 +444,9 @@ const ar: SignupCopy = {
 
 const fr: SignupCopy = {
   welcome: {
-    testnetTagline: "Connectez-vous pour continuer. Les échanges utilisent ici des USDC de test.",
-    tagline: "Trouvez des opportunités et construisez un historique d’échanges réalisés. L’accès au mainnet se fait sur invitation.",
+    demoTagline: "Payez et soyez payé en sécurité avec les personnes rencontrées en ligne.",
+    demoNote: "Ceci est la démo. L’argent ici n’est pas réel.",
+    tagline: "Payez et soyez payé en sécurité avec les personnes rencontrées en ligne. L’accès se fait sur invitation.",
     backdropLabel: "Exemples d’accords illustratifs, pas une activité réelle",
   },
   backdrop: {
@@ -537,7 +543,7 @@ const fr: SignupCopy = {
   },
   waitlist: {
     title: "Rejoignez la liste d’attente Karwan",
-    body: "Karwan est disponible sur Arc mainnet pour les comptes et portefeuilles. Nous invitons une personne à la fois depuis la liste d’attente.",
+    body: "Karwan garde le paiement entre deux personnes jusqu’à l’arrivée du travail ou des marchandises. Nous ouvrons l’accès à quelques personnes à la fois.",
     emailLabel: "E-mail",
     join: "Rejoindre la liste d’attente",
     sending: "Envoi du code",
@@ -554,8 +560,9 @@ const fr: SignupCopy = {
     alreadyBody: "Vous l’avez rejointe le {date}. Nous écrirons à {email} quand Karwan vous sera ouvert.",
     invitedBody: "Votre e-mail est déjà invité. Vous pouvez créer votre compte maintenant.",
     createAccount: "Créer votre compte",
-    tryTestnet: "Essayer Karwan dès maintenant sur le testnet",
-    tryTestnetNote: "Le produit complet, avec de l’argent de test.",
+    lookFirst: "Envie de regarder d’abord ?",
+    seeDemo: "Voir la démo",
+    seeDemoNote: "Le produit complet, avec de l’argent d’essai.",
     useCaseTitle: "Pour quoi utiliserez-vous Karwan ?",
     useCaseHint: "Choisissez tout ce qui s’applique.",
     useCases: { sell_services: "Vendre des services", buy_services: "Acheter des services", sell_goods: "Vendre des biens", buy_goods: "Acheter des biens", business_trade: "Commerce entre entreprises" },
@@ -590,8 +597,9 @@ const fr: SignupCopy = {
 
 const hi: SignupCopy = {
   welcome: {
-    testnetTagline: "आगे बढ़ने के लिए साइन इन करें। यहाँ सौदों में टेस्ट USDC का उपयोग होता है।",
-    tagline: "अवसर खोजें और पूरे किए गए सौदों का रिकॉर्ड बनाएँ। मेननेट पर प्रवेश निमंत्रण से है।",
+    demoTagline: "ऑनलाइन मिले लोगों के साथ सुरक्षित भुगतान करें और पाएँ।",
+    demoNote: "यह डेमो है। यहाँ का पैसा असली नहीं है।",
+    tagline: "ऑनलाइन मिले लोगों के साथ सुरक्षित भुगतान करें और पाएँ। प्रवेश निमंत्रण से है।",
     backdropLabel: "समझाने के लिए सौदों के उदाहरण, वास्तविक गतिविधि नहीं",
   },
   backdrop: {
@@ -688,7 +696,7 @@ const hi: SignupCopy = {
   },
   waitlist: {
     title: "कारवान प्रतीक्षा सूची से जुड़ें",
-    body: "Karwan Arc मेननेट पर खाते और वॉलेट की पहुँच देता है। प्रतीक्षा सूची से एक समय में एक उपयोगकर्ता को आमंत्रित किया जाता है।",
+    body: "काम या सामान पहुँचने तक कारवान दो लोगों के बीच भुगतान सुरक्षित रखता है। हम एक बार में कुछ ही लोगों को प्रवेश दे रहे हैं।",
     emailLabel: "ईमेल",
     join: "प्रतीक्षा सूची से जुड़ें",
     sending: "कोड भेजा जा रहा है",
@@ -705,8 +713,9 @@ const hi: SignupCopy = {
     alreadyBody: "आप {date} को जुड़े थे। कारवान आपके लिए खुलने पर हम {email} पर ईमेल करेंगे।",
     invitedBody: "आपका ईमेल पहले से आमंत्रित है। आप अभी अपना खाता बना सकते हैं।",
     createAccount: "अपना खाता बनाएँ",
-    tryTestnet: "अभी टेस्टनेट पर कारवान आज़माएँ",
-    tryTestnetNote: "पूरा उत्पाद, टेस्ट पैसे के साथ।",
+    lookFirst: "पहले देखना चाहते हैं?",
+    seeDemo: "डेमो देखें",
+    seeDemoNote: "पूरा उत्पाद, अभ्यास के पैसे के साथ।",
     useCaseTitle: "आप कारवान का उपयोग किसलिए करेंगे?",
     useCaseHint: "जो भी लागू हों, सभी चुनें।",
     useCases: { sell_services: "सेवाएँ बेचना", buy_services: "सेवाएँ खरीदना", sell_goods: "सामान बेचना", buy_goods: "सामान खरीदना", business_trade: "व्यावसायिक व्यापार" },
@@ -741,8 +750,9 @@ const hi: SignupCopy = {
 
 const sw: SignupCopy = {
   welcome: {
-    testnetTagline: "Ingia ili kuendelea. Biashara hapa hutumia USDC za majaribio.",
-    tagline: "Pata fursa na jenga rekodi ya miamala iliyokamilika. Ufikiaji wa mainnet ni kwa mwaliko.",
+    demoTagline: "Lipa na ulipwe kwa usalama na watu unaokutana nao mtandaoni.",
+    demoNote: "Hili ni onyesho. Pesa hapa si halisi.",
+    tagline: "Lipa na ulipwe kwa usalama na watu unaokutana nao mtandaoni. Ufikiaji ni kwa mwaliko.",
     backdropLabel: "Mifano ya makubaliano kwa maelezo, si miamala halisi",
   },
   backdrop: {
@@ -839,7 +849,7 @@ const sw: SignupCopy = {
   },
   waitlist: {
     title: "Jiunge na orodha ya kusubiri ya Karwan",
-    body: "Karwan iko kwenye Arc mainnet yenye akaunti na pochi. Tunamwalika mtumiaji mmoja kwa wakati kutoka orodha ya kusubiri.",
+    body: "Karwan hushikilia malipo kati ya watu wawili hadi kazi au bidhaa zifike. Tunaruhusu watu wachache kwa wakati mmoja.",
     emailLabel: "Barua pepe",
     join: "Jiunge na orodha ya kusubiri",
     sending: "Inatuma msimbo",
@@ -856,8 +866,9 @@ const sw: SignupCopy = {
     alreadyBody: "Ulijiunga tarehe {date}. Tutaandikia {email} Karwan itakapofunguliwa kwako.",
     invitedBody: "Barua pepe yako tayari imealikwa. Unaweza kufungua akaunti yako sasa.",
     createAccount: "Fungua akaunti yako",
-    tryTestnet: "Jaribu Karwan sasa kwenye testnet",
-    tryTestnetNote: "Bidhaa kamili, kwa pesa za majaribio.",
+    lookFirst: "Unataka kuangalia kwanza?",
+    seeDemo: "Tazama onyesho",
+    seeDemoNote: "Bidhaa kamili, kwa pesa za mazoezi.",
     useCaseTitle: "Utatumia Karwan kwa nini?",
     useCaseHint: "Chagua zote zinazohusika.",
     useCases: { sell_services: "Kuuza huduma", buy_services: "Kununua huduma", sell_goods: "Kuuza bidhaa", buy_goods: "Kununua bidhaa", business_trade: "Biashara kati ya kampuni" },

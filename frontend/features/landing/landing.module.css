@@ -40,6 +40,7 @@
 .copyBlock[data-on] { opacity: 1; transform: none; pointer-events: auto; }
 .heroTitle { margin-top: 14px !important; font-size: clamp(44px, 5.3vw, 76px); font-weight: 600; line-height: 1.02; letter-spacing: -0.03em; }
 .heroTitle span { display: block; }
+.heroLead { margin-top: 20px !important; max-width: 26em; color: var(--mute); font-size: clamp(17px, 1.4vw, 20px); line-height: 1.5; }
 .chapterTitle { margin-top: 14px !important; font-size: clamp(34px, 4.2vw, 56px); font-weight: 600; line-height: 1.06; letter-spacing: -0.03em; white-space: pre-line; max-width: 680px; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 40px; }
 .platformsLabel { margin-top: 64px !important; color: var(--quiet); font-size: 14px; font-weight: 500; }

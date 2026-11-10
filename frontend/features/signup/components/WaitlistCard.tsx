@@ -140,8 +140,8 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
           ) : (
             <>
               <div className="space-y-2 pt-1">
-                <a href={`${TESTNET_ORIGIN}/start?mode=signup`} className={primary}>{t.tryTestnet}</a>
-                <p className="text-center text-[14px] text-[var(--ink-secondary)] font-medium">{t.tryTestnetNote}</p>
+                <a href={`${TESTNET_ORIGIN}/start?mode=signup`} className={primary}>{t.seeDemo}</a>
+                <p className="text-center text-[14px] text-[var(--ink-secondary)] font-medium">{t.seeDemoNote}</p>
               </div>
               <fieldset className="border-t border-[var(--line)] pt-4 sm:pt-5">
                 <legend className="text-[14px] font-medium text-[var(--ink)]">{t.useCaseTitle}</legend>
@@ -176,6 +176,10 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
         <p className="mt-5 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5 font-medium">
           {t.invitedPrompt}{' '}
           <button type="button" onClick={onSignIn} className={link}>{t.signIn}</button>
+          <span className="block">
+            {t.lookFirst}{' '}
+            <a href={`${TESTNET_ORIGIN}/market`} className={link}>{t.seeDemo}</a>
+          </span>
         </p>
       )}
     </div>

@@ -5750,7 +5750,7 @@ export const fr: Messages = {
       },
       pickMethod: {
         continueEmail: "Continuer avec l'e-mail",
-        connectWallet: 'Connecter un portefeuille',
+        connectWallet: 'Utiliser un portefeuille crypto',
         continueWallet: 'Continuer avec le portefeuille',
         preparingWallet: 'Préparation de la connexion…',
         checkWallet: 'Confirmez dans votre portefeuille',

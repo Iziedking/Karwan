@@ -34,7 +34,7 @@ for (const locale of ['en', 'fr', 'ar', 'hi', 'sw'] as const) {
     const primary = hero.getByRole('link', { name: mainnet ? t.waitlist : t.create, exact: true });
     await expect(primary).toHaveAttribute('href', mainnet ? '/waitlist' : agreementHref);
     await expect(primary).toBeInViewport();
-    await expect(hero.getByRole('link', { name: mainnet ? t.tryTestnet : t.explore })).toHaveAttribute('href', marketHref);
+    await expect(hero.getByRole('link', { name: mainnet ? t.seeDemo : t.explore })).toHaveAttribute('href', marketHref);
     await expect(page.locator('html')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     for (const item of await hero.locator('[data-on] h1, [data-on] p, [data-on] a').all()) {

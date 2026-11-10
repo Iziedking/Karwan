@@ -5750,7 +5750,7 @@ export const ar: Messages = {
       },
       pickMethod: {
         continueEmail: 'المتابعة بالبريد الإلكتروني',
-        connectWallet: 'وصل محفظة',
+        connectWallet: 'استخدم محفظة رقمية',
         continueWallet: 'المتابعة بالمحفظة',
         preparingWallet: 'جارٍ تجهيز تسجيل الدخول…',
         checkWallet: 'أكّد في محفظتك',
