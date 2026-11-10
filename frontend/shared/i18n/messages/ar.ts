@@ -1246,8 +1246,8 @@ export const ar: Messages = {
   },
   accountHome: {
     tradeNow: "تداول الآن",
-    faucetLabel: "الشبكة التجريبية",
-    faucetBody: "احصل على USDC تجريبي مجاني لتجربة صفقة",
+    faucetLabel: "نسخة تجريبية",
+    faucetBody: "احصل على مال تجريبي مجاني لتجربة صفقة",
     faucetClaim: "احصل عليه",
     updatesTitle: "آخر الأخبار",
     updatesPrev: "الخبر السابق",

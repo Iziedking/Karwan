@@ -16,13 +16,15 @@ export function guidanceKind(path: string): GuidanceKind | null {
 
 type Copy = {
   launch: string; close: string; next: string; back: string; done: string;
-  stopTips: string; step: string; wait: string; skipWait: string;
+  stopTips: string; step: string;
+  /// The first-run tour: what Karwan is, your money, how a deal starts (view 74).
+  welcome: [TourStep, TourStep, TourStep];
   guides: Record<GuidanceKind, [TourStep, TourStep]>;
 };
 
 export const GUIDE_COPY: Record<Locale, Copy> = {
   en: {
-    wait: '· {seconds}s', skipWait: 'Skip the wait',
+    welcome: [{ title: 'Welcome to Karwan', body: 'Karwan holds the payment between two people until the work or the goods arrive. This is the demo, so the money here is not real.' }, { title: 'Your money', body: 'Your balance is at the top. Add money, send it, ask to be paid or take it out.' }, { title: 'Start a deal', body: 'Find something on the market, or send a deal link to someone you know. Your assistant can do either for you.' }],
     launch: 'Page tour', close: 'Close tour', next: 'Next', back: 'Back', done: 'Done', stopTips: 'Turn off automatic tips', step: 'Step',
     guides: {
       profile: [{ title: 'Your account', body: 'Open personal details, business details or settings from this hub. Contact details is where you manage ways to reach you.' }, { title: 'Money and trade', body: 'Balance, wallets and agent funds have their own pages. Open a deal to review its terms and delivery. Sign out is at the bottom of Profile.' }],
@@ -34,7 +36,7 @@ export const GUIDE_COPY: Record<Locale, Copy> = {
     },
   },
   fr: {
-    wait: '· {seconds}s', skipWait: 'Passer l’attente',
+    welcome: [{ title: 'Bienvenue sur Karwan', body: 'Karwan garde le paiement entre deux personnes jusqu’à l’arrivée du travail ou des biens. Ceci est la démo, donc l’argent ici n’est pas réel.' }, { title: 'Votre argent', body: 'Votre solde est en haut. Ajoutez de l’argent, envoyez-en, demandez un paiement ou retirez-le.' }, { title: 'Lancer un deal', body: 'Trouvez quelque chose sur le marché, ou envoyez un lien de deal à une personne que vous connaissez. Votre assistant peut faire l’un ou l’autre pour vous.' }],
     launch: 'Guide de la page', close: 'Fermer le guide', next: 'Suivant', back: 'Retour', done: 'Terminer', stopTips: 'Désactiver les conseils automatiques', step: 'Étape',
     guides: {
       profile: [{ title: 'Votre compte', body: 'Accédez aux informations personnelles, à votre entreprise ou aux paramètres. Gérez vos moyens de contact dans Coordonnées.' }, { title: 'Argent et échanges', body: 'Le solde, les portefeuilles et les fonds des agents ont leurs propres pages. Ouvrez un accord pour vérifier les conditions et la livraison. Déconnexion se trouve en bas du profil.' }],
@@ -46,7 +48,7 @@ export const GUIDE_COPY: Record<Locale, Copy> = {
     },
   },
   ar: {
-    wait: '· {seconds} ث', skipWait: 'تخطي الانتظار',
+    welcome: [{ title: 'مرحباً بك في كاروان', body: 'يحتفظ كاروان بالمبلغ بين شخصين حتى يصل العمل أو البضاعة. هذه نسخة تجريبية، فالمال هنا ليس حقيقياً.' }, { title: 'أموالك', body: 'رصيدك في الأعلى. أضف مالاً، أرسله، اطلب دفعة أو اسحبه.' }, { title: 'ابدأ صفقة', body: 'ابحث عن شيء في السوق، أو أرسل رابط صفقة إلى شخص تعرفه. مساعدك يستطيع القيام بأي منهما عنك.' }],
     launch: 'دليل الصفحة', close: 'إغلاق الدليل', next: 'التالي', back: 'السابق', done: 'تم', stopTips: 'إيقاف النصائح التلقائية', step: 'الخطوة',
     guides: {
       profile: [{ title: 'حسابك', body: 'افتح التفاصيل الشخصية أو تفاصيل الشركة أو الإعدادات من هنا. يمكنك إدارة وسائل التواصل معك في بيانات الاتصال.' }, { title: 'الأموال والتجارة', body: 'للرصيد والمحافظ وأموال الوكلاء صفحات خاصة. افتح الصفقة لمراجعة الشروط والتسليم. تسجيل الخروج في أسفل الملف الشخصي.' }],
@@ -58,7 +60,7 @@ export const GUIDE_COPY: Record<Locale, Copy> = {
     },
   },
   hi: {
-    wait: '· {seconds} सेकंड', skipWait: 'इंतज़ार छोड़ें',
+    welcome: [{ title: 'Karwan में आपका स्वागत है', body: 'Karwan दो लोगों के बीच भुगतान तब तक रोककर रखता है जब तक काम या सामान पहुँच न जाए। यह डेमो है, इसलिए यहाँ का पैसा असली नहीं है।' }, { title: 'आपका पैसा', body: 'आपका बैलेंस सबसे ऊपर है। पैसे जोड़ें, भेजें, भुगतान माँगें या निकालें।' }, { title: 'डील शुरू करें', body: 'मार्केट में कुछ खोजें, या किसी जानने वाले को डील का लिंक भेजें। आपका असिस्टेंट दोनों काम आपके लिए कर सकता है।' }],
     launch: 'पेज गाइड', close: 'गाइड बंद करें', next: 'आगे', back: 'पीछे', done: 'पूरा हुआ', stopTips: 'अपने आप आने वाले सुझाव बंद करें', step: 'चरण',
     guides: {
       profile: [{ title: 'आपका खाता', body: 'यहाँ से व्यक्तिगत विवरण, व्यवसाय विवरण या सेटिंग खोलें। संपर्क विवरण में आपसे संपर्क करने के तरीके बदल सकते हैं।' }, { title: 'पैसा और व्यापार', body: 'बैलेंस, वॉलेट और एजेंट फंड के अलग पेज हैं। शर्तें और डिलीवरी देखने के लिए सौदा खोलें। प्रोफ़ाइल के नीचे साइन आउट है।' }],
@@ -70,7 +72,7 @@ export const GUIDE_COPY: Record<Locale, Copy> = {
     },
   },
   sw: {
-    wait: '· {seconds}s', skipWait: 'Ruka kusubiri',
+    welcome: [{ title: 'Karibu Karwan', body: 'Karwan hushikilia malipo kati ya watu wawili hadi kazi au bidhaa zifike. Hili ni onyesho, kwa hiyo pesa hapa si halisi.' }, { title: 'Pesa zako', body: 'Salio lako liko juu. Ongeza pesa, tuma, omba kulipwa au toa.' }, { title: 'Anza dili', body: 'Tafuta kitu sokoni, au mtumie mtu unayemjua kiungo cha dili. Msaidizi wako anaweza kukufanyia lolote kati ya hayo.' }],
     launch: 'Mwongozo wa ukurasa', close: 'Funga mwongozo', next: 'Endelea', back: 'Rudi', done: 'Maliza', stopTips: 'Zima vidokezo vya kiotomatiki', step: 'Hatua',
     guides: {
       profile: [{ title: 'Akaunti yako', body: 'Fungua taarifa binafsi, taarifa za biashara au mipangilio hapa. Simamia njia za kukufikia kwenye taarifa za mawasiliano.' }, { title: 'Fedha na biashara', body: 'Salio, pochi na fedha za mawakala zina kurasa zake. Fungua makubaliano kuona masharti na uwasilishaji. Kitufe cha kuondoka kiko chini ya wasifu.' }],

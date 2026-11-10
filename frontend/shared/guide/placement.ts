@@ -24,8 +24,3 @@ export function guidePlacement(target: GuideRect | null, viewport: GuideViewport
   const fits = candidates.find(p => p.left >= EDGE && p.top >= EDGE && p.left + width <= viewport.width - EDGE && p.top + height <= viewport.height - EDGE);
   return fits ? { ...fits, width } : { ...centered, top: clampY(viewport.height - height - EDGE) };
 }
-
-export const GUIDE_WAIT_MS = 2000;
-export function guideSecondsLeft(readyAt: number, now: number): number {
-  return Math.max(0, Math.ceil((readyAt - now) / 1000));
-}

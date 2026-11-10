@@ -6556,8 +6556,8 @@ export const en: MessagesShape = {
   },
   accountHome: {
     tradeNow: "Trade now",
-    faucetLabel: "Testnet",
-    faucetBody: "Get free test USDC to try a deal",
+    faucetLabel: "Demo",
+    faucetBody: "Get free practice money to try a deal",
     faucetClaim: "Claim",
     updatesTitle: "Updates",
     updatesPrev: "Previous update",

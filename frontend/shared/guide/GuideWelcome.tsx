@@ -15,7 +15,7 @@ import { isFocusedRoute, isPublicAccessRoute } from '@/shared/utils/routes';
 /// and it never opens on the landing/marketing pages). Shows once. Mounted
 /// globally in the layout.
 export function GuideWelcome() {
-  const { locale, t: messages } = useLocale();
+  const { locale } = useLocale();
   const auth = useAuth();
   const authed = !!auth.address;
   const terms = useTerms();
@@ -33,13 +33,10 @@ export function GuideWelcome() {
     // Wait until they leave the landing/marketing pages; re-checks on each
     // navigation because the layout (and this component) persist across routes.
     if (isNoTourRoute(pathname) || isFocusedRoute(pathname) || isPublicAccessRoute(pathname)) return;
-    const steps = [
-      { title: messages.docsProduct.hero.title, body: messages.docsProduct.today.lede },
-      ...GUIDE_COPY[locale].guides.balance,
-    ];
+    const steps = GUIDE_COPY[locale].welcome;
     const t = setTimeout(() => { fired.current = true; startTour(WELCOME_ID, steps); }, 900);
     return () => clearTimeout(t);
-  }, [authed, disabled, isSeen, startTour, pathname, terms.loading, terms.needsAcceptance, locale, messages]);
+  }, [authed, disabled, isSeen, startTour, pathname, terms.loading, terms.needsAcceptance, locale]);
 
   return null;
 }

@@ -15,7 +15,7 @@ import { Icon } from '@/shared/components/Icon';
 import { usePathname } from 'next/navigation';
 import { isNoTourRoute } from './routes';
 import { GUIDE_COPY } from './routeGuidance';
-import { guidePlacement, guideSecondsLeft, GUIDE_WAIT_MS } from './placement';
+import { guidePlacement } from './placement';
 
 /// In-app guided tours for newcomers. Each page can declare a short tour that
 /// spotlights its tools one at a time with a plain-language line. Tours open
@@ -378,24 +378,9 @@ function GuideStepOverlay() {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
-  const [secondsLeft, setSecondsLeft] = useState(GUIDE_WAIT_MS / 1000);
-  const [waitSkipped, setWaitSkipped] = useState(false);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [panelSize, setPanelSize] = useState({ width: 420, height: 320 });
   const open = !!active && active.pathname === pathname && !isNoTourRoute(pathname);
-  const advance = useCallback(() => { if (secondsLeft === 0) next(); }, [secondsLeft, next]);
-
-  // A reading cue, not auto-advance. Users can bypass it; closing is never delayed.
-  useEffect(() => {
-    if (!open || waitSkipped) return;
-    const readyAt = Date.now() + GUIDE_WAIT_MS;
-    const timer = window.setInterval(() => {
-      const remaining = guideSecondsLeft(readyAt, Date.now());
-      setSecondsLeft(remaining);
-      if (remaining === 0) window.clearInterval(timer);
-    }, 100);
-    return () => window.clearInterval(timer);
-  }, [open, waitSkipped]);
 
   useEffect(() => {
     if (!open) return;
@@ -476,12 +461,12 @@ function GuideStepOverlay() {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); close(true); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); locale === 'ar' ? prev() : advance(); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); locale === 'ar' ? advance() : prev(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); locale === 'ar' ? prev() : next(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); locale === 'ar' ? next() : prev(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, advance, prev, close, locale]);
+  }, [open, next, prev, close, locale]);
 
   // A tour belongs to the page that opened it. It never resumes over another
   // page or an initial onboarding/invitation flow.
@@ -609,19 +594,17 @@ function GuideStepOverlay() {
               <button
                 type="button"
                 ref={nextRef}
-                onClick={advance}
-                disabled={secondsLeft > 0}
-                className="inline-flex min-h-11 items-center gap-2 font-sans text-[14px] font-bold px-5 py-2 bg-[var(--lp-accent)] text-[var(--accent-ink)] hover:bg-[var(--lp-accent-hover)] disabled:cursor-wait disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--lp-dark)]"
+                onClick={next}
+                className="inline-flex min-h-11 items-center gap-2 font-sans text-[14px] font-bold px-5 py-2 bg-[var(--lp-accent)] text-[var(--accent-ink)] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-2 focus-visible:outline-[var(--lp-dark)]"
                 style={{
                   borderRadius: 10,
                 }}
               >
                 {isLast ? copy.done : copy.next}
-                {secondsLeft > 0 ? <span>{copy.wait.replace('{seconds}', String(secondsLeft))}</span> : !isLast && <Icon name="chevron-right" size={16} directional />}
+                {!isLast && <Icon name="chevron-right" size={16} directional />}
               </button>
             </div>
           </div>
-          {secondsLeft > 0 && <button type="button" onClick={() => { setWaitSkipped(true); setSecondsLeft(0); window.requestAnimationFrame(() => nextRef.current?.focus()); }} className="mt-2 min-h-11 px-2 text-start text-[14px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)] font-medium">{copy.skipWait}</button>}
           <button type="button" onClick={dismissAll} className="mt-3 min-h-11 rounded-full px-2 text-start font-sans text-[14px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)] font-medium">{copy.stopTips}</button>
         </div>
       </div>

@@ -1244,8 +1244,8 @@ export const hi: Messages = {
   },
   accountHome: {
     tradeNow: "अभी ट्रेड करें",
-    faucetLabel: "टेस्टनेट",
-    faucetBody: "डील आज़माने के लिए मुफ़्त टेस्ट USDC पाएं",
+    faucetLabel: "डेमो",
+    faucetBody: "डील आज़माने के लिए मुफ़्त अभ्यास का पैसा पाएं",
     faucetClaim: "पाएं",
     updatesTitle: "अपडेट",
     updatesPrev: "पिछला अपडेट",

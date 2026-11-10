@@ -1243,8 +1243,8 @@ export const sw: Messages = {
   },
   accountHome: {
     tradeNow: "Fanya biashara sasa",
-    faucetLabel: "Testnet",
-    faucetBody: "Pata USDC za majaribio bure ujaribu dili",
+    faucetLabel: "Onyesho",
+    faucetBody: "Pata pesa za majaribio bure ujaribu dili",
     faucetClaim: "Dai",
     updatesTitle: "Habari mpya",
     updatesPrev: "Habari iliyotangulia",

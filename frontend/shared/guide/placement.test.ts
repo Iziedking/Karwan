@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { GUIDE_COPY } from './routeGuidance';
-import { guidePlacement, guideSecondsLeft, GUIDE_WAIT_MS } from './placement';
+import { guidePlacement } from './placement';
 
 const panel = { width: 420, height: 320 };
 const target = { left: 500, right: 700, top: 200, bottom: 280, width: 200, height: 80 };
@@ -21,25 +21,14 @@ test('mobile and short viewports keep the whole panel within its safe bounds', (
     assert.ok(p.top >= 16 && p.top + Math.min(panel.height, viewport.height - 32) <= viewport.height - 16);
   }
 });
-test('countdown gives a short reading cue and never a negative wait', () => {
-  assert.equal(GUIDE_WAIT_MS, 2000);
-  assert.equal(guideSecondsLeft(2000, 0), 2);
-  assert.equal(guideSecondsLeft(2000, 1001), 1);
-  assert.equal(guideSecondsLeft(2000, 2000), 0);
-  assert.equal(guideSecondsLeft(2000, 10000), 0);
-});
-
-test('the countdown gates both click and keyboard advancement, with a bypass', () => {
+test('Next is ready at once: a tour never makes a person wait (view 74)', () => {
   const source = readFileSync('shared/guide/GuideProvider.tsx', 'utf8');
-  assert.match(source, /if \(secondsLeft === 0\) next\(\)/);
-  assert.match(source, /onClick=\{advance\}/);
-  assert.match(source, /prev\(\) : advance\(\)/);
-  assert.match(source, /advance\(\) : prev\(\)/);
-  assert.match(source, /disabled=\{secondsLeft > 0\}/);
-  assert.match(source, /setWaitSkipped\(true\)/);
-  assert.match(source, /clearInterval\(timer\)/);
+  assert.doesNotMatch(source, /secondsLeft|waitSkipped|GUIDE_WAIT_MS|skipWait/);
+  assert.match(source, /onClick=\{next\}/);
+  assert.match(source, /prev\(\) : next\(\)/);
+  assert.match(source, /next\(\) : prev\(\)/);
   for (const copy of Object.values(GUIDE_COPY)) {
-    assert.match(copy.wait, /\{seconds\}/);
-    assert.ok(copy.skipWait.length > 0);
+    assert.equal('wait' in copy, false);
+    assert.equal('skipWait' in copy, false);
   }
 });

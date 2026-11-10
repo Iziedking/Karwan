@@ -1246,8 +1246,8 @@ export const fr: Messages = {
   },
   accountHome: {
     tradeNow: "Échanger",
-    faucetLabel: "Testnet",
-    faucetBody: "Obtenez des USDC de test gratuits pour essayer un deal",
+    faucetLabel: "Démo",
+    faucetBody: "Obtenez de l’argent d’essai gratuit pour essayer un deal",
     faucetClaim: "Obtenir",
     updatesTitle: "Actualités",
     updatesPrev: "Actualité précédente",
