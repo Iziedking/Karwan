@@ -797,3 +797,11 @@ Agree: yes.
 - Installed SDK: `@circle-fin/app-kit` 1.15.2, `@circle-fin/adapter-viem-v2` 1.18.0, `viem` 2.55.11 (unchanged).
 - Read-only test: none needed for a text change; the browser tests for instant top-up and offers (which read the Transfer balance from a fixture) run on node-services with this change.
 - Agree: yes.
+
+## 2026-11-10 · The fork test starts at a block that holds the Agreement (foundation, ops)
+
+- Scope: `scripts/ops/arc-fork.sh` default `ARC_FORK_BLOCK` moved from 66,719,638 to 71,722,000. Test tooling only: no product code, no SDK call and no write to any chain changed.
+- Docs: none relied on. The reason is our own deploy history: the Agreement escrow `0x5546…F43C` went live on Arc Testnet on 24 Oct 2026, after the old block, so a fork at the old block has no code there and `termsHashOf` returns no data.
+- Installed tooling: arc-foundry v0.8.0-2 (anvil fork), `viem` 2.55.11 (unchanged).
+- Read-only test, 10 Nov 2026, node-services, anvil fork of the Arc Testnet public RPC at the new default with no override: `arc-fork.sh up` reported block 71,722,000; `arc-fork.sh e2e parity` passed 4 of 4 (terms hash matches `termsHashOf`, deal id matches `dealIdFor`, bind digest matches `bindDigest`, check report digest matches `reportDigest`); fork taken down after.
+- Agree: yes. Move the default forward again when a later contract is added to the runs.
