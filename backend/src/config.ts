@@ -100,6 +100,9 @@ const envSchema = z.object({
   RECORD_COUNTERPARTY_PEPPER: optionalString,
   /// Buyers get a shortlist and choose; the agent no longer commits a match.
   SHORTLIST_MODE: envBool('SHORTLIST_MODE'),
+  /// View 75: a seller chosen from the shortlist is asked before the deal is
+  /// funded, unless they chose Agree for me and the price is inside their limits.
+  SELLER_ASKED: envBool('SELLER_ASKED'),
   /// View 73: agents bargain on every offer, the shortlist orders by one
   /// blended score and sellers see the budget as a range. Read once per
   /// request, when it is posted (`Brief.bargainV73`).

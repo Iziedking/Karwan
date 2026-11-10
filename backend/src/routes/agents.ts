@@ -13,6 +13,7 @@ import { logger } from '../logger.js';
 import { ARC } from '../chain/client.js';
 import { listBidOutcomes } from '../db/bidOutcomes.js';
 import { holdsWaitingOnSeller } from '../db/agentWorldChecks.js';
+import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
 import { getBrief } from '../db/briefs.js';
 import { withSaidBudgets } from '../market/budgetView.js';
 import { requestTitle } from '../agents/bidOutcome.js';
@@ -52,11 +53,14 @@ agentsRoutes.get('/buyer', async (c) => {
 agentsRoutes.get('/seller', async (c) => {
   const scope = await ownAgents(c);
   if ('error' in scope) return c.json({ error: scope.error }, scope.status);
-  if (!scope.agents) return c.json({ profile: null, activeBids: [], recentBids: [], worldChecks: [] });
+  if (!scope.agents) return c.json({ profile: null, activeBids: [], recentBids: [], worldChecks: [], choices: [] });
   // Buyers who chose this seller and are waiting on the seller's World ID check.
   const holds = await holdsWaitingOnSeller(scope.agents.userAddress).catch(() => []);
+  // Buyers who chose this seller and wait for their answer (view 75).
+  const chosen = await choicesWaitingOnSeller(scope.agents.userAddress).catch(() => []);
   return c.json({
     profile: null,
+    choices: chosen.map((h) => ({ jobId: h.jobId, title: requestTitle(getBrief(h.jobId)?.briefText), priceUsdc: h.priceUsdc, answerBy: h.answerBy })),
     ...getSellerSnapshot(scope.agents.sellerAddress),
     recentBids: listBidOutcomes(scope.agents.sellerAddress),
     worldChecks: holds.map((h) => ({

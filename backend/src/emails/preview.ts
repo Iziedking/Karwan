@@ -149,6 +149,7 @@ const eventTypes = [
   "listing.matched",
   "request.shortlist",
   "request.world_check",
+  "request.chosen",
   "deal.direct.created",
   "deal.seller-approved",
   "deal.direct.declined",

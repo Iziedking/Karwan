@@ -76,6 +76,7 @@ const EMAIL_RELEVANT = new Set([
   'listing.matched',
   'request.shortlist',
   'request.world_check',
+  'request.chosen',
   'deal.direct.created',
   'deal.seller-approved',
   'deal.direct.declined',
@@ -157,6 +158,14 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type === 'listing.matched') {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
     return seller ? [{ address: seller, role: 'seller' }] : [];
+  }
+  if (e.type === 'request.chosen') {
+    const state = e.payload?.state as string | undefined;
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    if ((state === 'waiting' || state === 'cancelled') && seller) return [{ address: seller, role: 'seller' }];
+    if ((state === 'raised' || state === 'declined' || state === 'expired') && buyer) return [{ address: buyer, role: 'buyer' }];
+    return [];
   }
   if (e.type === 'request.world_check') {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
@@ -300,6 +309,26 @@ export function contentFor(
   const amountSuffix = amount ? ` (${amount} USDC)` : '';
 
   switch (e.type) {
+    case 'request.chosen': {
+      const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      const raised = (e.payload?.raisedPriceUsdc as string | undefined) ?? '';
+      const priceSuffix = price ? ` at ${price} USDC` : '';
+      const url = base() && e.jobId ? `${base()}/jobs/${e.jobId}` : undefined;
+      switch (e.payload?.state) {
+        case 'waiting':
+          return { kicker: 'Your answer is needed', subject: `A buyer chose your offer${priceSuffix}`, heading: 'A buyer chose your offer', body: `A buyer chose your offer${priceSuffix}. Accept, ask for more, or decline. Nothing is held until you accept, and the choice lapses if you do not answer in time.`, ctaLabel: 'Answer', ctaUrl: url };
+        case 'cancelled':
+          return { kicker: 'Choice taken back', subject: 'The buyer took their choice back', heading: 'The buyer took their choice back', body: 'The buyer chose your offer and then took the choice back. Nothing was held. Your offer still stands.', ctaLabel: 'Open the request', ctaUrl: url };
+        case 'raised':
+          return { kicker: 'A new price', subject: `The seller asks for ${raised} USDC`, heading: 'The seller asks for more', body: `The seller you chose asks for ${raised} USDC${price ? ` instead of ${price} USDC` : ''}. Approve the new price, or choose another offer. Nothing is held yet.`, ctaLabel: 'Review the price', ctaUrl: url };
+        case 'declined':
+          return { kicker: 'Choose again', subject: 'The seller turned the request down', heading: 'The seller turned the request down', body: 'The seller you chose turned the request down. Nothing was held. Your other offers are still there.', ctaLabel: 'See your offers', ctaUrl: url };
+        case 'expired':
+          return { kicker: 'Choose again', subject: 'The seller did not answer in time', heading: 'The seller did not answer in time', body: 'The seller you chose did not answer in time. Nothing was held. Your other offers are still there.', ctaLabel: 'See your offers', ctaUrl: url };
+        default:
+          return null;
+      }
+    }
     case 'request.world_check': {
       if (role !== 'seller' || e.payload?.waitingOn !== 'seller' || e.payload?.buyerConfirmed !== true) return null;
       const price = (e.payload?.priceUsdc as string | undefined) ?? '';

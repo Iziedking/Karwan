@@ -17,7 +17,7 @@ import { pgEnabled, postgresExecutor } from './client.js';
 ///   csp-report key = YYYY-MM-DD  what the page policy blocked that day, by rule and origin (view 70)
 ///   offer-terms key = request|seller agent  whether a listing offer can be countered, and its posted price (view 73)
 ///   better-offer key = request|seller agent  whether the buyer's latest counter says a better offer is in (view 73)
-export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'dm-read' | 'ratings-asked' | 'suggested' | 'record-nudge' | 'offer-revisions' | 'best-and-final' | 'guarantee-hold' | 'guarantee-scan' | 'owed-scan' | 'owed-address' | 'money-sweep' | 'money-alerts' | 'csp-report' | 'offer-terms' | 'better-offer';
+export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'dm-read' | 'ratings-asked' | 'suggested' | 'record-nudge' | 'offer-revisions' | 'best-and-final' | 'guarantee-hold' | 'guarantee-scan' | 'owed-scan' | 'owed-address' | 'money-sweep' | 'money-alerts' | 'csp-report' | 'offer-terms' | 'better-offer' | 'choice-hold';
 type UniqueKind = 'fp' | 'nullifier' | 'rc';
 
 const memory = new Map<string, unknown>();

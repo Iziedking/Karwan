@@ -69,6 +69,8 @@ export interface AgentPrefs {
   /// about every fitting request first; agree: may also take a buyer's price
   /// inside the limits on its own (Agree for me for sellers, view 41).
   agentMode?: 'offers' | 'ask' | 'agree';
+  /// False when the person switched their agent off (view 75). Absent means on.
+  agentOn?: boolean;
   /// False when the person's price or budget could not be read.
   sellerPriceSet?: boolean;
   buyerPriceSet?: boolean;
@@ -77,7 +79,7 @@ export interface AgentPrefs {
 }
 
 export function agentPrefsOf(profile: Pick<UserProfile, 'agentPrefs'> | null | undefined): Required<AgentPrefs> {
-  return { findClients: true, agentMode: 'offers', sellerPriceSet: true, buyerPriceSet: true, dismissedSuggestions: [], ...(profile?.agentPrefs ?? {}) };
+  return { findClients: true, agentMode: 'offers', agentOn: true, sellerPriceSet: true, buyerPriceSet: true, dismissedSuggestions: [], ...(profile?.agentPrefs ?? {}) };
 }
 
 export type WorkspaceKind = 'personal' | 'business';

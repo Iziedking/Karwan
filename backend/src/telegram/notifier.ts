@@ -116,6 +116,7 @@ export const RELEVANT = new Set([
   'record.setup_needed',
   'request.shortlist',
   'request.world_check',
+  'request.chosen',
   'deal.extension.requested',
   'deal.extension.approved',
   'deal.extension.declined',
@@ -311,6 +312,14 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type === 'agent.suggestion' || e.type === 'agent.question.decided' || e.type === 'record.setup_needed' || e.type === 'offer.request-changed') {
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'seller' }] : [];
+  }
+  if (e.type === 'request.chosen') {
+    const state = e.payload?.state as string | undefined;
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    if ((state === 'waiting' || state === 'cancelled') && seller) return [{ address: seller, role: 'seller' }];
+    if ((state === 'raised' || state === 'declined' || state === 'expired') && buyer) return [{ address: buyer, role: 'buyer' }];
+    return [];
   }
   if (e.type === 'request.world_check') {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
@@ -510,6 +519,20 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
         `*Your agent found a request that fits. Make an offer?*${title ? `\n${title}` : ''}${price ? `\nYour agent would offer ${price} USDC.` : ''}`,
         jobUrl(e.payload?.jobId as string | undefined),
       );
+    }
+    case 'request.chosen': {
+      const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      const raised = (e.payload?.raisedPriceUsdc as string | undefined) ?? '';
+      const by = typeof e.payload?.answerBy === 'number' ? new Date(e.payload.answerBy).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '';
+      const lines: Record<string, string> = {
+        waiting: `*A buyer chose your offer${price ? ` at ${price} USDC` : ''}.* Accept, ask for more, or decline${by ? ` by ${by}` : ''}. Nothing is held until you accept.`,
+        cancelled: '*The buyer took their choice back.* Nothing was held. Your offer still stands.',
+        raised: `*The seller you chose asks for ${raised} USDC${price ? ` instead of ${price}` : ''}.* Approve the new price, or choose another offer.`,
+        declined: '*The seller you chose turned the request down.* Nothing was held. Your other offers are still there.',
+        expired: '*The seller you chose did not answer in time.* Nothing was held. Your other offers are still there.',
+      };
+      const line = lines[e.payload?.state as string];
+      return line ? withLink(line, jobUrl(e.jobId)) : null;
     }
     case 'request.world_check': {
       const price = (e.payload?.priceUsdc as string | undefined) ?? '';

@@ -62,6 +62,7 @@ export type KarwanEventType =
   | 'deal.match.raised'
   | 'request.shortlist'
   | 'request.world_check'
+  | 'request.chosen'
   | 'deal.room.state.changed'
   | 'deal.review.started'
   | 'deal.review.heartbeat'

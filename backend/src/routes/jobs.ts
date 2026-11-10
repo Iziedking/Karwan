@@ -65,6 +65,8 @@ import {
   worldCheckView,
   worldStepForChoice,
 } from '../agents/agentWorldGate.js';
+import { choiceState, choiceView, decline as declineChoice, raise as raiseChoice, roleOn } from '../agents/sellerAnswer.js';
+import { deleteChoice, getChoice, publishChoice, putChoice, sellerAnswerStep } from '../agents/sellerAnswerLive.js';
 import { deleteHold, getHold } from '../db/agentWorldChecks.js';
 import { nextStep, type AgentWorldHold } from '../trust/agentWorldCheck.js';
 import { roleIn } from '../worldid/agentChecks.js';
@@ -344,6 +346,12 @@ jobsRoutes.get('/:jobId', async (c) => {
   if (nearMiss) {
     parties.add(nearMiss.buyerUser.toLowerCase());
     parties.add(nearMiss.sellerUser.toLowerCase());
+  }
+  // A seller the buyer chose opens the request to answer (view 75).
+  const chosen = await getChoice(jobId).catch(() => null);
+  if (chosen && choiceState(chosen, Date.now()) !== 'expired') {
+    parties.add(chosen.buyerUser);
+    parties.add(chosen.sellerUser);
   }
   const isParty = !!caller && parties.has(caller);
 
@@ -788,6 +796,7 @@ jobsRoutes.get('/:jobId/shortlist', async (c) => {
     recordChecks: await readsForRef(jobId, caller).catch(() => ({ count: 0, usdc: 0 })),
     closed: !job || !!job.expiredAt || !!job.escrowFunded,
     worldCheck: worldCheckView(await getHold(jobId).catch(() => null)),
+    choice: choiceView(await getChoice(jobId).catch(() => null), Date.now()),
   });
 });
 
@@ -894,6 +903,22 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
       await waitOnSeller(hold);
       return c.json({ accepted: false, code: 'SELLER_CHECK_PENDING', reason: step.reason, jobId }, 202);
     }
+    // View 75: the seller says yes before anything is funded, unless their
+    // agent may agree for them at this price.
+    const ask = await sellerAnswerStep({
+      jobId,
+      sellerAgent: quote.seller,
+      priceUsdc: quote.priceUsdc,
+      buyerUser: body.caller,
+      requestDeadlineUnix: getBuyerJob(jobId)?.deadlineUnix ?? null,
+    });
+    if (ask.wait && ask.declined) {
+      refuse('seller-declined');
+      return c.json({ error: 'This seller turned the request down. Choose another offer.', code: 'SELLER_DECLINED' }, 409);
+    }
+    if (ask.wait) {
+      return c.json({ accepted: false, code: 'SELLER_ANSWER_PENDING', jobId, choice: choiceView(ask.hold, Date.now()) }, 202);
+    }
   }
   if (inFlight.has(jobId)) {
     refuse('in-flight');
@@ -909,6 +934,121 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
       return c.json({ error, code: result.code, detail: result.message }, status);
     }
     await deleteHold(jobId).catch(() => undefined);
+    return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
+
+/// View 75: the buyer's choice while it waits on the seller. The seller
+/// accepts, declines or asks for more; the buyer cancels, or approves a
+/// higher price the seller asked for. Nothing is funded until a yes.
+const choiceCallerSchema = z.object({ caller: addrSchema });
+const choiceAnswerSchema = z.object({ caller: addrSchema, answer: z.enum(['accept', 'decline']) });
+const choiceRaiseSchema = z.object({ caller: addrSchema, priceUsdc: z.coerce.number().positive().max(1_000_000) });
+const choiceApproveSchema = z.object({ caller: addrSchema, expectedPriceUsdc: z.union([z.string(), z.number()]) });
+
+const CHOICE_GONE = { error: 'This choice is no longer waiting.', code: 'CHOICE_GONE' } as const;
+
+jobsRoutes.get('/:jobId/choice', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  const jobId = c.req.param('jobId');
+  const caller = viewerAddress(c);
+  const hold = await getChoice(jobId);
+  const role = caller ? roleOn(hold, caller) : null;
+  if (!hold || !role) return c.json({ choice: null, role: null });
+  return c.json({ choice: choiceView(hold, Date.now()), role, title: requestTitle(getBrief(jobId)?.briefText) });
+});
+
+jobsRoutes.post('/:jobId/choice/answer', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try { body = choiceAnswerSchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  const hold = await getChoice(jobId);
+  if (roleOn(hold, body.caller) !== 'seller' || !hold) return c.json({ error: 'Only the seller who was chosen can answer.', code: 'forbidden' }, 403);
+  const state = choiceState(hold, Date.now());
+  if (state === 'expired' || state === 'declined') return c.json(CHOICE_GONE, 409);
+  if (body.answer === 'decline') {
+    await putChoice(declineChoice(hold, Date.now()));
+    publishChoice(hold, 'declined');
+    return c.json({ ok: true, answer: 'decline' }, 200);
+  }
+  if (state === 'raised') return c.json({ error: 'You asked for more. The buyer has to answer first.', code: 'RAISE_PENDING' }, 409);
+  if (inFlight.has(jobId)) return c.json({ error: 'an action is already in progress for this job' }, 409);
+  inFlight.add(jobId);
+  try {
+    const result = await chooseAgentOffer(jobId, hold.sellerAgent, hold.priceUsdc);
+    if (!result.ok) {
+      logger.warn({ jobId, code: result.code }, 'accepted choice could not fund');
+      return c.json({ error: saysWhy(result.code) ? result.message : 'The deal could not start. The buyer has been told.', code: result.code }, result.code === 'NO_OFFER' ? 404 : 409);
+    }
+    await deleteChoice(jobId);
+    await deleteHold(jobId).catch(() => undefined);
+    publishChoice(hold, 'accepted');
+    return c.json({ ok: true, answer: 'accept', txHash: result.txHash }, 200);
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
+
+jobsRoutes.post('/:jobId/choice/raise', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try { body = choiceRaiseSchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  const hold = await getChoice(jobId);
+  if (roleOn(hold, body.caller) !== 'seller' || !hold) return c.json({ error: 'Only the seller who was chosen can ask for more.', code: 'forbidden' }, 403);
+  const raised = raiseChoice(hold, body.priceUsdc, Date.now());
+  if (!raised.ok) {
+    const error = raised.code === 'NOT_HIGHER' ? 'Ask for more than the price the buyer chose.' : raised.code === 'EXPIRED' ? CHOICE_GONE.error : 'You already asked for more. The buyer has to answer first.';
+    return c.json({ error, code: raised.code }, 409);
+  }
+  await putChoice(raised.hold);
+  publishChoice(raised.hold, 'raised');
+  return c.json({ ok: true, choice: choiceView(raised.hold, Date.now()) }, 200);
+});
+
+jobsRoutes.post('/:jobId/choice/cancel', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try { body = choiceCallerSchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  const hold = await getChoice(jobId);
+  if (roleOn(hold, body.caller) !== 'buyer' || !hold) return c.json({ error: 'Only the buyer can take the choice back.', code: 'forbidden' }, 403);
+  if (inFlight.has(jobId)) return c.json({ error: 'an action is already in progress for this job' }, 409);
+  const state = choiceState(hold, Date.now());
+  await deleteChoice(jobId);
+  if (state === 'waiting' || state === 'raised') publishChoice(hold, 'cancelled');
+  return c.json({ ok: true }, 200);
+});
+
+jobsRoutes.post('/:jobId/choice/approve-raise', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try { body = choiceApproveSchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  const hold = await getChoice(jobId);
+  if (roleOn(hold, body.caller) !== 'buyer' || !hold) return c.json({ error: 'Only the buyer can approve the new price.', code: 'forbidden' }, 403);
+  if (choiceState(hold, Date.now()) !== 'raised' || !hold.raisedPriceUsdc) return c.json(CHOICE_GONE, 409);
+  if (Number(body.expectedPriceUsdc) !== Number(hold.raisedPriceUsdc)) {
+    return c.json({ error: `The price asked is ${hold.raisedPriceUsdc} USDC. Check it and approve again.`, code: 'PRICE_CHANGED' }, 409);
+  }
+  if (inFlight.has(jobId)) return c.json({ error: 'an action is already in progress for this job' }, 409);
+  inFlight.add(jobId);
+  try {
+    const result = await proceedAgentNearMiss(jobId, hold.sellerAgent, hold.raisedPriceUsdc);
+    if (!result.ok) {
+      logger.warn({ jobId, code: result.code }, 'approved raise could not fund');
+      return c.json({ error: saysWhy(result.code) ? result.message : 'The deal could not start at the new price.', code: result.code }, 409);
+    }
+    await deleteChoice(jobId);
+    await deleteHold(jobId).catch(() => undefined);
+    publishChoice(hold, 'accepted');
     return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
   } finally {
     inFlight.delete(jobId);

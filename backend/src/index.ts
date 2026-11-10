@@ -209,6 +209,7 @@ import { contestsStore } from './db/contests.js';
 import { createContestRoutes } from './routes/contests.js';
 import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
+import { startChoiceSweeper } from './agents/sellerAnswerLive.js';
 import { startReleaseWatcher } from './agents/releaseWatcher.js';
 import { startSuiteEarnings } from './deals/suiteEarningsLive.js';
 import { startCreEvidenceReconciler } from './evidence/creEvidenceReconciler.js';
@@ -826,6 +827,7 @@ function bootAgents() {
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'job expiry watcher not started');
   }
+  if (config.SELLER_ASKED) stopFns.push(startChoiceSweeper());
   try {
     stopFns.push(startReleaseWatcher());
   } catch (err) {

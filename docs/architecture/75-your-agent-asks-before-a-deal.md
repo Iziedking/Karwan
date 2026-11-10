@@ -1,6 +1,6 @@
 # 75 · Your agent asks before a deal, and can be switched off
 
-Track T1 (find and agree), continuing roadmap item T1.8 (agents that always answer), with T6 (channels) for the questions and the switch. Proposed 10 Nov 2026 from the owner's test of an agent-matched deal: "the seller chosen does not get the chance to accept, decline or ask for more. It accepts automatically, which should be a setting", and "there should also be an option to turn off the agent, so all agent services around your account get switched off. It means you are now running things manually." It builds on [view 30](30-negotiation-in-the-assistant.md) (Agree for me), [view 41](41-agents-that-always-answer.md), [view 48](48-one-agent-per-person.md) and [view 52](52-an-agent-that-works-for-you.md) (the mandate). It changes no contract and no money rule.
+Track T1 (find and agree), continuing roadmap item T1.8 (agents that always answer), with T6 (channels) for the questions and the switch. Approved by the owner on 11 Nov 2026, with every decision below taken as recommended. Proposed 10 Nov 2026 from the owner's test of an agent-matched deal: "the seller chosen does not get the chance to accept, decline or ask for more. It accepts automatically, which should be a setting", and "there should also be an option to turn off the agent, so all agent services around your account get switched off. It means you are now running things manually." It builds on [view 30](30-negotiation-in-the-assistant.md) (Agree for me), [view 41](41-agents-that-always-answer.md), [view 48](48-one-agent-per-person.md) and [view 52](52-an-agent-that-works-for-you.md) (the mandate). It changes no contract and no money rule.
 
 ## What is wrong today
 
@@ -91,13 +91,15 @@ flowchart LR
 
 Turning it back on starts from now. The agent does not act on what it missed.
 
-## Decisions for the owner
+## Decisions, taken by the owner on 11 Nov 2026
 
-1. **How long the seller has to answer.** Recommended: 24 hours, or until the request's own date if that is sooner. The buyer sees the time and can cancel at any point.
-2. **Buying an offer as listed.** Today an order on a posted offer is accepted at once, because the seller posted it at that price. Recommended: keep that for sellers on Make offers or Agree for me, and ask first only for sellers on Ask me first or with the agent off.
-3. **What the default mode means for a seller.** The words already say "asks before any deal". Recommended: keep the words and make them true, so a seller is asked unless they picked Agree for me. The other choice is to make accepting automatic by default and change the words, which is faster for buyers and takes the decision from sellers.
-4. **Agent off and the assistant.** Recommended above: the agent stops, the assistant stays as your hands. The other choice is that the assistant also stops acting and only answers questions.
-5. **Agent off while you have open requests.** Recommended above: they stay open and you choose by hand. The other choice is to pause them until the agent is back on.
+1. **How long the seller has to answer.** 24 hours, or until the request's own date if that is sooner. The buyer sees the time and can cancel at any point.
+2. **Buying an offer as listed.** An order on a posted offer is still accepted at once for sellers on Make offers or Agree for me, because they posted it at that price. Sellers on Ask me first, or with the agent off, are asked first.
+3. **What the default mode means for a seller.** The words stay and become true: a seller is asked unless they picked Agree for me.
+4. **Agent off and the assistant.** The agent stops. The assistant stays and does what the person tells it.
+5. **Agent off while you have open requests.** They stay open and the person chooses by hand.
+
+Ruling while building: a seller who is asked to confirm with World ID after being chosen has answered by completing it. The message for that step already names the choice and the price, so the deal is funded when the check is done, as before.
 
 ## What this view does not do
 
