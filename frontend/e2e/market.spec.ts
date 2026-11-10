@@ -120,7 +120,8 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['dark', 'ar']] 
     await expect(logo.getByRole('img', { name: t.verified })).toBeVisible();
     if (locale === 'en') {
       await expect(logo).toContainText('4.8 from 23 deals');
-      await expect(cards(page).filter({ hasText: 'Ankara' })).toContainText(t.someone);
+      // With no name to show, the card says the kind of seller its category makes them (view 74).
+      await expect(cards(page).filter({ hasText: 'Ankara' })).toContainText(t.sellerKinds.fashion);
     }
     // No photo of its own: a sample photo, marked, never a broken image.
     await expect(logo.locator('img')).toHaveAttribute('src', /^\/market-samples\/design-[1-4]\.jpg$/);
