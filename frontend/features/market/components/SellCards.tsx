@@ -51,7 +51,7 @@ export function RequestCard({ card, fits }: { card: DiscoveryCard; fits: boolean
         {card.priceRange ? (
           <PriceRange template={t.budgetRange} low={card.priceRange.lowUsdc} high={card.priceRange.highUsdc} className="mt-2 text-[15px] font-semibold text-[var(--ink)]" />
         ) : (
-          <PriceIn template={t.upTo} usdc={card.priceUsdc} className="mt-2 text-[15px] font-semibold text-[var(--ink)]" />
+          <PriceIn template={t.upTo} usdc={card.priceUsdc} agreed={card.priceLocal} className="mt-2 text-[15px] font-semibold text-[var(--ink)]" />
         )}
         <span className="mt-1 block truncate text-[13px] text-[var(--ink-secondary)]">{t.neededBy.replace('{date}', by)}</span>
         <span dir="auto" className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">{[card.seller?.name || (card.seller?.tag ? `@${card.seller.tag}` : null), offers].filter(Boolean).join(' · ')}</span>

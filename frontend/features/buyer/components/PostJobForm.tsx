@@ -1,5 +1,5 @@
 ﻿'use client';
-import { MoneyInput } from '@/features/money/components/MoneyInput';
+import { MoneyInput, type MoneyInputHandle } from '@/features/money/components/MoneyInput';
 import { clearRequestDraft, loadRequestDraft, saveRequestDraft } from '../requestDraft';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -216,6 +216,7 @@ export function PostJobForm() {
   const initialPaymentTerms = search.get('paymentTerms');
   const [brief, setBrief] = useState(initialBrief);
   const [budget, setBudget] = useState<number | ''>(initialBudget ?? '');
+  const budgetField = useRef<MoneyInputHandle>(null);
   // Deadline split: a raw `value` and a `unit`. Submit converts to seconds.
   // Defaults adapt per unit so switching feels natural (5d → 2h → 15m).
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
@@ -368,10 +369,13 @@ export function PostJobForm() {
               region: companyRegion.trim() || undefined,
             }
           : undefined;
+      // The figure typed in the person's own currency stays on the request (view 55).
+      const budgetQuote = await budgetField.current?.quote();
       const r = await api.postJob({
         posterAddress: address,
         brief,
-        budgetUsdc: budget,
+        budgetUsdc: budgetQuote?.usdc ?? budget,
+        ...(budgetQuote ? { quote: budgetQuote.token } : {}),
         deadlineSeconds: deadlineToSeconds(deadlineValue, deadlineUnit),
         negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
         trustedMatch,
@@ -691,7 +695,7 @@ export function PostJobForm() {
             hint={c.budgetHint}
             dataGuide="buyer-budget"
           >
-            <MoneyInput dataGuide="buyer-budget" value={budget} disabled={submitting} onChange={(usdc) => setBudget(usdc ?? '')} />
+            <MoneyInput dataGuide="buyer-budget" value={budget} disabled={submitting} onChange={(usdc) => setBudget(usdc ?? '')} handle={budgetField} />
           </FormLabel>
           <FormLabel
             label={rf.neededByLabel}

@@ -21,6 +21,8 @@ export interface DiscoveryCard {
   priceUsdc: number;
   /// View 73: a bargaining request shows its budget as a range.
   priceRange?: { lowUsdc: number; highUsdc: number };
+  /// View 55: a request's budget as its buyer said it.
+  priceLocal?: { currency: string; amount: string };
   postedAt: number;
   availableUntil: number;
   partyAddress: string;
@@ -100,6 +102,7 @@ export function buildDiscoveryCards(
         body,
         priceUsdc: brief.budgetRange ? brief.budgetRange.highUsdc : Number(brief.budgetUsdc ?? 0),
         ...(brief.budgetRange ? { priceRange: brief.budgetRange } : {}),
+        ...(brief.budgetLocal && !brief.budgetRange ? { priceLocal: brief.budgetLocal } : {}),
         postedAt: brief.postedAt,
         availableUntil: brief.deadlineUnix * 1000,
         partyAddress: brief.buyer,

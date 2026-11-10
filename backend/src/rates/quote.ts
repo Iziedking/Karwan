@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { config } from '../config.js';
 import { DISPLAY_CURRENCIES, type LocalCurrency, type UsdcRates } from './usdcRates.js';
+import { budgetInCents } from '../agents/budgetCents.js';
 
 /// An amount typed in a local currency, worked out in USDC at today's rate and
 /// held for two minutes (view 55). USDC is what moves; the typed figure is what
@@ -61,13 +62,14 @@ export function makeQuote(
   rates: UsdcRates,
   now = Date.now(),
   secret = config.SESSION_SECRET,
+  ttlMs = QUOTE_TTL_MS,
 ): Quote | null {
   const amount = cleanLocalAmount(rawAmount, currency);
   const rate = rates.rates[currency];
   if (!amount || !rate || rates.updatedAt === null || !secret) return null;
   const usdcMicros = usdcMicrosFor(amount, rate);
   if (usdcMicros <= 0n) return null;
-  const payload = { currency, amount, rate, at: now, usdcMicros: usdcMicros.toString(), expiresAt: now + QUOTE_TTL_MS };
+  const payload = { currency, amount, rate, at: now, usdcMicros: usdcMicros.toString(), expiresAt: now + ttlMs };
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   return { ...payload, token: `${body}.${mac(body, secret)}` };
 }
@@ -101,5 +103,20 @@ export function localFromQuote(
   if (!token) return undefined;
   const q = verifyQuote(token, now, secret);
   if (!q || q.usdcMicros !== String(usdcMicros)) return undefined;
+  return { currency: q.currency, amount: q.amount, rate: q.rate, at: q.at };
+}
+
+/// The figure to keep on a request's budget (view 55). A budget is held in
+/// whole cents, rounded down, so the quote is good when its USDC rounds down to
+/// exactly this budget. Anything else keeps no figure.
+export function budgetLocalFromQuote(
+  token: string | undefined | null,
+  budgetUsdc: number,
+  now = Date.now(),
+  secret = config.SESSION_SECRET,
+): LocalAmount | undefined {
+  if (!token) return undefined;
+  const q = verifyQuote(token, now, secret);
+  if (!q || budgetInCents(Number(q.usdcMicros) / 1_000_000) !== budgetUsdc) return undefined;
   return { currency: q.currency, amount: q.amount, rate: q.rate, at: q.at };
 }

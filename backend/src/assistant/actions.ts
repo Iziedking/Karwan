@@ -79,6 +79,8 @@ export interface PostRequestPayload {
   posterAddress: string;
   brief: string;
   budgetUsdc: number;
+  /// The signed quote for a budget said in the person's own currency (view 55).
+  quote?: string;
   deadlineDays: number;
   deliveryKind?: DeliveryKind;
   /// Where the buyer wants it done. Missing means anywhere.
@@ -774,6 +776,9 @@ export interface BuildPostRequestInput {
   quantity?: { count: number; unit: string | null };
   /// Private (view 53): only seller agents see it, never on the market.
   private?: boolean;
+  /// The budget as the person said it in their own currency, and the quote
+  /// that lets the request keep it (view 55).
+  budgetSaid?: { text: string; quote: string };
   /// Parts drafted from the brief (view 56). One part means paid at once.
   parts?: DraftPart[];
   /// How many photos or PDFs are held for it from the assistant (view 56).
@@ -813,7 +818,7 @@ export function buildPostRequestConfirm(
   const staged = i.parts && i.parts.length > 1 ? i.parts : null;
   const fields: { label: string; value: string }[] = [
     { label: 'You need', value: brief.length > 140 ? `${brief.slice(0, 137)}…` : brief },
-    { label: 'Budget', value: `${i.budgetUsdc} USDC` },
+    { label: 'Budget', value: i.budgetSaid?.text ?? `${i.budgetUsdc} USDC` },
     ...(quantity && quantity.count > 1
       ? [{ label: 'How many', value: `${quantityWords(quantity)}, ${i.budgetUsdc} USDC for all, about ${perItemUsdc(i.budgetUsdc, quantity.count)} USDC each` }]
       : []),
@@ -843,6 +848,7 @@ export function buildPostRequestConfirm(
       posterAddress: i.caller,
       brief,
       budgetUsdc: i.budgetUsdc,
+      ...(i.budgetSaid ? { quote: i.budgetSaid.quote } : {}),
       deadlineDays: i.deadlineDays,
       ...(i.deliveryKind ? { deliveryKind: i.deliveryKind } : {}),
       ...(i.where ? { where: i.where } : {}),

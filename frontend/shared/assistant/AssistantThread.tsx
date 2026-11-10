@@ -407,6 +407,8 @@ async function runConfirmIntent(
       posterAddress: p.posterAddress,
       brief: p.brief,
       budgetUsdc: p.budgetUsdc,
+      // A budget said in the person's own currency keeps that figure (view 55).
+      ...(typeof (p as { quote?: unknown }).quote === 'string' ? { quote: (p as unknown as { quote: string }).quote } : {}),
       // deadlineDays is often fractional (server-computed from a calendar
       // date); the route's deadlineDays field is integer-only, so always send
       // the seconds shape, clamped to the route's own bounds (60s..90d).

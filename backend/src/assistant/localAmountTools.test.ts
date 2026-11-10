@@ -51,3 +51,14 @@ test('a budget, price or rate said in naira is posted in USDC, never as the nair
   assert.match((tooMuch as { error: string }).error, /does not fit/);
   assert.equal(seen.length, 1);
 });
+
+test('a tool is told the figure as it was said, beside the USDC it runs in', async () => {
+  const told: unknown[] = [];
+  const tools = withLocalAmounts(
+    { post: { inputSchema: z.object({ budgetUsdc: z.number() }), execute: async (_args: unknown, options: unknown) => { told.push((options as { said?: unknown }).said); return 'ok'; } } },
+    async () => RATES,
+  );
+  await tools.post.execute!({ budgetUsdc: 300000, currency: 'NGN' }, {});
+  await tools.post.execute!({ budgetUsdc: 20 }, {});
+  assert.deepEqual(told, [{ currency: 'NGN', amounts: { budgetUsdc: 300000 } }, undefined]);
+});

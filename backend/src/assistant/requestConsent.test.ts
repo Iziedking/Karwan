@@ -27,3 +27,12 @@ test('posting an offer from the assistant says it too, without changing what is 
   assert.ok(card.summary.endsWith(READS_NOTE));
   assert.equal(card.payload.description, 'Three concepts and two rounds');
 });
+
+test('a budget said in naira reads in naira on the card and travels with its quote', () => {
+  const card = buildPostRequestConfirm({ caller: '0x' + 'a'.repeat(40), brief: 'Computer lessons for my kids', budgetUsdc: 222.87, deadlineDays: 5, budgetSaid: { text: '₦300,000', quote: 'tok.sig' } });
+  assert.ok(!('error' in card));
+  assert.equal(card.fields.find((f) => f.label === 'Budget')?.value, '₦300,000');
+  assert.doesNotMatch(JSON.stringify(card.fields), /222\.87/);
+  assert.equal(card.payload.budgetUsdc, 222.87);
+  assert.equal(card.payload.quote, 'tok.sig');
+});

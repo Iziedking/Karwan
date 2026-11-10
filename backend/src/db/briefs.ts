@@ -8,6 +8,7 @@ import type { DeliveryKind, Where } from '../location/rules.js';
 import type { Quantity } from '../llm/quantity.js';
 import type { ShortlistEntry } from '../agents/shortlist.js';
 import type { AttachmentSet } from '../attachments/attachments.js';
+import type { LocalAmount } from '../rates/quote.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
@@ -36,6 +37,10 @@ export interface Brief {
   terms?: string;
   /// Days the buyer has to check each delivery, carried into the deal.
   reviewWindowDays?: number;
+  /// The budget as the buyer said it in their own currency (view 55). The
+  /// budget itself is USDC, on chain; this is what a reader in that currency
+  /// sees for the life of the request.
+  budgetLocal?: LocalAmount;
   createdAt: number;
   /// Set by jobExpiryWatcher when a brief passes its deadline with no
   /// accepted bid + no approved match proposal. Survives backend restarts so

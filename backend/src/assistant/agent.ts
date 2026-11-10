@@ -62,6 +62,8 @@ import { readOwnedBalance } from '../money/ownedBalance.js';
 import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
 import { withLocalAmounts } from './localAmountTools.js';
 import { moneyVoice } from './moneyVoice.js';
+import { currencyDigits, makeQuote } from '../rates/quote.js';
+import type { LocalCurrency } from '../rates/usdcRates.js';
 import { nowLine } from './nowLine.js';
 import { budgetInCents } from '../agents/budgetCents.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
@@ -797,6 +799,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             ? getBuyerSnapshot(record.buyerAddress).jobs.slice(0, 15).map((j) => ({
                 jobId: j.jobId,
                 budgetUsdc: j.budgetUsdc,
+                ...budgetAsSaid(getBrief(j.jobId)?.budgetLocal),
                 deadline: new Date(j.deadlineUnix * 1000).toISOString(),
                 status: j.cancelledAt
                   ? 'cancelled'
@@ -2584,7 +2587,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         quantity: z.object({ count: z.number().int().min(1).max(100_000), unit: z.string().max(40).nullable() }).optional().describe('How many they need and the word for it when they said a count ("3 pairs" -> {count: 3, unit: "pairs"}). Leave out when they did not say one; the server reads the brief.'),
         private: z.boolean().optional().describe('True only when they want the request private: never on the market; only seller agents see it and match it, and only the sellers who offer see its words. Off means it is on the market with every offer on it public. If they already agreed with one person, start a direct deal with them instead (start_protected_deal); it is never on the market.'),
       }),
-      execute: async (args) => {
+      execute: async (args, options) => {
         // Pre-flight the SAME preconditions the jobs route enforces so the card
         // never 409s on submit. Activation + buyer profile are cheap store reads;
         // the buyer-agent balance check stays on the route (its 409 is specific).
@@ -2614,6 +2617,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         if (deadlineDays === undefined) {
           return { error: 'Ask them for a deadline: a calendar date (pass deadlineDate) or how many days from now (deadlineDays).' };
         }
+        // A budget said in the person's own currency keeps that figure: the
+        // quote fixes its USDC, and the request holds it in whole cents.
+        const budgetSaid = await saidBudget(options);
+        if (budgetSaid) args = { ...args, budgetUsdc: budgetSaid.usdc };
         // Agents price in cents; a budget from another currency is finer.
         args = { ...args, budgetUsdc: budgetInCents(args.budgetUsdc) };
         if (args.budgetUsdc <= 0) return { error: 'That budget is under one cent. Ask them for a larger figure.' };
@@ -2636,6 +2643,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           ...(args.agreeForMe ? { agreeForMe: true } : {}),
           ...(args.quantity ? { quantity: args.quantity } : {}),
           ...(args.private ? { private: true } : {}),
+          ...(budgetSaid ? { budgetSaid: { text: budgetSaid.text, quote: budgetSaid.quote } } : {}),
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
@@ -3093,6 +3101,29 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
     // Off where the Time escrow is not bound: the tools are left out, the type stays whole.
     ...(liveFeatures.hourlyWork ? workTools(address, actions, { call: callAsAccount }) : ({} as ReturnType<typeof workTools>)),
   };
+}
+
+/// The budget in the buyer's own words, for a tool result about their request.
+function budgetAsSaid(local: { currency: string; amount: string } | undefined): { budgetAsSaid?: string } {
+  return local ? { budgetAsSaid: `${local.amount} ${local.currency}` } : {};
+}
+
+/// How long a request card holds the figure said. The card's USDC is fixed
+/// when it is drawn, so this only decides whether the figure is kept.
+const CARD_QUOTE_MS = 30 * 60_000;
+
+/// A budget said in the person's own currency (view 55): the quote for it,
+/// its USDC, and the figure as it reads on the card. Null in USDC or with no
+/// fresh rate.
+async function saidBudget(options: unknown): Promise<{ usdc: number; text: string; quote: string } | null> {
+  const said = (options as { said?: { currency: LocalCurrency; amounts: Record<string, number> } } | undefined)?.said;
+  const amount = said?.amounts.budgetUsdc;
+  if (!said || typeof amount !== 'number') return null;
+  const rates = await readUsdcRates().catch(() => null);
+  const quote = rates ? makeQuote(said.currency, String(amount), rates, Date.now(), undefined, CARD_QUOTE_MS) : null;
+  if (!quote) return null;
+  const text = new Intl.NumberFormat('en', { style: 'currency', currency: said.currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: currencyDigits(said.currency) }).format(Number(quote.amount));
+  return { usdc: Number(quote.usdcMicros) / 1_000_000, text, quote: quote.token };
 }
 
 /// The authenticated-assistant preamble, appended to the shared knowledge base.

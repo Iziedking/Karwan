@@ -30,6 +30,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
       posterAddress: p.posterAddress,
       brief: p.brief,
       budgetUsdc: p.budgetUsdc,
+      ...(typeof p.quote === 'string' ? { quote: p.quote } : {}),
       deadlineSeconds: Math.min(90 * 86_400, Math.max(60, Math.round(Number(p.deadlineDays) * 86_400))),
       ...(p.deliveryKind ? { deliveryKind: p.deliveryKind } : {}),
       ...(p.where ? { where: p.where } : {}),

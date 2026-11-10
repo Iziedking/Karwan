@@ -189,6 +189,8 @@ export interface BuyerJob {
   jobId: string;
   buyer: string;
   budgetUsdc: string;
+  /// The budget as the buyer said it in their own currency (view 55).
+  budgetLocal?: LocalAmount;
   deadlineUnix: number;
   termsHash: string;
   finalized: boolean;
@@ -1372,6 +1374,8 @@ export interface MarketplaceBrief {
   /// Absent on a bargaining request read by anyone but its buyer (view 73).
   budgetUsdc?: string;
   budgetRange?: BudgetRange | null;
+  /// The budget as the buyer said it in their own currency (view 55).
+  budgetLocal?: LocalAmount;
   deadlineUnix: number;
   briefText: string;
   bidsCount: number;
@@ -3430,7 +3434,7 @@ export const api = {
       count: number;
       offers: Offer[];
       role: 'buyer' | 'seller' | 'visitor';
-      request: { briefText: string; budgetUsdc?: string; budgetRange?: BudgetRange | null; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null; state?: RequestMarketState; attachments?: Array<{ name: string; contentType: string }> } | null;
+      request: { briefText: string; budgetUsdc?: string; budgetRange?: BudgetRange | null; budgetLocal?: LocalAmount; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null; state?: RequestMarketState; attachments?: Array<{ name: string; contentType: string }> } | null;
       /// Every offer on the request, for everyone (view 53).
       public?: OpenOffer[];
       /// Who posted the request, when their passport is public.
@@ -4280,6 +4284,8 @@ export const api = {
       posterAddress: string;
       brief: string;
       budgetUsdc: number;
+      /// The signed quote for a budget typed in the person's own currency (view 55).
+      quote?: string;
       negotiationMaxIncreasePct?: number;
       trustedMatch?: boolean;
       /// Who can see it (view 53): only seller agents, never on the market.

@@ -40,6 +40,7 @@ import { approvalGate, isRequestOwner } from '../agents/chooseOffer.js';
 import { config } from '../config.js';
 import { isVerified, sealEntries, shortlistChoiceCheck } from '../agents/shortlist.js';
 import { budgetInCents } from '../agents/budgetCents.js';
+import { budgetLocalFromQuote } from '../rates/quote.js';
 import { readsForRef } from '../db/recordReads.js';
 import { levelOf } from '../verification/live.js';
 import { matchDecliner } from '../agents/matchDecline.js';
@@ -51,7 +52,7 @@ import { jobActionsInFlight } from '../offers/jobLock.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { MAX_QUANTITY, readQuantity } from '../llm/quantity.js';
 import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
-import { forViewer } from '../market/budgetView.js';
+import { forViewer, withSaidBudgets } from '../market/budgetView.js';
 import { findAgentWalletByAgentAddress, getAgentWallets } from '../db/agentWallets.js';
 import { buyerFundingNeed } from '../agents/buyerFundingNeed.js';
 import { logger } from '../logger.js';
@@ -141,6 +142,8 @@ const postJobSchema = z
     /** Days the buyer has to check each delivery; the escrow honours it. */
     reviewWindowDays: z.number().int().min(1).max(MAX_REVIEW_DAYS).optional(),
     budgetUsdc: z.number().positive().max(5_000_000),
+    /** The signed quote behind a budget typed or said in another currency (view 55). */
+    quote: z.string().max(2000).optional(),
     deadlineDays: z.number().int().min(1).max(90).optional(),
     deadlineSeconds: z
       .number()
@@ -255,7 +258,8 @@ jobsRoutes.get('/', async (c) => {
   if (!caller) return c.json({ error: 'not authenticated' }, 401);
   const agents = await getAgentWallets(caller);
   if (!agents) return c.json({ jobs: [] });
-  return c.json(getBuyerSnapshot(agents.buyerAddress));
+  const mine = getBuyerSnapshot(agents.buyerAddress);
+  return c.json({ ...mine, jobs: withSaidBudgets(mine.jobs) });
 });
 
 /// Requests on the open market (view 53), public. Open ones first, then those
@@ -543,6 +547,7 @@ ${body.terms}` : body.brief));
   // A request confirmed from an assistant card carries its conversation and
   // the Agree for me choice made there.
   const link = takeRequestLink(body.posterAddress, body.brief, body.budgetUsdc);
+  const budgetLocal = budgetLocalFromQuote(body.quote, body.budgetUsdc);
   const fromForm = body.attachments?.length ? decodeAttachments(body.attachments) : [];
   if ('error' in fromForm) return c.json({ error: fromForm.error, code: 'attachment-invalid' }, 400);
   const attached = body.heldAttachments ? joinAttachments(fromForm, requestAttachments.takeHeld(body.posterAddress, Date.now())) : fromForm;
@@ -556,6 +561,7 @@ ${body.terms}` : body.brief));
     milestonePcts: body.milestonePcts,
     terms: body.terms,
     reviewWindowDays: body.reviewWindowDays,
+    ...(budgetLocal ? { budgetLocal } : {}),
     trustedMatch: body.trustedMatch === true,
     ...(fromFind || fromPitch ? { visibility: 'invited' as const, invited } : body.visibility === 'agents' ? { visibility: 'agents' as const } : {}),
     tradeLane: deriveJobLane(posterAccountType, body.tradeType),

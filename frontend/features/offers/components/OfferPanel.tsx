@@ -118,7 +118,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
             {view.request.budgetRange ? (
               <PriceRange template={all.marketShop.budgetRange} low={view.request.budgetRange.lowUsdc} high={view.request.budgetRange.highUsdc} />
             ) : (
-              money.text(view.request.budgetUsdc ?? '0')
+              money.price(view.request.budgetUsdc ?? '0', view.request.budgetLocal)
             )}
           </dd>
         </div>

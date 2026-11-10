@@ -78,7 +78,11 @@ export function withLocalAmounts<T extends Record<string, AnyTool>>(tools: T, re
           const issue = checked.error.issues[0];
           return { error: `That amount does not fit: ${issue?.path.join('.') ?? 'amount'} ${issue?.message ?? 'is out of range'}. Ask for a different figure.` };
         }
-        return run(checked.data, options);
+        // The figure as said goes beside the options, so a tool that keeps a
+        // price can keep it in the person's own currency (view 55).
+        const amounts: Record<string, number> = {};
+        if (currency) for (const key of fields) if (typeof rest[key] === 'number') amounts[key] = rest[key] as number;
+        return run(checked.data, currency ? { ...(options as object), said: { currency, amounts } } : options);
       },
     };
   }

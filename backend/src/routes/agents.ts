@@ -14,6 +14,7 @@ import { ARC } from '../chain/client.js';
 import { listBidOutcomes } from '../db/bidOutcomes.js';
 import { holdsWaitingOnSeller } from '../db/agentWorldChecks.js';
 import { getBrief } from '../db/briefs.js';
+import { withSaidBudgets } from '../market/budgetView.js';
 import { requestTitle } from '../agents/bidOutcome.js';
 import { AGENT_WORLD_SKIP_ALLOWED } from '../agents/agentWorldGate.js';
 
@@ -45,7 +46,7 @@ agentsRoutes.get('/buyer', async (c) => {
   const scope = await ownAgents(c);
   if ('error' in scope) return c.json({ error: scope.error }, scope.status);
   if (!scope.agents) return c.json({ profile: null, jobs: [] });
-  return c.json({ profile: null, ...getBuyerSnapshot(scope.agents.buyerAddress) });
+  return c.json({ profile: null, jobs: withSaidBudgets(getBuyerSnapshot(scope.agents.buyerAddress).jobs) });
 });
 
 agentsRoutes.get('/seller', async (c) => {

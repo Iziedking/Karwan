@@ -228,7 +228,7 @@ export function FindSellerPage() {
                         {fill(t.request.states[LINE_COPY[state]].headline, { count: job.bids.length })}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.text(job.budgetUsdc)}</span>
+                    <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.price(job.budgetUsdc, job.budgetLocal)}</span>
                   </Link>
                 </li>
               ))}

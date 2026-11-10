@@ -56,7 +56,7 @@ function YourRequestsInner() {
         href: `/jobs/${job.jobId}`,
         title: requestTitle(job.briefText) ?? t.request.aRequest,
         line: fill(t.request.states[LINE_COPY[requestLineState(job, now)]].headline, { count: job.bids.length }),
-        amount: money.text(job.budgetUsdc),
+        amount: money.price(job.budgetUsdc, job.budgetLocal),
       }))}
     />
   );

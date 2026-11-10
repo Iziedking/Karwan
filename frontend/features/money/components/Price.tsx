@@ -84,7 +84,7 @@ export function PriceRange({ template, low, high, className }: { template: strin
   return <span className={className}>{before}<Price usdc={low} size="inline" />{middle}<Price usdc={high} size="inline" />{after}</span>;
 }
 
-export function PriceIn({ template, usdc, className }: { template: string; usdc: number; className?: string }) {
+export function PriceIn({ template, usdc, className, agreed }: { template: string; usdc: number; className?: string; agreed?: { currency: string; amount: string } | null }) {
   const [before, after = ''] = template.split('{amount}');
-  return <span className={className}>{before}<Price usdc={usdc} size="inline" />{after}</span>;
+  return <span className={className}>{before}<Price usdc={usdc} size="inline" agreed={agreed} />{after}</span>;
 }
