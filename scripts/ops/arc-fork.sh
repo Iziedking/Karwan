@@ -13,7 +13,10 @@ ARC_TARBALL=arc-foundry-$ARC_FOUNDRY-x86_64-unknown-linux-gnu.tar.gz
 # Same release and hash as forge-remote.sh, recorded on 2026-10-11.
 ARC_TARBALL_SHA256=088bdb96a84418b757f9825d491e702792f1d1d1e29a9145af305a6600a79556
 ARC_TESTNET_RPC=https://rpc.testnet.arc.io
-ARC_FORK_BLOCK=${ARC_FORK_BLOCK:-66719638}
+# The default block must hold every contract the runs read. 66719638 predated
+# the Agreement contract; 71722000 passed e2e parity on 10 Nov 2026. The public
+# RPC drops full state for old blocks, so move this forward when a fork fails.
+ARC_FORK_BLOCK=${ARC_FORK_BLOCK:-71722000}
 PORT=${ARC_FORK_PORT:-8548}
 W=/tmp/karwan-arc-fork
 
