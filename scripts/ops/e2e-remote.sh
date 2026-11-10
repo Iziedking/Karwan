@@ -39,12 +39,15 @@ if [ -n "${OVERLAY:-}" ]; then
   # shellcheck disable=SC2086
   tar -C "$ROOT" -czf - $OVERLAY | ssh -o BatchMode=yes $H "tar -C $W/repo -xzf -"
 else
-  tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
-    --exclude=.next --exclude=test-results --exclude=playwright-report \
-    package.json package-lock.json backend frontend cre/shared scripts \
+  # Only what git tracks, plus new files it does not ignore. Env files, recovery
+  # files and anything else git ignores stay on the laptop.
+  git -C "$ROOT" ls-files -z -co --exclude-standard -- package.json package-lock.json backend frontend cre/shared scripts \
+    | (cd "$ROOT" && while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done) \
+    | tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
+      --exclude=.next --exclude=test-results --exclude=playwright-report --null -T - \
     | ssh -o BatchMode=yes $H "mkdir -p $W/repo $NPM_CACHE && tar -C $W/repo -xzf -"
 fi
 
-ssh -o BatchMode=yes $H "docker run --rm --name karwan-e2e-run-$RUN --cpus=8 --memory=12g --ipc=host \
+ssh -o BatchMode=yes $H "docker run --rm --name karwan-e2e-run-$RUN --cpus=\$(n=\$(nproc); [ \$n -lt 8 ] && echo \$n || echo 8) --memory=12g --ipc=host \
   --user \$(id -u):\$(id -g) -e HOME=/tmp -e CI=1 -e npm_config_cache=/npm-cache -v $NPM_CACHE:/npm-cache -v $W/repo:/repo -w /repo \
   --entrypoint bash $IMAGE -c $(printf '%q' "npm ci --no-audit --no-fund >/dev/null && cd frontend && npx playwright test --reporter=line --workers=4 $ARGS")" < /dev/null && echo "e2e: all passed"

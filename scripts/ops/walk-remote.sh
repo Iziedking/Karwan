@@ -37,9 +37,13 @@ if [ -n "${OVERLAY:-}" ]; then
   # shellcheck disable=SC2086
   tar -C "$ROOT" -czf - $OVERLAY | ssh -o BatchMode=yes $H "tar -C $W/repo -xzf -"
 else
+  # Only what git tracks, plus new files it does not ignore. Env files, recovery
+  # files and anything else git ignores stay on the laptop.
   # shellcheck disable=SC2086
-  tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
-    --exclude=.next --exclude=test-results --exclude=playwright-report $PARTS \
+  git -C "$ROOT" ls-files -z -co --exclude-standard -- $PARTS \
+    | (cd "$ROOT" && while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done) \
+    | tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
+      --exclude=.next --exclude=test-results --exclude=playwright-report --null -T - \
     | ssh -o BatchMode=yes $H "mkdir -p $W/repo $NPM_CACHE && tar -C $W/repo -xzf -"
 fi
 
@@ -66,7 +70,7 @@ ssh -T -o BatchMode=yes $H "set -euo pipefail
     -e POSTGRES_PASSWORD=\$pg postgres:16-alpine >/dev/null
   for _ in \$(seq 1 30); do docker exec karwan-walk-db-$RUN pg_isready -U walk >/dev/null 2>&1 && break; sleep 1; done" < /dev/null
 
-ssh -o BatchMode=yes $H "docker run --rm --name karwan-walk-app-$RUN --network $NET --cpus=6 --memory=10g --ipc=host \
+ssh -o BatchMode=yes $H "docker run --rm --name karwan-walk-app-$RUN --network $NET --cpus=\$(n=\$(nproc); [ \$n -lt 6 ] && echo \$n || echo 6) --memory=10g --ipc=host \
   --user \$(id -u):\$(id -g) -e HOME=/tmp -e CI=1 -e npm_config_cache=/npm-cache -v $NPM_CACHE:/npm-cache \
   -v $W/repo:/repo -v $W/run:/run/walk:ro -v $W/out:/run/walk-out -w /repo \
   --entrypoint bash $IMAGE scripts/ops/walk-inside.sh $*" < /dev/null && STATUS=0 || STATUS=$?

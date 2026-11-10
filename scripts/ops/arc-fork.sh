@@ -55,8 +55,11 @@ case "${1:-}" in
     case "$PHASE" in parity|full|guarantee|financing|contest|hourly|agentjob) ;; *) echo "usage: $0 e2e parity|full|guarantee|financing|contest|hourly|agentjob" >&2; exit 2 ;; esac
     ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
     ssh -o BatchMode=yes $H "rm -rf $W/repo && mkdir -p $W/repo /tmp/karwan-npm-cache" < /dev/null
-    tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
-      package.json package-lock.json backend contracts/deployments \
+    # Only what git tracks, plus new files it does not ignore. Env files, recovery
+    # files and anything else git ignores stay on the laptop.
+    git -C "$ROOT" ls-files -z -co --exclude-standard -- package.json package-lock.json backend contracts/deployments \
+      | (cd "$ROOT" && while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done) \
+      | tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' --null -T - \
       | ssh -o BatchMode=yes $H "tar -C $W/repo -xzf -"
     ssh -o BatchMode=yes $H "docker run --rm -i --network host --user \$(id -u):\$(id -g) -e HOME=/tmp \
       -e npm_config_cache=/npm-cache -v /tmp/karwan-npm-cache:/npm-cache -v $W/repo:/repo -w /repo \
