@@ -2,6 +2,8 @@
 
 T1 (find and agree). It replaces how both agents price and agree on a request, changing [view 41](41-agents-that-always-answer.md) decision 11, [view 47](47-prices-that-vary.md) decision 3 and the ranking rule that a better skill fit always ranks first. Raised by the owner on 9 Nov 2026 from a testnet request: "4 different clothes sewn, up to ₦300,002". Three sellers came in above the budget (₦344,016, ₦359,836, ₦364,664) and were ranked first. The fourth offered ₦40,460, a seventh of the budget, and was ranked last. The owner: "pricing should be like people negotiating", and "the whole architecture and flow is planned first, how agents negotiate like real humans do". All twelve decisions were taken by the owner the same day.
 
+**Status:** built behind a switch that is off. A request posted while it is on keeps these rules to the end; requests posted while it is off run as before. Testnet comes next.
+
 ## What is true today
 
 Read from the code on 9 Nov 2026.

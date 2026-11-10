@@ -442,3 +442,22 @@ test('the guide names the deal page moves that replaced the older page (Batch 9 
     assert.equal(card.label, label);
   }
  });
+
+test('the guide says how agents bargain and that sellers see a range (view 73)', () => {
+  const entry = PLATFORM_GUIDE.find((e) => e.id === 'bargain');
+  assert.ok(entry, 'a bargain entry');
+  assert.equal(entry.status, 'gated', 'built, switched off until testnet');
+  const said = [entry.summary, ...entry.steps].join(' ');
+  assert.match(said, /only as a range/);
+  assert.match(said, /exact budget and the buyer.s leeway are never shown to a seller/);
+  assert.match(said, /one score/);
+  assert.match(said, /cheaper ranks higher/);
+  assert.match(said, /better offer, only when that is true/);
+  assert.match(said, /Your call/);
+  assert.match(said, /Agreeing moves no money/);
+  assert.doesNotMatch(said, /\d+ ?(%|percent)|weight of/i, 'no weights or thresholds');
+  assert.ok(entry.tools.includes('propose_your_call'));
+  assert.ok(entry.api.includes('POST /api/jobs/:jobId/your-call'));
+  assert.equal(lookupPlatformGuide('how do agents bargain and haggle on price').facts[0]?.id, 'bargain');
+  assert.match(PLATFORM_GUIDE.find((e) => e.id === 'shortlist')!.summary, /On a request that bargains, the order is one score/);
+});

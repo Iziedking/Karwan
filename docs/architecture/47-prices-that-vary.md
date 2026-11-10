@@ -14,7 +14,7 @@ So price no longer keeps a seller out of a request. What is wrong is how a price
 
 1. **Three price types** for every listing and selling way: **Fixed** (one price), **From** (the lowest the seller takes, the final price agreed per job) and **Ask me** (no number).
 2. **How each shows.** Fixed: "30 USDC". From: "From 30 USDC". Ask me: "Price on request". Same words on the market, the record, the listing page, the shortlist and in the assistant.
-3. **How the agent opens.** Fixed: at that price. From: from the buyer's budget, never under the lowest; a budget under the lowest gets an offer at the lowest, marked outside the request (as today). Ask me: one question to the seller for each request that fits, with a suggested price from the buyer's budget and the market price, through the view 41 question; with Agree for me it opens from the budget without asking.
+3. **How the agent opens.** On a request that bargains, [view 73](73-agents-that-bargain.md) decisions 1, 2 and 5 replace this. Fixed: at that price. From: from the buyer's budget, never under the lowest; a budget under the lowest gets an offer at the lowest, marked outside the request (as today). Ask me: one question to the seller for each request that fits, with a suggested price from the buyer's budget and the market price, through the view 41 question; with Agree for me it opens from the budget without asking.
 4. **Nothing is lost.** Existing listings are Fixed. Existing ways with a usual price the person gave are Fixed when lowest equals usual, otherwise From with that usual kept for the opening; guessed usual prices become From.
 
 ```mermaid

@@ -241,7 +241,7 @@ All ten as recommended.
 
 ## Decided by the owner, 30 Oct 2026
 
-11. **Outside the seller's limits on price or time, the agent offers at the seller's own terms**, marked outside your request for the buyer. Recommended: yes.
+11. **Outside the seller's limits on price or time, the agent offers at the seller's own terms**, marked outside your request for the buyer. Recommended: yes. On a request that bargains, [view 73](73-agents-that-bargain.md) decisions 1 to 3 replace this for price.
 12. **The shortlist ranks fit first, then reputation and score, then how close the terms are.** Recommended only inside the buyer's limits. Recommended: yes.
 13. **Agents not linked to their owner are shortlisted and must link before they can be chosen.** Recommended: yes.
 
