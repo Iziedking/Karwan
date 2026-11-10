@@ -91,7 +91,7 @@ test('the agent switch turns the agent off and on, only where it is open', async
   // Not open on this network: no switch.
   await expect(page.locator('[data-agent-power]')).toHaveCount(0);
 
-  await page.route(`${API}/api/features`, (route) => route.fulfill({ json: { hourlyWork: false, sellerAsked: true } }));
+  await page.route(`${API}/api/features`, (route) => route.fulfill({ json: { hourlyWork: false, sellerAsked: true, agentSwitch: true } }));
   await page.reload();
   const power = page.locator('[data-agent-power]').getByRole('switch', { name: /Agent on/ });
   await expect(power).toHaveAttribute('aria-checked', 'true');

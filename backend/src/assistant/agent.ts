@@ -63,7 +63,7 @@ import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
 import { withLocalAmounts } from './localAmountTools.js';
 import { moneyVoice } from './moneyVoice.js';
 import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
-import { AGENT_OFF_ANSWER, agentIsOn } from '../agents/agentPower.js';
+import { AGENT_OFF_ANSWER, agentIsOn, agentSwitchOpen } from '../agents/agentPower.js';
 import { currencyDigits, makeQuote } from '../rates/quote.js';
 import type { LocalCurrency } from '../rates/usdcRates.js';
 import { nowLine } from './nowLine.js';
@@ -2265,7 +2265,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       }),
       execute: async (input) => {
         try {
-          if (input.part === 'power' && !config.SELLER_ASKED) return { error: 'Turning the agent off is not open here yet. They can set it to Ask me first, or turn the morning brief off.' };
+          if (input.part === 'power' && !agentSwitchOpen({ sellerAsked: config.SELLER_ASKED, shortlist: config.SHORTLIST_MODE })) return { error: 'Turning the agent off is not open here yet. They can set it to Ask me first, or turn the morning brief off.' };
           const { liveMandateToolDeps } = await import('../agents/mandateLive.js');
           const r = await proposeChangeMandate(liveMandateToolDeps, address, input, Date.now());
           if ('error' in r) return r;

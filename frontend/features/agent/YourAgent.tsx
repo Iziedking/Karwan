@@ -113,7 +113,7 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
         </section>
       )}
 
-      {activated && !activationLoading && features.sellerAsked ? (
+      {activated && !activationLoading && features.agentSwitch ? (
         <div data-agent-power>
           <RowGroup>
             <ToggleRow label={t.power.label} note={agentOn ? t.power.onNote : t.power.offNote} checked={agentOn} onChange={(next) => void setPower(next)} />

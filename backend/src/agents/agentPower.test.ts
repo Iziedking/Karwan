@@ -12,7 +12,7 @@ process.chdir(mkdtempSync(join(tmpdir(), 'karwan-agent-power-')));
 delete process.env.DATABASE_URL;
 
 const { upsertProfile } = await import('../db/profiles.js');
-const { AGENT_OFF_ANSWER, agentIsOn, agentOnOf } = await import('./agentPower.js');
+const { AGENT_OFF_ANSWER, agentIsOn, agentOnOf, agentSwitchOpen } = await import('./agentPower.js');
 
 test('an agent is on until its person switches it off', () => {
   assert.equal(agentOnOf(null), true);
@@ -37,4 +37,11 @@ test('a tool the agent does says it is off and how to turn it on', () => {
   assert.equal(AGENT_OFF_ANSWER.agentOff, true);
   assert.match(AGENT_OFF_ANSWER.next, /switched off/);
   assert.match(AGENT_OFF_ANSWER.next, /part power, on true/);
+});
+
+test('the switch is open only where the seller is asked and the buyer picks from a shortlist', () => {
+  assert.equal(agentSwitchOpen({ sellerAsked: true, shortlist: true }), true);
+  assert.equal(agentSwitchOpen({ sellerAsked: true, shortlist: false }), false);
+  assert.equal(agentSwitchOpen({ sellerAsked: false, shortlist: true }), false);
+  assert.equal(agentSwitchOpen({ sellerAsked: false, shortlist: false }), false);
 });

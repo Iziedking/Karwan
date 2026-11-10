@@ -4,6 +4,8 @@ export interface LiveFeatures {
   hourlyWork: boolean;
   /// View 75: a chosen seller is asked first, and the agent can be switched off.
   sellerAsked?: boolean;
+  /// The agent can be switched off here (view 75).
+  agentSwitch?: boolean;
 }
 
 export const LIVE_FEATURES_OFF: LiveFeatures = { hourlyWork: false };

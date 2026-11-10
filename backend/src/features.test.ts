@@ -19,3 +19,8 @@ test('the guide hides the hourly entry while hourly work is off', () => {
   assert.equal(liveFeaturesFrom({ work: {}, workRequests: {} }).sellerAsked, false);
   assert.equal(liveFeaturesFrom({ work: {}, workRequests: {}, sellerAsked: true }).sellerAsked, true);
 });
+
+test('the agent switch is its own feature, off unless it is passed on', () => {
+  assert.equal(liveFeaturesFrom({ work: {}, workRequests: {}, sellerAsked: true }).agentSwitch, false);
+  assert.equal(liveFeaturesFrom({ work: {}, workRequests: {}, sellerAsked: true, agentSwitch: true }).agentSwitch, true);
+});
