@@ -23,24 +23,35 @@ export const CATEGORY_ICON: Record<CategoryId, IconName> = {
   rentals: 'key-round',
 };
 
-/// Free stock photos (Unsplash License), one per category, shown when an offer
-/// has no photo of its own. On a real seller's offer the card marks it as a
-/// sample, so it never passes for their item.
-const SAMPLE: Record<CategoryId, string> = {
-  design: 'design',
-  tech: 'tech',
-  phones: 'phones',
-  fashion: 'fashion',
-  food: 'food',
-  farm: 'farm',
-  home: 'home',
-  lessons: 'lessons',
-  repairs: 'repairs',
-  rentals: 'rentals',
+/// Stock photographs (Unsplash License, credits beside the files), several per
+/// category, shown when an offer has no photo of its own. On a real seller's
+/// offer the card marks it as a sample, so it never passes for their item.
+export const SAMPLE_COUNT: Record<CategoryId | 'goods' | 'services', number> = {
+  design: 4,
+  tech: 4,
+  phones: 2,
+  fashion: 4,
+  food: 4,
+  farm: 4,
+  home: 4,
+  lessons: 4,
+  repairs: 4,
+  rentals: 3,
+  goods: 3,
+  services: 4,
 };
 
-export function samplePhoto(category: CategoryId | null): string {
-  return `/market-samples/${category ? SAMPLE[category] : 'default'}.jpg`;
+function spread(seed: string, count: number): number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return ((h >>> 0) % count) + 1;
+}
+
+/// The same listing always shows the same photograph, and a row of listings
+/// from one category spreads across that category's photographs.
+export function samplePhoto(category: CategoryId | null, seed = '', kind?: 'goods' | 'in_person' | 'remote'): string {
+  const group = category ?? (kind === 'goods' ? 'goods' : 'services');
+  return `/market-samples/${group}-${spread(seed, SAMPLE_COUNT[group])}.jpg`;
 }
 
 /// A listing's category as the server sent it, or none when it is not one of ours.

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import test from 'node:test';
 import { marketShopCopy } from '../../shared/i18n/messages/marketShop';
 import { CATEGORY_IDS } from './marketModel';
-import { CATEGORY_ICON, cardPicture, samplePhoto, sellerLine } from './listingFacts';
+import { CATEGORY_ICON, SAMPLE_COUNT, cardPicture, samplePhoto, sellerLine } from './listingFacts';
 
 /// What a listing card says under its title (view 44, Figma Listing card).
 ///
@@ -20,11 +21,26 @@ test('a seller is a name, then a tag, never an address', () => {
 test('every category has an icon and a sample photo, and so does an offer with none', () => {
   for (const id of CATEGORY_IDS) {
     assert.ok(CATEGORY_ICON[id], id);
-    assert.match(samplePhoto(id), /^\/market-samples\/[a-z]+\.jpg$/);
+    assert.match(samplePhoto(id, 'lst_1'), new RegExp(`^/market-samples/${id}-[1-4]\\.jpg$`));
   }
-  assert.equal(samplePhoto(null), '/market-samples/default.jpg');
-  // Each category shows its own photo, Food included.
-  assert.equal(new Set(CATEGORY_IDS.map(samplePhoto)).size, CATEGORY_IDS.length);
+  assert.match(samplePhoto(null, 'lst_1', 'goods'), /^\/market-samples\/goods-[1-3]\.jpg$/);
+  assert.match(samplePhoto(null, 'lst_1', 'remote'), /^\/market-samples\/services-[1-4]\.jpg$/);
+  assert.match(samplePhoto(null), /^\/market-samples\/services-[1-4]\.jpg$/);
+});
+
+test('a listing keeps its sample photo, and a category spreads across its photos', () => {
+  assert.equal(samplePhoto('fashion', 'lst_abc'), samplePhoto('fashion', 'lst_abc'));
+  const seen = new Set(Array.from({ length: 40 }, (_, i) => samplePhoto('fashion', `lst_${i}`)));
+  assert.equal(seen.size, SAMPLE_COUNT.fashion);
+});
+
+test('every sample photo the picker can return is a file', () => {
+  for (const [group, count] of Object.entries(SAMPLE_COUNT)) {
+    for (let n = 1; n <= count; n++) {
+      const file = `public/market-samples/${group}-${n}.jpg`;
+      assert.ok(existsSync(file), file);
+    }
+  }
 });
 
 /// Owner notes, 3 Nov 2026: a sample shows only when the seller added no photo.

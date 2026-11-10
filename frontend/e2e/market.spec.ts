@@ -123,7 +123,7 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['dark', 'ar']] 
       await expect(cards(page).filter({ hasText: 'Ankara' })).toContainText(t.someone);
     }
     // No photo of its own: a sample photo, marked, never a broken image.
-    await expect(logo.locator('img')).toHaveAttribute('src', '/market-samples/design.jpg');
+    await expect(logo.locator('img')).toHaveAttribute('src', /^\/market-samples\/design-[1-4]\.jpg$/);
     await expect(logo).toContainText(t.samplePhoto);
     // Photos load lazily, so bring the card into view before checking it painted.
     await logo.scrollIntoViewIfNeeded();
