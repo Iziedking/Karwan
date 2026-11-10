@@ -415,6 +415,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/listings/:id/photos/:n" },
   { method: "POST", path: "/api/listings/:id/photos/clear" },
   { method: "GET", path: "/api/listings/:id/quote" },
+  { method: "POST", path: "/api/listings/:id/remove" },
   { method: "POST", path: "/api/listings/:id/report" },
   { method: "GET", path: "/api/listings/fits" },
   { method: "GET", path: "/api/listings/mine" },

@@ -5284,7 +5284,7 @@ export const sw: Messages = {
     loading: 'Inapakia',
     emptyAll: 'Hakuna maoni bado.',
     emptyInFilter: 'Hakuna maoni katika "{filter}".',
-    actions: { setToken: 'Weka tokeni', refresh: 'Onyesha upya', markTriaged: 'Weka alama imepangwa', markResolved: 'Weka alama imetatuliwa', reopen: 'Fungua tena' },
+    actions: { setToken: 'Weka tokeni', refresh: 'Onyesha upya', markTriaged: 'Weka alama imepangwa', markResolved: 'Weka alama imetatuliwa', reopen: 'Fungua tena', removeOffer: 'Ondoa tangazo', confirmRemoveOffer: 'Thibitisha: ondoa tangazo hili sokoni', offerRemoved: 'Tangazo limeondolewa' },
     filters: { all: 'zote', new: 'mpya', triaged: 'imepangwa', resolved: 'imetatuliwa' },
     statusLabels: { new: 'mpya', triaged: 'imepangwa', resolved: 'imetatuliwa' },
     categoryLabels: { bug: 'hitilafu', improvement: 'uboreshaji', praise: 'sifa', other: 'nyingine' },

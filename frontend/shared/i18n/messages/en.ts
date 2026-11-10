@@ -4835,6 +4835,7 @@ interface MessagesShape {
     actions: {
       setToken: string; refresh: string;
       markTriaged: string; markResolved: string; reopen: string;
+      removeOffer: string; confirmRemoveOffer: string; offerRemoved: string;
     };
     filters: { all: string; new: string; triaged: string; resolved: string };
     statusLabels: { new: string; triaged: string; resolved: string };
@@ -10731,7 +10732,7 @@ export const en: MessagesShape = {
     loading: 'Loading',
     emptyAll: 'No feedback yet.',
     emptyInFilter: 'No feedback in "{filter}".',
-    actions: { setToken: 'Set token', refresh: 'Refresh', markTriaged: 'Mark triaged', markResolved: 'Mark resolved', reopen: 'Reopen' },
+    actions: { setToken: 'Set token', refresh: 'Refresh', markTriaged: 'Mark triaged', markResolved: 'Mark resolved', reopen: 'Reopen', removeOffer: 'Remove offer', confirmRemoveOffer: 'Confirm: take this offer off the market', offerRemoved: 'Offer removed' },
     filters: { all: 'all', new: 'new', triaged: 'triaged', resolved: 'resolved' },
     statusLabels: { new: 'new', triaged: 'triaged', resolved: 'resolved' },
     categoryLabels: { bug: 'bug', improvement: 'improvement', praise: 'praise', other: 'other' },

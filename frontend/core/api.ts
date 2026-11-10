@@ -3656,6 +3656,12 @@ export const api = {
     }),
   listFeedback: () =>
     json<{ feedback: FeedbackItem[] }>('/api/feedback', { headers: adminHeaders() }),
+  /// The team takes one reported offer off the market.
+  removeListingByTeam: (listingId: string) =>
+    json<{ ok: true; already: boolean }>(`/api/listings/${listingId}/remove`, {
+      method: 'POST',
+      headers: adminHeaders(),
+    }),
   setFeedbackStatus: (id: string, status: FeedbackStatus) =>
     json<{ ok: true; status: FeedbackStatus }>(`/api/feedback/${id}/status`, {
       method: 'POST',

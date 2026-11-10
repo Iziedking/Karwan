@@ -5287,7 +5287,7 @@ export const fr: Messages = {
     loading: 'Chargement',
     emptyAll: 'Aucun retour pour le moment.',
     emptyInFilter: 'Aucun retour dans "{filter}".',
-    actions: { setToken: 'Définir le jeton', refresh: 'Actualiser', markTriaged: 'Marquer trié', markResolved: 'Marquer résolu', reopen: 'Rouvrir' },
+    actions: { setToken: 'Définir le jeton', refresh: 'Actualiser', markTriaged: 'Marquer trié', markResolved: 'Marquer résolu', reopen: 'Rouvrir', removeOffer: 'Retirer l’offre', confirmRemoveOffer: 'Confirmer : retirer cette offre du marché', offerRemoved: 'Offre retirée' },
     filters: { all: 'tout', new: 'nouveau', triaged: 'trié', resolved: 'résolu' },
     statusLabels: { new: 'nouveau', triaged: 'trié', resolved: 'résolu' },
     categoryLabels: { bug: 'bogue', improvement: 'amélioration', praise: 'éloge', other: 'autre' },

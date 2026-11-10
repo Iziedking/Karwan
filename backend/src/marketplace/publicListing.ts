@@ -7,9 +7,10 @@ import { categoryOf, type CategoryId } from '../listings/categories.js';
 /// because the list has no use for it; it is not a secret, since every read
 /// keyed by a job id checks the signed session (jobIdReadGates.test.ts). The
 /// seed key stays private too; the market only learns that the row is example
-/// stock Karwan seeded, so the card can say so. Photos go out as links, so
+/// stock Karwan seeded, so the card can say so. Who on the team removed an
+/// offer stays private as well. Photos go out as links, so
 /// the list stays small and each image caches on its own.
-export function publicListing(l: Listing): Omit<Listing, 'negotiationMaxDecreasePct' | 'matchedJobId' | 'seedKey' | 'category' | 'orderJobId'> & { example: boolean; photoUrls: string[]; category: CategoryId | null } {
-  const { negotiationMaxDecreasePct: _floor, matchedJobId: _job, orderJobId: _order, seedKey, ...rest } = l;
+export function publicListing(l: Listing): Omit<Listing, 'negotiationMaxDecreasePct' | 'matchedJobId' | 'seedKey' | 'category' | 'orderJobId' | 'removedBy'> & { example: boolean; photoUrls: string[]; category: CategoryId | null } {
+  const { negotiationMaxDecreasePct: _floor, matchedJobId: _job, orderJobId: _order, removedBy: _by, seedKey, ...rest } = l;
   return { ...rest, example: Boolean(seedKey), photoUrls: photoUrls(l), category: categoryOf(l) };
 }

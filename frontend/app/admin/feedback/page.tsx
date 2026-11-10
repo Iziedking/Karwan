@@ -13,6 +13,8 @@ import { adminApiUrl } from '@/shared/admin/adminDesk';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
+import { reportedListingId } from '@/features/admin/reportedOffer';
+
 type AdminFeedbackCopy = Messages['adminFeedbackPage'];
 
 type Filter = 'all' | FeedbackStatus;
@@ -153,6 +155,22 @@ export default function AdminFeedbackPage() {
   const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   const paged = visible.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  /// Takes the reported offer off the market. True when it is gone.
+  async function removeOffer(listingId: string): Promise<boolean> {
+    try {
+      await api.removeListingByTeam(listingId);
+      return true;
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        setAdminToken(null);
+        setError(t.errors.tokenRejected);
+      } else {
+        setError((err as Error).message);
+      }
+      return false;
+    }
+  }
+
   async function changeStatus(id: string, status: FeedbackStatus) {
     setBusyId(id);
     try {
@@ -280,6 +298,7 @@ export default function AdminFeedbackPage() {
               item={it}
               busy={busyId === it.id}
               onStatus={(s) => void changeStatus(it.id, s)}
+              onRemoveOffer={removeOffer}
               onOpenShot={(url) => setLightbox(url)}
               statusLabel={statusLabels[it.status]}
               categoryLabel={categoryLabels[it.category]}
@@ -338,6 +357,7 @@ function FeedbackCard({
   item,
   busy,
   onStatus,
+  onRemoveOffer,
   onOpenShot,
   statusLabel,
   categoryLabel,
@@ -347,12 +367,23 @@ function FeedbackCard({
   item: FeedbackItem;
   busy: boolean;
   onStatus: (s: FeedbackStatus) => void;
+  onRemoveOffer: (listingId: string) => Promise<boolean>;
   onOpenShot: (url: string) => void;
   statusLabel: string;
   categoryLabel: string;
   metaLabels: AdminFeedbackCopy['metaLabels'];
   actionLabels: AdminFeedbackCopy['actions'];
 }) {
+  // A reported offer can be taken off the market from its report. The first
+  // press asks, the second removes.
+  const listingId = reportedListingId(item.context?.url);
+  const [removal, setRemoval] = useState<'idle' | 'asking' | 'working' | 'done'>('idle');
+  const pressRemove = async () => {
+    if (!listingId) return;
+    if (removal === 'idle') return setRemoval('asking');
+    setRemoval('working');
+    setRemoval((await onRemoveOffer(listingId)) ? 'done' : 'idle');
+  };
   return (
     <div
       className="bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5"
@@ -416,6 +447,16 @@ function FeedbackCard({
         )}
         {item.status !== 'new' && (
           <StatusButton label={actionLabels.reopen} onClick={() => onStatus('new')} busy={busy} muted />
+        )}
+        {listingId && removal !== 'done' && (
+          <StatusButton
+            label={removal === 'idle' ? actionLabels.removeOffer : actionLabels.confirmRemoveOffer}
+            onClick={() => void pressRemove()}
+            busy={busy || removal === 'working'}
+          />
+        )}
+        {removal === 'done' && (
+          <span role="status" className="mono self-center text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)]">{actionLabels.offerRemoved}</span>
         )}
       </div>
     </div>

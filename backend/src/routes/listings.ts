@@ -20,6 +20,7 @@ import {
   markListingMatched,
   listingFloor,
   patchListing,
+  removeListingByTeam,
   setListingPhotos,
   type Listing,
 } from '../db/listings.js';
@@ -37,7 +38,7 @@ import { budgetRange } from '../agents/budgetRange.js';
 import { marketHeat } from '../agents/marketDemand.js';
 import { getCachedMarketPrice } from '../x402/externalClient.js';
 import { config } from '../config.js';
-import { requireAdmin } from '../middleware/adminAuth.js';
+import { deskPrincipal, requireAdmin } from '../middleware/adminAuth.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { createFeedback } from '../db/feedback.js';
 import { notifyOperator } from './feedback.js';
@@ -351,6 +352,26 @@ listingsRoutes.post('/:id/photos/clear', requireAdmin, (c) => {
   setListingPhotos(listing.id, []);
   logger.info({ listingId: listing.id }, 'listing photos cleared by admin');
   return c.json({ ok: true });
+});
+
+/// The team takes one offer off the market, after a report or when it breaks
+/// the rules. Nothing else the seller has is touched, and deals already made
+/// on the offer carry on.
+listingsRoutes.post('/:id/remove', requireAdmin, (c) => {
+  const id = c.req.param('id') ?? '';
+  const principal = deskPrincipal(c);
+  const by = principal?.email ?? principal?.name ?? 'team';
+  const result = removeListingByTeam(id, by);
+  if (!result) return c.json({ error: 'listing not found' }, 404);
+  if (!result.already) {
+    bus.emitEvent({
+      type: 'listing.cancelled',
+      actor: 'platform',
+      payload: { listingId: id, seller: result.listing.sellerUser, title: result.listing.title, removedByTeam: true },
+    });
+    logger.info({ listingId: id, seller: result.listing.sellerUser, by }, 'listing removed by the team');
+  }
+  return c.json({ ok: true, already: result.already });
 });
 
 /// Seller cancels their own listing. Allowed only when it hasn't matched yet

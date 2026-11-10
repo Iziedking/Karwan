@@ -5285,7 +5285,7 @@ export const hi: Messages = {
     loading: 'लोड हो रहा है',
     emptyAll: 'अभी तक कोई फीडबैक नहीं.',
     emptyInFilter: '"{filter}" में कोई फीडबैक नहीं.',
-    actions: { setToken: 'टोकन सेट करें', refresh: 'रिफ्रेश करें', markTriaged: 'ट्राएज्ड के रूप में चिह्नित करें', markResolved: 'हल किया गया चिह्नित करें', reopen: 'फिर से खोलें' },
+    actions: { setToken: 'टोकन सेट करें', refresh: 'रिफ्रेश करें', markTriaged: 'ट्राएज्ड के रूप में चिह्नित करें', markResolved: 'हल किया गया चिह्नित करें', reopen: 'फिर से खोलें', removeOffer: 'ऑफ़र हटाएं', confirmRemoveOffer: 'पुष्टि करें: यह ऑफ़र मार्केट से हटाएं', offerRemoved: 'ऑफ़र हटाया गया' },
     filters: { all: 'सभी', new: 'नया', triaged: 'ट्राएज्ड', resolved: 'हल किया गया' },
     statusLabels: { new: 'नया', triaged: 'ट्राएज्ड', resolved: 'हल किया गया' },
     categoryLabels: { bug: 'बग', improvement: 'सुधार', praise: 'प्रशंसा', other: 'अन्य' },

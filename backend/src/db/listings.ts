@@ -79,6 +79,11 @@ export interface Listing {
   /// Who can see it (view 53): on the market (absent), or only buyer agents
   /// and anyone with its link.
   visibility?: 'market' | 'agents';
+  /// Set when the team took the offer off the market. The offer is closed like
+  /// a withdrawn one; deals already made on it carry on.
+  removedByTeamAt?: number;
+  /// Who on the team removed it. Internal; never in a public read.
+  removedBy?: string;
 }
 
 // Listings are off-chain and have no chain event to reseed from, so without
@@ -268,6 +273,21 @@ export function cancelListing(id: string): Listing | null {
   store.set(id, l);
   persist();
   return l;
+}
+
+/// The team takes one offer off the market: it closes like a withdrawn offer
+/// and keeps who removed it. An offer already closed is left as it is.
+export function removeListingByTeam(id: string, by: string): { listing: Listing; already: boolean } | null {
+  const l = store.get(id);
+  if (!l) return null;
+  if (l.cancelledAt) return { listing: l, already: true };
+  const now = Date.now();
+  l.cancelledAt = now;
+  l.removedByTeamAt = now;
+  l.removedBy = by;
+  store.set(id, l);
+  persist();
+  return { listing: l, already: false };
 }
 
 /// Listing floor for negotiation: counters below this should be rejected.

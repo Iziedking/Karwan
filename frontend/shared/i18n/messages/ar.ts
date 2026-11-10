@@ -5287,7 +5287,7 @@ export const ar: Messages = {
     loading: 'جارٍ التحميل',
     emptyAll: 'لا توجد ملاحظات بعد.',
     emptyInFilter: 'لا توجد ملاحظات في "{filter}".',
-    actions: { setToken: 'تعيين الرمز', refresh: 'تحديث', markTriaged: 'تحديد كمصنف', markResolved: 'تحديد كمحلول', reopen: 'إعادة فتح' },
+    actions: { setToken: 'تعيين الرمز', refresh: 'تحديث', markTriaged: 'تحديد كمصنف', markResolved: 'تحديد كمحلول', reopen: 'إعادة فتح', removeOffer: 'إزالة العرض', confirmRemoveOffer: 'تأكيد: إزالة هذا العرض من السوق', offerRemoved: 'تمت إزالة العرض' },
     filters: { all: 'الكل', new: 'جديد', triaged: 'مصنف', resolved: 'محلول' },
     statusLabels: { new: 'جديد', triaged: 'مصنف', resolved: 'محلول' },
     categoryLabels: { bug: 'خلل', improvement: 'تحسين', praise: 'إشادة', other: 'أخرى' },

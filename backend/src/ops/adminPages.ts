@@ -33,6 +33,7 @@ export const ADMIN_PAGES: AdminPage[] = [
       r('\\w+ /api/admin/account-deletions(/.*)?'),
       r('\\w+ /api/admin/verification(/.*)?'),
       r(`POST /api/listings/${ANY}/photos/clear`),
+      r(`POST /api/listings/${ANY}/remove`),
     ],
   },
   { key: 'business', label: 'Business', routes: [r('\\w+ /api/admin/business(/.*)?'), r('POST /api/financier/admin/review')] },
