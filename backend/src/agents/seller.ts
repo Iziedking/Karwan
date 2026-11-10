@@ -32,6 +32,7 @@ import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import { paysForResearch } from './suggestion.js';
+import { agentIsOn } from './agentPower.js';
 import { getRecord, putRecord } from '../db/evidence.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
@@ -1740,6 +1741,14 @@ async function runCounterEvaluation(
         seller.minBudgetUsdc * orderSize(seller, active.jobContext),
         Number((originalBid * (1 - PROFILE_MAX_DECREASE_PCT / 100)).toFixed(2)),
       );
+  // View 75: switched off, the agent does not bargain. The counter is put to
+  // the person before anything is researched or paid for: they take the
+  // buyer's price, hold at their own, or walk away.
+  if (!(await agentIsOn(seller.userAddress))) {
+    active.lastBuyerPrice = buyerCounterPrice;
+    await askAtFloor(seller, active, buyerCounterPrice, profileFloor, 'last-price-passed');
+    return;
+  }
   // No seller maximum (view 41): the agent never counters above what it opened at.
   const maxAcceptable = active.listingAskingPriceUsdc ?? Math.max(originalBid, seller.usualPriceUsdc ?? 0);
 
