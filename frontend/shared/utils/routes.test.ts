@@ -22,6 +22,12 @@ test('every page but Home has a Back, the sidebar sections included', () => {
   for (const page of ['/activity', '/market', '/financier', '/profile']) assert.equal(getProductBackHref(page), '/app', page);
 });
 
+test('a visitor who is not signed in has no Back on the market, their first page (view 74)', () => {
+  assert.equal(getProductBackHref('/market', false), null);
+  assert.equal(getProductBackHref('/market?side=sell', false), null);
+  assert.equal(getProductBackHref('/listings/lst_1', false), '/market');
+});
+
 test('Deals is a place of its own and a deal goes back to it', () => {
   assert.equal(getProductBackHref('/deals'), '/app');
   assert.equal(getProductBackHref(`/deals/0x${'ab'.repeat(32)}`), '/deals');

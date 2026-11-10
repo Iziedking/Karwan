@@ -18,6 +18,16 @@ test('a seller is a name, then a tag, never an address', () => {
   assert.equal(sellerLine(null, t), 'A Karwan seller');
 });
 
+test('a seller with no name reads as the kind of seller their category makes them', () => {
+  assert.equal(sellerLine(null, t, 'design'), 'A designer');
+  assert.equal(sellerLine(null, t, 'farm'), 'A farmer');
+  assert.equal(sellerLine(null, t, null), 'A Karwan seller');
+  assert.equal(sellerLine({ name: null, tag: 'ada', verified: false, rating: { kind: 'new', count: 0 }, country: null }, t, 'design'), '@ada');
+  for (const copy of Object.values(marketShopCopy)) {
+    for (const id of CATEGORY_IDS) assert.ok(copy.sellerKinds[id], id);
+  }
+});
+
 test('every category has an icon and a sample photo, and so does an offer with none', () => {
   for (const id of CATEGORY_IDS) {
     assert.ok(CATEGORY_ICON[id], id);

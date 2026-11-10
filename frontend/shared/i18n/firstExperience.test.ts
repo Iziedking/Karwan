@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MESSAGES } from './messages/all';
 import { landingCopy } from './messages/landing';
+import { marketShopCopy } from './messages/marketShop';
 
 /// The first words a new person reads say what Karwan does and name no chain,
 /// token or wallet (view 74).
@@ -32,7 +33,11 @@ for (const locale of Object.keys(MESSAGES) as Array<keyof typeof MESSAGES>) {
       'waitlist.lookFirst': signup.waitlist.lookFirst,
       'waitlist.seeDemo': signup.waitlist.seeDemo,
       'waitlist.seeDemoNote': signup.waitlist.seeDemoNote,
+      'market.promise': marketShopCopy[locale].promise,
+      'market.promiseNote': marketShopCopy[locale].promiseNote,
     };
+    assert.ok(marketShopCopy[locale].promise.length > 15);
+    assert.doesNotMatch(marketShopCopy[locale].promise + marketShopCopy[locale].promiseNote, /—/);
     const found = Object.entries(first).filter(([, text]) => CHAIN_WORDS.test(text)).map(([key, text]) => `${key}: ${text}`);
     assert.deepEqual(found, []);
   });

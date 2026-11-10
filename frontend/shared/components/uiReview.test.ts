@@ -120,7 +120,7 @@ test('every signed-in page but Home has a Back (owner, 23 Oct)', () => {
     assert.notEqual(getProductBackHref(root, true), null, root);
   }
   assert.equal(getProductBackHref('/profile/wallets', true), '/profile');
-  assert.equal(getProductBackHref('/market', false), '/');
+  assert.equal(getProductBackHref('/market', false), null);
   assert.notEqual(getProductBackHref('/activity/receipt/1', true), null);
 });
 

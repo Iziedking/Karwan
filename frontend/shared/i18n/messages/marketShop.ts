@@ -14,6 +14,9 @@ export interface MarketShopCopy {
   seeAll: string;
   results: string;
   protected: string;
+  /// The market's promise before sign-in, and the note behind its (i) (view 74).
+  promise: string;
+  promiseNote: string;
   samplePhoto: string;
   /// A request matched or agreed stays on the market, marked (view 53).
   requestStates: { negotiating: string; agreed: string };
@@ -33,6 +36,8 @@ export interface MarketShopCopy {
   };
   usdc: string;
   someone: string;
+  /// A seller with no name yet reads as the kind of seller their category makes them.
+  sellerKinds: Record<'design' | 'tech' | 'phones' | 'fashion' | 'food' | 'farm' | 'home' | 'lessons' | 'repairs' | 'rentals', string>;
   verified: string;
   example: string;
   business: string;
@@ -100,6 +105,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     seeAll: 'See all',
     results: 'Results',
     protected: 'Protected',
+    promise: 'Your money is held until you get what you paid for',
+    promiseNote: 'Karwan holds your payment, so the seller does not get it at once. It is released under the rules you both agree, and you can read them before you pay.',
     samplePhoto: 'Sample photo',
     requestStates: { negotiating: 'In negotiation', agreed: 'Agreed' },
     whoCanSee: {
@@ -117,6 +124,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     },
     usdc: 'USDC',
     someone: 'A Karwan seller',
+    sellerKinds: { design: 'A designer', tech: 'A developer', phones: 'An electronics seller', fashion: 'A fashion seller', food: 'A food seller', farm: 'A farmer', home: 'A home goods seller', lessons: 'A tutor', repairs: 'A repairer', rentals: 'A rental owner' },
     verified: 'Verified',
     example: 'Example',
     business: 'Business',
@@ -179,6 +187,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     seeAll: 'Tout voir',
     results: 'Résultats',
     protected: 'Protégé',
+    promise: 'Votre argent est gardé jusqu’à ce que vous receviez ce que vous avez payé',
+    promiseNote: 'Karwan garde votre paiement, le vendeur ne le reçoit donc pas tout de suite. Il est versé selon les règles que vous acceptez tous les deux, et vous pouvez les lire avant de payer.',
     samplePhoto: 'Photo d’exemple',
     requestStates: { negotiating: 'En négociation', agreed: 'Accord conclu' },
     whoCanSee: {
@@ -196,6 +206,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     },
     usdc: 'USDC',
     someone: 'Un vendeur Karwan',
+    sellerKinds: { design: 'Un designer', tech: 'Un développeur', phones: 'Un vendeur d’électronique', fashion: 'Un vendeur de mode', food: 'Un vendeur de produits alimentaires', farm: 'Un agriculteur', home: 'Un vendeur d’articles pour la maison', lessons: 'Un professeur', repairs: 'Un réparateur', rentals: 'Un loueur' },
     verified: 'Vérifié',
     example: 'Exemple',
     business: 'Entreprise',
@@ -258,6 +269,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     seeAll: 'عرض الكل',
     results: 'النتائج',
     protected: 'محمي',
+    promise: 'يُحفظ مالك حتى تستلم ما دفعت ثمنه',
+    promiseNote: 'يحتفظ Karwan بدفعتك، فلا يستلمها البائع فورًا. تُصرف وفق القواعد التي تتفقان عليها، ويمكنك قراءتها قبل الدفع.',
     samplePhoto: 'صورة توضيحية',
     requestStates: { negotiating: 'قيد التفاوض', agreed: 'تم الاتفاق' },
     whoCanSee: {
@@ -275,6 +288,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     },
     usdc: 'USDC',
     someone: 'بائع على Karwan',
+    sellerKinds: { design: 'مصمم', tech: 'مطوّر', phones: 'بائع إلكترونيات', fashion: 'بائع أزياء', food: 'بائع طعام', farm: 'مزارع', home: 'بائع مستلزمات منزلية', lessons: 'مدرّس', repairs: 'فني تصليح', rentals: 'مؤجّر' },
     verified: 'موثَّق',
     example: 'مثال',
     business: 'شركة',
@@ -337,6 +351,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     seeAll: 'सभी देखें',
     results: 'नतीजे',
     protected: 'सुरक्षित',
+    promise: 'आपका पैसा तब तक रखा जाता है जब तक आपको वह नहीं मिलता जिसके लिए आपने भुगतान किया',
+    promiseNote: 'Karwan आपका भुगतान अपने पास रखता है, इसलिए विक्रेता को यह तुरंत नहीं मिलता। यह उन नियमों के अनुसार जारी होता है जिन पर आप दोनों सहमत होते हैं, और आप भुगतान से पहले उन्हें पढ़ सकते हैं।',
     samplePhoto: 'नमूना फ़ोटो',
     requestStates: { negotiating: 'बातचीत में', agreed: 'सहमति हो गई' },
     whoCanSee: {
@@ -354,6 +370,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     },
     usdc: 'USDC',
     someone: 'Karwan का एक विक्रेता',
+    sellerKinds: { design: 'एक डिज़ाइनर', tech: 'एक डेवलपर', phones: 'इलेक्ट्रॉनिक्स विक्रेता', fashion: 'फ़ैशन विक्रेता', food: 'खाने का विक्रेता', farm: 'एक किसान', home: 'घरेलू सामान विक्रेता', lessons: 'एक शिक्षक', repairs: 'एक मिस्त्री', rentals: 'किराये पर देने वाला' },
     verified: 'सत्यापित',
     example: 'उदाहरण',
     business: 'व्यवसाय',
@@ -416,6 +433,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     seeAll: 'Ona zote',
     results: 'Matokeo',
     protected: 'Imelindwa',
+    promise: 'Pesa zako zinashikiliwa hadi upate ulicholipia',
+    promiseNote: 'Karwan inashikilia malipo yako, kwa hiyo muuzaji hayapati mara moja. Yanatolewa kwa masharti mnayokubaliana nyote wawili, na unaweza kuyasoma kabla ya kulipa.',
     samplePhoto: 'Picha ya mfano',
     requestStates: { negotiating: 'Kwenye mazungumzo', agreed: 'Imekubaliwa' },
     whoCanSee: {
@@ -433,6 +452,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     },
     usdc: 'USDC',
     someone: 'Muuzaji wa Karwan',
+    sellerKinds: { design: 'Mbunifu', tech: 'Msanidi programu', phones: 'Muuzaji wa vifaa vya kielektroniki', fashion: 'Muuzaji wa mitindo', food: 'Muuzaji wa chakula', farm: 'Mkulima', home: 'Muuzaji wa vifaa vya nyumbani', lessons: 'Mwalimu', repairs: 'Fundi', rentals: 'Mkodishaji' },
     verified: 'Amethibitishwa',
     example: 'Mfano',
     business: 'Biashara',

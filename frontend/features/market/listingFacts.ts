@@ -5,9 +5,10 @@ import { CATEGORY_IDS, type CategoryId } from './marketModel';
 
 /// What a listing card says under its title (view 44, Figma Listing card).
 
-/// Names, never addresses (spec 4.9).
-export function sellerLine(seller: ListingSeller | null, t: MarketShopCopy): string {
-  return seller?.name || (seller?.tag ? `@${seller.tag}` : t.someone);
+/// Names, never addresses (spec 4.9). With no name or tag, the kind of seller
+/// the listing's category makes them.
+export function sellerLine(seller: ListingSeller | null, t: MarketShopCopy, category?: CategoryId | null): string {
+  return seller?.name || (seller?.tag ? `@${seller.tag}` : category ? t.sellerKinds[category] : t.someone);
 }
 
 export const CATEGORY_ICON: Record<CategoryId, IconName> = {

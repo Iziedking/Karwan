@@ -57,7 +57,7 @@ export function ListingCard({ card }: { card: DiscoveryCard }) {
       <span dir="auto" className="mt-3 line-clamp-2 text-[15px] font-medium leading-[1.4] text-[var(--ink)]">{card.title}</span>
       <Price usdc={card.priceUsdc} className="mt-1 text-[15px] font-semibold text-[var(--ink)]" />
       <span className="mt-1 flex min-w-0 items-center gap-1 text-[13px] text-[var(--ink-secondary)]">
-        <span dir="auto" className="truncate">{sellerLine(card.seller, t)}</span>
+        <span dir="auto" className="truncate">{sellerLine(card.seller, t, card.category)}</span>
         {card.seller?.verified ? (
           <span className="shrink-0 text-[var(--ink)]" role="img" aria-label={t.verified}>
             <Icon name="badge-check" size={16} />

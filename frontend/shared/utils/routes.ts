@@ -73,6 +73,8 @@ export function getProductBackHref(
     const id = pathname.split('/')[2];
     return dealsAvailable ? (id ? `/listings/${id}` : '/market') : home;
   }
+  // Before sign-in the market is the first page of the demo, so it has no Back (view 74).
+  if (pathname === '/market' && !isAuthenticated) return null;
   if (matchesRoute(pathname, '/market')) return isAuthenticated ? home : '/';
   if (matchesRoute(pathname, '/onboarding')) return '/';
   if (matchesRoute(pathname, '/cashout')) return isAuthenticated ? home : '/';

@@ -11,6 +11,7 @@ import { Band, FullBleed } from '@/shared/components/Bands';
 import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
 import { ADDRESS_CHANGED } from '@/shared/components/TaskEntryLink';
+import { Hint } from '@/shared/components/Hint';
 import { Icon } from '@/shared/components/Icon';
 import { Skeleton } from '@/shared/components/Skeleton';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -93,6 +94,13 @@ function Shop() {
         <Band tone="light" compact>
           <header className="pt-2 sm:pt-3">
             <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.heroTitle}</h1>
+            {isAuthenticated ? null : (
+              <p data-market-promise className="mt-2 flex items-center gap-2 text-[15px] font-medium leading-[1.4] text-[var(--ink-secondary)]">
+                <span className="shrink-0 text-[var(--ink)]"><Icon name="shield-check" size={20} /></span>
+                <span>{t.promise}</span>
+                <Hint side="bottom">{t.promiseNote}</Hint>
+              </p>
+            )}
           </header>
           {askTradesAs && address ? <div className="mt-4"><EntryQuestion address={address} /></div> : null}
           <div className="mt-5 max-w-[480px]">
