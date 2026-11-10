@@ -19,7 +19,8 @@ import { personName, shortAddress } from '../channels/personName.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { recordSetupCard } from './recordCard.js';
 import { getListing, listingStatus } from '../db/listings.js';
-import { listingHeldByOrder, listingOrderTerms } from '../deals/listingOrder.js';
+import { listingOrderTerms } from '../deals/listingOrder.js';
+import { listingOrderWait } from '../deals/listingOrderLive.js';
 import { createSchema } from '../deals/createSchema.js';
 
 const USDC_DECIMALS = 6;
@@ -185,7 +186,7 @@ ${partsLines(drafted)}`;
 
     order_listing: tool({
       description:
-        "Order an offer from the market exactly as it is listed (its price, delivery days and parts), the way its Order button does. Shows one card; on Confirm the deal is made and the seller's agent accepts it at once because it is the listing as it stands, then pay it with pay_into_escrow. Use when the user wants to buy a listing they found (search_market gives the id). To change the price or the terms, use start_protected_deal instead; then the seller decides.",
+        "Order an offer from the market exactly as it is listed (its price, delivery days and parts), the way its Order button does. Shows one card; on Confirm the deal is made and the seller's agent accepts it at once because it is the listing as it stands, then pay it with pay_into_escrow. When the result says waitsForSeller, the seller decides first (they look at each order themselves, or someone already ordered the one item): say so, and say nothing is paid until they accept. Use when the user wants to buy a listing they found (search_market gives the id). To change the price or the terms, use start_protected_deal instead; then the seller decides.",
       inputSchema: z.object({ listingId: z.string().regex(/^lst_[0-9a-f]{16}$/) }),
       execute: async ({ listingId }) => {
         try {
@@ -204,13 +205,15 @@ ${partsLines(drafted)}`;
           const body = parsed.data;
           const sellerLabel = personName(await getProfile(listing.sellerUser).catch(() => null), 'the seller');
           const pays = await buyerPays(body.dealAmountUsdc, feeBps).catch(() => null);
-          const held = await listingHeldByOrder(listing, getDeal, Date.now());
+          const wait = await listingOrderWait(listing, Date.now());
           push({
             kind: 'confirm',
             id: `create_direct_deal:${listingId}:${confirmNonce()}`,
             intent: 'create_direct_deal',
             title: `Order ${listing.title.slice(0, 60)} from ${sellerLabel}`,
-            summary: held
+            summary: wait === 'asks'
+              ? `${sellerLabel} looks at each order before accepting. Nothing is paid until they accept.`
+              : wait === 'held'
               ? `Someone has already ordered this, so ${sellerLabel} decides on your order. Nothing is paid until they accept.`
               : "This is the offer as listed, so the seller's agent accepts it at once. You pay it in next; Karwan holds the money until you release it.",
             fields: dealCardFields(body, sellerLabel, pays).map((row) =>
@@ -220,7 +223,7 @@ ${partsLines(drafted)}`;
             confirmLabel: 'Order',
             cancelLabel: 'Not now',
           });
-          return { ok: true, shown: 'order card', listingId, waitsForSeller: held };
+          return { ok: true, shown: 'order card', listingId, waitsForSeller: wait !== null, ...(wait ? { waitReason: wait } : {}) };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant order_listing failed');
           return { error: 'Could not prepare that order right now.' };

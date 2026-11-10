@@ -51,3 +51,29 @@ test('the quote says when an order would wait for the seller, and never shows th
   const list = (await (await listingsRoutes.request('/')).json()) as { listings: Array<Record<string, unknown>> };
   assert.equal(list.listings.some((row) => 'orderJobId' in row), false);
 });
+
+test('the quote says a seller on Ask me first, or with the agent off, decides first', async () => {
+  const { config } = await import('../config.js');
+  const { upsertProfile } = await import('../db/profiles.js');
+  const asks = '0x00000000000000000000000000000000000000c1';
+  const off = '0x00000000000000000000000000000000000000d1';
+  await upsertProfile({ address: asks, role: 'seller', displayName: 'Cara', agentPrefs: { agentMode: 'ask' } } as never);
+  await upsertProfile({ address: off, role: 'seller', displayName: 'Dele', agentPrefs: { agentMode: 'agree', agentOn: false } } as never);
+  const a = createListing({ sellerUser: asks, sellerAgent: '0x00000000000000000000000000000000000000c2', title: 'Copy', description: 'Five pages.', askingPriceUsdc: 80 });
+  const b = createListing({ sellerUser: off, sellerAgent: '0x00000000000000000000000000000000000000d2', title: 'Edit', description: 'One video.', askingPriceUsdc: 60 });
+  const c = createListing({ ...seller, title: 'Logo', description: 'One logo.', askingPriceUsdc: 40 });
+  const read = async (id: string) => (await (await listingsRoutes.request(`/${id}/quote`)).json()) as { waitsForSeller: boolean; waitReason?: string };
+  const before = config.SELLER_ASKED;
+  try {
+    config.SELLER_ASKED = false;
+    assert.equal((await read(a.id)).waitsForSeller, false);
+    config.SELLER_ASKED = true;
+    assert.deepEqual([(await read(a.id)).waitsForSeller, (await read(a.id)).waitReason], [true, 'asks']);
+    assert.deepEqual([(await read(b.id)).waitsForSeller, (await read(b.id)).waitReason], [true, 'asks']);
+    const plain = await read(c.id);
+    assert.equal(plain.waitsForSeller, false);
+    assert.equal('waitReason' in plain, false);
+  } finally {
+    config.SELLER_ASKED = before;
+  }
+});

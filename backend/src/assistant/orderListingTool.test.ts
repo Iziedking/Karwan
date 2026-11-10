@@ -72,3 +72,30 @@ test('a goods offer another open order holds is still ordered, but the card says
   assert.equal(out.waitsForSeller, true);
   assert.match((actions[0] as ConfirmAction).summary ?? '', /already ordered this/);
 });
+
+test('a seller on Ask me first is asked about an order, once that is switched on', async () => {
+  const { config } = await import('../config.js');
+  const CARA = '0x00000000000000000000000000000000000000c1';
+  await upsertProfile({ address: CARA, role: 'seller', displayName: 'Cara Obi', handle: 'cara_obi', agentPrefs: { agentMode: 'ask' } } as never);
+  const l = createListing({ sellerUser: CARA, sellerAgent: '0x00000000000000000000000000000000000000c2', title: 'Website copy', description: 'Five pages.', askingPriceUsdc: 80 });
+  const run = async () => {
+    const actions: AssistantAction[] = [];
+    const out = (await directDealTools(ADA, actions, undefined, fee).order_listing.execute!({ listingId: l.id }, call)) as { waitsForSeller?: boolean; waitReason?: string };
+    return { out, card: actions[0] as ConfirmAction };
+  };
+  const before = config.SELLER_ASKED;
+  try {
+    config.SELLER_ASKED = false;
+    const off = await run();
+    assert.equal(off.out.waitsForSeller, false);
+    assert.match(off.card.summary ?? '', /accepts it at once/);
+    config.SELLER_ASKED = true;
+    const on = await run();
+    assert.equal(on.out.waitsForSeller, true);
+    assert.equal(on.out.waitReason, 'asks');
+    assert.match(on.card.summary ?? '', /looks at each order before accepting/);
+    assert.match(on.card.summary ?? '', /Nothing is paid until they accept/);
+  } finally {
+    config.SELLER_ASKED = before;
+  }
+});

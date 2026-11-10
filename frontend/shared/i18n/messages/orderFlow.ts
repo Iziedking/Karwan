@@ -56,6 +56,7 @@ export interface OrderFlowCopy {
   failed: string;
   totalChanged: string;
   heldNote: string;
+  asksNote: string;
   askSeller: string;
   loadFailed: string;
   retry: string;
@@ -117,6 +118,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     failed: "Payment could not be confirmed. Check your deals and activity before trying again.",
     totalChanged: 'The total is now {amount} USDC. Check it and pay again.',
     heldNote: 'Someone has already ordered this. {name} decides on your order, and you pay only after they accept.',
+    asksNote: '{name} looks at each order before accepting. You pay only after they accept.',
     askSeller: 'Send your order to {name}',
     loadFailed: 'This order could not load.',
     retry: 'Try again',
@@ -176,6 +178,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     failed: "Le paiement n’a pas pu être confirmé. Vérifiez vos accords et votre activité avant de réessayer.",
     totalChanged: 'Le total est maintenant de {amount} USDC. Vérifiez-le et payez à nouveau.',
     heldNote: 'Quelqu’un a déjà commandé cet article. {name} décide pour votre commande, et vous payez seulement après son accord.',
+    asksNote: '{name} examine chaque commande avant d’accepter. Vous payez seulement après son accord.',
     askSeller: 'Envoyer votre commande à {name}',
     loadFailed: 'Cette commande n’a pas pu se charger.',
     retry: 'Réessayer',
@@ -235,6 +238,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     failed: "تعذّر تأكيد الدفع. راجع صفقاتك وسجل النشاط قبل المحاولة مجددًا.",
     totalChanged: 'أصبح الإجمالي {amount} USDC. تحقق منه وادفع مرة أخرى.',
     heldNote: 'طلب شخص آخر هذا بالفعل. يقرّر {name} بشأن طلبك، ولا تدفع إلا بعد موافقته.',
+    asksNote: 'يراجع {name} كل طلب قبل قبوله. لا تدفع إلا بعد موافقته.',
     askSeller: 'أرسل طلبك إلى {name}',
     loadFailed: 'تعذّر تحميل هذا الطلب.',
     retry: 'حاول مرة أخرى',
@@ -294,6 +298,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     failed: "भुगतान की पुष्टि नहीं हो सकी। फिर से कोशिश करने से पहले अपने सौदे और गतिविधि जाँचें।",
     totalChanged: 'कुल राशि अब {amount} USDC है। इसे जाँचें और फिर से भुगतान करें।',
     heldNote: 'किसी ने इसे पहले ही ऑर्डर कर दिया है। आपके ऑर्डर पर {name} फ़ैसला करेंगे, और उनकी स्वीकृति के बाद ही आप भुगतान करेंगे।',
+    asksNote: '{name} हर ऑर्डर को स्वीकार करने से पहले देखते हैं। उनकी स्वीकृति के बाद ही आप भुगतान करेंगे।',
     askSeller: 'अपना ऑर्डर {name} को भेजें',
     loadFailed: 'यह ऑर्डर लोड नहीं हो सका।',
     retry: 'फिर कोशिश करें',
@@ -353,6 +358,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     failed: "Malipo hayakuweza kuthibitishwa. Kagua makubaliano na shughuli zako kabla ya kujaribu tena.",
     totalChanged: 'Jumla sasa ni {amount} USDC. Iangalie kisha ulipe tena.',
     heldNote: 'Mtu mwingine ameshaagiza hii. {name} ataamua kuhusu oda yako, na utalipa tu baada ya kukubali.',
+    asksNote: '{name} hukagua kila oda kabla ya kukubali. Utalipa tu baada ya kukubali.',
     askSeller: 'Tuma oda yako kwa {name}',
     loadFailed: 'Oda hii haikuweza kufunguka.',
     retry: 'Jaribu tena',

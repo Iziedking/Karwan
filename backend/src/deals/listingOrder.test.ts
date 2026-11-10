@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Listing } from '../db/listings.js';
-import { agentMayAccept, holdsOneOrderAtATime, listingHeldByOrder, listingOrderMatches, listingOrderTerms } from './listingOrder.js';
+import { agentMayAccept, holdsOneOrderAtATime, listingHeldByOrder, listingOrderMatches, listingOrderTerms, orderWait, sellerAsksOnOrders } from './listingOrder.js';
 
 /// An order on a listing is the listing as it stands (view 44, D10).
 ///
@@ -71,6 +71,25 @@ test("the seller's agent accepts only inside the seller's limits", () => {
   assert.equal(agentMayAccept({ matches: true, sellerCheckDue: true, sellerAgentLinked: true }), false);
   assert.equal(agentMayAccept({ matches: true, sellerCheckDue: false, sellerAgentLinked: false }), false);
   assert.equal(agentMayAccept({ matches: false, sellerCheckDue: false, sellerAgentLinked: true }), false);
+  assert.equal(agentMayAccept({ matches: true, sellerCheckDue: false, sellerAgentLinked: true, sellerAsksFirst: true }), false);
+});
+
+test('a seller on Ask me first, or with the agent off, is asked about every order', () => {
+  assert.equal(sellerAsksOnOrders({ agentMode: 'ask', agentOn: true }, true), true);
+  assert.equal(sellerAsksOnOrders({ agentMode: 'offers', agentOn: false }, true), true);
+  assert.equal(sellerAsksOnOrders({ agentMode: 'agree', agentOn: false }, true), true);
+  assert.equal(sellerAsksOnOrders({ agentMode: 'offers', agentOn: true }, true), false);
+  assert.equal(sellerAsksOnOrders({ agentMode: 'agree', agentOn: true }, true), false);
+  assert.equal(sellerAsksOnOrders({ agentMode: 'offers' }, true), false);
+  // Switched off, nobody is asked anything new.
+  assert.equal(sellerAsksOnOrders({ agentMode: 'ask', agentOn: false }, false), false);
+});
+
+test('an order waits because the seller asks, or because the item is held', () => {
+  assert.equal(orderWait(false, false), null);
+  assert.equal(orderWait(true, false), 'held');
+  assert.equal(orderWait(false, true), 'asks');
+  assert.equal(orderWait(true, true), 'asks');
 });
 
 test('a goods offer takes one order at a time; work can be ordered again and again', () => {

@@ -43,6 +43,7 @@ interface World {
   signedOut?: boolean;
   profile?: boolean;
   waitsForSeller?: boolean;
+  waitReason?: 'asks' | 'held';
 }
 
 async function serveOrder(page: Page, over: Partial<World> = {}): Promise<World> {
@@ -66,7 +67,7 @@ async function serveOrder(page: Page, over: Partial<World> = {}): Promise<World>
     if (pathname === '/api/terms/status') return route.fulfill({ json: { currentVersion: '1', acceptedVersion: '1' } });
     if (pathname === '/api/listings/lst_logo') return route.fulfill({ json: { listing, viewerIsOwner: false, status: 'open' } });
     if (pathname === '/api/listings/lst_logo/quote') {
-      return route.fulfill({ json: { priceUsdc: '120', feeUsdc: '0.6', youPayUsdc: '120.6', feeBps: 100, deliverByUnix: Math.floor(Date.UTC(2026, 10, 3) / 1000), parts: 1, waitsForSeller: !!world.waitsForSeller } });
+      return route.fulfill({ json: { priceUsdc: '120', feeUsdc: '0.6', youPayUsdc: '120.6', feeBps: 100, deliverByUnix: Math.floor(Date.UTC(2026, 10, 3) / 1000), parts: 1, waitsForSeller: !!world.waitsForSeller, ...(world.waitReason ? { waitReason: world.waitReason } : {}) } });
     }
     if (pathname === '/api/deals/direct' && method === 'POST') {
       world.creates.push(route.request().postDataJSON());
@@ -232,6 +233,24 @@ test('a goods offer someone already ordered sends your order to the seller, and 
   });
   await page.goto('/order/lst_logo');
   await expect(page.getByText('Someone has already ordered this. Ada decides on your order, and you pay only after they accept.')).toBeVisible();
+  await expect(page.locator('[data-order-balance]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Pay / })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Send your order to Ada' }).click();
+  await expect(page).toHaveURL(new RegExp(`/deals/${JOB}$`));
+  expect(world.creates).toHaveLength(1);
+  expect(world.agentFunds).toHaveLength(0);
+  expect(world.funds).toHaveLength(0);
+});
+
+test('a seller who looks at each order is sent yours, and nothing is paid', async ({ page }) => {
+  const world = await serveOrder(page, {
+    waitsForSeller: true,
+    waitReason: 'asks',
+    createAnswer: (route) => route.fulfill({ json: { deal: { jobId: JOB }, funding: {}, agentAccepted: false } }),
+  });
+  await page.goto('/order/lst_logo');
+  await expect(page.getByText('Ada looks at each order before accepting. You pay only after they accept.')).toBeVisible();
+  await expect(page.getByText(/Someone has already ordered this/)).toHaveCount(0);
   await expect(page.locator('[data-order-balance]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Pay / })).toHaveCount(0);
   await page.getByRole('button', { name: 'Send your order to Ada' }).click();

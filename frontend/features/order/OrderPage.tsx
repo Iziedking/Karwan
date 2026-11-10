@@ -184,7 +184,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
 
       {held ? (
         <>
-          <p role="status" className="mt-4 text-[15px] leading-relaxed text-[var(--ink)]" data-order-held>{fill(t.heldNote, { name })}</p>
+          <p role="status" className="mt-4 text-[15px] leading-relaxed text-[var(--ink)]" data-order-held>{fill(quote?.waitReason === 'asks' ? t.asksNote : t.heldNote, { name })}</p>
           {failure ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--ink)]">{failure}</p> : null}
           <button type="button" disabled={payOrder.busy} onClick={() => void payOrder.pay()} className={`mt-6 ${PRIMARY}`}>
             {fill(t.askSeller, { name })}

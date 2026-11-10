@@ -29,8 +29,8 @@ import { CATEGORY_IDS, categoryOf } from '../listings/categories.js';
 import { liveSellerSummaries, type ListingSeller } from '../listings/sellerSummary.js';
 import { requestsThatFit } from '../listings/fits.js';
 import { buildDirectDealFundingQuote } from '../deals/fundingQuote.js';
-import { listingHeldByOrder, listingOrderTerms } from '../deals/listingOrder.js';
-import { getDeal } from '../db/deals.js';
+import { listingOrderTerms } from '../deals/listingOrder.js';
+import { listingOrderWait } from '../deals/listingOrderLive.js';
 import { newDealFeeBps } from '../deals/newDealFee.js';
 import { bargainOn, getBrief, listAllBriefs } from '../db/briefs.js';
 import { listingBidTerms, type OpeningSignals } from '../agents/bargainOpening.js';
@@ -286,6 +286,7 @@ listingsRoutes.get('/:id/quote', async (c) => {
     return c.json({ error: 'the fee could not be read just now', code: 'FEE_UNAVAILABLE' }, 503);
   }
   const quote = buildDirectDealFundingQuote({ jobId: `listing:${listing.id}`, dealAmountUsdc: String(order.dealAmountUsdc), feeBps });
+  const wait = await listingOrderWait(listing, Date.now());
   return c.json({
     priceUsdc: quote.dealAmountUsdc,
     feeUsdc: quote.buyerFeeUsdc,
@@ -293,8 +294,10 @@ listingsRoutes.get('/:id/quote', async (c) => {
     feeBps,
     deliverByUnix: Math.floor(Date.now() / 1000) + order.deadlineDays * 86400,
     parts: order.milestonePcts.length,
-    /// A goods offer already held by another open order: this one waits for the seller.
-    waitsForSeller: await listingHeldByOrder(listing, getDeal, Date.now()),
+    /// This order waits for the seller: they look at each order themselves
+    /// (view 75), or another open order already holds a goods offer.
+    waitsForSeller: wait !== null,
+    ...(wait ? { waitReason: wait } : {}),
   });
 });
 

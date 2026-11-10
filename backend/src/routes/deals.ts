@@ -147,6 +147,7 @@ import { attachmentHeaders, dealAttachments, decodeAttachments, joinAttachments,
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { getListing, setListingOrder, type Listing } from '../db/listings.js';
 import { agentMayAccept, holdsOneOrderAtATime, listingHeldByOrder, listingOrderMatches } from '../deals/listingOrder.js';
+import { sellerAsksFirst } from '../deals/listingOrderLive.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
@@ -2022,6 +2023,7 @@ async function acceptAsSellerAgent(deal: DirectDeal, listing: Listing): Promise<
       sellerCheckDue: highSignalGate(deal, 'seller') !== null,
       sellerAgentLinked: !!sellerAgents && sellerAgents.sellerAddress.toLowerCase() === listing.sellerAgent.toLowerCase(),
       heldByOpenOrder: held,
+      sellerAsksFirst: await sellerAsksFirst(deal.seller),
     });
     if (!allowed || !sellerAgents || inFlight.has(jobId)) return false;
     // A goods offer is one item: claim it for this order before accepting, so

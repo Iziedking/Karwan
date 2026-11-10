@@ -1477,8 +1477,10 @@ export interface ListingQuote {
   feeBps: number;
   deliverByUnix: number | null;
   parts: number;
-  /// A goods offer another open order already holds: this order waits for the seller.
+  /// This order waits for the seller: they look at each order themselves
+  /// (asks, view 75), or another open order already holds a goods offer (held).
   waitsForSeller?: boolean;
+  waitReason?: 'asks' | 'held';
 }
 
 export interface ListingSeller {

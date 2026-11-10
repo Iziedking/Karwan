@@ -53,8 +53,22 @@ export function listingOrderMatches(
 /// The seller's agent accepts for them only inside their limits: the order is
 /// the listing exactly, it is not a trade-finance deal, no World ID check is due
 /// for the seller, and the agent is the one linked to them.
-export function agentMayAccept(input: { matches: boolean; tradeLane?: string; sellerCheckDue: boolean; sellerAgentLinked: boolean; heldByOpenOrder?: boolean }): boolean {
-  return input.matches && input.tradeLane !== 'finance' && !input.sellerCheckDue && input.sellerAgentLinked && !input.heldByOpenOrder;
+export function agentMayAccept(input: { matches: boolean; tradeLane?: string; sellerCheckDue: boolean; sellerAgentLinked: boolean; heldByOpenOrder?: boolean; sellerAsksFirst?: boolean }): boolean {
+  return input.matches && input.tradeLane !== 'finance' && !input.sellerCheckDue && input.sellerAgentLinked && !input.heldByOpenOrder && !input.sellerAsksFirst;
+}
+
+/// View 75, decision 2: a seller on Ask me first, or with their agent off, is
+/// asked about every order, even one that is their offer as listed. Sellers on
+/// Make offers or Agree for me posted the price, so their agent still accepts.
+export function sellerAsksOnOrders(prefs: { agentMode: 'offers' | 'ask' | 'agree'; agentOn?: boolean }, switchedOn: boolean): boolean {
+  return switchedOn && (prefs.agentOn === false || prefs.agentMode === 'ask');
+}
+
+/// Why an order waits for the seller: they look at each order themselves, or
+/// another open order already holds the one item.
+export type OrderWait = 'asks' | 'held';
+export function orderWait(held: boolean, asks: boolean): OrderWait | null {
+  return asks ? 'asks' : held ? 'held' : null;
 }
 
 /// A goods offer is one item: its agent accepts one order at a time, and the

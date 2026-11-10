@@ -41,6 +41,8 @@ test("the seller's agent accepts before anyone is told, and the response says so
   assert.match(helper, /agentMayAccept\(\{/);
   assert.match(helper, /sellerCheckDue: highSignalGate\(deal, 'seller'\) !== null/);
   assert.match(helper, /listing\.sellerAgent\.toLowerCase\(\)/);
+  // View 75: a seller who looks at each order is not accepted for.
+  assert.match(helper, /sellerAsksFirst: await sellerAsksFirst\(deal\.seller\)/);
   assert.match(helper, /approveSellerAgreement\(jobId, version, digest/);
 });
 
