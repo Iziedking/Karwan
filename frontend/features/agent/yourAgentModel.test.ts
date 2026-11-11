@@ -70,3 +70,13 @@ test('changing how you get paid never turns a carried-over price into yours', ()
   const next = withPaid(ways, { kind: 'milestones', daysMin: 2, daysMax: 9 });
   assert.equal((next.sell[0] as { usualGuessed?: boolean }).usualGuessed, true);
 });
+
+test('the price panel keeps the figures typed, and leaves an untouched one as it was (view 77)', async () => {
+  const { withPrice } = await import('./yourAgentModel');
+  const ways = { sell: [{ shape: 'one_time' as const, priceMin: 20, priceUsual: 40, daysMin: 1, daysMax: 7 }], buy: [] };
+  const typed = withPrice(ways, { lowest: 22.29, usual: 40 }, { lowest: { currency: 'NGN', amount: '30000' } });
+  assert.deepEqual((typed.sell[0] as { said?: unknown }).said, { currency: 'NGN', amounts: { priceMin: { amount: '30000' } } });
+  const again = withPrice(typed, { lowest: 22.29, usual: 44.57 }, { usual: { currency: 'NGN', amount: '60000' } });
+  assert.deepEqual(Object.keys((again.sell[0] as unknown as { said: { amounts: object } }).said.amounts), ['priceMin', 'priceUsual']);
+  assert.equal('said' in withPrice(ways, { lowest: 20, usual: 40 }).sell[0]!, false);
+});

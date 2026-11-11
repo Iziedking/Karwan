@@ -75,3 +75,19 @@ test('ways saved before the usual price read safely: a range becomes lowest and 
   assert.equal((ways.sell[0] as { usualGuessed?: boolean }).usualGuessed, true, 'worked out from a range, not given');
   for (const w of ways.sell) assert.doesNotThrow(() => waySummary('sell', w, waysCopy.en));
 });
+
+test('a price typed in your own currency is kept with the way (view 77)', async () => {
+  const { withSaidPrice } = await import('./ways');
+  const way = { shape: 'one_time', priceMin: 20, priceUsual: 40, daysMin: 1, daysMax: 7 };
+  const lowest = withSaidPrice(way, 'priceMin', { currency: 'NGN', amount: '30000' });
+  assert.deepEqual((lowest as { said?: unknown }).said, { currency: 'NGN', amounts: { priceMin: { amount: '30000' } } });
+  const both = withSaidPrice(lowest, 'priceUsual', { currency: 'NGN', amount: '60000' });
+  assert.deepEqual(Object.keys((both as unknown as { said: { amounts: object } }).said.amounts), ['priceMin', 'priceUsual']);
+  // Typed again in USDC, that price forgets its figure; the other keeps its own.
+  const one = withSaidPrice(both, 'priceMin', null);
+  assert.deepEqual((one as unknown as { said: { amounts: object } }).said.amounts, { priceUsual: { amount: '60000' } });
+  assert.equal('said' in withSaidPrice(one, 'priceUsual', null), false);
+  // A figure in another currency replaces the old ones.
+  const euro = withSaidPrice(both, 'priceMin', { currency: 'EUR', amount: '18.50' });
+  assert.deepEqual((euro as { said?: unknown }).said, { currency: 'EUR', amounts: { priceMin: { amount: '18.50' } } });
+});

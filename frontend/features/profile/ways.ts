@@ -190,3 +190,19 @@ export function waySummary(side: Side, way: SellWay | BuyWay, c: WaysCopy, say?:
       return [amt(c.upTo, { n: w.maxPrice }), fill(c.within, { n: n(w.needDays) })].join(' · ');
   }
 }
+
+/// The prices of a way as the person typed them in their own currency (view
+/// 77): the typed figure is the rule their agent follows.
+export type SaidPrices = { currency: string; amounts: Record<string, { amount: string; usdc?: number }> };
+export type TypedPrice = { currency: string; amount: string };
+
+/// A way with one of its prices as typed. Null forgets the figure for that
+/// price (it was typed in USDC); figures in another currency are dropped.
+export function withSaidPrice<W extends object>(way: W, field: string, typed: TypedPrice | null): W {
+  const { said, ...rest } = way as W & { said?: SaidPrices };
+  const amounts = said && (!typed || said.currency === typed.currency) ? { ...said.amounts } : {};
+  if (typed) amounts[field] = { amount: typed.amount };
+  else delete amounts[field];
+  const currency = typed?.currency ?? said?.currency;
+  return (Object.keys(amounts).length && currency ? { ...rest, said: { currency, amounts } } : rest) as W;
+}

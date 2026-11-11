@@ -1,5 +1,5 @@
 import type { UserProfile } from '@/core/api';
-import { waysOf, type AgentWays, type SellWay } from '@/features/profile/ways';
+import { waysOf, withSaidPrice, type AgentWays, type SellWay, type TypedPrice } from '@/features/profile/ways';
 
 /// The Your agent page (docs/architecture/45-your-agent.md): the rules behind
 /// its rows. Every change is a whole set of ways for POST /api/setup/ways.
@@ -36,12 +36,17 @@ const without = (w: PricedWay): PricedWay => {
   return rest as PricedWay;
 };
 
-export function withPrice(ways: AgentWays, price: { lowest: number; usual: number }): AgentWays {
+/// `typed` carries the figures as typed in the person's own currency (view
+/// 77); a field left out was not touched and keeps what it had.
+export function withPrice(ways: AgentWays, price: { lowest: number; usual: number }, typed: { lowest?: TypedPrice | null; usual?: TypedPrice | null } = {}): AgentWays {
   const i = mainWayIndex(ways);
   const w = ways.sell[i];
   if (!w || !priced(w)) return ways;
   const sell = ways.sell.slice();
-  sell[i] = { ...without(w), priceMin: price.lowest, priceUsual: price.usual };
+  let next = { ...without(w), priceMin: price.lowest, priceUsual: price.usual };
+  if (typed.lowest !== undefined) next = withSaidPrice(next, 'priceMin', typed.lowest);
+  if (typed.usual !== undefined) next = withSaidPrice(next, 'priceUsual', typed.usual);
+  sell[i] = next;
   return { ...ways, sell };
 }
 

@@ -5,6 +5,8 @@ import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import { firstPost } from '../agents/firstPost.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
 import { legacyFromWays, upgradeWays, waysSchema, wayLines, type AgentWays } from '../agents/ways.js';
+import { waysAtRate } from '../agents/waysSaid.js';
+import { readSharedRates } from '../rates/sharedRate.js';
 import type { Suggestion } from '../agents/learned.js';
 
 /// The setup conversation after activation (view 19). The answers are read on
@@ -123,7 +125,10 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     // A usual price stays marked as carried over until the person types one;
     // the page clears the mark on the way whose price they edited (view 41,
     // decision 14), so saving only how they get paid keeps it.
-    const { ways } = parsed.data;
+    // A price typed in their own currency is the rule (view 77): its USDC is
+    // worked out here, at the shared rate, and again whenever that rate changes.
+    const rates = await readSharedRates().catch(() => ({ rates: {}, updatedAt: null, source: null }) as const);
+    const { ways } = waysAtRate(parsed.data.ways, rates, true);
     const profile = await deps.save(address, patchForWays(ways, current));
     if (!profile) return c.json({ error: 'profile not found' }, 404);
     if (ways.sell.length) deps.sellerSaved?.(address);

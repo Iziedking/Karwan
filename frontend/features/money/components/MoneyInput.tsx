@@ -27,6 +27,7 @@ export function MoneyInput({
   ariaDescribedBy,
   required,
   agreed,
+  onTyped,
   inputRef,
   dataGuide,
 }: {
@@ -34,6 +35,9 @@ export function MoneyInput({
   onChange: (usdc: number | null) => void;
   /// The price as agreed in a local currency, read back as agreed.
   agreed?: { currency: string; amount: string } | null;
+  /// The figure as typed in a local currency, told before `onChange`; null in
+  /// USDC or while the figure is not whole yet. For a form that keeps it (view 77).
+  onTyped?: (said: { currency: string; amount: string } | null) => void;
   handle?: Ref<MoneyInputHandle>;
   id?: string;
   disabled?: boolean;
@@ -111,6 +115,7 @@ export function MoneyInput({
           setTyped(next);
           const usdc = usdcFor(next, unit, rate);
           lastSent.current = usdc;
+          onTyped?.(unit !== 'USDC' && /^\d{1,15}(\.\d{1,2})?$/.test(next) ? { currency: unit, amount: next } : null);
           onChange(usdc);
         }}
         className={`${className} w-full`}

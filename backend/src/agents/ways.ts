@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { UserProfile } from '../db/profiles.js';
+import { DISPLAY_CURRENCIES, type LocalCurrency } from '../rates/usdcRates.js';
 
 /// The ways a person deals (view 26). Each way is one escrow shape with the
 /// few answers its contract needs, for selling and for buying. The selling
@@ -21,6 +22,17 @@ const usdc = z.number().finite().positive().max(1_000_000);
 const days = z.number().int().min(1).max(365);
 const words = (max: number) => z.string().trim().min(1).max(max);
 
+/// The prices of a way as the person typed them in their own currency (view
+/// 77): the typed figure is the rule, and each remembers the USDC it last gave.
+const LOCAL = DISPLAY_CURRENCIES.filter((c): c is LocalCurrency => c !== 'USDC') as [LocalCurrency, ...LocalCurrency[]];
+const said = z
+  .object({
+    currency: z.enum(LOCAL),
+    amounts: z.record(z.string().max(20), z.object({ amount: z.string().regex(/^\d{1,15}(\.\d{1,2})?$/), usdc: z.number().finite().positive().optional() })),
+  })
+  .optional();
+export type SaidPrices = NonNullable<z.infer<typeof said>>;
+
 // A selling way carries the lowest price the person takes (priceMin, the
 // floor) and their usual price (view 41, phase 2). There is no highest: a
 // bigger budget gets an offer opened from the usual price.
@@ -30,7 +42,7 @@ const words = (max: number) => z.string().trim().min(1).max(max);
 /// old range. It is shown, but the agent opens from the budget instead (view
 /// 41, decision 14). A save by the person clears it.
 const usualGuessed = z.literal(true).optional();
-const sellOneTime = z.object({ shape: z.literal('one_time'), priceMin: usdc, priceUsual: usdc, usualGuessed, noAskBelow: usdc.optional(), daysMin: days, daysMax: days });
+const sellOneTime = z.object({ shape: z.literal('one_time'), priceMin: usdc, priceUsual: usdc, usualGuessed, noAskBelow: usdc.optional(), daysMin: days, daysMax: days, said });
 const sellMilestones = sellOneTime.extend({ shape: z.literal('milestones'), stages: z.number().int().min(2).max(5) });
 const sellGoods = z.object({
   shape: z.literal('goods'),
@@ -45,17 +57,18 @@ const sellGoods = z.object({
   shipsTo: words(120),
   arriveDaysMin: days,
   arriveDaysMax: days,
+  said,
 });
-const sellDeposit = z.object({ shape: z.literal('deposit'), what: words(120), deposit: usdc, periodDays: days });
+const sellDeposit = z.object({ shape: z.literal('deposit'), what: words(120), deposit: usdc, periodDays: days, said });
 /// The agent offers rateUsual on posted hourly work, lowered to the hirer's
 /// most rate but never under rateMin, and only when hoursMax covers the hours.
-const sellHourly = z.object({ shape: z.literal('hourly'), rateMin: usdc, rateUsual: usdc, hoursMax: z.number().int().min(1).max(60) });
-const sellMonthly = z.object({ shape: z.literal('monthly'), priceMin: usdc, priceUsual: usdc });
+const sellHourly = z.object({ shape: z.literal('hourly'), rateMin: usdc, rateUsual: usdc, hoursMax: z.number().int().min(1).max(60), said });
+const sellMonthly = z.object({ shape: z.literal('monthly'), priceMin: usdc, priceUsual: usdc, said });
 
-const buyOneTime = z.object({ shape: z.literal('one_time'), maxPrice: usdc, needDays: days });
+const buyOneTime = z.object({ shape: z.literal('one_time'), maxPrice: usdc, needDays: days, said });
 const buyMilestones = buyOneTime.extend({ shape: z.literal('milestones'), pay: z.enum(['end', 'stages']) });
-const buyGoods = z.object({ shape: z.literal('goods'), maxPrice: usdc, deliverTo: words(120), waitDays: days });
-const buyDeposit = z.object({ shape: z.literal('deposit'), maxDeposit: usdc });
+const buyGoods = z.object({ shape: z.literal('goods'), maxPrice: usdc, deliverTo: words(120), waitDays: days, said });
+const buyDeposit = z.object({ shape: z.literal('deposit'), maxDeposit: usdc, said });
 
 export const sellWaySchema = z
   .discriminatedUnion('shape', [sellOneTime, sellMilestones, sellGoods, sellDeposit, sellHourly, sellMonthly])

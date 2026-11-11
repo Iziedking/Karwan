@@ -1,9 +1,9 @@
 'use client';
 import { MoneyInput } from '@/features/money/components/MoneyInput';
 
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { api, type UserProfile } from '@/core/api';
-import { waysOf } from '@/features/profile/ways';
+import { waysOf, type TypedPrice } from '@/features/profile/ways';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import type { YourAgentCopy } from '@/shared/i18n/messages/yourAgent';
 import type { SetupCopy } from '@/shared/i18n/messages/setup';
@@ -52,11 +52,11 @@ function Panel({ title, busy, error, onClose, onSave, t, children }: {
 }
 
 /// A price the agent works with, typed in the person's own currency (view 55).
-function MoneyField({ name, value, onChange, note }: { name: string; value: string; onChange: (v: string) => void; note?: string }) {
+function MoneyField({ name, value, onChange, onTyped, note }: { name: string; value: string; onChange: (v: string) => void; onTyped?: (typed: TypedPrice | null) => void; note?: string }) {
   return (
     <label className={label}>
       {name}
-      <MoneyInput value={value} onChange={(usdc) => onChange(usdc === null ? '' : String(usdc))} className={input} />
+      <MoneyInput value={value} onTyped={onTyped} onChange={(usdc) => onChange(usdc === null ? '' : String(usdc))} className={input} />
       {note ? <span className="mt-1 block text-[13px] font-medium text-[var(--lp-text-sub)]">{note}</span> : null}
     </label>
   );
@@ -165,6 +165,7 @@ export function AgentPanel({ open, profile, t, own, onClose, onSaved }: {
   const [bio, setBio] = useState(seller?.bio ?? '');
   const [usual, setUsual] = useState(main && !main.usualGuessed ? text(main.priceUsual) : '');
   const [lowest, setLowest] = useState(text(main?.priceMin));
+  const typedPrice = useRef<{ lowest?: TypedPrice | null; usual?: TypedPrice | null }>({});
   const [kind, setKind] = useState<PaidKind | null>(paidKindOf(ways));
   const [daysMin, setDaysMin] = useState(text(days?.min));
   const [daysMax, setDaysMax] = useState(text(days?.max));
@@ -192,10 +193,10 @@ export function AgentPanel({ open, profile, t, own, onClose, onSaved }: {
       <Panel title={t.rows.price} busy={busy} error={error} onClose={onClose} t={t} onSave={() => {
         const problem = priceProblem(num(lowest), num(usual));
         if (problem) return setError(problem === 'order' ? t.problems.order : t.problems.missing);
-        void run(() => api.saveWays(withPrice(ways, { lowest: num(lowest), usual: num(usual) })));
+        void run(() => api.saveWays(withPrice(ways, { lowest: num(lowest), usual: num(usual) }, typedPrice.current)));
       }}>
-        <MoneyField name={t.fields.usual} value={usual} onChange={setUsual} />
-        <MoneyField name={t.fields.lowest} value={lowest} onChange={setLowest} note={t.fields.lowestNote} />
+        <MoneyField name={t.fields.usual} value={usual} onChange={setUsual} onTyped={(typed) => { typedPrice.current.usual = typed; }} />
+        <MoneyField name={t.fields.lowest} value={lowest} onChange={setLowest} onTyped={(typed) => { typedPrice.current.lowest = typed; }} note={t.fields.lowestNote} />
       </Panel>
     );
   }

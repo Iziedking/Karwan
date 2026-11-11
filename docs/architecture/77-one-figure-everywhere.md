@@ -99,6 +99,16 @@ All five were approved as recommended on 11 Nov 2026.
 4. **"Your balance" counts money with your agents.** Recommended, as Home does today, with the usable part named wherever it is smaller.
 5. **Old payments read "about".** Recommended, instead of guessing a past rate for records that never kept one.
 
+## Prices you give your agent
+
+Approved by the owner on 11 Nov 2026: the figure you type is the rule.
+
+A lowest price, a usual price, a rate or the most you pay is a rule your agent follows, so it cannot be a figure that only reads right on the day it was saved. The figure typed in your currency is kept with the rule, and the USDC your agent works in is worked out from it again whenever the shared rate changes. "Never below ₦30,000" stays ₦30,000.
+
+- A rule typed in USDC stays in USDC.
+- When a rule's USDC is changed some other way, by the assistant in USDC or by an older form, the kept figure is dropped and the rule reads at the shared rate, as before.
+- If the market cannot be read, rules keep their last USDC.
+
 ## Done when
 
 One account is checked, inside one minute, on Home, Money, Profile, an order, Send, Help, an email and Telegram, and every amount for the same thing reads the same. A request typed as ₦300,000 reads ₦300,000 a week later. A deal paid on Monday reads the same on Friday.

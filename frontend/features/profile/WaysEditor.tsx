@@ -2,7 +2,7 @@
 import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, m } from 'motion/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/core/api';
@@ -15,7 +15,7 @@ import { dur, ease } from '@/shared/motion/tokens';
 import { cn } from '@/shared/utils/cn';
 import { ProfileFrame, RowGroup } from './ui/ProfileUi';
 import { ChoiceCard } from '@/features/setup/SetupParts';
-import { blankWay, LIVE_SHAPES, TIME_SHAPES, wayProblem, waysOf, waySummary, type AgentWays, type BuyWay, type SellWay, type Side, type WayShape } from './ways';
+import { blankWay, LIVE_SHAPES, TIME_SHAPES, wayProblem, waysOf, waySummary, withSaidPrice, type AgentWays, type TypedPrice, type BuyWay, type SellWay, type Side, type WayShape } from './ways';
 
 type Way = SellWay | BuyWay;
 type Open = { side: Side; shape: WayShape; draft: Way; isNew: boolean } | null;
@@ -163,9 +163,12 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
 }) {
   const w = open.draft as Record<string, unknown> & { shape: WayShape };
   // A price typed here is the person's own, so the carried-over mark goes (view 41, decision 14).
+  // The figure typed in each money field, kept with the way: it is the rule (view 77).
+  const typedIn = useRef<Record<string, TypedPrice | null>>({});
   const set = (key: string, value: unknown) => {
-    const next = { ...w, [key]: value } as Record<string, unknown>;
+    let next = { ...w, [key]: value } as Record<string, unknown>;
     if (key === 'priceMin' || key === 'priceUsual') delete next.usualGuessed;
+    if (key in typedIn.current) next = withSaidPrice(next, key, typedIn.current[key] ?? null);
     onChange(next as unknown as Way);
   };
   const problem = wayProblem(side, open.draft);
@@ -176,7 +179,7 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
       {unit === 'USDC' ? (
         <span className="flex items-center gap-2">
           <span className="min-w-0 flex-1">
-            <MoneyInput value={Number.isFinite(w[key] as number) ? (w[key] as number) : null} onChange={(usdc) => set(key, usdc ?? NaN)} ariaLabel={label} />
+            <MoneyInput value={Number.isFinite(w[key] as number) ? (w[key] as number) : null} onTyped={(typed) => { typedIn.current[key] = typed; }} onChange={(usdc) => set(key, usdc ?? NaN)} ariaLabel={label} />
           </span>
           {per ? <span className="shrink-0 text-[14px] font-medium text-[var(--lp-text-sub)]">{per}</span> : null}
         </span>
