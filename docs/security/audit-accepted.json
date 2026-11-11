@@ -2,11 +2,6 @@
   "reviewed": "2026-11-08",
   "accepted": [
     { "id": "GHSA-mrhx-c7xc-m3w5", "package": "zod", "expires": "2026-12-08" },
-    { "id": "GHSA-82x6-q7mm-w9cf", "package": "toml", "expires": "2026-12-08" },
-    { "id": "GHSA-v5mp-jgw5-2x6j", "package": "toml", "expires": "2026-12-08" },
-    { "id": "GHSA-4qx8-w7c3-pj3p", "package": "toml", "expires": "2026-12-08" },
-    { "id": "GHSA-9j65-hcg3-gc64", "package": "toml", "expires": "2026-12-08" },
-    { "id": "GHSA-9qmh-m7c6-f92p", "package": "toml", "expires": "2026-12-08" },
     { "id": "GHSA-qr28-fpjm-wq7f", "package": "decode-uri-component", "expires": "2026-12-08" }
   ]
 }

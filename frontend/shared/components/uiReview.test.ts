@@ -8,7 +8,8 @@ import { fr } from '../i18n/messages/fr';
 import { hi } from '../i18n/messages/hi';
 import { sw } from '../i18n/messages/sw';
 
-const source = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8');
+// Read as it is in git: a checkout with Windows line endings must match the same patterns.
+const source = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
 test('editorial copy names the network and distinguishes current access from planned work', () => {
   const keys = Object.keys(en.landingEditorial).sort();

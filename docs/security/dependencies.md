@@ -15,6 +15,8 @@ The source is `npm audit --omit=dev` on the root `package-lock.json`, which the 
 
 Fixed in this review: `next` 15.5.24 to 15.5.29 (GHSA-4jqv-mc3x-m676 and GHSA-mcj8-r9mp-w47p, cache poisoning of SSG and ISR pages), `follow-redirects` 1.16.2, `undici` 6.29.1 and `ws` 8.22.1, through `overrides` in the root `package.json`.
 
+Fixed on 12 November 2026: `toml` 3.0.0 to 5.0.1, through `overrides` in the root `package.json`. toml 5.0.1 is the first release with every toml advisory fixed, the five accepted on 8 November (GHSA-82x6-q7mm-w9cf, GHSA-v5mp-jgw5-2x6j, GHSA-4qx8-w7c3-pj3p, GHSA-9j65-hcg3-gc64, GHSA-9qmh-m7c6-f92p) and GHSA-h895-cgqg-jf52, which failed CI on 11 November. `@coral-xyz/anchor` 0.32 asks for toml 3 and calls only `toml.parse`, and only when code reads `anchor.workspace`, which Karwan never does, so the newer release changes nothing that runs. toml 5 needs Node 20 or later.
+
 ## Accepted for now
 
 ### zod 3 (GHSA-mrhx-c7xc-m3w5)
@@ -23,14 +25,6 @@ Fixed in this review: `next` 15.5.24 to 15.5.29 (GHSA-4jqv-mc3x-m676 and GHSA-mc
 - **Reach.** Yes. Our route schemas parse request bodies from the internet. The advisory needs a very large collection checked against a size rule.
 - **What stops it.** Every API request body is capped at 20 MB before parsing (`backend/src/middleware/requestSize.ts`). The busiest public routes are rate limited.
 - **Fixed in.** zod 4.6.6. Moving the backend means rewriting every route schema; the kits move when Circle ships them on zod 4.
-- **Owner.** Founder. **Review by** 8 December 2026.
-
-### toml (GHSA-82x6-q7mm-w9cf, GHSA-v5mp-jgw5-2x6j, GHSA-4qx8-w7c3-pj3p, GHSA-9j65-hcg3-gc64, GHSA-9qmh-m7c6-f92p)
-
-- **How it gets in.** `@coral-xyz/anchor` 0.32 asks for toml 3. Anchor comes in with the Circle kits: `app-kit`, `swap-kit`, `unified-balance-kit`, `adapter-solana-kit` and the CCTP, Gateway and swap providers.
-- **Reach.** No. Anchor parses TOML only when code reads `anchor.workspace`, which reads `Anchor.toml` from the working directory. Karwan never reads it, and no request reaches a TOML parser.
-- **What stops it.** Nothing has to. The parser is not called.
-- **Fixed in.** No fixed toml release exists (every version up to 5.0.0 is listed). Waiting for Anchor or the Circle kits to drop it.
 - **Owner.** Founder. **Review by** 8 December 2026.
 
 ### decode-uri-component (GHSA-qr28-fpjm-wq7f)
