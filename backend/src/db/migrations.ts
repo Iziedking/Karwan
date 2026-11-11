@@ -1643,6 +1643,14 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX find_contacts_v1_due_idx ON find_contacts_v1 (next_at) WHERE next_at IS NOT NULL;
     `,
   },
+  {
+    // A seller's price as they typed it in their own currency (view 77).
+    version: 67,
+    name: 'direct_offers_price_local',
+    sql: `
+      ALTER TABLE direct_offers_v1 ADD COLUMN price_local JSONB;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

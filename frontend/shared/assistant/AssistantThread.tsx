@@ -1219,7 +1219,7 @@ type RequestStepPayload = { jobId: string; caller?: string; offerId?: string; pr
 /// Steps on a request page: a seller's own offer, the buyer taking one, and
 /// answering a near match.
 const REQUEST_PAGE_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: RequestStepPayload) => Promise<unknown>>> = {
-  make_offer: (p) => api.createOffer(p.jobId, { priceUsdc: p.priceUsdc ?? '', deliverByUnix: p.deliverByUnix ?? 0, note: p.note ?? '' }),
+  make_offer: (p) => api.createOffer(p.jobId, { priceUsdc: p.priceUsdc ?? '', deliverByUnix: p.deliverByUnix ?? 0, note: p.note ?? '', ...(typeof (p as { quote?: unknown }).quote === 'string' ? { quote: (p as unknown as { quote: string }).quote } : {}) }),
   withdraw_offer: (p) => api.withdrawOffer(p.jobId, p.offerId ?? ''),
   lower_offer: (p) => api.lowerOffer(p.jobId, p.offerId ?? '', p.priceUsdc ?? ''),
   accept_offer: (p) => api.acceptOffer(p.jobId, p.offerId ?? ''),

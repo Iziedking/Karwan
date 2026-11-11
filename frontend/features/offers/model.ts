@@ -2,11 +2,28 @@ import { formatUnits, parseUnits } from 'viem';
 import type { RankedWorkOffer } from '@/core/api';
 import type { OffersCopy } from '@/shared/i18n/messages/offers';
 
+type Said = { currency: string; amount: string };
+
+/// The figure an offer's price reads as (view 77): as its seller typed it, or,
+/// at exactly the budget, as the buyer said the budget. Only someone shown the
+/// budget figure gets the second.
+export function offerPriceSaid(
+  offer: { priceUsdc: string; priceLocal?: Said },
+  request?: { budgetUsdc?: string | number | null; budgetLocal?: Said | null } | null,
+): Said | undefined {
+  if (offer.priceLocal) return offer.priceLocal;
+  const budget = request?.budgetUsdc;
+  if (!request?.budgetLocal || budget === null || budget === undefined || budget === '') return undefined;
+  return Number(offer.priceUsdc) === Number(budget) ? request.budgetLocal : undefined;
+}
+
 export type Offer = {
   id: string;
   jobId: string;
   sellerUser: string;
   priceUsdc: string;
+  /// The price as the seller typed it in their own currency (view 77).
+  priceLocal?: { currency: string; amount: string };
   deliverByUnix: number;
   note: string;
   state: string;

@@ -3,6 +3,7 @@ import { forViewer, type ViewedBudget } from '../market/budgetView.js';
 import type { SealedSeller } from '../agents/sealedSellers.js';
 import { checkOffer, offerLapsesAt, type OfferInput } from './rules.js';
 import { jobActionsInFlight } from './jobLock.js';
+import type { LocalAmount } from '../rates/quote.js';
 import {
   createDirectOffer,
   getDirectOffer,
@@ -188,11 +189,13 @@ export async function createOffer(
   }
 
   const createdAt = deps.now();
+  const priceLocal = input.priceLocal;
   const { offer, created } = await createDirectOffer({
     jobId,
     sellerUser,
     sellerAgent: w.sellerAddress,
     priceUsdc: input.priceUsdc,
+    ...(priceLocal ? { priceLocal } : {}),
     deliverByUnix: input.deliverByUnix,
     note: input.note.trim(),
     createdAt,
@@ -241,6 +244,7 @@ export async function lowerOffer(
   offerId: string,
   priceUsdc: string,
   deps: OfferDeps = defaultDeps,
+  priceLocal?: LocalAmount,
 ): Promise<{ ok: true; offer: DirectOffer } | Fail<400 | 403 | 404 | 409 | 502>> {
   const o = await getDirectOffer(offerId);
   if (!o) return { ok: false, status: 404, code: 'NO_OFFER' };
@@ -258,7 +262,7 @@ export async function lowerOffer(
   if (!w?.sellerWalletId || !w.sellerAddress) return { ok: false, status: 409, code: 'NEEDS_ACTIVATION' };
   const res = await deps.bid(o.jobId as `0x${string}`, { walletId: w.sellerWalletId, address: w.sellerAddress }, priceUsdc, o.lapsesAt);
   if (!res.ok) return { ok: false, status: res.reason === 'job-not-open' ? 409 : 502, code: res.reason, message: res.message };
-  const offer = await lowerDirectOfferPrice(o.id, priceUsdc, res.txHash);
+  const offer = await lowerDirectOfferPrice(o.id, priceUsdc, res.txHash, priceLocal);
   if (!offer) return { ok: false, status: 409, code: 'NOT_PENDING' };
   await putRecord('offer-revisions', countKey, { n: done + 1, at: Date.now() }).catch(() => {});
   const brief = deps.brief(o.jobId);

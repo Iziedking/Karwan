@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { pgEnabled, postgresExecutor } from './client.js';
+import type { LocalAmount } from '../rates/quote.js';
 
 /// A seller's own offer on a request. The on-chain bid carries only price and
 /// validity; this row carries who sent it, the delivery date and the note, and
@@ -14,6 +15,9 @@ export interface DirectOffer {
   sellerUser: string;
   sellerAgent: string;
   priceUsdc: string;
+  /// The price as the seller typed it in their own currency (view 77). Anyone
+  /// reading in that currency sees it as typed.
+  priceLocal?: LocalAmount;
   deliverByUnix: number;
   note: string;
   state: DirectOfferState;
@@ -41,6 +45,7 @@ type Row = {
   lapses_at: string;
   tx_hash: string | null;
   failure: string | null;
+  price_local?: LocalAmount | null;
 };
 
 const fromRow = (r: Row): DirectOffer => ({
@@ -56,6 +61,7 @@ const fromRow = (r: Row): DirectOffer => ({
   lapsesAt: Number(r.lapses_at),
   ...(r.tx_hash ? { txHash: r.tx_hash } : {}),
   ...(r.failure ? { failure: r.failure } : {}),
+  ...(r.price_local ? { priceLocal: r.price_local } : {}),
 });
 
 /// Idempotent while pending: a second send from the same seller returns the
@@ -85,11 +91,11 @@ export async function createDirectOffer(input: NewOffer): Promise<{ offer: Direc
     [o.jobId, o.sellerUser, o.createdAt],
   );
   const ins = await db.query<Row>(
-    `INSERT INTO direct_offers_v1 (id, job_id, seller_user, seller_agent, price_usdc, deliver_by_unix, note, state, created_at, lapses_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9)
+    `INSERT INTO direct_offers_v1 (id, job_id, seller_user, seller_agent, price_usdc, deliver_by_unix, note, state, created_at, lapses_at, price_local)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10)
      ON CONFLICT (job_id, seller_user) WHERE state = 'pending' DO NOTHING
      RETURNING *`,
-    [o.id, o.jobId, o.sellerUser, o.sellerAgent, o.priceUsdc, o.deliverByUnix, o.note, o.createdAt, o.lapsesAt],
+    [o.id, o.jobId, o.sellerUser, o.sellerAgent, o.priceUsdc, o.deliverByUnix, o.note, o.createdAt, o.lapsesAt, o.priceLocal ? JSON.stringify(o.priceLocal) : null],
   );
   if (ins.rows[0]) return { offer: fromRow(ins.rows[0]), created: true };
   const { rows } = await db.query<Row>(
@@ -153,17 +159,18 @@ export async function setDirectOfferState(
 }
 
 /// A seller lowered their pending offer (view 35). Only a pending offer moves.
-export async function lowerDirectOfferPrice(id: string, priceUsdc: string, txHash: string): Promise<DirectOffer | null> {
+export async function lowerDirectOfferPrice(id: string, priceUsdc: string, txHash: string, priceLocal?: LocalAmount): Promise<DirectOffer | null> {
   if (!pgEnabled) {
     const o = mem.get(id);
     if (!o || o.state !== 'pending') return null;
-    const next = { ...o, priceUsdc, txHash };
+    const { priceLocal: _old, ...kept } = o;
+    const next = { ...kept, priceUsdc, txHash, ...(priceLocal ? { priceLocal } : {}) };
     mem.set(id, next);
     return next;
   }
   const r = await postgresExecutor().query<Row>(
-    `UPDATE direct_offers_v1 SET price_usdc = $2, tx_hash = $3 WHERE id = $1 AND state = 'pending' RETURNING *`,
-    [id, priceUsdc, txHash],
+    `UPDATE direct_offers_v1 SET price_usdc = $2, tx_hash = $3, price_local = $4 WHERE id = $1 AND state = 'pending' RETURNING *`,
+    [id, priceUsdc, txHash, priceLocal ? JSON.stringify(priceLocal) : null],
   );
   return r.rows[0] ? fromRow(r.rows[0]) : null;
 }

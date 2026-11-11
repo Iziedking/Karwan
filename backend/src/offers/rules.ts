@@ -1,9 +1,10 @@
 import { parseUnits } from 'viem';
+import type { LocalAmount } from '../rates/quote.js';
 
 /// What makes a seller's own offer on a request acceptable. Pure, so the route,
 /// the service and the tests all agree on one set of rules.
 
-export type OfferInput = { priceUsdc: string; deliverByUnix: number; note: string };
+export type OfferInput = { priceUsdc: string; deliverByUnix: number; note: string; priceLocal?: LocalAmount };
 export type OfferContext = {
   budgetUsdc: string;
   requestDeadlineUnix: number;

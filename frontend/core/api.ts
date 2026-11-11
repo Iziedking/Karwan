@@ -1422,6 +1422,7 @@ export interface OpenOffer {
   id: string;
   kind: 'hand' | 'agent';
   priceUsdc: string;
+  priceLocal?: { currency: string; amount: string };
   deliverByUnix: number;
   note: string | null;
   chosen: boolean;
@@ -3480,7 +3481,7 @@ export const api = {
       /// Who posted the request, when their passport is public.
       poster?: { address: string; name: string | null; handle: string | null } | null;
     }>(`/api/jobs/${jobId}/offers`),
-  createOffer: (jobId: string, body: { priceUsdc: string; deliverByUnix: number; note: string }) =>
+  createOffer: (jobId: string, body: { priceUsdc: string; deliverByUnix: number; note: string; quote?: string }) =>
     json<{ offer: Offer }>(`/api/jobs/${jobId}/offers`, { method: 'POST', body: JSON.stringify(body) }),
   /// What the person's own agents are waiting on them for (view 41).
   agentQuestions: () => json<{ questions: AgentQuestion[] }>('/api/agent-questions'),
@@ -3494,8 +3495,8 @@ export const api = {
   withdrawOffer: (jobId: string, offerId: string) =>
     json<{ ok: true }>(`/api/jobs/${jobId}/offers/${offerId}/withdraw`, { method: 'POST', body: '{}' }),
   /// A seller lowers their own offer (view 35): down only, at most three times.
-  lowerOffer: (jobId: string, offerId: string, priceUsdc: string) =>
-    json<{ offer: Offer }>(`/api/jobs/${jobId}/offers/${offerId}/lower`, { method: 'POST', body: JSON.stringify({ priceUsdc }) }),
+  lowerOffer: (jobId: string, offerId: string, priceUsdc: string, quote?: string) =>
+    json<{ offer: Offer }>(`/api/jobs/${jobId}/offers/${offerId}/lower`, { method: 'POST', body: JSON.stringify({ priceUsdc, ...(quote ? { quote } : {}) }) }),
   acceptOffer: (jobId: string, offerId: string) =>
     json<{ ok: true; txHash: string }>(`/api/jobs/${jobId}/offers/${offerId}/accept`, { method: 'POST', body: '{}' }),
   /// View 73: answer your agent on one offer: agree at the seller's price, or keep bargaining.

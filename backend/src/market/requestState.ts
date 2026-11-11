@@ -38,6 +38,8 @@ export type PublicOffer = {
   /// For the caller to look the seller up by name; never sent to a client.
   sellerUser: string;
   priceUsdc: string;
+  /// The price as the seller typed it in their own currency (view 77).
+  priceLocal?: { currency: string; amount: string };
   deliverByUnix: number;
   note: string | null;
   chosen: boolean;
@@ -47,6 +49,7 @@ type HandOffer = {
   id: string;
   sellerUser: string;
   priceUsdc: string;
+  priceLocal?: { currency: string; amount: string };
   deliverByUnix: number;
   note: string;
   state: string;
@@ -76,6 +79,7 @@ export function publicOffers(
       kind: 'hand',
       sellerUser: seller,
       priceUsdc: o.priceUsdc,
+      ...(o.priceLocal ? { priceLocal: { currency: o.priceLocal.currency, amount: o.priceLocal.amount } } : {}),
       deliverByUnix: o.deliverByUnix,
       note: o.note.trim() || null,
       chosen: o.state === 'accepted' || seller === chosen,

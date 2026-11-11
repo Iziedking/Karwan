@@ -3,6 +3,7 @@ import { getQuestion, openQuestionsFor } from '../db/agentQuestions.js';
 import { questionLine } from '../agents/agentQuestion.js';
 import { loadRequestReach } from '../agents/requestReach.js';
 import { z } from 'zod';
+import { keepOnCard, saidFigure } from './saidFigure.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getBrief } from '../db/briefs.js';
@@ -720,12 +721,14 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
         deliverInDays: z.number().int().min(1).max(180).describe('Whole days from now to deliver.'),
         note: z.string().max(280).default('').describe('Short note to the buyer.'),
       }),
-      execute: async ({ jobId, priceUsdc, deliverInDays, note }) =>
+      execute: async ({ jobId, priceUsdc: given, deliverInDays, note }, options) =>
         guarded('propose_make_offer', async () => {
+          const said = await saidFigure(options, 'priceUsdc');
+          const priceUsdc = said ? said.usdc : given;
           const brief = getBrief(jobId);
           const job = getBuyerJob(jobId);
           if (!brief || !job) return { error: `No open request found with id ${jobId}.` };
-          return offer(actions, buildMakeOfferConfirm({
+          const built = buildMakeOfferConfirm({
             me: address,
             jobId,
             buyerUser: brief.postedBy,
@@ -737,7 +740,8 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
             deliverInDays,
             note,
             nowUnix: Math.floor(Date.now() / 1000),
-          }));
+          });
+          return offer(actions, 'error' in built ? built : keepOnCard(built, said, ['Your price']));
         }),
     }),
 

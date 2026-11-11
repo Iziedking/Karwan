@@ -10,7 +10,7 @@ import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
-import { budgetDifference, offerErrorKey, offerFundingTotal, orderOffers, topUpAmount, type Offer } from '../model';
+import { budgetDifference, offerErrorKey, offerFundingTotal, offerPriceSaid, orderOffers, topUpAmount, type Offer } from '../model';
 
 function sellerName(address: string): string {
   return /^0x[a-fA-F0-9]{40}$/.test(address) ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
@@ -25,7 +25,8 @@ function shortDate(unix: number, locale: string): string {
 /// The offers sellers sent on the buyer's own request, cheapest first. Renders
 /// nothing until there is at least one, so a request without offers looks as
 /// it always did.
-export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: string }) {
+export function BuyerOffers({ jobId, budgetUsdc, budgetLocal }: { jobId: string; budgetUsdc: string; budgetLocal?: { currency: string; amount: string } | null }) {
+  const request = { budgetUsdc, budgetLocal };
   const t = useTranslations().offers;
   const { locale } = useLocale();
   const mt = useMoneyText({ compact: true });
@@ -124,7 +125,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
                 </span>
               )}
               <span className="shrink-0 text-[16px] font-medium tabular-nums text-[var(--ink)]">
-                {mt.text(offer.priceUsdc)}
+                {mt.price(offer.priceUsdc, offerPriceSaid(offer, request))}
               </span>
             </div>
             <p className="mt-1 text-[14px] text-[var(--ink-secondary)] font-medium">

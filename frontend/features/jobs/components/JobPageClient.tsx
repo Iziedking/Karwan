@@ -180,7 +180,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   const page = <RequestPage initial={state.job} explorer={state.explorer} />;
   return state.job.viewerIsBuyer !== false ? (
     <>
-      <BuyerOffers jobId={jobId} budgetUsdc={state.job.budgetUsdc} />
+      <BuyerOffers jobId={jobId} budgetUsdc={state.job.budgetUsdc} budgetLocal={state.job.budgetLocal} />
       {page}
     </>
   ) : (

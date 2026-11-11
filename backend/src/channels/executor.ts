@@ -263,7 +263,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   },
   stop_agent_bid: (p) => ({ method: 'POST', path: '/api/agents/seller/bids/abandon', body: { jobId: p.jobId } }),
   confirm_goods_received: (p) => ({ method: 'POST', path: '/api/trade/pod/accept-circle', body: { address: p.address, invoiceId: p.invoiceId, podHash: p.podHash } }),
-  make_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers`, body: { priceUsdc: p.priceUsdc, deliverByUnix: p.deliverByUnix, note: p.note } }),
+  make_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers`, body: { priceUsdc: p.priceUsdc, deliverByUnix: p.deliverByUnix, note: p.note, ...(typeof p.quote === 'string' ? { quote: p.quote } : {}) } }),
   withdraw_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers/${p.offerId}/withdraw`, body: {} }),
   lower_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers/${p.offerId}/lower`, body: { priceUsdc: p.priceUsdc } }),
   answer_agent_question: (p) => ({

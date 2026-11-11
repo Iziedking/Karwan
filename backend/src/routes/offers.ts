@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { z } from 'zod';
+import { parseUnits } from 'viem';
+import { localFromQuote, type LocalAmount } from '../rates/quote.js';
 import { sessionAddress } from '../auth/session.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { getProfile } from '../db/profiles.js';
@@ -16,7 +18,18 @@ const offerSchema = z.object({
   priceUsdc: z.string().min(1).max(32),
   deliverByUnix: z.number().int().positive(),
   note: z.string().max(2000),
+  /// The quote behind a price typed in a local currency (view 77).
+  quote: z.string().max(2000).optional(),
 });
+
+/// The typed figure behind a price, when its quote is good and is this price.
+function typed(quote: unknown, priceUsdc: string): LocalAmount | undefined {
+  try {
+    return typeof quote === 'string' ? localFromQuote(quote, parseUnits(priceUsdc, 6)) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export const offersRoutes = new Hono();
 
@@ -44,7 +57,9 @@ offersRoutes.post('/:jobId/offers', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err), code: 'bad_body' }, 400);
   }
-  const r = await createOffer(me, c.req.param('jobId'), body, deps);
+  const { quote, ...made } = body;
+  const priceLocal = typed(quote, made.priceUsdc);
+  const r = await createOffer(me, c.req.param('jobId'), { ...made, ...(priceLocal ? { priceLocal } : {}) }, deps);
   if (!r.ok) return c.json({ error: r.message ?? r.code, code: r.code }, r.status);
   // Their own offer is their answer to any question their agent had asked here.
   await closeQuestionOnOffer(me, c.req.param('jobId'), body.priceUsdc).catch(() => {});
@@ -63,14 +78,14 @@ offersRoutes.post('/:jobId/offers/:offerId/withdraw', async (c) => {
 offersRoutes.post('/:jobId/offers/:offerId/lower', async (c) => {
   const me = session(c);
   if (!me) return c.json({ error: 'Sign in first.', code: 'sign_in' }, 401);
-  let body: { priceUsdc?: unknown };
+  let body: { priceUsdc?: unknown; quote?: unknown };
   try {
-    body = (await c.req.json()) as { priceUsdc?: unknown };
+    body = (await c.req.json()) as { priceUsdc?: unknown; quote?: unknown };
   } catch {
     return c.json({ error: 'Send the new price.', code: 'bad_body' }, 400);
   }
   if (typeof body.priceUsdc !== 'string') return c.json({ error: 'Send the new price.', code: 'bad_body' }, 400);
-  const r = await lowerOffer(me, c.req.param('offerId'), body.priceUsdc, deps);
+  const r = await lowerOffer(me, c.req.param('offerId'), body.priceUsdc, deps, typed(body.quote, body.priceUsdc));
   if (!r.ok) return c.json({ error: r.message ?? r.code, code: r.code }, r.status);
   return c.json({ offer: r.offer });
 });

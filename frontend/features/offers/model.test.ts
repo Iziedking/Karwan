@@ -87,3 +87,14 @@ test('the payment CTA requires a valid server total rather than the base price',
   assert.equal(offerFundingTotal({priceUsdc:'100',fundedUsdc:'100'}),'100');
   assert.equal(offerFundingTotal({priceUsdc:'bad',fundedUsdc:'100.5'}),null);
 });
+
+test('an offer price reads as typed, or as the budget was said when it is exactly the budget (view 77)', async () => {
+  const { offerPriceSaid } = await import('./model');
+  const typed = { currency: 'NGN', amount: '280000' };
+  const budget = { currency: 'NGN', amount: '300000' };
+  assert.deepEqual(offerPriceSaid({ priceUsdc: '208', priceLocal: typed }, { budgetUsdc: '222.86', budgetLocal: budget }), typed);
+  assert.deepEqual(offerPriceSaid({ priceUsdc: '222.86' }, { budgetUsdc: '222.86', budgetLocal: budget }), budget);
+  assert.equal(offerPriceSaid({ priceUsdc: '222.85' }, { budgetUsdc: '222.86', budgetLocal: budget }), undefined);
+  assert.equal(offerPriceSaid({ priceUsdc: '222.86' }, { budgetUsdc: null, budgetLocal: null }), undefined, 'a seller shown a range has no budget figure to read');
+  assert.equal(offerPriceSaid({ priceUsdc: '222.86' }), undefined);
+});

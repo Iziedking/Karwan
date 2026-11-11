@@ -79,3 +79,14 @@ test('review #3: a state change can be made conditional on the current state', a
   assert.equal(await setDirectOfferState(a.offer.id, 'withdrawn', { onlyFrom: 'pending' }), false);
   assert.equal((await getDirectOffer(a.offer.id))?.state, 'accepted');
 });
+
+test('an offer keeps the price as typed, and lowering without a figure drops it (view 77)', async () => {
+  __resetDirectOffersForTest();
+  const { lowerDirectOfferPrice } = await import('./directOffers.js');
+  const typed = { currency: 'NGN' as const, amount: '400000', rate: 1428.57, at: 1 };
+  const { offer } = await createDirectOffer({ ...base, priceLocal: typed });
+  assert.deepEqual((await getDirectOffer(offer.id))?.priceLocal, typed);
+  const lower = { currency: 'NGN' as const, amount: '380000', rate: 1428.57, at: 2 };
+  assert.deepEqual((await lowerDirectOfferPrice(offer.id, '266', '0xabc', lower))?.priceLocal, lower);
+  assert.equal((await lowerDirectOfferPrice(offer.id, '250', '0xabd'))?.priceLocal, undefined);
+});

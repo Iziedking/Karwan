@@ -14,7 +14,8 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { PriceRange } from '@/features/money/components/Price';
 import { splitRequestText } from '@/features/discovery/model';
-import { deliverByUnixFromDate, offerDefaults, offerErrorKey, type Offer } from '../model';
+import { deliverByUnixFromDate, offerDefaults, offerErrorKey, offerPriceSaid, type Offer } from '../model';
+import type { MoneyInputHandle } from '@/features/money/components/MoneyInput';
 import { lowerCheck, lowerErrorKey } from '../lowerOffer';
 import { Icon } from '@/shared/components/Icon';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
@@ -145,7 +146,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
         </div>
       </dl>
 
-      {open.length ? <OpenOffers offers={open} /> : null}
+      {open.length ? <OpenOffers offers={open} request={view.request} /> : null}
 
       <div className="mt-8">
         {state !== 'open' && !mine ? (
@@ -186,7 +187,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
 
 /// Every offer on the request, as anyone sees it (view 53): who, their rating,
 /// the price, when, and their note. Cheapest first, the chosen one marked.
-function OpenOffers({ offers }: { offers: OpenOffer[] }) {
+function OpenOffers({ offers, request }: { offers: OpenOffer[]; request: Parameters<typeof offerPriceSaid>[1] }) {
   const { locale, t: all } = useLocale();
   const t = all.offers;
   const money = useMoneyText({ compact: true });
@@ -219,7 +220,7 @@ function OpenOffers({ offers }: { offers: OpenOffer[] }) {
                 </p>
               </div>
               <div className="shrink-0 text-end">
-                <p className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.text(o.priceUsdc)}</p>
+                <p className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{money.price(o.priceUsdc, offerPriceSaid(o, request))}</p>
                 <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{t.deliverByOn.replace('{date}', shortDate(o.deliverByUnix, locale))}</p>
               </div>
             </div>
@@ -242,6 +243,7 @@ function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; on
   const [lowering, setLowering] = useState(false);
   const [price, setPrice] = useState('');
   const priceId = useId();
+  const lowerField = useRef<MoneyInputHandle>(null);
 
   async function lower() {
     if (lowerCheck(price, offer.priceUsdc) !== 'ok') {
@@ -251,7 +253,8 @@ function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; on
     setBusy(true);
     setError(null);
     try {
-      await api.lowerOffer(jobId, offer.id, price.trim());
+      const said = await lowerField.current?.quote();
+      await api.lowerOffer(jobId, offer.id, price.trim(), said && said.usdc === Number(price) ? said.token : undefined);
       setLowering(false);
       setPrice('');
       await onChange();
@@ -266,12 +269,12 @@ function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; on
     <div className="rounded-[20px] bg-[var(--lp-card)] p-6">
       <p className="text-[17px] font-medium text-[var(--lp-dark)]">{t.sent}</p>
       <p className="mt-1 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
-        {money.fill(t.sentDetail, { price: offer.priceUsdc }).replace('{date}', shortDate(offer.deliverByUnix, locale))}
+        {money.fillPrice(t.sentDetail, offer.priceUsdc, offer.priceLocal, 'price').replace('{date}', shortDate(offer.deliverByUnix, locale))}
       </p>
       {lowering ? (
         <div className="mt-4 space-y-2">
           <label htmlFor={priceId} className="block text-[14px] font-semibold text-[var(--lp-dark)]">{m.lowerLabel}</label>
-          <MoneyInput id={priceId} value={price} onChange={(usdc) => setPrice(usdc === null ? '' : String(usdc))} className="form-input block font-normal tabular-nums" />
+          <MoneyInput id={priceId} handle={lowerField} value={price} onChange={(usdc) => setPrice(usdc === null ? '' : String(usdc))} className="form-input block font-normal tabular-nums" />
           <p className="text-[14px] text-[var(--lp-text-sub)]">{m.lowerHint}</p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button className="rounded-full" loading={busy} onClick={() => void lower()}>{m.lowerSubmit}</Button>
@@ -329,6 +332,7 @@ function MakeOffer({
   const dateId = useId();
   const noteId = useId();
   const priceRef = useRef<HTMLInputElement | null>(null);
+  const priceField = useRef<MoneyInputHandle>(null);
   const defaults = offerDefaults(budgetUsdc, deadlineUnix);
   const [open, setOpen] = useState(false);
   const [price, setPrice] = useState(defaults.priceUsdc);
@@ -347,7 +351,8 @@ function MakeOffer({
     setBusy(true);
     setError(null);
     try {
-      await api.createOffer(jobId, { priceUsdc: price.trim(), deliverByUnix: deliverByUnixFromDate(date), note });
+      const said = await priceField.current?.quote();
+      await api.createOffer(jobId, { priceUsdc: price.trim(), deliverByUnix: deliverByUnixFromDate(date), note, ...(said && said.usdc === Number(price) ? { quote: said.token } : {}) });
       setOpen(false);
       await onSent();
     } catch (err) {
@@ -382,7 +387,7 @@ function MakeOffer({
             <label htmlFor={priceId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">
               {t.price}
             </label>
-            <MoneyInput id={priceId} inputRef={priceRef} value={price} onChange={(usdc) => setPrice(usdc === null ? '' : String(usdc))} className={`${field} tabular-nums`} />
+            <MoneyInput id={priceId} inputRef={priceRef} handle={priceField} value={price} onChange={(usdc) => setPrice(usdc === null ? '' : String(usdc))} className={`${field} tabular-nums`} />
           </div>
           <div>
             <label htmlFor={dateId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">
