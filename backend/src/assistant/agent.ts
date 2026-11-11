@@ -2434,7 +2434,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         amountUsdc: z.number().positive().max(1_000_000),
         note: z.string().max(120).optional().describe('Optional note to the person paid, in the user’s words, such as what it is for. Both see it.'),
       }),
-      execute: async ({ tag, amountUsdc, note }) => {
+      execute: async ({ tag, amountUsdc: given, note }, options) => {
+        // An amount said in their own currency opens the Send screen on that figure (view 77).
+        const said = await saidFigure(options, 'amountUsdc');
+        const amountUsdc = said ? said.usdc : given;
         const check = checkKarwanTag(tag.replace(/^@/, ''));
         if (!check.ok) return { ok: true, sendable: false, reason: 'That is not a valid Karwan tag.' };
         try {
@@ -2457,8 +2460,9 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             destination: 'send',
             to: found.tag,
             amountUsdc,
+            ...(said ? { said: { currency: said.currency, amount: said.amount } } : {}),
             note,
-            label: `Review sending ${amountUsdc} USDC to @${found.tag}`,
+            label: `Review sending ${said ? said.text : `${amountUsdc} USDC`} to @${found.tag}`,
             description: `To ${found.displayName}. You confirm on the next screen.`,
           });
           if ('error' in built) return built;

@@ -9,6 +9,9 @@ import { readSharedRates } from '../rates/sharedRate.js';
 
 export interface Said {
   usdc: number;
+  currency: LocalCurrency;
+  /// As said, in the currency's own units: "50000".
+  amount: string;
   /// "₦50,000".
   text: string;
   quote: string;
@@ -33,7 +36,7 @@ export async function saidFigure(
   const quote = rates ? makeQuote(said.currency, String(amount), rates, (deps.now ?? Date.now)(), deps.secret, CARD_QUOTE_MS) : null;
   if (!quote) return null;
   const text = new Intl.NumberFormat('en', { style: 'currency', currency: said.currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: currencyDigits(said.currency) }).format(Number(quote.amount));
-  return { usdc: Number(quote.usdcMicros) / 1_000_000, text, quote: quote.token };
+  return { usdc: Number(quote.usdcMicros) / 1_000_000, currency: quote.currency, amount: quote.amount, text, quote: quote.token };
 }
 
 /// The card with the figure as said: the named rows read it, and the payload

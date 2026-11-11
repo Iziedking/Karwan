@@ -33,3 +33,17 @@ test('the card reads the figure as said and carries the quote', async () => {
   assert.equal((kept.payload as { quote?: string }).quote, s!.quote);
   assert.equal(keepOnCard(card, null, ['Your rate an hour']), card);
 });
+
+test('a send said in naira opens the Send screen on that figure', async () => {
+  const { buildNavigateAction } = await import('./actions.js');
+  const s = await saidFigure(said({ amountUsdc: 50000 }), 'amountUsdc', deps);
+  assert.ok(s);
+  const built = buildNavigateAction({ destination: 'send', to: 'ada', amountUsdc: s.usdc, said: { currency: s.currency, amount: s.amount } });
+  assert.ok(!('error' in built));
+  const query = new URLSearchParams(built.href.split('?')[1]);
+  assert.equal(query.get('said'), '50000');
+  assert.equal(query.get('cur'), 'NGN');
+  assert.equal(query.get('amount'), String(s.usdc));
+  const plain = buildNavigateAction({ destination: 'send', to: 'ada', amountUsdc: 20, said: { currency: 'ngn<script>', amount: '1' } });
+  assert.ok(!('error' in plain) && !plain.href.includes('said'), 'a figure that is not a currency and an amount is left out');
+});

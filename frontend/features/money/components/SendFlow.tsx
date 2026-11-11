@@ -55,9 +55,11 @@ const CARD = 'rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(-
 /// The longest note a send carries; the server keeps the same limit.
 const NOTE_MAX = 120;
 
-export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose }: {
+export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefillNote, onClose }: {
   prefillRecipient?: string;
   prefillAmount?: number;
+  /// The amount as it was said to the assistant, in the person's own currency (view 77).
+  prefillSaid?: { currency: string; amount: string };
   prefillNote?: string;
   onClose: () => void;
 }) {
@@ -85,7 +87,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillNote, onClose
   const [stage, setStage] = useState<'who' | 'amount'>('who');
   const [confirming, setConfirming] = useState(false);
   const [recipient, setRecipient] = useState(prefillRecipient ?? '');
-  const amt = useAmountInput(prefillAmount ?? null);
+  const amt = useAmountInput(prefillAmount ?? null, prefillSaid);
   const { typed, setTyped } = amt;
   const [pressedText, setPressedText] = useState('');
   const [pressed, setPressed] = useState<number | null>(null);

@@ -57,3 +57,12 @@ test('funding a deal agreed in naira says so when the rate has moved more than 2
   assert.match(moved?.now ?? '', /^₦102,30\d$/);
   assert.equal(rateMoved(agreed, usdc, 'EUR', 0.92, 'en'), null);
 });
+
+test('a prefilled field starts on the figure as it was said (view 77)', async () => {
+  const { prefilled } = await import('./localAmount');
+  // 37.14 USDC at 1,346.11 would read 49,994; the person said 50,000.
+  assert.equal(prefilled(37.14, { currency: 'NGN', amount: '50000' }, 'NGN', 1346.11), '50000');
+  assert.equal(prefilled(37.14, null, 'NGN', 1346.11), typedFor(37.14, 'NGN', 1346.11));
+  assert.equal(prefilled(37.14, { currency: 'NGN', amount: '50000' }, 'USDC', null), typedFor(37.14, 'USDC', null), 'reading USDC, the said naira figure is not used');
+  assert.equal(prefilled(null, { currency: 'NGN', amount: '50000' }, 'NGN', 1346.11), '');
+});

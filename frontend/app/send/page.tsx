@@ -20,11 +20,14 @@ function SendPageContent() {
   const to = useSearchParams().get('to') ?? undefined;
   const amount = Number(useSearchParams().get('amount'));
   const note = useSearchParams().get('note') ?? undefined;
+  const said = useSearchParams().get('said');
+  const cur = useSearchParams().get('cur');
   return (
     <AuthGuard gateTag={t.sheet.titleSend} gateBody={t.sendPage.gateBody}>
       <SendFlow
         prefillRecipient={to}
         prefillAmount={Number.isFinite(amount) && amount > 0 ? amount : undefined}
+        prefillSaid={said && cur && /^\d{1,15}(\.\d{1,2})?$/.test(said) ? { currency: cur, amount: said } : undefined}
         prefillNote={note}
         onClose={() => router.push('/account')}
       />

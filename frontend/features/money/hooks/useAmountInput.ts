@@ -3,24 +3,27 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/core/api';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { useDisplayCurrency } from './useDisplayCurrency';
-import { cleanTyped, currencySign, formatTyped, isLocal, typedFor, typingFilter, usdcFor } from '../localAmount';
+import { cleanTyped, currencySign, formatTyped, isLocal, prefilled, typedFor, typingFilter, usdcFor } from '../localAmount';
 
 /// One amount field in the person's own currency (view 55). They type "50000"
 /// beside "₦"; `usdc` is what moves underneath, never shown. With USDC chosen,
 /// or no fresh rate, the field is in USDC exactly as before.
-export function useAmountInput(initialUsdc?: number | null) {
+/// `initialSaid` is a prefilled figure as it was said: someone reading in that
+/// currency starts on it exactly, not on its USDC worked back (view 77).
+export function useAmountInput(initialUsdc?: number | null, initialSaid?: { currency: string; amount: string } | null) {
   const { locale } = useLocale();
   const { currency, rate } = useDisplayCurrency();
   const local = isLocal(currency) && !!rate;
   const unit = local ? currency : 'USDC';
-  const [typed, setRaw] = useState(() => (initialUsdc ? typedFor(initialUsdc, unit, rate) : ''));
+  const start = prefilled(initialUsdc, initialSaid, unit, rate);
+  const [typed, setRaw] = useState(start);
   const touched = useRef(false);
 
   // The currency and rate arrive after the first paint: a prefilled figure is
   // said again in the person's currency until they type themselves.
   useEffect(() => {
-    if (!touched.current && initialUsdc) setRaw(typedFor(initialUsdc, unit, rate));
-  }, [initialUsdc, unit, rate]);
+    if (!touched.current && initialUsdc) setRaw(start);
+  }, [initialUsdc, start]);
 
   const setTyped = useCallback((value: string | ((current: string) => string)) => {
     touched.current = true;

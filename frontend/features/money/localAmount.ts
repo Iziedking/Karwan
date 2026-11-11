@@ -110,3 +110,11 @@ export function rateMoved(
   const scale = 10 ** digits;
   return { agreed: formatTyped(agreed.amount, currency, locale), now: formatTyped(String(Math.round(now * scale) / scale), currency, locale) };
 }
+
+/// What a prefilled field starts on: the figure as said when it is in the
+/// currency the field is in, otherwise the USDC said in that currency.
+export function prefilled(usdc: number | null | undefined, said: { currency: string; amount: string } | null | undefined, unit: DisplayCurrency, rate: number | null): string {
+  if (!usdc) return '';
+  if (said && said.currency === unit) return typingFilter(said.amount, unit);
+  return typedFor(usdc, unit, rate);
+}
