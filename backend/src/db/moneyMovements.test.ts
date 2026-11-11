@@ -61,3 +61,10 @@ test('transfer proof requires exact tx, parties, amount, and current attempt', (
     false,
   );
 });
+
+test('worth is kept on the one save that completes a movement, never again (view 77)', async () => {
+  const { becameCompleted } = await import('./moneyMovements.js');
+  assert.equal(becameCompleted({ state: 'verifying' }, { state: 'completed' }), true);
+  assert.equal(becameCompleted({ state: 'completed' }, { state: 'completed' }), false, 'adding the worth afterwards does not start it again');
+  assert.equal(becameCompleted({ state: 'preparing' }, { state: 'submitted' }), false);
+});

@@ -72,6 +72,9 @@ export interface DirectDeal {
   /// reading in that currency sees this figure for the life of the deal; the
   /// USDC above is what the escrow holds. Absent on deals agreed in USDC.
   agreedLocal?: LocalAmount;
+  /// What the deal's amount was worth to each side in their own currency when
+  /// it settled, by address (view 77). A finished deal reads it from then on.
+  settledWorth?: Record<string, LocalAmount>;
   /// First milestone percent (1-99). On a two-milestone deal this implies the
   /// split [firstReleasePct, 100 - firstReleasePct]. Always kept in sync with
   /// milestonePcts[0] when an N-part split is present so back-compat readers
@@ -728,14 +731,36 @@ export async function createDeal(
   return deal;
 }
 
+/// Told once when a deal becomes settled, after it is saved. Used to keep what
+/// its amount was worth to each side (view 77); it never blocks the deal.
+let settledHook: ((deal: DirectDeal) => void) | null = null;
+export function onDealSettled(hook: ((deal: DirectDeal) => void) | null): void {
+  settledHook = hook;
+}
+/// True for the one save that settles a deal.
+export function becameSettled(before: Pick<DirectDeal, 'settledAt'>, after: Pick<DirectDeal, 'settledAt'>): boolean {
+  return !before.settledAt && !!after.settledAt;
+}
+function tellSettled(before: DirectDeal, after: DirectDeal): void {
+  if (!settledHook || !becameSettled(before, after)) return;
+  try {
+    settledHook(after);
+  } catch {
+    // The deal is saved; keeping its worth is best effort.
+  }
+}
+
+/// `keepUpdatedAt` is for a note kept beside a deal (its worth when settled)
+/// that is not a change to the deal: lists ordered by last change stay as they were.
 export async function patchDeal(
   jobId: string,
   patch: Partial<DirectDeal>,
+  opts: { keepUpdatedAt?: boolean } = {},
 ): Promise<DirectDeal | null> {
   const key = jobId.toLowerCase();
   const existing = await getDeal(key);
   if (!existing) return null;
-  const next: DirectDeal = { ...existing, ...patch, updatedAt: Date.now() };
+  const next: DirectDeal = { ...existing, ...patch, updatedAt: opts.keepUpdatedAt ? existing.updatedAt : Date.now() };
   next.agreementDigest = agreementDigest(next);
   if (pgEnabled) {
     await db()
@@ -743,12 +768,14 @@ export async function patchDeal(
       .set({ buyer: next.buyer, seller: next.seller, data: next })
       .where(eq(directDeals.jobId, key));
     invalidateDealsCache();
+    tellSettled(existing, next);
     return next;
   }
   const store = loadFile();
   store[key] = next;
   saveFile(store);
   invalidateDealsCache();
+  tellSettled(existing, next);
   return next;
 }
 

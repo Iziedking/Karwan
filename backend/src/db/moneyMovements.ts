@@ -102,6 +102,25 @@ export async function ensureMoneyMovement(
   throw new Error('could not allocate a unique Karwan reference');
 }
 
+/// Told once when a movement becomes completed, after it is saved. Used to
+/// keep what the payment was worth to each side (view 77); it never blocks.
+let completedHook: ((movement: MoneyMovement) => void) | null = null;
+export function onMoneyMovementCompleted(hook: ((movement: MoneyMovement) => void) | null): void {
+  completedHook = hook;
+}
+/// True for the one save that takes a movement to completed.
+export function becameCompleted(before: Pick<MoneyMovement, 'state'>, after: Pick<MoneyMovement, 'state'>): boolean {
+  return before.state !== 'completed' && after.state === 'completed';
+}
+function tellCompleted(before: MoneyMovement, after: MoneyMovement): void {
+  if (!completedHook || !becameCompleted(before, after)) return;
+  try {
+    completedHook(after);
+  } catch {
+    // The payment is saved; keeping its worth is best effort.
+  }
+}
+
 /**
  * Compare-and-swap update. Postgres checks the version in the UPDATE predicate,
  * so two workers cannot both advance the same movement from one snapshot.
@@ -127,7 +146,10 @@ export async function updateMoneyMovement(
           ),
         )
         .returning({ data: moneyMovements.data });
-      if (rows[0]) return rows[0].data;
+      if (rows[0]) {
+        tellCompleted(current, rows[0].data);
+        return rows[0].data;
+      }
     }
     throw new Error(`money movement update contention: ${key}`);
   }
@@ -139,6 +161,7 @@ export async function updateMoneyMovement(
   if (next !== current && next.version !== current.version) {
     store.byReference[key] = next;
     saveFile(store);
+    tellCompleted(current, next);
   }
   return next;
 }

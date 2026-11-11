@@ -1,4 +1,5 @@
 import { formatUsdcMicros, type MoneyMovement } from '../money/model.js';
+import { figureForViewer } from '../money/worth.js';
 
 export interface PersonalLedgerItem {
   id: string;
@@ -166,9 +167,9 @@ export function movementToPersonalLedgerItem(
     status: statusFor(movement.state),
     movementState: movement.state,
     ...(movement.note && (kind === 'transfer_in' || kind === 'transfer_out') ? { note: movement.note } : {}),
-    ...(movement.local && viewer && viewer === movement.initiatedBy.toLowerCase()
-      ? { local: { currency: movement.local.currency, amount: movement.local.amount } }
-      : {}),
+    // The figure this person reads: what they typed, or what it was worth to
+    // them when it was paid (view 77).
+    ...(figureForViewer(movement, viewer) ? { local: figureForViewer(movement, viewer) } : {}),
   };
 }
 

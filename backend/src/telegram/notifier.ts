@@ -1191,7 +1191,7 @@ export function startTelegramNotifier(): () => void {
           ? [{ text: tg('openInKarwan', locale), url: summary.url }]
           : undefined;
         // Prices read in the currency the person chose, with the USDC beside it.
-        const kept = await keptFiguresFor({ jobId: e.jobId, listingId: e.payload?.listingId as string | undefined });
+        const kept = await keptFiguresFor({ jobId: e.jobId, listingId: e.payload?.listingId as string | undefined, viewer: r.address });
         const text = localiseUsdcText(summary.text, profile?.settings?.displayCurrency, await readSharedRates(), locale, kept);
         await sendTelegramMessage(link.chatId, text, buttons);
       }

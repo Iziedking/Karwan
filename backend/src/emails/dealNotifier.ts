@@ -1150,7 +1150,7 @@ export function startEmailNotifier(): () => void {
         const currency = profile.settings?.displayCurrency;
         const rates = await readSharedRates();
         const locale = profile.settings?.locale ?? 'en';
-        const kept = await keptFiguresFor({ jobId: contextId ?? e.jobId, listingId: e.payload?.listingId as string | undefined });
+        const kept = await keptFiguresFor({ jobId: contextId ?? e.jobId, listingId: e.payload?.listingId as string | undefined, viewer: r.address });
         const local = (text: string) => localiseUsdcText(text, currency, rates, locale, kept);
         const amount = amountFor(e) ?? (e.type === 'deal.disputed' ? context?.amount : undefined);
         await sendDealEventEmail({

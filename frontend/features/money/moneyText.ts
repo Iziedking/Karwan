@@ -35,6 +35,14 @@ export function moneyText(
 /// Fills a sentence such as "Add {amount} USDC": a money value takes the
 /// placeholder and the "USDC" after it, so the sentence reads "Add ₦26,922". Swahili puts USDC first ("Tuma USDC {amount}"),
 /// and that USDC is taken too. Other values fill as plain text.
+/// How a payment already made reads (view 77): the figure kept for this
+/// reader when there is one in their currency, otherwise today's figure marked
+/// "about", because no rate was kept for it. In USDC it is exact.
+export function paidText(today: string, kept: string | null, reading: 'usdc' | 'local', about: string): string {
+  if (kept) return kept;
+  return reading === 'local' ? about.replace('{amount}', today) : today;
+}
+
 export function fillMoney(
   template: string,
   money: Record<string, number | null | undefined>,

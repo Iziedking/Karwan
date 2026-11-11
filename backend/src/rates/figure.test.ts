@@ -55,3 +55,19 @@ test('the kept figures of a request, a deal and an offer for sale', () => {
   assert.deepEqual(kept.map((k) => [k.usdc, k.local.amount]), [[222.86, '300000'], [74.28, '100000'], [37.144, '50000']]);
   assert.deepEqual(keptFiguresOf({ brief: {}, deal: { dealAmountUsdc: '10' }, listing: null }), []);
 });
+
+test('a message about a past payment reads what it was worth to this reader then (view 77)', () => {
+  const ADA = '0x2222222222222222222222222222222222222222';
+  const kept = keptFiguresOf({
+    viewer: ADA,
+    deal: { dealAmountUsdc: '74.28', settledWorth: { [ADA]: { currency: 'NGN', amount: '100000', rate: 1346.2, at: 1 } } },
+    movements: [
+      { state: 'completed', amountMicros: '37140000', initiatedBy: '0x1111111111111111111111111111111111111111', participants: [], worth: { [ADA]: { currency: 'NGN', amount: '50000', rate: 1346.3, at: 1 } } },
+      { state: 'verifying', amountMicros: '10000000', initiatedBy: ADA, participants: [], worth: { [ADA]: { currency: 'NGN', amount: '13460', rate: 1346, at: 1 } } },
+    ] as never,
+  });
+  assert.deepEqual(kept.map((k) => [k.usdc, k.local.amount]), [[74.28, '100000'], [37.14, '50000']], 'a payment still in flight keeps nothing');
+  // The rate has moved since: today 37.14 USDC would read 49,994.
+  assert.equal(localiseUsdcText('Milestone 1 paid: 37.14 USDC of 74.28 USDC.', 'NGN', RATES, 'en', kept), 'Milestone 1 paid: ₦50,000 of ₦100,000.');
+  assert.deepEqual(keptFiguresOf({ deal: { dealAmountUsdc: '74.28', settledWorth: { [ADA]: { currency: 'NGN', amount: '100000', rate: 1, at: 1 } } } }), [], 'no reader, no worth');
+});

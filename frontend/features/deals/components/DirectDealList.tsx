@@ -8,6 +8,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { dealFigure } from '../dealFigure';
 
 export type DealStage =
   | 'awaiting-acceptance'
@@ -211,7 +212,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                   </div>
                   <div className="mt-2.5 flex items-baseline gap-2">
                     <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-                      {mt.price(deal.dealAmountUsdc, deal.agreedLocal)}
+                      {mt.price(deal.dealAmountUsdc, dealFigure(deal, auth.address, mt.currency))}
                     </span>
                   </div>
                   <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] line-clamp-1 max-w-[60ch] font-medium">

@@ -1024,6 +1024,8 @@ export interface DirectDeal {
   /// The price as agreed in a local currency (view 55), read back as agreed by
   /// anyone reading in that currency.
   agreedLocal?: LocalAmount;
+  /// What the amount was worth to each side when the deal settled, by address (view 77).
+  settledWorth?: Record<string, LocalAmount>;
   /// First milestone percent. On a two-milestone deal implies [firstReleasePct,
   /// 100 - firstReleasePct]; kept in sync with milestonePcts[0] when present.
   firstReleasePct: number;

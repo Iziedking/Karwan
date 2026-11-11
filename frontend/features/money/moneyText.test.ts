@@ -56,3 +56,10 @@ test('a recorded sentence says each figure in the chosen currency', () => {
   assert.equal(localiseFigures('Money secured and protection activated', naira), 'Money secured and protection activated');
   assert.equal(localiseFigures('Received 500 USDC', (n) => moneyText(n, 'USDC', null, 'en')), 'Received 500.00 USDC');
 });
+
+test('a payment already made reads its kept figure, or today\'s figure marked about (view 77)', async () => {
+  const { paidText } = await import('./moneyText');
+  assert.equal(paidText('₦50,120', '₦50,000', 'local', 'about {amount}'), '₦50,000', 'what it was worth then');
+  assert.equal(paidText('₦50,120', null, 'local', 'about {amount}'), 'about ₦50,120', 'nothing was kept for it');
+  assert.equal(paidText('37.14 USDC', null, 'usdc', 'about {amount}'), '37.14 USDC', 'USDC is exact');
+});

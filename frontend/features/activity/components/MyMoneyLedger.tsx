@@ -113,9 +113,11 @@ export function MyMoneyLedger({
       if (!ledgerAmountLabel(item.amountUsdc, item.kind)) return null;
       const direction = ledgerDirection(item.kind);
       const value = Number(item.amountUsdc);
-      return direction === 'flat' ? mt.price(value, item.local) : mt.price(direction === 'out' ? -value : value, item.local, { signed: true });
+      // Money that has moved reads what it was worth then; in flight it reads today's.
+      const say = item.status === 'done' ? mt.paid : mt.price;
+      return direction === 'flat' ? say(value, item.local) : say(direction === 'out' ? -value : value, item.local, { signed: true });
     },
-    [mt.price],
+    [mt.price, mt.paid],
   );
   const titleOf = useCallback((item: Item) => mt.line(ledgerTitle(item, t.kind, t.text)), [mt.line, t.kind, t.text]);
   const [items, setItems] = useState<Item[] | null>(null);

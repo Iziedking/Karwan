@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ApiError, api, type DealView, type DirectDeal, type MoneyMovementView } from '@/core/api';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { dealFigure } from '../dealFigure';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { Icon } from '@/shared/components/Icon';
@@ -118,6 +119,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   });
   const money = useMoneyBalances();
   const mt = useMoneyText({ compact: true });
+  // The amount as this person reads it: as agreed, or what it was worth when it settled (view 77).
+  const figure = dealFigure(deal, address, mt.currency);
   const { profile } = useUserProfile();
   // The short reference people give the assistant or support (view 42).
   const reference = dealReference(deal.jobId);
@@ -570,7 +573,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               <h1 id="deal-amount" className="text-[24px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink)]">
                 {viewerIsBuyer ? fill(dp.paidTitle, { name }) : dp.doneTitle}
               </h1>
-              <p dir="auto" className="mt-1 text-[15px] text-[var(--ink-secondary)]">{mt.price(deal.dealAmountUsdc, deal.agreedLocal)}{what ? ` · ${what}` : ''}</p>
+              <p dir="auto" className="mt-1 text-[15px] text-[var(--ink-secondary)]">{mt.price(deal.dealAmountUsdc, figure)}{what ? ` · ${what}` : ''}</p>
             </div>
           )}
           <div className={`${CARD_CLASS} p-5 lg:p-6`}>
@@ -578,7 +581,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             <div className="mt-5 border-t border-[var(--line)] pt-1">
               <FactRows facts={[
                 ...(deal.settledAt ? [{ label: dp.stageLine.paidOut, value: formatDealDate(deal.settledAt, locale) }] : []),
-                { label: dp.amount, value: mt.price(deal.dealAmountUsdc, deal.agreedLocal) },
+                { label: dp.amount, value: mt.price(deal.dealAmountUsdc, figure) },
                 ...(reference ? [{ label: dp.release.deal, value: <span dir="ltr">{reference}</span>, id: 'reference' }] : []),
               ]} />
             </div>
@@ -630,7 +633,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               {referenceButton}
             </div>
             <h1 id="deal-amount" className="mt-1">
-              <Price usdc={Number(deal.dealAmountUsdc)} agreed={deal.agreedLocal} size="hero" figureClassName="text-[44px] font-semibold leading-none tracking-[-0.03em] text-[var(--ink)] lg:text-[52px]" />
+              <Price usdc={Number(deal.dealAmountUsdc)} agreed={figure} size="hero" figureClassName="text-[44px] font-semibold leading-none tracking-[-0.03em] text-[var(--ink)] lg:text-[52px]" />
             </h1>
             {paidShare !== null ? (
               <div aria-hidden data-paid-bar className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--ash)]">

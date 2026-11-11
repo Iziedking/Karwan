@@ -1,7 +1,7 @@
 'use client';
 import { useCallback } from 'react';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { fillMoney, localHint, localiseFigures, moneyText, usdcFigure, type MoneyTextOptions } from '../moneyText';
+import { fillMoney, localHint, localiseFigures, moneyText, paidText, usdcFigure, type MoneyTextOptions } from '../moneyText';
 import { useDisplayCurrency } from './useDisplayCurrency';
 import { formatTyped } from '../localAmount';
 
@@ -17,8 +17,9 @@ function toNumber(value: number | string | null | undefined): number | null {
 /// `defaults` sets the screen's own USDC style; a call can still override it.
 export function useMoneyText(defaults: MoneyTextOptions = {}) {
   const { compact, exact, signed } = defaults;
-  const { locale } = useLocale();
+  const { locale, t: messages } = useLocale();
   const { currency, rate } = useDisplayCurrency();
+  const aboutTemplate = messages.money.about;
 
   const text = useCallback(
     (usdc: number | string | null | undefined, options?: MoneyTextOptions): string => {
@@ -83,5 +84,15 @@ export function useMoneyText(defaults: MoneyTextOptions = {}) {
     [currency, rate, locale, fill],
   );
 
-  return { text, fill, hint, usdc, line, price, fillPrice, currency };
+  /// A payment already made: the figure kept for this reader, or today's
+  /// figure marked "about" when none was kept (view 77).
+  const paid = useCallback(
+    (usdc: number | string | null | undefined, kept?: { currency: string; amount: string } | null, options?: MoneyTextOptions): string => {
+      const mine = kept && kept.currency === currency && rate ? price(usdc, kept, options) : null;
+      return paidText(text(usdc, options), mine, currency !== 'USDC' && rate ? 'local' : 'usdc', aboutTemplate);
+    },
+    [currency, rate, price, text, aboutTemplate],
+  );
+
+  return { text, fill, hint, usdc, line, price, paid, fillPrice, currency };
 }

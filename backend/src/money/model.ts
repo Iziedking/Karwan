@@ -113,6 +113,9 @@ export interface MoneyMovement {
   /// The amount as the initiator typed it in their own currency (view 55).
   /// USDC above is what moved; this is what they agreed to and read back.
   local?: LocalAmount;
+  /// What the amount was worth to each side in their own currency when it was
+  /// paid, by address (view 77). Kept once, at completion; history reads it.
+  worth?: Record<string, LocalAmount>;
   nextActor: MoneyMovementActor;
   expectedArrivalAt?: number;
   jobId?: string;

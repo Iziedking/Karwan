@@ -81,7 +81,7 @@ export function PortableReceipt({
       title: copy.receiptTitle,
       summary: item.note ? `${line} · ${noteLabel}: ${item.note}` : line,
       reference,
-      amount: item.amountUsdc ? money.price(item.amountUsdc, item.local) : null,
+      amount: item.amountUsdc ? (item.status === 'done' ? money.paid : money.price)(item.amountUsdc, item.local) : null,
       status,
       date,
       transaction,
@@ -156,7 +156,7 @@ export function PortableReceipt({
           className="mt-5"
           status={{ label: status, tone: item.status }}
           kind={copy.receiptTitle}
-          amount={item.amountUsdc ? money.price(item.amountUsdc, item.local) : null}
+          amount={item.amountUsdc ? (item.status === 'done' ? money.paid : money.price)(item.amountUsdc, item.local) : null}
           sentence={line}
           rows={[
             ...(item.note ? [{ label: noteLabel, value: item.note }] : []),

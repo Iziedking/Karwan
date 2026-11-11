@@ -813,3 +813,12 @@ Agree: yes.
 - Installed tooling: arc-foundry v0.8.0-2 (anvil fork), `viem` 2.55.11, `@circle-fin/developer-controlled-wallets` 10.8.0 (unchanged).
 - Test, 11 Nov 2026, node-services, anvil fork of Arc Testnet at block 71,722,000 (`arc-fork.sh e2e hourly`, which now ends with this case): a 300 USDC month of 12 sessions opened with 301.5 paid in and `termsHashOf` equal to the backend's hash; one session is 25 USDC; sessions recorded as running totals 1, 5 and 9 on different days; a 13th refused; approving 9 after the month paid the worker exactly 223.875; settling returned exactly 75.375 to the hirer. The older hourly and retainer checks in the same run still pass. Fork taken down after.
 - Agree: yes.
+
+## 2026-11-12 · A payment keeps what it was worth when it was paid (T5, view 77)
+
+- Scope: `backend/src/money/model.ts` gains an optional `worth` on a money movement; `backend/src/money/worth.ts` and `worthLive.ts` work it out and save it after a movement is already saved as completed. Record keeping only: no Arc, Gateway, CCTP or Circle call, no amount that moves, no signing step and no leg of any movement changed. The figure is USDC times Karwan's own shared reading rate (view 77), a rate nobody trades at.
+- Docs: none relied on, because nothing here calls Arc or Circle. Read 12 Nov 2026 in the code: the new files import only the profile store, the movement store, the shared rate and the logger.
+- Installed SDK: `@circle-fin/app-kit` 1.15.2, `@circle-fin/adapter-viem-v2` 1.18.0, `@circle-fin/developer-controlled-wallets` 10.8.0, `viem` 2.55.11 (as recorded in the entries above; no package file changed in this work).
+- Read-only test: none on chain, since no chain read or write is involved. Unit tests on node-services, 12 Nov 2026: `src/money/worth.test.ts`, `src/db/moneyMovements.test.ts`, `src/routes/activityMovementLedger.test.ts`.
+- Added the same day: a settled deal keeps its worth the same way (`db/deals.ts`, `money/worthLive.ts`), emails and Telegram read the kept worth, and `backend/src/scripts/backfill-payment-worth.ts` fills older records from CoinGecko daily history (`GET /coins/{id}/history`, checked against the CoinGecko API reference on 12 Nov 2026). Still no Arc or Circle call. `backend/package.json` gained one script line and no dependency.
+- Agree: yes, nothing to disagree with.

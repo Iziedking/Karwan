@@ -101,7 +101,7 @@ export function RecentMoney({ agentsOnly = false }: { agentsOnly?: boolean } = {
             const dealRef = item.jobId ? dealReference(item.jobId) : null;
             const direction = ledgerDirection(item.kind);
             const signed = item.amountUsdc ? Number(item.amountUsdc) * (direction === 'out' ? -1 : 1) : null;
-            const local = signed !== null && direction !== 'flat' ? (item.local && item.local.currency === currency && rate ? mt.price(signed, item.local, { signed: true }) : formatLocal(signed, currency, rate, locale, true)) : null;
+            const local = signed !== null && direction !== 'flat' ? (item.status === 'done' && rate ? mt.paid(signed, item.local, { signed: true }) : item.local && item.local.currency === currency && rate ? mt.price(signed, item.local, { signed: true }) : formatLocal(signed, currency, rate, locale, true)) : null;
             const line = mt.line(ledgerLine(item, texts));
             return (
               <li key={item.id}>
