@@ -12,6 +12,9 @@ export interface OrderFlowCopy {
   protectedBody: string;
   protectedBodyNoDate: string;
   balance: string;
+  /// Said instead of the balance when the order cannot use all of it (view 77).
+  canPayWith: string;
+  restElsewhere: string;
   enough: string;
   short: string;
   arrived: string;
@@ -75,6 +78,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     protectedBody: "Payment stays in escrow while {name} works towards delivery by {date}. Release, review and refund rules apply. After delivery, review or dispute within the review period; the seller may claim payment when it ends.",
     protectedBodyNoDate: "Payment stays in escrow while {name} works. Release, review and refund rules apply. After delivery, review or dispute within the review period; the seller may claim payment when it ends.",
     balance: 'Your balance',
+    canPayWith: 'You can pay with',
+    restElsewhere: '{amount} USDC more is elsewhere in your balance.',
     enough: 'Enough to pay',
     short: '{amount} USDC short',
     arrived: '{amount} USDC arrived in your account',
@@ -135,6 +140,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     protectedBody: "Le paiement reste sous séquestre pendant que {name} prépare la livraison prévue le {date}. Les règles de versement, de vérification et de remboursement s’appliquent. Après la livraison, vérifiez ou contestez pendant le délai prévu ; le vendeur peut réclamer le paiement à son terme.",
     protectedBodyNoDate: "Le paiement reste sous séquestre pendant que {name} travaille. Les règles de versement, de vérification et de remboursement s’appliquent. Après la livraison, vérifiez ou contestez pendant le délai prévu ; le vendeur peut réclamer le paiement à son terme.",
     balance: 'Votre solde',
+    canPayWith: 'Vous pouvez payer avec',
+    restElsewhere: '{amount} USDC de plus sont ailleurs dans votre solde.',
     enough: 'Assez pour payer',
     short: 'Il manque {amount} USDC',
     arrived: '{amount} USDC sont arrivés sur votre compte',
@@ -195,6 +202,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     protectedBody: "يبقى المبلغ في الضمان بينما يعمل {name} على التسليم بحلول {date}. تسري قواعد الصرف والمراجعة والاسترداد. بعد التسليم، راجع أو اعترض خلال فترة المراجعة؛ يمكن للبائع المطالبة بالدفع عند انتهائها.",
     protectedBodyNoDate: "يبقى المبلغ في الضمان بينما يعمل {name}. تسري قواعد الصرف والمراجعة والاسترداد. بعد التسليم، راجع أو اعترض خلال فترة المراجعة؛ يمكن للبائع المطالبة بالدفع عند انتهائها.",
     balance: 'رصيدك',
+    canPayWith: 'يمكنك الدفع بـ',
+    restElsewhere: '{amount} USDC أخرى في مكان آخر من رصيدك.',
     enough: 'يكفي للدفع',
     short: 'ينقصك {amount} USDC',
     arrived: 'وصل {amount} USDC إلى حسابك',
@@ -255,6 +264,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     protectedBody: "{name} के {date} तक डिलीवरी करने के दौरान भुगतान एस्क्रो में रहता है। भुगतान जारी करने, समीक्षा और वापसी के नियम लागू होते हैं। डिलीवरी के बाद समीक्षा अवधि के भीतर जाँचें या विवाद उठाएँ। अवधि समाप्त होने पर विक्रेता भुगतान का दावा कर सकता है।",
     protectedBodyNoDate: "{name} के काम करने के दौरान भुगतान एस्क्रो में रहता है। भुगतान जारी करने, समीक्षा और वापसी के नियम लागू होते हैं। डिलीवरी के बाद समीक्षा अवधि के भीतर जाँचें या विवाद उठाएँ। अवधि समाप्त होने पर विक्रेता भुगतान का दावा कर सकता है।",
     balance: 'आपका बैलेंस',
+    canPayWith: 'आप इससे भुगतान कर सकते हैं',
+    restElsewhere: '{amount} USDC और आपके बैलेंस में कहीं और है।',
     enough: 'भुगतान के लिए काफ़ी',
     short: '{amount} USDC कम',
     arrived: '{amount} USDC आपके खाते में आ गए',
@@ -315,6 +326,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     protectedBody: "Malipo yanabaki kwenye escrow wakati {name} anafanya kazi ya kuwasilisha kufikia {date}. Masharti ya malipo, ukaguzi na kurejeshewa pesa yanatumika. Baada ya uwasilishaji, kagua au fungua mgogoro ndani ya muda wa ukaguzi; muuzaji anaweza kudai malipo muda huo ukiisha.",
     protectedBodyNoDate: "Malipo yanabaki kwenye escrow wakati {name} anafanya kazi. Masharti ya malipo, ukaguzi na kurejeshewa pesa yanatumika. Baada ya uwasilishaji, kagua au fungua mgogoro ndani ya muda wa ukaguzi; muuzaji anaweza kudai malipo muda huo ukiisha.",
     balance: 'Salio lako',
+    canPayWith: 'Unaweza kulipa kwa',
+    restElsewhere: '{amount} USDC zaidi ziko kwingine kwenye salio lako.',
     enough: 'Inatosha kulipa',
     short: 'Unakosa {amount} USDC',
     arrived: '{amount} USDC zimefika kwenye akaunti yako',

@@ -22,7 +22,7 @@ import { useFundsLanded } from '@/features/deposit/useDepositWatch';
 import { CATEGORY_IDS, type CategoryId } from '@/features/market/marketModel';
 import { samplePhoto, sellerLine } from '@/features/market/listingFacts';
 import { AddMoneyPanel } from './AddMoneyPanel';
-import { orderPhase, shortByUsdc, shortfallUsdc, spendableUsdc, type OrderQuoteError } from './orderModel';
+import { orderPhase, payRest, shortByUsdc, shortfallUsdc, spendableUsdc, type OrderQuoteError } from './orderModel';
 import { usePayOrder, type PaidIn } from './usePayOrder';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
@@ -85,6 +85,8 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
       : undefined;
 
   const spendable = circle ? spendableUsdc({ balance: money.balance, buyer: money.buyer }) : money.buyer;
+  // The part of the one balance this order cannot use, named under what it can (view 77).
+  const rest = payRest({ balance: money.balance, pool: money.pool, buyer: money.buyer, seller: money.seller }, circle);
   const payOrder = usePayOrder({ listing, quote, address, circle, buyerAgentUsdc: money.buyer });
   const outcome = payOrder.outcome;
   const phase = outcome === 'changed' || outcome === 'closed' || outcome === 'own'
@@ -194,13 +196,19 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
       <>
       <section className={`${CARD_CLASS} mt-4 px-5 py-4`} data-order-balance>
         <div className="flex items-baseline justify-between gap-4">
-          <span className="text-[15px] text-[var(--ink-secondary)]">{t.balance}</span>
+          <span className="text-[15px] text-[var(--ink-secondary)]">{rest ? t.canPayWith : t.balance}</span>
           <span className="tabular-nums text-[15px] font-medium text-[var(--ink)]">{spendable === null ? '…' : mt.text(spendable, { exact: true })}</span>
         </div>
         {phase === 'ready' || phase === 'paying' ? (
           <p className="mt-1 text-[14px] font-medium text-[var(--ink)]">{t.enough}</p>
         ) : phase === 'short' ? (
           <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{mt.fill(t.short, { amount: quote && spendable !== null ? shortByUsdc(quote.youPayUsdc, spendable) : short }, {}, { exact: true })}</p>
+        ) : null}
+        {rest ? (
+          <p data-order-rest className="mt-1 text-[13px] font-medium text-[var(--ink-secondary)]">
+            {mt.fill(rest.where === 'agents' ? copy.moneyMove.one.withAgents : t.restElsewhere, { amount: rest.amount })}{' '}
+            <Link href="/account?where=1" className="font-semibold text-[var(--ink)] underline underline-offset-4">{copy.moneyPages.withdraw.bringIt}</Link>
+          </p>
         ) : null}
         {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{mt.fill(t.arrived, { amount: arrived }, {}, { exact: true })}</p> : null}
       </section>
@@ -245,7 +253,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
         rows={[
           [t.confirmFor, [listing?.title, name].filter(Boolean).join(', ')],
           [t.amount, mt.text(payUsdc, { exact: true })],
-          [t.confirmFrom, t.balance],
+          [t.confirmFrom, rest ? t.canPayWith : t.balance],
           ...(spendable !== null && quote ? [[t.leftAfter, mt.text(Math.max(0, spendable - Number(quote.youPayUsdc)), { exact: true })] as [string, string]] : []),
           [t.confirmHeld, t.heldValue],
           [fill(t.confirmIf, { name }), t.ifValue],

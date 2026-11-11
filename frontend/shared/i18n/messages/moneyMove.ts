@@ -97,6 +97,11 @@ export interface MoneyMoveCopy {
     moveToWallet: string;
     addToAgent: string;
     heldNote: string;
+    /// The line under the one balance and on Send (view 77).
+    readyPart: string;
+    agentsPart: string;
+    readyToSend: string;
+    withAgents: string;
     canSpend: string;
     aWeek: string;
     changeLimit: string;
@@ -218,6 +223,10 @@ const en: MoneyMoveCopy = {
     withAgentNote: 'For checks and deals',
     moveToWallet: 'Move to your wallet',
     addToAgent: 'Add',
+    readyPart: '{amount} USDC ready',
+    agentsPart: '{amount} USDC with your agents',
+    readyToSend: 'Ready to send {amount} USDC',
+    withAgents: '{amount} USDC is with your agents.',
     heldNote: 'Held in your deals ({amount} USDC) is not counted until the deal ends.',
     canSpend: 'Your agent can spend',
     aWeek: 'USDC a week',
@@ -331,6 +340,10 @@ const fr: MoneyMoveCopy = {
     withAgentNote: 'Pour les vérifications et les accords',
     moveToWallet: 'Déplacer vers votre portefeuille',
     addToAgent: 'Ajouter',
+    readyPart: '{amount} USDC prêts',
+    agentsPart: '{amount} USDC chez vos agents',
+    readyToSend: 'Prêt à envoyer : {amount} USDC',
+    withAgents: '{amount} USDC sont chez vos agents.',
     heldNote: 'Le montant bloqué dans vos accords ({amount} USDC) n’est pas compté avant la fin de l’accord.',
     canSpend: 'Votre agent peut dépenser',
     aWeek: 'USDC par semaine',
@@ -444,6 +457,10 @@ const ar: MoneyMoveCopy = {
     withAgentNote: 'للتحقق والصفقات',
     moveToWallet: 'انقل إلى محفظتك',
     addToAgent: 'إضافة',
+    readyPart: '{amount} USDC جاهزة',
+    agentsPart: '{amount} USDC لدى وكلائك',
+    readyToSend: 'جاهز للإرسال {amount} USDC',
+    withAgents: '{amount} USDC لدى وكلائك.',
     heldNote: 'المبلغ المحجوز في صفقاتك ({amount} USDC) لا يُحتسب حتى تنتهي الصفقة.',
     canSpend: 'يمكن لوكيلك أن ينفق',
     aWeek: 'USDC في الأسبوع',
@@ -557,6 +574,10 @@ const hi: MoneyMoveCopy = {
     withAgentNote: 'जाँच और सौदों के लिए',
     moveToWallet: 'अपने वॉलेट में भेजें',
     addToAgent: 'जोड़ें',
+    readyPart: '{amount} USDC तैयार',
+    agentsPart: '{amount} USDC आपके एजेंटों के पास',
+    readyToSend: 'भेजने के लिए तैयार {amount} USDC',
+    withAgents: '{amount} USDC आपके एजेंटों के पास है।',
     heldNote: 'आपके सौदों में रोकी गई राशि ({amount} USDC) सौदा पूरा होने तक नहीं गिनी जाती।',
     canSpend: 'आपका एजेंट खर्च कर सकता है',
     aWeek: 'USDC प्रति सप्ताह',
@@ -670,6 +691,10 @@ const sw: MoneyMoveCopy = {
     withAgentNote: 'Kwa ukaguzi na mikataba',
     moveToWallet: 'Hamishia kwenye pochi yako',
     addToAgent: 'Ongeza',
+    readyPart: '{amount} USDC tayari',
+    agentsPart: '{amount} USDC kwa mawakala wako',
+    readyToSend: 'Tayari kutuma {amount} USDC',
+    withAgents: '{amount} USDC ziko kwa mawakala wako.',
     heldNote: 'Kilichoshikiliwa kwenye mikataba yako ({amount} USDC) hakihesabiwi hadi mkataba uishe.',
     canSpend: 'Wakala wako anaweza kutumia',
     aWeek: 'USDC kwa wiki',

@@ -335,7 +335,7 @@ test('an email account sends from its own wallet; a pool is never counted', asyn
   });
   await page.goto('/send?to=@ada');
   const flow = page.getByRole('region', { name: 'Send money' });
-  await expect(flow).toContainText('Available 100.00 USDC');
+  await expect(flow).toContainText('Ready to send 100.00 USDC');
   await expect(flow).not.toContainText('150.00');
 });
 

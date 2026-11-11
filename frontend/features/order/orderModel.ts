@@ -26,6 +26,20 @@ export function spendableUsdc(money: { balance: number | null; buyer: number | n
   return Math.round((money.balance + money.buyer) * 1e6) / 1e6;
 }
 
+/// The part of the one balance this order cannot pay with, and where it is
+/// (view 77). An email account pays from its own balance and its buying agent;
+/// a wallet account from its buying agent. Null when the order can use it all.
+export function payRest(
+  money: { balance: number | null; pool: number; buyer: number | null; seller: number | null },
+  circle: boolean,
+): { amount: number; where: 'agents' | 'elsewhere' } | null {
+  if (money.balance === null || money.buyer === null || money.seller === null) return null;
+  const cents = (n: number) => Math.max(0, Math.floor(n * 100 + 1e-6));
+  const own = cents(money.pool) + (circle ? 0 : cents(money.balance));
+  const total = own + cents(money.seller);
+  return total > 0 ? { amount: total / 100, where: own > 0 ? 'elsewhere' : 'agents' } : null;
+}
+
 /// What to add: the gap rounded up to the cent, so the top-up always covers it.
 export function shortfallUsdc(youPay: string, spendable: number): string {
   return String(fundingShortfall(Number(youPay), spendable));

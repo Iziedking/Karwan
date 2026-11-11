@@ -35,6 +35,17 @@ export function whereItIs(facts: BalanceFacts): Array<{ part: BalancePart; amoun
   return parts;
 }
 
+/// The two parts named under the one balance (view 77): what a send can use
+/// now, and what is with the agents. In cents, rounded down, so the two never
+/// add to more than the balance. Null when nothing is with the agents.
+export function namedParts(facts: BalanceFacts): { ready: number; withAgents: number } | null {
+  if (facts.balance === null) return null;
+  const cents = (n: number) => Math.max(0, Math.floor(toMicros(n) / 10_000));
+  const withAgents = cents(facts.agents ?? 0);
+  if (withAgents === 0) return null;
+  return { ready: Math.floor((toMicros(facts.balance) + toMicros(facts.pool)) / 10_000) / 100, withAgents: withAgents / 100 };
+}
+
 type MovingRecord = {
   phase: BridgePhase;
   direction?: 'in' | 'out';

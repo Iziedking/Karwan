@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer, whereItIs } from './balanceModel';
+import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer, namedParts, whereItIs } from './balanceModel';
 
 const facts = { balance: null as number | null, pool: 0, loading: false, error: false };
 
@@ -62,4 +62,17 @@ test('a transfer stuck for more than an hour does not claim the balance line', (
   const fresh = { phase: 'attesting' as const, amountUsdc: '9', sourceChainKey: 'baseSepolia', startedAt: now - 60_000 };
   assert.equal(movingTransfer([old], now), null);
   assert.equal(movingTransfer([old, fresh], now)?.amountUsdc, '9');
+});
+
+test('the line under the balance names two parts that never add to more than the balance (view 77)', () => {
+  const some = { ...facts, balance: 59.576, pool: 0, agents: 41.309 };
+  assert.deepEqual(namedParts(some), { ready: 59.57, withAgents: 41.3 });
+  assert.ok(namedParts(some)!.ready + namedParts(some)!.withAgents <= heroAmount(some));
+  assert.deepEqual(namedParts({ ...facts, balance: 10, pool: 5.5, agents: 2 }), { ready: 15.5, withAgents: 2 }, 'a Transfer balance is ready too');
+});
+
+test('with nothing at the agents there are no parts to name', () => {
+  assert.equal(namedParts({ ...facts, balance: 10, agents: 0 }), null);
+  assert.equal(namedParts({ ...facts, balance: 10, agents: 0.004 }), null);
+  assert.equal(namedParts({ ...facts, balance: null, agents: 5 }), null, 'not read yet');
 });

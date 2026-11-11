@@ -13,7 +13,7 @@ import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotio
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur } from '@/shared/motion/tokens';
 import { bridgeChainMeta, useBridges } from '@/features/bridge/hooks/useBridge';
-import { formatBalance, heroAmount, homeState, movingTransfer, whereItIs } from '../balanceModel';
+import { formatBalance, heroAmount, homeState, movingTransfer, namedParts, whereItIs } from '../balanceModel';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import type { AgentKey } from '../moneySheetModel';
 import { RecentMoney } from './RecentMoney';
@@ -103,6 +103,9 @@ function MoneyHomeInner() {
   const richerAgent: AgentKey = (balances.seller ?? 0) > (balances.buyer ?? 0) ? 'seller' : 'buyer';
   const state = homeState(facts);
   const hero = heroAmount(facts);
+  // The line under the balance names its two parts (view 77); with nothing at the agents it stays Where it is.
+  const named = namedParts(facts);
+  const partsLine = named ? `${money.fill(mm.one.readyPart, { amount: named.ready })} · ${money.fill(mm.one.agentsPart, { amount: named.withAgents })}` : null;
   const moving = movingTransfer(bridges, Date.now());
   const movingText = moving
     ? money.fill(moving.direction === 'out' ? t.home.movingOut : t.home.movingIn, { amount: Number(moving.amountUsdc) }, {
@@ -163,8 +166,8 @@ function MoneyHomeInner() {
                   {display.rate !== null ? (
                     <span data-balance-usdc dir="ltr" className="block text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{formatBalance(hero, locale)} USDC</span>
                   ) : null}
-                  <button type="button" data-where-it-is-open onClick={() => setWhereOpen(true)} className="inline-flex min-h-8 items-center text-[13px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
-                    {mm.one.whereItIs}<span aria-hidden className="ms-1 rtl:rotate-180">›</span>
+                  <button type="button" data-where-it-is-open aria-label={partsLine ? `${mm.one.whereItIs}: ${partsLine}` : undefined} onClick={() => setWhereOpen(true)} className="inline-flex min-h-8 items-center text-[13px] font-medium tabular-nums text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
+                    {partsLine ? <span data-balance-parts dir="auto">{partsLine}</span> : mm.one.whereItIs}<span aria-hidden className="ms-1 rtl:rotate-180">›</span>
                   </button>
                 </h1>
                 <span className="absolute end-0 top-0"><NetworkHint /></span>

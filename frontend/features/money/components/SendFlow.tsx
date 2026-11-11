@@ -66,6 +66,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
   const messages = useTranslations();
   const t = messages.money;
   const flow = t.sendFlow;
+  const one = messages.moneyMove.one;
   const money = useMoneyText();
   const auth = useAuth();
   const pathname = usePathname();
@@ -131,6 +132,8 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
   const walletSigned = auth.method === 'web3';
   const available = balances.balance === null ? null : sendAvailable(balances.balance, balances.pool, balances.poolLoaded);
   const max = available === null ? null : spendable(available, 'send', walletSigned);
+  // What is with the agents is in the balance but not in this send (view 77); to the cent, rounded down.
+  const withAgents = Math.floor(((balances.buyer ?? 0) + (balances.seller ?? 0)) * 100 + 1e-6) / 100;
   const amount = amt.usdc;
   const blocker = sheetBlocker({ move: 'send', amount, available: max, recipient: recipientStatus });
   const busy = sheetBusy(state);
@@ -351,10 +354,16 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
             <div className="mt-12">
               <AmountHero id={amountId} label={t.sheet.amountLabel} value={typed} onChange={setTyped} keypad={keypad} inputRef={amountRef} sign={amt.sign} />
             </div>
-            <p className="mt-3 inline-flex items-center justify-center gap-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
-              {available === null ? ' ' : money.fill(t.sheet.available, { amount: available })}
+            <p data-send-ready className="mt-3 inline-flex items-center justify-center gap-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
+              {available === null ? ' ' : money.fill(one.readyToSend, { amount: available })}
               {available !== null ? <Hint side="bottom">{t.sheet.availableHint}</Hint> : null}
             </p>
+            {withAgents > 0 ? (
+              <p data-send-with-agents className="mt-1 text-center text-[13px] font-medium text-[var(--ink-secondary)]">
+                {money.fill(one.withAgents, { amount: withAgents })}{' '}
+                <Link href="/account?where=1" className="font-semibold text-[var(--ink)] underline underline-offset-4">{messages.moneyPages.withdraw.bringIt}</Link>
+              </p>
+            ) : null}
             <div className="mt-5 flex justify-center gap-2">
               {(['quarter', 'half', 'max'] as const).map((chip) => (
                 <button key={chip} type="button" className={CHIP} disabled={max === null || max <= 0} onClick={() => { if (max !== null) amt.setFromUsdc(chipAmount(max, chip), 'down'); }}>

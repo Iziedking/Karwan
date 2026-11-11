@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Listing, ListingQuote } from '@/core/api';
-import { orderPhase, orderTermsOf, shortByUsdc, shortfallUsdc, spendableUsdc } from './orderModel';
+import { orderPhase, orderTermsOf, payRest, shortByUsdc, shortfallUsdc, spendableUsdc } from './orderModel';
 
 /// Where an order stands on its review page (view 44, Figma 05 to 09).
 ///
@@ -48,4 +48,15 @@ test('the gap said beside the balance is exactly pay less balance, not the round
   assert.equal(shortByUsdc('50.224517', 19.987372), '30.237145');
   assert.equal(shortfallUsdc('50.224517', 19.987372), '30.24');
   assert.equal(shortByUsdc('10', 12), '0');
+});
+
+test('an order names the rest of the balance only when it cannot pay with all of it (view 77)', () => {
+  const all = { balance: 60, pool: 0, buyer: 5, seller: 0 };
+  assert.equal(payRest(all, true), null, 'an email account pays with all of it');
+  assert.deepEqual(payRest({ ...all, seller: 41.309 }, true), { amount: 41.3, where: 'agents' });
+  assert.deepEqual(payRest({ ...all, pool: 3, seller: 1 }, true), { amount: 4, where: 'elsewhere' });
+  assert.deepEqual(payRest(all, false), { amount: 60, where: 'elsewhere' }, 'a wallet account pays from its buying agent');
+  assert.deepEqual(payRest({ balance: 0, pool: 0, buyer: 5, seller: 2 }, false), { amount: 2, where: 'agents' });
+  assert.equal(payRest({ ...all, balance: null }, true), null, 'not read yet');
+  assert.equal(payRest({ ...all, seller: null }, true), null, 'no agents set up');
 });

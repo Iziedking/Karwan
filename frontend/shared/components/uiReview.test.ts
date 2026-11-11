@@ -437,9 +437,9 @@ test('every balance surface offers Withdraw, the route out that works for every 
   assert.doesNotMatch(home, /--lp-accent|--accent|variant: 'primary'/);
 });
 
-test('Send says what Available counts, so it is never read as a wrong balance', () => {
+test('Send says what Ready to send counts, so it is never read as a wrong balance', () => {
   const send = source('../../features/money/components/SendFlow.tsx');
-  assert.match(send, /t\.sheet\.available[\s\S]{0,400}<Hint[^>]*>\{t\.sheet\.availableHint\}<\/Hint>/);
+  assert.match(send, /one\.readyToSend[\s\S]{0,400}<Hint[^>]*>\{t\.sheet\.availableHint\}<\/Hint>/);
 });
 
 test('Back sits on the content column: a page frame draws its own and the shell steps aside', () => {

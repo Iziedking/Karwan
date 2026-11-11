@@ -268,7 +268,7 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
             {!check.ok && check.reason === 'over' ? <p className="text-center text-[14px] font-medium text-[var(--ink)]">{money.fill(sheetCopy.short, { amount: (amount ?? 0) - split.ready }, {}, { exact: true })}</p> : null}
             {split.elsewhere > 0 ? (
               <p data-withdraw-elsewhere className="text-center text-[13px] font-medium text-[var(--ink-secondary)]">
-                {money.fill(w.elsewhere, { amount: split.elsewhere })}{' '}
+                {money.fill(balances.pool >= 0.01 ? w.elsewhere : all.moneyMove.one.withAgents, { amount: split.elsewhere })}{' '}
                 <Link href="/account?where=1" className="font-semibold text-[var(--ink)] underline underline-offset-4">{w.bringIt}</Link>
               </p>
             ) : null}
