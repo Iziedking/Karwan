@@ -6,7 +6,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WorkRequestForm } from '@/features/work/components/WorkRequestForm';
 
 /// Post hourly work on the market (view 32). A card from the assistant opens
-/// here with its answers filled in: ?kind, title, brief, most, hours, periods, starts.
+/// here with its answers filled in: ?kind, title, brief, most, hours, periods, starts, sessions.
+/// The request form's "How you pay" opens it with ?kind and ?brief (view 76).
 export default function NewWorkRequestPage() {
   return (
     <Suspense fallback={null}>
@@ -29,6 +30,7 @@ function NewWorkRequest() {
     maxRateUsdc: q.get('most') ?? undefined,
     maxHours: num('hours'),
     periods: num('periods'),
+    sessions: num('sessions'),
     startsInDays: num('starts'),
   };
   return (

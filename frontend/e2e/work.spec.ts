@@ -188,3 +188,82 @@ test('a seller offers a rate and a note on posted work', async ({ page }) => {
   await expect.poll(() => sent.path).toBe('/api/work-requests/wr_demo/offers');
   expect(sent.body).toEqual({ rateUsdc: '9', note: 'Five years of QuickBooks' });
 });
+
+/// Monthly work counted in sessions (view 76).
+const s = en.work.sessions;
+const sessionLog = (n: number) => Array.from({ length: n }, (_, i) => ({ at: Date.now() - (n - i) * DAY, minutes: 1, note: `Lesson ${i + 1}`, ...(i === 2 ? { link: 'https://example.com/lesson-3' } : {}) }));
+const lessons = (over: Partial<WorkView> = {}, w: Partial<WorkWeekView> = {}): WorkView =>
+  work({ kind: 'monthly', title: 'Maths lessons', rateMicros: '300000000', maxHours: 1, periods: 3, runs: 3, sessions: 12,
+    weeks: [week({ status: 'logged', loggedMinutes: 5, log: sessionLog(5), ...w })], ...over });
+
+test('the worker records one session with a note and a link', async ({ page }) => {
+  const posted = { body: null as unknown, path: '' as string | undefined };
+  await serve(page, SELLER, lessons({ role: 'worker' }, { canLog: true }), posted);
+  await page.goto('/work/w_demo');
+  await expect(page.getByText('5 of 12 sessions')).toBeVisible();
+  await expect(page.locator('[data-sessions] > li')).toHaveCount(5);
+  await expect(page.locator('[data-sessions] > li').first()).toContainText('Session 5');
+  await page.getByRole('button', { name: s.record }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText('Session 6 of 12');
+  await sheet.getByLabel(s.logNote).fill('Fractions');
+  await sheet.getByLabel(s.logLink).fill('example.com');
+  await expect(sheet.getByRole('button', { name: s.logConfirm })).toBeDisabled();
+  await sheet.getByLabel(s.logLink).fill('https://example.com/lesson-6');
+  await sheet.getByRole('button', { name: s.logConfirm }).click();
+  await expect.poll(() => posted.path).toBe('/api/work/w_demo/hours');
+  expect(posted.body).toEqual({ minutes: 1, note: 'Fractions', k: 0, link: 'https://example.com/lesson-6' });
+});
+
+test('the hirer says which session did not happen, and it is only a note', async ({ page }) => {
+  const posted = { body: null as unknown, path: '' as string | undefined };
+  await serve(page, BUYER, lessons({}, { canFlag: true }), posted);
+  await page.goto('/work/w_demo');
+  await expect(page.getByRole('link', { name: s.link })).toHaveAttribute('href', 'https://example.com/lesson-3');
+  await page.getByRole('button', { name: s.didNot }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText(s.flagBody);
+  await expect(sheet.getByRole('button', { name: s.flagConfirm })).toBeDisabled();
+  await sheet.getByRole('radio', { name: 'Session 4' }).click();
+  await sheet.getByLabel(s.flagWhat).fill('Nobody came');
+  await sheet.getByRole('button', { name: s.flagConfirm }).click();
+  await expect.poll(() => posted.path).toBe('/api/work/w_demo/flag');
+  expect(posted.body).toEqual({ k: 0, n: 4, note: 'Nobody came' });
+});
+
+test('after the month the hirer approves the recorded sessions or says how many did not happen', async ({ page }) => {
+  const posted = { body: null as unknown, path: '' as string | undefined };
+  const log = sessionLog(10).map((x, i) => (i === 3 ? { ...x, flagged: { at: Date.now(), note: 'Nobody came' } } : x));
+  await serve(page, BUYER, lessons({}, { loggedMinutes: 10, log, canApprove: true, canObject: true, canFlag: true, ifPaid: { netMicros: '248750000', backMicros: '50250000', feeMicros: '1250000' } }), posted);
+  await page.goto('/work/w_demo');
+  await expect(page.getByText('You said this did not happen: Nobody came')).toBeVisible();
+  await expect(page.getByRole('button', { name: s.didNot })).toHaveCount(0);
+  await page.getByRole('button', { name: s.someNot }).click();
+  let sheet = page.getByRole('dialog');
+  await sheet.getByLabel(s.objectCount).fill('1');
+  await sheet.getByLabel(t.sheets.object.why).fill('Session 4, nobody came');
+  await sheet.getByRole('button', { name: t.sheets.object.confirm }).click();
+  await expect.poll(() => posted.path).toBe('/api/work/w_demo/object');
+  expect(posted.body).toEqual({ k: 0, minutes: 1, reason: 'Session 4, nobody came' });
+  await page.getByRole('button', { name: s.approve.replace('{n}', '10') }).click();
+  sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText('248.75 USDC');
+  await expect(sheet).toContainText('50.25 USDC');
+  await sheet.getByRole('button', { name: t.sheets.approve.confirm }).click();
+  await expect.poll(() => posted.path).toBe('/api/work/w_demo/approve');
+});
+
+test('posted monthly work can be counted in sessions', async ({ page }) => {
+  const posted = { body: null as unknown, path: '' as string | undefined };
+  await serve(page, BUYER, work(), posted);
+  await page.goto('/work/requests/new?kind=monthly&brief=Three%20lessons%20a%20week');
+  await expect(page.getByRole('heading', { name: s.postTitle })).toBeVisible();
+  await page.getByLabel(t.form.what).fill('Maths tutor');
+  await page.getByLabel(t.requests.form.mostMonthly).fill('300');
+  await page.getByLabel(s.field).fill('12');
+  await expect(page.getByText('25 USDC a session')).toBeVisible();
+  await page.getByLabel(t.form.months).fill('3');
+  await page.getByRole('button', { name: t.requests.form.post }).click();
+  await expect.poll(() => posted.path).toBe('/api/work-requests');
+  expect(posted.body).toMatchObject({ kind: 'monthly', brief: 'Three lessons a week', maxRateUsdc: '300', periods: 3, sessions: 12 });
+});

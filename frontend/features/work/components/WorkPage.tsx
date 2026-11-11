@@ -8,7 +8,7 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/workspace/Sheet';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
-import { hoursText, localDay, microsToUsdc, minutesFrom, weekLine, workActions } from '../workModel';
+import { hoursText, localDay, microsToUsdc, minutesFrom, monthLine, sessionPrice, sessionRows, validLink, weekLine, workActions } from '../workModel';
 import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
 import { workSteps } from '../workSteps';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
@@ -20,10 +20,12 @@ type SheetKind =
   | { kind: 'accept' | 'decline' | 'takeBack' | 'fund' | 'notice' }
   | { kind: 'log'; k: number }
   | { kind: 'approve'; w: WorkWeekView }
-  | { kind: 'object'; w: WorkWeekView };
+  | { kind: 'object'; w: WorkWeekView }
+  | { kind: 'flag'; w: WorkWeekView };
 
 /// One piece of hourly work (view 32), the same page for both sides. The
 /// rate and this week's hours lead; each money step opens the confirm sheet.
+/// Monthly work counted in sessions lists each session in its month (view 76).
 export function WorkPage({ id }: { id: string }) {
   const mt = useMoneyText({ compact: true });
   const t = useTranslations().work;
@@ -35,6 +37,8 @@ export function WorkPage({ id }: { id: string }) {
   const [h, setH] = useState('');
   const [m, setM] = useState('');
   const [note, setNote] = useState('');
+  const [link, setLink] = useState('');
+  const [pick, setPick] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,10 +55,13 @@ export function WorkPage({ id }: { id: string }) {
   if (!v) return null;
 
   const hourly = v.kind === 'hourly';
+  const ts = t.sessions;
+  const bySession = !hourly && !!v.sessions;
+  const each = sessionPrice(v.rateMicros, v.sessions);
   const usdc = (micros: string) => mt.text(microsToUsdc(micros));
   const day = (ms: number) => localDay(ms, locale);
   const periodName = (k: number) => fill(hourly ? t.page.week : t.page.month, { n: k + 1 });
-  const close = () => { setSheet(null); setError(null); setH(''); setM(''); setNote(''); };
+  const close = () => { setSheet(null); setError(null); setH(''); setM(''); setNote(''); setLink(''); setPick(null); };
   const run = async (step: () => Promise<unknown>) => {
     setBusy(true);
     setError(null);
@@ -69,10 +76,17 @@ export function WorkPage({ id }: { id: string }) {
       setBusy(false);
     }
   };
-  const minutes = hourly ? minutesFrom(h, m) : 1;
+  // On sessions the objection is a count of sessions, typed in the one field.
+  const minutes = hourly ? minutesFrom(h, m) : bySession && sheet?.kind === 'object' ? (/^\d+$/.test(h) && Number(h) > 0 ? Number(h) : null) : 1;
+  const sessionCount = (n: number) => fill(ts.count, { n, most: v.sessions ?? 0 });
   const actions = workActions(v);
   const other = v.role === 'hirer' ? fill(t.page.hiring, { name: v.workerName }) : fill(t.page.hiredBy, { name: v.hirerName });
   const lastK = v.runs - 1;
+  // The one date each side needs on a month of sessions.
+  const sessionDate = (w: WorkWeekView) => {
+    const at = monthLine(w, v.role, now);
+    return at === 'review-after' ? fill(ts.reviewAfter, { date: day(w.end) }) : at === 'record-by' ? fill(ts.recordBy, { date: day(w.logBy) }) : fill(t.page.reviewBy, { date: day(w.reviewBy) });
+  };
   // One primary button on the screen: the newest week's step if it has one,
   // else the first step on the work as a whole.
   const primaryWeek = [...v.weeks].reverse().find((w) => w.canLog || w.canApprove)?.k ?? null;
@@ -89,7 +103,7 @@ export function WorkPage({ id }: { id: string }) {
         {mt.fill(hourly ? t.page.rateHour : t.page.rateMonth, { amount: microsToUsdc(v.rateMicros) })}
       </p>
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
-        {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, fill(hourly ? t.page.weeks : t.page.months, { n: v.runs }), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}
+        {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, bySession ? fill(ts.term, { n: v.sessions ?? 0 }) : null, each ? mt.fill(ts.each, { amount: microsToUsdc(each) }) : null, fill(hourly ? t.page.weeks : t.page.months, { n: v.runs }), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}
       </p>
       </div>
       {v.status === 'ending' ? <p className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{fill(hourly ? t.page.endsAfterWeek : t.page.endsAfterMonth, { n: lastK + 1 })}</p> : null}
@@ -130,6 +144,7 @@ export function WorkPage({ id }: { id: string }) {
             line === 'settled'
               ? [w.paidNetMicros && BigInt(w.paidNetMicros) > 0n ? mt.fill(t.page.paid, { amount: microsToUsdc(w.paidNetMicros) }) : null, w.backMicros && BigInt(w.backMicros) > 0n ? mt.fill(t.page.back, { amount: microsToUsdc(w.backMicros) }) : null].filter(Boolean).join(' · ')
               : line === 'with-review' ? t.page.withReview
+              : bySession && line !== 'not-started' ? sessionDate(w)
               : line === 'in-review' ? fill(t.page.reviewBy, { date: day(w.reviewBy) })
               : line === 'logging' ? fill(t.page.logBy, { date: day(w.logBy) })
               : fill(t.page.starts, { date: day(w.start) });
@@ -140,11 +155,30 @@ export function WorkPage({ id }: { id: string }) {
                 <span className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">
                   {hourly
                     ? (w.loggedMinutes ? fill(t.page.logged, { hours: hoursText(w.loggedMinutes), most: hoursText(v.maxHours * 60) }) : t.page.nothingLogged)
+                    : bySession ? (w.loggedMinutes ? sessionCount(w.loggedMinutes) : ts.none)
                     : (w.loggedMinutes ? t.page.claimed : t.page.nothingLogged)}
                 </span>
               </div>
               <p className="mt-1 text-[14px] text-[var(--ink-secondary)]">{status}</p>
-              {w.log.length > 0 ? (
+              {bySession && w.log.length > 0 ? (
+                <ul data-sessions className="mt-3 divide-y divide-[var(--line)] border-t border-[var(--line)]">
+                  {sessionRows(w).map((x) => (
+                    <li key={x.n} className="py-3">
+                      <div className="flex items-baseline justify-between gap-4">
+                        <span className="text-[15px] font-semibold text-[var(--ink)]">{fill(ts.session, { n: x.n })}</span>
+                        <span className="shrink-0 text-[14px] tabular-nums text-[var(--ink-secondary)]">{day(x.at)}</span>
+                      </div>
+                      {x.note ? <p dir="auto" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{x.note}</p> : null}
+                      {x.link ? <a href={x.link} target="_blank" rel="noreferrer noopener" className="mt-1 inline-flex min-h-11 items-center text-[14px] font-medium text-[var(--ink)] underline underline-offset-2">{ts.link}</a> : null}
+                      {x.flagged ? (
+                        <p dir="auto" className="mt-2 rounded-[10px] bg-[var(--ash)] px-3 py-2 text-[14px] font-medium text-[var(--ink)]">
+                          {v.role === 'hirer' ? fill(ts.youSaid, { note: x.flagged.note }) : fill(ts.theySaid, { name: v.hirerName, note: x.flagged.note })}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : !bySession && w.log.length > 0 ? (
                 <ul className="mt-2 space-y-1">
                   {w.log.filter((x) => x.note).map((x) => (
                     <li key={x.at} dir="auto" className="text-[14px] text-[var(--ink-secondary)]">{hourly ? `${hoursText(x.minutes)} · ` : ''}{x.note}</li>
@@ -152,13 +186,14 @@ export function WorkPage({ id }: { id: string }) {
                 </ul>
               ) : null}
               <div className="mt-3 flex flex-wrap gap-3">
-                {w.canLog ? <button type="button" onClick={() => setSheet({ kind: 'log', k: w.k })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>{hourly ? t.page.logHours : t.page.claimMonth}</button> : null}
+                {w.canLog ? <button type="button" onClick={() => setSheet({ kind: 'log', k: w.k })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>{hourly ? t.page.logHours : bySession ? ts.record : t.page.claimMonth}</button> : null}
                 {w.canApprove ? (
                   <button type="button" onClick={() => setSheet({ kind: 'approve', w })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>
-                    {hourly ? fill(t.page.approve, { hours: hoursText(w.loggedMinutes) }) : t.page.approveMonth}
+                    {hourly ? fill(t.page.approve, { hours: hoursText(w.loggedMinutes) }) : bySession ? (w.loggedMinutes - w.approvedMinutes === 1 ? ts.approveOne : fill(ts.approve, { n: w.loggedMinutes - w.approvedMinutes })) : t.page.approveMonth}
                   </button>
                 ) : null}
-                {w.canObject ? <button type="button" onClick={() => setSheet({ kind: 'object', w })} className={QUIET_BUTTON}>{t.page.wrong}</button> : null}
+                {w.canObject ? <button type="button" onClick={() => setSheet({ kind: 'object', w })} className={QUIET_BUTTON}>{bySession ? ts.someNot : t.page.wrong}</button> : null}
+                {w.canFlag && !w.canObject ? <button type="button" onClick={() => setSheet({ kind: 'flag', w })} className={QUIET_BUTTON}>{ts.didNot}</button> : null}
               </div>
             </li>
           );
@@ -182,9 +217,10 @@ export function WorkPage({ id }: { id: string }) {
   function sheetTitle(): string {
     if (!sheet) return '';
     switch (sheet.kind) {
-      case 'log': return hourly ? t.sheets.log.title : t.sheets.log.claim;
+      case 'log': return hourly ? t.sheets.log.title : bySession ? ts.record : t.sheets.log.claim;
       case 'approve': return t.sheets.approve.title;
-      case 'object': return t.sheets.object.title;
+      case 'object': return bySession ? ts.objectTitle : t.sheets.object.title;
+      case 'flag': return ts.flagTitle;
       case 'fund': return t.sheets.fund.title;
       case 'notice': return t.sheets.notice.title;
       case 'accept': return t.sheets.accept.title;
@@ -230,7 +266,17 @@ export function WorkPage({ id }: { id: string }) {
           <>
             <p className="text-[32px] font-semibold tabular-nums text-[var(--ink)]">{usdc(sheet.w.ifPaid.netMicros)}</p>
             <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{t.sheets.approve.gets}</p>
-            <p className="mt-4 text-[15px] text-[var(--ink)]">{t.sheets.approve.body}</p>
+            {bySession ? (
+              <dl className={`${CARD_CLASS} mt-4 divide-y divide-[var(--line)] px-5 text-[15px]`}>
+                {[[t.card.fee, usdc(sheet.w.ifPaid.feeMicros)], [ts.back, usdc(sheet.w.ifPaid.backMicros)]].map(([k, val]) => (
+                  <div key={k} className="flex justify-between gap-4 py-3">
+                    <dt className="text-[var(--ink-secondary)]">{k}</dt>
+                    <dd className="font-semibold tabular-nums text-[var(--ink)]">{val}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            <p className="mt-4 text-[15px] text-[var(--ink)]">{bySession ? ts.approveBody : t.sheets.approve.body}</p>
             {buttons(t.sheets.approve.confirm, () => api.approveHours(v.id, sheet.w.k))}
           </>
         );
@@ -240,6 +286,12 @@ export function WorkPage({ id }: { id: string }) {
         return (
           <>
             <p className="text-[15px] leading-relaxed text-[var(--ink)]">{t.sheets.object.body}</p>
+            {bySession ? (
+              <label className="mt-4 block">
+                <span className={fieldLabel}>{ts.objectCount}</span>
+                <input className="form-input block w-full mt-2 tabular-nums" inputMode="numeric" value={h} onChange={(e) => setH(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+              </label>
+            ) : (
             <fieldset className="mt-4">
               <legend className={fieldLabel}>{t.sheets.object.hours}</legend>
               <div className="mt-2 grid grid-cols-2 gap-3">
@@ -247,6 +299,7 @@ export function WorkPage({ id }: { id: string }) {
                 <input aria-label={t.sheets.log.minutes} className={`form-input block w-full tabular-nums`} inputMode="numeric" placeholder={t.sheets.log.minutes} value={m} onChange={(e) => setM(e.target.value.replace(/\D/g, '').slice(0, 2))} />
               </div>
             </fieldset>
+            )}
             <label className="mt-4 block">
               <span className={fieldLabel}>{t.sheets.object.why}</span>
               <textarea className={`form-input block w-full mt-2 min-h-24 py-3`} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
@@ -255,8 +308,49 @@ export function WorkPage({ id }: { id: string }) {
           </>
         );
       }
+      case 'flag': {
+        const w = sheet.w;
+        const ok = pick !== null && note.trim().length > 0;
+        return (
+          <>
+            <div role="radiogroup" aria-label={ts.flagTitle} className="flex flex-wrap gap-2">
+              {sessionRows(w).map((x) => (
+                <button key={x.n} type="button" role="radio" aria-checked={pick === x.n} onClick={() => setPick(x.n)}
+                  className={`inline-flex min-h-11 items-center rounded-full border px-4 text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${pick === x.n ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--surface)]' : 'border-[var(--line)] text-[var(--ink)]'}`}>
+                  {fill(ts.session, { n: x.n })}
+                </button>
+              ))}
+            </div>
+            <label className="mt-4 block">
+              <span className={fieldLabel}>{ts.flagWhat}</span>
+              <textarea className="form-input block w-full mt-2 min-h-24 py-3" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+            </label>
+            <p className="mt-4 rounded-[14px] bg-[var(--ash)] px-3.5 py-3 text-[14px] text-[var(--ink)]">{ts.flagBody}</p>
+            {buttons(ts.flagConfirm, () => api.flagSession(v.id, { k: w.k, n: pick ?? 0, note: note.trim() }), !ok)}
+          </>
+        );
+      }
       case 'log': {
         const k = sheet.k;
+        if (bySession) {
+          const done = v.weeks.find((x) => x.k === k)?.loggedMinutes ?? 0;
+          const url = link.trim();
+          return (
+            <>
+              <p className="text-[15px] text-[var(--ink-secondary)]">{fill(ts.logCount, { n: done + 1, most: v.sessions ?? 0 })}</p>
+              <label className="mt-4 block">
+                <span className={fieldLabel}>{ts.logNote}</span>
+                <textarea className="form-input block w-full mt-2 min-h-24 py-3" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+              </label>
+              <label className="mt-4 block">
+                <span className={fieldLabel}>{ts.logLink} <span className="font-normal text-[var(--ink-secondary)]">{ts.optional}</span></span>
+                <input className="form-input block w-full mt-2" dir="ltr" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="https://" value={link} maxLength={300} onChange={(e) => setLink(e.target.value)} />
+              </label>
+              <p className="mt-4 rounded-[14px] bg-[var(--ash)] px-3.5 py-3 text-[14px] text-[var(--ink)]">{fill(ts.told, { name: v.hirerName })}</p>
+              {buttons(ts.logConfirm, () => api.logHours(v.id, { minutes: 1, note: note.trim(), k, ...(url ? { link: url } : {}) }), !validLink(link))}
+            </>
+          );
+        }
         return (
           <>
             {hourly ? (

@@ -8,6 +8,7 @@ import { ApiError, api, type WorkKind, type WorkRequestInput } from '@/core/api'
 import { fieldLabel } from '@/features/deals/workspace/Sheet';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
+import { SessionsField, sessionsOk } from './SessionsField';
 
 const GREEN = buttonClasses({ size: 'lg' });
 
@@ -23,18 +24,19 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
   const [most, setMost] = useState(prefill.maxRateUsdc ?? '');
   const [hours, setHours] = useState(String(prefill.maxHours ?? ''));
   const [periods, setPeriods] = useState(String(prefill.periods ?? ''));
+  const [sessions, setSessions] = useState(String(prefill.sessions ?? ''));
   const [starts, setStarts] = useState(String(prefill.startsInDays ?? 7));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hourly = kind === 'hourly';
-  const ready = title.trim() && brief.trim() && Number(most) > 0 && Number(periods) >= 1 && (!hourly || Number(hours) >= 1);
+  const ready = title.trim() && brief.trim() && Number(most) > 0 && Number(periods) >= 1 && (!hourly || Number(hours) >= 1) && (hourly || sessionsOk(sessions));
 
   async function post() {
     setBusy(true);
     setError(null);
     try {
       const r = await api.postWorkRequest({
-        kind, title, brief, maxRateUsdc: most, periods: Number(periods), startsInDays: Number(starts), ...(hourly ? { maxHours: Number(hours) } : {}),
+        kind, title, brief, maxRateUsdc: most, periods: Number(periods), startsInDays: Number(starts), ...(hourly ? { maxHours: Number(hours) } : Number(sessions) >= 1 ? { sessions: Number(sessions) } : {}),
       });
       router.push(`/work/requests/${r.request.id}`);
     } catch (err) {
@@ -59,7 +61,7 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
 
   return (
     <main className="mx-auto w-full max-w-[760px] px-4 pb-16 pt-8 sm:px-6">
-      <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.form.title}</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{hourly ? t.form.title : all.sessions.postTitle}</h1>
       <div className="mt-6 space-y-5">
         <label className="block">
           <span className={fieldLabel}>{all.form.what}</span>
@@ -86,7 +88,7 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
             <span className={fieldLabel}>{all.form.hours}</span>
             <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={hours} onChange={(e) => num(e.target.value, setHours, 2)} />
           </label>
-        ) : null}
+        ) : <SessionsField value={sessions} onChange={setSessions} monthUsdc={most} />}
         <label className="block">
           <span className={fieldLabel}>{hourly ? all.form.weeks : all.form.months}</span>
           <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={periods} onChange={(e) => num(e.target.value, setPeriods, 2)} />

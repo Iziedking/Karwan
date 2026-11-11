@@ -34,7 +34,7 @@ export function OpenWorkRequests() {
               <span className="min-w-0 flex-1">
                 <span dir="auto" className="block truncate text-[17px] font-semibold text-[var(--ink)]">{r.title}</span>
                 <span className="mt-0.5 block text-[14px] text-[var(--ink-secondary)]">
-                  {[r.kind === 'hourly' ? fill(all.page.upTo, { n: r.maxHours }) : null, fill(r.kind === 'hourly' ? all.page.weeks : all.page.months, { n: r.periods }), fill(t.market.closes, { date: localDay(r.offersCloseAt, locale) })].filter(Boolean).join(' · ')}
+                  {[r.kind === 'hourly' ? fill(all.page.upTo, { n: r.maxHours }) : r.sessions ? fill(all.sessions.term, { n: r.sessions }) : null, fill(r.kind === 'hourly' ? all.page.weeks : all.page.months, { n: r.periods }), fill(t.market.closes, { date: localDay(r.offersCloseAt, locale) })].filter(Boolean).join(' · ')}
                 </span>
               </span>
               <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]">

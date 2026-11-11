@@ -7,7 +7,7 @@ import { WorkForm } from '@/features/work/components/WorkForm';
 
 /// Hire by the hour (view 32). A card from the assistant or a chat channel
 /// opens here with its answers filled in: ?to, kind, rate, hours, periods,
-/// starts, title, brief.
+/// starts, title, brief, sessions.
 export default function NewWorkPage() {
   return (
     <Suspense fallback={null}>
@@ -29,6 +29,7 @@ function NewWork() {
     rateUsdc: q.get('rate') ?? undefined,
     maxHours: num('hours'),
     periods: num('periods'),
+    sessions: num('sessions'),
     startsInDays: num('starts'),
     title: q.get('title') ?? undefined,
     brief: q.get('brief') ?? undefined,

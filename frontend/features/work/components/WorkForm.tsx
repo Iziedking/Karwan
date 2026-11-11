@@ -15,6 +15,7 @@ import { ALERT } from '@/shared/ui/controls';
 import { localDay, microsToUsdc } from '../workModel';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { usePersonTag } from '@/shared/hooks/usePersonTag';
+import { SessionsField, sessionsOk } from './SessionsField';
 
 const GREEN = buttonClasses({ size: 'lg' });
 
@@ -31,6 +32,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
   const [rate, setRate] = useState(prefill.rateUsdc ?? '');
   const [hours, setHours] = useState(String(prefill.maxHours ?? ''));
   const [periods, setPeriods] = useState(String(prefill.periods ?? ''));
+  const [sessions, setSessions] = useState(String(prefill.sessions ?? ''));
   const [starts, setStarts] = useState(String(prefill.startsInDays ?? 2));
   const [title, setTitle] = useState(prefill.title ?? '');
   const [brief, setBrief] = useState(prefill.brief ?? '');
@@ -50,7 +52,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
 
   const input = (): WorkInput => ({
     worker: `@${tag}`, kind, rateUsdc: rate, periods: Number(periods), startsInDays: Number(starts), title, brief,
-    ...(hourly ? { maxHours: Number(hours) } : {}),
+    ...(hourly ? { maxHours: Number(hours) } : Number(sessions) >= 1 ? { sessions: Number(sessions) } : {}),
   });
   const usdc = (m: string) => mt.text(microsToUsdc(m));
 
@@ -79,7 +81,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
     }
   }
 
-  const ready = !!found && Number(rate) > 0 && Number(periods) >= 1 && (!hourly || Number(hours) >= 1) && title.trim().length > 0;
+  const ready = !!found && Number(rate) > 0 && Number(periods) >= 1 && (!hourly || Number(hours) >= 1) && (hourly || sessionsOk(sessions)) && title.trim().length > 0;
   const tagLine = byWallet.state === 'no-tag'
     ? t.form.whoNoTag
     : walletPending || !tag || tag.length < 2 || !lookup || lookup.state === 'checking'
@@ -129,7 +131,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
             <span className={fieldLabel}>{t.form.hours}</span>
             <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={hours} onChange={(e) => setHours(e.target.value.replace(/\D/g, '').slice(0, 2))} />
           </label>
-        ) : null}
+        ) : <SessionsField value={sessions} onChange={setSessions} monthUsdc={rate} />}
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.weeks : t.form.months}</span>
           <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={periods} onChange={(e) => setPeriods(e.target.value.replace(/\D/g, '').slice(0, 2))} />
@@ -161,6 +163,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
             <dl className={`${CARD_CLASS} mt-4 divide-y divide-[var(--line)] px-5 text-[15px]`}>
               {[
                 [hourly ? t.card.firstWeek : t.card.firstMonth, usdc(card.budgetMicros)],
+                ...(card.sessions ? [[t.sessions.field, String(card.sessions)]] : []),
                 [t.card.fee, usdc(card.feeHalfMicros)],
                 [fill(hourly ? t.card.mostWeeks : t.card.mostMonths, { n: card.periods }), usdc(card.mostMicros)],
                 [t.card.starts, localDay(card.startsAt, locale)],

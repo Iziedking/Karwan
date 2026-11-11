@@ -38,6 +38,8 @@ import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
 import { requestFunding } from '../requestFunding';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
+import { useLiveFeatures } from '@/shared/hooks/useLiveFeatures';
+import { workRequestHref } from '@/features/work/workModel';
 import { AttachField } from '@/features/attachments/AttachField';
 import type { PickedAttachment } from '@/features/attachments/attachments';
 import { attachCopy } from '@/shared/i18n/messages/attachCopy';
@@ -183,6 +185,9 @@ export function PostJobForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
   const tt = useTranslations().tradeTerms;
+  // Work that repeats is posted as monthly or hourly work, not as a one-time request (view 76).
+  const wk = useTranslations().work;
+  const { hourlyWork } = useLiveFeatures();
   const sectorLabels = useTranslations().smeCompany.sectors;
   const errCopy = useTranslations().chainErrors;
   const router = useRouter();
@@ -686,6 +691,17 @@ export function PostJobForm() {
         ) : null}
       </FieldSection>
       )}
+
+      {hourlyWork ? (
+        <div data-how-you-pay>
+          <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{wk.dealForm.howYouPay}</p>
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={wk.dealForm.howYouPay}>
+            <button type="button" aria-pressed disabled={submitting} className={cn(chip, chipOn)}>{wk.dealForm.fixed}</button>
+            <Link href={workRequestHref('monthly', brief)} className={cn(chip, chipOff, 'inline-flex items-center')}>{wk.form.monthly}</Link>
+            <Link href={workRequestHref('hourly', brief)} className={cn(chip, chipOff, 'inline-flex items-center')}>{wk.dealForm.byTheHour}</Link>
+          </div>
+        </div>
+      ) : null}
 
       {/* BUDGET AND NEEDED BY, side by side when there is room (view 48) */}
       <div>

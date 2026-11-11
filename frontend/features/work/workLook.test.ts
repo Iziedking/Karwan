@@ -62,3 +62,18 @@ test('a person is named by tag, and every figure reads in the account currency (
   // The global .form-input padding outranks a utility class, so the sign's room is set inline.
   assert.match(source('../money/components/MoneyInput.tsx'), /style=\{before \? \{ paddingInlineStart:/);
 });
+
+test('sessions sit in the month card with no new colour, and the request form asks how you pay (view 76)', () => {
+  const { page, form, requestForm } = FILES;
+  assert.match(page, /<ul data-sessions className="mt-3 divide-y divide-\[var\(--line\)\]/);
+  assert.match(page, /rounded-\[10px\] bg-\[var\(--ash\)\][^"]*">\s*\{v\.role === 'hirer' \? fill\(ts\.youSaid/);
+  assert.match(page, /target="_blank" rel="noreferrer noopener"/);
+  assert.doesNotMatch(page, /--(danger|warn|red)|text-red|bg-red/);
+  for (const file of [form, requestForm]) assert.match(file, /<SessionsField value=\{sessions\}/);
+  const field = source('./components/SessionsField.tsx');
+  assert.match(field, /<Hint>\{t\.fieldNote\}<\/Hint>/);
+  const request = source('../buyer/components/PostJobForm.tsx');
+  assert.match(request, /\{hourlyWork \? \(\s*<div data-how-you-pay>/);
+  assert.match(request, /workRequestHref\('monthly', brief\)/);
+  assert.match(request, /workRequestHref\('hourly', brief\)/);
+});

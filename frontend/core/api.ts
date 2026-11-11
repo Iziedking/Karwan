@@ -3279,6 +3279,7 @@ export interface WorkCard {
   rateMicros: string;
   maxHours: number;
   periods: number;
+  sessions?: number;
   startsAt: number;
   budgetMicros: string;
   feeHalfMicros: string;
@@ -3292,7 +3293,9 @@ export interface WorkWeekView {
   loggedMinutes: number;
   approvedMinutes: number;
   objectedMinutes: number;
-  log: { at: number; minutes: number; note: string }[];
+  /// On work counted in sessions each entry is one session, with its link and
+  /// the hirer's note when they said it did not happen (view 76).
+  log: { at: number; minutes: number; note: string; link?: string; flagged?: { at: number; note: string } }[];
   status: 'funded' | 'logged' | 'objected' | 'settled';
   paidNetMicros?: string;
   backMicros?: string;
@@ -3304,6 +3307,7 @@ export interface WorkWeekView {
   settleAt: number;
   canLog: boolean;
   canApprove: boolean;
+  canFlag?: boolean;
   canObject: boolean;
   ifPaid: { netMicros: string; backMicros: string; feeMicros: string };
 }
@@ -3320,6 +3324,8 @@ export interface WorkView {
   rateMicros: string;
   maxHours: number;
   periods: number;
+  /// Sessions a month holds, on monthly work counted in sessions (view 76).
+  sessions?: number;
   runs: number;
   startsAt: number;
   feeBps: number;
@@ -3340,6 +3346,7 @@ export interface WorkRequestInput {
   maxRateUsdc: string;
   maxHours?: number;
   periods: number;
+  sessions?: number;
   startsInDays?: number;
 }
 export interface RankedWorkOffer {
@@ -3364,6 +3371,7 @@ export interface WorkRequestView {
   maxRateMicros: string;
   maxHours: number;
   periods: number;
+  sessions?: number;
   startsAt: number;
   offersCloseAt: number;
   status: 'open' | 'hired' | 'closed' | 'expired';

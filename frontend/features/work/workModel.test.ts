@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { WorkView, WorkWeekView } from '@/core/api';
-import { hoursText, localDay, minutesFrom, weekLine, workActions } from './workModel';
+import { hoursText, localDay, minutesFrom, monthLine, sessionPrice, sessionRows, validLink, weekLine, workActions, workRequestHref } from './workModel';
 
 const DAY = 86_400_000;
 const week = (over: Partial<WorkWeekView> = {}): WorkWeekView => ({
@@ -43,4 +43,45 @@ test('each side sees only its own steps', () => {
   assert.deepEqual(workActions({ ...base, canTakeBack: true }), ['takeBack']);
   assert.deepEqual(workActions({ ...base, nextWeek: { k: 1, totalMicros: '1' }, canGiveNotice: true }), ['fund', 'notice']);
   assert.deepEqual(workActions({ ...base, role: 'worker', nextWeek: { k: 1, totalMicros: '1' } }), []);
+});
+
+test('a month of sessions lists them newest first, each with its number (view 76)', () => {
+  const w = week({ loggedMinutes: 3, log: [
+    { at: 1 * DAY, minutes: 1, note: 'Test' },
+    { at: 3 * DAY, minutes: 1, note: 'Algebra', link: 'https://example.com/2' },
+    { at: 5 * DAY, minutes: 1, note: 'Fractions', flagged: { at: 6 * DAY, note: 'Nobody came' } },
+  ] });
+  assert.deepEqual(sessionRows(w).map((s) => [s.n, s.note, s.link ?? null, s.flagged?.note ?? null]), [
+    [3, 'Fractions', null, 'Nobody came'], [2, 'Algebra', 'https://example.com/2', null], [1, 'Test', null, null],
+  ]);
+});
+
+test('a session has a price only when the month divides evenly', () => {
+  assert.equal(sessionPrice('300000000', 12), '25000000');
+  assert.equal(sessionPrice('300000000', 7), null);
+  assert.equal(sessionPrice('300000000', undefined), null);
+});
+
+test('a session link is optional, https and short', () => {
+  assert.equal(validLink(''), true);
+  assert.equal(validLink('https://example.com/lesson-6'), true);
+  assert.equal(validLink('http://example.com'), false);
+  assert.equal(validLink('https://a b'), false);
+  assert.equal(validLink(`https://example.com/${'a'.repeat(300)}`), false);
+});
+
+test('a month of sessions tells each side its next date', () => {
+  const m = week({ start: 10 * DAY, end: 38 * DAY, logBy: 40 * DAY, reviewBy: 43 * DAY });
+  assert.equal(monthLine(m, 'hirer', 20 * DAY), 'review-after');
+  assert.equal(monthLine(m, 'hirer', 39 * DAY), 'review-by');
+  assert.equal(monthLine(m, 'worker', 39 * DAY), 'record-by');
+  assert.equal(monthLine(m, 'worker', 41 * DAY), 'review-by');
+  assert.equal(monthLine(m, 'hirer', 9 * DAY), 'not-started');
+  assert.equal(monthLine({ ...m, status: 'objected' }, 'hirer', 41 * DAY), 'with-review');
+  assert.equal(monthLine({ ...m, status: 'settled' }, 'worker', 50 * DAY), 'settled');
+});
+
+test('the request form hands what was typed to the posting form', () => {
+  assert.equal(workRequestHref('monthly', ' A maths tutor, 3 lessons a week '), '/work/requests/new?kind=monthly&brief=A+maths+tutor%2C+3+lessons+a+week');
+  assert.equal(workRequestHref('hourly', ''), '/work/requests/new?kind=hourly');
 });

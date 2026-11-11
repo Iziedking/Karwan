@@ -100,7 +100,7 @@ export function WorkRequestPage({ id }: { id: string }) {
         {mt.fill(hourly ? t.market.upTo : t.market.upToMonth, { amount: microsToUsdc(r.maxRateMicros) })}
       </p>
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
-        {[hourly ? fill(all.page.upTo, { n: r.maxHours }) : null, fill(hourly ? all.page.weeks : all.page.months, { n: r.periods }), fill(all.page.starts, { date: localDay(r.startsAt, locale) }), open ? fill(t.market.closes, { date: localDay(r.offersCloseAt, locale) }) : null].filter(Boolean).join(' · ')}
+        {[hourly ? fill(all.page.upTo, { n: r.maxHours }) : r.sessions ? fill(all.sessions.term, { n: r.sessions }) : null, fill(hourly ? all.page.weeks : all.page.months, { n: r.periods }), fill(all.page.starts, { date: localDay(r.startsAt, locale) }), open ? fill(t.market.closes, { date: localDay(r.offersCloseAt, locale) }) : null].filter(Boolean).join(' · ')}
       </p>
       <p dir="auto" className="mt-4 whitespace-pre-line text-[15px] leading-relaxed text-[var(--ink)]">{r.brief}</p>
       {error && !hiring && !closing ? <p role="alert" className={`${ALERT} mt-5`}>{error}</p> : null}
