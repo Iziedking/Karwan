@@ -63,6 +63,16 @@ export function sessionPrice(rateMicros: string, sessions: number | undefined): 
   return rate % BigInt(sessions) === 0n ? (rate / BigInt(sessions)).toString() : null;
 }
 
+/// The price of one session while the form is being filled, in USDC to the
+/// micro. It shows for any month and count, so a price typed in naira gets its
+/// line too; it used to show only when the USDC figure divided to a cent.
+export function sessionPriceTyped(monthUsdc: string, sessions: string): string | null {
+  const n = Number(sessions);
+  const month = Number(monthUsdc);
+  if (!Number.isInteger(n) || n < 1 || !(month > 0)) return null;
+  return String(Math.floor((month * 1e6) / n) / 1e6);
+}
+
 /// The link on a session is optional; when given it is https and short, as the server asks.
 export function validLink(link: string): boolean {
   const s = link.trim();
@@ -82,6 +92,12 @@ export function monthLine(w: WorkWeekView, role: 'hirer' | 'worker', now: number
 }
 
 /// The request form's "How you pay" opens the posting form with what was typed.
+/// How long the work runs: "1 month", "3 months", "1 week", "4 weeks".
+export function runsText(n: number, hourly: boolean, page: { weeks: string; months: string; oneWeek: string; oneMonth: string }): string {
+  const line = n === 1 ? (hourly ? page.oneWeek : page.oneMonth) : hourly ? page.weeks : page.months;
+  return line.replace('{n}', String(n));
+}
+
 export function workRequestHref(kind: 'hourly' | 'monthly', brief: string): string {
   const q = new URLSearchParams({ kind });
   if (brief.trim()) q.set('brief', brief.trim().slice(0, 1500));

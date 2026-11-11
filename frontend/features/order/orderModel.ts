@@ -26,8 +26,16 @@ export function spendableUsdc(money: { balance: number | null; buyer: number | n
   return Math.round((money.balance + money.buyer) * 1e6) / 1e6;
 }
 
+/// What to add: the gap rounded up to the cent, so the top-up always covers it.
 export function shortfallUsdc(youPay: string, spendable: number): string {
   return String(fundingShortfall(Number(youPay), spendable));
+}
+
+/// The gap as it is said beside the balance: exactly what you pay less what you
+/// have. The rounded-up figure read ₦10 more than the two lines above it (11 Nov 2026).
+export function shortByUsdc(youPay: string, spendable: number): string {
+  const micros = Math.round(Number(youPay) * 1e6) - Math.round(spendable * 1e6);
+  return String(Math.max(0, micros) / 1e6);
 }
 
 /// The deal a listing is sold as. It must equal the server's listingOrderTerms

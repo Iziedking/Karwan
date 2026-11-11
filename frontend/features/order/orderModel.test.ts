@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Listing, ListingQuote } from '@/core/api';
-import { orderPhase, orderTermsOf, shortfallUsdc, spendableUsdc } from './orderModel';
+import { orderPhase, orderTermsOf, shortByUsdc, shortfallUsdc, spendableUsdc } from './orderModel';
 
 /// Where an order stands on its review page (view 44, Figma 05 to 09).
 ///
@@ -42,4 +42,10 @@ test('an order is the listing as the server sells it (backend deals/listingOrder
   assert.deepEqual(orderTermsOf(base), {
     dealAmountUsdc: 120, deadlineDays: 1, terms: 'Logo design\n\nThree concepts, two rounds of changes.', firstReleasePct: 100, milestonePcts: [100],
   });
+});
+
+test('the gap said beside the balance is exactly pay less balance, not the rounded top-up (T-13, 11 Nov)', () => {
+  assert.equal(shortByUsdc('50.224517', 19.987372), '30.237145');
+  assert.equal(shortfallUsdc('50.224517', 19.987372), '30.24');
+  assert.equal(shortByUsdc('10', 12), '0');
 });

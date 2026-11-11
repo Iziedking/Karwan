@@ -9,7 +9,9 @@ export type AssistantSafetyMessage = { role: 'user' | 'assistant'; content: stri
 const SMALL_TALK =
   /^(?:(?:ok(?:ay)?|great|cool|nice|perfect|awesome|got it|alright|sure)[,!. ]*)?(?:thanks?(?: you)?(?: so much| a lot)?|thx|ty|cheers|ok(?:ay)?|got it|great|cool|nice|perfect|awesome|hello|hi|hey|good (?:morning|afternoon|evening)|bye|goodbye|see you|merci(?: beaucoup)?|bonjour|asante(?: sana)?|habari|shukran|شكرا|مرحبا|धन्यवाद|शुक्रिया|नमस्ते)[\s!.?🙏👍]*$/u;
 
-const PROPOSAL_REPLY = 'Review the proposed actions below. Nothing has been executed.';
+const PROPOSAL_REPLY = 'Here it is to check. Nothing happens until you confirm.';
+/// The line saved in conversations before 11 Nov 2026.
+const PROPOSAL_REPLY_BEFORE = 'Review the proposed actions below. Nothing has been executed.';
 
 const ACT_ON_IT =
   /^(?:(?:yes|yeah|yep|ok(?:ay)?|sure|great)[,!. ]*)?(?:(?:please|pls)\s+)?(?:(?:can|could|will|would)\s+you\s+(?:please\s+)?)?(?:go ahead|proceed|do it|do that|confirm|set (?:it|this|that) up|(?:post|create|make|set up|send|publish|list|open|start|book|submit)(?:\s+(?:it|this|that|them|one))?(?:\s+for me)?)(?:\s+(?:now|please))?[\s!.?]*$/i;
@@ -64,7 +66,7 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
   const building = replying && users.slice(0, -1).some((m) => startsDeal(m.content.toLowerCase()));
   // "Make the deadline 10 days" right after a card: a change to the card being
   // built. The agent prepares it again; nothing is claimed about the account.
-  const changingCard = messages.at(-1)?.role === 'user' && messages.at(-2)?.role === 'assistant' && lastReply.startsWith(PROPOSAL_REPLY);
+  const changingCard = messages.at(-1)?.role === 'user' && messages.at(-2)?.role === 'assistant' && (lastReply.startsWith(PROPOSAL_REPLY) || lastReply.startsWith(PROPOSAL_REPLY_BEFORE));
   // "My first deal" names a deal that does not exist yet, so it is not personal.
   const aboutNewDeal = text.replace(/\bmy\s+(?:first|new|next|own)\s+(?:deals?|agreements?|contracts?)\b/g, 'a deal');
   if ((startsDeal(text) || building || changingCard) && !outcomeOrAttention && !personal(aboutNewDeal)) return false;

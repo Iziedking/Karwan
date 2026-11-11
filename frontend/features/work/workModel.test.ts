@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { WorkView, WorkWeekView } from '@/core/api';
-import { hoursText, localDay, minutesFrom, monthLine, sessionPrice, sessionRows, validLink, weekLine, workActions, workRequestHref } from './workModel';
+import { hoursText, localDay, minutesFrom, monthLine, runsText, sessionPrice, sessionPriceTyped, sessionRows, validLink, weekLine, workActions, workRequestHref } from './workModel';
 
 const DAY = 86_400_000;
 const week = (over: Partial<WorkWeekView> = {}): WorkWeekView => ({
@@ -84,4 +84,19 @@ test('a month of sessions tells each side its next date', () => {
 test('the request form hands what was typed to the posting form', () => {
   assert.equal(workRequestHref('monthly', ' A maths tutor, 3 lessons a week '), '/work/requests/new?kind=monthly&brief=A+maths+tutor%2C+3+lessons+a+week');
   assert.equal(workRequestHref('hourly', ''), '/work/requests/new?kind=hourly');
+});
+
+test('one week and one month are said in the singular (P-05, 11 Nov)', () => {
+  const page = { weeks: '{n} weeks', months: '{n} months', oneWeek: '1 week', oneMonth: '1 month' };
+  assert.equal(runsText(1, false, page), '1 month');
+  assert.equal(runsText(3, false, page), '3 months');
+  assert.equal(runsText(1, true, page), '1 week');
+  assert.equal(runsText(4, true, page), '4 weeks');
+});
+
+test('the price of one session shows for any month, not only one that divides to a cent (X-06, 11 Nov)', () => {
+  assert.equal(sessionPriceTyped('222.877647', '12'), '18.573137');
+  assert.equal(sessionPriceTyped('20', '4'), '5');
+  assert.equal(sessionPriceTyped('20', ''), null);
+  assert.equal(sessionPriceTyped('', '4'), null);
 });

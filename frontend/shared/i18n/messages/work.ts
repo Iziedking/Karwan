@@ -32,6 +32,8 @@ export interface WorkCopy {
     upTo: string;
     weeks: string;
     months: string;
+    oneWeek: string;
+    oneMonth: string;
     starts: string;
     hiring: string;
     hiredBy: string;
@@ -149,6 +151,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       upTo: 'Up to {n} hours a week',
       weeks: '{n} weeks',
       months: '{n} months',
+      oneWeek: '1 week',
+      oneMonth: '1 month',
       starts: 'Starts {date}',
       hiring: 'You are hiring {name}',
       hiredBy: '{name} is hiring you',
@@ -295,6 +299,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       upTo: "Jusqu'à {n} heures par semaine",
       weeks: '{n} semaines',
       months: '{n} mois',
+      oneWeek: '1 semaine',
+      oneMonth: '1 mois',
       starts: 'Début le {date}',
       hiring: 'Vous embauchez {name}',
       hiredBy: '{name} vous embauche',
@@ -441,6 +447,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       upTo: 'حتى {n} ساعة في الأسبوع',
       weeks: '{n} أسابيع',
       months: '{n} أشهر',
+      oneWeek: 'أسبوع واحد',
+      oneMonth: 'شهر واحد',
       starts: 'يبدأ {date}',
       hiring: 'أنت توظّف {name}',
       hiredBy: '{name} يوظّفك',
@@ -587,6 +595,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       upTo: 'हफ़्ते में {n} घंटे तक',
       weeks: '{n} हफ़्ते',
       months: '{n} महीने',
+      oneWeek: '1 हफ़्ता',
+      oneMonth: '1 महीना',
       starts: '{date} से शुरू',
       hiring: 'आप {name} को काम पर रख रहे हैं',
       hiredBy: '{name} आपको काम पर रख रहे हैं',
@@ -733,6 +743,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       upTo: 'Hadi saa {n} kwa wiki',
       weeks: 'Wiki {n}',
       months: 'Miezi {n}',
+      oneWeek: 'Wiki 1',
+      oneMonth: 'Mwezi 1',
       starts: 'Inaanza {date}',
       hiring: 'Unamwajiri {name}',
       hiredBy: '{name} anakuajiri',

@@ -6,7 +6,7 @@ import type { DirectDeal } from '@/core/api';
 export type DealKind = 'one' | 'stages' | 'shipped' | 'in_person';
 export type StepKey =
   | 'agreed' | 'paidIn' | 'delivered' | 'onTheWay' | 'arrived' | 'handedOver' | 'paidOut' | 'stage' | 'cancelled' | 'refunded'
-  | 'hoursSent' | 'prizeIn' | 'entries' | 'winners';
+  | 'hoursSent' | 'sessionsHeld' | 'prizeIn' | 'entries' | 'winners';
 export interface DealStep {
   key: StepKey;
   state: 'done' | 'current' | 'upcoming';

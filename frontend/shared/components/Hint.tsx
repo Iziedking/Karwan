@@ -80,7 +80,12 @@ export function Hint({
     window.addEventListener('scroll', follow, true);
     window.addEventListener('resize', follow);
     window.addEventListener('pointerdown', closeOnOutsideTap, true);
+    // Escape closes it wherever the focus is: a note opened by pointing at the
+    // (i) leaves the focus in the field, where the key used to do nothing.
+    const closeOnEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', closeOnEscape);
     return () => {
+      window.removeEventListener('keydown', closeOnEscape);
       window.removeEventListener('scroll', follow, true);
       window.removeEventListener('resize', follow);
       window.removeEventListener('pointerdown', closeOnOutsideTap, true);

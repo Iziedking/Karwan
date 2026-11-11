@@ -22,7 +22,7 @@ import { useFundsLanded } from '@/features/deposit/useDepositWatch';
 import { CATEGORY_IDS, type CategoryId } from '@/features/market/marketModel';
 import { samplePhoto, sellerLine } from '@/features/market/listingFacts';
 import { AddMoneyPanel } from './AddMoneyPanel';
-import { orderPhase, shortfallUsdc, spendableUsdc, type OrderQuoteError } from './orderModel';
+import { orderPhase, shortByUsdc, shortfallUsdc, spendableUsdc, type OrderQuoteError } from './orderModel';
 import { usePayOrder, type PaidIn } from './usePayOrder';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
@@ -200,7 +200,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
         {phase === 'ready' || phase === 'paying' ? (
           <p className="mt-1 text-[14px] font-medium text-[var(--ink)]">{t.enough}</p>
         ) : phase === 'short' ? (
-          <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{mt.fill(t.short, { amount: short }, {}, { exact: true })}</p>
+          <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{mt.fill(t.short, { amount: quote && spendable !== null ? shortByUsdc(quote.youPayUsdc, spendable) : short }, {}, { exact: true })}</p>
         ) : null}
         {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{mt.fill(t.arrived, { amount: arrived }, {}, { exact: true })}</p> : null}
       </section>

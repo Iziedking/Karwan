@@ -544,8 +544,8 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
     label: 'View payment request',
     build: (p) => (p.token && /^[0-9a-f-]{36}$/i.test(p.token) ? `/deposit/request/${p.token.toLowerCase()}` : null),
   },
-  // /bridge reads ?rail (gateway|cctp); anything else defaults to the pooled rail.
-  add_money: { label: 'Add money', build: (p) => `/bridge?rail=${p.rail === 'cctp' ? 'cctp' : 'gateway'}` },
+  // Add money is one page; the old /bridge links still open it.
+  add_money: { label: 'Add money', build: () => '/add' },
   // /bridge is the Top up AND Withdraw (cash out) screen. Used to route web3 users
   // to sign their own Arc burn, since the backend can't sign for their EOA.
   cash_out: { label: 'Cash out', build: () => '/bridge' },

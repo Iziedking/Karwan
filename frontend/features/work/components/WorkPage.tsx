@@ -8,7 +8,7 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/workspace/Sheet';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
-import { hoursText, localDay, microsToUsdc, minutesFrom, monthLine, sessionPrice, sessionRows, validLink, weekLine, workActions } from '../workModel';
+import { hoursText, localDay, microsToUsdc, minutesFrom, monthLine, runsText, sessionPrice, sessionRows, validLink, weekLine, workActions } from '../workModel';
 import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
 import { workSteps } from '../workSteps';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
@@ -103,7 +103,7 @@ export function WorkPage({ id }: { id: string }) {
         {mt.fill(hourly ? t.page.rateHour : t.page.rateMonth, { amount: microsToUsdc(v.rateMicros) })}
       </p>
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
-        {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, bySession ? fill(ts.term, { n: v.sessions ?? 0 }) : null, each ? mt.fill(ts.each, { amount: microsToUsdc(each) }) : null, fill(hourly ? t.page.weeks : t.page.months, { n: v.runs }), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}
+        {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, bySession ? fill(ts.term, { n: v.sessions ?? 0 }) : null, each ? mt.fill(ts.each, { amount: microsToUsdc(each) }) : null, runsText(v.runs, hourly, t.page), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}
       </p>
       </div>
       {v.status === 'ending' ? <p className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{fill(hourly ? t.page.endsAfterWeek : t.page.endsAfterMonth, { n: lastK + 1 })}</p> : null}
@@ -111,7 +111,7 @@ export function WorkPage({ id }: { id: string }) {
       {trackWeek ? (
         <div data-steps-card className={`${CARD_CLASS} mt-6 p-5`}>
           <p className="mb-4 text-[14px] font-semibold text-[var(--ink-secondary)]">{periodName(trackWeek.k)}</p>
-          <StepsTrack steps={workSteps(trackWeek)} />
+          <StepsTrack steps={workSteps(trackWeek, bySession)} />
         </div>
       ) : null}
 

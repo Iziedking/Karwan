@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AssistantAction } from '../assistant/actions.js';
-import { renderTurn, type OutMessage } from './render.js';
+import { chatText, renderTurn, type OutMessage } from './render.js';
 
 const WEB = 'https://karwan.site';
 
@@ -75,4 +75,13 @@ test('a long reply is split into several messages, none lost', () => {
   const para = 'a'.repeat(3000);
   const out = renderTurn(`${para}\n\n${para}`, undefined, WEB);
   assert.equal(out.length, 2);
+});
+
+test('a chat reply drops page paths and notes about buttons (H-02, 11 Nov)', () => {
+  const add = { kind: 'navigate', label: 'Add money', href: '/add' } as AssistantAction;
+  assert.deepEqual(renderTurn('Button shown to open [Add money](/add).', [add], WEB), [{ kind: 'text', body: 'Add money: https://karwan.site/add' }]);
+  assert.equal(
+    chatText('Open [Money](/account) to see it.\n\nA full link stays: [docs](https://karwan.site/docs).'),
+    'Open Money to see it.\n\nA full link stays: [docs](https://karwan.site/docs).',
+  );
 });

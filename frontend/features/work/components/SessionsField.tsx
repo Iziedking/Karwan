@@ -4,14 +4,14 @@ import { fieldLabel } from '@/features/deals/workspace/Sheet';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { sessionPriceTyped } from '../workModel';
 
 /// Sessions a month on monthly work (view 76). Empty means one fixed monthly
-/// price; the price of one session shows only when the month divides to a cent.
+/// price. The price of one session shows as soon as both figures are in.
 export function SessionsField({ value, onChange, monthUsdc }: { value: string; onChange: (v: string) => void; monthUsdc: string }) {
   const t = useTranslations().work.sessions;
   const mt = useMoneyText({ compact: true });
-  const cents = (Number(monthUsdc) * 100) / Number(value);
-  const each = Number(value) >= 1 && Number(monthUsdc) > 0 && Math.abs(cents - Math.round(cents)) < 1e-6 ? String(Math.round(cents) / 100) : null;
+  const each = sessionPriceTyped(monthUsdc, value);
   return (
     <div>
       <span className="flex items-center gap-2">

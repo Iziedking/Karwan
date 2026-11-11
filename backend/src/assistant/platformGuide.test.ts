@@ -79,7 +79,7 @@ test('route wires private fallback and agent uses results, not call count', () =
 });
 
 test('prepared money cards use deterministic review copy, never model completion claims', () => {
-  assert.equal(proposalReply([{ kind: 'confirm' }]), 'Review the proposed actions below. Nothing has been executed.');
+  assert.equal(proposalReply([{ kind: 'confirm' }]), 'Here it is to check. Nothing happens until you confirm.');
   assert.equal(proposalReply([{ kind: 'navigate' }]), null);
   assert.equal(proposalReply([]), null);
   const turn = readFileSync(new URL('./turn.ts', import.meta.url), 'utf8');

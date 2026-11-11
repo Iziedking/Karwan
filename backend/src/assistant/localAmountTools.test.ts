@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { z } from 'zod';
-import { toUsdc, withLocalAmounts } from './localAmountTools.js';
+import { figuresSaid, toUsdc, withLocalAmounts } from './localAmountTools.js';
 import type { UsdcRates } from '../rates/usdcRates.js';
 
 const RATES: UsdcRates = { rates: { NGN: 1346.11 }, updatedAt: Date.now(), source: 'coingecko' };
@@ -61,4 +61,32 @@ test('a tool is told the figure as it was said, beside the USDC it runs in', asy
   await tools.post.execute!({ budgetUsdc: 300000, currency: 'NGN' }, {});
   await tools.post.execute!({ budgetUsdc: 20 }, {});
   assert.deepEqual(told, [{ currency: 'NGN', amounts: { budgetUsdc: 300000 } }, undefined]);
+});
+
+test('a figure the assistant already turned into USDC is not converted a second time (G-01, 11 Nov)', async () => {
+  const seen: Array<{ args: unknown; said: unknown }> = [];
+  const tools = withLocalAmounts(
+    {
+      post: {
+        inputSchema: z.object({ title: z.string(), maxRateUsdc: z.number().positive().max(100_000) }),
+        execute: async (args: unknown, options: unknown) => { seen.push({ args, said: (options as { said?: unknown }).said }); return 'ok'; },
+      },
+    },
+    async () => RATES,
+  );
+  const messages = [{ role: 'user', content: [{ type: 'text', text: 'French teacher, three lessons a week. I can pay 50,000 naira a month for 2 months.' }] }];
+  // The person said 50,000 naira; the assistant passed 37.14 with currency NGN.
+  await tools.post.execute!({ title: 'French lessons', maxRateUsdc: 37.14, currency: 'NGN' }, { messages });
+  assert.deepEqual(seen[0], { args: { title: 'French lessons', maxRateUsdc: 37.14 }, said: { currency: 'NGN', amounts: { maxRateUsdc: 50000 } } });
+  // Passed as said, it converts once, as before.
+  await tools.post.execute!({ title: 'French lessons', maxRateUsdc: 50000, currency: 'NGN' }, { messages });
+  assert.deepEqual(seen[1], { args: { title: 'French lessons', maxRateUsdc: 37.144066 }, said: { currency: 'NGN', amounts: { maxRateUsdc: 50000 } } });
+  // A figure nobody typed is taken as given.
+  await tools.post.execute!({ title: 'French lessons', maxRateUsdc: 20000, currency: 'NGN' }, { messages: [{ role: 'user', content: 'whatever is fair' }] });
+  assert.deepEqual((seen[2]!.args as { maxRateUsdc: number }).maxRateUsdc, 14.857626);
+});
+
+test('figures are read from what the person typed: commas, decimals, k and m', () => {
+  assert.deepEqual(figuresSaid([{ role: 'user', content: 'pay 50,000 naira, or 2.5k, max 1.2m' }, { role: 'assistant', content: 'that is 99' }]), [50000, 2500, 1200000]);
+  assert.deepEqual(figuresSaid(undefined), []);
 });

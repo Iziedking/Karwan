@@ -35,3 +35,7 @@ test('a contest is Prize in, Entries, Winners, Paid out', () => {
   assert.deepEqual(states(contestSteps(contest({ status: 'opening' }), NOW)), ['prizeIn:current', 'entries:upcoming', 'winners:upcoming', 'paidOut:upcoming']);
   assert.deepEqual(states(contestSteps(contest({ status: 'returned' }), NOW)), ['prizeIn:done', 'cancelled:done', 'refunded:done']);
 });
+
+test('a month counted in sessions says Sessions held in the middle (P-05, 11 Nov)', () => {
+  assert.deepEqual(states(workSteps(week(), true)), ['paidIn:done', 'sessionsHeld:current', 'paidOut:upcoming']);
+});

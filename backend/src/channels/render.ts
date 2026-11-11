@@ -23,13 +23,28 @@ export function renderTurn(reply: string, actions: AssistantAction[] | undefined
   const links = (actions ?? [])
     .filter((a): a is Extract<AssistantAction, { kind: 'navigate' }> => a.kind === 'navigate')
     .map((a) => `${a.label}: ${webBase}${a.href}`);
-  const text = [reply.trim(), links.join('\n')].filter(Boolean).join('\n\n');
+  const text = [chatText(reply), links.join('\n')].filter(Boolean).join('\n\n');
 
   const out: OutMessage[] = splitText(text).map((body) => ({ kind: 'text', body }));
   for (const a of actions ?? []) {
     if (a.kind === 'confirm') out.push(renderConfirm(a));
   }
   return out;
+}
+
+/// A reply as a chat can show it. A link written as [Add money](/add) is a
+/// page path the chat cannot open, so only its words stay; the button under
+/// the reply carries the address. A line that only reports a button ("Button
+/// shown to open Add money.") is the assistant's own note and is dropped
+/// (11 Nov 2026).
+export function chatText(reply: string): string {
+  return reply
+    .replace(/\[([^\]\n]+)\]\(\/[^)\s]*\)/g, '$1')
+    .split('\n')
+    .filter((line) => !/^\s*(?:a\s+)?button\s+(?:is\s+)?shown\b/i.test(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function renderConfirm(a: ConfirmAction): OutMessage {

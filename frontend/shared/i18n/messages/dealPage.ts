@@ -13,6 +13,7 @@ export interface DealPageCopy {
     cancelled: string;
     refunded: string;
     hoursSent: string;
+    sessionsHeld: string;
     prizeIn: string;
     entries: string;
     winners: string;
@@ -94,7 +95,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
   en: {
     steps: {
       agreed: 'Agreed', paidIn: 'Paid in', delivered: 'Delivered', onTheWay: 'On the way', arrived: 'Arrived', handedOver: 'Handed over',
-      paidOut: 'Paid out', stage: 'Stage {n}', cancelled: 'Cancelled', refunded: 'Refunded', hoursSent: 'Hours sent', prizeIn: 'Prize in',
+      paidOut: 'Paid out', stage: 'Stage {n}', cancelled: 'Cancelled', refunded: 'Refunded', hoursSent: 'Hours sent', sessionsHeld: 'Sessions held', prizeIn: 'Prize in',
       entries: 'Entries', winners: 'Winners',
     },
     stageLine: { delivered: 'Delivered', paidOut: 'Paid out' },
@@ -173,7 +174,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
   fr: {
     steps: {
       agreed: 'Accepté', paidIn: 'Payé', delivered: 'Livré', onTheWay: 'En route', arrived: 'Arrivé', handedOver: 'Remis en main propre',
-      paidOut: 'Versé', stage: 'Étape {n}', cancelled: 'Annulé', refunded: 'Remboursé', hoursSent: 'Heures envoyées', prizeIn: 'Prix versé',
+      paidOut: 'Versé', stage: 'Étape {n}', cancelled: 'Annulé', refunded: 'Remboursé', hoursSent: 'Heures envoyées', sessionsHeld: 'Séances tenues', prizeIn: 'Prix versé',
       entries: 'Participations', winners: 'Gagnants',
     },
     stageLine: { delivered: 'Livré', paidOut: 'Versé' },
@@ -252,7 +253,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
   ar: {
     steps: {
       agreed: 'تم الاتفاق', paidIn: 'تم الدفع', delivered: 'تم التسليم', onTheWay: 'في الطريق', arrived: 'وصل', handedOver: 'تم التسليم يدًا بيد',
-      paidOut: 'تم الصرف', stage: 'المرحلة {n}', cancelled: 'أُلغي', refunded: 'تم الاسترداد', hoursSent: 'أُرسلت الساعات', prizeIn: 'تم دفع الجائزة',
+      paidOut: 'تم الصرف', stage: 'المرحلة {n}', cancelled: 'أُلغي', refunded: 'تم الاسترداد', hoursSent: 'أُرسلت الساعات', sessionsHeld: 'عُقدت الجلسات', prizeIn: 'تم دفع الجائزة',
       entries: 'المشاركات', winners: 'الفائزون',
     },
     stageLine: { delivered: 'تم التسليم', paidOut: 'تم الصرف' },
@@ -331,7 +332,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
   hi: {
     steps: {
       agreed: 'सहमति', paidIn: 'भुगतान हुआ', delivered: 'डिलीवर हुआ', onTheWay: 'रास्ते में', arrived: 'पहुँच गया', handedOver: 'हाथ में सौंपा',
-      paidOut: 'भुगतान जारी', stage: 'चरण {n}', cancelled: 'रद्द', refunded: 'वापस हुआ', hoursSent: 'घंटे भेजे', prizeIn: 'इनाम जमा',
+      paidOut: 'भुगतान जारी', stage: 'चरण {n}', cancelled: 'रद्द', refunded: 'वापस हुआ', hoursSent: 'घंटे भेजे', sessionsHeld: 'सत्र हुए', prizeIn: 'इनाम जमा',
       entries: 'प्रविष्टियाँ', winners: 'विजेता',
     },
     stageLine: { delivered: 'डिलीवर हुआ', paidOut: 'भुगतान जारी' },
@@ -410,7 +411,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
   sw: {
     steps: {
       agreed: 'Mmekubaliana', paidIn: 'Imelipwa', delivered: 'Imewasilishwa', onTheWay: 'Iko njiani', arrived: 'Imefika', handedOver: 'Imekabidhiwa',
-      paidOut: 'Imelipwa kwa muuzaji', stage: 'Hatua ya {n}', cancelled: 'Imeghairiwa', refunded: 'Imerudishwa', hoursSent: 'Saa zimetumwa', prizeIn: 'Zawadi imewekwa',
+      paidOut: 'Imelipwa kwa muuzaji', stage: 'Hatua ya {n}', cancelled: 'Imeghairiwa', refunded: 'Imerudishwa', hoursSent: 'Saa zimetumwa', sessionsHeld: 'Vipindi vimefanyika', prizeIn: 'Zawadi imewekwa',
       entries: 'Washiriki', winners: 'Washindi',
     },
     stageLine: { delivered: 'Imewasilishwa', paidOut: 'Imelipwa kwa muuzaji' },
