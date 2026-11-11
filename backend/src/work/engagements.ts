@@ -585,6 +585,17 @@ export function createEngagements(p: WorkPorts) {
             done.push(`${e.id}:${w.k}:settled`);
             continue;
           }
+          // Halfway through a month of sessions with fewer than half recorded: both are told, once (view 76).
+          if (e.sessions && w.loggedMinutes * 2 < e.sessions && now >= win.start + (win.end - win.start) / 2 && now < win.end) {
+            const r = remindOnce(e, w, 'pace');
+            if (r) {
+              const text = `${e.title}: month ${w.k + 1} is halfway and ${w.loggedMinutes} of ${e.sessions} sessions are recorded. That is behind the pace you agreed. Sessions not held are not paid.`;
+              p.tellPerson(e.hirer, text, e.id);
+              p.tellPerson(e.worker, text, e.id);
+              e = (await p.store.patch(e.id, { weeks: e.weeks.map((x) => (x.k === w.k ? { ...x, reminded: r } : x)) }))!;
+              done.push(`${e.id}:${w.k}:behind-pace`);
+            }
+          }
           if (w.loggedMinutes === 0 && now >= win.logBy - DAY) {
             const r = remindOnce(e, w, 'log');
             if (r) {

@@ -100,7 +100,7 @@ Logged in `docs/arc-circle-checks.md` before any code: a fork run of a month wit
 1. **How long a month of sessions is** (decided 11 Nov 2026): four weeks (28 days), so "three a week" is exactly 12 sessions. A plain retainer stays 30 days.
 2. **When the worker is paid** (decided 11 Nov 2026): the month's money waits and is paid after the month's review.
 3. **Flagging a session during the month** (decided 11 Nov 2026): a note only, weighed at the review.
-4. **The behind-pace warning** (open): proposed once, at the halfway point, when fewer than half the sessions are recorded.
+4. **The behind-pace warning** (decided 11 Nov 2026): once, at the halfway point, when fewer than half the sessions are recorded. Both sides get the same message.
 5. **Where monthly work is not open** (decided 11 Nov 2026): say so and offer a one-time request.
 
 ## Status
@@ -112,4 +112,4 @@ Logged in `docs/arc-circle-checks.md` before any code: a fork run of a month wit
 | Repeating work recognised on the request form | Built 11 Nov 2026: the request form asks How you pay; Monthly and By the hour open the posting form with what was typed, where that work is open |
 | Sessions on monthly work: terms, record, flag, review, settlement | Built 11 Nov 2026 in the backend and the assistant on every channel, for work with a named person and for work posted on the market |
 | Sessions on the work page and forms | Built 11 Nov 2026 from the Figma page "View 76 · Monthly work in sessions · 11 Nov": the session list in each month, record, did not happen, the month's review in sessions, and Sessions a month on both forms |
-| Behind-pace warning | Not built |
+| Behind-pace warning | Built 11 Nov 2026: the runner tells both sides once, from the halfway point until the month ends, when fewer than half the sessions are recorded |

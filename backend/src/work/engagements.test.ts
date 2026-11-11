@@ -437,3 +437,43 @@ test('silence pays the recorded sessions when the review ends', async () => {
   assert.equal(s.weeks[0]!.paidNetMicros, want.net.toString());
   assert.equal(s.weeks[0]!.backMicros, want.back.toString());
 });
+
+test('halfway through a month of sessions, both are told once when fewer than half are recorded', async () => {
+  const pace = (told: { to: string; text: string }[]) => told.filter((t) => /behind the pace/.test(t.text));
+  const start = async (recorded: number, sessions = 12) => {
+    const w = world();
+    await w.work.offer(HIRER, { ...lessons, sessions, periods: 1 });
+    await w.work.accept(WORKER, 'w_1');
+    const win = windowsOf((await w.work.get('w_1'))!, 0);
+    w.at(win.start + 1);
+    for (let i = 0; i < recorded; i += 1) await w.work.logHours(WORKER, 'w_1', { minutes: 1 });
+    return { ...w, win };
+  };
+
+  const behind = await start(3);
+  behind.at(behind.win.start + 14 * DAY - 1);
+  await behind.work.runDue();
+  assert.equal(pace(behind.told).length, 0, 'not before the halfway point');
+  behind.at(behind.win.start + 14 * DAY);
+  await behind.work.runDue();
+  await behind.work.runDue();
+  const said = pace(behind.told);
+  assert.deepEqual(said.map((t) => t.to).sort(), [HIRER, WORKER].sort(), 'each side once');
+  assert.match(said[0]!.text, /month 1 is halfway and 3 of 12 sessions are recorded\. That is behind the pace you agreed\./);
+  assert.equal((await behind.work.get('w_1'))!.weeks[0]!.status, 'logged', 'nothing else changes');
+
+  const onPace = await start(6);
+  onPace.at(onPace.win.start + 14 * DAY);
+  await onPace.work.runDue();
+  assert.equal(pace(onPace.told).length, 0, 'half recorded is on pace');
+
+  const odd = await start(2, 5);
+  odd.at(odd.win.start + 20 * DAY);
+  await odd.work.runDue();
+  assert.equal(pace(odd.told).length, 2, '2 of 5 is under half');
+
+  const late = await start(1);
+  late.at(late.win.end);
+  await late.work.runDue();
+  assert.equal(pace(late.told).length, 0, 'never after the month has ended');
+});
