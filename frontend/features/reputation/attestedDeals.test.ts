@@ -68,3 +68,11 @@ test('a value band reads in the chosen currency, every figure converted and the 
   assert.equal(bandLine('Under 100 USDC', { currency: 'USDC', text: String }), 'Under 100 USDC');
   assert.equal(bandLine('Under 100 USDC'), 'Under 100 USDC');
 });
+
+test('with no rate yet a visitor reads the band as written, never "100 USDC to 1,000 USDC" (view 74)', () => {
+  const noRate = { currency: 'USD', text: (usdc: number) => `${usdc} USDC` };
+  assert.equal(bandLine('100 to 1,000 USDC', noRate), '100 to 1,000 USDC');
+  assert.equal(bandLine('Under 100 USDC', noRate), 'Under 100 USDC');
+  const dollars = { currency: 'USD', text: (usdc: number) => `$${usdc.toLocaleString('en-US')}` };
+  assert.equal(bandLine('100 to 1,000 USDC', dollars), '$100 to $1,000');
+});

@@ -21,9 +21,10 @@ export function attestedPage<T>(rows: readonly T[], page: number, size = ATTESTE
 
 /// A value band said in the chosen currency (view 55): every figure in "100 to
 /// 1,000 USDC" becomes the reader's money and the USDC word goes. With USDC
-/// chosen the band reads as written.
+/// chosen, or while there is no rate yet and amounts still read in USDC, the
+/// band reads as written.
 export function bandLine(text: string, money?: { currency: string; text: (usdc: number) => string }): string {
-  if (!money || money.currency === 'USDC') return text;
+  if (!money || money.currency === 'USDC' || /USDC/.test(money.text(1))) return text;
   return text
     .replace(/\s*USDC\s*/g, ' ')
     .trim()
