@@ -1,5 +1,5 @@
 import { findProfileByEmail, getProfile } from '../db/profiles.js';
-import { readUsdcRates } from '../rates/usdcRates.js';
+import { readSharedRates } from '../rates/sharedRate.js';
 import { formatLocalAmount } from '../rates/localAmounts.js';
 import { emailAmount } from './brand.js';
 import { formatEmailUsdc } from './dealEventEmail.js';
@@ -27,7 +27,7 @@ export async function localAmountForEmail(usdc: string, who: { email?: string; a
     const profile = own?.settings?.displayCurrency ? own : who.inviter ? await getProfile(who.inviter) : null;
     const currency = profile?.settings?.displayCurrency;
     if (!currency || currency === 'USDC') return undefined;
-    const rates = await readUsdcRates();
+    const rates = await readSharedRates();
     return formatLocalAmount(Number(usdc), currency, rates, own?.settings?.locale ?? profile?.settings?.locale ?? 'en') ?? undefined;
   } catch {
     return undefined;

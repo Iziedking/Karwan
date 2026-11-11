@@ -15,7 +15,7 @@ import type { DeliveryKind, DistanceLine, PrivateLocation } from '../location/ru
 import { levelOf } from '../verification/live.js';
 import { MAX_NEEDS, NEED_TEXT_MAX, needsOf, type StandingNeed } from '../find/needs.js';
 import { formatLocalAmount } from '../rates/localAmounts.js';
-import { readUsdcRates } from '../rates/usdcRates.js';
+import { readSharedRates } from '../rates/sharedRate.js';
 import { buildNavigateAction, hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import { buildAlertPeopleConfirm, buildBlockPersonConfirm, buildPitchBuyersConfirm, buildPitchInterestedConfirm, buildRemoveStandingNeedConfirm, buildSaveStandingNeedConfirm, EVERY_WORDS, REACHES_WORDS } from './findActions.js';
 import { answerPitch, declineAlert, type DeclineResult } from '../find/answers.js';
@@ -354,7 +354,7 @@ export const liveFindToolDeps: FindToolDeps = {
     return p?.handle ? { address: p.address, handle: p.handle } : null;
   },
   money: async (address, usdc) => {
-    const [profile, rates] = await Promise.all([getProfile(address), readUsdcRates()]);
+    const [profile, rates] = await Promise.all([getProfile(address), readSharedRates()]);
     return formatLocalAmount(usdc, profile?.settings?.displayCurrency, rates) ?? `${Math.round(usdc * 100) / 100} USDC`;
   },
   people: (need) => directoryCandidates(need, liveDirectoryDeps),

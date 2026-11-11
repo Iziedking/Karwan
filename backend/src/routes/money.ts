@@ -20,7 +20,7 @@ import {
 } from '../money/railIntent.js';
 import { logger } from '../logger.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
-import { readUsdcRates } from '../rates/usdcRates.js';
+import { readSharedRates } from '../rates/sharedRate.js';
 import { isLocalCurrency, makeQuote } from '../rates/quote.js';
 import { agentLimitSchema, agentLimitView } from '../agents/agentLimit.js';
 import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
@@ -130,7 +130,7 @@ moneyRoutes.get('/balance', async (c) => {
 /// 1 USDC in each display currency (view 51). Public: a rate is not personal.
 /// Empty rates mean no fresh figure, and the screen reads USDC.
 moneyRoutes.get('/rates', async (c) => {
-  const rates = await readUsdcRates();
+  const rates = await readSharedRates();
   c.header('Cache-Control', 'public, max-age=30');
   return c.json(rates);
 });
@@ -142,7 +142,7 @@ moneyRoutes.get('/quote', async (c) => {
   const currency = c.req.query('currency');
   const amount = c.req.query('amount') ?? '';
   if (!isLocalCurrency(currency)) return c.json({ error: 'unknown currency' }, 400);
-  const quote = makeQuote(currency, amount, await readUsdcRates());
+  const quote = makeQuote(currency, amount, await readSharedRates());
   if (!quote) return c.json({ error: 'no fresh rate or no amount', code: 'NO_QUOTE' }, 409);
   c.header('Cache-Control', 'no-store');
   return c.json(quote);

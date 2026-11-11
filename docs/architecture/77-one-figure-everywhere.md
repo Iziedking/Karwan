@@ -79,7 +79,7 @@ Money held in a deal or set aside as a deal guarantee is never part of the balan
 - **USDC is still the truth.** Contracts, escrow, ledgers and reconciliation do not change. Every rule above is about what is kept beside the USDC and how it is read.
 - **Kept figures.** Records gain the same optional `{ currency, amount, rate, at }` that view 55 introduced, in the places listed under rule 1.
 - **Worth when paid.** A money movement and a settled deal keep one such figure for each side, worked out at the shared rate in force at that moment.
-- **The shared rate.** The server keeps the rate in force with the time it was set. The rates endpoint returns it, with that time, in place of the live reading. Quotes for typing use the same rate, so a figure typed and the balance it comes out of agree to the naira. The half percent step protects against holding a rate the market has left behind.
+- **The shared rate.** The server keeps the rate in force with the time it was set. The rates endpoint returns it, with that time, in place of the live reading. Quotes for typing use the same rate, so a figure typed and the balance it comes out of agree to the naira. The half percent step protects against holding a rate the market has left behind. The day starts at midnight in Lagos. Each currency steps on its own, so a move in the naira does not change what a euro reader sees. If the market cannot be read, the rate held stays for six hours after its last check; after that there is no rate and amounts read in USDC until the market is back.
 - **One reader.** The server has one function that turns an amount on a record into the line a person reads, following the three rules. Emails, Telegram, the assistant's cards and the API's "as said" fields all use it. The website's own reader follows the same rules and is tested against it with the same cases.
 - **Old records.** Anything made before this view has no kept figure and reads at the shared rate, marked "about" where it is a payment already made.
 
@@ -90,6 +90,8 @@ Money held in a deal or set aside as a deal guarantee is never part of the balan
 - With USDC chosen as the reading currency, every figure is exact USDC and none of this applies.
 
 ## Decisions for the owner
+
+All five were approved as recommended on 11 Nov 2026.
 
 1. **The shared rate changes daily, and inside the day only on a move above half a percent.** Recommended. The other choice is a rate fixed for the whole day whatever happens, which is simpler to explain but can sit two or three percent off on a bad day.
 2. **A quote for a typed amount uses the shared rate, not the live one.** Recommended, so that typing ₦50,000 takes ₦50,000 off the balance on screen. The cost is that the USDC moved can be up to half a percent off the live market at that minute. Nobody trades at this rate, and both sides of a deal see the same figure.

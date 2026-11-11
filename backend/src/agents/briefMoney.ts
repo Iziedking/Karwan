@@ -1,5 +1,6 @@
 import type { UserProfile } from '../db/profiles.js';
-import { readUsdcRates, type UsdcRates } from '../rates/usdcRates.js';
+import { type UsdcRates } from '../rates/usdcRates.js';
+import { readSharedRates } from '../rates/sharedRate.js';
 import type { BriefMoney } from './agentBriefParse.js';
 
 /// The currency a person answers setup in: the one they read amounts in (set
@@ -16,7 +17,7 @@ export function briefMoney(profile: Pick<UserProfile, 'settings'> | null, rates:
 export async function briefMoneyFor(profile: Pick<UserProfile, 'settings'> | null): Promise<BriefMoney | null> {
   if (!profile?.settings?.displayCurrency || profile.settings.displayCurrency === 'USDC') return null;
   try {
-    return briefMoney(profile, await readUsdcRates());
+    return briefMoney(profile, await readSharedRates());
   } catch {
     return null;
   }

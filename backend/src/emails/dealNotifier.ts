@@ -10,7 +10,7 @@
 // the same notificationsMuted toggle the Telegram path honors. No-op when
 // RESEND_API_KEY is unset.
 import { formatLocalAmount, localiseUsdcText } from '../rates/localAmounts.js';
-import { readUsdcRates } from '../rates/usdcRates.js';
+import { readSharedRates } from '../rates/sharedRate.js';
 import { deliveryCheckReason, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
 import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financial/dealFinanciers.js';
 import { bus, type KarwanEvent } from '../events.js';
@@ -1146,7 +1146,7 @@ export function startEmailNotifier(): () => void {
         const context = r.role === 'buyer' || r.role === 'seller' || e.type.startsWith('rating.') ? await dealContext(contextId, r.address) : null;
         // Prices read in the currency the person chose, with the USDC beside it.
         const currency = profile.settings?.displayCurrency;
-        const rates = await readUsdcRates();
+        const rates = await readSharedRates();
         const locale = profile.settings?.locale ?? 'en';
         const local = (text: string) => localiseUsdcText(text, currency, rates, locale);
         const amount = amountFor(e) ?? (e.type === 'deal.disputed' ? context?.amount : undefined);

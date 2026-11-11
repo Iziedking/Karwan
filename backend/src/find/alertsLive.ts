@@ -10,7 +10,7 @@ import { bus, type KarwanEvent } from '../events.js';
 import { logger } from '../logger.js';
 import { leased } from '../ops/leasedLoop.js';
 import { formatLocalAmount } from '../rates/localAmounts.js';
-import { readUsdcRates } from '../rates/usdcRates.js';
+import { readSharedRates } from '../rates/sharedRate.js';
 import { sendDue, type AlertDeps } from './alerts.js';
 import { answerContact, claimDue, closeContactsOfFind, contactsOfFind, createContact, markPitchOffered, pitchByJob } from './contacts.js';
 import { nextDue, runContactSweep, type Zone } from './contactSweep.js';
@@ -36,7 +36,7 @@ export const liveAlertDeps: AlertDeps = {
   saveFind,
   locale: async (person) => ((await getProfile(person).catch(() => null))?.settings?.locale ?? 'en') as UserLocale,
   money: async (person, usdc) => {
-    const [profile, rates] = await Promise.all([getProfile(person).catch(() => null), readUsdcRates()]);
+    const [profile, rates] = await Promise.all([getProfile(person).catch(() => null), readSharedRates()]);
     return formatLocalAmount(usdc, profile?.settings?.displayCurrency, rates) ?? `${Math.round(usdc * 100) / 100} USDC`;
   },
   note: (to, data) => bus.emitEvent({ type: 'agent.note', actor: 'platform', jobId: data.jobId, payload: { user: to, sellerUser: to, ...data } }),

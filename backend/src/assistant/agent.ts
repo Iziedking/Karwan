@@ -59,7 +59,8 @@ import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { dealReference } from '../deals/reference.js';
 import { withDealReferences } from './dealReferences.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
-import { localFigure, readUsdcRates } from '../rates/usdcRates.js';
+import { localFigure } from '../rates/usdcRates.js';
+import { readSharedRates } from '../rates/sharedRate.js';
 import { withLocalAmounts } from './localAmountTools.js';
 import { moneyVoice } from './moneyVoice.js';
 import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
@@ -320,7 +321,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             publicClient.getBalance({ address: address as Address }),
             getAgentWallets(address),
             getProfile(address).catch(() => null),
-            readUsdcRates().catch(() => ({ rates: {}, updatedAt: null, source: null }) as const),
+            readSharedRates().catch(() => ({ rates: {}, updatedAt: null, source: null }) as const),
           ]);
           const local = localFigure(owned.total, profile?.settings?.displayCurrency, rates);
           return {
@@ -3136,7 +3137,7 @@ async function saidBudget(options: unknown): Promise<{ usdc: number; text: strin
   const said = (options as { said?: { currency: LocalCurrency; amounts: Record<string, number> } } | undefined)?.said;
   const amount = said?.amounts.budgetUsdc;
   if (!said || typeof amount !== 'number') return null;
-  const rates = await readUsdcRates().catch(() => null);
+  const rates = await readSharedRates().catch(() => null);
   const quote = rates ? makeQuote(said.currency, String(amount), rates, Date.now(), undefined, CARD_QUOTE_MS) : null;
   if (!quote) return null;
   const text = new Intl.NumberFormat('en', { style: 'currency', currency: said.currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: currencyDigits(said.currency) }).format(Number(quote.amount));
@@ -3208,7 +3209,7 @@ export async function runAssistantAgent(input: {
 
   // The account's own currency sets how the assistant speaks about money. A
   // failed read answers in USDC, never fails the turn.
-  const voice = await Promise.all([getProfile(input.address), readUsdcRates()])
+  const voice = await Promise.all([getProfile(input.address), readSharedRates()])
     .then(([profile, rates]) => moneyVoice(profile?.settings?.displayCurrency, rates))
     .catch(() => '');
   // The person's own time zone, from their agent's settings; Lagos until set.
@@ -3227,7 +3228,7 @@ export async function runAssistantAgent(input: {
       model,
       system,
       messages: input.messages,
-      tools: withLocalAmounts(buildTools(input.address, input.method, actions, input.conversationId), () => readUsdcRates()),
+      tools: withLocalAmounts(buildTools(input.address, input.method, actions, input.conversationId), () => readSharedRates()),
       // Allow a few reasoning+tool rounds (e.g. whats_pending, then read one
       // deal, then propose a button), then force a final text answer.
       stopWhen: stepCountIs(6),
