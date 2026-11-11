@@ -752,7 +752,7 @@ async function runConfirmIntent(
   }
   if (action.intent.startsWith('work_')) {
     // Hourly work (view 32): the work page's own calls.
-    const p = action.payload as { workId?: string; k?: number; minutes?: number; note?: string; reason?: string };
+    const p = action.payload as { workId?: string; k?: number; n?: number; minutes?: number; note?: string; reason?: string; link?: string };
     const id = p.workId ?? '';
     const open = (w: { id: string }, text: string) => ({ successText: text, viewHref: `/work/${w.id}`, viewLabel: 'Open the work' });
     switch (action.intent) {
@@ -769,7 +769,9 @@ async function runConfirmIntent(
       case 'work_fund':
         return open((await api.fundWork(id)).work, 'Paid in. They can log hours for it once it starts.');
       case 'work_hours':
-        return open((await api.logHours(id, { minutes: p.minutes ?? 0, note: p.note ?? '', ...(p.k === undefined ? {} : { k: p.k }) })).work, 'Logged. The hirer has been told.');
+        return open((await api.logHours(id, { minutes: p.minutes ?? 0, note: p.note ?? '', ...(p.k === undefined ? {} : { k: p.k }), ...(p.link ? { link: p.link } : {}) })).work, 'Logged. The hirer has been told.');
+      case 'work_flag':
+        return open((await api.flagSession(id, { k: p.k ?? 0, n: p.n ?? 0, note: p.note ?? '' })).work, 'Noted, and they are told. It is weighed when you review the month.');
       case 'work_approve':
         return open((await api.approveHours(id, p.k ?? 0)).work, 'Approved, and they are paid.');
       case 'work_object':

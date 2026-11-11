@@ -7,6 +7,7 @@ import {
   buildWorkRequestOfferConfirm,
   buildWorkRequestPostConfirm,
   buildWorkApproveConfirm,
+  buildWorkFlagConfirm,
   buildWorkHoursConfirm,
   buildWorkObjectConfirm,
   buildWorkOfferConfirm,
@@ -28,9 +29,9 @@ const WORK = z.string().min(3).max(64).describe('The work id, from list_my_work.
 const REQUEST = z.string().min(3).max(64).describe('The posted work id, from list_hourly_requests.');
 const errorOf = (r: { json: Record<string, unknown> }, fallback: string) => ({ error: typeof r.json.error === 'string' ? r.json.error : fallback });
 
-type Week = { k: number; loggedMinutes: number; approvedMinutes: number; canApprove: boolean; canObject: boolean; canLog: boolean; ifPaid: { netMicros: string } };
+type Week = { k: number; loggedMinutes: number; approvedMinutes: number; canApprove: boolean; canObject: boolean; canLog: boolean; canFlag?: boolean; log?: unknown[]; ifPaid: { netMicros: string } };
 type WorkView = {
-  id: string; title: string; kind: 'hourly' | 'monthly'; role: 'hirer' | 'worker'; weeks: Week[];
+  id: string; title: string; kind: 'hourly' | 'monthly'; sessions?: number; role: 'hirer' | 'worker'; weeks: Week[];
   canAccept: boolean; canTakeBack: boolean; canGiveNotice: boolean; nextWeek: { k: number; totalMicros: string } | null; fundBlocked: string | null;
 };
 
@@ -58,20 +59,21 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
     }),
 
     read_work: tool({
-      description: 'One piece of hourly work: its terms, each week (hours logged, approved, paid, what came back) and the steps open to the person now.',
+      description: 'One piece of hourly or monthly work: its terms, each week or month (hours logged, approved, paid, what came back) and the steps open to the person now. On monthly work with sessions, the counts are sessions and each log entry is one session with its note, link and any note from the hirer that it did not happen.',
       inputSchema: z.object({ workId: WORK }),
       execute: async ({ workId }) => read(workId),
     }),
 
     propose_hourly_work: tool({
       description:
-        "Prepare a card to hire someone by the hour or monthly, named by their Karwan tag: 'hire @ada as a virtual assistant, 15 an hour, 20 hours a week, 4 weeks'. Their agent pays for the first week (or month) when they confirm, and pays one at a time after. The worker accepts before it starts. Ask for anything missing: who, the rate, hours a week (hourly only), and how many weeks or months.",
+        "Prepare a card to hire someone by the hour or monthly, named by their Karwan tag: 'hire @ada as a virtual assistant, 15 an hour, 20 hours a week, 4 weeks'. Their agent pays for the first week (or month) when they confirm, and pays one at a time after. The worker accepts before it starts. For lessons, classes or anything counted in sessions use kind monthly with sessions (three a week is 12 a month): the month is four weeks, the worker records each session, and after the month the hirer pays for the sessions that happened and the rest comes back. Ask for anything missing: who, the rate, hours a week (hourly only), sessions a month (when it is counted in sessions), and how many weeks or months.",
       inputSchema: z.object({
         worker: z.string().min(1).max(64).describe('Their Karwan tag, with or without @.'),
         kind: z.enum(['hourly', 'monthly']),
         rateUsdc: z.number().positive().max(100_000).describe('Per hour, or per month for a retainer.'),
         maxHours: z.number().int().min(1).max(80).optional().describe('Most hours a week; hourly only.'),
         periods: z.number().int().min(1).max(52).describe('Weeks, or months for a retainer.'),
+        sessions: z.number().int().min(1).max(60).optional().describe('Monthly only: sessions the month holds. Leave out for a plain retainer.'),
         startsInDays: z.number().int().min(1).max(30).optional(),
         title: z.string().min(1).max(80),
         brief: z.string().max(1_500).default(''),
@@ -97,30 +99,32 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
 
     propose_hours: tool({
       description:
-        "Prepare a card for the worker to log hours they worked ('log 3 hours 20 on the VA work, inbox cleanup'), or claim the month on a retainer. Hours go to the week running now unless they name an earlier week still open for logging (2 days after it ends).",
-      inputSchema: z.object({ workId: WORK, minutes: z.number().int().min(1).max(4_800).describe('Hours times 60, plus minutes.'), note: z.string().max(300).default(''), week: z.number().int().min(1).optional().describe('Week number, 1 for the first.') }),
-      execute: async ({ workId, minutes, note, week }) => {
+        "Prepare a card for the worker to log hours they worked ('log 3 hours 20 on the VA work, inbox cleanup'), or claim the month on a retainer. On monthly work with sessions it records ONE session ('lesson done today, fractions'): pass minutes 1, what was covered as the note, and a link to a recording or material if they gave one. Hours go to the week running now unless they name an earlier week still open for logging (2 days after it ends).",
+      inputSchema: z.object({ workId: WORK, minutes: z.number().int().min(1).max(4_800).describe('Hours times 60, plus minutes. 1 when recording a session.'), note: z.string().max(300).default(''), week: z.number().int().min(1).optional().describe('Week or month number, 1 for the first.'), link: z.string().max(300).optional().describe('Sessions only: an https link to a recording or material.') }),
+      execute: async ({ workId, minutes, note, week, link }) => {
         const w = await read(workId);
         if ('error' in w) return w;
         if (w.role !== 'worker') return { error: 'Only the worker logs hours.' };
-        return show(buildWorkHoursConfirm(w, { minutes, note, ...(week ? { k: week - 1 } : {}) }));
+        if (link && !w.sessions) return { error: 'A link goes with a session; this work logs hours.' };
+        if (link && !/^https:\/\/\S+$/.test(link)) return { error: 'The link must start with https://.' };
+        return show(buildWorkHoursConfirm(w, { minutes, note, ...(week ? { k: week - 1 } : {}), ...(link ? { link } : {}) }));
       },
     }),
 
     propose_hours_approve: tool({
-      description: 'Prepare a card for the hirer to approve the hours logged for a week; the worker is paid at once.',
+      description: 'Prepare a card for the hirer to approve the hours logged for a week, or the sessions recorded for a month once that month has ended; the worker is paid at once.',
       inputSchema: z.object({ workId: WORK, week: z.number().int().min(1).optional() }),
       execute: async ({ workId, week }) => {
         const w = await read(workId);
         if ('error' in w) return w;
         const x = weekOf(w, week ? week - 1 : undefined, (y) => y.canApprove);
-        if (!x) return { error: 'There are no hours waiting for your approval.' };
+        if (!x) return { error: w.sessions ? 'Nothing can be approved yet: the month is reviewed after it ends. Until then they can say a session did not happen.' : 'There are no hours waiting for your approval.' };
         return show(buildWorkApproveConfirm(w, { k: x.k, minutes: x.loggedMinutes, netMicros: x.ifPaid.netMicros }));
       },
     }),
 
     propose_hours_object: tool({
-      description: "Prepare a card for the hirer to say some hours are wrong, with how many and why. Only after logging closes and before review ends; the rest are paid at once and Karwan's review team decides the rest.",
+      description: "Prepare a card for the hirer to say some hours are wrong, with how many and why. On monthly work with sessions, minutes is the NUMBER OF SESSIONS that did not happen. Only after logging closes and before review ends; the rest are paid at once and Karwan's review team decides the rest.",
       inputSchema: z.object({ workId: WORK, minutes: z.number().int().min(1).max(4_800), reason: z.string().min(1).max(500), week: z.number().int().min(1).optional() }),
       execute: async ({ workId, minutes, reason, week }) => {
         const w = await read(workId);
@@ -128,6 +132,21 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
         const x = weekOf(w, week ? week - 1 : undefined, (y) => y.canObject);
         if (!x) return { error: 'No hours can be objected to right now: either logging is still open, or the review time has ended.' };
         return show(buildWorkObjectConfirm(w, { k: x.k, minutes, reason }));
+      },
+    }),
+
+    propose_session_flag: tool({
+      description: "Prepare a card for the hirer to say one recorded session did not happen, while the month is still running ('the lesson on Tuesday never happened'). It is a note for the month's review: no money moves, nothing is disputed yet, and the worker is told. Sessions are numbered in the order they were recorded (read_work).",
+      inputSchema: z.object({ workId: WORK, session: z.number().int().min(1).max(60).describe('Which recorded session, 1 for the first of that month.'), note: z.string().min(1).max(300).describe('What happened, in their words.'), month: z.number().int().min(1).optional() }),
+      execute: async ({ workId, session, note, month }) => {
+        const w = await read(workId);
+        if ('error' in w) return w;
+        if (w.role !== 'hirer') return { error: 'Only the hirer can say a session did not happen.' };
+        if (!w.sessions) return { error: 'This work has no sessions to mark.' };
+        const x = weekOf(w, month ? month - 1 : undefined, (y) => y.canFlag === true);
+        if (!x) return { error: 'No session is recorded for a month that is still open.' };
+        if (session > (x.log?.length ?? 0)) return { error: `Only ${x.log?.length ?? 0} sessions are recorded for that month.` };
+        return show(buildWorkFlagConfirm(w, { k: x.k, n: session, note }));
       },
     }),
 
@@ -161,7 +180,7 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
     }),
 
     propose_post_hourly_work: tool({
-      description: "Prepare a card to post hourly or monthly work on the market when the person does not have someone in mind: 'I need a bookkeeper, up to 10 an hour, 10 hours a week, 4 weeks'. Sellers who fit offer a rate and their agent ranks them by what they have actually done on Karwan. Nothing is paid until they hire. Ask for anything missing: what the work is, the most per hour (or month), hours a week (hourly only), how many weeks or months.",
+      description: "Prepare a card to post hourly or monthly work on the market when the person does not have someone in mind: 'I need a bookkeeper, up to 10 an hour, 10 hours a week, 4 weeks'. Sellers who fit offer a rate and their agent ranks them by what they have actually done on Karwan. Nothing is paid until they hire. For lessons, classes or anything counted in sessions use kind monthly with sessions (three a week is 12 a month). Ask for anything missing: what the work is, the most per hour (or month), hours a week (hourly only), sessions a month (when counted in sessions), how many weeks or months.",
       inputSchema: z.object({
         kind: z.enum(['hourly', 'monthly']),
         title: z.string().min(1).max(80),
@@ -169,6 +188,7 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
         maxRateUsdc: z.number().positive().max(100_000),
         maxHours: z.number().int().min(1).max(80).optional(),
         periods: z.number().int().min(1).max(52),
+        sessions: z.number().int().min(1).max(60).optional().describe('Monthly only: sessions the month holds.'),
         startsInDays: z.number().int().min(2).max(30).optional(),
       }),
       execute: async (i) => show(buildWorkRequestPostConfirm({ ...i, maxRateUsdc: String(i.maxRateUsdc) })),

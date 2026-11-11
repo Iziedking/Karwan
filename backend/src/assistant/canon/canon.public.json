@@ -353,7 +353,7 @@
       "id": "hourly-work",
       "title": "Pay someone by the hour, or monthly",
       "status": "shipping",
-      "updated": "2026-11-04",
+      "updated": "2026-11-11",
       "tags": [
         "market",
         "testnet"
@@ -363,9 +363,13 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/32-kind-of-deal-and-hourly-work.md",
           "date": "2026-10-29"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/76-monthly-work-with-sessions.md",
+          "date": "2026-11-11"
         }
       ],
-      "body": "A hirer can pay someone by the hour or monthly. A virtual assistant, for\nexample, might earn 15 USDC an hour for up to 20 hours a week, for 4 weeks.\nThere are two ways to start. The hirer can name someone they know by their\nKarwan tag, or post the work on the market and let their agent find the best\nfit.\n\nThe agent judges people by what they have actually done on Karwan: the skills\ntheir finished work shows, the checks Karwan ran, delivering on time, and\nratings. Skill fit counts first, and reputation only breaks a tie. Nobody has\nto upload samples to prove themselves. The hirer sees up to five people, the\nbest fit recommended, and hiring one pays for the first week; the worker\nalready offered those terms, so it starts as planned.\n\nA seller can save an hourly rate or a monthly price in their ways of dealing:\nthe lowest they take, their usual rate and the most hours a week. When work\nthat fits is posted, their agent offers at once, at the usual rate lowered to\nthe hirer's most but never under their lowest. They are told and can change or\nwithdraw the offer.\n\nThe hirer pays one week (or month) at a time. The money is held on Karwan's\nescrow on Arc until that week is settled. A worker new to Karwan is paid for\none week at a time. Once they have finished work on Karwan, the hirer can pay\nup to four weeks ahead.\n\nThe worker logs hours by the minute, from the start of the week until 2 days\nafter it ends. The hirer then has 3 days to approve the hours or say which are\nwrong. Approved hours are paid at once. If the hirer says nothing, the hours\nare paid when the review ends. Unused budget goes back to the hirer every week.\n\nHours the hirer objects to wait for Karwan's review team, and the rest are paid\nat once. If the team does not rule within 5 days, those hours are split half\nand half. Either side can end the work with one week's notice, or one month's\nfor a retainer. When the work ends, it goes on both people's records.\n\nOn the work page each week is its own card, and the one green button is the\nstep that is next. On posted work the offers sit in one card, best fit first.\n\nHourly work runs from the website, the assistant and Telegram. The hirer's\nmoney steps are confirmed on Karwan itself. It runs on Arc Testnet, up to about\n1,000 USDC held at once for now."
+      "body": "A hirer can pay someone by the hour or monthly. A virtual assistant, for\nexample, might earn 15 USDC an hour for up to 20 hours a week, for 4 weeks.\nThere are two ways to start. The hirer can name someone they know by their\nKarwan tag, or post the work on the market and let their agent find the best\nfit.\n\nThe agent judges people by what they have actually done on Karwan: the skills\ntheir finished work shows, the checks Karwan ran, delivering on time, and\nratings. Skill fit counts first, and reputation only breaks a tie. Nobody has\nto upload samples to prove themselves. The hirer sees up to five people, the\nbest fit recommended, and hiring one pays for the first week; the worker\nalready offered those terms, so it starts as planned.\n\nA seller can save an hourly rate or a monthly price in their ways of dealing:\nthe lowest they take, their usual rate and the most hours a week. When work\nthat fits is posted, their agent offers at once, at the usual rate lowered to\nthe hirer's most but never under their lowest. They are told and can change or\nwithdraw the offer.\n\nThe hirer pays one week (or month) at a time. The money is held on Karwan's\nescrow on Arc until that week is settled. A worker new to Karwan is paid for\none week at a time. Once they have finished work on Karwan, the hirer can pay\nup to four weeks ahead.\n\nThe worker logs hours by the minute, from the start of the week until 2 days\nafter it ends. The hirer then has 3 days to approve the hours or say which are\nwrong. Approved hours are paid at once. If the hirer says nothing, the hours\nare paid when the review ends. Unused budget goes back to the hirer every week.\n\nHours the hirer objects to wait for Karwan's review team, and the rest are paid\nat once. If the team does not rule within 5 days, those hours are split half\nand half. Either side can end the work with one week's notice, or one month's\nfor a retainer. When the work ends, it goes on both people's records.\n\nMonthly work can be counted in sessions, which suits lessons, classes and\ncoaching. The two people agree how many sessions a month holds: three a week is\n12. That month is four weeks, and a session is worth the month's price divided\nby the sessions agreed. The worker records each session as it happens, with a\nnote and a link if they have one, and the hirer is told each time. If a session\ndid not happen the hirer can say so straight away; that is kept as a note and\nno money moves. After the month ends the hirer approves the recorded sessions\nor says how many did not happen. If they say nothing, the recorded sessions are\npaid when the review ends. Sessions not held come back to the hirer. For now\nsessions are set up and recorded through the assistant, on the website and in\nTelegram.\n\nWork that repeats is not posted as a one-time request. When someone asks the\nassistant for a tutor at a price a month, it sets up monthly work instead, and\nasks one question when it cannot tell.\n\nOn the work page each week is its own card, and the one green button is the\nstep that is next. On posted work the offers sit in one card, best fit first.\n\nHourly work runs from the website, the assistant and Telegram. The hirer's\nmoney steps are confirmed on Karwan itself. It runs on Arc Testnet, up to about\n1,000 USDC held at once for now."
     },
     {
       "id": "how-karwan-is-built",
@@ -1457,10 +1461,14 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/32-kind-of-deal-and-hourly-work.md",
           "date": "2026-10-29"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/76-monthly-work-with-sessions.md",
+          "date": "2026-11-11"
         }
       ],
       "check": null,
-      "updated": "2026-11-04",
+      "updated": "2026-11-11",
       "path": "public/product/hourly-work.md"
     },
     {

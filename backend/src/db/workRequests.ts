@@ -20,6 +20,8 @@ export interface WorkRequest {
   /// Most hours a week; 1 for a monthly retainer.
   maxHours: number;
   periods: number;
+  /// Sessions a month holds, on monthly work counted in sessions (view 76).
+  sessions?: number;
   /// Milliseconds; offers close when the work would have started.
   startsAt: number;
   status: WorkRequestStatus;

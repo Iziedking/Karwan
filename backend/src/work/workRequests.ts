@@ -21,6 +21,7 @@ export interface WorkRequestInput {
   maxRateUsdc: string;
   maxHours?: number;
   periods: number;
+  sessions?: number;
   startsInDays?: number;
 }
 
@@ -91,13 +92,15 @@ export function createWorkRequests(p: WorkRequestPorts) {
     if (!Number.isInteger(input.periods) || input.periods < 1 || input.periods > (hourly ? 52 : 12)) {
       return refuse('BAD_TERMS', hourly ? 'Hire for 1 to 52 weeks.' : 'Hire for 1 to 12 months.');
     }
+    const sessions = hourly ? undefined : input.sessions;
+    if (sessions !== undefined && (!Number.isInteger(sessions) || sessions < 1 || sessions > 60)) return refuse('BAD_TERMS', 'Set the sessions a month, 1 to 60.');
     const startsIn = input.startsInDays ?? 7;
     if (!Number.isInteger(startsIn) || startsIn < 2 || startsIn > 30) return refuse('BAD_TERMS', 'Start 2 to 30 days from today, so there is time to choose.');
     const at = p.now();
     const request: WorkRequest = {
       id: p.newId('wr'), hirer, kind: input.kind, title, brief, keywords: await p.keywords(`${title}. ${brief}`).catch(() => []),
       maxRateMicros: rate.toString(), maxHours, periods: input.periods, startsAt: at + startsIn * DAY,
-      status: 'open', createdAt: at, updatedAt: at,
+      status: 'open', createdAt: at, updatedAt: at, ...(sessions ? { sessions } : {}),
     };
     await p.store.create(request);
     const fits = (await p.reach(request).catch(() => [])).filter((s) => !same(s, hirer));
@@ -111,7 +114,7 @@ export function createWorkRequests(p: WorkRequestPorts) {
         p.tellPerson(s, `Your agent offered ${usdc(made.offer.rateMicros)} USDC ${per(request)} on ${title}. You can change or withdraw it.`, `/work/requests/${request.id}`);
         continue;
       }
-      p.tellPerson(s, `New ${hourly ? 'hourly' : 'monthly'} work that fits you: ${title}, up to ${usdc(rate)} USDC ${per(request)}${hourly ? `, ${maxHours} hours a week` : ''}. Offer your rate if you want it.`, `/work/requests/${request.id}`);
+      p.tellPerson(s, `New ${hourly ? 'hourly' : 'monthly'} work that fits you: ${title}, up to ${usdc(rate)} USDC ${per(request)}${hourly ? `, ${maxHours} hours a week` : sessions ? `, ${sessions} sessions a month` : ''}. Offer your rate if you want it.`, `/work/requests/${request.id}`);
     }
     const live = (await p.store.patch(request.id, { told: fits.length }))!;
     return { ok: true, request: live };
@@ -164,6 +167,7 @@ export function createWorkRequests(p: WorkRequestPorts) {
       worker: o.seller, kind: r.kind, rateUsdc: usdc(o.rateMicros), periods: r.periods, title: r.title, brief: r.brief,
       startsInDays: Math.max(1, Math.min(30, Math.round((r.startsAt - p.now()) / DAY))),
       ...(r.kind === 'hourly' ? { maxHours: r.maxHours } : {}),
+      ...(r.kind === 'monthly' && r.sessions ? { sessions: r.sessions } : {}),
     };
   }
 
@@ -224,7 +228,7 @@ export function createWorkRequests(p: WorkRequestPorts) {
 
   const publicOf = (r: WorkRequest) => ({
     id: r.id, kind: r.kind, title: r.title, brief: r.brief, maxRateMicros: r.maxRateMicros, maxHours: r.maxHours,
-    periods: r.periods, startsAt: r.startsAt, status: r.status, offersCloseAt: r.startsAt - DAY,
+    periods: r.periods, startsAt: r.startsAt, status: r.status, offersCloseAt: r.startsAt - DAY, ...(r.sessions ? { sessions: r.sessions } : {}),
   });
 
   /// Open work for the market, newest first.

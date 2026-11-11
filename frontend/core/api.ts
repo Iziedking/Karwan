@@ -2186,6 +2186,7 @@ export interface AssistantConfirmAction {
     | 'work_notice'
     | 'work_fund'
     | 'work_hours'
+    | 'work_flag'
     | 'work_approve'
     | 'work_object'
     | 'work_request_post'
@@ -3264,6 +3265,8 @@ export interface WorkInput {
   rateUsdc: string;
   maxHours?: number;
   periods: number;
+  /// Monthly only: sessions the month holds (view 76).
+  sessions?: number;
   startsInDays?: number;
   title: string;
   brief: string;
@@ -6088,7 +6091,9 @@ export const api = {
   cancelWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify({}) }),
   noticeWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/notice`, { method: 'POST', body: JSON.stringify({}) }),
   fundWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/fund`, { method: 'POST', body: JSON.stringify({}) }),
-  logHours: (id: string, body: { minutes: number; note?: string; k?: number }) =>
+  flagSession: (id: string, body: { k: number; n: number; note: string }) =>
+    json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/flag`, { method: 'POST', body: JSON.stringify(body) }),
+  logHours: (id: string, body: { minutes: number; note?: string; k?: number; link?: string }) =>
     json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/hours`, { method: 'POST', body: JSON.stringify(body) }),
   approveHours: (id: string, k: number) =>
     json<{ work: WorkView; paidMicros?: string }>(`/api/work/${encodeURIComponent(id)}/approve`, { method: 'POST', body: JSON.stringify({ k }) }),

@@ -147,6 +147,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/work/:/notice': { by: 'assistant', via: 'work_notice' },
   'POST /api/work/:/fund': { by: 'assistant', via: 'work_fund' },
   'POST /api/work/:/hours': { by: 'assistant', via: 'work_hours' },
+  'POST /api/work/:/flag': { by: 'assistant', via: 'work_flag' },
   'POST /api/work/:/approve': { by: 'assistant', via: 'work_approve' },
   'POST /api/work/:/object': { by: 'assistant', via: 'work_object' },
   'POST /api/work-requests': { by: 'assistant', via: 'work_request_post' },

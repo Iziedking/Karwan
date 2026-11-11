@@ -107,6 +107,9 @@ Logged in `docs/arc-circle-checks.md` before any code: a fork run of a month wit
 
 | Part | Status |
 |---|---|
-| Repeating work recognised by the assistant and the request form | Not built |
-| Sessions on monthly work: terms, record, review, settlement | Not built |
+| A month of sessions on the deployed Time escrow | Proved on a fork of Arc Testnet at block 71,722,000 on 11 Nov 2026: 9 of 12 sessions approved paid exactly nine twelfths and the other 3 came back |
+| Repeating work recognised by the assistant | Built 11 Nov 2026: the request card is not shown for work that repeats; the assistant is sent to monthly or hourly work, asks one question when it cannot tell, and says so plainly where that work is not open |
+| Repeating work recognised on the request form | Not built |
+| Sessions on monthly work: terms, record, flag, review, settlement | Built 11 Nov 2026 in the backend and the assistant on every channel, for work with a named person and for work posted on the market |
+| Sessions on the work page and forms | Not built; drawn in Figma first |
 | Behind-pace warning | Not built |

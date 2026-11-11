@@ -64,6 +64,7 @@ import { withLocalAmounts } from './localAmountTools.js';
 import { moneyVoice } from './moneyVoice.js';
 import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
 import { AGENT_OFF_ANSWER, agentIsOn, agentSwitchOpen } from '../agents/agentPower.js';
+import { repeatingDirection, repeatingWork } from './repeatingWork.js';
 import { currencyDigits, makeQuote } from '../rates/quote.js';
 import type { LocalCurrency } from '../rates/usdcRates.js';
 import { nowLine } from './nowLine.js';
@@ -2581,9 +2582,11 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_post_request: tool({
       description:
-        "Prepare a confirm card to post the user's REQUEST for work or goods they NEED (the agent-mediated path, aka the buyer desk). Use this when they want the platform to find someone for them — e.g. \"find me a developer\", \"I need X built\", \"let the platform look for one\" — and they have given what they need, a budget in USDC, and a deadline. On confirm it posts as themselves and authorises matching and funding within the request budget and saved spending settings after seller acceptance. Another buyer funding click may not be required. Price exceptions require approval. Do not describe this as a payment-free draft. Do NOT use propose_post_offer for this (that advertises what they SELL); this is for what they want to BUY. Ask once whether they want Agree for me: their agent agrees with the seller it recommends, within budget, while they are away, and they tap once to lock the money (agreeForMe). After posting, tell them they can close the chat: updates arrive in this conversation and on Telegram.",
+        "Prepare a confirm card to post the user's REQUEST for work or goods they NEED (the agent-mediated path, aka the buyer desk). Use this when they want the platform to find someone for them — e.g. \"find me a developer\", \"I need X built\", \"let the platform look for one\" — and they have given what they need, a budget in USDC, and a deadline. On confirm it posts as themselves and authorises matching and funding within the request budget and saved spending settings after seller acceptance. Another buyer funding click may not be required. Price exceptions require approval. Do not describe this as a payment-free draft. Do NOT use propose_post_offer for this (that advertises what they SELL); this is for what they want to BUY. A request is ONE price for ONE delivery: work that repeats (a price per month or per hour, lessons or sessions several times a week, a retainer) is not a request, so keep their own words about how they pay in the brief and follow what this tool answers. Ask once whether they want Agree for me: their agent agrees with the seller it recommends, within budget, while they are away, and they tap once to lock the money (agreeForMe). After posting, tell them they can close the chat: updates arrive in this conversation and on Telegram.",
       inputSchema: z.object({
         brief: z.string().min(5).max(500).describe('What they need, plainly. e.g. "web3 developer to build a trading bot". Max 500 characters.'),
+        payBasis: z.enum(['one_time', 'monthly', 'hourly']).optional().describe('How they said they pay: monthly when they named a price per month or work that repeats every week (lessons, sessions, a retainer), hourly for a rate per hour, one_time for one price for one delivery.'),
+        confirmedOneTime: z.boolean().optional().describe('True only after this tool said the work reads as repeating and the person then said they want one fixed price for one delivery.'),
         budgetUsdc: z.number().positive().max(5_000_000).describe('Budget in USDC.'),
         // Two ways to give a deadline. NEVER convert a calendar date to days
         // yourself — pass deadlineDate and let the server compute it from its own
@@ -2597,6 +2600,11 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         private: z.boolean().optional().describe('True only when they want the request private: never on the market; only seller agents see it and match it, and only the sellers who offer see its words. Off means it is on the market with every offer on it public. If they already agreed with one person, start a direct deal with them instead (start_protected_deal); it is never on the market.'),
       }),
       execute: async (args, options) => {
+        // View 76: repeating work is not posted as a one-time request.
+        if (!args.confirmedOneTime) {
+          const basis = args.payBasis === 'monthly' || args.payBasis === 'hourly' ? ({ verdict: 'repeating', kind: args.payBasis } as const) : repeatingWork(args.brief);
+          if (basis.verdict !== 'one_time') return { repeatingWork: true, next: repeatingDirection(basis, liveFeatures.hourlyWork) };
+        }
         // Pre-flight the SAME preconditions the jobs route enforces so the card
         // never 409s on submit. Activation + buyer profile are cheap store reads;
         // the buyer-agent balance check stays on the route (its 409 is specific).

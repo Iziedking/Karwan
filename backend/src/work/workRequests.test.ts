@@ -181,3 +181,24 @@ test('a reached seller with an hourly way has their agent offer at once; the oth
   assert.ok(told.some((t) => t.to === HIRER && /a new offer, 9 USDC an hour/.test(t.text)));
   assert.equal(r.request.told, 2);
 });
+
+test('posted monthly work carries its sessions to the people told, the market and the hire (view 76)', async () => {
+  const { core, told, hired } = world();
+  const lessons: WorkRequestInput = { kind: 'monthly', title: 'Maths lessons', brief: 'Three lessons a week for a JSS2 student', maxRateUsdc: '300', periods: 3, sessions: 12 };
+  const bad = await core.post(HIRER, { ...lessons, sessions: 61 });
+  assert.ok(!bad.ok && bad.code === 'BAD_TERMS');
+  const r = await core.post(HIRER, lessons);
+  assert.ok(r.ok);
+  assert.equal(r.request.sessions, 12);
+  assert.match(told[0]!.text, /up to 300 USDC a month, 12 sessions a month/);
+  assert.equal((await core.listOpen())[0]!.sessions, 12);
+  const o = await core.offer(ADA, r.request.id, { rateUsdc: '280' });
+  assert.ok(o.ok);
+  const h = await core.hire(HIRER, r.request.id, o.offer.id);
+  assert.ok(h.ok);
+  assert.equal(hired[0]!.input.sessions, 12);
+  assert.equal(hired[0]!.input.kind, 'monthly');
+
+  const hourly = await core.post(HIRER, { ...books, sessions: 12 });
+  assert.ok(hourly.ok && hourly.request.sessions === undefined, 'by the hour has no sessions');
+});

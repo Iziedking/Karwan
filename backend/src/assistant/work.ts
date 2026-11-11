@@ -11,6 +11,8 @@ export interface WorkInputPayload {
   rateUsdc: string;
   maxHours?: number;
   periods: number;
+  /// Monthly only: sessions the month holds (view 76).
+  sessions?: number;
   startsInDays?: number;
   title: string;
   brief: string;
@@ -21,7 +23,8 @@ export interface WorkStepConfirm extends ConfirmActionBase {
   intent: 'work_accept' | 'work_decline' | 'work_cancel' | 'work_notice' | 'work_fund';
   payload: { workId: string };
 }
-export interface WorkHoursConfirm extends ConfirmActionBase { intent: 'work_hours'; payload: { workId: string; minutes: number; note: string; k?: number } }
+export interface WorkHoursConfirm extends ConfirmActionBase { intent: 'work_hours'; payload: { workId: string; minutes: number; note: string; k?: number; link?: string } }
+export interface WorkFlagConfirm extends ConfirmActionBase { intent: 'work_flag'; payload: { workId: string; k: number; n: number; note: string } }
 export interface WorkApproveConfirm extends ConfirmActionBase { intent: 'work_approve'; payload: { workId: string; k: number } }
 export interface WorkObjectConfirm extends ConfirmActionBase { intent: 'work_object'; payload: { workId: string; k: number; minutes: number; reason: string } }
 
@@ -32,6 +35,7 @@ export interface WorkRequestPayload {
   maxRateUsdc: string;
   maxHours?: number;
   periods: number;
+  sessions?: number;
   startsInDays?: number;
 }
 export interface WorkRequestPostConfirm extends ConfirmActionBase { intent: 'work_request_post'; payload: WorkRequestPayload }
@@ -40,7 +44,7 @@ export interface WorkRequestHireConfirm extends ConfirmActionBase { intent: 'wor
 export interface WorkRequestCloseConfirm extends ConfirmActionBase { intent: 'work_request_close'; payload: { requestId: string } }
 
 export type WorkConfirm =
-  | WorkOfferConfirm | WorkStepConfirm | WorkHoursConfirm | WorkApproveConfirm | WorkObjectConfirm
+  | WorkOfferConfirm | WorkStepConfirm | WorkHoursConfirm | WorkFlagConfirm | WorkApproveConfirm | WorkObjectConfirm
   | WorkRequestPostConfirm | WorkRequestOfferConfirm | WorkRequestHireConfirm | WorkRequestCloseConfirm;
 
 export interface WorkDraftCard {
@@ -49,6 +53,7 @@ export interface WorkDraftCard {
   rateMicros: string;
   maxHours: number;
   periods: number;
+  sessions?: number;
   startsAt: number;
   feeHalfMicros: string;
   totalMicros: string;
@@ -64,6 +69,7 @@ export const hours = (minutes: number) => {
   return h && m ? `${h} h ${m} m` : h ? `${h} h` : `${m} m`;
 };
 const period = (kind: 'hourly' | 'monthly') => (kind === 'hourly' ? 'week' : 'month');
+const sessionsOf = (n: number) => (n === 1 ? '1 session' : `${n} sessions`);
 
 export function buildWorkOfferConfirm(input: WorkInputPayload, card: WorkDraftCard, workerName: string): WorkOfferConfirm {
   const hourly = card.kind === 'hourly';
@@ -72,7 +78,7 @@ export function buildWorkOfferConfirm(input: WorkInputPayload, card: WorkDraftCa
     id: `work_offer:${confirmNonce()}`,
     intent: 'work_offer',
     title: `Hire ${workerName}: ${card.title}`,
-    summary: `${hourly ? `${usdc(card.rateMicros)} an hour, up to ${card.maxHours} hours a week, for ${card.periods} weeks` : `${usdc(card.rateMicros)} a month, for ${card.periods} months`}, from ${day(card.startsAt)}. Your agent pays for the first ${period(card.kind)} now.`,
+    summary: `${hourly ? `${usdc(card.rateMicros)} an hour, up to ${card.maxHours} hours a week, for ${card.periods} weeks` : `${usdc(card.rateMicros)} a month${card.sessions ? ` for ${sessionsOf(card.sessions)}` : ''}, for ${card.periods} months`}, from ${day(card.startsAt)}. Your agent pays for the first ${period(card.kind)} now.`,
     warning: card.note,
     fields: [
       { label: hourly ? 'First week, the most it can bill' : 'First month', value: usdc(Number(card.totalMicros) - Number(card.feeHalfMicros)) },
@@ -86,7 +92,7 @@ export function buildWorkOfferConfirm(input: WorkInputPayload, card: WorkDraftCa
   };
 }
 
-type WorkRow = { id: string; title: string; kind: 'hourly' | 'monthly' };
+type WorkRow = { id: string; title: string; kind: 'hourly' | 'monthly'; sessions?: number };
 
 export function buildWorkStepConfirm(step: WorkStepConfirm['intent'], w: WorkRow & { totalMicros?: string; k?: number }): WorkStepConfirm {
   const p = period(w.kind);
@@ -112,8 +118,21 @@ export function buildWorkStepConfirm(step: WorkStepConfirm['intent'], w: WorkRow
   };
 }
 
-export function buildWorkHoursConfirm(w: WorkRow, i: { minutes: number; note: string; k?: number }): WorkHoursConfirm {
+export function buildWorkHoursConfirm(w: WorkRow, i: { minutes: number; note: string; k?: number; link?: string }): WorkHoursConfirm {
   const monthly = w.kind === 'monthly';
+  if (w.sessions) {
+    return {
+      kind: 'confirm',
+      id: `work_hours:${w.id}:${confirmNonce()}`,
+      intent: 'work_hours',
+      title: `Record a session on ${w.title}`,
+      summary: 'The hirer is told now. They review the month after it ends and pay for the sessions that happened; if they say nothing, you are paid then.',
+      fields: [...(i.note ? [{ label: 'What was covered', value: i.note }] : []), ...(i.link ? [{ label: 'Link', value: i.link }] : [])],
+      payload: { workId: w.id, minutes: 1, note: i.note, ...(i.k === undefined ? {} : { k: i.k }), ...(i.link ? { link: i.link } : {}) },
+      confirmLabel: 'Record the session',
+      cancelLabel: 'Not now',
+    };
+  }
   return {
     kind: 'confirm',
     id: `work_hours:${w.id}:${confirmNonce()}`,
@@ -132,7 +151,7 @@ export function buildWorkApproveConfirm(w: WorkRow, i: { k: number; minutes: num
     kind: 'confirm',
     id: `work_approve:${w.id}:${i.k}:${confirmNonce()}`,
     intent: 'work_approve',
-    title: `Approve ${w.kind === 'hourly' ? hours(i.minutes) : `month ${i.k + 1}`} on ${w.title}`,
+    title: `Approve ${w.kind === 'hourly' ? hours(i.minutes) : w.sessions ? `${sessionsOf(i.minutes)} of month ${i.k + 1}` : `month ${i.k + 1}`} on ${w.title}`,
     summary: 'They are paid now.',
     warning: 'Once paid this cannot be undone.',
     fields: [{ label: 'They receive', value: usdc(i.netMicros) }],
@@ -142,7 +161,34 @@ export function buildWorkApproveConfirm(w: WorkRow, i: { k: number; minutes: num
   };
 }
 
+export function buildWorkFlagConfirm(w: WorkRow, i: { k: number; n: number; note: string }): WorkFlagConfirm {
+  return {
+    kind: 'confirm',
+    id: `work_flag:${w.id}:${i.k}:${i.n}:${confirmNonce()}`,
+    intent: 'work_flag',
+    title: `Say session ${i.n} on ${w.title} did not happen`,
+    summary: 'It is kept as a note for when you review the month. No money moves now, and they are told.',
+    fields: [{ label: 'Session', value: `${i.n} of month ${i.k + 1}` }, { label: 'What happened', value: i.note }],
+    payload: { workId: w.id, k: i.k, n: i.n, note: i.note },
+    confirmLabel: 'Send the note',
+    cancelLabel: 'Not now',
+  };
+}
+
 export function buildWorkObjectConfirm(w: WorkRow, i: { k: number; minutes: number; reason: string }): WorkObjectConfirm {
+  if (w.sessions) {
+    return {
+      kind: 'confirm',
+      id: `work_object:${w.id}:${i.k}:${confirmNonce()}`,
+      intent: 'work_object',
+      title: `Say ${sessionsOf(i.minutes)} on ${w.title} did not happen`,
+      summary: "The other sessions are paid now. Both of you have 72 hours to give your side; then Karwan's review team decides.",
+      fields: [{ label: 'Sessions you object to', value: String(i.minutes) }, { label: 'Why', value: i.reason }],
+      payload: { workId: w.id, k: i.k, minutes: i.minutes, reason: i.reason },
+      confirmLabel: 'Send my objection',
+      cancelLabel: 'Not now',
+    };
+  }
   return {
     kind: 'confirm',
     id: `work_object:${w.id}:${i.k}:${confirmNonce()}`,
@@ -167,6 +213,7 @@ export function buildWorkRequestPostConfirm(p: WorkRequestPayload): WorkRequestP
     fields: [
       { label: hourly ? 'The most an hour' : 'The most a month', value: usdc(Number(p.maxRateUsdc) * 1_000_000) },
       ...(hourly ? [{ label: 'Most hours a week', value: String(p.maxHours ?? 0) }] : []),
+      ...(!hourly && p.sessions ? [{ label: 'Sessions a month', value: String(p.sessions) }] : []),
       { label: hourly ? 'Weeks' : 'Months', value: String(p.periods) },
     ],
     payload: p,

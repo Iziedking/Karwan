@@ -18,6 +18,7 @@ const postSchema = z.object({
   maxRateUsdc: z.string().max(32),
   maxHours: z.number().int().optional(),
   periods: z.number().int(),
+  sessions: z.number().int().optional(),
   startsInDays: z.number().int().optional(),
 });
 const offerSchema = z.object({ rateUsdc: z.string().max(32), note: z.string().max(300).optional() });
