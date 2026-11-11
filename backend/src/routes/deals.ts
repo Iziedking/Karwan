@@ -810,7 +810,7 @@ dealsRoutes.post('/direct', async (c) => {
           hours: body.deadlineHours,
         }),
       };
-      void localAmountForEmail(body.dealAmountUsdc.toString(), { address: resolvedEmailAddress, inviter: body.buyerAddress }).then((localAmount) => sendDealInviteEmail({ ...inviteInput, localAmount })).catch((err) => {
+      void localAmountForEmail(body.dealAmountUsdc.toString(), { address: resolvedEmailAddress, inviter: body.buyerAddress }, localFromQuote(body.quote, dealAmountWei)).then((localAmount) => sendDealInviteEmail({ ...inviteInput, localAmount })).catch((err) => {
         logger.warn(
           { err: (err as Error).message, jobId },
           'deal notice email to a resolved owner failed',
@@ -834,7 +834,7 @@ dealsRoutes.post('/direct', async (c) => {
           hours: body.deadlineHours,
         }),
       };
-      void localAmountForEmail(body.dealAmountUsdc.toString(), { email: pendingCounterparty.email, inviter: body.buyerAddress }).then((localAmount) => sendDealInviteEmail({ ...inviteInput, localAmount })).catch((err) => {
+      void localAmountForEmail(body.dealAmountUsdc.toString(), { email: pendingCounterparty.email, inviter: body.buyerAddress }, localFromQuote(body.quote, dealAmountWei)).then((localAmount) => sendDealInviteEmail({ ...inviteInput, localAmount })).catch((err) => {
         logger.warn(
           { err: (err as Error).message, to: pendingCounterparty?.email, jobId },
           'deal invite email send threw',
@@ -1037,7 +1037,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
     const includeWindow =
       patch.acceptanceDeadlineUnix !== undefined ||
       patch.deadlineUnix !== undefined;
-    void localAmountForEmail(updated.dealAmountUsdc, { email: pendingEmail, inviter: deal.buyer }).then((localAmount) => sendDealUpdateEmail({
+    void localAmountForEmail(updated.dealAmountUsdc, { email: pendingEmail, inviter: deal.buyer }, updated.agreedLocal).then((localAmount) => sendDealUpdateEmail({
       to: pendingEmail,
       claimUrl,
       dealAmountUsdc: updated.dealAmountUsdc,
@@ -5187,7 +5187,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     const pendingEmail = deal.pendingCounterparty?.email;
     if (pendingEmail) {
       const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
-      void localAmountForEmail(deal.dealAmountUsdc, { email: pendingEmail, inviter: deal.buyer }).then((localAmount) => sendDealCancelledEmail({
+      void localAmountForEmail(deal.dealAmountUsdc, { email: pendingEmail, inviter: deal.buyer }, deal.agreedLocal).then((localAmount) => sendDealCancelledEmail({
         to: pendingEmail,
         dealAmountUsdc: deal.dealAmountUsdc,
         inviterMasked: maskedInviter,

@@ -16,6 +16,8 @@ export interface WorkInputPayload {
   startsInDays?: number;
   title: string;
   brief: string;
+  /// The quote behind a rate said in a local currency (view 77).
+  quote?: string;
 }
 
 export interface WorkOfferConfirm extends ConfirmActionBase { intent: 'work_offer'; payload: WorkInputPayload }
@@ -37,9 +39,10 @@ export interface WorkRequestPayload {
   periods: number;
   sessions?: number;
   startsInDays?: number;
+  quote?: string;
 }
 export interface WorkRequestPostConfirm extends ConfirmActionBase { intent: 'work_request_post'; payload: WorkRequestPayload }
-export interface WorkRequestOfferConfirm extends ConfirmActionBase { intent: 'work_request_offer'; payload: { requestId: string; rateUsdc: string; note: string } }
+export interface WorkRequestOfferConfirm extends ConfirmActionBase { intent: 'work_request_offer'; payload: { requestId: string; rateUsdc: string; note: string; quote?: string } }
 export interface WorkRequestHireConfirm extends ConfirmActionBase { intent: 'work_request_hire'; payload: { requestId: string; offerId: string } }
 export interface WorkRequestCloseConfirm extends ConfirmActionBase { intent: 'work_request_close'; payload: { requestId: string } }
 

@@ -3,6 +3,7 @@ import { requestAttachments } from '../attachments/attachments.js';
 import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { saidFigure } from './saidFigure.js';
 import { formatUnits, parseUnits } from 'viem';
 import { config } from '../config.js';
 import { getUserByAddress } from '../db/users.js';
@@ -121,8 +122,11 @@ export function directDealTools(address: string, actions: AssistantAction[], con
         evidenceRequired: z.boolean().optional(),
         personCheck: z.boolean().optional().describe('True only when the user wants the seller to pass the person check.'),
       }),
-      execute: async ({ who, what, amountUsdc, ...rest }) => {
+      execute: async ({ who, what, amountUsdc: given, ...rest }, options) => {
         try {
+          // An amount said in their own currency keeps that figure (view 77).
+          const said = await saidFigure(options, 'amountUsdc');
+          const amountUsdc = said ? said.usdc : given;
           const seller = await resolveSeller(who);
           if (!seller) return { error: `No Karwan account matches ${who}. Ask for their Karwan tag, email or wallet address.` };
           const missing = [...(what ? [] : ['what']), ...(amountUsdc ? [] : ['amountUsdc'])];
@@ -162,6 +166,8 @@ ${partsLines(drafted)}`;
           // View 56: photos or PDFs sent to the assistant for this deal go with it.
           const heldFiles = requestAttachments.heldCount(address, Date.now());
           if (heldFiles) built.body.heldAttachments = true;
+          const typed = said && Number(built.body.dealAmountUsdc) === said.usdc ? said : null;
+          if (typed) built.body.quote = typed.quote;
           push({
             kind: 'confirm',
             id: `create_direct_deal:${'sellerAddress' in seller.party ? seller.party.sellerAddress : seller.party.sellerEmail}:${confirmNonce()}`,
@@ -169,7 +175,8 @@ ${partsLines(drafted)}`;
             title: `Send a protected deal to ${seller.label}`,
             summary: 'They are asked to accept these terms. Nothing is paid until they accept and you confirm payment.',
             fields: [
-              ...dealCardFields(built.body, seller.label, await buyerPays(built.body.dealAmountUsdc, feeBps).catch(() => null)),
+              ...dealCardFields(built.body, seller.label, await buyerPays(built.body.dealAmountUsdc, feeBps).catch(() => null))
+                .map((f) => (typed && f.label === 'Amount' ? { ...f, value: typed.text } : f)),
               ...(heldFiles ? [{ label: 'Attached', value: `${heldFiles} ${heldFiles === 1 ? 'photo or file' : 'photos or files'}, only the two of you see them` }] : []),
             ],
             payload: built.body,

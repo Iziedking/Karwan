@@ -66,8 +66,7 @@ import { moneyVoice } from './moneyVoice.js';
 import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
 import { AGENT_OFF_ANSWER, agentIsOn, agentSwitchOpen } from '../agents/agentPower.js';
 import { repeatingDirection, repeatingWork } from './repeatingWork.js';
-import { currencyDigits, makeQuote } from '../rates/quote.js';
-import type { LocalCurrency } from '../rates/usdcRates.js';
+import { keepOnCard, saidFigure } from './saidFigure.js';
 import { nowLine } from './nowLine.js';
 import { budgetInCents } from '../agents/budgetCents.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
@@ -2553,7 +2552,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         category: z.enum(CATEGORY_IDS).optional().describe('The market category the offer belongs in, when it clearly fits one: phones is phones, laptops, computers, electronics, parts and gadgets; tech is software and online work, never a device or a part. Leave it out when unsure; the market reads one from the words.'),
         private: z.boolean().optional().describe('True only when they want it private: never on the market or in search; buyer agents still find it and anyone they send the link can open it. Off means everyone on the market sees it. If they want to sell to one person they already agreed with, use share_my_deal_link instead.'),
       }),
-      execute: async (args) => {
+      execute: async (given, options) => {
+        // A price said in their own currency keeps that figure (view 77).
+        const said = await saidFigure(options, 'askingPriceUsdc');
+        const args = said ? { ...given, askingPriceUsdc: said.usdc } : given;
         // Pre-flight the SAME preconditions the listings route enforces, so the
         // assistant never shows a confirm card that would 409 on submit. When a
         // precondition is missing, guide the model to send them to set it up.
@@ -2574,8 +2576,9 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         // View 56: words that describe stages become the parts it is paid in.
         const goods = args.deliveryKind === 'goods' || heldPhotos > 0;
         const { parts } = await draftDeal({ brief: `${args.title}. ${args.description}`.slice(0, 500), goods, offer: true }, { split: modelSplit });
-        const built = buildPostOfferConfirm({ caller: address, ...args, ...(heldPhotos ? { heldPhotos } : {}), parts });
-        if ('error' in built) return built;
+        const drawn = buildPostOfferConfirm({ caller: address, ...args, ...(heldPhotos ? { heldPhotos } : {}), parts });
+        if ('error' in drawn) return drawn;
+        const built = keepOnCard(drawn, said, ['Asking price']);
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title, ...(parts.length > 1 ? { paidInParts: parts, note: 'Say in one line the offer is paid in these parts, each when its part is delivered.' } : {}) };
       },
@@ -3126,23 +3129,9 @@ function budgetAsSaid(local: { currency: string; amount: string } | undefined): 
   return local ? { budgetAsSaid: `${local.amount} ${local.currency}` } : {};
 }
 
-/// How long a request card holds the figure said. The card's USDC is fixed
-/// when it is drawn, so this only decides whether the figure is kept.
-const CARD_QUOTE_MS = 30 * 60_000;
-
 /// A budget said in the person's own currency (view 55): the quote for it,
-/// its USDC, and the figure as it reads on the card. Null in USDC or with no
-/// fresh rate.
-async function saidBudget(options: unknown): Promise<{ usdc: number; text: string; quote: string } | null> {
-  const said = (options as { said?: { currency: LocalCurrency; amounts: Record<string, number> } } | undefined)?.said;
-  const amount = said?.amounts.budgetUsdc;
-  if (!said || typeof amount !== 'number') return null;
-  const rates = await readSharedRates().catch(() => null);
-  const quote = rates ? makeQuote(said.currency, String(amount), rates, Date.now(), undefined, CARD_QUOTE_MS) : null;
-  if (!quote) return null;
-  const text = new Intl.NumberFormat('en', { style: 'currency', currency: said.currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: currencyDigits(said.currency) }).format(Number(quote.amount));
-  return { usdc: Number(quote.usdcMicros) / 1_000_000, text, quote: quote.token };
-}
+/// its USDC, and the figure as it reads on the card.
+const saidBudget = (options: unknown) => saidFigure(options, 'budgetUsdc');
 
 /// The authenticated-assistant preamble, appended to the shared knowledge base.
 /// It grants the read tools and draws the hard read-only line.

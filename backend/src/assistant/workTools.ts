@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { keepOnCard, saidFigure } from './saidFigure.js';
 import type { AssistantAction } from './actions.js';
 import {
   buildWorkRequestCloseConfirm,
@@ -78,11 +79,13 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
         title: z.string().min(1).max(80),
         brief: z.string().max(1_500).default(''),
       }),
-      execute: async (i) => {
-        const input = { ...i, rateUsdc: String(i.rateUsdc) };
+      execute: async (i, options) => {
+        // A rate said in their own currency keeps that figure (view 77).
+        const said = await saidFigure(options, 'rateUsdc');
+        const input = { ...i, rateUsdc: String(said ? said.usdc : i.rateUsdc) };
         const r = await deps.call(address, 'POST', '/api/work/draft', input);
         if (r.status !== 200) return errorOf(r, 'That work cannot be set up as it is.');
-        return show(buildWorkOfferConfirm(input, r.json.card as WorkDraftCard, i.worker.startsWith('@') ? i.worker : `@${i.worker}`));
+        return show(keepOnCard(buildWorkOfferConfirm(input, r.json.card as WorkDraftCard, i.worker.startsWith('@') ? i.worker : `@${i.worker}`), said, []));
       },
     }),
 
@@ -191,19 +194,23 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
         sessions: z.number().int().min(1).max(60).optional().describe('Monthly only: sessions the month holds.'),
         startsInDays: z.number().int().min(2).max(30).optional(),
       }),
-      execute: async (i) => show(buildWorkRequestPostConfirm({ ...i, maxRateUsdc: String(i.maxRateUsdc) })),
+      execute: async (i, options) => {
+        const said = await saidFigure(options, 'maxRateUsdc');
+        return show(keepOnCard(buildWorkRequestPostConfirm({ ...i, maxRateUsdc: String(said ? said.usdc : i.maxRateUsdc) }), said, ['The most an hour', 'The most a month']));
+      },
     }),
 
     propose_hourly_offer: tool({
       description: 'Prepare a card for a seller to offer their rate on posted hourly work, with a short note. Offering again changes their rate.',
       inputSchema: z.object({ requestId: REQUEST, rateUsdc: z.number().positive().max(100_000), note: z.string().max(300).default('') }),
-      execute: async ({ requestId, rateUsdc, note }) => {
+      execute: async ({ requestId, rateUsdc, note }, options) => {
+        const said = await saidFigure(options, 'rateUsdc');
         const r = await deps.call(address, 'GET', `/api/work-requests/${encodeURIComponent(requestId)}`);
         if (r.status !== 200) return errorOf(r, 'No posted work with that id.');
         const req = r.json.request as { title: string; kind: 'hourly' | 'monthly'; mine: boolean; status: string };
         if (req.mine) return { error: 'You cannot offer on your own work.' };
         if (req.status !== 'open') return { error: 'This work is no longer taking offers.' };
-        return show(buildWorkRequestOfferConfirm({ requestId, title: req.title, kind: req.kind, rateUsdc: String(rateUsdc), note }));
+        return show(keepOnCard(buildWorkRequestOfferConfirm({ requestId, title: req.title, kind: req.kind, rateUsdc: String(said ? said.usdc : rateUsdc), note }), said, ['Your rate an hour', 'Your price a month']));
       },
     }),
 

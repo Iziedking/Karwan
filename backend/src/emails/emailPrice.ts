@@ -1,6 +1,7 @@
 import { findProfileByEmail, getProfile } from '../db/profiles.js';
 import { readSharedRates } from '../rates/sharedRate.js';
-import { formatLocalAmount } from '../rates/localAmounts.js';
+import { figureFor } from '../rates/figure.js';
+import type { LocalCurrency } from '../rates/usdcRates.js';
 import { emailAmount } from './brand.js';
 import { formatEmailUsdc } from './dealEventEmail.js';
 
@@ -20,15 +21,21 @@ export function emailPriceHero(usdc: string, local?: string): string {
 
 /// The amount in the currency the person chose. An invited email that already
 /// belongs to an account uses that account's choice; someone new to Karwan
-/// sees the inviter's currency, the one the deal was priced in.
-export async function localAmountForEmail(usdc: string, who: { email?: string; address?: string; inviter?: string }): Promise<string | undefined> {
+/// sees the inviter's currency, the one the deal was priced in. A price agreed
+/// in that currency reads as agreed (view 77).
+export async function localAmountForEmail(
+  usdc: string,
+  who: { email?: string; address?: string; inviter?: string },
+  agreed?: { currency: LocalCurrency; amount: string } | null,
+): Promise<string | undefined> {
   try {
     const own = who.address ? await getProfile(who.address) : who.email ? await findProfileByEmail(who.email) : null;
     const profile = own?.settings?.displayCurrency ? own : who.inviter ? await getProfile(who.inviter) : null;
     const currency = profile?.settings?.displayCurrency;
     if (!currency || currency === 'USDC') return undefined;
-    const rates = await readSharedRates();
-    return formatLocalAmount(Number(usdc), currency, rates, own?.settings?.locale ?? profile?.settings?.locale ?? 'en') ?? undefined;
+    const rates = await readSharedRates().catch(() => ({ rates: {}, updatedAt: null, source: null }) as const);
+    const kept = agreed ? [{ usdc: Number(usdc), local: agreed }] : [];
+    return figureFor(Number(usdc), currency, rates, own?.settings?.locale ?? profile?.settings?.locale ?? 'en', kept) ?? undefined;
   } catch {
     return undefined;
   }

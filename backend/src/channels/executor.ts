@@ -127,7 +127,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   work_approve: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/approve`, body: { k: p.k } }),
   work_object: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/object`, body: { k: p.k, minutes: p.minutes, reason: p.reason } }),
   work_request_post: (p) => ({ method: 'POST', path: '/api/work-requests', body: p }),
-  work_request_offer: (p) => ({ method: 'POST', path: `/api/work-requests/${encodeURIComponent(String(p.requestId))}/offers`, body: { rateUsdc: p.rateUsdc, note: p.note } }),
+  work_request_offer: (p) => ({ method: 'POST', path: `/api/work-requests/${encodeURIComponent(String(p.requestId))}/offers`, body: { rateUsdc: p.rateUsdc, note: p.note, ...(typeof p.quote === 'string' ? { quote: p.quote } : {}) } }),
   work_request_hire: (p) => ({ method: 'POST', path: `/api/work-requests/${encodeURIComponent(String(p.requestId))}/hire`, body: { offerId: p.offerId } }),
   work_request_close: (p) => ({ method: 'POST', path: `/api/work-requests/${encodeURIComponent(String(p.requestId))}/close`, body: {} }),
   // Placeholder so the route table knows the intent; fundDirect runs it.

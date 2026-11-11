@@ -732,14 +732,14 @@ async function runConfirmIntent(
   }
   if (action.intent.startsWith('work_request_')) {
     // Hourly work posted to the market (view 32).
-    const p = action.payload as { requestId?: string; offerId?: string; rateUsdc?: string; note?: string };
+    const p = action.payload as { requestId?: string; offerId?: string; rateUsdc?: string; note?: string; quote?: string };
     const id = p.requestId ?? '';
     const page = (rid: string, text: string) => ({ successText: text, viewHref: `/work/requests/${rid}`, viewLabel: 'Open the work' });
     switch (action.intent) {
       case 'work_request_post':
         return page((await api.postWorkRequest(action.payload as unknown as WorkRequestInput)).request.id, 'Posted. Sellers who fit are told; I will tell you as offers come in, ranked by fit.');
       case 'work_request_offer':
-        await api.offerOnWorkRequest(id, { rateUsdc: p.rateUsdc ?? '', note: p.note ?? '' });
+        await api.offerOnWorkRequest(id, { rateUsdc: p.rateUsdc ?? '', note: p.note ?? '', ...(p.quote ? { quote: p.quote } : {}) });
         return page(id, 'Offer sent. If they hire you, your agent accepts and the first week is paid in.');
       case 'work_request_hire': {
         const r = await api.hireFromWorkRequest(id, p.offerId ?? '');
