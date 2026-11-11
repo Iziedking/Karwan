@@ -113,6 +113,33 @@ A lowest price, a usual price, a rate or the most you pay is a rule your agent f
 
 One account is checked, inside one minute, on Home, Money, Profile, an order, Send, Help, an email and Telegram, and every amount for the same thing reads the same. A request typed as ₦300,000 reads ₦300,000 a week later. A deal paid on Monday reads the same on Friday.
 
+## As built
+
+Built 11 and 12 Nov 2026. Front end and back end deploy together.
+
+- **Shared rate.** `backend/src/rates/sharedRate.ts` holds one rate for each currency, set at midnight in Lagos and stepped inside the day above half a percent. Every server caller reads it, and a test fails the build if anything outside `rates/` reads the live rate. When the sources are down the held rate is kept for 6 hours after the last check, then amounts read in USDC.
+- **One reader.** `backend/src/rates/figure.ts` turns an amount on a record into the line a person reads. Emails, Telegram and the assistant's request lines go through it with the figures kept on the request, the deal and the listing.
+- **Kept figures.** Hourly and monthly work rates, offers on fixed-price requests, prices said to the assistant, and a send said in chat keep the figure as typed or said.
+- **Prices given to an agent.** Each way of dealing keeps the figure typed; the USDC behind it is worked out again every 15 minutes when the shared rate has changed (`backend/src/agents/waysSaid.ts`).
+- **Worth when paid.** A money movement and a settled deal keep what the amount was worth to each side at that moment (`backend/src/money/worth.ts`). Activity, Recent, receipts, the deal page, emails and Telegram read it. A payment with no kept figure reads at the shared rate, marked "about".
+- **Older payments.** `backend/src/scripts/backfill-payment-worth.ts` fills in payments and settled deals from before 12 Nov from the price published for the day each one happened. It has a preview mode and changes nothing when run twice. It is run by hand after deploy.
+- **One balance.** Money names the two parts under the balance. Send says "Ready to send" and, under it, what is with the agents. An order says "You can pay with" and names the rest only when it cannot use all of the balance. Home, Profile and the assistant already gave the same sum.
+- **Words.** The Currency and Local currency paragraphs of the terms changed in all five languages and in `docs/terms-and-conditions.md`, and the FAQ gained three answers: the rate, "about", and "Ready to send".
+
+Rulings while building:
+
+- An offer at exactly the budget reads the budget's figure only for a viewer who is shown the budget, so a hidden budget is never given away.
+- A rule's kept figure is dropped when its USDC is changed some other way, so the screen never states a rule the agent does not follow.
+- Keeping the worth happens after the payment is saved and never holds a payment up.
+- With a Transfer balance, Withdraw keeps its older sentence naming both places the rest can be.
+
+## Not done
+
+- Prices given in the setup interview and through the assistant's own tools for ways of dealing are kept in USDC only, so they read at the shared rate.
+- Derived lines, such as a hire card's total and a price per session, read at the shared rate.
+- The agent's weekly limit is unchanged.
+- The "Done when" check on a live account, across every screen inside one minute, waits for the deploy.
+
 ## Build order, once approved
 
 1. The shared rate on the server, the rates endpoint and the quote using it.

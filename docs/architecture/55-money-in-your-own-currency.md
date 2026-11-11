@@ -78,8 +78,7 @@ Rulings while building:
 
 ## Not done
 
-- The assistant's own moves do not keep the typed figure on the record (a request's budget does, since 10 Nov 2026).
-- A match or an offer at the budget reads at today's rate, so beside "Up to ₦300,000" it can read a few naira under. Telegram and email lines about a request still convert at today's rate.
+- Closed by view 77 (12 Nov 2026): the assistant's moves keep the figure said, an offer at the budget reads the budget's figure, and Telegram and email lines about a request read the kept figure. "Today's rate" throughout this view is now the shared rate of view 77.
 - Telegram's setup interview still writes its price examples in USDC ("20 to 40 USDC"); answers in naira are read, but the example is not said in naira yet.
 - The notification for watched prices ("settle around {to} USDC (was {from})") still prints the old price as a bare number.
 
