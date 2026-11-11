@@ -197,7 +197,7 @@ test('withdraw asks where it goes first, then the address and network, then how 
   await go.click();
   await expect(flow).toHaveAttribute('data-stage', 'amount');
   await expect(flow.locator('[data-withdraw-ready]')).toHaveText('1,240.50 USDC ready to withdraw');
-  await expect(flow.locator('[data-withdraw-elsewhere]')).toContainText('120.00 USDC more is in your Transfer balance or with your agent.');
+  await expect(flow.locator('[data-withdraw-elsewhere]')).toContainText('120.00 USDC is with your agents.');
   await expect(flow.getByRole('link', { name: 'Bring it here' })).toHaveAttribute('href', '/account?where=1');
 });
 
