@@ -326,7 +326,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           const local = localFigure(owned.total, profile?.settings?.displayCurrency, rates);
           return {
             totalUsdc: owned.total.toFixed(2),
-            ...(local ? { local, localNote: `They read amounts in ${local.currency}. Give the balance as about ${local.amount} ${local.currency} at today's rate, with no USDC beside it. Their money stays in USDC underneath.` } : {}),
+            ...(local ? { local, localNote: `They read amounts in ${local.currency}. Give the balance as ${local.amount} ${local.currency}, the figure their screens show, with no USDC beside it and no "about". Their money stays in USDC underneath.` } : {}),
             parts: {
               walletOnArcUsdc: owned.wallet.toFixed(2),
               agentsUsdc: owned.agents.toFixed(2),

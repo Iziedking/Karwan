@@ -8,6 +8,10 @@ import { buildApproveMatchConfirm, buildNavigateAction } from './actions.js';
 import { buildChooseOfferConfirm } from './dealActions.js';
 import { requestUpdate, updateTurn, type CardBuilders, type RequestView } from './requestUpdates.js';
 import { localAmountText } from '../rates/quote.js';
+import { getProfile } from '../db/profiles.js';
+import { readSharedRates } from '../rates/sharedRate.js';
+import { localiseUsdcText } from '../rates/localAmounts.js';
+import { keptFiguresFor } from '../rates/keptFigures.js';
 
 /// The live reads behind view 30: each request this conversation posted, as
 /// one up-to-date turn with its card.
@@ -77,10 +81,21 @@ export async function requestTurnsForConversation(address: string, conversationI
   const briefs = listAllBriefs()
     .filter((b) => b.conversationId === conversationId && b.postedBy.toLowerCase() === me)
     .sort((a, b) => a.createdAt - b.createdAt);
-  const turns = [];
+  const turns: ReturnType<typeof updateTurn>[] = [];
+  if (briefs.length === 0) return turns;
+  // Each line reads in the person's currency, through the one reader (view 77).
+  const [profile, rates] = await Promise.all([
+    getProfile(me).catch(() => null),
+    readSharedRates().catch(() => ({ rates: {}, updatedAt: null, source: null }) as const),
+  ]);
+  const currency = profile?.settings?.displayCurrency;
+  const locale = profile?.settings?.locale ?? 'en';
   for (const brief of briefs) {
     const view = await requestViewOf(brief).catch(() => null);
-    if (view) turns.push(updateTurn(brief.jobId, requestUpdate(view), builders(me)));
+    if (!view) continue;
+    const update = requestUpdate(view);
+    const content = localiseUsdcText(update.content, currency, rates, locale, await keptFiguresFor({ jobId: brief.jobId }));
+    turns.push(updateTurn(brief.jobId, { ...update, content }, builders(me)));
   }
   return turns;
 }

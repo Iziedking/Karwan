@@ -9,7 +9,9 @@
 // Each email goes to a recipient's VERIFIED contact email only, and respects
 // the same notificationsMuted toggle the Telegram path honors. No-op when
 // RESEND_API_KEY is unset.
-import { formatLocalAmount, localiseUsdcText } from '../rates/localAmounts.js';
+import { localiseUsdcText } from '../rates/localAmounts.js';
+import { figureFor } from '../rates/figure.js';
+import { keptFiguresFor } from '../rates/keptFigures.js';
 import { readSharedRates } from '../rates/sharedRate.js';
 import { deliveryCheckReason, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
 import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financial/dealFinanciers.js';
@@ -1148,7 +1150,8 @@ export function startEmailNotifier(): () => void {
         const currency = profile.settings?.displayCurrency;
         const rates = await readSharedRates();
         const locale = profile.settings?.locale ?? 'en';
-        const local = (text: string) => localiseUsdcText(text, currency, rates, locale);
+        const kept = await keptFiguresFor({ jobId: contextId ?? e.jobId, listingId: e.payload?.listingId as string | undefined });
+        const local = (text: string) => localiseUsdcText(text, currency, rates, locale, kept);
         const amount = amountFor(e) ?? (e.type === 'deal.disputed' ? context?.amount : undefined);
         await sendDealEventEmail({
           to: profile.email,
@@ -1158,7 +1161,7 @@ export function startEmailNotifier(): () => void {
           heading: local(content.heading),
           body: local(content.body),
           amount,
-          ...(amount ? { localAmount: formatLocalAmount(Number(amount), currency, rates, locale) ?? undefined } : {}),
+          ...(amount ? { localAmount: figureFor(Number(amount), currency, rates, locale, kept) ?? undefined } : {}),
           ...(context?.facts.length ? { facts: context.facts.map(([label, value]) => [label, local(value)] as [string, string]) } : {}),
         });
       }
