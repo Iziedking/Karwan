@@ -202,3 +202,40 @@ test('posted monthly work carries its sessions to the people told, the market an
   const hourly = await core.post(HIRER, { ...books, sessions: 12 });
   assert.ok(hourly.ok && hourly.request.sessions === undefined, 'by the hour has no sessions');
 });
+
+const SAID = { currency: 'NGN' as const, amount: '15000', rate: 1500, at: T0 };
+
+test('the most a hirer pays is kept as they typed it, and shown with the work (view 77)', async () => {
+  const { core } = world();
+  const r = await core.post(HIRER, { ...books, maxRateLocal: SAID });
+  assert.ok(r.ok);
+  assert.deepEqual(r.request.maxRateLocal, SAID);
+  const open = await core.listOpen();
+  assert.deepEqual(open[0]!.maxRateLocal, SAID);
+});
+
+test('an offer keeps the rate as typed; changing it without a figure drops the old one', async () => {
+  const { core } = world();
+  const r = await core.post(HIRER, books);
+  assert.ok(r.ok);
+  const typed = { currency: 'NGN' as const, amount: '12000', rate: 1500, at: T0 };
+  await core.offer(ADA, r.request.id, { rateUsdc: '8', rateLocal: typed });
+  const hirerSees = await core.view(r.request.id, HIRER);
+  assert.deepEqual((hirerSees as { offers: Array<{ rateLocal?: unknown }> }).offers[0]!.rateLocal, typed);
+  const adaSees = await core.view(r.request.id, ADA);
+  assert.deepEqual((adaSees as { myOffer: { rateLocal?: unknown } }).myOffer.rateLocal, typed);
+  await core.offer(ADA, r.request.id, { rateUsdc: '9' });
+  const after = await core.view(r.request.id, ADA);
+  assert.equal((after as { myOffer: { rateLocal?: unknown } }).myOffer.rateLocal, undefined);
+});
+
+test('an agent offer at exactly the most reads as the hirer said it, and the hire carries it', async () => {
+  const { core, hired } = world({ timeOfferFor: (s) => (s === ADA ? 10 : null) });
+  const r = await core.post(HIRER, { ...books, maxRateLocal: SAID });
+  assert.ok(r.ok);
+  const seen = (await core.view(r.request.id, HIRER)) as { offers: Array<{ offerId: string; rateLocal?: unknown }> };
+  assert.deepEqual(seen.offers[0]!.rateLocal, SAID);
+  const out = await core.hire(HIRER, r.request.id, seen.offers[0]!.offerId);
+  assert.ok(out.ok);
+  assert.deepEqual(hired[0]!.input.rateLocal, SAID);
+});

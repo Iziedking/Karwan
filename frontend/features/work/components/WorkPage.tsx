@@ -100,7 +100,7 @@ export function WorkPage({ id }: { id: string }) {
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{other}</p>
       <div className={`${CARD_CLASS} mt-5 px-5 py-4`}>
       <p className="text-[24px] font-semibold tabular-nums text-[var(--ink)]">
-        {mt.fill(hourly ? t.page.rateHour : t.page.rateMonth, { amount: microsToUsdc(v.rateMicros) })}
+        {mt.fillPrice(hourly ? t.page.rateHour : t.page.rateMonth, microsToUsdc(v.rateMicros), v.rateLocal)}
       </p>
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
         {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, bySession ? fill(ts.term, { n: v.sessions ?? 0 }) : null, each ? mt.fill(ts.each, { amount: microsToUsdc(each) }) : null, runsText(v.runs, hourly, t.page), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}

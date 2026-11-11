@@ -1,10 +1,10 @@
 'use client';
-import { MoneyInput } from '@/features/money/components/MoneyInput';
+import { MoneyInput, type MoneyInputHandle } from '@/features/money/components/MoneyInput';
 
 import { CARD_CLASS } from '@/shared/components/Card';
 import { buttonClasses } from '@/shared/components/Button';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type WorkCard, type WorkInput, type WorkKind } from '@/core/api';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -36,6 +36,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
   const [starts, setStarts] = useState(String(prefill.startsInDays ?? 2));
   const [title, setTitle] = useState(prefill.title ?? '');
   const [brief, setBrief] = useState(prefill.brief ?? '');
+  const rateField = useRef<MoneyInputHandle>(null);
   const [card, setCard] = useState<WorkCard | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +51,11 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
   const found = lookup?.state === 'done' && lookup.result.found && !lookup.result.self ? lookup.result : null;
   const hourly = kind === 'hourly';
 
-  const input = (): WorkInput => ({
+  const input = async (): Promise<WorkInput> => {
+    const said = await rateField.current?.quote();
+    return { ...terms(), ...(said && said.usdc === Number(rate) ? { quote: said.token } : {}) };
+  };
+  const terms = (): WorkInput => ({
     worker: `@${tag}`, kind, rateUsdc: rate, periods: Number(periods), startsInDays: Number(starts), title, brief,
     ...(hourly ? { maxHours: Number(hours) } : Number(sessions) >= 1 ? { sessions: Number(sessions) } : {}),
   });
@@ -60,7 +65,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
     setError(null);
     setBusy(true);
     try {
-      setCard((await api.draftWork(input())).card);
+      setCard((await api.draftWork(await input())).card);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t.failed);
     } finally {
@@ -72,7 +77,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
     setBusy(true);
     setError(null);
     try {
-      const r = await api.offerWork(input());
+      const r = await api.offerWork(await input());
       router.push(`/work/${r.work.id}`);
     } catch (err) {
       const need = err instanceof ApiError ? (err.body as { needMicros?: string } | undefined)?.needMicros : undefined;
@@ -124,7 +129,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
         </fieldset>
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.rate : t.form.rateMonthly}</span>
-          <span className="mt-2 block"><MoneyInput value={rate} onChange={(usdc) => setRate(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
+          <span className="mt-2 block"><MoneyInput value={rate} handle={rateField} onChange={(usdc) => setRate(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
         </label>
         {hourly ? (
           <label className="block">

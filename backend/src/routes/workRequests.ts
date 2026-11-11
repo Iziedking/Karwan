@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Address } from 'viem';
+import { parseUnits } from 'viem';
 import type { WorkRequests } from '../work/workRequests.js';
+import { localFromQuote, type LocalAmount } from '../rates/quote.js';
 
 /// Hourly work posted to the market (view 32). Anyone sees what is open; the
 /// hirer sees the offers ranked by their agent; a seller sees their own offer.
@@ -20,8 +22,18 @@ const postSchema = z.object({
   periods: z.number().int(),
   sessions: z.number().int().optional(),
   startsInDays: z.number().int().optional(),
+  quote: z.string().max(2000).optional(),
 });
-const offerSchema = z.object({ rateUsdc: z.string().max(32), note: z.string().max(300).optional() });
+const offerSchema = z.object({ rateUsdc: z.string().max(32), note: z.string().max(300).optional(), quote: z.string().max(2000).optional() });
+/// The typed figure behind a rate, when its quote is good and is this rate.
+function typed(quote: string | undefined, usdc: string): LocalAmount | undefined {
+  try {
+    return localFromQuote(quote, parseUnits(usdc, 6));
+  } catch {
+    return undefined;
+  }
+}
+
 const pickSchema = z.object({ offerId: z.string().min(3).max(64) });
 
 const INPUT_CODES = new Set(['BAD_TERMS']);
@@ -53,7 +65,9 @@ export function createWorkRequestRoutes(deps: WorkRequestRouteDeps) {
     if (!me) return c.json({ error: 'not authenticated' }, 401);
     const body = postSchema.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: 'invalid body' }, 400);
-    const out = await deps.core.post(me, body.data);
+    const { quote, ...input } = body.data;
+    const maxRateLocal = typed(quote, input.maxRateUsdc);
+    const out = await deps.core.post(me, { ...input, ...(maxRateLocal ? { maxRateLocal } : {}) });
     if (!out.ok) return fail(c, out);
     return c.json({ request: await deps.core.view(out.request.id, me) });
   });
@@ -69,7 +83,9 @@ export function createWorkRequestRoutes(deps: WorkRequestRouteDeps) {
     const body = offerSchema.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: 'invalid body' }, 400);
     const id = c.req.param('id');
-    const out = await deps.core.offer(me, id, body.data);
+    const { quote, ...made } = body.data;
+    const rateLocal = typed(quote, made.rateUsdc);
+    const out = await deps.core.offer(me, id, { ...made, ...(rateLocal ? { rateLocal } : {}) });
     if (!out.ok) return fail(c, out);
     return c.json({ request: await deps.core.view(id, me) });
   });

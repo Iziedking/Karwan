@@ -1,12 +1,12 @@
 'use client';
-import { MoneyInput } from '@/features/money/components/MoneyInput';
+import { MoneyInput, type MoneyInputHandle } from '@/features/money/components/MoneyInput';
 
 import { CARD_CLASS } from '@/shared/components/Card';
 import { buttonClasses } from '@/shared/components/Button';
 import Link from 'next/link';
 import { TaskEntryLink } from '@/shared/components/TaskEntryLink';
 import { signInHref } from '@/shared/auth/signInHref';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type RankedWorkOffer, type WorkCard, type WorkRequestView } from '@/core/api';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -34,6 +34,7 @@ export function WorkRequestPage({ id }: { id: string }) {
   const [missing, setMissing] = useState(false);
   const [hiring, setHiring] = useState<{ offer: RankedWorkOffer; card: WorkCard } | null>(null);
   const [closing, setClosing] = useState(false);
+  const rateField = useRef<MoneyInputHandle>(null);
   const [rate, setRate] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -97,7 +98,7 @@ export function WorkRequestPage({ id }: { id: string }) {
       <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{t.page.status[r.status]}</p>
       <h1 dir="auto" className="mt-1 text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{r.title}</h1>
       <p className="mt-4 text-[24px] font-semibold tabular-nums text-[var(--ink)]">
-        {mt.fill(hourly ? t.market.upTo : t.market.upToMonth, { amount: microsToUsdc(r.maxRateMicros) })}
+        {mt.fillPrice(hourly ? t.market.upTo : t.market.upToMonth, microsToUsdc(r.maxRateMicros), r.maxRateLocal)}
       </p>
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
         {[hourly ? fill(all.page.upTo, { n: r.maxHours }) : r.sessions ? fill(all.sessions.term, { n: r.sessions }) : null, runsText(r.periods, hourly, all.page), fill(all.page.starts, { date: localDay(r.startsAt, locale) }), open ? fill(t.market.closes, { date: localDay(r.offersCloseAt, locale) }) : null].filter(Boolean).join(' · ')}
@@ -116,7 +117,7 @@ export function WorkRequestPage({ id }: { id: string }) {
                 <div className="flex items-start justify-between gap-4">
                   <SellerBlock offer={o} />
                   <p className="shrink-0 text-end tabular-nums">
-                    <span className="block text-[18px] font-semibold text-[var(--ink)]">{usdc(o.rateMicros)}</span>
+                    <span className="block text-[18px] font-semibold text-[var(--ink)]">{mt.price(microsToUsdc(o.rateMicros), o.rateLocal)}</span>
                     {o.overMost ? <span className="block text-[14px] font-medium text-[var(--ink-secondary)]">{t.page.over}</span> : null}
                   </p>
                 </div>
@@ -136,19 +137,22 @@ export function WorkRequestPage({ id }: { id: string }) {
       ) : (
         <section aria-labelledby="your-offer" className="mt-8">
           <h2 id="your-offer" className="text-[17px] font-semibold text-[var(--ink)]">{t.page.yourOffer}</h2>
-          {mine ? <p className="mt-2 text-[15px] text-[var(--ink)]">{usdc(mine.rateMicros)} · {t.page.offerStatus[mine.status]}</p> : null}
+          {mine ? <p className="mt-2 text-[15px] text-[var(--ink)]">{mt.price(microsToUsdc(mine.rateMicros), mine.rateLocal)} · {t.page.offerStatus[mine.status]}</p> : null}
           {open ? (
             <div className="mt-4 space-y-4">
               <label className="block">
                 <span className={fieldLabel}>{hourly ? t.page.yourRate : t.page.yourPrice}</span>
-                <span className="mt-2 block"><MoneyInput value={rate} onChange={(usdc) => setRate(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
+                <span className="mt-2 block"><MoneyInput value={rate} handle={rateField} onChange={(usdc) => setRate(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
               </label>
               <label className="block">
                 <span className={fieldLabel}>{t.page.note}</span>
                 <textarea className={`form-input block w-full mt-2 min-h-24 py-3`} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
               </label>
               <div className="flex flex-wrap gap-3">
-                <button type="button" disabled={busy || !(Number(rate) > 0)} onClick={() => void run(() => api.offerOnWorkRequest(r.id, { rateUsdc: rate, note: note.trim() }))} className={GREEN}>
+                <button type="button" disabled={busy || !(Number(rate) > 0)} onClick={() => void run(async () => {
+                  const said = await rateField.current?.quote();
+                  return api.offerOnWorkRequest(r.id, { rateUsdc: rate, note: note.trim(), ...(said && said.usdc === Number(rate) ? { quote: said.token } : {}) });
+                })} className={GREEN}>
                   {mine?.status === 'live' ? t.page.change : t.page.send}
                 </button>
                 {mine?.status === 'live' ? <button type="button" disabled={busy} onClick={() => void run(() => api.withdrawWorkOffer(r.id))} className={QUIET_BUTTON}>{t.page.withdraw}</button> : null}

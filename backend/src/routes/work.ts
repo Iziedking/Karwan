@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import type { Address } from 'viem';
+import { parseUnits, type Address } from 'viem';
+import { localFromQuote, type LocalAmount } from '../rates/quote.js';
 import type { Engagements } from '../work/engagements.js';
 
 /// Hourly work and monthly retainers (view 32). Only the hirer and the worker
@@ -22,7 +23,22 @@ const inputSchema = z.object({
   startsInDays: z.number().int().optional(),
   title: z.string().max(200),
   brief: z.string().max(4_000).default(''),
+  quote: z.string().max(2000).optional(),
 });
+/// The typed figure behind a rate, when its quote is good and is this rate.
+function typed(quote: string | undefined, usdc: string): LocalAmount | undefined {
+  try {
+    return localFromQuote(quote, parseUnits(usdc, 6));
+  } catch {
+    return undefined;
+  }
+}
+function withTyped<T extends { rateUsdc: string; quote?: string }>(body: T) {
+  const { quote, ...input } = body;
+  const rateLocal = typed(quote, input.rateUsdc);
+  return { ...input, ...(rateLocal ? { rateLocal } : {}) };
+}
+
 const hoursSchema = z.object({ minutes: z.number().int(), note: z.string().max(300).optional(), k: z.number().int().min(0).optional(), link: z.string().max(300).optional() });
 const flagSchema = z.object({ k: z.number().int().min(0), n: z.number().int().min(1), note: z.string().max(300) });
 const weekSchema = z.object({ k: z.number().int().min(0) });
@@ -58,7 +74,7 @@ export function createWorkRoutes(deps: WorkRouteDeps) {
     if (!me) return c.json({ error: 'not authenticated' }, 401);
     const body = inputSchema.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: 'invalid body' }, 400);
-    const d = await deps.core.draft(me, body.data);
+    const d = await deps.core.draft(me, withTyped(body.data));
     if (!d.ok) {
       const r = refused(d);
       return c.json(r.body, r.status);
@@ -71,7 +87,7 @@ export function createWorkRoutes(deps: WorkRouteDeps) {
     if (!me) return c.json({ error: 'not authenticated' }, 401);
     const body = inputSchema.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: 'invalid body' }, 400);
-    const out = await deps.core.offer(me, body.data);
+    const out = await deps.core.offer(me, withTyped(body.data));
     if (!out.ok) {
       const r = refused(out);
       return c.json(r.body, r.status);

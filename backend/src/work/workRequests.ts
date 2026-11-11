@@ -3,6 +3,7 @@ import type { WorkKind } from '../chain/timeEscrow.js';
 import type { WorkOffer, WorkRequest, WorkRequestsStore } from '../db/workRequests.js';
 import type { Engagement } from '../db/engagements.js';
 import type { WorkInput } from './engagements.js';
+import type { LocalAmount } from '../rates/quote.js';
 
 /// Hourly work posted to the market (view 32). The hirer posts the most they
 /// pay an hour; sellers who fit are told and offer a rate; the hirer's agent
@@ -19,6 +20,8 @@ export interface WorkRequestInput {
   title: string;
   brief: string;
   maxRateUsdc: string;
+  /// The most they pay, as typed in their own currency (view 77).
+  maxRateLocal?: LocalAmount;
   maxHours?: number;
   periods: number;
   sessions?: number;
@@ -101,6 +104,7 @@ export function createWorkRequests(p: WorkRequestPorts) {
       id: p.newId('wr'), hirer, kind: input.kind, title, brief, keywords: await p.keywords(`${title}. ${brief}`).catch(() => []),
       maxRateMicros: rate.toString(), maxHours, periods: input.periods, startsAt: at + startsIn * DAY,
       status: 'open', createdAt: at, updatedAt: at, ...(sessions ? { sessions } : {}),
+      ...(input.maxRateLocal ? { maxRateLocal: input.maxRateLocal } : {}),
     };
     await p.store.create(request);
     const fits = (await p.reach(request).catch(() => [])).filter((s) => !same(s, hirer));
@@ -120,7 +124,7 @@ export function createWorkRequests(p: WorkRequestPorts) {
     return { ok: true, request: live };
   }
 
-  async function offer(seller: Address, id: string, i: { rateUsdc: string; note?: string }): Promise<{ ok: true; offer: WorkOffer } | Refusal> {
+  async function offer(seller: Address, id: string, i: { rateUsdc: string; note?: string; rateLocal?: LocalAmount }): Promise<{ ok: true; offer: WorkOffer } | Refusal> {
     const r = await p.store.get(id);
     if (!r) return refuse('NOT_FOUND', 'That work is not on Karwan.');
     if (r.status !== 'open' || p.now() >= r.startsAt - DAY) return refuse('CLOSED', 'This work is no longer taking offers.');
@@ -142,11 +146,13 @@ export function createWorkRequests(p: WorkRequestPorts) {
     try {
       const before = await p.store.liveOfferBy(id, seller);
       const at = p.now();
+      // A rate at exactly the most the hirer said reads as the hirer said it.
+      const said = i.rateLocal ?? (rate.toString() === r.maxRateMicros ? r.maxRateLocal : undefined);
       let o: WorkOffer;
       if (before) {
-        o = (await p.store.patchOffer(before.id, { rateMicros: rate.toString(), note }))!;
+        o = (await p.store.patchOffer(before.id, { rateMicros: rate.toString(), note, rateLocal: said ?? null }))!;
       } else {
-        o = { id: p.newId('wo'), requestId: id, seller, sellerAgent: agent.address, rateMicros: rate.toString(), note, status: 'live', createdAt: at, updatedAt: at };
+        o = { id: p.newId('wo'), requestId: id, seller, sellerAgent: agent.address, rateMicros: rate.toString(), note, status: 'live', createdAt: at, updatedAt: at, ...(said ? { rateLocal: said } : {}) };
         await p.store.createOffer(o);
       }
       p.tellPerson(r.hirer, `${r.title}: ${before ? 'an offer changed' : 'a new offer'}, ${usdc(rate)} USDC ${per(r)}. Your agent has ranked them for you.`, `/work/requests/${id}`);
@@ -168,6 +174,7 @@ export function createWorkRequests(p: WorkRequestPorts) {
       startsInDays: Math.max(1, Math.min(30, Math.round((r.startsAt - p.now()) / DAY))),
       ...(r.kind === 'hourly' ? { maxHours: r.maxHours } : {}),
       ...(r.kind === 'monthly' && r.sessions ? { sessions: r.sessions } : {}),
+      ...(o.rateLocal ? { rateLocal: o.rateLocal } : {}),
     };
   }
 
@@ -229,6 +236,7 @@ export function createWorkRequests(p: WorkRequestPorts) {
   const publicOf = (r: WorkRequest) => ({
     id: r.id, kind: r.kind, title: r.title, brief: r.brief, maxRateMicros: r.maxRateMicros, maxHours: r.maxHours,
     periods: r.periods, startsAt: r.startsAt, status: r.status, offersCloseAt: r.startsAt - DAY, ...(r.sessions ? { sessions: r.sessions } : {}),
+    ...(r.maxRateLocal ? { maxRateLocal: r.maxRateLocal } : {}),
   });
 
   /// Open work for the market, newest first.
@@ -244,11 +252,13 @@ export function createWorkRequests(p: WorkRequestPorts) {
     const base = { ...publicOf(r), mine: !!viewer && same(viewer, r.hirer), ...(r.workId && viewer && same(viewer, r.hirer) ? { workId: r.workId } : {}) };
     if (viewer && same(viewer, r.hirer)) {
       const live = (await p.store.offers(id)).filter((o) => o.status === 'live');
-      return { ...base, offers: await p.rank(r, live), offerCount: live.length };
+      const said = new Map(live.map((o) => [o.id, o.rateLocal]));
+      const ranked = (await p.rank(r, live)).map((row) => (said.get(row.offerId) ? { ...row, rateLocal: said.get(row.offerId) } : row));
+      return { ...base, offers: ranked, offerCount: live.length };
     }
     const own = viewer ? await p.store.liveOfferBy(id, viewer) : null;
     const anyOwn = viewer && !own ? (await p.store.offers(id)).filter((o) => same(o.seller, viewer)).pop() ?? null : own;
-    return { ...base, ...(anyOwn ? { myOffer: { id: anyOwn.id, rateMicros: anyOwn.rateMicros, note: anyOwn.note, status: anyOwn.status } } : {}) };
+    return { ...base, ...(anyOwn ? { myOffer: { id: anyOwn.id, rateMicros: anyOwn.rateMicros, note: anyOwn.note, status: anyOwn.status, ...(anyOwn.rateLocal ? { rateLocal: anyOwn.rateLocal } : {}) } } : {}) };
   }
 
   async function mine(hirer: Address) {

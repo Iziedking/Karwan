@@ -1,6 +1,7 @@
 import { formatUnits, keccak256, parseUnits, toBytes, type Address, type Hex } from 'viem';
 import { buildTimeTerms, payFor, timeTermsHash, weekCost, type TimeTermsT, type WorkKind } from '../chain/timeEscrow.js';
 import type { Engagement, EngagementsStore, EngagementWeek, StoredTimeTerms } from '../db/engagements.js';
+import type { LocalAmount } from '../rates/quote.js';
 
 /// Hourly work and monthly retainers on the time escrow (view 32). The hirer's
 /// buying agent offers the terms and funds one week or month at a time; the
@@ -26,6 +27,8 @@ export interface WorkInput {
   worker: string;
   kind: WorkKind;
   rateUsdc: string;
+  /// The rate as typed in a local currency (view 77).
+  rateLocal?: LocalAmount;
   /// Most hours a week; ignored for monthly.
   maxHours?: number;
   /// Weeks for hourly work, months for a retainer.
@@ -242,6 +245,7 @@ export function createEngagements(p: WorkPorts) {
         startsAt: d.card.startsAt, feeBps: d.feeBps, termsHash: timeTermsHash(d.terms), terms: storeTerms(d.terms),
         status: 'offering', weeks: [], tx: {}, createdAt: at, updatedAt: at,
         ...(d.card.sessions ? { sessions: d.card.sessions } : {}),
+        ...(input.rateLocal ? { rateLocal: input.rateLocal } : {}),
         ...(opts.conversationId ? { conversationId: opts.conversationId } : {}),
         ...(opts.fromJob ? { fromJob: opts.fromJob } : {}), ...(opts.fromOffer ? { fromOffer: opts.fromOffer } : {}),
       };
@@ -691,6 +695,7 @@ export function createEngagements(p: WorkPorts) {
       id: e.id, kind: e.kind, title: e.title, status: e.status, role: same(viewer, e.hirer) ? 'hirer' : 'worker',
       rateMicros: e.rateMicros, maxHours: e.maxHours, periods: e.periods, startsAt: e.startsAt, weeks: e.weeks.length, updatedAt: e.updatedAt,
       ...(e.sessions ? { sessions: e.sessions } : {}),
+      ...(e.rateLocal ? { rateLocal: e.rateLocal } : {}),
     }));
   }
 

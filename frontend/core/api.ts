@@ -3270,6 +3270,8 @@ export interface WorkInput {
   startsInDays?: number;
   title: string;
   brief: string;
+  /// The quote behind a rate typed in a local currency, so the work keeps it (view 77).
+  quote?: string;
 }
 export interface WorkCard {
   kind: WorkKind;
@@ -3322,6 +3324,8 @@ export interface WorkView {
   title: string;
   brief: string;
   rateMicros: string;
+  /// The rate as typed in a local currency (view 77).
+  rateLocal?: { currency: string; amount: string };
   maxHours: number;
   periods: number;
   /// Sessions a month holds, on monthly work counted in sessions (view 76).
@@ -3348,6 +3352,7 @@ export interface WorkRequestInput {
   periods: number;
   sessions?: number;
   startsInDays?: number;
+  quote?: string;
 }
 export interface RankedWorkOffer {
   offerId: string;
@@ -3360,6 +3365,7 @@ export interface RankedWorkOffer {
   reasons: string[];
   recommended: boolean;
   rateMicros: string;
+  rateLocal?: { currency: string; amount: string };
   note: string;
   overMost: boolean;
 }
@@ -3369,6 +3375,8 @@ export interface WorkRequestView {
   title: string;
   brief: string;
   maxRateMicros: string;
+  /// The most the hirer pays, as they typed it (view 77).
+  maxRateLocal?: { currency: string; amount: string };
   maxHours: number;
   periods: number;
   sessions?: number;
@@ -3379,7 +3387,7 @@ export interface WorkRequestView {
   workId?: string;
   offers?: RankedWorkOffer[];
   offerCount?: number;
-  myOffer?: { id: string; rateMicros: string; note: string; status: 'live' | 'withdrawn' | 'hired' | 'filled' };
+  myOffer?: { id: string; rateMicros: string; rateLocal?: { currency: string; amount: string }; note: string; status: 'live' | 'withdrawn' | 'hired' | 'filled' };
 }
 export interface WorkRow {
   id: string;
@@ -3388,6 +3396,7 @@ export interface WorkRow {
   status: WorkStatus;
   role: 'hirer' | 'worker';
   rateMicros: string;
+  rateLocal?: { currency: string; amount: string };
   maxHours: number;
   periods: number;
   startsAt: number;
@@ -6080,7 +6089,7 @@ export const api = {
   myWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests/mine'),
   getWorkRequest: (id: string) => json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}`),
   postWorkRequest: (body: WorkRequestInput) => json<{ request: WorkRequestView }>('/api/work-requests', { method: 'POST', body: JSON.stringify(body) }),
-  offerOnWorkRequest: (id: string, body: { rateUsdc: string; note?: string }) =>
+  offerOnWorkRequest: (id: string, body: { rateUsdc: string; note?: string; quote?: string }) =>
     json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}/offers`, { method: 'POST', body: JSON.stringify(body) }),
   withdrawWorkOffer: (id: string) =>
     json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}/offers/withdraw`, { method: 'POST', body: JSON.stringify({}) }),

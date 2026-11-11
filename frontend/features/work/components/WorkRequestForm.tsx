@@ -1,8 +1,8 @@
 'use client';
-import { MoneyInput } from '@/features/money/components/MoneyInput';
+import { MoneyInput, type MoneyInputHandle } from '@/features/money/components/MoneyInput';
 
 import { buttonClasses } from '@/shared/components/Button';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type WorkKind, type WorkRequestInput } from '@/core/api';
 import { fieldLabel } from '@/features/deals/workspace/Sheet';
@@ -26,6 +26,7 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
   const [periods, setPeriods] = useState(String(prefill.periods ?? ''));
   const [sessions, setSessions] = useState(String(prefill.sessions ?? ''));
   const [starts, setStarts] = useState(String(prefill.startsInDays ?? 7));
+  const mostField = useRef<MoneyInputHandle>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hourly = kind === 'hourly';
@@ -35,7 +36,9 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
     setBusy(true);
     setError(null);
     try {
+      const said = await mostField.current?.quote();
       const r = await api.postWorkRequest({
+        ...(said && said.usdc === Number(most) ? { quote: said.token } : {}),
         kind, title, brief, maxRateUsdc: most, periods: Number(periods), startsInDays: Number(starts), ...(hourly ? { maxHours: Number(hours) } : Number(sessions) >= 1 ? { sessions: Number(sessions) } : {}),
       });
       router.push(`/work/requests/${r.request.id}`);
@@ -81,7 +84,7 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
         </fieldset>
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.most : t.form.mostMonthly}</span>
-          <span className="mt-2 block"><MoneyInput value={most} onChange={(usdc) => setMost(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
+          <span className="mt-2 block"><MoneyInput value={most} handle={mostField} onChange={(usdc) => setMost(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
         </label>
         {hourly ? (
           <label className="block">

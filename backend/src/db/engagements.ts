@@ -1,5 +1,6 @@
 import type { Address, Hex } from 'viem';
 import { pgEnabled, postgresExecutor } from './client.js';
+import type { LocalAmount } from '../rates/quote.js';
 
 /// Hourly work and monthly retainers on the time escrow (view 32). Each week
 /// or month is funded on the escrow before it runs; these rows keep what the
@@ -61,6 +62,8 @@ export interface Engagement {
   title: string;
   brief: string;
   rateMicros: string;
+  /// The rate as it was typed in a local currency (view 77).
+  rateLocal?: LocalAmount;
   /// Most hours a week; 1 for a monthly retainer.
   maxHours: number;
   /// Sessions a month holds, on monthly work billed by the session (view 76).

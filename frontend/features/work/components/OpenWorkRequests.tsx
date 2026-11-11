@@ -38,7 +38,7 @@ export function OpenWorkRequests() {
                 </span>
               </span>
               <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]">
-                {mt.fill(r.kind === 'hourly' ? t.market.upTo : t.market.upToMonth, { amount: microsToUsdc(r.maxRateMicros) })}
+                {mt.fillPrice(r.kind === 'hourly' ? t.market.upTo : t.market.upToMonth, microsToUsdc(r.maxRateMicros), r.maxRateLocal)}
               </span>
               <Chevron />
             </Link>

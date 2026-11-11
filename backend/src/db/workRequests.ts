@@ -1,5 +1,6 @@
 import type { Address } from 'viem';
 import { pgEnabled, postgresExecutor } from './client.js';
+import type { LocalAmount } from '../rates/quote.js';
 
 /// Hourly work posted to the market (view 32): the hirer says the most they
 /// pay an hour, sellers who fit offer a rate, the hirer's agent ranks them by
@@ -17,6 +18,9 @@ export interface WorkRequest {
   brief: string;
   keywords: string[];
   maxRateMicros: string;
+  /// The figure as its owner typed it in their own currency (view 77). Anyone
+  /// reading in that currency sees it as typed; the micros are what moves.
+  maxRateLocal?: LocalAmount;
   /// Most hours a week; 1 for a monthly retainer.
   maxHours: number;
   periods: number;
@@ -39,6 +43,8 @@ export interface WorkOffer {
   seller: Address;
   sellerAgent: Address;
   rateMicros: string;
+  /// The rate as typed (view 77); null once the rate changed with no figure kept.
+  rateLocal?: LocalAmount | null;
   note: string;
   status: WorkOfferStatus;
   createdAt: number;
