@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import { findPeopleCopy, type FindPeopleCopy } from '@/shared/i18n/messages/find
 import { askedText, endsText, fillFind, firstName, PICK_MAX, titleOf } from './foundModel';
 import { BuyersFound } from './BuyersFound';
 import { PeopleList, PersonSheet, PhotoStack } from './FoundPeople';
+import { buyerTopUpHref } from '@/features/money/moneyRoutes';
 
 export const findKey = (id: string) => ['find', id] as const;
 
@@ -28,6 +29,11 @@ export function FindPage({ id }: { id: string }) {
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const f = find.data;
+  // Back from topping up the buying agent: the same people picked, the ask open again.
+  useEffect(() => {
+    const resumed = takeResume(id);
+    if (resumed) { setPicked(new Set(resumed)); setConfirming(true); }
+  }, [id]);
   const sent = !!f?.jobId;
   const canPick = !!f && !sent && f.status === 'shortlisted';
 
@@ -105,14 +111,31 @@ export function FindPage({ id }: { id: string }) {
             onClose={() => setOpen(null)}
             pick={canPick && open !== null ? { picked: picked.has(open), full: n >= PICK_MAX, onToggle: () => { toggle(open); setOpen(null); } } : undefined}
           />
-          <AskSheet open={confirming} find={f} picks={[...picked].sort((a, b) => a - b)} t={t} locale={locale} onClose={() => setConfirming(false)} onSent={() => { setConfirming(false); setPicked(new Set()); }} />
+          <AskSheet open={confirming} find={f} picks={[...picked].sort((a, b) => a - b)} t={t} locale={locale} onClose={() => setConfirming(false)} onSent={() => { setConfirming(false); setPicked(new Set()); }} onTopUp={() => keepResume(id, [...picked])} />
         </>
       )}
     </div>
   );
 }
 
-function AskSheet({ open, find, picks, t, locale, onClose, onSent }: {
+const RESUME_KEY = (id: string) => `karwan:find-ask:${id}`;
+
+function keepResume(id: string, picks: number[]) {
+  try { window.sessionStorage.setItem(RESUME_KEY(id), JSON.stringify(picks)); } catch { /* the ask simply reopens empty */ }
+}
+
+function takeResume(id: string): number[] | null {
+  try {
+    const raw = window.sessionStorage.getItem(RESUME_KEY(id));
+    window.sessionStorage.removeItem(RESUME_KEY(id));
+    const picks: unknown = raw ? JSON.parse(raw) : null;
+    return Array.isArray(picks) && picks.length > 0 && picks.every((n) => Number.isInteger(n) && n >= 0) ? picks.slice(0, PICK_MAX) : null;
+  } catch {
+    return null;
+  }
+}
+
+function AskSheet({ open, find, picks, t, locale, onClose, onSent, onTopUp }: {
   open: boolean;
   find: FindView;
   picks: number[];
@@ -120,12 +143,13 @@ function AskSheet({ open, find, picks, t, locale, onClose, onSent }: {
   locale: string;
   onClose: () => void;
   onSent: () => void;
+  onTopUp: () => void;
 }) {
   const { address } = useAuth();
   const client = useQueryClient();
   const mt = useMoneyText({ compact: true });
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<{ text: string; fund: boolean } | null>(null);
+  const [error, setError] = useState<{ text: string; fund: boolean; topUp?: string } | null>(null);
   const people = picks.map((i) => find.rows[i]!).filter(Boolean);
   const names = people.map((p) => firstName(p.name));
   const namesText = new Intl.ListFormat(locale, { type: 'conjunction' }).format(names);
@@ -149,7 +173,7 @@ function AskSheet({ open, find, picks, t, locale, onClose, onSent }: {
       onSent();
     } catch (err) {
       const body = err instanceof ApiError ? (err.body as { code?: string; topUpNeededUsdc?: string } | undefined) : undefined;
-      if (body?.code === 'FUND_BUYER_AGENT' && body.topUpNeededUsdc) setError({ text: fillFind(t.fundFirst, { amount: mt.text(body.topUpNeededUsdc) }), fund: true });
+      if (body?.code === 'FUND_BUYER_AGENT' && body.topUpNeededUsdc) setError({ text: fillFind(t.fundFirst, { amount: mt.text(body.topUpNeededUsdc) }), fund: true, topUp: String(body.topUpNeededUsdc) });
       else setError({ text: t.sendFailed, fund: false });
     } finally {
       setBusy(false);
@@ -181,7 +205,7 @@ function AskSheet({ open, find, picks, t, locale, onClose, onSent }: {
         {error ? (
           <p role="alert" className="w-full text-center text-[13px] text-[var(--color-critical)]">
             {error.text}
-            {error.fund ? <> <Link href="/add" className="font-semibold underline">{t.addMoney}</Link></> : null}
+            {error.fund ? <> <Link href={buyerTopUpHref(error.topUp)} onClick={onTopUp} data-fund-agent className="font-semibold underline">{t.addMoney}</Link></> : null}
           </p>
         ) : null}
         <button type="button" data-send onClick={() => void send()} disabled={busy} className={buttonClasses({ variant: 'primary', size: 'lg', className: 'w-full disabled:opacity-60' })}>

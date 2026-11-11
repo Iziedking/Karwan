@@ -78,6 +78,7 @@ flowchart TB
 - **Deal alert.** Each seller chosen gets one message on Telegram and in Karwan: someone near you needs your services, with what is needed, the budget in their currency, by when and where. They answer with one tap: interested with their price and time, or no thanks. Their agent answers for them within the ways they set; anything outside them it asks them first (view 41).
 - **Reminders.** A seller who does not reply is reminded at most three times, spaced out: after 2 hours, the next morning, and the evening of the next day, never at night in their time. After the third they are skipped, with no mark on their record.
 - **Let me choose.** The person picks one to three to alert, sees each answer, and chooses who to deal with.
+- **Short of money to ask.** Asking needs the buying agent to hold the budget. When it is short, the ask says how much to add, and Add money opens the buying agent's own top-up with that amount filled in, not the main Add money page. After Done it comes back to the ask with the same people picked (11 Nov 2026).
 - **Agree for me.** The agent alerts the top three itself, collects the answers and agrees with the best one inside the person's rules (budget, distance). The person wakes up to a matched deal and taps once to lock the money. If all three pass or stay silent, it alerts the next three.
 
 ## Find buyers (the reverse)

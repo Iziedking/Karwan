@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { agentMoveHref, bridgeRedirect, guaranteeStepHref, moneyHref, moneyTab } from './moneyRoutes';
+import { agentMoveHref, bridgeRedirect, buyerTopUpHref, guaranteeStepHref, moneyHref, moneyTab } from './moneyRoutes';
 
 const q = (s: string) => new URLSearchParams(s);
 
@@ -37,4 +37,10 @@ test('agentAndGuaranteeMovesHaveTheirOwnPages', () => {
   assert.equal(agentMoveHref('topUp'), '/account/agent?move=topUp&agent=buyer');
   assert.equal(agentMoveHref('withdraw', 'seller'), '/account/agent?move=withdraw&agent=seller');
   assert.equal(guaranteeStepHref('take_out'), '/account/guarantee?step=take_out');
+});
+
+test('shortOfMoneyToAskOpensTheBuyingAgentTopUpWithWhatIsMissing', () => {
+  assert.equal(buyerTopUpHref('23.67'), '/account/agent?move=topUp&agent=buyer&amount=23.67');
+  assert.equal(buyerTopUpHref(undefined), '/account/agent?move=topUp&agent=buyer');
+  assert.equal(buyerTopUpHref('0'), '/account/agent?move=topUp&agent=buyer');
 });

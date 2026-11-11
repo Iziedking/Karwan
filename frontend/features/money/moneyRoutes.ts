@@ -39,6 +39,13 @@ export function agentMoveHref(move: MoneyAgentMove, agent: 'buyer' | 'seller' = 
   return `/account/agent?move=${move}&agent=${agent}`;
 }
 
+/// Short of money to ask people: top up the buying agent by what is missing,
+/// on its own page, which returns to the ask when it closes (owner, 11 Nov 2026).
+export function buyerTopUpHref(amountUsdc?: string): string {
+  const amount = Number(amountUsdc);
+  return agentMoveHref('topUp', 'buyer') + (Number.isFinite(amount) && amount > 0 ? `&amount=${amount}` : '');
+}
+
 export function guaranteeStepHref(step: 'put_up' | 'take_out'): string {
   return `/account/guarantee?step=${step}`;
 }

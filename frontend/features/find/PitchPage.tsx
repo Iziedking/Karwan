@@ -12,6 +12,7 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { findPeopleCopy, type FindPeopleCopy } from '@/shared/i18n/messages/findPeople';
 import { daysText, distanceText, fillFind, firstName } from './foundModel';
 import { PersonPhoto } from './FoundPeople';
+import { buyerTopUpHref } from '@/features/money/moneyRoutes';
 
 export const pitchKey = (id: string) => ['pitch', id] as const;
 
@@ -145,7 +146,7 @@ function AskSheet({ open, pitch: p, t, name, onClose, onPosted }: { open: boolea
   const { address } = useAuth();
   const mt = useMoneyText({ compact: true });
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<{ text: string; fund: boolean } | null>(null);
+  const [error, setError] = useState<{ text: string; fund: boolean; topUp?: string } | null>(null);
 
   async function post() {
     if (!address || busy || !p.priceUsdc) return;
@@ -163,7 +164,7 @@ function AskSheet({ open, pitch: p, t, name, onClose, onPosted }: { open: boolea
       await onPosted();
     } catch (err) {
       const body = err instanceof ApiError ? (err.body as { code?: string; topUpNeededUsdc?: string } | undefined) : undefined;
-      if (body?.code === 'FUND_BUYER_AGENT' && body.topUpNeededUsdc) setError({ text: fillFind(t.fundFirst, { amount: mt.text(body.topUpNeededUsdc) }), fund: true });
+      if (body?.code === 'FUND_BUYER_AGENT' && body.topUpNeededUsdc) setError({ text: fillFind(t.fundFirst, { amount: mt.text(body.topUpNeededUsdc) }), fund: true, topUp: String(body.topUpNeededUsdc) });
       else setError({ text: t.sendFailed, fund: false });
     } finally {
       setBusy(false);
@@ -195,7 +196,7 @@ function AskSheet({ open, pitch: p, t, name, onClose, onPosted }: { open: boolea
         {error ? (
           <p role="alert" className="w-full text-center text-[13px] text-[var(--color-critical)]">
             {error.text}
-            {error.fund ? <> <Link href="/add" className="font-semibold underline">{t.addMoney}</Link></> : null}
+            {error.fund ? <> <Link href={buyerTopUpHref(error.topUp)} data-fund-agent className="font-semibold underline">{t.addMoney}</Link></> : null}
           </p>
         ) : null}
         <button type="button" data-post-privately onClick={() => void post()} disabled={busy} className={buttonClasses({ variant: 'primary', size: 'lg', className: 'w-full disabled:opacity-60' })}>
