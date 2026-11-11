@@ -1,6 +1,6 @@
 # Karwan terms and conditions
 
-Terms version: 2.2.0. Product-description corrections: 2026-09-25.
+Terms version: 2.4.0. Last updated: 2026-11-12 (the Currency paragraph: one shared rate, and a payment keeps what it was worth when paid).
 
 The mainnet wallet application uses real funds. Trading and escrow remain on
 testnet, where test USDC has no monetary value. Feature availability differs
