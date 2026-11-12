@@ -10,7 +10,8 @@ tours stay consistent and never collide.
 - `PageTour`: registers a page's current steps. The registration is route-scoped and updates when the form changes. Set `autoStart` only on a genuinely introductory surface.
 - `PageTourButton`: the labelled, in-flow button next to page navigation in ChromeFrame. It stays reachable on mobile and after automatic tips are disabled. No floating corner launcher.
 - `routeGuidance.ts`: localized manual guidance for standalone account and sensitive pages that do not register their own spotlight tour. Route fallbacks take precedence where older registered copy no longer fits the page.
-- `GuideWelcome` — first-run "start here" tour. Skips public/marketing routes; fires on the first app page after sign-in.
+- `GuideWelcome` — first-run "start here" tour. Skips public/marketing routes; fires on the first app page after sign-in, for someone new only.
+- `newcomer.ts` / `useNewcomer`: who a tour is about to open for. "Seen" is kept on the device, so the account decides: one with a deal, or set up more than a day ago, is known and nothing opens by itself for it. Nothing opens until both reads are in.
 - `tours.ts` — all step definitions in one place.
 
 ## Rules (read before adding a tour)

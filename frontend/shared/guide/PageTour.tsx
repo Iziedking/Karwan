@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useGuide, GUIDE_MASTERY_XP, type TourStep } from './GuideProvider';
 import { WELCOME_ID } from './tours';
+import { useNewcomer } from './useNewcomer';
 
 /// Registers a page's guided tour with the global guide. Page tours stay
 /// available from the quiet Tour launcher; the first-run welcome tour is the
@@ -38,6 +39,7 @@ export function PageTour({
 }) {
   const { registerTour, unregisterTour, startTour, hasActive, disabled, experience, isSeen } =
     useGuide();
+  const who = useNewcomer();
   // One auto-open attempt per mount; the pill stays available regardless.
   const autoTried = useRef(false);
   const pathname = usePathname();
@@ -55,6 +57,7 @@ export function PageTour({
     if (autoTried.current) return;
     if (disabled || hasActive) return;
     if (experience >= GUIDE_MASTERY_XP) return;
+    if (who !== 'new') return; // an account with deals behind it asks for a tour itself
     if (!isSeen(WELCOME_ID)) return; // let the first-run welcome go first
     if (isSeen(id)) return; // newcomer already saw this page's tour
     const t = window.setTimeout(() => {
@@ -65,7 +68,7 @@ export function PageTour({
     // Re-evaluates when an open tour closes (hasActive) or the seen/welcome
     // state changes, so the page tour opens right after the welcome finishes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, hasActive, disabled, experience, isSeen, autoStart]);
+  }, [id, hasActive, disabled, experience, isSeen, autoStart, who]);
 
   return null;
 }

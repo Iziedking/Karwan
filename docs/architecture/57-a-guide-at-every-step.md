@@ -148,5 +148,6 @@ The designer's final mascot and its animation set, the mobile app, voice, and ga
 | Next-move nudge on every signed-in page, in the rounded type; the fading notes and the sign-up guide share that type | Built 6 Nov 2026, not deployed |
 | The nudge steps aside while a button or a field is under it, sits above the bottom bar wherever the bar shows, and after a close says nothing more on that page | Built 12 Nov 2026, live on the test site |
 | On a phone the nudge stops short of the Help button, measured from where the button is, and sits above it when there is too little room beside it | Built 12 Nov 2026, not deployed |
+| The first-run welcome and any page tour that opens by itself are for someone new: an account with a deal, or one set up more than a day ago, is never shown them on a new device. The Page tour button stays for everyone | Built 12 Nov 2026, not deployed |
 | Figma: placeholder face, gate, tour, sign-up and first open (phone, dark) | Drawn 6 Nov 2026 |
 | Face, name, gate, tours, companion beside the page, Ask from the face | Waiting for the designer's mascot |

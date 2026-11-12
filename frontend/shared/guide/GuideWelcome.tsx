@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTerms } from '@/shared/hooks/useTerms';
 import { useGuide } from './GuideProvider';
 import { WELCOME_ID } from './tours';
+import { useNewcomer } from './useNewcomer';
 import { GUIDE_COPY } from './routeGuidance';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { isNoTourRoute } from './routes';
@@ -21,6 +22,7 @@ export function GuideWelcome() {
   const terms = useTerms();
   const pathname = usePathname();
   const { startTour, disabled, isSeen } = useGuide();
+  const who = useNewcomer();
   const fired = useRef(false);
 
   useEffect(() => {
@@ -30,13 +32,16 @@ export function GuideWelcome() {
     // owes acceptance, or the tour paints under/over the Terms gate. It fires once
     // terms is accepted (needsAcceptance clears and this effect re-runs).
     if (terms.loading || terms.needsAcceptance) return;
+    // Only someone new. An account with deals behind it signing in on another
+    // device is not welcomed again; nothing opens until that is known.
+    if (who !== 'new') return;
     // Wait until they leave the landing/marketing pages; re-checks on each
     // navigation because the layout (and this component) persist across routes.
     if (isNoTourRoute(pathname) || isFocusedRoute(pathname) || isPublicAccessRoute(pathname)) return;
     const steps = GUIDE_COPY[locale].welcome;
     const t = setTimeout(() => { fired.current = true; startTour(WELCOME_ID, steps); }, 900);
     return () => clearTimeout(t);
-  }, [authed, disabled, isSeen, startTour, pathname, terms.loading, terms.needsAcceptance, locale]);
+  }, [authed, disabled, isSeen, startTour, pathname, terms.loading, terms.needsAcceptance, locale, who]);
 
   return null;
 }
