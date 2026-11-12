@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { dur, ease } from '@/shared/motion/tokens';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { pickNudge, type Nudge } from '@/features/guide/pickNudge';
+import { coversControl } from '@/features/guide/coversControl';
 
 const CLOSED_KEY = 'karwan:nextMove:closed';
 const SHOW_AFTER_MS = 1200;
@@ -33,7 +34,8 @@ function typingTarget(el: EventTarget | null): boolean {
 
 /// The one next move, as one line and one button (view 57). Quiet by rule:
 /// never on the page it points to, never while typing, never over a dialog,
-/// and a closed move stays closed for the visit.
+/// never on top of a button, one line a page visit, and a closed move stays
+/// closed for the visit.
 export function NextMoveNudge() {
   const pathname = usePathname() ?? '/';
   const auth = useAuth();
@@ -46,6 +48,9 @@ export function NextMoveNudge() {
   const [ready, setReady] = useState(false);
   const [typing, setTyping] = useState(false);
   const [dialog, setDialog] = useState(false);
+  const [closedHere, setClosedHere] = useState(false);
+  const [covering, setCovering] = useState(false);
+  const noteRef = useRef<HTMLElement | null>(null);
 
   const quietRoute =
     isPublicEditorialRoute(pathname) || isAssistantRoute(pathname) || pathname.startsWith('/setup') || pathname.startsWith('/admin');
@@ -63,6 +68,7 @@ export function NextMoveNudge() {
 
   useEffect(() => {
     setReady(false);
+    setClosedHere(false);
     const t = window.setTimeout(() => setReady(true), SHOW_AFTER_MS);
     return () => window.clearTimeout(t);
   }, [pathname]);
@@ -91,6 +97,7 @@ export function NextMoveNudge() {
   const close = (key: string) => {
     const next = new Set(closed).add(key);
     setClosed(next);
+    setClosedHere(true);
     try {
       sessionStorage.setItem(CLOSED_KEY, JSON.stringify([...next]));
     } catch {
@@ -107,20 +114,54 @@ export function NextMoveNudge() {
     return template.replace('{amount}', amount).replace('{days}', num(n.days)).replace('{count}', num(n.count));
   };
 
-  const show = signedIn && !quietRoute && ready && !typing && !dialog && nudge !== null;
+  const show = signedIn && !quietRoute && ready && !typing && !dialog && !closedHere && nudge !== null;
+  const shownKey = show && nudge ? nudge.key : null;
+
+  // The note steps aside while it would sit on a button, and comes back when
+  // the page scrolls the button out from under it.
+  useLayoutEffect(() => {
+    if (!shownKey) {
+      setCovering(false);
+      return;
+    }
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const el = noteRef.current;
+      if (!el) return;
+      setCovering(coversControl(el.getBoundingClientRect(), (x, y) => document.elementsFromPoint(x, y), (hit) => el.contains(hit)));
+    };
+    const later = () => {
+      if (!frame) frame = window.requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener('scroll', later, { capture: true, passive: true });
+    window.addEventListener('resize', later);
+    const observer = new MutationObserver(later);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', later, { capture: true });
+      window.removeEventListener('resize', later);
+      observer.disconnect();
+    };
+  }, [shownKey]);
 
   return (
     <AnimatePresence>
       {show && nudge ? (
         <m.aside
           key={nudge.key}
+          ref={noteRef}
           aria-label={copy.label}
+          aria-hidden={covering || undefined}
           data-next-move={nudge.kind}
+          data-aside={covering ? '' : undefined}
           initial={{ opacity: 0, y: reduce ? 0 : 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: reduce ? 0 : 6 }}
           transition={{ duration: reduce ? dur.micro : dur.base, ease: ease.out }}
-          className="guide-voice fixed start-4 bottom-24 z-50 w-[min(360px,calc(100vw-6.5rem))] rounded-[20px] rounded-es-[8px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-14px_rgba(0,0,0,0.45)] md:start-5 md:bottom-5"
+          className="guide-voice fixed start-4 bottom-24 z-50 w-[min(360px,calc(100vw-6.5rem))] rounded-[20px] rounded-es-[8px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-14px_rgba(0,0,0,0.45)] data-[aside]:invisible lg:start-5 lg:bottom-5"
         >
           <div className="flex items-start gap-2">
             <p role="status" className="min-w-0 flex-1 pt-0.5 text-[16px] font-semibold leading-[1.3]">
