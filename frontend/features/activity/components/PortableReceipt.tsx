@@ -76,8 +76,9 @@ export function PortableReceipt({
     ? { label: copy.receiptTransaction, value: shortenHash(item.txHash) }
     : undefined;
   // The same sentence the ledger row shows, so a recipient reads "Received",
-  // not the sender's "Sent" written at record time.
-  const line = money.line(ledgerLine(item, copy.text));
+  // not the sender's "Sent" written at record time. Its amount reads as the
+  // amount under it does: the figure kept for this reader (view 77).
+  const line = money.row(ledgerLine(item, copy.text), item.amountUsdc, item.local);
   const data = useMemo<ReceiptExportData>(
     () => ({
       title: copy.receiptTitle,
