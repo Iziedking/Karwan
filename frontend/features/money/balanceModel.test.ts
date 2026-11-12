@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer, namedParts, whereItIs } from './balanceModel';
+import { centsDown, formatAmount, formatBalance, heroAmount, homeState, movingTransfer, namedParts, whereItIs } from './balanceModel';
 
 const facts = { balance: null as number | null, pool: 0, loading: false, error: false };
 
@@ -69,6 +69,16 @@ test('the line under the balance names two parts that never add to more than the
   assert.deepEqual(namedParts(some), { ready: 59.57, withAgents: 41.3 });
   assert.ok(namedParts(some)!.ready + namedParts(some)!.withAgents <= heroAmount(some));
   assert.deepEqual(namedParts({ ...facts, balance: 10, pool: 5.5, agents: 2 }), { ready: 15.5, withAgents: 2 }, 'a Transfer balance is ready too');
+});
+
+test('Send reads the ready part to the same cent Money does (L-04)', () => {
+  // The live account: 1,025.968115 in the wallet, 500.593915 with the agents.
+  const live = { ...facts, balance: 1025.968115, agents: 500.593915 };
+  assert.equal(centsDown(1025.968115), 1025.96);
+  assert.equal(centsDown(1025.968115), namedParts(live)!.ready);
+  assert.equal(centsDown(500.593915), namedParts(live)!.withAgents);
+  assert.equal(centsDown(0.004), 0);
+  assert.equal(centsDown(59.57), 59.57, 'a whole cent is not lost to float error');
 });
 
 test('with nothing at the agents there are no parts to name', () => {

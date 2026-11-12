@@ -24,6 +24,7 @@ import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
 import { useMoneyText } from '../hooks/useMoneyText';
 import { useAmountInput } from '../hooks/useAmountInput';
 import { sendAvailable } from '../sendFromWhole';
+import { centsDown } from '../balanceModel';
 import { pressKey } from '../amountEntry';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { useMoneyMove } from '../hooks/useMoneyMove';
@@ -133,7 +134,9 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
   const available = balances.balance === null ? null : sendAvailable(balances.balance, balances.pool, balances.poolLoaded);
   const max = available === null ? null : spendable(available, 'send', walletSigned);
   // What is with the agents is in the balance but not in this send (view 77); to the cent, rounded down.
-  const withAgents = Math.floor(((balances.buyer ?? 0) + (balances.seller ?? 0)) * 100 + 1e-6) / 100;
+  const withAgents = centsDown((balances.buyer ?? 0) + (balances.seller ?? 0));
+  // The part as Money names it; the send itself can still use every micro of `max`.
+  const readyShown = available === null ? null : centsDown(available);
   const amount = amt.usdc;
   const blocker = sheetBlocker({ move: 'send', amount, available: max, recipient: recipientStatus });
   const busy = sheetBusy(state);
@@ -216,7 +219,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
                   <dl className={`${CARD} px-5 text-[15px] tabular-nums`}>
                     <Row label={flow.to} value={toName} />
                     {note.trim() ? <Row label={flow.note} value={note.trim()} plain /> : null}
-                    <Row label={t.sheet.yourBalance} value={available === null ? '' : money.text(available)} />
+                    <Row label={t.sheet.yourBalance} value={readyShown === null ? '' : money.text(readyShown)} />
                     {state.reference ? <Row label={t.sheet.reference} value={state.reference} mono /> : null}
                   </dl>
                   <RecordDoneLine show={state.recordSetUp === true} />
@@ -355,7 +358,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
               <AmountHero id={amountId} label={t.sheet.amountLabel} value={typed} onChange={setTyped} keypad={keypad} inputRef={amountRef} sign={amt.sign} />
             </div>
             <p data-send-ready className="mt-3 inline-flex items-center justify-center gap-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
-              {available === null ? ' ' : money.fill(one.readyToSend, { amount: available })}
+              {readyShown === null ? ' ' : money.fill(one.readyToSend, { amount: readyShown })}
               {available !== null ? <Hint side="bottom">{t.sheet.availableHint}</Hint> : null}
             </p>
             {withAgents > 0 ? (

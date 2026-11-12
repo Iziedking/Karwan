@@ -136,6 +136,7 @@ Added 12 Nov 2026, after the first live check:
 
 - **The assistant's balance is the screen's balance.** The server counted a Transfer balance for every account while the website counts one only for an account that signs in with its own wallet, so the assistant read 50 USDC high on an email account. One rule now decides it on the server (`holdsPool` in `backend/src/money/ownedBalanceModel.ts`), the same one Send already used.
 - **The assistant does no sums.** The balance tool gives the total and the two parts, "ready to send" and "with your agents", already in the person's currency and rounded as Money rounds them (`ownedInLocal`). Before, it gave the parts in USDC only and the assistant converted them itself, wrongly.
+- **Send names the same part Money does.** "Ready to send" on Send read the part before it was cut to the cent, so it showed ₦1,385,492 where Money showed ₦1,385,481. Both now read it through one function (`centsDown` in `frontend/features/money/balanceModel.ts`). The send itself can still use every part of a cent that is there.
 
 Rulings while building:
 
