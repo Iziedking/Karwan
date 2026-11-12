@@ -100,81 +100,13 @@ function short(addr: string | null | undefined): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
+/// The treasury part of Treasury and yield (view 79). It reads with the desk
+/// session; the money moves are signed by the treasury owner's own wallet.
 export default function AdminTreasuryPage() {
-  // The admin token lives in component state ONLY, for this tab's lifetime.
-  // It used to be cached in sessionStorage, which contradicted core/api.ts's
-  // in-memory-only model and left the token one XSS away from exfiltration.
-  // Re-entering it per visit is the intended cost.
-  const [token, setToken] = useState<string>('desk');
-  const [tokenDraft, setTokenDraft] = useState('');
-
-  const saveToken = useCallback(() => {
-    setToken(tokenDraft);
-  }, [tokenDraft]);
-
-  const clearToken = useCallback(() => {
-    setToken('');
-    setTokenDraft('');
-  }, []);
-
-  if (!token) {
-    return (
-      <TokenGate
-        draft={tokenDraft}
-        setDraft={setTokenDraft}
-        onSave={saveToken}
-      />
-    );
-  }
-
-  return <TreasuryConsole token={token} onClearToken={clearToken} />;
+  return <TreasuryConsole token="desk" />;
 }
 
-function TokenGate({
-  draft,
-  setDraft,
-  onSave,
-}: {
-  draft: string;
-  setDraft: (v: string) => void;
-  onSave: () => void;
-}) {
-  return (
-    <main className="min-h-screen bg-zinc-50 text-zinc-900 px-6 py-16">
-      <div className="mx-auto max-w-md">
-        <h1 className="text-2xl font-serif font-medium tracking-tight">Treasury console</h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          Paste the admin token to load. Token is held in this tab only.
-        </p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSave();
-          }}
-          className="mt-6 flex flex-col gap-3"
-        >
-          <input
-            type="password"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="ADMIN_API_TOKEN"
-            autoFocus
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-zinc-500"
-          />
-          <button
-            type="submit"
-            disabled={!draft.trim()}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
-          >
-            Unlock
-          </button>
-        </form>
-      </div>
-    </main>
-  );
-}
-
-function TreasuryConsole({ token, onClearToken }: { token: string; onClearToken: () => void }) {
+function TreasuryConsole({ token }: { token: string }) {
   const [data, setData] = useState<TreasuriesResp | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -215,12 +147,12 @@ function TreasuryConsole({ token, onClearToken }: { token: string; onClearToken:
   }, [refresh]);
 
   return (
-    <main className="min-h-screen bg-zinc-50 text-zinc-900 px-6 py-10">
-      <div className="mx-auto max-w-5xl">
-        <header className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-4">
+    <section aria-label="Treasury" className="text-[var(--d-text)]">
+      <div>
+        <header className="flex items-center justify-between gap-4 border-b border-[var(--d-line)] pb-4">
           <div>
-            <h1 className="text-2xl font-serif font-medium tracking-tight">Treasury console</h1>
-            <p className="mt-1 text-xs text-zinc-500 font-mono">
+            <h2 className="text-[18px] font-semibold">Treasury</h2>
+            <p className="mt-1 text-xs text-[var(--d-text-3)] font-mono">
               {data?.usdc ? `USDC ${short(data.usdc)}` : 'Loading'}
             </p>
           </div>
@@ -228,21 +160,15 @@ function TreasuryConsole({ token, onClearToken }: { token: string; onClearToken:
             <button
               onClick={refresh}
               disabled={loading}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-zinc-100 disabled:opacity-40"
+              className="rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--d-hover)] disabled:opacity-40"
             >
               {loading ? 'Loading' : 'Refresh'}
-            </button>
-            <button
-              onClick={onClearToken}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-zinc-100"
-            >
-              Lock
             </button>
           </div>
         </header>
 
         {loadError ? (
-          <p className="mt-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <p className="mt-6 rounded-lg border border-[#5A2A2E] bg-[#3A1C1F] px-4 py-3 text-sm text-[var(--d-red)]">
             {loadError}
           </p>
         ) : null}
@@ -277,7 +203,7 @@ function TreasuryConsole({ token, onClearToken }: { token: string; onClearToken:
           })()
         ) : null}
       </div>
-    </main>
+    </section>
   );
 }
 
@@ -288,21 +214,21 @@ function WalletStrip() {
   const onArc = chainId === ARC_CHAIN_ID;
 
   return (
-    <div className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
+    <div className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-3">
       <div className="text-sm">
         {isConnected ? (
           <>
-            <span className="text-zinc-500">Connected</span>{' '}
+            <span className="text-[var(--d-text-3)]">Connected</span>{' '}
             <span className="font-mono">{short(address)}</span>
           </>
         ) : (
-          <span className="text-zinc-500">No wallet connected. Use the app top nav to connect.</span>
+          <span className="text-[var(--d-text-3)]">No wallet connected. Use the app top nav to connect.</span>
         )}
       </div>
       {isConnected && !onArc ? (
         <button
           onClick={() => switchChainAsync({ chainId: ARC_CHAIN_ID }).catch(() => {})}
-          className="rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900"
+          className="rounded-md border border-[#5A4520] bg-[#352A12] px-3 py-1.5 text-xs font-medium text-[var(--d-amber)]"
         >
           Switch to Arc
         </button>
@@ -328,26 +254,26 @@ function TreasuryCard({
     !!address && !!view.owner && address.toLowerCase() === view.owner.toLowerCase();
 
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <article className="rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
       <header className="flex items-center justify-between">
         <h2 className="text-sm font-semibold tracking-tight">
           {which === 'live' ? 'Live Treasury' : 'Treasury (real USYC)'}
         </h2>
-        <span className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+        <span className="text-[10px] font-mono uppercase tracking-wide text-[var(--d-text-3)]">
           {view.label}
         </span>
       </header>
 
       {!view.configured ? (
-        <p className="mt-4 text-sm text-zinc-500">
+        <p className="mt-4 text-sm text-[var(--d-text-3)]">
           Not configured. Set {which === 'live' ? 'KARWAN_TREASURY_CONTRACT_ADDR' : 'KARWAN_TREASURY_USYC_ADDR'} in backend env.
         </p>
       ) : view.owner === null ? (
-        <p className="mt-4 text-sm text-red-800">{view.error ?? 'read failed'}</p>
+        <p className="mt-4 text-sm text-[var(--d-red)]">{view.error ?? 'read failed'}</p>
       ) : (
         <>
           {view.error ? (
-            <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+            <p className="mt-3 rounded-md border border-[#5A4520] bg-[#352A12] px-3 py-2 text-[11px] text-[var(--d-amber)]">
               {view.error}
             </p>
           ) : null}
@@ -374,7 +300,7 @@ function TreasuryCard({
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-wide text-zinc-500">{label}</dt>
+      <dt className="text-[10px] uppercase tracking-wide text-[var(--d-text-3)]">{label}</dt>
       <dd className={`mt-0.5 break-all text-xs ${mono ? 'font-mono' : 'font-medium'}`}>
         {value || '-'}
       </dd>
@@ -439,14 +365,14 @@ function PayoutForm({
   }, [walletClient, address, arcClient, chainId, valid, amount, to, treasuryAddress, onTx]);
 
   return (
-    <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-700">Payout</h3>
-      <p className="mt-1 text-[11px] text-zinc-500">
+    <div className="mt-5 rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--d-text-2)]">Payout</h3>
+      <p className="mt-1 text-[11px] text-[var(--d-text-3)]">
         Calls payout(to, amount). Signed by your connected wallet. Reverts unless you are the owner.
       </p>
 
       {!ownerMatches ? (
-        <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+        <p className="mt-3 rounded-md border border-[#5A4520] bg-[#352A12] px-3 py-2 text-[11px] text-[var(--d-amber)]">
           Your connected wallet is not the owner of this treasury. The contract will revert if you submit.
         </p>
       ) : null}
@@ -456,7 +382,7 @@ function PayoutForm({
           value={to}
           onChange={(e) => setTo(e.target.value.trim())}
           placeholder="0xRecipient"
-          className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs font-mono outline-none focus:border-zinc-500"
+          className="w-full rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] px-2 py-1.5 text-xs font-mono outline-none focus:border-[var(--d-line-2)]"
         />
         <div className="flex items-center gap-2">
           <input
@@ -467,12 +393,12 @@ function PayoutForm({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder={`USDC (max ${usdcLabel})`}
-            className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-zinc-500"
+            className="w-full rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] px-2 py-1.5 text-xs outline-none focus:border-[var(--d-line-2)]"
           />
           <button
             type="button"
             onClick={() => setAmount(usdcLabel)}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-[10px] font-medium"
+            className="rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] px-2 py-1.5 text-[10px] font-medium"
           >
             Max
           </button>
@@ -480,7 +406,7 @@ function PayoutForm({
         <button
           onClick={submit}
           disabled={!valid || busy || chainId !== ARC_CHAIN_ID}
-          className="mt-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+          className="mt-1 rounded-md bg-[var(--d-button)] px-3 py-1.5 text-xs font-medium text-[var(--d-text)] disabled:opacity-40"
         >
           {busy ? 'Sending' : 'Payout'}
         </button>
@@ -600,17 +526,17 @@ function DrainControl({
   }, [walletClient, address, arcClient, chainId, valid, amount, live.address, entitled.address, onTx]);
 
   return (
-    <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-5">
+    <section className="mt-8 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
       <h2 className="text-sm font-semibold tracking-tight">Move fees to the entitled treasury</h2>
-      <p className="mt-1 text-[11px] text-zinc-500">
+      <p className="mt-1 text-[11px] text-[var(--d-text-3)]">
         Two-step: live.payout(you, amount), then entitled.deposit(amount) (with USDC approve if needed). Requires
         you to be the live treasury owner.
       </p>
 
       {!liveConfigured || !v3Configured ? (
-        <p className="mt-3 text-sm text-zinc-500">Both treasuries must be configured.</p>
+        <p className="mt-3 text-sm text-[var(--d-text-3)]">Both treasuries must be configured.</p>
       ) : !liveOwnerMatches ? (
-        <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+        <p className="mt-3 rounded-md border border-[#5A4520] bg-[#352A12] px-3 py-2 text-[11px] text-[var(--d-amber)]">
           Your connected wallet is not the owner of the live treasury. The payout step will revert.
         </p>
       ) : null}
@@ -624,12 +550,12 @@ function DrainControl({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder={`USDC (live has ${live.usdc ?? '0'})`}
-          className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-zinc-500"
+          className="w-full rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] px-2 py-1.5 text-xs outline-none focus:border-[var(--d-line-2)]"
         />
         <button
           onClick={drain}
           disabled={!valid || busy || chainId !== ARC_CHAIN_ID}
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+          className="rounded-md bg-[var(--d-button)] px-3 py-1.5 text-xs font-medium text-[var(--d-text)] disabled:opacity-40"
         >
           {busy ? 'Running' : 'Drain'}
         </button>
@@ -653,8 +579,8 @@ function LogRow({ log }: { log: ActionLog }) {
     log.status === 'done'
       ? 'border-[color-mix(in_srgb,var(--lp-accent)_55%,white)] bg-[color-mix(in_srgb,var(--lp-accent)_16%,white)] text-[#56651f]'
       : log.status === 'failed'
-        ? 'border-red-300 bg-red-50 text-red-900'
-        : 'border-zinc-200 bg-zinc-50 text-zinc-700';
+        ? 'border-[#5A2A2E] bg-[#3A1C1F] text-[var(--d-red)]'
+        : 'border-[var(--d-line)] bg-[var(--d-bg)] text-[var(--d-text-2)]';
   return (
     <div className={`rounded-md border px-3 py-2 text-[11px] ${tone}`}>
       <div className="flex items-center justify-between gap-2">

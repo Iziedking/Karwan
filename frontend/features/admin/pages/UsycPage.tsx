@@ -37,59 +37,9 @@ const usd = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const short = (a?: string | null) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '-');
 
+/// The yield part of Treasury and yield (view 79), read with the desk session.
 export default function AdminUsycPage() {
-  // In-memory only, exactly as the copy below promises ("held in this tab
-  // only"). The old sessionStorage cache outlived that promise and sat one
-  // XSS away from exfiltration.
-  // The desk session the console signed in with (view 64).
-  const [token, setToken] = useState('desk');
-  const [draft, setDraft] = useState('');
-
-  if (!token) {
-    return (
-      <main className="min-h-screen bg-zinc-950 text-zinc-100 px-6 py-20">
-        <div className="mx-auto max-w-md">
-          <h1 className="text-2xl font-serif tracking-tight">USYC reserves</h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            Paste the admin token. Held in this tab only.
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setToken(draft);
-            }}
-            className="mt-6 flex flex-col gap-3"
-          >
-            <input
-              type="password"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="ADMIN_API_TOKEN"
-              autoFocus
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-mono outline-none focus:border-zinc-500"
-            />
-            <button
-              type="submit"
-              disabled={!draft.trim()}
-              className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 disabled:opacity-40"
-            >
-              Unlock
-            </button>
-          </form>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <Console
-      token={token}
-      onLock={() => {
-        setToken('');
-        setDraft('');
-      }}
-    />
-  );
+  return <Console token="desk" />;
 }
 
 type RunStep = { action: string; detail: string; txHash?: string; skipped?: boolean; failed?: boolean };
@@ -121,7 +71,7 @@ interface CoverResult {
   error?: string;
 }
 
-function Console({ token, onLock }: { token: string; onLock: () => void }) {
+function Console({ token }: { token: string }) {
   const { prompt } = useDialog();
   const [liq, setLiq] = useState<Liquidity | null>(null);
   const [covering, setCovering] = useState(false);
@@ -232,44 +182,36 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
   const totalYield = (data?.treasury?.yieldUsd ?? 0) + (data?.vault?.yieldUsd ?? 0);
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 px-6 py-10">
-      <div className="mx-auto max-w-4xl">
-        <header className="flex items-end justify-between gap-4 border-b border-zinc-800 pb-5">
+    <section aria-label="Yield" className="text-[var(--d-text)]">
+      <div>
+        <header className="flex items-end justify-between gap-4 border-b border-[var(--d-line)] pb-5">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-              USYC reserves
-            </p>
-            <h1 className="mt-1 text-3xl font-serif tracking-tight">Yield monitor</h1>
+            <h2 className="text-[18px] font-semibold">Yield</h2>
+            <p className="mt-1 text-xs text-[var(--d-text-3)]">USYC reserves</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={refresh}
               disabled={loading}
-              className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-medium hover:bg-zinc-900 disabled:opacity-40"
+              className="rounded-md border border-[var(--d-line)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--d-hover)] disabled:opacity-40"
             >
               {loading ? 'Loading' : 'Refresh'}
-            </button>
-            <button
-              onClick={onLock}
-              className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-medium hover:bg-zinc-900"
-            >
-              Lock
             </button>
           </div>
         </header>
 
         {error ? (
-          <p className="mt-6 rounded-lg border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          <p className="mt-6 rounded-lg border border-[#5A2A2E] bg-[#3A1C1F] px-4 py-3 text-sm text-[var(--d-red)]">
             {error}
           </p>
         ) : null}
 
         {data?.configured === false ? (
-          <p className="mt-6 text-sm text-zinc-400">Treasury address not configured.</p>
+          <p className="mt-6 text-sm text-[var(--d-text-2)]">Treasury address not configured.</p>
         ) : null}
 
         {data?.error ? (
-          <p className="mt-6 rounded-lg border border-amber-900 bg-amber-950/40 px-4 py-3 text-sm text-amber-300">
+          <p className="mt-6 rounded-lg border border-[#5A4520] bg-[#352A12] px-4 py-3 text-sm text-[var(--d-amber)]">
             On-chain read failed: {data.error}
           </p>
         ) : null}
@@ -287,7 +229,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
               <Stat label="Total USYC value" value={`$${usd(totalValue)}`} sub="treasury + vault" />
               <Stat label="Yield earned" value={`$${usd(totalYield)}`} sub="marked to oracle" />
             </section>
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-600">
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--d-text-2)]">
               oracle {short(data.usyc.oracle)} · updated{' '}
               {data.usyc.updatedAt ? new Date(data.usyc.updatedAt).toLocaleString() : '-'}
             </p>
@@ -313,7 +255,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                 </Card>
               ) : (
                 <Card title="Vault stake (routed)" address={null}>
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-sm text-[var(--d-text-3)]">
                     No vault configured, or no stake routed to USYC yet.
                   </p>
                 </Card>
@@ -328,7 +270,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
             itself, so a shortfall here is somebody's Claim button reverting. */}
         {liq ? (
           <section
-            className="mt-8 rounded-2xl border p-5"
+            className="mt-8 rounded-lg border p-5"
             style={{
               borderColor: Number(liq.urgentShortfallUsdc) > 0 ? '#7f1d1d' : '#27272a',
               background: Number(liq.urgentShortfallUsdc) > 0 ? 'rgba(127,29,29,0.12)' : 'rgba(24,24,27,0.4)',
@@ -337,7 +279,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
             <header className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold tracking-tight">Claim liquidity</h2>
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-[var(--d-text-3)]">
                   {Number(liq.urgentShortfallUsdc) > 0
                     ? `Short $${usd(Number(liq.urgentShortfallUsdc))} against claims that are due NOW. Claims are reverting.`
                     : Number(liq.shortfallUsdc) > 0
@@ -349,14 +291,14 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                 <button
                   onClick={() => runCover(true)}
                   disabled={covering || Number(liq.shortfallUsdc) === 0}
-                  className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-40"
+                  className="rounded-lg border border-[var(--d-line)] px-3 py-1.5 text-xs font-medium text-[var(--d-text-2)] hover:bg-[var(--d-hover)] disabled:opacity-40"
                 >
                   Preview
                 </button>
                 <button
                   onClick={() => runCover(false)}
                   disabled={covering || Number(liq.shortfallUsdc) === 0}
-                  className="rounded-lg bg-[var(--lp-accent)] px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:brightness-95 disabled:opacity-40"
+                  className="rounded-lg bg-[var(--lp-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--d-text)] hover:brightness-95 disabled:opacity-40"
                 >
                   {covering ? 'Redeeming…' : 'Redeem and cover'}
                 </button>
@@ -371,13 +313,13 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
             </div>
 
             {liq.nextDueAt ? (
-              <p className="mt-3 text-xs text-zinc-500">
+              <p className="mt-3 text-xs text-[var(--d-text-3)]">
                 Next cooldown matures {new Date(liq.nextDueAt * 1000).toLocaleString()}.
               </p>
             ) : null}
 
             {liq.pending.length > 0 ? (
-              <ul className="mt-4 space-y-1 text-xs text-zinc-400">
+              <ul className="mt-4 space-y-1 text-xs text-[var(--d-text-2)]">
                 {liq.pending.slice(0, 8).map((p) => (
                   <li key={p.positionId} className="flex justify-between gap-3">
                     <span className="font-mono">
@@ -385,7 +327,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                     </span>
                     <span>
                       ${usd(Number(p.principalUsdc))}{' '}
-                      <span className={p.due ? 'text-[var(--lp-accent)]' : 'text-zinc-600'}>
+                      <span className={p.due ? 'text-[var(--lp-accent)]' : 'text-[var(--d-text-2)]'}>
                         {p.due ? 'due now' : new Date(p.claimableAt * 1000).toLocaleDateString()}
                       </span>
                     </span>
@@ -395,7 +337,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
             ) : null}
 
             {cover ? (
-              <pre className="mt-4 overflow-x-auto rounded-lg bg-zinc-950 p-3 text-xs text-zinc-300">
+              <pre className="mt-4 overflow-x-auto rounded-lg bg-[var(--d-bg)] p-3 text-xs text-[var(--d-text-2)]">
                 {cover.error
                   ? `failed: ${cover.error}`
                   : [
@@ -412,11 +354,11 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
         ) : null}
 
         {/* One-click wrap: operator-signed vault rebalance + treasury sweep. */}
-        <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+        <section className="mt-8 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold tracking-tight">Wrap idle USDC into USYC</h2>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-[var(--d-text-3)]">
                 Operator-signed. Wraps the vault above its buffer and sweeps the treasury into USYC.
               </p>
             </div>
@@ -424,14 +366,14 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
               <button
                 onClick={() => wrap(true)}
                 disabled={running}
-                className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-medium hover:bg-zinc-900 disabled:opacity-40"
+                className="rounded-md border border-[var(--d-line)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--d-hover)] disabled:opacity-40"
               >
                 {running ? 'Working' : 'Preview'}
               </button>
               <button
                 onClick={() => wrap(false)}
                 disabled={running}
-                className="rounded-md bg-[var(--lp-accent)] px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:brightness-95 disabled:opacity-40"
+                className="rounded-md bg-[var(--lp-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--d-text)] hover:brightness-95 disabled:opacity-40"
               >
                 Wrap now
               </button>
@@ -441,12 +383,12 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
           {run ? (
             <div className="mt-4">
               {run.error ? (
-                <p className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+                <p className="rounded-lg border border-[#5A2A2E] bg-[#3A1C1F] px-4 py-3 text-sm text-[var(--d-red)]">
                   {run.error}
                 </p>
               ) : (
                 <>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--d-text-3)]">
                     {run.dryRun ? 'preview (no transactions)' : 'executed'} · operator{' '}
                     {short(run.operator)}
                   </p>
@@ -454,10 +396,10 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                     {(run.steps ?? []).map((s, i) => (
                       <li
                         key={i}
-                        className="flex items-baseline justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2"
+                        className="flex items-baseline justify-between gap-4 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2"
                       >
-                        <span className="text-sm text-zinc-200">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                        <span className="text-sm text-[var(--d-text)]">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--d-text-3)]">
                             {s.action}
                           </span>{' '}
                           {s.detail}
@@ -465,12 +407,12 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                         <span
                           className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] ${
                             s.failed
-                              ? 'text-red-400'
+                              ? 'text-[var(--d-red)]'
                               : s.skipped
-                                ? 'text-zinc-600'
+                                ? 'text-[var(--d-text-2)]'
                                 : s.txHash
                                   ? 'text-[var(--lp-accent)]'
-                                  : 'text-zinc-400'
+                                  : 'text-[var(--d-text-2)]'
                           }`}
                         >
                           {s.failed ? 'fail' : s.skipped ? 'skip' : s.txHash ? `${s.txHash.slice(0, 10)}…` : 'ok'}
@@ -478,7 +420,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                       </li>
                     ))}
                     {(run.steps ?? []).length === 0 ? (
-                      <li className="text-sm text-zinc-500">Nothing to do.</li>
+                      <li className="text-sm text-[var(--d-text-3)]">Nothing to do.</li>
                     ) : null}
                   </ul>
                 </>
@@ -487,7 +429,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
           ) : null}
         </section>
       </div>
-    </main>
+    </section>
   );
 }
 
@@ -503,16 +445,16 @@ function Stat({
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">{label}</p>
+    <div className="rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--d-text-3)]">{label}</p>
       <p
         className={`mt-2 text-3xl font-semibold tabular-nums tracking-tight ${
-          accent ? 'text-[var(--lp-accent)]' : 'text-zinc-100'
+          accent ? 'text-[var(--lp-accent)]' : 'text-[var(--d-text)]'
         }`}
       >
         {value}
       </p>
-      {sub ? <p className="mt-1 text-xs text-zinc-500">{sub}</p> : null}
+      {sub ? <p className="mt-1 text-xs text-[var(--d-text-3)]">{sub}</p> : null}
     </div>
   );
 }
@@ -527,11 +469,11 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <article className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+    <article className="rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
       <header className="flex items-center justify-between">
         <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
         {address ? (
-          <span className="font-mono text-[10px] text-zinc-500">{short(address)}</span>
+          <span className="font-mono text-[10px] text-[var(--d-text-3)]">{short(address)}</span>
         ) : null}
       </header>
       <dl className="mt-4 space-y-2.5">{children}</dl>
@@ -552,10 +494,10 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</dt>
+      <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--d-text-3)]">{label}</dt>
       <dd
         className={`text-sm tabular-nums ${mono ? 'font-mono text-xs' : ''} ${
-          accent ? 'font-bold text-[var(--lp-accent)]' : 'text-zinc-100'
+          accent ? 'font-bold text-[var(--lp-accent)]' : 'text-[var(--d-text)]'
         }`}
       >
         {value}

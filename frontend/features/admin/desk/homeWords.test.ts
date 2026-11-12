@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { firstName, greeting, waitLine, waited } from './homeWords';
+import { deskTime, firstName, greeting, waitLine, waited } from './homeWords';
 
 const lagos = (h: number, m = 0) => Date.UTC(2026, 10, 12, h - 1, m);
 
@@ -33,4 +33,11 @@ test('the greeting uses the first name', () => {
   assert.equal(firstName('Israel Dominic'), 'Israel');
   assert.equal(firstName(null), null);
   assert.equal(firstName('  '), null);
+});
+
+test('desk times read the hour today and the day before, in Lagos, never seconds', () => {
+  const now = lagos(15, 2);
+  assert.equal(deskTime(lagos(14, 31), now), '14:31');
+  assert.equal(deskTime(lagos(0, 5), now), '00:05');
+  assert.equal(deskTime(lagos(14, 31) - 24 * 3_600_000, now), '11 Nov 14:31');
 });

@@ -1,255 +1,179 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { api, type AdminDealRow } from '@/core/api';
-import { CopyId } from '@/shared/components/CopyId';
+
+import { useCallback, useEffect, useState } from 'react';
+import { Search } from 'lucide-react';
+import { api, ApiError, type AdminDealRow } from '@/core/api';
+import { pageAccess } from '@/features/admin/adminNavigation';
+import { SavedViews } from '@/features/admin/desk/Chips';
+import { DetailRow } from '@/features/admin/desk/DeskCard';
+import { DeskButton, DeskLink, DeskPage } from '@/features/admin/desk/DeskPage';
+import { Cell, DeskTable, type DeskColumn } from '@/features/admin/desk/DeskTable';
+import { CopyableId, PanelSection, SidePanel } from '@/features/admin/desk/SidePanel';
+import { StatusPill } from '@/features/admin/desk/StatusPill';
+import { deskMe, useDesk } from '@/features/admin/desk/deskContext';
+import { deskTime } from '@/features/admin/desk/homeWords';
+import { useDeskMoney } from '@/features/admin/desk/useDeskCurrency';
+import { DEAL_VIEWS, dealLine, dealsShown, type DealView } from '@/features/admin/deskDeals';
 import { useDialog } from '@/shared/components/Dialog';
-import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
 
-/// Admin deals monitor: every deal as a searchable table. Search by ID, buyer,
-/// seller, or stage; open any deal in the full deal page. This is how an
-/// operator finds a user's deal from the ID they pasted into live support.
+/// Deals (view 79, frame 276:1557): every deal and where its money is. A
+/// release needs a second teammate (view 64); the button needs fix.
 
-const STAGE_TONE: Record<string, string> = {
-  open: '#9a8e6a',
-  accepted: '#3a6ea5',
-  delivered: '#3a6ea5',
-  settled: 'var(--lp-accent)',
-  disputed: '#b25425',
-  cancelled: '#7a7466',
-};
+const PAGE = 50;
+const short = (id: string) => (id.length > 12 ? `${id.slice(0, 6)}…` : id);
+const tag = (t: string | null, address: string) => (t ? `@${t}` : `${address.slice(0, 6)}…${address.slice(-4)}`);
+const ORIGIN: Record<string, string> = { direct: 'direct deal', agent: 'agreed by agents' };
+const dayOf = (at: number) => new Date(at + 3_600_000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
-function short(addr: string): string {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
+function DealPanel({ d, onClose, onChanged }: { d: AdminDealRow; onClose: () => void; onChanged: () => void }) {
+  const { me } = useDesk();
+  const money = useDeskMoney();
+  const { prompt, notify } = useDialog();
+  const [busy, setBusy] = useState(false);
+  const level = pageAccess(deskMe(me), ['deals']);
+  const now = Date.now();
+  const line = dealLine(d, now);
+  const amount = money(d.amountUsdc);
+  const open = d.stage !== 'settled' && d.stage !== 'cancelled';
 
-const PAGE_SIZE = 50;
-
-export default function AdminDeals() {
-  const [deals, setDeals] = useState<AdminDealRow[] | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [q, setQ] = useState('');
-  const [busy, setBusy] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const { confirm, prompt, notify } = useDialog();
-
-  useEffect(() => {
-    setPage(0);
-  }, [q]);
-
-  async function reload() {
-    try {
-      const d = await api.adminDeals();
-      setDeals(d.deals);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed to load');
-    }
-  }
-
-  useEffect(() => {
-    void reload();
-  }, []);
-
-  async function extend(jobId: string) {
-    const days = await prompt({
-      title: 'Extend deadline',
-      message: 'Extend the delivery deadline by how many days?',
-      defaultValue: '3',
-    });
+  async function extend() {
+    const days = await prompt({ title: 'Give the seller more time', message: 'How many more days to deliver?', defaultValue: '3', confirmLabel: 'Extend' });
     if (days === null) return;
     const n = Number(days);
-    if (!Number.isFinite(n) || n <= 0) {
-      notify('Enter a number of days', 'error');
-      return;
-    }
-    setBusy(jobId);
+    if (!Number.isFinite(n) || n <= 0) return notify('Enter a number of days', 'error');
+    setBusy(true);
     try {
-      await api.adminExtendDeal(jobId, Math.round(n * 86400));
-      await reload();
-      notify('Deadline extended');
+      await api.adminExtendDeal(d.jobId, Math.round(n * 86_400));
+      notify('Deadline moved');
+      onChanged();
     } catch (e) {
-      notify(e instanceof Error ? e.message : 'Extend failed', 'error');
+      notify(e instanceof ApiError ? e.message : 'Could not extend', 'error');
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
-  async function release(jobId: string) {
+  async function release() {
     const reason = await prompt({
-      title: 'Ask to release the next milestone',
-      message: 'This pays the seller real USDC. Nothing moves until a second member approves it on Approvals.',
+      title: 'Ask to pay the next part to the seller',
+      message: 'Nothing moves until a second teammate approves it on Waiting for you. Start the reason with the case, like "KS-1042: ...".',
       placeholder: 'Why it needs releasing',
       confirmLabel: 'Ask for approval',
     });
     if (!reason?.trim()) return;
-    setBusy(jobId);
+    setBusy(true);
     try {
-      await api.adminReleaseDeal(jobId, reason.trim());
-      notify('Sent for approval. A second member approves it on Approvals.');
+      await api.adminReleaseDeal(d.jobId, reason.trim());
+      notify('Asked. A second teammate approves it on Waiting for you.');
     } catch (e) {
-      notify(e instanceof Error ? e.message : 'Release failed', 'error');
+      notify(e instanceof ApiError ? e.message : 'Could not ask', 'error');
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
-  const filtered = useMemo(() => {
-    if (!deals) return [];
-    const needle = q.trim().toLowerCase();
-    if (!needle) return deals;
-    return deals.filter(
-      (d) =>
-        d.jobId.toLowerCase().includes(needle) ||
-        d.buyer.toLowerCase().includes(needle) ||
-        d.seller.toLowerCase().includes(needle) ||
-        d.stage.includes(needle),
-    );
-  }, [deals, q]);
+  return (
+    <SidePanel
+      title={d.title}
+      badge={<StatusPill tone={line.tone}>{line.status}</StatusPill>}
+      idLine={<CopyableId value={d.jobId} />}
+      href={`/deals/${d.jobId}`}
+      onClose={onClose}
+      actions={open && level && level !== 'read' ? (
+        <>
+          <DeskButton disabled={busy} onClick={() => void extend()}>Extend the deadline</DeskButton>
+          {level === 'fix' && <DeskButton disabled={busy} onClick={() => void release()}>Ask to release the next part</DeskButton>}
+        </>
+      ) : undefined}
+    >
+      <PanelSection title="Deal">
+        <DetailRow label="Buyer">{tag(d.buyerTag, d.buyer)}</DetailRow>
+        <DetailRow label="Seller">{tag(d.sellerTag, d.seller)}</DetailRow>
+        <DetailRow label="Amount">{amount.main}{amount.under ? ` · ${amount.under}` : ''}</DetailRow>
+        <DetailRow label="Paid in">{d.parts} parts</DetailRow>
+        <DetailRow label="Step">{line.step}</DetailRow>
+        <DetailRow label="Due">{d.dueAt ? deskTime(d.dueAt, now) : '—'}</DetailRow>
+        <DetailRow label="Started">{deskTime(d.createdAt, now)}</DetailRow>
+      </PanelSection>
+    </SidePanel>
+  );
+}
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+export default function DealsPage() {
+  const money = useDeskMoney();
+  const [deals, setDeals] = useState<AdminDealRow[] | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [view, setView] = useState<DealView>('progress');
+  const [query, setQuery] = useState('');
+  const [shownCount, setShownCount] = useState(PAGE);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    api
+      .adminDeals()
+      .then((d) => {
+        setDeals(d.deals);
+        setFailed(null);
+      })
+      .catch((e) => setFailed(e instanceof ApiError ? e.message : 'Deals could not load.'));
+  }, []);
+  useEffect(load, [load]);
+  useEffect(() => setShownCount(PAGE), [view, query]);
+
+  const now = Date.now();
+  const all = deals ?? [];
+  const rows = dealsShown(all, view, query, now);
+  const views = DEAL_VIEWS.map((v) => ({ ...v, count: v.key === 'done' ? undefined : dealsShown(all, v.key, '', now).length }));
+  const opened = all.find((d) => d.jobId === openId) ?? null;
+
+  const columns: DeskColumn<AdminDealRow>[] = [
+    { key: 'deal', label: 'Deal', width: '1.8fr', render: (d) => <Cell main={<span className="block truncate">{d.title}</span>} under={`${short(d.jobId)} · ${ORIGIN[d.origin] ?? d.origin}`} /> },
+    { key: 'who', label: 'Buyer and seller', width: '1.3fr', render: (d) => <span className="block truncate text-[13px] text-[var(--d-text-2)]">{tag(d.buyerTag, d.buyer)} → {tag(d.sellerTag, d.seller)}</span> },
+    {
+      key: 'amount',
+      label: 'Amount',
+      width: '1.1fr',
+      render: (d) => {
+        const a = money(d.amountUsdc);
+        return <Cell main={<span className="tabular-nums">{a.main}</span>} under={a.under ?? undefined} />;
+      },
+    },
+    { key: 'step', label: 'Step', width: '1.2fr', render: (d) => <span className="text-[13px] text-[var(--d-text-2)]">{dealLine(d, now).step}</span> },
+    { key: 'due', label: 'Due', width: '80px', render: (d) => <span className="text-[13px] text-[var(--d-text-2)]">{d.dueAt ? dayOf(d.dueAt) : '—'}</span> },
+    { key: 'status', label: 'Status', width: '150px', render: (d) => { const l = dealLine(d, now); return <StatusPill tone={l.tone}>{l.status}</StatusPill>; } },
+  ];
 
   return (
-    <div>
-      <AdminPageHeader
-        eyebrow="DEAL OPERATIONS"
-        title="Review the trade book"
-        description="Find a deal, read the current state, and take a reviewed action when the record calls for it. Money-moving actions stay behind confirmation."
-        meta={deals ? `${filtered.length} of ${deals.length} deals shown` : 'Waiting for the deal book'}
-        action={
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search deal, party, stage"
-          aria-label="Search deals"
-          className="min-h-11 w-full rounded-lg border border-white/15 bg-[#111114] px-3 font-mono text-[12px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60 sm:w-[320px]"
+    <DeskPage
+      title="Deals"
+      subtitle="Every deal and where its money is. Open one to see each step, the messages and the receipts."
+      actions={failed ? <DeskButton onClick={load}>Try again</DeskButton> : <DeskLink href="/admin/disputes">Disputes</DeskLink>}
+    >
+      {failed && <p role="alert" className="text-[13px] text-[var(--d-red)]">{failed}</p>}
+      <label className="flex h-9 items-center gap-2 rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] px-3 focus-within:border-[var(--d-line-2)]">
+        <Search size={14} className="shrink-0 text-[var(--d-text-3)]" aria-hidden />
+        <span className="sr-only">Search deals</span>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search deal number, @tag or title" className="w-full bg-transparent text-[13px] text-[var(--d-text)] outline-none placeholder:text-[var(--d-text-3)]" />
+      </label>
+      {!query.trim() && <SavedViews views={views} active={view} onChange={(k) => setView(k as DealView)} />}
+      {deals ? (
+        <DeskTable
+          columns={columns}
+          rows={rows.slice(0, shownCount)}
+          rowKey={(d) => d.jobId}
+          onOpen={(d) => setOpenId(d.jobId)}
+          selected={openId}
+          empty={query.trim() ? 'No deal matches that.' : 'No deals in this list.'}
+          footer={rows.length > shownCount ? (
+            <button type="button" onClick={() => setShownCount((n) => n + PAGE)} className="text-[var(--d-blue)] hover:underline">
+              Show {Math.min(PAGE, rows.length - shownCount)} more of {rows.length}
+            </button>
+          ) : `${rows.length} ${rows.length === 1 ? 'deal' : 'deals'}`}
         />
-        }
-      />
-      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• Error: {err}</p>}
-
-      <div className="mt-4 space-y-3 md:hidden">
-        {paged.map((d) => (
-          <article key={d.jobId} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="mono text-[9px] uppercase tracking-[0.13em] text-white/30">Deal ID</p>
-                <CopyId value={d.jobId} label={short(d.jobId)} className="mt-1 min-h-11 text-[12px] text-white/70" />
-              </div>
-              <span className="shrink-0 rounded px-2 py-1 mono text-[9px] uppercase tracking-[0.1em]" style={{ color: STAGE_TONE[d.stage] ?? '#aaa', background: `${STAGE_TONE[d.stage] ?? '#aaa'}1f` }}>{d.stage}</span>
-            </div>
-            <p className="mt-2 font-sans text-[20px] font-extrabold tabular-nums text-white">{d.amountUsdc} <span className="mono text-[9px] uppercase tracking-[0.1em] text-white/40">USDC</span></p>
-            <dl className="mt-3 grid grid-cols-2 gap-3 border-y border-white/[0.07] py-3">
-              <div>
-                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Buyer</dt>
-                <dd className="mt-1"><CopyId value={d.buyer} label={short(d.buyer)} className="min-h-11 text-[11px] text-white/55" /></dd>
-              </div>
-              <div>
-                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Seller</dt>
-                <dd className="mt-1"><CopyId value={d.seller} label={short(d.seller)} className="min-h-11 text-[11px] text-white/55" /></dd>
-              </div>
-            </dl>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Link href={`/deals/${d.jobId}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/65">Open ↗</Link>
-              <button type="button" onClick={() => extend(d.jobId)} disabled={busy === d.jobId} className="min-h-11 rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/60 disabled:opacity-40">Extend</button>
-              {d.stage !== 'settled' && d.stage !== 'cancelled' ? (
-                <button type="button" onClick={() => release(d.jobId)} disabled={busy === d.jobId} className="col-span-2 min-h-11 rounded-lg border border-[#c98a5e]/35 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#dfa177] disabled:opacity-40">Review and release</button>
-              ) : null}
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-3 hidden overflow-x-auto rounded-xl border border-white/10 md:block">
-        <table className="w-full min-w-[680px] text-[13px]">
-          <thead>
-            <tr className="text-white/40 mono text-[10px] uppercase tracking-[0.12em] text-start">
-              <th className="text-start font-normal px-3 py-2.5">Deal ID</th>
-              <th className="text-start font-normal px-3 py-2.5">Amount</th>
-              <th className="text-start font-normal px-3 py-2.5">Stage</th>
-              <th className="text-start font-normal px-3 py-2.5">Buyer</th>
-              <th className="text-start font-normal px-3 py-2.5">Seller</th>
-              <th className="text-end font-normal px-3 py-2.5">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paged.map((d) => (
-              <tr key={d.jobId} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
-                <td className="px-3 py-2.5">
-                  <CopyId value={d.jobId} label={short(d.jobId)} className="text-[12px] text-white/70" />
-                </td>
-                <td className="px-3 py-2.5 tabular-nums">{d.amountUsdc} USDC</td>
-                <td className="px-3 py-2.5">
-                  <span
-                    className="mono text-[10px] uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
-                    style={{ color: STAGE_TONE[d.stage] ?? '#aaa', background: `${STAGE_TONE[d.stage] ?? '#aaa'}1f` }}
-                  >
-                    {d.stage}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5">
-                  <CopyId value={d.buyer} label={short(d.buyer)} className="text-[12px] text-white/55" />
-                </td>
-                <td className="px-3 py-2.5">
-                  <CopyId value={d.seller} label={short(d.seller)} className="text-[12px] text-white/55" />
-                </td>
-                <td className="px-3 py-2.5">
-                  <div className="flex items-center justify-end gap-2 flex-wrap mono text-[10px] uppercase tracking-[0.1em]">
-                    <Link
-                      href={`/deals/${d.jobId}`}
-                      className="inline-flex min-h-11 items-center text-white/55 hover:text-white underline underline-offset-2"
-                    >
-                      open ↗
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => extend(d.jobId)}
-                      disabled={busy === d.jobId}
-                      className="text-white/55 hover:text-white disabled:opacity-40"
-                    >
-                      extend
-                    </button>
-                    {d.stage !== 'settled' && d.stage !== 'cancelled' && (
-                      <button
-                        type="button"
-                        onClick={() => release(d.jobId)}
-                        disabled={busy === d.jobId}
-                        className="text-[#c98a5e] hover:text-[#e0794f] disabled:opacity-40"
-                      >
-                        release
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {pageCount > 1 && (
-        <div className="mt-4 flex items-center justify-between gap-3 mono text-[11px] uppercase tracking-[0.1em] text-white/45">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
-            className="min-h-11 px-2 hover:text-white disabled:opacity-30"
-          >
-            ← prev
-          </button>
-          <span>
-            page {page + 1} / {pageCount}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-            disabled={page >= pageCount - 1}
-            className="min-h-11 px-2 hover:text-white disabled:opacity-30"
-          >
-            next →
-          </button>
-        </div>
+      ) : (
+        !failed && <div className="h-[260px] rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)]" />
       )}
-    </div>
+      {opened && <DealPanel d={opened} onClose={() => setOpenId(null)} onChanged={load} />}
+    </DeskPage>
   );
 }

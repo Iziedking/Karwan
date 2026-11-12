@@ -2658,6 +2658,25 @@ export type AdminDeskLevel = 'read' | 'change' | 'fix';
 /// The network the desk's server runs on (view 79).
 export type AdminDeskNetwork = 'testnet' | 'mainnet';
 
+/// One row on the desk's Money moves page (view 79). Never a wallet or provider id.
+export interface AdminMoneyMove {
+  reference: string;
+  what: string;
+  who: string;
+  amountUsdc: string;
+  local?: LocalAmount;
+  route: string;
+  since: number;
+  status: 'stuck' | 'moving' | 'failed' | 'done';
+  statusLabel: string;
+  txHashes: string[];
+}
+
+export interface AdminMoneyMoves {
+  rows: AdminMoneyMove[];
+  counts: { stuck: number; moving: number; failed: number; done: number };
+}
+
 /// Home on the desk (view 79), filtered to the teammate's pages by the server.
 export interface AdminHomeView {
   needsYou: Array<{ kind: 'approval' | 'dispute' | 'late_case'; title: string; line: string; href: string; since: number; amountUsdc?: string }>;
@@ -2732,8 +2751,9 @@ export interface AdminMoneyRequest {
   requestedAt: number;
   expiresAt: number;
   snapshot: unknown;
-  status: 'pending' | 'running' | 'done' | 'failed' | 'refused' | 'cancelled' | 'expired';
+  status: 'pending' | 'running' | 'done' | 'failed' | 'refused' | 'cancelled' | 'expired' | 'turned_down';
   approvedBy?: { memberId: string; email: string | null; name: string | null };
+  turnedDownBy?: { memberId: string; email: string | null; name: string | null };
   decidedAt?: number;
   result?: { status: number; body: unknown };
 }
@@ -2839,17 +2859,25 @@ export interface AdminDisputePrepared {
 
 export interface AdminDealRow {
   jobId: string;
+  /// The first line of the terms (view 79).
+  title: string;
   buyer: string;
   seller: string;
+  buyerTag: string | null;
+  sellerTag: string | null;
   amountUsdc: string;
   origin: string;
   stage: string;
+  parts: number;
   createdAt: number;
   acceptedAt?: number;
+  deliveredAt?: number;
   settledAt?: number;
   cancelledAt?: number;
   disputed: boolean;
   deadlineUnix?: number;
+  /// The delivery deadline, or the end of the buyer's check once delivered.
+  dueAt: number | null;
 }
 
 export interface AdminEventEntry {
@@ -3995,6 +4023,8 @@ export const api = {
   adminMoneyRequests: () => json<{ requests: AdminMoneyRequest[] }>('/api/admin/requests', { headers: adminHeaders() }),
   adminApproveRequest: (id: string) =>
     json<{ request: AdminMoneyRequest }>(`/api/admin/requests/${encodeURIComponent(id)}/approve`, { method: 'POST', headers: adminHeaders() }),
+  adminTurnDownRequest: (id: string) =>
+    json<{ request: AdminMoneyRequest }>(`/api/admin/requests/${encodeURIComponent(id)}/turn-down`, { method: 'POST', headers: adminHeaders() }),
   adminWithdrawRequest: (id: string) =>
     json<{ request: AdminMoneyRequest }>(`/api/admin/requests/${encodeURIComponent(id)}/cancel`, { method: 'POST', headers: adminHeaders() }),
   adminSetBusiness: (address: string, status: 'none' | 'submitted' | 'verified' | 'rejected') =>
@@ -4156,6 +4186,7 @@ export const api = {
   },
   adminSession: () => json<{ me: AdminDeskMe | null; network?: AdminDeskNetwork }>('/api/admin/session', { headers: adminHeaders() }),
   adminHome: () => json<AdminHomeView>('/api/admin/home', { headers: adminHeaders() }),
+  adminMoneyMoves: () => json<AdminMoneyMoves>('/api/admin/money-moves', { headers: adminHeaders() }),
   /// The shared rate on the desk's own network, for Show amounts in (view 79).
   adminRates: () =>
     json<{ rates: Partial<Record<string, number>>; updatedAt: number | null; source: string | null }>('/api/admin/rates', { headers: adminHeaders() }),

@@ -28,3 +28,14 @@ export function waited(ms: number): string {
 export function firstName(name: string | null): string | null {
   return name?.trim().split(/\s+/)[0] || null;
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/// "14:31" today and "11 Nov 14:31" before, on the Lagos clock.
+export function deskTime(at: number, now: number): string {
+  const t = new Date(at + LAGOS);
+  const n = new Date(now + LAGOS);
+  const hm = `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`;
+  const sameDay = t.getUTCFullYear() === n.getUTCFullYear() && t.getUTCMonth() === n.getUTCMonth() && t.getUTCDate() === n.getUTCDate();
+  return sameDay ? hm : `${t.getUTCDate()} ${MONTHS[t.getUTCMonth()]} ${hm}`;
+}

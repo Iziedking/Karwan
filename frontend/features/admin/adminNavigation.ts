@@ -99,6 +99,10 @@ export const DESK_GROUPS: DeskGroup[] = [
 
 /// Pages made of two older pages; each part opens for its own keys.
 const DESK_TABS: Record<string, DeskTab[]> = {
+  '/admin/money': [
+    { key: 'moves', label: 'Money moves', keys: ['payments'] },
+    { key: 'agents', label: 'Agent payments', keys: ['payments'] },
+  ],
   '/admin/treasury': [
     { key: 'treasury', label: 'Treasury', keys: ['treasury'] },
     { key: 'yield', label: 'Yield', keys: ['usyc'] },
@@ -186,7 +190,7 @@ export function jumpTo(me: DeskMe, query: string): DeskJump[] {
       if (!q || item.label.toLowerCase().includes(q)) out.push({ label: item.label, group: group.label, href: item.href });
       if (!q) continue;
       for (const tab of tabsFor(me, item.href)) {
-        if (tab.label.toLowerCase().includes(q)) out.push({ label: `${item.label} · ${tab.label}`, group: group.label, href: `${item.href}?tab=${tab.key}` });
+        if (tab.label !== item.label && tab.label.toLowerCase().includes(q)) out.push({ label: `${item.label} · ${tab.label}`, group: group.label, href: `${item.href}?tab=${tab.key}` });
       }
     }
   }

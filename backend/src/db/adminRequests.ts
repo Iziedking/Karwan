@@ -6,7 +6,7 @@ import type { SqlExecutor } from './migrations.js';
 
 export const REQUEST_TTL_MS = 24 * 60 * 60 * 1000;
 
-export type RequestStatus = 'pending' | 'running' | 'done' | 'failed' | 'refused' | 'cancelled' | 'expired';
+export type RequestStatus = 'pending' | 'running' | 'done' | 'failed' | 'refused' | 'cancelled' | 'expired' | 'turned_down';
 
 export interface AdminRequest {
   id: string;
@@ -24,6 +24,8 @@ export interface AdminRequest {
   snapshot: unknown;
   status: RequestStatus;
   approvedBy?: { memberId: string; email: string | null; name: string | null };
+  /// A second member who said no; it never runs after.
+  turnedDownBy?: { memberId: string; email: string | null; name: string | null };
   decidedAt?: number;
   result?: { status: number; body: unknown };
 }

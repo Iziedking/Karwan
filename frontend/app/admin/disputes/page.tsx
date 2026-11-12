@@ -1,34 +1,37 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi';
-import {
-  api,
-  ApiError,
-  type AdminDisputeRow,
-  type AdminDisputePrepared,
-} from '@/core/api';
+import { api, ApiError, type AdminDisputePrepared, type AdminDisputeRow, type DisputeStatementView } from '@/core/api';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '@/features/profile/config';
+import { pageAccess } from '@/features/admin/adminNavigation';
+import { SavedViews } from '@/features/admin/desk/Chips';
+import { DeskCard, DetailRow } from '@/features/admin/desk/DeskCard';
+import { DeskButton, DeskPage } from '@/features/admin/desk/DeskPage';
+import { StatusPill } from '@/features/admin/desk/StatusPill';
+import { deskMe, useDesk } from '@/features/admin/desk/deskContext';
+import { deskTime } from '@/features/admin/desk/homeWords';
+import { useDeskMoney } from '@/features/admin/desk/useDeskCurrency';
+import { DISPUTE_VIEWS, disputeList, type DisputeView } from '@/features/admin/deskDeals';
 
-/// Arbiter dispute desk.
+/// Disputes (view 79, frame 276:1841).
 ///
 /// A disputed escrow is frozen until two of the three arbiter Safe owners sign
-/// the same ruling. There is no Safe web app on Arc Testnet, so this replaces
-/// scripts/arbiter-resolve.sh: the backend computes the digest, an owner signs
-/// it here in their own wallet, and the relay broadcasts once the threshold is
-/// met. No owner needs Arc gas to rule.
+/// the same ruling. The backend computes the digest, an owner signs it here in
+/// their own wallet, and the relay broadcasts once the threshold is met. No
+/// owner needs Arc gas to rule.
 ///
 /// The backend never holds an owner key. It recovers the signer from each
-/// signature and checks it against the Safe's own owner list, so an admin
+/// signature and checks it against the Safe's own owner list, so a desk
 /// session gets you to this page but only a real owner moves money.
 
-function short(a: string): string {
-  return `${a.slice(0, 6)}…${a.slice(-4)}`;
-}
+const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const INPUT = 'w-full rounded-md border border-[var(--d-line)] bg-[var(--d-bg)] px-3 py-2 text-[13px] text-[var(--d-text)] outline-none focus:border-[var(--d-line-2)]';
 
 export default function AdminDisputesPage() {
   const [rows, setRows] = useState<AdminDisputeRow[] | null>(null);
   const [safe, setSafe] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<DisputeView>('ruling');
 
   const load = useCallback(async () => {
     try {
@@ -37,7 +40,7 @@ export default function AdminDisputesPage() {
       setSafe(r.safe);
       setError(null);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not load disputes.');
+      setError(e instanceof ApiError ? e.message : 'Disputes could not load.');
       setRows([]);
     }
   }, []);
@@ -46,40 +49,30 @@ export default function AdminDisputesPage() {
     void load();
   }, [load]);
 
+  const shown = rows ? disputeList(rows, view) : [];
+  const views = DISPUTE_VIEWS.map((v) => ({ ...v, count: rows ? disputeList(rows, v.key).length : undefined }));
+
   return (
-    <main className="px-5 py-8 md:px-8 max-w-[1000px]">
-      <h1 className="mono text-[12px] uppercase tracking-[0.18em] font-bold">Disputes</h1>
-      <p className="mt-2 text-[13px] text-zinc-600 max-w-[70ch]">
-        A disputed escrow is frozen until two arbiter owners sign the same ruling. Sign here with
-        your own wallet. The relay pays the gas.
-      </p>
-      {safe ? (
-        <p className="mt-1 mono text-[11px] text-zinc-500">Arbiter Safe {short(safe)}</p>
-      ) : (
-        <p className="mt-1 mono text-[11px] text-[var(--lp-critical)]">
-          KARWAN_ARBITER_SAFE is not configured. Signing is disabled.
-        </p>
-      )}
-
-      {error ? (
-        <p className="mt-4 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
-          {error}
-        </p>
-      ) : null}
-
+    <DeskPage
+      title="Disputes"
+      subtitle="When a buyer and seller disagree, both statements and the proof sit side by side. A ruling moves money, so two arbiter owners sign it."
+      meta={safe ? <span>Arbiter Safe {short(safe)}</span> : <span className="text-[var(--d-red)]">KARWAN_ARBITER_SAFE is not set. Signing is off.</span>}
+    >
+      {error && <p role="alert" className="text-[13px] text-[var(--d-red)]">{error}</p>}
+      <SavedViews views={views} active={view} onChange={(k) => setView(k as DisputeView)} />
       {rows === null ? (
-        <p className="mt-6 text-[13px] text-zinc-500">Loading…</p>
-      ) : rows.length === 0 ? (
-        <p className="mt-6 text-[13px] text-zinc-500">No open disputes.</p>
+        <div className="h-[200px] rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)]" />
+      ) : shown.length === 0 ? (
+        <p className="rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-6 text-[13px] text-[var(--d-text-2)]">
+          {view === 'ruling' ? 'No dispute needs a ruling.' : 'No dispute is waiting on a party.'}
+        </p>
       ) : (
-        <div className="mt-6 space-y-4">
-          {rows.map((d) => (
-            <DisputeCard key={d.jobId} dispute={d} canSign={!!safe} onResolved={load} />
-          ))}
+        <div className="space-y-6">
+          {shown.map((d) => <DisputeCard key={d.jobId} dispute={d} canSign={!!safe} onResolved={load} />)}
         </div>
       )}
       <PayOutsideFlags />
-    </main>
+    </DeskPage>
   );
 }
 
@@ -92,43 +85,65 @@ function PayOutsideFlags() {
   useEffect(() => {
     api.adminPayOutside().then((r) => setFlags(r.flags), () => setFlags([]));
   }, []);
+  const now = Date.now();
   return (
-    <section className="mt-10">
-      <h2 className="mono text-[12px] uppercase tracking-[0.18em] font-bold">Asked to pay outside Karwan</h2>
+    <DeskCard title="Asked to pay outside Karwan"><div className="px-4 pb-4">
       {flags === null ? null : flags.length === 0 ? (
-        <p className="mt-3 text-[13px] text-zinc-500">No messages flagged.</p>
+        <p className="text-[13px] text-[var(--d-text-3)]">No messages flagged.</p>
       ) : (
-        <ul className="mt-3 divide-y divide-zinc-200 border-y border-zinc-200">
+        <ul className="divide-y divide-[var(--d-line)]">
           {flags.map((f) => (
             <li key={f.messageId} className="py-3 text-[13px]">
-              <p className="flex flex-wrap gap-x-3 mono text-[11px] text-zinc-500">
+              <p className="flex flex-wrap items-center gap-x-3 text-[12px] text-[var(--d-text-3)]">
                 <span>{short(f.address)}</span>
-                <a className="underline" href={`/deals/${encodeURIComponent(f.jobId)}`}>{f.jobId.slice(0, 14)}</a>
-                <span>{new Date(f.at).toLocaleString()}</span>
-                {f.repeat ? <span className="font-bold text-[var(--lp-critical)]">Repeat</span> : null}
+                <a className="text-[var(--d-blue)] hover:underline" href={`/deals/${encodeURIComponent(f.jobId)}`}>deal {short(f.jobId)}</a>
+                <span>{deskTime(f.at, now)}</span>
+                {f.repeat ? <StatusPill tone="red">Repeat</StatusPill> : null}
               </p>
-              <p dir="auto" className="mt-1 whitespace-pre-wrap break-words text-zinc-800">{f.body}</p>
+              <p dir="auto" className="mt-1 whitespace-pre-wrap break-words text-[var(--d-text)]">{f.body}</p>
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </div></DeskCard>
   );
 }
 
-function DisputeCard({
-  dispute,
-  canSign,
-  onResolved,
-}: {
-  dispute: AdminDisputeRow;
-  canSign: boolean;
-  onResolved: () => void;
-}) {
+function Statement({ side, tagLine, st }: { side: 'buyer' | 'seller'; tagLine: string; st: DisputeStatementView | undefined }) {
+  const now = Date.now();
+  return (
+    <div className="rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
+      <p className="text-[15px] font-semibold">{tagLine}</p>
+      <p className="text-[12px] text-[var(--d-text-3)]">{side === 'buyer' ? 'Buyer' : 'Seller'}</p>
+      {st ? (
+        <div className="mt-3 space-y-2.5">
+          <p className="text-[13px] text-[var(--d-text)]">{st.missing}</p>
+          <DetailRow label={side === 'buyer' ? 'Received' : 'Delivered'}>{st.received}</DetailRow>
+          <DetailRow label="Late">{st.late}</DetailRow>
+          {st.links.length > 0 && (
+            <DetailRow label="Proof">
+              <span className="flex flex-col items-end gap-0.5">
+                {st.links.map((l) => <a key={l} href={l} target="_blank" rel="noreferrer noopener" className="max-w-[240px] truncate text-[var(--d-blue)] hover:underline">{l}</a>)}
+              </span>
+            </DetailRow>
+          )}
+          <DetailRow label="Sent">{deskTime(st.submittedAt, now)}</DetailRow>
+        </div>
+      ) : (
+        <p className="mt-3 text-[13px] text-[var(--d-text-3)]">No statement yet.</p>
+      )}
+    </div>
+  );
+}
+
+function DisputeCard({ dispute, canSign, onResolved }: { dispute: AdminDisputeRow; canSign: boolean; onResolved: () => void }) {
+  const { me } = useDesk();
+  const money = useDeskMoney();
   const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
+  const mayRule = pageAccess(deskMe(me), ['disputes']) === 'fix';
 
   // The judge's proposal pre-fills the ruling; the reviewer confirms or changes it.
   const [sellerBps, setSellerBps] = useState(dispute.proposal ? dispute.proposal.sellerBps : 5000);
@@ -141,18 +156,16 @@ function DisputeCard({
 
   const onWrongChain = !!address && chainId !== ARC_CHAIN_ID;
   /// A Safe verifies owners with ecrecover, so signing here needs a browser
-  /// wallet holding a private key. A Circle account has neither a wagmi client
-  /// nor an EOA, so it cannot produce a signature at all.
-  ///
-  /// This used to be an unexplained disabled button: the operator saw a greyed
-  /// control and no reason, which is the same dead end as a button that does
-  /// nothing when clicked. Name the reason instead.
+  /// wallet holding a private key. Name the reason rather than grey a button.
   const canSignHere = !!address && !!walletClient;
-  const cannotSignReason = canSignHere
-    ? null
-    : 'This account signs through Karwan and has no key of its own, so it cannot sign a Safe ruling. Connect a browser wallet that is an owner of the arbiter Safe.';
   const amount = Number(dispute.dealAmountUsdc);
   const toSeller = (amount * sellerBps) / 10_000;
+  const held = money(dispute.dealAmountUsdc);
+
+  function choose(bps: number) {
+    setSellerBps(bps);
+    setPrepared(null);
+  }
 
   async function prepare() {
     setBusy('prepare');
@@ -161,7 +174,7 @@ function DisputeCard({
     try {
       const p = await api.adminPrepareDispute(dispute.jobId, sellerBps, reason);
       setPrepared(p);
-      setMsg(`${p.collected.length} of ${p.threshold} signatures on this ruling.`);
+      setMsg(`${p.collected.length} of ${p.threshold} owners signed this ruling.`);
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : 'Could not prepare the ruling.');
     } finally {
@@ -174,30 +187,18 @@ function DisputeCard({
     setBusy('sign');
     setErr(null);
     try {
-      // Typed-data, not a message signature. getTransactionHash already returns
-      // the EIP-712 digest, so signing it as a message would prefix it again and
-      // the Safe would reject the result.
-      // The payload is built server-side and passed through whole, so it is
-      // opaque to viem's generics. Cast the argument once rather than the
-      // fields: casting each one to `never` makes the call itself unassignable.
+      // Typed data, not a message signature: getTransactionHash already returns
+      // the EIP-712 digest, so a message signature would prefix it again and the
+      // Safe would reject it. The payload comes from the server whole.
       const signature = await walletClient.signTypedData({
         account: address,
         ...prepared.typedData,
       } as Parameters<typeof walletClient.signTypedData>[0]);
-      const r = await api.adminSignDispute(dispute.jobId, {
-        sellerBps,
-        rulingReason: reason,
-        signature,
-        safeNonce: prepared.nonce,
-      });
+      const r = await api.adminSignDispute(dispute.jobId, { sellerBps, rulingReason: reason, signature, safeNonce: prepared.nonce });
       setPrepared({ ...prepared, collected: r.collected, ready: r.ready });
-      setMsg(
-        r.ready
-          ? `Threshold met (${r.collected.length}/${r.threshold}). Ready to execute.`
-          : `${r.collected.length} of ${r.threshold} signatures. One more owner needed.`,
-      );
+      setMsg(r.ready ? `Both owners signed (${r.collected.length} of ${r.threshold}). Ready to run.` : `${r.collected.length} of ${r.threshold} owners signed. One more needed.`);
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Signature rejected.');
+      setErr(e instanceof ApiError ? e.message : 'Signature refused.');
     } finally {
       setBusy(null);
     }
@@ -209,212 +210,101 @@ function DisputeCard({
     try {
       const r = await api.adminExecuteDispute(dispute.jobId, sellerBps, reason);
       setTxHash(r.txHash);
-      setMsg('Resolved on chain.');
+      setMsg('Ruled on chain.');
       onResolved();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Execution failed.');
+      setErr(e instanceof ApiError ? e.message : 'The ruling did not run.');
     } finally {
       setBusy(null);
     }
   }
 
-  /// Only hide the controls when the backend has positively said the deal is
-  /// elsewhere. An older backend omits the field entirely, and defaulting to
-  /// "retired" there would blank the ruling UI for every dispute.
+  /// Hide the controls only when the backend positively said the deal is held
+  /// elsewhere; an older backend omits the field.
   const onRetiredEscrow = dispute.rulable === false;
-
-  const alreadySigned =
-    !!address && !!prepared?.collected.some((s) => s.signer.toLowerCase() === address.toLowerCase());
+  const alreadySigned = !!address && !!prepared?.collected.some((s) => s.signer.toLowerCase() === address.toLowerCase());
+  const preset = sellerBps === 0 ? 'buyer' : sellerBps === 10_000 ? 'seller' : 'split';
+  const p = dispute.proposal;
 
   return (
-    <section className="border border-black/15 p-4 md:p-5" style={{ borderRadius: 8 }}>
-      <div className="flex items-baseline justify-between gap-4 flex-wrap">
-        <p className="mono text-[11px] uppercase tracking-[0.14em] font-bold">
-          {dispute.dealAmountUsdc} USDC
-        </p>
-        <p className="mono text-[10px] text-zinc-500">
-          raised by the {dispute.disputedBy ?? 'party'} ·{' '}
-          {dispute.disputedAt ? new Date(dispute.disputedAt).toLocaleDateString() : 'unknown date'}
-        </p>
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-3">
+        <StatusPill tone="red">{disputeList([dispute], 'ruling').length ? 'Needs a ruling' : 'Waiting on a party'}</StatusPill>
+        <span className="text-[12px] text-[var(--d-text-3)]">
+          deal {short(dispute.jobId)} · raised by the {dispute.disputedBy ?? 'party'}{dispute.disputedAt ? ` · ${deskTime(dispute.disputedAt, Date.now())}` : ''}
+        </span>
+        <span className="ml-auto text-[14px] font-semibold tabular-nums">{held.main}{held.under ? ` · ${held.under}` : ''} held</span>
       </div>
-      <p className="mt-1 mono text-[10px] text-zinc-500">
-        buyer {short(dispute.buyer)} · seller {short(dispute.seller)} · job{' '}
-        {dispute.jobId.slice(0, 10)}…
-      </p>
 
-      <JudgeRecord dispute={dispute} />
+      <div className="grid gap-3 md:grid-cols-2">
+        <Statement side="buyer" tagLine={short(dispute.buyer)} st={dispute.statements?.buyer} />
+        <Statement side="seller" tagLine={short(dispute.seller)} st={dispute.statements?.seller} />
+      </div>
+
+      {p && (
+        <DeskCard title="The judge's proposal"><div className="px-4 pb-4">
+          <p className="text-[13px]">Seller {Math.round(p.sellerBps / 100)}%, buyer {100 - Math.round(p.sellerBps / 100)}%. {p.confidence === 'clear' ? 'Clear.' : 'Not clear.'}</p>
+          {p.summary && <p className="mt-1 text-[13px] text-[var(--d-text-2)]">{p.summary}</p>}
+          {p.items.length > 0 && (
+            <ul className="mt-2 space-y-1 text-[12px] text-[var(--d-text-2)]">
+              {p.items.map((it, i) => <li key={i}><span className="text-[var(--d-text-3)]">{it.finding}:</span> {it.item}{it.evidence ? ` (${it.evidence})` : ''}</li>)}
+            </ul>
+          )}
+          <p className="mt-2 text-[12px] text-[var(--d-text-3)]">It fills the ruling below. Confirm it or change it.</p>
+        </div></DeskCard>
+      )}
 
       {onRetiredEscrow ? (
-        <div
-          className="mt-4 p-4 text-[12px] leading-relaxed text-zinc-300"
-          style={{ borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}
-        >
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-            Retired escrow
+        <DeskCard title="Held by an older escrow"><div className="px-4 pb-4">
+          <p className="text-[13px] text-[var(--d-text-2)]">
+            This deal sits on an older escrow ({dispute.venue?.version}{dispute.venue?.escrow ? `, ${short(dispute.venue.escrow)}` : ''}) that has no arbiter and cannot split. A ruling here would collect signatures and then fail. Its only dispute action pays the seller in full: resolve it on that contract, or leave it for the legacy window to close.
           </p>
-          <p className="mt-2">
-            This deal is held by an older escrow ({dispute.venue?.version})
-            {dispute.venue?.escrow ? ` (${short(dispute.venue.escrow)})` : ''}, not the one
-            rulings target. A ruling prepared here would collect signatures and then revert at
-            execution, which is what used to happen.
-          </p>
-          <p className="mt-2">
-            That contract predates the arbiter Safe: it has no <code>arbiter()</code> and no{' '}
-            <code>resolve()</code>, so a split cannot be expressed on it at all. The only dispute
-            action it carries is <code>releaseFromDispute</code>, which pays the seller in full.
-          </p>
-          <p className="mt-2 text-zinc-400">
-            Resolve it on that contract directly, or leave it for the legacy window to close.
-          </p>
-        </div>
+        </div></DeskCard>
+      ) : mayRule ? (
+        <DeskCard title="Your ruling"><div className="px-4 pb-4">
+          <div className="flex flex-wrap gap-2">
+            <DeskButton tone={preset === 'buyer' ? 'primary' : 'secondary'} onClick={() => choose(0)}>Refund the buyer</DeskButton>
+            <DeskButton tone={preset === 'seller' ? 'primary' : 'secondary'} onClick={() => choose(10_000)}>Pay the seller</DeskButton>
+            <DeskButton tone={preset === 'split' ? 'primary' : 'secondary'} onClick={() => choose(5000)}>Split it</DeskButton>
+          </div>
+          {preset === 'split' && (
+            <label className="mt-3 block max-w-[260px] text-[12px] text-[var(--d-text-2)]">
+              Seller's share, in hundredths of a percent
+              <input type="number" min={0} max={10_000} step={100} value={sellerBps} onChange={(e) => choose(Number(e.target.value))} className={`mt-1 ${INPUT}`} />
+            </label>
+          )}
+          <p className="mt-2 text-[12px] text-[var(--d-text-3)]">Seller gets {toSeller.toFixed(2)} USDC, buyer gets {(amount - toSeller).toFixed(2)} USDC.</p>
+          <label className="mt-3 block text-[12px] text-[var(--d-text-2)]">
+            The reason both people will read
+            <textarea value={reason} onChange={(e) => { setReason(e.target.value); setPrepared(null); }} rows={3} className={`mt-1 ${INPUT}`} />
+          </label>
+          <p className="mt-2 text-[12px] text-[var(--d-text-3)]">Two arbiter owners sign the same split and reason. Different words make a different ruling, and the signatures will not combine.</p>
+          {prepared && (
+            <p className="mt-2 text-[12px] text-[var(--d-text-3)]">
+              Signed by {prepared.collected.length === 0 ? 'nobody yet' : prepared.collected.map((s) => short(s.signer)).join(', ')} · Safe nonce {prepared.nonce}
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <DeskButton onClick={() => void prepare()} disabled={!canSign || !reason.trim() || busy !== null}>{busy === 'prepare' ? 'Preparing' : 'Prepare the ruling'}</DeskButton>
+            {onWrongChain ? (
+              <DeskButton onClick={() => switchChain?.({ chainId: ARC_CHAIN_ID })}>Switch to Arc</DeskButton>
+            ) : (
+              <DeskButton tone="primary" onClick={() => void sign()} disabled={!prepared || busy !== null || alreadySigned || !canSignHere}>
+                {busy === 'sign' ? 'Signing' : alreadySigned ? 'You signed' : 'Sign as an owner'}
+              </DeskButton>
+            )}
+            <DeskButton tone="primary" onClick={() => void execute()} disabled={!prepared?.ready || busy !== null}>{busy === 'exec' ? 'Running' : 'Run the ruling'}</DeskButton>
+          </div>
+          {!canSignHere && !alreadySigned && (
+            <p className="mt-2 max-w-[62ch] text-[12px] text-[var(--d-text-3)]">Connect a browser wallet that owns the arbiter Safe. An account that signs through Karwan has no key of its own, so it cannot sign a ruling.</p>
+          )}
+          {msg && <p className="mt-2 text-[12px] text-[var(--d-text-2)]">{msg}</p>}
+          {err && <p role="alert" className="mt-2 text-[12px] text-[var(--d-red)]">{err}</p>}
+          {txHash && <a href={`${ARC_EXPLORER_TX}${txHash}`} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[12px] text-[var(--d-blue)] hover:underline">See the ruling on Arc</a>}
+        </div></DeskCard>
       ) : (
-      <>
-      <div className="mt-4 grid gap-3 md:grid-cols-[200px_1fr]">
-        <label className="block">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-600">
-            Seller share (bps)
-          </span>
-          <input
-            type="number"
-            min={0}
-            max={10000}
-            step={100}
-            value={sellerBps}
-            onChange={(e) => setSellerBps(Number(e.target.value))}
-            className="mt-1 w-full border border-black/20 px-2 py-1.5 text-[13px]"
-          />
-          <span className="mono text-[10px] text-zinc-500">
-            seller {toSeller.toFixed(2)} · buyer {(amount - toSeller).toFixed(2)}
-          </span>
-        </label>
-        <label className="block">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-600">
-            Written ruling (hashed on chain as the audit anchor)
-          </span>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-            className="mt-1 w-full border border-black/20 px-2 py-1.5 text-[13px]"
-          />
-        </label>
-      </div>
-
-      <p className="mt-2 text-[11px] text-zinc-500">
-        Both owners must sign the identical split and ruling. Different text produces a different
-        digest and the signatures will not combine.
-      </p>
-
-      {prepared ? (
-        <p className="mt-2 mono text-[10px] text-zinc-500">
-          Safe nonce {prepared.nonce} · signed by{' '}
-          {prepared.collected.length === 0
-            ? 'nobody yet'
-            : prepared.collected.map((s) => short(s.signer)).join(', ')}
-        </p>
-      ) : null}
-
-      <div className="mt-4 flex gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={prepare}
-          disabled={!canSign || !reason || busy !== null}
-          className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-black/25 disabled:opacity-50"
-        >
-          {busy === 'prepare' ? 'Preparing…' : 'Prepare ruling'}
-        </button>
-        {onWrongChain ? (
-          <button
-            type="button"
-            onClick={() => switchChain?.({ chainId: ARC_CHAIN_ID })}
-            className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-black/25"
-          >
-            Switch to Arc
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={sign}
-            disabled={!prepared || busy !== null || alreadySigned || !canSignHere}
-            className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-50"
-          >
-            {busy === 'sign' ? 'Signing…' : alreadySigned ? 'You signed' : 'Sign as owner'}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={execute}
-          disabled={!prepared?.ready || busy !== null}
-          className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-50"
-        >
-          {busy === 'exec' ? 'Executing…' : 'Execute ruling'}
-        </button>
-      </div>
-
-      {cannotSignReason && !alreadySigned ? (
-        <p className="mt-2 text-[11px] leading-snug text-zinc-500 max-w-[62ch]">
-          {cannotSignReason}
-        </p>
-      ) : null}
-      {msg ? <p className="mt-2 mono text-[10px] text-zinc-600">{msg}</p> : null}
-      {err ? (
-        <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
-          {err}
-        </p>
-      ) : null}
-      {txHash ? (
-        <a
-          href={`${ARC_EXPLORER_TX}${txHash}`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 inline-block mono text-[10px] underline"
-        >
-          ruling tx ↗
-        </a>
-      ) : null}
-      </>
+        <p className="text-[12px] text-[var(--d-text-3)]">Ruling needs fix on Disputes. Ask the owner.</p>
       )}
     </section>
-  );
-}
-
-/// What the reviewer rules from: both accounts and the judge's proposal with its
-/// item-by-item finding. Admin-only, so the full record shows.
-function JudgeRecord({ dispute }: { dispute: AdminDisputeRow }) {
-  const statements = dispute.statements ?? {};
-  const p = dispute.proposal;
-  if (!p && !statements.buyer && !statements.seller) return null;
-  return (
-    <div className="mt-4 space-y-3 text-[13px] leading-relaxed text-zinc-300" style={{ borderRadius: 8, background: 'rgba(255,255,255,0.04)', padding: 16 }}>
-      {(['buyer', 'seller'] as const).map((side) => {
-        const st = statements[side];
-        return (
-          <div key={side}>
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">{side} account</p>
-            {st ? (
-              <>
-                <p className="mt-1"><span className="text-zinc-500">{side === 'buyer' ? 'Received' : 'Delivered'}:</span> {st.received}</p>
-                <p><span className="text-zinc-500">Missing or wrong:</span> {st.missing}</p>
-                <p><span className="text-zinc-500">Late:</span> {st.late}</p>
-                {st.links.map((l) => <a key={l} href={l} target="_blank" rel="noreferrer noopener" className="block truncate underline">{l}</a>)}
-              </>
-            ) : <p className="mt-1 text-zinc-500">No account given.</p>}
-          </div>
-        );
-      })}
-      {p ? (
-        <div>
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-            Judge proposal · {p.confidence}{p.rule ? ` · ${p.rule}` : ''} · {p.model ?? ''} · {p.status}
-          </p>
-          <p className="mt-1">Seller {Math.round(p.sellerBps / 100)}% · buyer {100 - Math.round(p.sellerBps / 100)}%</p>
-          {p.summary ? <p className="mt-1">{p.summary}</p> : null}
-          {p.items.map((it, i) => (
-            <p key={i}><span className="text-zinc-500">{it.finding}:</span> {it.item}{it.evidence ? ` (${it.evidence})` : ''}</p>
-          ))}
-          <p className="mt-1 text-zinc-500">Pre-filled below. Confirm it, or change the split and the written ruling.</p>
-        </div>
-      ) : null}
-    </div>
   );
 }

@@ -59,7 +59,7 @@ import { payOutsideFlags } from '../security/payOutsideFlags.js';
 import { pingAssistantProviders } from './assistant.js';
 import { readMoneyHealth } from '../ops/moneyHealthLive.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
-import { dealStage } from '../ops/deskHome.js';
+import { deskDealRow } from '../ops/deskDeals.js';
 import { jobLeases } from '../ops/leasedLoop.js';
 import { guaranteeKeeperReport, listGuaranteeHolds } from '../deals/guaranteeKeeperLive.js';
 import { db, pgEnabled } from '../db/client.js';
@@ -455,23 +455,9 @@ adminRoutes.get('/events', async (c) => {
 /// per-deal detail stays on the deal page; this is the index the operator
 /// searches by ID/party/stage.
 adminRoutes.get('/deals', async (c) => {
-  const deals = await listAllDeals().catch(() => []);
-  const rows = deals
-    .map((d) => ({
-      jobId: d.jobId,
-      buyer: d.buyer,
-      seller: d.seller,
-      amountUsdc: d.dealAmountUsdc,
-      origin: d.origin ?? 'direct',
-      stage: dealStage(d),
-      createdAt: d.createdAt,
-      acceptedAt: d.acceptedAt,
-      settledAt: d.settledAt,
-      cancelledAt: d.cancelledAt,
-      disputed: d.disputed === true,
-      deadlineUnix: d.deadlineUnix,
-    }))
-    .sort((a, b) => b.createdAt - a.createdAt);
+  const [deals, profiles] = await Promise.all([listAllDeals().catch(() => []), listProfiles().catch(() => [])]);
+  const handles = new Map(profiles.filter((p) => p.handle).map((p) => [p.address.toLowerCase(), p.handle!]));
+  const rows = deals.map((d) => deskDealRow(d, (a) => handles.get(a.toLowerCase()) ?? null)).sort((a, b) => b.createdAt - a.createdAt);
   return c.json({ count: rows.length, deals: rows });
 });
 

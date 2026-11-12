@@ -6,7 +6,7 @@ import { mayCall } from '../ops/adminPages.js';
 /// The money requests list, approve and withdraw (view 64). The rule itself
 /// lives in middleware/twoPeople.ts, on each money route.
 
-/// GET /api/admin/requests, approve, cancel.
+/// GET /api/admin/requests, approve, turn down, cancel.
 export const adminRequestRoutes = new Hono();
 
 
@@ -60,6 +60,19 @@ adminRequestRoutes.post('/requests/:id/approve', requireAdmin, async (c) => {
   }
   const done = await requestDesk().store.move(r.id, 'running', { status: status < 400 ? 'done' : 'failed', result: { status, body } });
   return c.json({ request: done && view(done) }, status < 400 ? 200 : 502);
+});
+
+/// A second member who may run it says no. The asker withdraws instead.
+adminRequestRoutes.post('/requests/:id/turn-down', requireAdmin, async (c) => {
+  const principal = deskPrincipal(c)!;
+  if (!principal.memberId) return c.json({ error: 'Sign in as a member to turn this down.' }, 403);
+  const r = await requestDesk().store.get(c.req.param('id') ?? '');
+  if (!r) return c.json({ error: 'No such request.' }, 404);
+  if (r.requestedBy.memberId === principal.memberId) return c.json({ error: 'You asked for this. Withdraw it instead.' }, 403);
+  if (!mayCall(principal, r.method, r.path)) return c.json({ error: 'This is not on your pages.' }, 403);
+  const turned = await requestDesk().store.move(r.id, 'pending', { status: 'turned_down', turnedDownBy: who(principal), decidedAt: requestDesk().now() });
+  if (!turned) return c.json({ error: `This request is ${r.status}.` }, 409);
+  return c.json({ request: view(turned) });
 });
 
 adminRequestRoutes.post('/requests/:id/cancel', requireAdmin, async (c) => {

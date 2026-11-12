@@ -154,6 +154,20 @@ test('the asker or the owner can withdraw a pending request', async () => {
   assert.equal((await call('POST', `/api/admin/requests/${r.id}/approve`, ben)).status, 409);
 });
 
+test('a second member with the page can turn a request down; it never runs after', async () => {
+  const r = await ask();
+  assert.equal((await call('POST', `/api/admin/requests/${r.id}/turn-down`, ada)).status, 403, 'the asker withdraws, not turns down');
+  assert.equal((await call('POST', `/api/admin/requests/${r.id}/turn-down`, cy)).status, 403, 'not on their pages');
+  const res = await call('POST', `/api/admin/requests/${r.id}/turn-down`, ben);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { request: { status: string; turnedDownBy?: { email: string } } };
+  assert.equal(body.request.status, 'turned_down');
+  assert.equal(body.request.turnedDownBy?.email, 'ben@karwan.site');
+  const before = released;
+  assert.equal((await call('POST', `/api/admin/requests/${r.id}/approve`, ben)).status, 409);
+  assert.equal(released, before);
+});
+
 test('a dry run moves nothing, so it runs without a request', async () => {
   const owner = await tokenOf('owner@karwan.site');
   const dry = await call('POST', '/api/admin/usyc/run?dry=1', owner, { body: {} });

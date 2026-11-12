@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, notInArray, or } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { moneyMovementParties, moneyMovements } from './schema.js';
 import {
@@ -234,6 +234,25 @@ export async function listMoneyMovementsForAddress(
         (party) => party.address.toLowerCase() === normalizedAddress,
       ),
     )
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, safeLimit);
+}
+
+/// Every movement touched since `since`, plus every one still open however
+/// old, newest first: the desk's Money moves page (view 79).
+export async function listMoneyMovementsForDesk(input: { since: number; limit: number }): Promise<MoneyMovement[]> {
+  const safeLimit = Math.min(1000, Math.max(1, Math.floor(input.limit) || 500));
+  if (pgEnabled) {
+    const rows = await db()
+      .select({ data: moneyMovements.data })
+      .from(moneyMovements)
+      .where(or(gte(moneyMovements.updatedAt, input.since), notInArray(moneyMovements.state, ['completed', 'cancelled'])))
+      .orderBy(desc(moneyMovements.updatedAt))
+      .limit(safeLimit);
+    return rows.map((row) => row.data);
+  }
+  return Object.values(loadFile().byReference)
+    .filter((m) => m.updatedAt >= input.since || (m.state !== 'completed' && m.state !== 'cancelled'))
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, safeLimit);
 }
