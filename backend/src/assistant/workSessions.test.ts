@@ -17,6 +17,21 @@ test('the hire card names the sessions', () => {
   assert.equal(card.payload.sessions, 12);
 });
 
+test('a hire said in naira reads in naira, with the exact USDC on what is paid now (L-06)', () => {
+  const said = { usdc: 222.869, currency: 'NGN' as const, amount: '300000', text: '₦300,000', quote: 'q' };
+  const input = { worker: '@ada', kind: 'monthly' as const, rateUsdc: '222.869', periods: 3, sessions: 12, title: 'Maths lessons', brief: '' };
+  const card = buildWorkOfferConfirm(input, { kind: 'monthly', title: 'Maths lessons', rateMicros: '222869000', maxHours: 1, periods: 3, sessions: 12, startsAt: Date.UTC(2026, 10, 16), feeHalfMicros: '1114345', totalMicros: '223983345', mostMicros: '671950035', note: 'n' }, '@ada', said);
+  assert.match(card.summary, /^₦300,000 a month for 12 sessions, for 3 months/);
+  assert.doesNotMatch(card.summary, /USDC/);
+  const row = (label: RegExp) => card.fields.find((f) => label.test(f.label))?.value;
+  assert.equal(row(/^First month/), '₦300,000');
+  assert.equal(row(/^Karwan fee/), '₦1,500');
+  assert.equal(row(/^You pay now/), '₦301,500 · 223.98 USDC');
+  assert.equal(row(/^The most for all/), '₦904,500');
+  assert.equal(card.confirmLabel, 'Pay ₦301,500');
+  assert.equal(card.payload.rateUsdc, '222.869', 'the record still moves the USDC the quote fixed');
+});
+
 test('recording a session is one unit with its note and link; a retainer still claims the month', () => {
   const s = buildWorkHoursConfirm(lessons, { minutes: 45, note: 'Fractions', link: 'https://example.com/rec' });
   assert.equal(s.title, 'Record a session on Maths lessons');

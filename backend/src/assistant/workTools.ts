@@ -86,7 +86,7 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
         const input = { ...i, rateUsdc: String(said ? said.usdc : i.rateUsdc) };
         const r = await deps.call(address, 'POST', '/api/work/draft', input);
         if (r.status !== 200) return errorOf(r, 'That work cannot be set up as it is.');
-        return show(keepOnCard(buildWorkOfferConfirm(input, r.json.card as WorkDraftCard, i.worker.startsWith('@') ? i.worker : `@${i.worker}`), said, []));
+        return show(keepOnCard(buildWorkOfferConfirm(input, r.json.card as WorkDraftCard, i.worker.startsWith('@') ? i.worker : `@${i.worker}`, said), said, []));
       },
     }),
 

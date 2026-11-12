@@ -1,4 +1,5 @@
 import { confirmNonce, type ConfirmActionBase } from './actions.js';
+import { saidMoney, type Said } from './saidFigure.js';
 
 /// The assistant's hourly work cards (view 32). Each shows every figure before
 /// anything moves. Offering, paying for a week, approving or objecting to hours
@@ -75,23 +76,28 @@ export const hours = (minutes: number) => {
 const period = (kind: 'hourly' | 'monthly') => (kind === 'hourly' ? 'week' : 'month');
 const sessionsOf = (n: number) => (n === 1 ? '1 session' : `${n} sessions`);
 
-export function buildWorkOfferConfirm(input: WorkInputPayload, card: WorkDraftCard, workerName: string): WorkOfferConfirm {
+/// With `said`, the card reads in the currency the rate was said in (view 77);
+/// what is paid now keeps its exact USDC beside it, as money cards do (view 54).
+export function buildWorkOfferConfirm(input: WorkInputPayload, card: WorkDraftCard, workerName: string, said?: Said | null): WorkOfferConfirm {
   const hourly = card.kind === 'hourly';
+  const local = said ? saidMoney(said) : null;
+  const money = (micros: string | number) => (local ? local(Number(micros) / 1_000_000) : usdc(micros));
+  const payNow = local ? `${money(card.totalMicros)} · ${usdc(card.totalMicros)}` : usdc(card.totalMicros);
   return {
     kind: 'confirm',
     id: `work_offer:${confirmNonce()}`,
     intent: 'work_offer',
     title: `Hire ${workerName}: ${card.title}`,
-    summary: `${hourly ? `${usdc(card.rateMicros)} an hour, up to ${card.maxHours} hours a week, for ${card.periods} weeks` : `${usdc(card.rateMicros)} a month${card.sessions ? ` for ${sessionsOf(card.sessions)}` : ''}, for ${card.periods} months`}, from ${day(card.startsAt)}. Your agent pays for the first ${period(card.kind)} now.`,
+    summary: `${hourly ? `${money(card.rateMicros)} an hour, up to ${card.maxHours} hours a week, for ${card.periods} weeks` : `${money(card.rateMicros)} a month${card.sessions ? ` for ${sessionsOf(card.sessions)}` : ''}, for ${card.periods} months`}, from ${day(card.startsAt)}. Your agent pays for the first ${period(card.kind)} now.`,
     warning: card.note,
     fields: [
-      { label: hourly ? 'First week, the most it can bill' : 'First month', value: usdc(Number(card.totalMicros) - Number(card.feeHalfMicros)) },
-      { label: 'Karwan fee', value: usdc(card.feeHalfMicros) },
-      { label: 'You pay now', value: usdc(card.totalMicros) },
-      { label: `The most for all ${card.periods} ${period(card.kind)}s`, value: usdc(card.mostMicros) },
+      { label: hourly ? 'First week, the most it can bill' : 'First month', value: money(Number(card.totalMicros) - Number(card.feeHalfMicros)) },
+      { label: 'Karwan fee', value: money(card.feeHalfMicros) },
+      { label: 'You pay now', value: payNow },
+      { label: `The most for all ${card.periods} ${period(card.kind)}s`, value: money(card.mostMicros) },
     ],
     payload: input,
-    confirmLabel: `Pay ${usdc(card.totalMicros)}`,
+    confirmLabel: `Pay ${money(card.totalMicros)}`,
     cancelLabel: 'Not now',
   };
 }
