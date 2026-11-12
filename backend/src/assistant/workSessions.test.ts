@@ -45,6 +45,17 @@ test('one month reads "for 1 month", and one hour or one week reads as one (L-07
   assert.ok(longer.fields.some((f) => f.label === 'The most for all 3 months'));
 });
 
+test('hiring from offers reads in the hirer\'s currency, with the exact USDC, and names the month for monthly work', async () => {
+  const { buildWorkRequestHireConfirm } = await import('./work.js');
+  const card = buildWorkRequestHireConfirm({ requestId: 'wr_1', offerId: 'o_1', name: '@ada', title: 'Maths lessons', kind: 'monthly', totalMicros: '223983345', local: '₦301,500' });
+  assert.equal(card.fields.find((f) => f.label === 'You pay now')?.value, '₦301,500 · 223.98 USDC');
+  assert.equal(card.confirmLabel, 'Pay ₦301,500');
+  assert.match(card.summary, /first month now/);
+  const plain = buildWorkRequestHireConfirm({ requestId: 'wr_1', offerId: 'o_1', name: '@ada', title: 'VA', kind: 'hourly', totalMicros: '15080000', local: null });
+  assert.equal(plain.fields[0]!.value, '15.08 USDC');
+  assert.match(plain.summary, /first week now/);
+});
+
 test('recording a session is one unit with its note and link; a retainer still claims the month', () => {
   const s = buildWorkHoursConfirm(lessons, { minutes: 45, note: 'Fractions', link: 'https://example.com/rec' });
   assert.equal(s.title, 'Record a session on Maths lessons');

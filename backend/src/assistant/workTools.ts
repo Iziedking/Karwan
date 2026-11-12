@@ -1,6 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { keepOnCard, saidFigure } from './saidFigure.js';
+import { getProfile } from '../db/profiles.js';
+import { readSharedRates } from '../rates/sharedRate.js';
+import { formatLocalAmount } from '../rates/localAmounts.js';
 import type { AssistantAction } from './actions.js';
 import {
   buildWorkRequestCloseConfirm,
@@ -25,6 +28,14 @@ type Call = (address: string, method: 'GET' | 'POST', path: string, body?: unkno
 
 export interface WorkToolDeps {
   call: Call;
+  /// A USDC figure in the person's own currency at the shared rate, or null
+  /// when they read USDC.
+  localOf?: (address: string, usdc: number) => Promise<string | null>;
+}
+
+async function localFigure(address: string, usdc: number): Promise<string | null> {
+  const [profile, rates] = await Promise.all([getProfile(address), readSharedRates()]);
+  return formatLocalAmount(usdc, profile?.settings?.displayCurrency, rates);
 }
 
 const WORK = z.string().min(3).max(64).describe('The work id, from list_my_work.');
@@ -236,13 +247,14 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
       execute: async ({ requestId, offerId }) => {
         const r = await deps.call(address, 'GET', `/api/work-requests/${encodeURIComponent(requestId)}`);
         if (r.status !== 200) return errorOf(r, 'No posted work with that id.');
-        const req = r.json.request as { title: string; offers?: Array<{ offerId: string; name: string; tag: string | null }> };
+        const req = r.json.request as { title: string; kind: 'hourly' | 'monthly'; offers?: Array<{ offerId: string; name: string; tag: string | null }> };
         const o = req.offers?.find((x) => x.offerId === offerId);
         if (!o) return { error: 'Only the hirer can hire, and only someone who offered.' };
         const card = await deps.call(address, 'POST', `/api/work-requests/${encodeURIComponent(requestId)}/hire/card`, { offerId });
         if (card.status !== 200) return errorOf(card, 'That hire cannot go ahead as it is.');
         const c = card.json.card as { totalMicros: string };
-        return show(buildWorkRequestHireConfirm({ requestId, offerId, name: o.tag ? `@${o.tag}` : o.name, title: req.title, totalMicros: c.totalMicros }));
+        const local = await (deps.localOf ?? localFigure)(address, Number(c.totalMicros) / 1_000_000).catch(() => null);
+        return show(buildWorkRequestHireConfirm({ requestId, offerId, name: o.tag ? `@${o.tag}` : o.name, title: req.title, kind: req.kind, totalMicros: c.totalMicros, local }));
       },
     }),
 

@@ -261,16 +261,18 @@ export function buildWorkRequestOfferConfirm(i: { requestId: string; title: stri
   };
 }
 
-export function buildWorkRequestHireConfirm(i: { requestId: string; offerId: string; name: string; title: string; totalMicros: string }): WorkRequestHireConfirm {
+/// `local` is what is paid now in the hirer's own currency at the shared rate
+/// (view 77); the exact USDC stays beside it, as on every money card.
+export function buildWorkRequestHireConfirm(i: { requestId: string; offerId: string; name: string; title: string; kind: 'hourly' | 'monthly'; totalMicros: string; local?: string | null }): WorkRequestHireConfirm {
   return {
     kind: 'confirm',
     id: `work_request_hire:${i.requestId}:${confirmNonce()}`,
     intent: 'work_request_hire',
     title: `Hire ${i.name} for ${i.title}`,
-    summary: 'Your agent pays for the first week now; they already agreed these terms, so it starts as planned.',
-    fields: [{ label: 'You pay now', value: usdc(i.totalMicros) }],
+    summary: `Your agent pays for the first ${period(i.kind)} now; they already agreed these terms, so it starts as planned.`,
+    fields: [{ label: 'You pay now', value: i.local ? `${i.local} · ${usdc(i.totalMicros)}` : usdc(i.totalMicros) }],
     payload: { requestId: i.requestId, offerId: i.offerId },
-    confirmLabel: `Pay ${usdc(i.totalMicros)}`,
+    confirmLabel: `Pay ${i.local ?? usdc(i.totalMicros)}`,
     cancelLabel: 'Not now',
   };
 }
