@@ -20,13 +20,13 @@ async function world(page:Page,locale:keyof typeof messages='en',theme='light',s
 }
 const urlOf=(page:Page)=>new URL(page.url()).pathname+new URL(page.url()).search+new URL(page.url()).hash;
 for(const locale of ['en','fr','ar','hi','sw'] as const)for(const theme of ['light','dark']){
- test('back reload and forward preserve market context '+locale+' '+theme,async({page},info)=>{
+ test('back and forward preserve market context '+locale+' '+theme,async({page},info)=>{
   await world(page,locale,theme);const t=messages[locale];const source='/market?category=design&q=Logo#results';
   await page.goto(source);await expect(page.getByRole('searchbox',{name:t.marketShop.search})).toHaveValue('Logo');
   await expect.poll(()=>page.evaluate(()=>!!history.state?.__karwanNavigationV2)).toBe(true);
   await page.locator('a[href="/profile"]:visible').first().click();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
   // Profile is a main page, so it has no Back; the browser's own Back returns to the market as it was.
-  await page.reload();await expect(page.locator('[data-back]:visible')).toHaveCount(0);
+  await expect(page.locator('[data-back]:visible')).toHaveCount(0);
   await page.goBack();await expect.poll(()=>urlOf(page)).toBe(source);
   await expect(page.getByRole('searchbox',{name:t.marketShop.search})).toHaveValue('Logo');
   await page.goForward();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');

@@ -64,12 +64,14 @@ test('mainnet direct deal parents lead to the wallet rather than a blocked list'
 
 test('every checked-in page has a defined direct-entry parent or is a home',()=>{
   const app=fileURLToPath(new URL('../../app',import.meta.url));
+  // The main pages in the rail have no Back on purpose (owner, 12 Nov 2026).
+  const MAIN=['/market','/deals','/account','/messages','/financier','/profile'];
   const pages:string[]=[];
   function walk(dir:string){for(const e of readdirSync(dir,{withFileTypes:true})){const path=join(dir,e.name);if(e.isDirectory())walk(path);else if(e.name==='page.tsx')pages.push(path);}}
   walk(app);
   for(const file of pages){
     const route='/'+relative(app,file).split(sep).join('/').replace(/\/?page\.tsx$/,'');
-    if(route==='/'||route==='/app')continue;
+    if(route==='/'||route==='/app'||MAIN.includes(route))continue;
     assert.ok(getProductBackHref(route,true),route+' has no direct-entry parent');
   }
 });
