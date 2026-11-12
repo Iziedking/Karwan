@@ -57,6 +57,15 @@ test('a recorded sentence says each figure in the chosen currency', () => {
   assert.equal(localiseFigures('Received 500 USDC', (n) => moneyText(n, 'USDC', null, 'en')), 'Received 500.00 USDC');
 });
 
+test('a row\'s words say its amount as the amount beside them does (L-05)', async () => {
+  const { rowLine } = await import('./moneyText');
+  const naira = (n: number) => moneyText(n, 'NGN', NGN, 'en');
+  assert.equal(rowLine('20 USDC arrived from Base', naira, '20', '₦26,910'), '₦26,910 arrived from Base', 'the kept figure, as on the right');
+  assert.equal(rowLine('Received 20 USDC from @ada', naira, '-20', '₦26,910'), 'Received ₦26,910 from @ada', 'the sign is the amount\'s, not the words\'');
+  assert.equal(rowLine('Paid 20 USDC and 3 USDC', naira, '20', '₦26,910'), `Paid ₦26,910 and ${naira(3)}`, 'another figure stays at today\'s rate');
+  assert.equal(rowLine('20 USDC arrived from Base', naira, '20', null), `${naira(20)} arrived from Base`, 'nothing kept reads today\'s figure');
+});
+
 test('a payment already made reads its kept figure, or today\'s figure marked about (view 77)', async () => {
   const { paidText } = await import('./moneyText');
   assert.equal(paidText('₦50,120', '₦50,000', 'local', 'about {amount}'), '₦50,000', 'what it was worth then');

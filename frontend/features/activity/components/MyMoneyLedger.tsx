@@ -119,7 +119,7 @@ export function MyMoneyLedger({
     },
     [mt.price, mt.paid],
   );
-  const titleOf = useCallback((item: Item) => mt.line(ledgerTitle(item, t.kind, t.text)), [mt.line, t.kind, t.text]);
+  const titleOf = useCallback((item: Item) => mt.row(ledgerTitle(item, t.kind, t.text), item.amountUsdc, item.local), [mt.row, t.kind, t.text]);
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [filter, setFilter] = useState<LedgerFilter>('all');

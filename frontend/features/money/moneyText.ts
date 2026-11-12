@@ -84,3 +84,13 @@ export function localiseFigures(text: string, format: (usdc: number) => string):
     return Number.isFinite(n) ? format(n) : whole;
   });
 }
+
+/// A money row's words, with the row's own amount said as the amount beside
+/// them says it: the figure kept for this reader when there is one (view 77),
+/// so "₦27,008 arrived" never sits next to "+₦26,910". Other figures in the
+/// sentence read at today's rate.
+export function rowLine(text: string, format: (usdc: number) => string, rowUsdc: number | string | null | undefined, kept: string | null): string {
+  const own = Math.abs(Number(rowUsdc));
+  const keptBare = kept ? kept.replace(/^[+\-−]/, '') : null;
+  return localiseFigures(text, (n) => (keptBare && Number.isFinite(own) && Math.abs(Math.abs(n) - own) < 0.005 ? keptBare : format(n)));
+}

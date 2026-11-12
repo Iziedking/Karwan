@@ -1,7 +1,7 @@
 'use client';
 import { useCallback } from 'react';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { fillMoney, localHint, localiseFigures, moneyText, paidText, usdcFigure, type MoneyTextOptions } from '../moneyText';
+import { fillMoney, localHint, localiseFigures, moneyText, paidText, rowLine, usdcFigure, type MoneyTextOptions } from '../moneyText';
 import { useDisplayCurrency } from './useDisplayCurrency';
 import { formatTyped } from '../localAmount';
 
@@ -94,5 +94,18 @@ export function useMoneyText(defaults: MoneyTextOptions = {}) {
     [currency, rate, price, text, aboutTemplate],
   );
 
-  return { text, fill, hint, usdc, line, price, paid, fillPrice, currency };
+  /// A money row's words: its own amount reads as kept for this reader, as the
+  /// amount beside the words does; other figures at today's rate (L-05).
+  const row = useCallback(
+    (sentence: string, usdc: number | string | null | undefined, kept?: { currency: string; amount: string } | null): string =>
+      rowLine(
+        sentence,
+        (n) => moneyText(n, currency, rate, locale, { compact, exact }),
+        usdc,
+        kept && kept.currency === currency && rate ? formatTyped(kept.amount, currency, locale) : null,
+      ),
+    [currency, rate, locale, compact, exact],
+  );
+
+  return { text, fill, hint, usdc, line, row, price, paid, fillPrice, currency };
 }
