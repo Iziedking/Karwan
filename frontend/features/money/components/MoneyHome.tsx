@@ -116,7 +116,7 @@ function MoneyHomeInner() {
   return (
     // One centred column on every screen (owner, 9 Nov 2026): the deals holding money open inside their own card.
     <div className="product-surface mx-auto max-w-[640px] px-4 pb-24 pt-6 sm:px-6">
-      <div data-own-back className="-ms-2 empty:hidden">
+      <div data-own-back className="empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated />
       </div>
       <div className="min-w-0 divide-y divide-[var(--line)] [&>*]:py-8">

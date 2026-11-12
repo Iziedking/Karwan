@@ -52,7 +52,7 @@ The one-wallet rule says one wallet, one balance. People see up to four numbers 
 
 - **Navigation differs by device.** Phone: Home, Discover, Activity, Profile. Desktop sidebar: Home, Discover, Finance, Activity. Profile is a tab on the phone and absent from the desktop sidebar; Finance is the reverse.
 - **One place, three names.** The tab says Discover, the page title says Market, the heading says "Find the next trade."
-- **Top-level tabs have a Back link.** Home, Market, Activity, Profile and Add money each open with "Back", and a "Page tour" pill sits above it.
+- **Top-level tabs have a Back link.** Home, Market, Activity, Profile and Add money each open with "Back", and a "Page tour" pill sits above it. Fixed 12 Nov 2026: the main pages have no Back; pages inside them have a round chevron.
 - **The tour opens for people who know the app.** @lawful, with dozens of settled deals, got "Step 1 of 3" on Home, with copy about invitations and mainnet.
 - **The floating Help button** covers cards and buttons on phone screens (Add money, setup, the deal composer).
 - **The bottom nav lights the wrong tab.** A deal opened from Home lights Discover.

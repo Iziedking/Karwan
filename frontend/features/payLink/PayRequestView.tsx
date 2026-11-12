@@ -116,7 +116,7 @@ function OwnRequest({ token, request, onChanged }: { token: string; request: Dep
   return (
     <section className="space-y-6">
       {/* The same Back as every other page, on the content column. */}
-      <div data-own-back className="-ms-2 empty:hidden">
+      <div data-own-back className="empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} fallbackHref="/request" />
       </div>
       <PaymentCard

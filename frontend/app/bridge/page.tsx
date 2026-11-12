@@ -189,7 +189,7 @@ function BridgePageInner() {
       <Band tone="light" compact>
         {/* One Back, on the content column: inside an opened option it returns
             to the question, otherwise it leaves the page. */}
-        <div data-own-back className="-ms-2 mb-4 empty:hidden">
+        <div data-own-back className="mb-4 empty:hidden">
           <ProductBackLink
             pathname={pathname}
             isAuthenticated={isAuthenticated}

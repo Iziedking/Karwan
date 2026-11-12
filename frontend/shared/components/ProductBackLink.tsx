@@ -36,6 +36,8 @@ export function ProductBackLink({
 
   if (!href && !onBack) return null;
 
+  // A round chevron, no word and no arrow (owner, 12 Nov 2026, Figma 298:593);
+  // screen readers hear its label.
   return (
     <button
       type="button"
@@ -50,13 +52,13 @@ export function ProductBackLink({
       }}
       aria-label={t.nav.backAria}
       data-shell-back={shell ? '' : undefined}
+      data-back
       className={cn(
-        'group relative z-10 inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:pointer-events-none disabled:opacity-40',
+        'group relative z-10 inline-grid size-11 shrink-0 place-items-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] transition-colors hover:bg-[var(--raised)] active:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:pointer-events-none disabled:opacity-40',
         className,
       )}
     >
-      <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
-      <span>{t.nav.back}</span>
+      <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" className="rtl-flip" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
     </button>
   );
 }

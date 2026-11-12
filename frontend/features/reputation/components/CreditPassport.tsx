@@ -357,7 +357,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="min-h-[70vh] px-5 py-12 md:py-16">
       <div className="mx-auto w-full max-w-[680px]">
         {/* Back on this column; the app's page-edge copy steps aside. */}
-        <div data-own-back className="-ms-2 mb-5">
+        <div data-own-back className="mb-5">
           <BackButton tone="adaptive" showOnPublic fallbackHref="/market" />
         </div>
         {children}

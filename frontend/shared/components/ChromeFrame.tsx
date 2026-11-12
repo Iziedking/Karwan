@@ -128,7 +128,7 @@ function CustomerChromeFrame({
         className={`relative z-[1] ${mainClass}${platformCopy ? ' platform-copy' : ''}`}
       >
         {pathname !== '/' && pathname !== '/start' && pathname !== '/waitlist' && !assistantMode && <div className={`relative z-10 mb-2 flex flex-wrap items-center gap-2 empty:hidden${workspaceWithRail ? ' mx-auto w-full max-w-[var(--workspace-measure)]' : ''}`}>
-          <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} shell className="-ms-2" />
+          <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} shell />
           <PageTourButton pathname={pathname} enabled={auth.isAuthenticated && (workspace || focused)} />
         </div>}
         {pathname === '/' ? children : <RouteStage pathname={pathname}>{children}</RouteStage>}

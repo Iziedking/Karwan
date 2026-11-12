@@ -25,11 +25,12 @@ for(const locale of ['en','fr','ar','hi','sw'] as const)for(const theme of ['lig
   await page.goto(source);await expect(page.getByRole('searchbox',{name:t.marketShop.search})).toHaveValue('Logo');
   await expect.poll(()=>page.evaluate(()=>!!history.state?.__karwanNavigationV2)).toBe(true);
   await page.locator('a[href="/profile"]:visible').first().click();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
-  await page.reload();await expect(page.locator('[data-own-back] button[aria-label="'+t.nav.backAria+'"]').first()).toBeVisible();
-  await page.locator('[data-own-back] button[aria-label="'+t.nav.backAria+'"]').first().click();await expect.poll(()=>urlOf(page)).toBe(source);
+  // Profile is a main page, so it has no Back; the browser's own Back returns to the market as it was.
+  await page.reload();await expect(page.locator('[data-back]:visible')).toHaveCount(0);
+  await page.goBack();await expect.poll(()=>urlOf(page)).toBe(source);
   await expect(page.getByRole('searchbox',{name:t.marketShop.search})).toHaveValue('Logo');
   await page.goForward();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
-  await page.locator('[data-own-back] button[aria-label="'+t.nav.backAria+'"]').first().click();await expect.poll(()=>urlOf(page)).toBe(source);
+  await page.goBack();await expect.poll(()=>urlOf(page)).toBe(source);
   await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
   const axe=await new AxeBuilder({page}).include('main').analyze();expect(axe.violations.filter(v=>v.impact==='serious'||v.impact==='critical')).toEqual([]);

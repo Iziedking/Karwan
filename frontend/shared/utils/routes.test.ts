@@ -17,9 +17,11 @@ test('the personal activity page stays behind sign-in', () => {
   assert.equal(isPublicAccessRoute('/activity'), false);
 });
 
-test('every page but Home has a Back, the sidebar sections included', () => {
-  assert.equal(getProductBackHref('/app'), null);
-  for (const page of ['/activity', '/market', '/financier', '/profile']) assert.equal(getProductBackHref(page), '/app', page);
+test('the main pages in the rail have no Back; a page inside one does (owner, 12 Nov 2026)', () => {
+  for (const page of ['/app', '/market', '/deals', '/account', '/messages', '/financier', '/profile', '/market?side=sell']) assert.equal(getProductBackHref(page), null, page);
+  assert.equal(getProductBackHref('/account', true, false), null);
+  assert.equal(getProductBackHref('/activity'), '/app');
+  assert.equal(getProductBackHref('/add'), '/account');
 });
 
 test('a visitor who is not signed in has no Back on the market, their first page (view 74)', () => {
@@ -29,7 +31,6 @@ test('a visitor who is not signed in has no Back on the market, their first page
 });
 
 test('Deals is a place of its own and a deal goes back to it', () => {
-  assert.equal(getProductBackHref('/deals'), '/app');
   assert.equal(getProductBackHref(`/deals/0x${'ab'.repeat(32)}`), '/deals');
   assert.equal(getProductBackHref('/profile/open-deals'), '/deals');
 });

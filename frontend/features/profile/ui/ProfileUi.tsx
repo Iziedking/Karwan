@@ -16,7 +16,7 @@ export function ProfileFrame({ title, hint, backHref, hero = false, children }: 
     <div className="product-surface min-h-[calc(100vh-72px)] px-4 pb-16 pt-6 sm:px-6">
       <div className="mx-auto max-w-[640px]">
         {/* Back sits on this column, beside what it leaves, not at the page edge. */}
-        <div data-own-back className="-ms-2 mb-3 empty:hidden">
+        <div data-own-back className="mb-3 empty:hidden">
           <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} fallbackHref={backHref} />
         </div>
         <h1 className={hero ? 'flex items-center gap-2 py-1 text-[20px] font-semibold tracking-[-0.02em] text-[var(--ink)]' : 'flex items-center gap-2 text-[22px] font-semibold tracking-[-0.02em] text-[var(--ink)]'}>

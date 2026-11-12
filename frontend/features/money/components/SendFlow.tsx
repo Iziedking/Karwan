@@ -196,7 +196,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
 
   return (
     <section aria-labelledby={titleId} className="mx-auto flex min-h-[calc(100svh-9rem)] w-full max-w-[480px] flex-col pb-8 pt-2 sm:px-4">
-      <div data-own-back className="-ms-2 mb-3 empty:hidden">
+      <div data-own-back className="mb-3 empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
       </div>
       <h1 id={titleId} className={state.kind === 'editing' && stage === 'who' ? 'text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]' : 'sr-only'}>{t.sheet.titleSend}</h1>

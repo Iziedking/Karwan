@@ -101,7 +101,7 @@ export function ConversationView({ tag, about = null }: { tag: string; about?: M
 
   return (
     <main className="mx-auto w-full max-w-[720px] px-4 py-6 sm:py-10">
-      <div data-own-back className="-ms-2 mb-4 empty:hidden">
+      <div data-own-back className="mb-4 empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} />
       </div>
       <section aria-labelledby="dm-with" className="overflow-hidden rounded-[20px] border border-[var(--line)] bg-[var(--surface)]">
