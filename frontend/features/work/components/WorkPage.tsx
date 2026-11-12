@@ -1,11 +1,11 @@
 'use client';
 
 import { CARD_CLASS } from '@/shared/components/Card';
-import { buttonClasses } from '@/shared/components/Button';
+import { Button, buttonClasses } from '@/shared/components/Button';
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type WorkView, type WorkWeekView } from '@/core/api';
 import { fill } from '@/features/deals/workspace/presentation';
-import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/workspace/Sheet';
+import { Sheet, fieldLabel } from '@/features/deals/workspace/Sheet';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
 import { hoursText, localDay, localWhen, microsToUsdc, minutesFrom, monthLine, runsText, sessionPrice, sessionRows, startLine, validLink, weekLine, workActions } from '../workModel';
@@ -29,7 +29,9 @@ type SheetKind =
 /// Monthly work counted in sessions lists each session in its month (view 76).
 export function WorkPage({ id }: { id: string }) {
   const mt = useMoneyText({ compact: true });
-  const t = useTranslations().work;
+  const all = useTranslations();
+  const t = all.work;
+  const working = all.dealWorkspace.confirm.working;
   const { locale } = useLocale();
   const [v, setV] = useState<WorkView | null>(null);
   const [missing, setMissing] = useState(false);
@@ -42,6 +44,8 @@ export function WorkPage({ id }: { id: string }) {
   const [pick, setPick] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // What the last step did, said once it is saved and until the next step opens.
+  const [saved, setSaved] = useState<string | null>(null);
 
   const load = useCallback(() => {
     api.getWork(id).then((r) => { setV(r.work); setNow(Date.now()); }).catch((err) => { if (err instanceof ApiError && err.status === 404) setMissing(true); });
@@ -65,12 +69,14 @@ export function WorkPage({ id }: { id: string }) {
   const day = (ms: number) => localDay(ms, locale);
   const periodName = (k: number) => fill(hourly ? t.page.week : t.page.month, { n: k + 1 });
   const close = () => { setSheet(null); setError(null); setH(''); setM(''); setNote(''); setLink(''); setPick(null); };
-  const run = async (step: () => Promise<unknown>) => {
+  const open = (next: SheetKind) => { setSaved(null); setSheet(next); };
+  const run = async (step: () => Promise<unknown>, done?: string) => {
     setBusy(true);
     setError(null);
     try {
       await step();
       close();
+      setSaved(done ?? null);
       load();
     } catch (err) {
       const need = err instanceof ApiError ? (err.body as { needMicros?: string } | undefined)?.needMicros : undefined;
@@ -131,7 +137,7 @@ export function WorkPage({ id }: { id: string }) {
               notice: t.page.notice,
             }[a];
             return (
-              <button key={a} type="button" onClick={() => setSheet({ kind: a })} className={primaryWeek === null && i === 0 && a !== 'notice' ? GREEN : QUIET_BUTTON}>
+              <button key={a} type="button" onClick={() => open({ kind: a })} className={primaryWeek === null && i === 0 && a !== 'notice' ? GREEN : QUIET_BUTTON}>
                 {label}
               </button>
             );
@@ -142,7 +148,14 @@ export function WorkPage({ id }: { id: string }) {
         <p className="mt-3 text-[14px] text-[var(--ink-secondary)]">{v.fundBlocked}</p>
       ) : null}
 
-      <ul className="mt-8 space-y-3">
+      {saved ? (
+        <p role="status" data-work-saved className="mt-6 flex items-center gap-2.5 rounded-[14px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-3.5 py-3 text-[14px] font-medium text-[var(--ink)]">
+          <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--action)]" />
+          {saved}
+        </p>
+      ) : null}
+
+      <ul className={saved ? 'mt-4 space-y-3' : 'mt-8 space-y-3'}>
         {[...v.weeks].reverse().map((w) => {
           const line = weekLine(w, now);
           const status =
@@ -191,14 +204,14 @@ export function WorkPage({ id }: { id: string }) {
                 </ul>
               ) : null}
               <div className="mt-3 flex flex-wrap gap-3">
-                {w.canLog ? <button type="button" onClick={() => setSheet({ kind: 'log', k: w.k })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>{hourly ? t.page.logHours : bySession ? ts.record : t.page.claimMonth}</button> : null}
+                {w.canLog ? <button type="button" onClick={() => open({ kind: 'log', k: w.k })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>{hourly ? t.page.logHours : bySession ? ts.record : t.page.claimMonth}</button> : null}
                 {w.canApprove ? (
-                  <button type="button" onClick={() => setSheet({ kind: 'approve', w })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>
+                  <button type="button" onClick={() => open({ kind: 'approve', w })} className={primaryWeek === w.k ? GREEN : QUIET_BUTTON}>
                     {hourly ? fill(t.page.approve, { hours: hoursText(w.loggedMinutes) }) : bySession ? (w.loggedMinutes - w.approvedMinutes === 1 ? ts.approveOne : fill(ts.approve, { n: w.loggedMinutes - w.approvedMinutes })) : t.page.approveMonth}
                   </button>
                 ) : null}
-                {w.canObject ? <button type="button" onClick={() => setSheet({ kind: 'object', w })} className={QUIET_BUTTON}>{bySession ? ts.someNot : t.page.wrong}</button> : null}
-                {w.canFlag && !w.canObject ? <button type="button" onClick={() => setSheet({ kind: 'flag', w })} className={QUIET_BUTTON}>{ts.didNot}</button> : null}
+                {w.canObject ? <button type="button" onClick={() => open({ kind: 'object', w })} className={QUIET_BUTTON}>{bySession ? ts.someNot : t.page.wrong}</button> : null}
+                {w.canFlag && !w.canObject ? <button type="button" onClick={() => open({ kind: 'flag', w })} className={QUIET_BUTTON}>{ts.didNot}</button> : null}
               </div>
             </li>
           );
@@ -234,13 +247,13 @@ export function WorkPage({ id }: { id: string }) {
     }
   }
 
-  function buttons(label: string, go: () => Promise<unknown>, disabled = false) {
+  function buttons(label: string, go: () => Promise<unknown>, disabled = false, done?: string) {
     return (
       <>
         {error ? <p role="alert" className={`${ALERT} mt-4`}>{error}</p> : null}
         <div className="mt-6 space-y-3">
-          <button type="button" disabled={busy || disabled} onClick={() => void run(go)} className={primaryButton}>{label}</button>
-          <button type="button" disabled={busy} onClick={close} className={quietButton}>{t.notNow}</button>
+          <Button type="button" size="lg" className="w-full" disabled={disabled} loading={busy} loadingLabel={working} onClick={() => void run(go, done)}>{label}</Button>
+          <Button type="button" variant="secondary" size="lg" className="w-full" disabled={busy} onClick={close}>{t.notNow}</Button>
         </div>
       </>
     );
@@ -331,7 +344,7 @@ export function WorkPage({ id }: { id: string }) {
               <textarea className="form-input block w-full mt-2 min-h-24 py-3" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
             </label>
             <p className="mt-4 rounded-[14px] bg-[var(--ash)] px-3.5 py-3 text-[14px] text-[var(--ink)]">{ts.flagBody}</p>
-            {buttons(ts.flagConfirm, () => api.flagSession(v.id, { k: w.k, n: pick ?? 0, note: note.trim() }), !ok)}
+            {buttons(ts.flagConfirm, () => api.flagSession(v.id, { k: w.k, n: pick ?? 0, note: note.trim() }), !ok, fill(ts.flagSent, { name: v.workerName }))}
           </>
         );
       }
@@ -352,7 +365,7 @@ export function WorkPage({ id }: { id: string }) {
                 <input className="form-input block w-full mt-2" dir="ltr" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="https://" value={link} maxLength={300} onChange={(e) => setLink(e.target.value)} />
               </label>
               <p className="mt-4 rounded-[14px] bg-[var(--ash)] px-3.5 py-3 text-[14px] text-[var(--ink)]">{fill(ts.told, { name: v.hirerName })}</p>
-              {buttons(ts.logConfirm, () => api.logHours(v.id, { minutes: 1, note: note.trim(), k, ...(url ? { link: url } : {}) }), !validLink(link))}
+              {buttons(ts.logConfirm, () => api.logHours(v.id, { minutes: 1, note: note.trim(), k, ...(url ? { link: url } : {}) }), !validLink(link), fill(ts.saved, { name: v.hirerName }))}
             </>
           );
         }

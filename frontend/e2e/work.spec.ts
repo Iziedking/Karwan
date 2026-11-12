@@ -248,6 +248,46 @@ test('the hirer says which session did not happen, and it is only a note', async
   expect(posted.body).toEqual({ k: 0, n: 4, note: 'Nobody came' });
 });
 
+/// A slow answer: the button says it is working, and the page says what was saved (S-10, S-17).
+async function slowly(page: Page, path: string, view: WorkView) {
+  await page.route(`${API}${path}`, async (route) => {
+    await new Promise((done) => setTimeout(done, 1500));
+    await route.fulfill({ json: { work: view } });
+  });
+}
+
+test('recording a session says it is working, then that it was saved and the hirer told', async ({ page }) => {
+  const view = lessons({ role: 'worker' }, { canLog: true });
+  await serve(page, SELLER, view);
+  await slowly(page, '/api/work/w_demo/hours', view);
+  await page.goto('/work/w_demo');
+  await page.getByRole('button', { name: s.record }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByLabel(s.logNote).fill('Fractions');
+  await sheet.getByRole('button', { name: s.logConfirm }).click();
+  await expect(sheet.locator('button[aria-busy="true"]')).toHaveText(en.dealWorkspace.confirm.working);
+  await expect(sheet.getByRole('button', { name: t.notNow })).toBeDisabled();
+  await expect(page.locator('[data-work-saved]')).toHaveText('Session saved. @bisi has been told.');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('sending a note on a session says it is working, then that it was sent and the worker told', async ({ page }) => {
+  const view = lessons({}, { canFlag: true });
+  await serve(page, BUYER, view);
+  await slowly(page, '/api/work/w_demo/flag', view);
+  await page.goto('/work/w_demo');
+  await page.getByRole('button', { name: s.didNot }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('radio', { name: 'Session 4' }).click();
+  await sheet.getByLabel(s.flagWhat).fill('Nobody came');
+  await sheet.getByRole('button', { name: s.flagConfirm }).click();
+  await expect(sheet.locator('button[aria-busy="true"]')).toHaveText(en.dealWorkspace.confirm.working);
+  await expect(page.locator('[data-work-saved]')).toHaveText('Note sent. @ada has been told.');
+  // Opening the next sheet clears the line.
+  await page.getByRole('button', { name: s.didNot }).click();
+  await expect(page.locator('[data-work-saved]')).toHaveCount(0);
+});
+
 test('after the month the hirer approves the recorded sessions or says how many did not happen', async ({ page }) => {
   const posted = { body: null as unknown, path: '' as string | undefined };
   const log = sessionLog(10).map((x, i) => (i === 3 ? { ...x, flagged: { at: Date.now(), note: 'Nobody came' } } : x));
