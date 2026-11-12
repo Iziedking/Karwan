@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, type AdminFormLimits } from '@/core/api';
 
-const labelClass = 'mono text-[10px] uppercase tracking-[0.12em] text-white/40';
+const labelClass = 'text-[10px] text-[var(--d-text-2)]';
 
 function when(ts: number): string {
   return new Date(ts).toLocaleString('en-GB', {
@@ -44,29 +44,29 @@ export function FormLimitsSwitch() {
   }
 
   return (
-    <section className="mt-6 rounded-xl border border-white/10 bg-[#161616] p-5">
+    <section className="mt-6 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
       <p className={labelClass}>Limits per connection</p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
         <div className="max-w-[60ch]">
-          <p className="text-[15px] font-semibold text-white">
+          <p className="text-[15px] font-semibold text-[var(--d-text)]">
             {state === null ? 'Reading…' : state.on ? 'On' : 'Off'}
           </p>
-          <p className="mt-1 text-[13px] text-white/55">
+          <p className="mt-1 text-[13px] text-[var(--d-text-2)]">
             Survey: 5 answers an hour. Waitlist: 5 code requests, 15 code checks and 20 answers per 10 minutes.
             Each code still allows 5 wrong tries, and one email gets at most 4 codes in 15 minutes.
           </p>
           {state?.updatedAt ? (
-            <p className="mt-1 text-[12px] text-white/40">Last changed {when(state.updatedAt)}</p>
+            <p className="mt-1 text-[12px] text-[var(--d-text-2)]">Last changed {when(state.updatedAt)}</p>
           ) : null}
         </div>
         <button type="button" onClick={() => void flip()} disabled={busy || state === null}
           className={state?.on
-            ? 'min-h-11 rounded-lg border border-white/20 px-4 text-[13px] font-bold text-white disabled:opacity-50'
-            : 'min-h-11 rounded-lg bg-[#AFC95B] px-4 text-[13px] font-bold text-[#10171D] disabled:opacity-50'}>
+            ? 'min-h-11 rounded-lg border border-[var(--d-line)] px-4 text-[13px] font-bold text-[var(--d-text)] disabled:opacity-50'
+            : 'min-h-11 rounded-lg bg-[var(--d-lime)] px-4 text-[13px] font-bold text-[#0D0E10] disabled:opacity-50'}>
           {state?.on ? 'Turn the limits off' : 'Turn the limits back on'}
         </button>
       </div>
-      {error ? <p className="mt-3 text-[12px] text-[#e0794f]">{error}</p> : null}
+      {error ? <p className="mt-3 text-[12px] text-[var(--d-red)]">{error}</p> : null}
     </section>
   );
 }

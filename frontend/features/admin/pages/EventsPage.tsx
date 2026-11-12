@@ -89,28 +89,28 @@ export default function AdminEvents() {
 
   return (
     <div>
-      <h1 className="font-sans text-[26px] font-extrabold tracking-[-0.01em]">Events</h1>
-      <p className="mt-1 text-[13px] text-white/45">
+      <h1 className="font-sans text-[26px] font-semibold tracking-[-0.01em]">Events</h1>
+      <p className="mt-1 text-[13px] text-[var(--d-text-2)]">
         Paste a deal ID to trace an auction, or a wallet to trace one agent across deals.
       </p>
 
-      <div className="mt-4 border border-white/10 rounded-lg p-3">
+      <div className="mt-4 border border-[var(--d-line)] rounded-lg p-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">
+          <span className="text-[10px] text-[var(--d-text-2)]">
             wallet integrity — finds agent addresses claimed by more than one user
           </span>
           <button
             type="button"
             onClick={() => void checkIntegrity()}
             disabled={intBusy}
-            className="mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-1.5 rounded border border-white/20 hover:border-white/50 disabled:opacity-50"
+            className="text-[10px] font-bold px-3 py-1.5 rounded border border-[var(--d-line)] hover:border-[var(--d-line-2)] disabled:opacity-50"
           >
             {intBusy ? 'checking…' : 'check'}
           </button>
         </div>
         {integrity && (
           <div className="mt-3 text-[12px]">
-            <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+            <p className="text-[10px] text-[var(--d-text-2)]">
               {integrity.total} records · {integrity.sharedAddresses.length} shared ·{' '}
               {integrity.emptyBuyer.length + integrity.emptySeller.length} blank
             </p>
@@ -119,9 +119,9 @@ export default function AdminEvents() {
             ) : (
               <ul className="mt-2 space-y-1.5">
                 {integrity.sharedAddresses.map((s) => (
-                  <li key={s.address} className="font-mono text-[11px] text-[#e0794f]">
-                    <span className="text-white/80">{s.address}</span>{' '}
-                    <span className="text-white/40">({s.role})</span> →{' '}
+                  <li key={s.address} className="font-mono text-[11px] text-[var(--d-red)]">
+                    <span className="text-[var(--d-text)]">{s.address}</span>{' '}
+                    <span className="text-[var(--d-text-2)]">({s.role})</span> →{' '}
                     {s.users.map((u) => short(u)).join(', ')}
                   </li>
                 ))}
@@ -142,21 +142,21 @@ export default function AdminEvents() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="0x deal id, 0x wallet, or an event type (e.g. agent.skipped)"
-          className="flex-1 bg-[#161616] border border-white/15 rounded-lg px-3 py-2 text-[13px] text-white font-mono focus:border-white/40 outline-none"
+          className="flex-1 bg-[var(--d-surface)] border border-[var(--d-line)] rounded-lg px-3 py-2 text-[13px] text-[var(--d-text)] font-mono focus:border-[var(--d-line-2)] outline-none"
         />
         <button
           type="submit"
           disabled={busy || !q.trim()}
-          className="mono text-[11px] uppercase tracking-[0.1em] font-bold px-4 py-2 rounded-lg bg-white text-[#0e0e0e] disabled:opacity-50"
+          className="text-[11px] font-bold px-4 py-2 rounded-lg bg-[var(--d-text)] text-[#0D0E10] disabled:opacity-50"
         >
           {busy ? '…' : 'Trace'}
         </button>
       </form>
 
-      {err && <p className="mt-3 text-[13px] text-[#e0794f]">{err}</p>}
+      {err && <p className="mt-3 text-[13px] text-[var(--d-red)]">{err}</p>}
       {events && (
         <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/35">
+          <p className="text-[10px] text-[var(--d-text-3)]">
             {events.length} events{pageCount > 1 ? ` · page ${page + 1}/${pageCount}` : ''}
           </p>
           {pageCount > 1 && (
@@ -165,7 +165,7 @@ export default function AdminEvents() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="mono text-[10px] uppercase tracking-[0.1em] px-2.5 py-1 rounded border border-white/15 disabled:opacity-30 hover:border-white/40"
+                className="text-[10px] px-2.5 py-1 rounded border border-[var(--d-line)] disabled:opacity-30 hover:border-[var(--d-line-2)]"
               >
                 prev
               </button>
@@ -173,7 +173,7 @@ export default function AdminEvents() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
                 disabled={page >= pageCount - 1}
-                className="mono text-[10px] uppercase tracking-[0.1em] px-2.5 py-1 rounded border border-white/15 disabled:opacity-30 hover:border-white/40"
+                className="text-[10px] px-2.5 py-1 rounded border border-[var(--d-line)] disabled:opacity-30 hover:border-[var(--d-line-2)]"
               >
                 next
               </button>
@@ -189,31 +189,31 @@ export default function AdminEvents() {
           return (
             <div
               key={i}
-              className="border border-white/10 rounded-lg px-3 py-2 flex items-start gap-3 flex-wrap"
+              className="border border-[var(--d-line)] rounded-lg px-3 py-2 flex items-start gap-3 flex-wrap"
             >
-              <span className="mono text-[9px] text-white/30 tabular-nums shrink-0 w-[60px]">
+              <span className="text-[9px] text-[var(--d-text-3)] tabular-nums shrink-0 w-[60px]">
                 {fmtTime(e.ts)}
               </span>
               <span
-                className="mono text-[9px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded shrink-0"
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
                 style={{ color: tone(e.type), background: `${tone(e.type)}1f` }}
               >
                 {e.type}
               </span>
-              <div className="flex-1 min-w-[200px] flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/70">
+              <div className="flex-1 min-w-[200px] flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--d-text)]">
                 {seller && (
                   <button
                     type="button"
                     onClick={() => trace(seller)}
                     title="Trace this agent"
-                    className="mono text-[11px] text-[#7fae9f] hover:text-white underline underline-offset-2"
+                    className="text-[11px] text-[#7fae9f] hover:text-[var(--d-text)] underline underline-offset-2"
                   >
                     {short(seller)}
                   </button>
                 )}
                 {FIELDS.filter((f) => f !== 'seller' && p[f] !== undefined && p[f] !== null).map((f) => (
-                  <span key={f} className="mono text-[11px]">
-                    <span className="text-white/35">{f}=</span>
+                  <span key={f} className="text-[11px]">
+                    <span className="text-[var(--d-text-3)]">{f}=</span>
                     {String(p[f]).slice(0, 80)}
                   </span>
                 ))}
@@ -222,7 +222,7 @@ export default function AdminEvents() {
           );
         })}
         {events && events.length === 0 && (
-          <p className="text-[13px] text-white/35 py-6 text-center">
+          <p className="text-[13px] text-[var(--d-text-3)] py-6 text-center">
             No events. If you traced a wallet and expected a bid, the agent never put one on chain
             for this deal.
           </p>

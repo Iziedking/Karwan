@@ -9,14 +9,16 @@ import {
 } from '@/core/api';
 import { Segmented } from '@/shared/components/Segmented';
 import { stripMarkdown } from '@/shared/utils/format';
-import { channelLabel, dueLabel, kindLabel, stateLabel } from './supportDesk';
+import { canAskForFix, caseFromAddress, channelLabel, dueLabel, kindLabel, stateLabel } from './supportDesk';
+import { deskMe, useDesk } from './desk/deskContext';
+import { deskTime } from './desk/homeWords';
 
 /// The support desk's cases (view 78): the queue, one case with its
 /// conversation and the person's records, on a laptop side by side and on a
 /// phone one after the other. Polls so new cases and replies show up.
 
 const POLL_MS = 5000;
-const TONE = { calm: 'text-white/50', soon: 'text-[#d9ad55]', late: 'text-[#efaa8d]' } as const;
+const TONE = { calm: 'text-[var(--d-text-2)]', soon: 'text-[var(--d-amber)]', late: 'text-[var(--d-red)]' } as const;
 
 const errorText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 
@@ -53,8 +55,8 @@ export function CaseDesk() {
 
   useEffect(() => {
     void api.adminCaseTeam().then((r) => { setTeam(r.team); setMe(r.me); }).catch(() => {});
-    const named = new URLSearchParams(window.location.search).get('case');
-    if (named && /^K[ST]-\d{4,}$/.test(named)) {
+    const named = caseFromAddress(window.location.search);
+    if (named) {
       setSelected(named);
       void loadCase(named);
     }
@@ -83,7 +85,7 @@ export function CaseDesk() {
 
   return (
     <section aria-label="Cases" className="mt-5">
-      {err && <p role="alert" className="mb-3 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">{err}</p>}
+      {err && <p role="alert" className="mb-3 border-l-2 border-[#5A2A2E] px-3 py-2 text-[12px] text-[var(--d-red)]">{err}</p>}
       <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)_280px]">
         <div className={selected ? 'hidden lg:block' : ''}>
           <CaseQueue cases={cases} filter={filter} onFilter={setFilter} selected={selected} onOpen={open} now={now} />
@@ -91,7 +93,7 @@ export function CaseDesk() {
         {selected ? (
           <>
             <div className="min-w-0">
-              <button type="button" onClick={() => setSelected(null)} className="mb-2 min-h-11 rounded-lg border border-white/15 px-3 text-[13px] text-white/80 lg:hidden">
+              <button type="button" onClick={() => setSelected(null)} className="mb-2 min-h-11 rounded-lg border border-[var(--d-line)] px-3 text-[13px] text-[var(--d-text)] lg:hidden">
                 Back to cases
               </button>
               {view ? <CaseConversation view={view} team={team} me={me} onChanged={changed} /> : <Skeleton />}
@@ -99,7 +101,7 @@ export function CaseDesk() {
             <div className="min-w-0">{view ? <CasePeoplePanel view={view} onChanged={changed} /> : null}</div>
           </>
         ) : (
-          <div className="hidden min-h-[40vh] place-items-center rounded-xl border border-white/10 text-[13px] text-white/40 lg:col-span-2 lg:grid">
+          <div className="hidden min-h-[40vh] place-items-center rounded-lg border border-[var(--d-line)] text-[13px] text-[var(--d-text-2)] lg:col-span-2 lg:grid">
             Pick a case to answer it.
           </div>
         )}
@@ -109,7 +111,7 @@ export function CaseDesk() {
 }
 
 function Skeleton() {
-  return <div aria-hidden className="h-[50vh] animate-pulse rounded-xl border border-white/10 bg-white/[0.02]" />;
+  return <div aria-hidden className="h-[50vh] animate-pulse rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)]" />;
 }
 
 function CaseQueue(props: {
@@ -122,8 +124,8 @@ function CaseQueue(props: {
 }) {
   const tabs: Array<['open' | 'mine' | 'solved', string]> = [['open', 'Open'], ['mine', 'Asked of me'], ['solved', 'Solved']];
   return (
-    <div className="rounded-xl border border-white/10">
-      <div role="tablist" aria-label="Which cases" className="flex gap-1 border-b border-white/10 p-2">
+    <div className="rounded-lg border border-[var(--d-line)]">
+      <div role="tablist" aria-label="Which cases" className="flex gap-1 border-b border-[var(--d-line)] p-2">
         {tabs.map(([key, label]) => (
           <button
             key={key}
@@ -131,15 +133,15 @@ function CaseQueue(props: {
             type="button"
             aria-selected={props.filter === key}
             onClick={() => props.onFilter(key)}
-            className={`min-h-9 rounded-full px-3 text-[12px] ${props.filter === key ? 'bg-white/10 text-white' : 'text-white/55 hover:text-white'}`}
+            className={`min-h-9 rounded-full px-3 text-[12px] ${props.filter === key ? 'bg-[var(--d-hover)] text-[var(--d-text)]' : 'text-[var(--d-text-2)] hover:text-[var(--d-text)]'}`}
           >
             {label}
           </button>
         ))}
       </div>
-      <div className="max-h-[70vh] divide-y divide-white/[0.06] overflow-y-auto">
-        {props.cases === null && [0, 1, 2].map((i) => <div key={i} aria-hidden className="m-3 h-12 animate-pulse rounded-lg bg-white/[0.04]" />)}
-        {props.cases?.length === 0 && <p className="p-4 text-[13px] text-white/40">No cases here.</p>}
+      <div className="max-h-[70vh] divide-y divide-[var(--d-line)] overflow-y-auto">
+        {props.cases === null && [0, 1, 2].map((i) => <div key={i} aria-hidden className="m-3 h-12 animate-pulse rounded-lg bg-[var(--d-hover)]" />)}
+        {props.cases?.length === 0 && <p className="p-4 text-[13px] text-[var(--d-text-2)]">No cases here.</p>}
         {props.cases?.map((c) => {
           const due = dueLabel(c.dueAt, props.now, c.firstRepliedAt);
           return (
@@ -148,13 +150,13 @@ function CaseQueue(props: {
               type="button"
               onClick={() => props.onOpen(c.ref)}
               aria-current={props.selected === c.ref ? 'true' : undefined}
-              className={`w-full p-3 text-start transition ${props.selected === c.ref ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}`}
+              className={`w-full p-3 text-start transition ${props.selected === c.ref ? 'bg-[var(--d-hover)]' : 'hover:bg-[var(--d-hover)]'}`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[13px] font-medium text-white">{c.person?.name ?? c.email ?? 'Guest'}</span>
-                <span className="mono text-[11px] text-white/50">{c.ref}</span>
+                <span className="text-[13px] font-medium text-[var(--d-text)]">{c.person?.name ?? c.email ?? 'Guest'}</span>
+                <span className="text-[11px] text-[var(--d-text-2)]">{c.ref}</span>
               </div>
-              <p className="mt-0.5 text-[12px] text-white/60">{kindLabel(c.kind)} · {channelLabel(c.lastChannel)}</p>
+              <p className="mt-0.5 text-[12px] text-[var(--d-text-2)]">{kindLabel(c.kind)} · {channelLabel(c.lastChannel)}</p>
               <p className={`mt-0.5 text-[12px] ${TONE[due.tone]}`}>{stateLabel(c.state)} · {due.text}</p>
             </button>
           );
@@ -210,25 +212,25 @@ function CaseConversation(props: { view: AdminCaseView; team: Array<{ id: string
   }
 
   return (
-    <div className="flex min-h-[60vh] flex-col rounded-xl border border-white/10">
-      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 p-3">
-        <span className="mono text-[12px] text-white/70">{ref}</span>
-        <span className="text-[12px] text-white/55">{kindLabel(view.case.kind)}</span>
+    <div className="flex min-h-[60vh] flex-col rounded-lg border border-[var(--d-line)]">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--d-line)] p-3">
+        <span className="text-[12px] text-[var(--d-text)]">{ref}</span>
+        <span className="text-[12px] text-[var(--d-text-2)]">{kindLabel(view.case.kind)}</span>
         <div className="ms-auto flex flex-wrap items-center gap-2">
-          <span className="text-[12px] text-white/70">{stateLabel(view.case.state)}</span>
+          <span className="text-[12px] text-[var(--d-text)]">{stateLabel(view.case.state)}</span>
           <button
             type="button"
             disabled={busy}
             onClick={() => void run(() => api.adminCaseState(ref, view.case.state === 'solved' ? 'waiting_us' : 'solved'), 'Could not change the state.')}
-            className="min-h-9 rounded-lg border border-white/15 px-3 text-[12px] text-white/85"
+            className="min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)]"
           >
             {view.case.state === 'solved' ? 'Reopen' : 'Mark solved'}
           </button>
-          <Link href={`/admin/support/room?case=${encodeURIComponent(ref)}`} className="inline-flex min-h-9 items-center rounded-lg border border-white/15 px-3 text-[12px] text-white/85">
+          <Link href={`/admin/support/room?case=${encodeURIComponent(ref)}`} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)]">
             Team thread
           </Link>
           {props.me && view.case.assignee !== props.me && (
-            <button type="button" disabled={busy} onClick={() => void run(() => api.adminCaseAssign(ref, props.me!), 'Could not take it.')} className="min-h-9 rounded-lg border border-white/15 px-3 text-[12px] text-white/85">
+            <button type="button" disabled={busy} onClick={() => void run(() => api.adminCaseAssign(ref, props.me!), 'Could not take it.')} className="min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)]">
               Take it
             </button>
           )}
@@ -244,23 +246,23 @@ function CaseConversation(props: { view: AdminCaseView; team: Array<{ id: string
             <li key={m.id} className={mine || note ? 'flex justify-end' : 'flex justify-start'}>
               <div
                 className={`max-w-[85%] rounded-lg px-3 py-2 text-[13px] leading-snug ${
-                  note
-                    ? 'border border-[#d9ad55]/30 bg-[#d9ad55]/[0.06] text-white/85'
-                    : m.heldReason
-                      ? 'border border-[#e0794f]/40 text-white/60'
-                      : mine
-                        ? 'bg-white text-[#0e0e0e]'
-                        : m.role === 'person'
-                          ? 'bg-white/10 text-white'
-                          : 'bg-white/[0.04] text-white/60'
-                }`}
+ note
+ ? 'border border-[#5A4520] bg-[#352A12] text-[var(--d-text)]'
+ : m.heldReason
+ ? 'border border-[#5A2A2E] text-[var(--d-text-2)]'
+ : mine
+ ? 'bg-[var(--d-text)] text-[#0D0E10]'
+ : m.role === 'person'
+ ? 'bg-[var(--d-hover)] text-[var(--d-text)]'
+ : 'bg-[var(--d-hover)] text-[var(--d-text-2)]'
+ }`}
               >
                 <p className="mb-0.5 text-[11px] opacity-60">
-                  {who(m, props.team)} · {new Date(m.at).toLocaleString()}
+                  {who(m, props.team)} · {deskTime(m.at, Date.now())}
                   {note ? ' · Only the team sees this' : ''}
                 </p>
                 <p className="select-text whitespace-pre-wrap break-words">{stripMarkdown(m.text)}</p>
-                {m.heldReason && <p className="mt-1 text-[11px] text-[#efaa8d]">Not sent. {m.heldReason}</p>}
+                {m.heldReason && <p className="mt-1 text-[11px] text-[var(--d-red)]">Not sent. {m.heldReason}</p>}
                 {sent && <p className="mt-1 text-[11px] opacity-60">{sent}</p>}
               </div>
             </li>
@@ -268,15 +270,15 @@ function CaseConversation(props: { view: AdminCaseView; team: Array<{ id: string
         })}
       </ol>
 
-      <div className="space-y-2 border-t border-white/10 p-3">
+      <div className="space-y-2 border-t border-[var(--d-line)] p-3">
         <div role="tablist" aria-label="Write" className="flex gap-1">
           {(['reply', 'note'] as const).map((k) => (
-            <button key={k} role="tab" type="button" aria-selected={mode === k} onClick={() => setMode(k)} className={`min-h-9 rounded-full px-3 text-[12px] ${mode === k ? 'bg-white/10 text-white' : 'text-white/55'}`}>
+            <button key={k} role="tab" type="button" aria-selected={mode === k} onClick={() => setMode(k)} className={`min-h-9 rounded-full px-3 text-[12px] ${mode === k ? 'bg-[var(--d-hover)] text-[var(--d-text)]' : 'text-[var(--d-text-2)]'}`}>
               {k === 'reply' ? 'Reply to the customer' : 'Note for the team'}
             </button>
           ))}
         </div>
-        {err && <p role="alert" className="text-[12px] text-[#efaa8d]">{err}</p>}
+        {err && <p role="alert" className="text-[12px] text-[var(--d-red)]">{err}</p>}
         <div className="flex items-end gap-2">
           <label className="sr-only" htmlFor={`write-${ref}`}>{mode === 'reply' ? 'Reply' : 'Note'}</label>
           <textarea
@@ -285,22 +287,22 @@ function CaseConversation(props: { view: AdminCaseView; team: Array<{ id: string
             onChange={(e) => setText(e.target.value)}
             rows={2}
             placeholder={mode === 'reply' ? 'Write to the customer' : 'Only the team sees notes'}
-            className="max-h-40 min-h-11 flex-1 resize-y rounded-lg border border-white/15 bg-[#0e0e0e] px-3 py-2 text-[13px] text-white outline-none focus:border-white/40"
+            className="max-h-40 min-h-11 flex-1 resize-y rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-3 py-2 text-[13px] text-[var(--d-text)] outline-none focus:border-[var(--d-line-2)]"
           />
-          <button type="button" onClick={() => void send()} disabled={busy || !text.trim()} className="min-h-11 rounded-lg bg-[var(--lp-accent,#afc95b)] px-4 text-[13px] font-semibold text-[#0e0e0e] disabled:opacity-50">
+          <button type="button" onClick={() => void send()} disabled={busy || !text.trim()} className="min-h-11 rounded-lg bg-[var(--lp-accent,#afc95b)] px-4 text-[13px] font-semibold text-[#0D0E10] disabled:opacity-50">
             {mode === 'reply' ? 'Send' : 'Save note'}
           </button>
         </div>
         {props.team.length > 1 && (
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Ask a teammate">
-            <span className="text-[12px] text-white/55">Ask a teammate</span>
+            <span className="text-[12px] text-[var(--d-text-2)]">Ask a teammate</span>
             {props.team.filter((t) => t.id !== props.me).map((t) => (
               <button
                 key={t.id}
                 type="button"
                 aria-pressed={askOf === t.id}
                 onClick={() => setAskOf(askOf === t.id ? '' : t.id)}
-                className={`min-h-9 rounded-full border px-3 text-[12px] ${askOf === t.id ? 'border-white/60 bg-white/10 text-white' : 'border-white/15 text-white/70'}`}
+                className={`min-h-9 rounded-full border px-3 text-[12px] ${askOf === t.id ? 'border-[var(--d-line-2)] bg-[var(--d-hover)] text-[var(--d-text)]' : 'border-[var(--d-line)] text-[var(--d-text)]'}`}
               >
                 {t.name}
               </button>
@@ -309,7 +311,7 @@ function CaseConversation(props: { view: AdminCaseView; team: Array<{ id: string
               type="button"
               disabled={busy || !askOf || !text.trim()}
               onClick={() => void run(() => api.adminCaseAsk(ref, askOf, text.trim()), 'Could not ask.').then((ok) => ok && setText(''))}
-              className="min-h-9 rounded-lg border border-white/15 px-3 text-[12px] text-white/85 disabled:opacity-40"
+              className="min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)] disabled:opacity-40"
             >
               Ask with this text
             </button>
@@ -349,28 +351,30 @@ function AskForFix(props: { caseRef: string; jobId: string; onChanged: () => Pro
   }
 
   return (
-    <div className="rounded-xl border border-white/10 p-3">
+    <div className="rounded-lg border border-[var(--d-line)] p-3">
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)} className="min-h-9 rounded-lg border border-white/15 px-3 text-[12px] text-white/85">
+        <button type="button" onClick={() => setOpen(true)} className="min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)]">
           Ask for a fix: pay the next milestone
         </button>
       ) : (
         <div className="space-y-2">
-          <label htmlFor={`fix-${props.jobId}`} className="block text-[12px] text-white/60">Why, for the teammate who approves</label>
-          <textarea id={`fix-${props.jobId}`} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} className="w-full rounded-lg border border-white/15 bg-[#0e0e0e] px-2 py-1.5 text-[12px] text-white" />
+          <label htmlFor={`fix-${props.jobId}`} className="block text-[12px] text-[var(--d-text-2)]">Why, for the teammate who approves</label>
+          <textarea id={`fix-${props.jobId}`} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} className="w-full rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-2 py-1.5 text-[12px] text-[var(--d-text)]" />
           <div className="flex gap-2">
-            <button type="button" disabled={busy || reason.trim().length < 3} onClick={() => void ask()} className="min-h-9 rounded-lg bg-white px-3 text-[12px] font-semibold text-[#0e0e0e] disabled:opacity-40">Ask a second teammate</button>
-            <button type="button" onClick={() => setOpen(false)} className="min-h-9 rounded-lg border border-white/15 px-3 text-[12px] text-white/70">Cancel</button>
+            <button type="button" disabled={busy || reason.trim().length < 3} onClick={() => void ask()} className="min-h-9 rounded-lg bg-[var(--d-text)] px-3 text-[12px] font-semibold text-[#0D0E10] disabled:opacity-40">Ask a second teammate</button>
+            <button type="button" onClick={() => setOpen(false)} className="min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)]">Cancel</button>
           </div>
         </div>
       )}
-      {note && <p className="mt-2 text-[12px] text-white/60">{note}</p>}
+      {note && <p className="mt-2 text-[12px] text-[var(--d-text-2)]">{note}</p>}
     </div>
   );
 }
 
 function CasePeoplePanel(props: { view: AdminCaseView; onChanged: () => Promise<void> }) {
   const { view } = props;
+  const desk = useDesk();
+  const mayAskForFix = canAskForFix(deskMe(desk.me));
   const ref = view.case.ref;
   const [kind, setKind] = useState<'deal' | 'transfer'>('deal');
   const [id, setId] = useState('');
@@ -401,29 +405,29 @@ function CasePeoplePanel(props: { view: AdminCaseView; onChanged: () => Promise<
 
   return (
     <aside className="space-y-3" aria-label="The customer">
-      <div className="rounded-xl border border-white/10 p-3">
+      <div className="rounded-lg border border-[var(--d-line)] p-3">
         {view.person ? (
           <>
-            <p className="text-[14px] font-semibold text-white">{view.person.name}</p>
-            <p className="text-[12px] text-white/55">
+            <p className="text-[14px] font-semibold text-[var(--d-text)]">{view.person.name}</p>
+            <p className="text-[12px] text-[var(--d-text-2)]">
               {view.person.handle ? `@${view.person.handle} · ` : ''}
               {view.person.verified ? 'Verified' : 'Not verified'}
             </p>
             {view.person.earlierCases.length > 0 && (
-              <p className="mt-2 text-[12px] text-white/50">
+              <p className="mt-2 text-[12px] text-[var(--d-text-2)]">
                 Earlier: {view.person.earlierCases.slice(0, 4).map((c) => `${c.ref} ${stateLabel(c.state).toLowerCase()}`).join(', ')}
               </p>
             )}
           </>
         ) : (
           <>
-            <p className="text-[14px] font-semibold text-white">{view.case.email ?? 'Guest'}</p>
-            <p className="text-[12px] text-white/55">Not signed in. No account records are shown.</p>
+            <p className="text-[14px] font-semibold text-[var(--d-text)]">{view.case.email ?? 'Guest'}</p>
+            <p className="text-[12px] text-[var(--d-text-2)]">Not signed in. No account records are shown.</p>
             {!view.case.contactVerified && view.case.email && (
               <div className="mt-2 flex gap-2">
                 <label className="sr-only" htmlFor={`link-${ref}`}>Account address</label>
-                <input id={`link-${ref}`} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Account address 0x…" className="min-h-9 min-w-0 flex-1 rounded-lg border border-white/15 bg-[#0e0e0e] px-2 text-[12px] text-white" />
-                <button type="button" disabled={!address.trim()} onClick={() => void link()} className="min-h-9 rounded-lg border border-white/15 px-3 text-[12px] text-white/85 disabled:opacity-40">Tie</button>
+                <input id={`link-${ref}`} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Account address 0x…" className="min-h-9 min-w-0 flex-1 rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-2 text-[12px] text-[var(--d-text)]" />
+                <button type="button" disabled={!address.trim()} onClick={() => void link()} className="min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)] disabled:opacity-40">Tie</button>
               </div>
             )}
           </>
@@ -431,45 +435,45 @@ function CasePeoplePanel(props: { view: AdminCaseView; onChanged: () => Promise<
       </div>
 
       {view.records.map((r) => (
-        <div key={`${r.kind}-${r.reference}`} className="rounded-xl border border-white/10 p-3">
+        <div key={`${r.kind}-${r.reference}`} className="rounded-lg border border-[var(--d-line)] p-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[13px] font-medium text-white">{r.kind === 'deal' ? 'Deal' : 'Transfer'} {r.reference}</span>
-            <span className="text-[12px] text-white/55">{r.state.replaceAll('_', ' ')}</span>
+            <span className="text-[13px] font-medium text-[var(--d-text)]">{r.kind === 'deal' ? 'Deal' : 'Transfer'} {r.reference}</span>
+            <span className="text-[12px] text-[var(--d-text-2)]">{r.state.replaceAll('_', ' ')}</span>
           </div>
-          <p className="mt-1 text-[13px] text-white">
+          <p className="mt-1 text-[13px] text-[var(--d-text)]">
             {r.worth ? `${r.worth.currency} ${Number(r.worth.amount).toLocaleString()} · ` : ''}
             {r.amountUsdc} USDC
           </p>
-          {r.otherSide && <p className="text-[12px] text-white/55">With {r.otherSide.name}{r.otherSide.handle ? ` (@${r.otherSide.handle})` : ''}</p>}
-          {r.summary && <p className="text-[12px] text-white/55">{r.summary}</p>}
-          {r.nextStep && <p className="mt-1 text-[12px] text-white/70">{r.nextStep}</p>}
-          {r.failedReason && <p className="mt-1 text-[12px] text-[#efaa8d]">Failed: {r.failedReason.replaceAll('_', ' ')}</p>}
+          {r.otherSide && <p className="text-[12px] text-[var(--d-text-2)]">With {r.otherSide.name}{r.otherSide.handle ? ` (@${r.otherSide.handle})` : ''}</p>}
+          {r.summary && <p className="text-[12px] text-[var(--d-text-2)]">{r.summary}</p>}
+          {r.nextStep && <p className="mt-1 text-[12px] text-[var(--d-text)]">{r.nextStep}</p>}
+          {r.failedReason && <p className="mt-1 text-[12px] text-[var(--d-red)]">Failed: {r.failedReason.replaceAll('_', ' ')}</p>}
         </div>
       ))}
 
-      {view.case.records.filter((r) => r.kind === 'deal').map((r) => (
+      {mayAskForFix && view.case.records.filter((r) => r.kind === 'deal').map((r) => (
         <AskForFix key={r.id} caseRef={ref} jobId={r.id} onChanged={props.onChanged} />
       ))}
 
       {view.case.fixes.length > 0 && (
-        <div className="rounded-xl border border-white/10 p-3">
-          <p className="text-[12px] text-white/55">Fixes asked for</p>
-          {view.case.fixes.map((f) => <p key={f.requestId} className="text-[12px] text-white/80">{f.action} · waiting for a second teammate</p>)}
+        <div className="rounded-lg border border-[var(--d-line)] p-3">
+          <p className="text-[12px] text-[var(--d-text-2)]">Fixes asked for</p>
+          {view.case.fixes.map((f) => <p key={f.requestId} className="text-[12px] text-[var(--d-text)]">{f.action} · waiting for a second teammate</p>)}
         </div>
       )}
 
       {view.case.address && (
-        <div className="rounded-xl border border-white/10 p-3">
-          <p className="mb-2 text-[12px] text-white/55">Add a deal or transfer of theirs</p>
+        <div className="rounded-lg border border-[var(--d-line)] p-3">
+          <p className="mb-2 text-[12px] text-[var(--d-text-2)]">Add a deal or transfer of theirs</p>
           <Segmented label="Kind of record" options={[{ value: 'deal', label: 'Deal' }, { value: 'transfer', label: 'Transfer' }]} value={kind} onChange={setKind} className="mb-2" />
           <div className="flex gap-2">
             <label className="sr-only" htmlFor={`rec-${ref}`}>Id or reference</label>
-            <input id={`rec-${ref}`} value={id} onChange={(e) => setId(e.target.value)} placeholder="Id or reference" className="min-h-9 min-w-0 flex-1 rounded-lg border border-white/15 bg-[#0e0e0e] px-2 text-[12px] text-white" />
-            <button type="button" disabled={id.trim().length < 4} onClick={() => void attach()} className="min-h-9 rounded-lg border border-white/15 px-3 text-[12px] text-white/85 disabled:opacity-40">Add</button>
+            <input id={`rec-${ref}`} value={id} onChange={(e) => setId(e.target.value)} placeholder="Id or reference" className="min-h-9 min-w-0 flex-1 rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-2 text-[12px] text-[var(--d-text)]" />
+            <button type="button" disabled={id.trim().length < 4} onClick={() => void attach()} className="min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)] disabled:opacity-40">Add</button>
           </div>
         </div>
       )}
-      {err && <p role="alert" className="text-[12px] text-[#efaa8d]">{err}</p>}
+      {err && <p role="alert" className="text-[12px] text-[var(--d-red)]">{err}</p>}
     </aside>
   );
 }

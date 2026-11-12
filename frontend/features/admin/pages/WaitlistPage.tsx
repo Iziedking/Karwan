@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, ApiError, type WaitlistUseCase } from '@/core/api';
 import { FormLimitsSwitch } from '@/features/admin/FormLimitsSwitch';
 
-const labelClass = 'mono text-[10px] uppercase tracking-[0.12em] text-white/40';
+const labelClass = 'text-[10px] text-[var(--d-text-2)]';
 type Data = Awaited<ReturnType<typeof api.adminWaitlist>>;
 const USE_LABEL: Record<WaitlistUseCase, string> = {
   sell_services: 'Sell services', buy_services: 'Buy services', sell_goods: 'Sell goods', buy_goods: 'Buy goods', business_trade: 'Business trade',
@@ -92,14 +92,14 @@ export default function AdminWaitlistPage() {
   return (
     <div>
       <p className={labelClass}>Mainnet</p>
-      <h1 className="mt-2 font-sans text-[24px] font-extrabold">Waitlist and invites</h1>
-      <p className="mt-2 max-w-[72ch] text-[13px] text-white/55">
+      <h1 className="mt-2 font-sans text-[24px] font-semibold">Waitlist and invites</h1>
+      <p className="mt-2 max-w-[72ch] text-[13px] text-[var(--d-text-2)]">
         Approve someone on the waitlist and they get an email to create their mainnet account. You can also paste
         emails below, or list them in MAINNET_INVITES on the server, read when the container starts.
       </p>
 
       {error && (
-        <div className="mt-5 rounded-lg border border-[#e0794f]/30 bg-[#e0794f]/10 px-3 py-2 text-[12px] text-[#e0794f]">
+        <div className="mt-5 rounded-lg border border-[#5A2A2E] bg-[#3A1C1F] px-3 py-2 text-[12px] text-[var(--d-red)]">
           {error} <button type="button" onClick={() => void load()} className="ml-2 underline">Retry</button>
         </div>
       )}
@@ -112,26 +112,26 @@ export default function AdminWaitlistPage() {
           ['Approved', data?.invites.length ?? '·'],
           ['Invited by setting', data?.envInvites.length ?? '·'],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-xl border border-white/10 bg-[#161616] p-4">
+          <div key={label} className="rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
             <p className={labelClass}>{label}</p>
-            <p className="mono mt-2 text-[22px] text-white">{value}</p>
+            <p className="mt-2 text-[22px] text-[var(--d-text)]">{value}</p>
           </div>
         ))}
       </section>
 
-      <section className="mt-8 rounded-xl border border-white/10 bg-[#161616] p-5">
+      <section className="mt-8 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
         <p className={labelClass}>Invite by email</p>
         <textarea value={emails} onChange={(e) => setEmails(e.target.value)} rows={4}
           placeholder="Paste emails, separated by commas, spaces or new lines"
-          className="mt-3 w-full rounded-lg border border-white/15 bg-black/30 p-3 text-[13px] text-white outline-none focus:border-[#AFC95B]" />
+          className="mt-3 w-full rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] p-3 text-[13px] text-[var(--d-text)] outline-none focus:border-[var(--d-lime)]" />
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional), for example: team"
-          className="mt-2 w-full rounded-lg border border-white/15 bg-black/30 p-3 text-[13px] text-white outline-none focus:border-[#AFC95B]" />
+          className="mt-2 w-full rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] p-3 text-[13px] text-[var(--d-text)] outline-none focus:border-[var(--d-lime)]" />
         <div className="mt-3 flex items-center gap-3">
           <button type="button" onClick={() => void addInvites()} disabled={busy || !emails.trim()}
-            className="min-h-11 rounded-lg bg-[#AFC95B] px-4 text-[13px] font-bold text-[#10171D] disabled:opacity-50">
+            className="min-h-11 rounded-lg bg-[var(--d-lime)] px-4 text-[13px] font-bold text-[#0D0E10] disabled:opacity-50">
             Invite
           </button>
-          {result && <p className="text-[12px] text-white/70">{result}</p>}
+          {result && <p className="text-[12px] text-[var(--d-text)]">{result}</p>}
         </div>
       </section>
 
@@ -139,34 +139,34 @@ export default function AdminWaitlistPage() {
         <div className="flex items-center justify-between">
           <p className={labelClass}>Waitlist, oldest first</p>
           <button type="button" disabled={!data?.waitlist.length} onClick={() => data && downloadCsv(data.waitlist, invited)}
-            className="min-h-11 text-[12px] text-white/70 underline disabled:opacity-40">Download CSV</button>
+            className="min-h-11 text-[12px] text-[var(--d-text)] underline disabled:opacity-40">Download CSV</button>
         </div>
         <table className="mt-3 w-full text-left text-[13px]">
-          <thead className="text-white/40">
+          <thead className="text-[var(--d-text-2)]">
             <tr><th className="py-2 font-normal">#</th><th className="font-normal">Email</th><th className="font-normal">Language</th><th className="font-normal">Use</th><th className="font-normal">Joined</th><th className="font-normal">Access</th></tr>
           </thead>
           <tbody>
             {data?.waitlist.map((r, i) => (
-              <tr key={r.email} className="border-t border-white/10">
-                <td className="mono py-2 text-white/50">{i + 1}</td>
-                <td className="text-white">{r.email}</td>
-                <td className="text-white/60">{r.locale}</td>
-                <td className="text-white/60">{(r.useCases ?? []).map((u) => USE_LABEL[u]).join(', ')}</td>
-                <td className="text-white/60">{when(r.joinedAt)}</td>
+              <tr key={r.email} className="border-t border-[var(--d-line)]">
+                <td className="py-2 text-[var(--d-text-2)]">{i + 1}</td>
+                <td className="text-[var(--d-text)]">{r.email}</td>
+                <td className="text-[var(--d-text-2)]">{r.locale}</td>
+                <td className="text-[var(--d-text-2)]">{(r.useCases ?? []).map((u) => USE_LABEL[u]).join(', ')}</td>
+                <td className="text-[var(--d-text-2)]">{when(r.joinedAt)}</td>
                 <td>
                   {invited.has(r.email) ? (
                     emailedAt.get(r.email) == null && !data?.envInvites.includes(r.email) ? (
-                      <span className="text-[#d9ad55]">
+                      <span className="text-[var(--d-amber)]">
                         Approved, email not sent{' '}
                         <button type="button" onClick={() => void approve(r.email)} disabled={approving !== null}
                           className="min-h-9 underline disabled:opacity-50">{approving === r.email ? 'Sending' : 'Resend'}</button>
                       </span>
                     ) : (
-                      <span className="text-[#AFC95B]">Approved{emailedAt.get(r.email) ? ', emailed' : ''}</span>
+                      <span className="text-[var(--d-lime)]">Approved{emailedAt.get(r.email) ? ', emailed' : ''}</span>
                     )
                   ) : (
                     <button type="button" onClick={() => void approve(r.email)} disabled={approving !== null}
-                      className="min-h-9 rounded-md bg-[#AFC95B] px-3 text-[12px] font-bold text-[#10171D] disabled:opacity-50">
+                      className="min-h-9 rounded-md bg-[var(--d-lime)] px-3 text-[12px] font-bold text-[#0D0E10] disabled:opacity-50">
                       {approving === r.email ? 'Approving' : 'Approve'}
                     </button>
                   )}
@@ -175,21 +175,21 @@ export default function AdminWaitlistPage() {
             ))}
           </tbody>
         </table>
-        {data && data.waitlist.length === 0 && <p className="mt-3 text-[13px] text-white/50">Nobody has joined yet.</p>}
+        {data && data.waitlist.length === 0 && <p className="mt-3 text-[13px] text-[var(--d-text-2)]">Nobody has joined yet.</p>}
       </section>
 
       <section className="mt-8">
         <p className={labelClass}>Approved and invited</p>
-        <ul className="mt-3 divide-y divide-white/10 text-[13px]">
+        <ul className="mt-3 divide-y divide-[var(--d-line)] text-[13px]">
           {data?.envInvites.map((e) => (
             <li key={`env-${e}`} className="flex min-h-11 items-center justify-between gap-3">
-              <span className="text-white">{e}</span><span className="text-white/40">From MAINNET_INVITES</span>
+              <span className="text-[var(--d-text)]">{e}</span><span className="text-[var(--d-text-2)]">From MAINNET_INVITES</span>
             </li>
           ))}
           {data?.invites.map((i) => (
             <li key={i.email} className="flex min-h-11 items-center justify-between gap-3">
-              <span className="text-white">{i.email}{i.note ? <span className="text-white/40"> · {i.note}</span> : null}</span>
-              <button type="button" onClick={() => void remove(i.email)} className="min-h-11 text-[12px] text-[#e0794f] underline">Revoke</button>
+              <span className="text-[var(--d-text)]">{i.email}{i.note ? <span className="text-[var(--d-text-2)]"> · {i.note}</span> : null}</span>
+              <button type="button" onClick={() => void remove(i.email)} className="min-h-11 text-[12px] text-[var(--d-red)] underline">Revoke</button>
             </li>
           ))}
         </ul>

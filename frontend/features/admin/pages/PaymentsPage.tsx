@@ -86,8 +86,8 @@ export default function AdminPayments() {
     <div>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-sans text-[26px] font-extrabold tracking-[-0.01em]">Payments</h1>
-          <p className="mt-1 text-[13px] text-white/45">
+          <h1 className="font-sans text-[26px] font-semibold tracking-[-0.01em]">Payments</h1>
+          <p className="mt-1 text-[13px] text-[var(--d-text-2)]">
             Every agent-to-agent x402 payment: internal Arc credit-passport pulls and off-platform
             market research on Base.
           </p>
@@ -96,24 +96,24 @@ export default function AdminPayments() {
           type="button"
           onClick={() => void load()}
           disabled={busy}
-          className="shrink-0 mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-1.5 rounded border border-white/20 hover:border-white/50 disabled:opacity-50"
+          className="shrink-0 text-[10px] font-bold px-3 py-1.5 rounded border border-[var(--d-line)] hover:border-[var(--d-line-2)] disabled:opacity-50"
         >
           {busy ? 'loading…' : 'refresh'}
         </button>
       </div>
 
       {events && (
-        <div className="mt-4 flex items-center gap-x-5 gap-y-1 flex-wrap mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+        <div className="mt-4 flex items-center gap-x-5 gap-y-1 flex-wrap text-[10px] text-[var(--d-text-2)]">
           <span>{events.length} payments</span>
           <span>
-            <span className="text-white/70">{fmtUsd(totalUsd)}</span> total
+            <span className="text-[var(--d-text)]">{fmtUsd(totalUsd)}</span> total
           </span>
           <span>{arcCount} on arc</span>
           <span>{baseCount} on base</span>
         </div>
       )}
 
-      {err && <p className="mt-3 text-[13px] text-[#e0794f]">{err}</p>}
+      {err && <p className="mt-3 text-[13px] text-[var(--d-red)]">{err}</p>}
 
       <div className="mt-3 space-y-1.5">
         {(events ?? []).map((e, i) => {
@@ -131,35 +131,35 @@ export default function AdminPayments() {
           return (
             <div
               key={i}
-              className="border border-white/10 rounded-lg px-3 py-2 flex items-center gap-3 flex-wrap"
+              className="border border-[var(--d-line)] rounded-lg px-3 py-2 flex items-center gap-3 flex-wrap"
             >
-              <span className="mono text-[9px] text-white/30 tabular-nums shrink-0 w-[132px]">
+              <span className="text-[9px] text-[var(--d-text-3)] tabular-nums shrink-0 w-[132px]">
                 {fmtTime(e.ts)}
               </span>
               <span
-                className="mono text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
                 style={{ color: railColor, background: `${railColor}1f` }}
               >
                 {rail}
               </span>
               {kind && (
-                <span className="mono text-[10px] uppercase tracking-[0.1em] text-white/45 shrink-0">
+                <span className="text-[10px] text-[var(--d-text-2)] shrink-0">
                   {kind}
                 </span>
               )}
-              <span className="font-sans text-[13px] font-extrabold tabular-nums shrink-0 w-[80px]">
+              <span className="font-sans text-[13px] font-semibold tabular-nums shrink-0 w-[80px]">
                 {fmtUsd(p.amountUsd)}
               </span>
-              <div className="flex-1 min-w-[160px] flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/60">
+              <div className="flex-1 min-w-[160px] flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--d-text-2)]">
                 {agent && (
-                  <span className="mono text-[11px]">
-                    <span className="text-white/35">by </span>
+                  <span className="text-[11px]">
+                    <span className="text-[var(--d-text-3)]">by </span>
                     {agent}
                   </span>
                 )}
                 {counterparty && (
-                  <span className="mono text-[11px] tabular-nums">
-                    <span className="text-white/35">on </span>
+                  <span className="text-[11px] tabular-nums">
+                    <span className="text-[var(--d-text-3)]">on </span>
                     {short(counterparty)}
                   </span>
                 )}
@@ -169,12 +169,12 @@ export default function AdminPayments() {
                   href={link.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] text-[#7fae9f] hover:text-white underline underline-offset-2"
+                  className="shrink-0 text-[10px] text-[#7fae9f] hover:text-[var(--d-text)] underline underline-offset-2"
                 >
                   {link.label}
                 </a>
               ) : (
-                <span className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] text-white/25">
+                <span className="shrink-0 text-[10px] text-[var(--d-text-3)]">
                   batched
                 </span>
               )}
@@ -182,7 +182,7 @@ export default function AdminPayments() {
           );
         })}
         {events && events.length === 0 && (
-          <p className="text-[13px] text-white/35 py-6 text-center">
+          <p className="text-[13px] text-[var(--d-text-3)] py-6 text-center">
             No agent payments recorded yet. They appear here once agents pay for data during a deal.
           </p>
         )}

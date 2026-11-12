@@ -1,3 +1,4 @@
+import { pageAccess, type DeskMe } from './adminNavigation';
 /// Words and times for the support desk's cases (view 78).
 
 export type CaseKind = 'money_in_deal' | 'transfer_missing' | 'account' | 'using_karwan' | 'other';
@@ -42,3 +43,16 @@ const CHANNEL: Record<CaseChannel, string> = { web: 'Website', telegram: 'Telegr
 export const kindLabel = (k: CaseKind) => KIND[k];
 export const stateLabel = (s: CaseState) => STATE[s];
 export const channelLabel = (c: CaseChannel) => CHANNEL[c];
+
+/// "Ask for a fix" moves money once a second teammate approves, so it shows
+/// only to a teammate with fix on Deals (view 79).
+export function canAskForFix(me: DeskMe): boolean {
+  return pageAccess(me, ['deals']) === 'fix';
+}
+
+/// Support opened from Home, Waiting for you or an account: ?case=KS-1042
+/// opens that case. Anything else opens the queue.
+export function caseFromAddress(search: string): string | null {
+  const ref = new URLSearchParams(search).get('case');
+  return ref && /^K[ST]-\d{4,}$/.test(ref) ? ref : null;
+}

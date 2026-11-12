@@ -18,8 +18,8 @@ import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
 type Draft = { decision: AdminMatchingReviewDecision; note: string };
 
 const inputClass =
-  'mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[13px] focus:border-white/40 outline-none';
-const labelClass = 'mono text-[10px] uppercase tracking-[0.12em] text-white/40';
+  'mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[13px] focus:border-[var(--d-line-2)] outline-none';
+const labelClass = 'text-[10px] text-[var(--d-text-2)]';
 
 function reviewId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -116,14 +116,14 @@ export default function AdminMatchingPage() {
         meta={summary ? `${summary.comparison.diverged} disagreements in the current window` : 'Waiting for review evidence'}
       />
 
-      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• Error: {err}</p>}
-      {notice && <p className="mt-4 text-[12px] text-white/70 border border-white/15 bg-white/5 rounded-lg px-3 py-2">{notice}</p>}
+      {err && <p role="alert" className="mt-5 border-l-2 border-[#5A2A2E] px-3 py-2 text-[12px] text-[var(--d-red)]">• Error: {err}</p>}
+      {notice && <p className="mt-4 text-[12px] text-[var(--d-text)] border border-[var(--d-line)] bg-[var(--d-surface)] rounded-lg px-3 py-2">{notice}</p>}
 
-      <section className="mt-6 border border-white/10 rounded-xl p-5 bg-[#161616]">
+      <section className="mt-6 border border-[var(--d-line)] rounded-lg p-5 bg-[var(--d-surface)]">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className={labelClass}>Review identity</p>
-            <p className="mt-1 text-[12px] text-white/45">Stored with each disposition for accountability.</p>
+            <p className="mt-1 text-[12px] text-[var(--d-text-2)]">Stored with each disposition for accountability.</p>
           </div>
           <label className="block w-full sm:w-[320px]">
             <span className={labelClass}>Reviewer</span>
@@ -145,55 +145,55 @@ export default function AdminMatchingPage() {
             ['Diverged', summary.comparison.diverged],
             ['Pending review', rows.filter((row) => !row.review).length],
           ].map(([label, value]) => (
-            <div key={label} className="border border-white/10 rounded-xl p-4 bg-[#161616]">
+            <div key={label} className="border border-[var(--d-line)] rounded-lg p-4 bg-[var(--d-surface)]">
               <p className={labelClass}>{label}</p>
-              <p className="mt-2 mono text-[22px] text-white">{value}</p>
+              <p className="mt-2 text-[22px] text-[var(--d-text)]">{value}</p>
             </div>
           ))}
         </div>
       )}
 
       <div className="mt-6 space-y-4">
-        {queue === null && <p className="text-[13px] text-white/40">Loading review queue</p>}
+        {queue === null && <p className="text-[13px] text-[var(--d-text-2)]">Loading review queue</p>}
         {queue !== null && rows.length === 0 && (
-          <div className="border border-white/10 rounded-xl p-5 bg-[#161616]">
+          <div className="border border-[var(--d-line)] rounded-lg p-5 bg-[var(--d-surface)]">
             <p className="text-[14px] font-semibold">No unresolved disagreements</p>
-            <p className="mt-1 text-[12px] text-white/45">The queue is empty for the current bounded audit window.</p>
+            <p className="mt-1 text-[12px] text-[var(--d-text-2)]">The queue is empty for the current bounded audit window.</p>
           </div>
         )}
 
         {rows.map((row) => {
           const draft = draftFor(row);
           return (
-            <article key={row.observationKey} className="border border-white/10 rounded-xl p-5 bg-[#161616]">
+            <article key={row.observationKey} className="border border-[var(--d-line)] rounded-lg p-5 bg-[var(--d-surface)]">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
                   <p className={labelClass}>{row.source} · mandate v{row.mandateVersion}</p>
-                  <h2 className="mt-2 mono text-[13px] break-all text-white">{row.observationKey}</h2>
-                  <p className="mt-1 text-[11px] text-white/35">Observed {when(row.observedAt)}</p>
+                  <h2 className="mt-2 text-[13px] break-all text-[var(--d-text)]">{row.observationKey}</h2>
+                  <p className="mt-1 text-[11px] text-[var(--d-text-3)]">Observed {when(row.observedAt)}</p>
                 </div>
                 <div className="flex gap-2 flex-wrap justify-end">
                   {row.reasons.map((reason) => (
-                    <span key={reason} className="mono text-[9px] uppercase tracking-[0.1em] px-2 py-1 rounded border border-[#AFC95B]/30 text-[#AFC95B]">
+                    <span key={reason} className="text-[9px] px-2 py-1 rounded border border-[#3D4A22] text-[var(--d-lime)]">
                       {matchingReviewReasonLabel(reason)}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 text-[12px] text-white/55">
-                <p><span className="text-white/35">Legacy winner:</span> <span className="mono text-white/75">{row.legacyWinnerId ?? 'none'}</span></p>
-                <p><span className="text-white/35">Shadow winner:</span> <span className="mono text-white/75">{row.shadowWinnerId ?? 'none'}</span></p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 text-[12px] text-[var(--d-text-2)]">
+                <p><span className="text-[var(--d-text-3)]">Legacy winner:</span> <span className="text-[var(--d-text)]">{row.legacyWinnerId ?? 'none'}</span></p>
+                <p><span className="text-[var(--d-text-3)]">Shadow winner:</span> <span className="text-[var(--d-text)]">{row.shadowWinnerId ?? 'none'}</span></p>
               </div>
 
               {row.review ? (
-                <div className="mt-4 border border-white/10 rounded-lg px-3 py-3 bg-white/[0.03]">
+                <div className="mt-4 border border-[var(--d-line)] rounded-lg px-3 py-3 bg-[var(--d-hover)]">
                   <p className={labelClass}>Reviewed · {matchingReviewDecisionLabel(row.review.decision)}</p>
-                  <p className="mt-1 text-[12px] text-white/60">{row.review.reviewer} · {when(row.review.createdAt)}</p>
-                  {row.review.note && <p className="mt-2 text-[12px] text-white/75">{row.review.note}</p>}
+                  <p className="mt-1 text-[12px] text-[var(--d-text-2)]">{row.review.reviewer} · {when(row.review.createdAt)}</p>
+                  {row.review.note && <p className="mt-2 text-[12px] text-[var(--d-text)]">{row.review.note}</p>}
                 </div>
               ) : (
-                <div className="mt-5 border-t border-white/10 pt-4">
+                <div className="mt-5 border-t border-[var(--d-line)] pt-4">
                   <fieldset>
                     <legend className={labelClass}>Disposition</legend>
                     <div className="mt-2 grid gap-2 sm:grid-cols-3">
@@ -204,10 +204,10 @@ export default function AdminMatchingPage() {
                           aria-pressed={draft.decision === choice.value}
                           onClick={() => updateDraft(row, { decision: choice.value })}
                           className={`min-h-11 rounded-lg border px-3 py-2 text-left text-[11px] font-semibold transition ${
-                            draft.decision === choice.value
-                              ? 'border-[#AFC95B]/45 bg-[#AFC95B]/10 text-[#c7dc82]'
-                              : 'border-white/12 text-white/50 hover:border-white/25 hover:text-white/80'
-                          }`}
+ draft.decision === choice.value
+ ? 'border-[#3D4A22] bg-[#1F2614] text-[var(--d-lime)]'
+ : 'border-[var(--d-line)] text-[var(--d-text-2)] hover:border-[var(--d-line-2)] hover:text-[var(--d-text)]'
+ }`}
                         >
                           {choice.label}
                         </button>
@@ -229,7 +229,7 @@ export default function AdminMatchingPage() {
                     type="button"
                     onClick={() => void submit(row)}
                     disabled={!reviewer.trim() || busyKey !== null}
-                    className="mt-3 mono text-[10px] uppercase tracking-[0.12em] font-bold px-4 py-2.5 rounded-lg bg-white text-[#0e0e0e] disabled:opacity-40"
+                    className="mt-3 text-[10px] font-bold px-4 py-2.5 rounded-lg bg-[var(--d-text)] text-[#0D0E10] disabled:opacity-40"
                   >
                     {busyKey === row.observationKey ? 'Recording' : 'Record disposition'}
                   </button>

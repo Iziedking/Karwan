@@ -65,7 +65,7 @@ function Screenshot({ path, onOpen }: { path: string; onOpen: (src: string) => v
       type="button"
       disabled={!src}
       onClick={() => src && onOpen(src)}
-      className="h-28 min-w-28 overflow-hidden border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
+      className="h-28 min-w-28 overflow-hidden border border-[var(--d-line)] hover:border-[var(--lp-accent)] transition-colors"
       style={{ borderRadius: 8 }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -183,10 +183,10 @@ export default function AdminFeedbackPage() {
       <div className="mx-auto max-w-[1100px] px-[clamp(20px,5vw,48px)] py-[clamp(28px,5vw,56px)]">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <p className="text-[10px] text-[var(--d-text-3)]">
               {t.eyebrow}
             </p>
-            <h1 className="mt-2 font-sans text-[clamp(1.8rem,4vw,2.75rem)] font-extrabold uppercase tracking-[-0.025em] leading-[0.95]">
+            <h1 className="mt-2 font-sans text-[clamp(1.8rem,4vw,2.75rem)] font-semibold tracking-[-0.025em] leading-[0.95]">
               {t.title}
               <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </h1>
@@ -195,7 +195,7 @@ export default function AdminFeedbackPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3.5 py-2 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
+              className="text-[11px] font-semibold px-3.5 py-2 bg-[var(--lp-card)] border border-[var(--d-line)] hover:border-[var(--lp-accent)] transition-colors"
               style={{ borderRadius: 8 }}
             >
               {t.actions.refresh}
@@ -212,7 +212,7 @@ export default function AdminFeedbackPage() {
                 key={f}
                 type="button"
                 onClick={() => setFilter(f)}
-                className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3 py-1.5 transition-colors"
+                className="text-[11px] font-semibold px-3 py-1.5 transition-colors"
                 style={{
                   background: on ? 'var(--lp-band-dark)' : 'var(--lp-card)',
                   color: on ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
@@ -243,12 +243,12 @@ export default function AdminFeedbackPage() {
         {/* LIST */}
         <div className="mt-7 space-y-4">
           {items === null && (
-            <p className="mono text-[12px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+            <p className="text-[12px] text-[var(--d-text-3)]">
               {t.loading}
             </p>
           )}
           {items !== null && visible.length === 0 && !error && (
-            <p className="text-[14px] text-[var(--lp-text-sub)]">
+            <p className="text-[14px] text-[var(--d-text-2)]">
               {filter !== 'all' ? t.emptyInFilter.replace('{filter}', filterLabels[filter]) : t.emptyAll}
             </p>
           )}
@@ -268,7 +268,7 @@ export default function AdminFeedbackPage() {
           ))}
 
           {pageCount > 1 && (
-            <div className="flex items-center justify-between gap-3 pt-2 mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+            <div className="flex items-center justify-between gap-3 pt-2 text-[11px] text-[var(--d-text-3)]">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
@@ -298,7 +298,7 @@ export default function AdminFeedbackPage() {
           type="button"
           aria-label={t.lightbox.closeAria}
           onClick={() => setLightbox(null)}
-          className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80"
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-[var(--d-bg)]"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -346,20 +346,20 @@ function FeedbackCard({
   };
   return (
     <div
-      className="bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5"
+      className="bg-[var(--lp-card)] border border-[var(--d-line)] p-5"
       style={{
         borderRadius: 14,
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className="mono text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 text-white"
+          className="text-[10px] font-bold px-2 py-0.5 text-[var(--d-text)]"
           style={{ background: CATEGORY_COLOR[item.category], borderRadius: 4 }}
         >
           {categoryLabel}
         </span>
         <span
-          className="mono text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5"
+          className="text-[10px] font-bold px-2 py-0.5"
           style={{
             color: item.status === 'new' ? 'var(--lp-band-dark)' : '#fff',
             background: STATUS_COLOR[item.status],
@@ -368,15 +368,15 @@ function FeedbackCard({
         >
           {statusLabel}
         </span>
-        <span className="ms-auto mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+        <span className="ms-auto text-[10px] text-[var(--d-text-3)]">
           {new Date(item.createdAt).toLocaleString()}
         </span>
       </div>
 
-      <h2 className="mt-3 font-sans text-[17px] font-extrabold tracking-[-0.01em]">
+      <h2 className="mt-3 font-sans text-[17px] font-semibold tracking-[-0.01em]">
         {item.title}
       </h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap break-words">
+      <p className="mt-2 text-[14px] leading-relaxed text-[var(--d-text-2)] whitespace-pre-wrap break-words">
         {item.message}
       </p>
 
@@ -398,7 +398,7 @@ function FeedbackCard({
       )}
 
       {/* ACTIONS */}
-      <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-[var(--lp-border-light)]">
+      <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-[var(--d-line)]">
         {item.status !== 'triaged' && (
           <StatusButton label={actionLabels.markTriaged} onClick={() => onStatus('triaged')} busy={busy} />
         )}
@@ -416,7 +416,7 @@ function FeedbackCard({
           />
         )}
         {removal === 'done' && (
-          <span role="status" className="mono self-center text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)]">{actionLabels.offerRemoved}</span>
+          <span role="status" className="self-center text-[11px] text-[var(--d-text-2)]">{actionLabels.offerRemoved}</span>
         )}
       </div>
     </div>
@@ -425,8 +425,8 @@ function FeedbackCard({
 
 function Meta({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (
-    <p className="text-[12px] leading-snug text-[var(--lp-text-muted)] break-words">
-      <span className="mono uppercase tracking-[0.1em] text-[10px]">{k}: </span>
+    <p className="text-[12px] leading-snug text-[var(--d-text-3)] break-words">
+      <span className="text-[10px]">{k}: </span>
       <span className={mono ? 'mono' : undefined} style={{ color: 'var(--lp-text-sub)' }}>
         {v}
       </span>
@@ -450,7 +450,7 @@ function StatusButton({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="mono text-[11px] uppercase tracking-[0.08em] font-semibold px-3 py-1.5 transition-colors disabled:opacity-50"
+      className="text-[11px] font-semibold px-3 py-1.5 transition-colors disabled:opacity-50"
       style={{
         background: muted ? 'transparent' : 'var(--lp-light)',
         color: 'var(--lp-dark)',

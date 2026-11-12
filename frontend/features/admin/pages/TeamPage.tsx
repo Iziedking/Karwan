@@ -41,19 +41,19 @@ function IssuedLink({ link, note, onDone }: { link: string; note: string; onDone
   }
 
   return (
-    <div className="mt-5 border border-[#AFC95B]/40 bg-[#AFC95B]/10 rounded-xl p-4">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[#AFC95B]">
+    <div className="mt-5 border border-[#3D4A22] bg-[#1F2614] rounded-lg p-4">
+      <p className="text-[10px] font-bold text-[var(--d-lime)]">
         Invitation ready
       </p>
-      <p className="mt-1.5 text-[12px] text-white/70 max-w-[62ch]">{note}</p>
+      <p className="mt-1.5 text-[12px] text-[var(--d-text)] max-w-[62ch]">{note}</p>
       <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-        <code className="min-w-0 flex-1 font-mono text-[12px] break-all bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-white select-all">
+        <code className="min-w-0 flex-1 font-mono text-[12px] break-all bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[var(--d-text)] select-all">
           {link}
         </code>
         <button
           type="button"
           onClick={copy}
-          className="mono min-h-11 w-full rounded-lg bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0e0e0e] sm:w-auto"
+          className="min-h-11 w-full rounded-lg bg-[var(--d-text)] px-3 py-2.5 text-[10px] font-bold text-[#0D0E10] sm:w-auto"
         >
           {copied ? 'Copied' : 'Copy'}
         </button>
@@ -61,7 +61,7 @@ function IssuedLink({ link, note, onDone }: { link: string; note: string; onDone
       <button
         type="button"
         onClick={onDone}
-        className="mt-3 inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.12em] text-white/45 hover:text-white transition"
+        className="mt-3 inline-flex min-h-11 items-center px-2 text-[10px] text-[var(--d-text-2)] hover:text-[var(--d-text)] transition"
       >
         Done
       </button>
@@ -176,6 +176,25 @@ export default function AdminTeamPage() {
     }
   }
 
+  /// A lost phone: their mainnet code goes, they are signed out of both desks,
+  /// and their next mainnet sign-in sets a new code up (view 79).
+  async function resetCode(member: TeamMemberView) {
+    const ok = await confirm({
+      title: `Reset ${member.name}'s code`,
+      message: 'Their mainnet code stops working and they are signed out of both desks. Their next mainnet sign-in sets up a new code.',
+      confirmLabel: 'Reset the code',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.adminResetTeamMemberCode(member.id);
+      setErr(null);
+      load();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Could not reset their code');
+    }
+  }
+
   async function remove(member: TeamMemberView) {
     const ok = await confirm({
       title: 'Remove from the team',
@@ -211,42 +230,42 @@ export default function AdminTeamPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">Team</p>
-      <h1 className="mt-2 font-sans text-[24px] font-extrabold">People</h1>
-      <p className="mt-2 text-[13px] text-white/55 max-w-[68ch]">
+      <p className="text-[10px] text-[var(--d-text-2)]">Team</p>
+      <h1 className="mt-2 font-sans text-[24px] font-semibold">People</h1>
+      <p className="mt-2 text-[13px] text-[var(--d-text-2)] max-w-[68ch]">
         Invite somebody and they get an email with a link to set a password. After that they sign in
         at the portal and connect the Claude app, ChatGPT or anything else themselves. Ending access
         cuts off every tool they connected at once.
       </p>
 
       {err && (
-        <p className="mt-4 text-[12px] text-[#e0794f] border border-[#e0794f]/30 bg-[#e0794f]/10 rounded-lg px-3 py-2">
+        <p className="mt-4 text-[12px] text-[var(--d-red)] border border-[#5A2A2E] bg-[#3A1C1F] rounded-lg px-3 py-2">
           {err}
         </p>
       )}
 
-      <form onSubmit={invite} className="mt-6 border border-white/10 rounded-xl p-5 bg-[#161616]">
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/40">Invite somebody</p>
+      <form onSubmit={invite} className="mt-6 border border-[var(--d-line)] rounded-lg p-5 bg-[var(--d-surface)]">
+        <p className="text-[10px] text-[var(--d-text-2)]">Invite somebody</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">Name</span>
+            <span className="text-[10px] text-[var(--d-text-2)]">Name</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Aisha"
               maxLength={80}
-              className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] focus:border-white/40 outline-none"
+              className="mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] focus:border-[var(--d-line-2)] outline-none"
             />
           </label>
           <label className="block">
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">Email</span>
+            <span className="text-[10px] text-[var(--d-text-2)]">Email</span>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="aisha@karwan.site"
               maxLength={200}
-              className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] focus:border-white/40 outline-none"
+              className="mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] focus:border-[var(--d-line-2)] outline-none"
             />
           </label>
         </div>
@@ -257,11 +276,11 @@ export default function AdminTeamPage() {
               key={r.value}
               type="button"
               onClick={() => setRole(r.value)}
-              className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border transition ${
-                role === r.value
-                  ? 'bg-white text-[#0e0e0e] border-white font-bold'
-                  : 'border-white/15 text-white/55 hover:text-white'
-              }`}
+              className={` text-[10px] px-3 py-2 rounded-lg border transition ${
+ role === r.value
+ ? 'bg-[var(--d-text)] text-[#0D0E10] border-[var(--d-line-2)] font-bold'
+ : 'border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)]'
+ }`}
             >
               {r.label}
             </button>
@@ -272,7 +291,7 @@ export default function AdminTeamPage() {
         <button
           type="submit"
           disabled={busy || !email.trim() || !name.trim()}
-          className="mt-5 mono text-[10px] uppercase tracking-[0.12em] font-bold px-4 py-2.5 rounded-lg bg-white text-[#0e0e0e] disabled:opacity-40"
+          className="mt-5 text-[10px] font-bold px-4 py-2.5 rounded-lg bg-[var(--d-text)] text-[#0D0E10] disabled:opacity-40"
         >
           {busy ? 'Sending' : 'Send invitation'}
         </button>
@@ -284,23 +303,23 @@ export default function AdminTeamPage() {
 
       {openInvites.length > 0 && (
         <>
-          <p className="mt-8 mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+          <p className="mt-8 text-[10px] text-[var(--d-text-2)]">
             Invitations ({openInvites.length})
           </p>
           <div className="mt-3 space-y-2">
             {openInvites.map((inv) => (
               <div
                 key={inv.id}
-                className="border border-white/10 rounded-xl p-4 bg-[#161616] flex items-start justify-between gap-3 flex-wrap"
+                className="border border-[var(--d-line)] rounded-lg p-4 bg-[var(--d-surface)] flex items-start justify-between gap-3 flex-wrap"
               >
                 <div className="min-w-0">
                   <p className="text-[14px] font-bold">
                     {inv.name}{' '}
-                    <span className="mono text-[9px] uppercase tracking-[0.14em] px-2 py-1 rounded border border-white/15 text-white/50">
+                    <span className="text-[9px] px-2 py-1 rounded border border-[var(--d-line)] text-[var(--d-text-2)]">
                       {inv.role}
                     </span>
                   </p>
-                  <p className="mt-1 text-[12px] text-white/45">
+                  <p className="mt-1 text-[12px] text-[var(--d-text-2)]">
                     {inv.email} · {inviteStatusLabel(inv)}
                   </p>
                 </div>
@@ -309,7 +328,7 @@ export default function AdminTeamPage() {
                     <button
                       type="button"
                       onClick={() => resend(inv)}
-                      className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white"
+                      className="text-[10px] px-3 py-2 rounded-lg border border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)]"
                     >
                       {inv.pending ? 'Resend' : 'Issue new link'}
                     </button>
@@ -318,7 +337,7 @@ export default function AdminTeamPage() {
                   <button
                     type="button"
                     onClick={() => cancel(inv)}
-                    className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-[#e0794f]/40 text-[#e0794f]"
+                    className="text-[10px] px-3 py-2 rounded-lg border border-[#5A2A2E] text-[var(--d-red)]"
                   >
                     Cancel
                   </button>
@@ -329,34 +348,34 @@ export default function AdminTeamPage() {
         </>
       )}
 
-      <p className="mt-8 mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+      <p className="mt-8 text-[10px] text-[var(--d-text-2)]">
         On the team ({members?.filter((m) => m.active).length ?? 0})
       </p>
       <div className="mt-3 space-y-2">
-        {members === null && <p className="text-[13px] text-white/40">Loading</p>}
+        {members === null && <p className="text-[13px] text-[var(--d-text-2)]">Loading</p>}
         {members?.length === 0 && (
-          <p className="text-[13px] text-white/40">Nobody yet. Invite somebody above.</p>
+          <p className="text-[13px] text-[var(--d-text-2)]">Nobody yet. Invite somebody above.</p>
         )}
         {members?.map((m) => (
           <div
             key={m.id}
-            className={`border rounded-xl p-4 flex items-start justify-between gap-3 flex-wrap ${
-              m.active ? 'border-white/10 bg-[#161616]' : 'border-white/5 bg-[#111] opacity-60'
-            }`}
+            className={`border rounded-lg p-4 flex items-start justify-between gap-3 flex-wrap ${
+ m.active ? 'border-[var(--d-line)] bg-[var(--d-surface)]' : 'border-[var(--d-line)] bg-[#111] opacity-60'
+ }`}
           >
             <div className="min-w-0">
               <p className="text-[14px] font-bold">
                 {m.name}{' '}
-                <span className="mono text-[9px] uppercase tracking-[0.14em] px-2 py-1 rounded border border-white/15 text-white/50">
+                <span className="text-[9px] px-2 py-1 rounded border border-[var(--d-line)] text-[var(--d-text-2)]">
                   {m.role}
                 </span>
                 {m.locked && (
-                  <span className="ml-2 mono text-[9px] uppercase tracking-[0.14em] text-[#e0794f]">
+                  <span className="ml-2 text-[9px] text-[var(--d-red)]">
                     locked out
                   </span>
                 )}
               </p>
-              <p className="mt-1 text-[12px] text-white/45">
+              <p className="mt-1 text-[12px] text-[var(--d-text-2)]">
                 {m.email} · last signed in {when(m.lastLoginAt)}
                 {m.active ? '' : ' · access ended'}
               </p>
@@ -364,11 +383,11 @@ export default function AdminTeamPage() {
             <button
               type="button"
               onClick={() => toggle(m)}
-              className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border shrink-0 ${
-                m.active
-                  ? 'border-[#e0794f]/40 text-[#e0794f]'
-                  : 'border-white/15 text-white/55 hover:text-white'
-              }`}
+              className={` text-[10px] px-3 py-2 rounded-lg border shrink-0 ${
+ m.active
+ ? 'border-[#5A2A2E] text-[var(--d-red)]'
+ : 'border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)]'
+ }`}
             >
               {m.active ? 'End access' : 'Restore'}
             </button>
@@ -377,7 +396,7 @@ export default function AdminTeamPage() {
                 <button
                   type="button"
                   onClick={() => resetPassword(m)}
-                  className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white shrink-0"
+                  className="text-[10px] px-3 py-2 rounded-lg border border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)] shrink-0"
                 >
                   Reset password
                 </button>
@@ -392,8 +411,18 @@ export default function AdminTeamPage() {
             <div className="flex items-center gap-1">
               <button
                 type="button"
+                onClick={() => resetCode(m)}
+                className="text-[10px] px-3 py-2 rounded-lg border border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)] shrink-0"
+              >
+                Reset their code
+              </button>
+              <Hint>For a lost phone: they set up a new mainnet code at their next sign-in.</Hint>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
                 onClick={() => remove(m)}
-                className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-[#e0794f]/40 text-[#e0794f] shrink-0"
+                className="text-[10px] px-3 py-2 rounded-lg border border-[#5A2A2E] text-[var(--d-red)] shrink-0"
               >
                 Remove
               </button>

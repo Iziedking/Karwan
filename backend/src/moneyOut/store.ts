@@ -32,6 +32,8 @@ export interface MoneyOutStore {
   removeAddress: (wallet: string, id: string, now: number) => Promise<boolean>;
   state: (wallet: string) => Promise<AccountState>;
   setPaused: (wallet: string, at: number | null) => Promise<void>;
+  /// Every paused account and when, for the desk's account list (view 79).
+  pausedWallets: () => Promise<Map<string, number>>;
   setReturnCheckDue: (wallet: string, at: number | null) => Promise<void>;
   /// One payment at a time per account, so two cannot both fit under the limit.
   withAccountLock: <T>(wallet: string, fn: (spend: LockedSpend) => Promise<T>) => Promise<T>;
@@ -122,6 +124,11 @@ export function createPostgresMoneyOutStore(transaction: Transaction): MoneyOutS
       }),
 
     setPaused: upsertState('paused_at'),
+    pausedWallets: () =>
+      transaction(async (tx) => {
+        const r = await tx.query<{ wallet: string; paused_at: string }>(`SELECT wallet, paused_at FROM money_out_state_v1 WHERE paused_at IS NOT NULL`);
+        return new Map(r.rows.map((row) => [row.wallet, Number(row.paused_at)]));
+      }),
     setReturnCheckDue: upsertState('return_check_due_at'),
 
     withAccountLock: (wallet, fn) =>
@@ -202,6 +209,7 @@ export function createMemoryMoneyOutStore(): MoneyOutStore {
     setPaused: async (wallet, at) => {
       states.set(wallet.toLowerCase(), { ...stateOf(wallet), pausedAt: at });
     },
+    pausedWallets: async () => new Map([...states].flatMap(([wallet, st]) => (st.pausedAt === null ? [] : [[wallet, st.pausedAt] as [string, number]]))),
     setReturnCheckDue: async (wallet, at) => {
       states.set(wallet.toLowerCase(), { ...stateOf(wallet), returnCheckDueAt: at });
     },

@@ -58,41 +58,41 @@ export default function AdminKeysPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">Your keys</p>
-      <h1 className="mt-2 font-sans text-[24px] font-extrabold">Keys for your scripts</h1>
-      <p className="mt-2 max-w-[68ch] text-[13px] text-white/55">
+      <p className="text-[10px] text-[var(--d-text-2)]">Your keys</p>
+      <h1 className="mt-2 font-sans text-[24px] font-semibold">Keys for your scripts</h1>
+      <p className="mt-2 max-w-[68ch] text-[13px] text-[var(--d-text-2)]">
         A key can do what your pages allow, and every change it makes is logged with your name. Money moves made with a key still wait for a second member.
       </p>
-      {err && <p role="alert" className="mt-4 rounded-lg border border-[#e0794f]/30 bg-[#e0794f]/10 px-3 py-2 text-[12px] text-[#e0794f]">{err}</p>}
+      {err && <p role="alert" className="mt-4 rounded-lg border border-[#5A2A2E] bg-[#3A1C1F] px-3 py-2 text-[12px] text-[var(--d-red)]">{err}</p>}
 
-      <form onSubmit={make} className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-white/10 bg-[#161616] p-5">
+      <form onSubmit={make} className="mt-6 flex flex-wrap items-end gap-3 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
         <label className="min-w-[240px] flex-1">
-          <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">What it is for</span>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} className="mt-1.5 min-h-11 w-full rounded-lg border border-white/15 bg-[#0e0e0e] px-3 text-[14px] outline-none focus:border-white/40" />
+          <span className="text-[10px] text-[var(--d-text-2)]">What it is for</span>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} className="mt-1.5 min-h-11 w-full rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-3 text-[14px] outline-none focus:border-[var(--d-line-2)]" />
         </label>
-        <button type="submit" disabled={busy || !label.trim()} className="min-h-11 rounded-lg bg-[#AFC95B] px-4 text-[12px] font-bold text-[#0A0A0B] disabled:opacity-40">
+        <button type="submit" disabled={busy || !label.trim()} className="min-h-11 rounded-lg bg-[var(--d-lime)] px-4 text-[12px] font-bold text-[#0D0E10] disabled:opacity-40">
           Make a key
         </button>
       </form>
 
       {rawKey && (
-        <div className="mt-5 rounded-xl border border-[#c9a227]/40 bg-[#c9a227]/10 p-4">
-          <p className="text-[13px] font-bold text-[#e5c76b]">Copy this now</p>
-          <p className="mt-1 text-[12px] text-white/70">This is the only time it is shown. If it is lost, end it and make another.</p>
-          <code className="mt-3 block select-all break-all rounded-lg border border-white/15 bg-[#0e0e0e] px-3 py-2.5 font-mono text-[12px]">{rawKey}</code>
-          <button type="button" onClick={() => setRawKey(null)} className="mt-3 min-h-11 px-2 text-[12px] text-white/50">I have saved it</button>
+        <div className="mt-5 rounded-lg border border-[#c9a227]/40 bg-[#c9a227]/10 p-4">
+          <p className="text-[13px] font-bold text-[var(--d-amber)]">Copy this now</p>
+          <p className="mt-1 text-[12px] text-[var(--d-text)]">This is the only time it is shown. If it is lost, end it and make another.</p>
+          <code className="mt-3 block select-all break-all rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-3 py-2.5 font-mono text-[12px]">{rawKey}</code>
+          <button type="button" onClick={() => setRawKey(null)} className="mt-3 min-h-11 px-2 text-[12px] text-[var(--d-text-2)]">I have saved it</button>
         </div>
       )}
 
-      <ul className="mt-6 divide-y divide-white/8 border-y border-white/8">
+      <ul className="mt-6 divide-y divide-[var(--d-line)] border-y border-[var(--d-line)]">
         {keys?.map((k) => (
           <li key={k.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
             <div>
               <p className="text-[14px] font-semibold">{k.label}</p>
-              <p className="text-[12px] text-white/45">Made {when(k.createdAt)}, last used {when(k.lastUsedAt)}{k.revokedAt ? `, ended ${when(k.revokedAt)}` : ''}</p>
+              <p className="text-[12px] text-[var(--d-text-2)]">Made {when(k.createdAt)}, last used {when(k.lastUsedAt)}{k.revokedAt ? `, ended ${when(k.revokedAt)}` : ''}</p>
             </div>
             {!k.revokedAt && (
-              <button type="button" onClick={() => end(k)} className="min-h-11 rounded-lg border border-[#e0794f]/40 px-3 text-[12px] text-[#efaa8d]">End key</button>
+              <button type="button" onClick={() => end(k)} className="min-h-11 rounded-lg border border-[#5A2A2E] px-3 text-[12px] text-[var(--d-red)]">End key</button>
             )}
           </li>
         ))}

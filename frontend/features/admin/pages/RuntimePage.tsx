@@ -9,7 +9,7 @@ import {
   summarizeAgentRuntimeTasks,
 } from '@/features/admin/agentRuntimePresentation';
 
-const labelClass = 'mono text-[10px] uppercase tracking-[0.12em] text-white/40';
+const labelClass = 'text-[10px] text-[var(--d-text-2)]';
 
 function when(ts: number): string {
   return new Date(ts).toLocaleString('en-GB', {
@@ -18,10 +18,10 @@ function when(ts: number): string {
 }
 
 function attentionClass(attention: string): string {
-  if (attention === 'dead_letter') return 'border-[#e0794f]/40 text-[#e0794f]';
-  if (attention === 'retrying') return 'border-[#d9ad55]/40 text-[#d9ad55]';
-  if (attention === 'active') return 'border-[#AFC95B]/40 text-[#AFC95B]';
-  return 'border-white/20 text-white/50';
+  if (attention === 'dead_letter') return 'border-[#5A2A2E] text-[var(--d-red)]';
+  if (attention === 'retrying') return 'border-[#5A4520] text-[var(--d-amber)]';
+  if (attention === 'active') return 'border-[#3D4A22] text-[var(--d-lime)]';
+  return 'border-[var(--d-line)] text-[var(--d-text-2)]';
 }
 
 export default function AdminRuntimePage() {
@@ -55,14 +55,14 @@ export default function AdminRuntimePage() {
   return (
     <div>
       <p className={labelClass}>Agent runtime</p>
-      <h1 className="mt-2 font-sans text-[24px] font-extrabold">Operational runtime</h1>
-      <p className="mt-2 text-[13px] text-white/55 max-w-[72ch]">
+      <h1 className="mt-2 font-sans text-[24px] font-semibold">Operational runtime</h1>
+      <p className="mt-2 text-[13px] text-[var(--d-text-2)] max-w-[72ch]">
         Read-only visibility into durable retries, active work, and dead letters. This surface
         cannot replay tasks, call providers, move money, or change the legacy winner.
       </p>
 
       {error && (
-        <div className="mt-5 border border-[#e0794f]/30 bg-[#e0794f]/10 rounded-lg px-3 py-2 text-[12px] text-[#e0794f]">
+        <div className="mt-5 border border-[#5A2A2E] bg-[#3A1C1F] rounded-lg px-3 py-2 text-[12px] text-[var(--d-red)]">
           {error} <button type="button" onClick={() => void load()} className="ml-2 underline">Retry</button>
         </div>
       )}
@@ -75,63 +75,63 @@ export default function AdminRuntimePage() {
           ['Active', counts.active],
           ['Settled', counts.settled],
         ].map(([label, value]) => (
-          <div key={label} className="border border-white/10 rounded-xl p-4 bg-[#161616]">
+          <div key={label} className="border border-[var(--d-line)] rounded-lg p-4 bg-[var(--d-surface)]">
             <p className={labelClass}>{label}</p>
-            <p className="mt-2 mono text-[22px] text-white">{value}</p>
+            <p className="mt-2 text-[22px] text-[var(--d-text)]">{value}</p>
           </div>
         ))}
       </section>
 
       {rollout && (
-        <section className="mt-5 border border-white/10 rounded-xl p-5 bg-[#161616]">
+        <section className="mt-5 border border-[var(--d-line)] rounded-lg p-5 bg-[var(--d-surface)]">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <p className={labelClass}>Rollout gate · read-only</p>
-              <p className="mt-1 text-[12px] text-white/55">
+              <p className="mt-1 text-[12px] text-[var(--d-text-2)]">
                 {rollout.gate.eligible ? 'Eligible under the requested thresholds' : 'Blocked until evidence gates are satisfied'}
               </p>
             </div>
-            <span className={`mono text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded border ${rollout.gate.eligible ? 'border-[#AFC95B]/40 text-[#AFC95B]' : 'border-[#e0794f]/40 text-[#e0794f]'}`}>
+            <span className={` text-[10px] px-2 py-1 rounded border ${rollout.gate.eligible ? 'border-[#3D4A22] text-[var(--d-lime)]' : 'border-[#5A2A2E] text-[var(--d-red)]'}`}>
               {rollout.gate.eligible ? 'eligible' : 'blocked'}
             </span>
           </div>
           {rollout.gate.reasons.length > 0 && (
-            <p className="mt-3 mono text-[10px] uppercase tracking-[0.08em] text-[#e0794f]">
+            <p className="mt-3 text-[10px] text-[var(--d-red)]">
               {rollout.gate.reasons.join(' · ')}
             </p>
           )}
           {rollout.missingMetrics.length > 0 && (
-            <p className="mt-2 text-[11px] text-white/45">Missing metrics: {rollout.missingMetrics.join(', ')}</p>
+            <p className="mt-2 text-[11px] text-[var(--d-text-2)]">Missing metrics: {rollout.missingMetrics.join(', ')}</p>
           )}
         </section>
       )}
 
       <section className="mt-6 space-y-3">
-        {loading && <p className="text-[13px] text-white/40">Loading durable runtime…</p>}
+        {loading && <p className="text-[13px] text-[var(--d-text-2)]">Loading durable runtime…</p>}
         {!loading && rows.length === 0 && (
-          <div className="border border-white/10 rounded-xl p-5 bg-[#161616]">
+          <div className="border border-[var(--d-line)] rounded-lg p-5 bg-[var(--d-surface)]">
             <p className="text-[14px] font-semibold">No recent durable tasks</p>
-            <p className="mt-1 text-[12px] text-white/45">The bounded operational window is empty.</p>
+            <p className="mt-1 text-[12px] text-[var(--d-text-2)]">The bounded operational window is empty.</p>
           </div>
         )}
         {rows.map((task) => (
-          <article key={task.id} className="border border-white/10 rounded-xl p-4 bg-[#161616]">
+          <article key={task.id} className="border border-[var(--d-line)] rounded-lg p-4 bg-[var(--d-surface)]">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="min-w-0">
                 <p className={labelClass}>{task.kind} · attempt {task.attempt}/{task.maxAttempts}</p>
-                <h2 className="mt-1 mono text-[12px] break-all text-white/85">{task.id}</h2>
-                <p className="mt-1 text-[11px] text-white/35">Updated {when(task.updatedAt)}</p>
+                <h2 className="mt-1 text-[12px] break-all text-[var(--d-text)]">{task.id}</h2>
+                <p className="mt-1 text-[11px] text-[var(--d-text-3)]">Updated {when(task.updatedAt)}</p>
               </div>
-              <span className={`mono text-[10px] uppercase tracking-[0.1em] px-2 py-1 rounded border ${attentionClass(task.attention)}`}>
+              <span className={` text-[10px] px-2 py-1 rounded border ${attentionClass(task.attention)}`}>
                 {agentRuntimeTaskAttentionLabel(task.attention)}
               </span>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3 text-[11px] text-white/50">
-              <p><span className="text-white/30">State:</span> {agentRuntimeTaskStateLabel(task.state)}</p>
-              <p><span className="text-white/30">Available:</span> {when(task.availableAt)}</p>
-              {task.dealRoomId && <p><span className="text-white/30">Deal room:</span> <span className="mono break-all">{task.dealRoomId}</span></p>}
+            <div className="mt-3 grid gap-2 sm:grid-cols-3 text-[11px] text-[var(--d-text-2)]">
+              <p><span className="text-[var(--d-text-3)]">State:</span> {agentRuntimeTaskStateLabel(task.state)}</p>
+              <p><span className="text-[var(--d-text-3)]">Available:</span> {when(task.availableAt)}</p>
+              {task.dealRoomId && <p><span className="text-[var(--d-text-3)]">Deal room:</span> <span className="break-all">{task.dealRoomId}</span></p>}
             </div>
-            {task.lastError && <p className="mt-3 text-[11px] text-[#e0794f]/80 break-words">{task.lastError}</p>}
+            {task.lastError && <p className="mt-3 text-[11px] text-[var(--d-red)] break-words">{task.lastError}</p>}
           </article>
         ))}
       </section>

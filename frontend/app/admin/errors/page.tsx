@@ -8,12 +8,12 @@ import { api, ApiError, type SupervisorDiagnosis } from '@/core/api';
 /// to the proactive rate cap), so any error can be explained even with proactive
 /// off. Read-only: the supervisor suggests, it does not act.
 
-const CARD = 'bg-[#161616] border border-white/10 rounded-2xl p-5';
-const LABEL = 'mono text-[10px] uppercase tracking-[0.18em] text-white/40';
+const CARD = 'bg-[var(--d-surface)] border border-[var(--d-line)] rounded-lg p-5';
+const LABEL = 'text-[10px] text-[var(--d-text-2)]';
 const BTN =
-  'shrink-0 mono text-[11px] uppercase tracking-[0.12em] font-bold px-4 py-2.5 rounded-lg bg-white text-[#0e0e0e] disabled:opacity-50 transition';
+  'shrink-0 text-[11px] font-bold px-4 py-2.5 rounded-lg bg-[var(--d-text)] text-[#0D0E10] disabled:opacity-50 transition';
 const BTN_GHOST =
-  'shrink-0 mono text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2 rounded-lg border border-white/15 text-white/70 hover:text-white hover:border-white/40 disabled:opacity-40 transition';
+  'shrink-0 text-[10px] font-bold px-3 py-2 rounded-lg border border-[var(--d-line)] text-[var(--d-text)] hover:text-[var(--d-text)] hover:border-[var(--d-line-2)] disabled:opacity-40 transition';
 
 const RED = '#e0794f';
 const AMBER = '#e0b04f';
@@ -76,8 +76,8 @@ export default function AdminErrors() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <p className={LABEL}>Errors</p>
-          <h1 className="mt-2 font-sans text-[26px] font-extrabold text-white">Runtime errors</h1>
-          <p className="mt-1 text-[13px] text-white/50 max-w-[68ch]">
+          <h1 className="mt-2 font-sans text-[26px] font-semibold text-[var(--d-text)]">Runtime errors</h1>
+          <p className="mt-1 text-[13px] text-[var(--d-text-2)] max-w-[68ch]">
             Backend errors captured as they happen, each with the supervisor&apos;s read-first
             diagnosis. Proactive mode fills these in the background. Diagnose runs one on demand.
           </p>
@@ -99,7 +99,7 @@ export default function AdminErrors() {
             <StatTile label="Cached" value={s.cached} />
           </div>
           {s.diagnosed === 0 && s.cached === 0 && (
-            <p className="mt-3 text-[12px] text-white/40">
+            <p className="mt-3 text-[12px] text-[var(--d-text-2)]">
               No proactive diagnoses yet. Proactive mode may be off
               (SUPERVISOR_PROACTIVE_ENABLED). You can still Diagnose any error on demand below.
             </p>
@@ -111,7 +111,7 @@ export default function AdminErrors() {
 
       {data && data.errors.length === 0 && (
         <div className={CARD}>
-          <p className="text-[13px] text-white/50">No errors captured. Clean run.</p>
+          <p className="text-[13px] text-[var(--d-text-2)]">No errors captured. Clean run.</p>
         </div>
       )}
 
@@ -126,9 +126,9 @@ export default function AdminErrors() {
 
 function StatTile({ label, value, tone }: { label: string; value: number; tone?: string }) {
   return (
-    <div className="bg-[#161616] border border-white/10 rounded-xl p-4">
+    <div className="bg-[var(--d-surface)] border border-[var(--d-line)] rounded-lg p-4">
       <p className={LABEL}>{label}</p>
-      <p className="mt-2 font-sans text-[24px] font-extrabold tabular-nums" style={{ color: tone ?? '#fff' }}>
+      <p className="mt-2 font-sans text-[24px] font-semibold tabular-nums" style={{ color: tone ?? '#fff' }}>
         {value}
       </p>
     </div>
@@ -164,12 +164,12 @@ function ErrorCard({ row, index }: { row: ErrRow; index: number }) {
             <Dot color={severityColor(diagnosis?.severity)} />
           </span>
           <div className="min-w-0">
-            <p className="mono text-[12px] text-white/85 break-all">{row.scope}</p>
-            <p className="mt-1 text-[13px] text-white/60 break-words">{row.message}</p>
+            <p className="text-[12px] text-[var(--d-text)] break-all">{row.scope}</p>
+            <p className="mt-1 text-[13px] text-[var(--d-text-2)] break-words">{row.message}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/35">{fmtAge(row.ts)}</span>
+          <span className="text-[10px] text-[var(--d-text-3)]">{fmtAge(row.ts)}</span>
           {!diagnosis && (
             <button type="button" onClick={() => void diagnose()} disabled={busy} className={BTN_GHOST}>
               {busy ? 'Diagnosing…' : 'Diagnose'}
@@ -181,8 +181,8 @@ function ErrorCard({ row, index }: { row: ErrRow; index: number }) {
       {ctx && (
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
           {Object.entries(ctx).map(([k, v]) => (
-            <span key={k} className="mono text-[11px] text-white/45">
-              {k}=<span className="text-white/70">{typeof v === 'string' ? v : JSON.stringify(v)}</span>
+            <span key={k} className="text-[11px] text-[var(--d-text-2)]">
+              {k}=<span className="text-[var(--d-text)]">{typeof v === 'string' ? v : JSON.stringify(v)}</span>
             </span>
           ))}
         </div>
@@ -193,12 +193,12 @@ function ErrorCard({ row, index }: { row: ErrRow; index: number }) {
           <button
             type="button"
             onClick={() => setShowStack((v) => !v)}
-            className="mono text-[10px] uppercase tracking-[0.12em] text-white/40 hover:text-white/70 transition"
+            className="text-[10px] text-[var(--d-text-2)] hover:text-[var(--d-text)] transition"
           >
             {showStack ? 'Hide stack' : 'Show stack'}
           </button>
           {showStack && (
-            <pre className="mt-2 overflow-x-auto rounded-lg bg-[#0e0e0e] border border-white/10 p-3 text-[11px] leading-relaxed text-white/55 whitespace-pre-wrap break-words">
+            <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--d-bg)] border border-[var(--d-line)] p-3 text-[11px] leading-relaxed text-[var(--d-text-2)] whitespace-pre-wrap break-words">
               {row.stack}
             </pre>
           )}
@@ -214,20 +214,20 @@ function ErrorCard({ row, index }: { row: ErrRow; index: number }) {
 
 function Diagnosis({ d }: { d: SupervisorDiagnosis }) {
   return (
-    <div className="mt-4 rounded-xl border border-white/10 bg-[#0e0e0e] p-4">
+    <div className="mt-4 rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] p-4">
       <div className="flex items-center gap-2 flex-wrap">
         <span
-          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-2 py-1 rounded"
+          className="text-[10px] font-bold px-2 py-1 rounded"
           style={{ background: severityColor(d.severity), color: '#0e0e0e' }}
         >
           {d.severity}
         </span>
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+        <span className="text-[10px] text-[var(--d-text-2)]">
           confidence {d.confidence}
         </span>
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/25 ml-auto">{d.model}</span>
+        <span className="text-[10px] text-[var(--d-text-3)] ml-auto">{d.model}</span>
       </div>
-      <p className="mt-3 text-[13.5px] text-white/90 font-medium">{d.summary}</p>
+      <p className="mt-3 text-[13.5px] text-[var(--d-text)] font-medium">{d.summary}</p>
       <Field label="Likely cause" value={d.likelyCause} />
       <Field label="Suggested fix" value={d.suggestedFix} />
     </div>
@@ -238,7 +238,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="mt-3">
       <p className={LABEL}>{label}</p>
-      <p className="mt-1 text-[13px] text-white/70 leading-relaxed">{value}</p>
+      <p className="mt-1 text-[13px] text-[var(--d-text)] leading-relaxed">{value}</p>
     </div>
   );
 }

@@ -24,10 +24,10 @@ const KINDS: Array<{ value: UpdateKind; label: string }> = [
 
 const EMPTY: UpdateInput = { kind: 'post', tag: '', title: '', body: '', ctaLabel: 'Read more', href: '', ground: 'mist', art: 0, active: true };
 
-const inputClass = 'mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] focus:border-white/40 outline-none';
-const labelClass = 'text-[12px] font-semibold text-white/55';
+const inputClass = 'mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] focus:border-[var(--d-line-2)] outline-none';
+const labelClass = 'text-[12px] font-semibold text-[var(--d-text-2)]';
 
-const smallButton = 'min-h-9 rounded-lg border border-white/15 px-3 text-[12px] font-semibold text-white/80 hover:border-white/40 disabled:opacity-30';
+const smallButton = 'min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] font-semibold text-[var(--d-text)] hover:border-[var(--d-line-2)] disabled:opacity-30';
 
 export default function AdminUpdatesPage() {
   const { confirm } = useDialog();
@@ -138,19 +138,19 @@ export default function AdminUpdatesPage() {
 
   return (
     <div>
-      <h1 className="font-sans text-[24px] font-extrabold">Home updates</h1>
-      <p className="mt-2 max-w-[68ch] text-[13px] text-white/55">
+      <h1 className="font-sans text-[24px] font-semibold">Home updates</h1>
+      <p className="mt-2 max-w-[68ch] text-[13px] text-[var(--d-text-2)]">
         Cards in the Updates row on every signed-in home page, in this order. Link to a Karwan page like /how-it-works or an https address such as an Arc House post or a video. Upload a designer's 1600x900 picture (JPEG, PNG or WebP, under 4 MB) or use a real product screenshot or video frame, never stock art. Keep figures real: a Trending card fills itself from this week&apos;s requests.
       </p>
       {source ? (
-        <p role="note" className="mt-4 rounded-lg border border-[#AFC95B]/40 bg-[#AFC95B]/10 px-3 py-2 text-[13px] text-white/85">
+        <p role="note" className="mt-4 rounded-lg border border-[#3D4A22] bg-[#1F2614] px-3 py-2 text-[13px] text-[var(--d-text)]">
           Home on this network shows the cards published at {source}. Edit them in the admin panel there; changes here are not shown.
         </p>
       ) : null}
-      {err ? <p role="alert" className="mt-4 rounded-lg border border-[#e0794f]/30 bg-[#e0794f]/10 px-3 py-2 text-[12px] text-[#e0794f]">{err}</p> : null}
+      {err ? <p role="alert" className="mt-4 rounded-lg border border-[#5A2A2E] bg-[#3A1C1F] px-3 py-2 text-[12px] text-[var(--d-red)]">{err}</p> : null}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <form onSubmit={save} className="rounded-xl border border-white/10 bg-[#161616] p-5">
+        <form onSubmit={save} className="rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-5">
           <p className="text-[14px] font-semibold">{editing ? 'Edit card' : 'New card'}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <fieldset><legend className={labelClass}>Kind</legend>
@@ -195,18 +195,18 @@ export default function AdminUpdatesPage() {
               <div className="mt-1.5 flex gap-2">
                 {GROUNDS.map((g) => (
                   <button key={g.value} type="button" onClick={() => set('ground', g.value)} aria-label={g.label} aria-pressed={form.ground === g.value}
-                    className={`size-9 rounded-full border-2 ${form.ground === g.value ? 'border-[#AFC95B]' : 'border-white/15'}`}
+                    className={`size-9 rounded-full border-2 ${form.ground === g.value ? 'border-[var(--d-lime)]' : 'border-[var(--d-line)]'}`}
                     style={{ background: `var(--update-${g.value})` }} />
                 ))}
               </div>
             </fieldset>
             <label className="flex items-end gap-2 pb-3 text-[13px]">
-              <input type="checkbox" checked={form.active !== false} onChange={(e) => set('active', e.target.checked)} className="size-4 accent-[#AFC95B]" />
+              <input type="checkbox" checked={form.active !== false} onChange={(e) => set('active', e.target.checked)} className="size-4 accent-[var(--d-lime)]" />
               Show on home
             </label>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
-            <button type="submit" disabled={saving || !form.title.trim() || !form.tag.trim() || !form.href.trim()} className="min-h-11 rounded-lg bg-[#AFC95B] px-5 text-[14px] font-semibold text-[#0e0e0e] disabled:opacity-40">
+            <button type="submit" disabled={saving || !form.title.trim() || !form.tag.trim() || !form.href.trim()} className="min-h-11 rounded-lg bg-[var(--d-lime)] px-5 text-[14px] font-semibold text-[#0D0E10] disabled:opacity-40">
               {saving ? 'Saving' : editing ? 'Save changes' : 'Publish card'}
             </button>
             {editing ? <button type="button" onClick={() => { setEditing(null); setForm(EMPTY); }} className={smallButton}>Cancel</button> : null}
@@ -215,27 +215,27 @@ export default function AdminUpdatesPage() {
 
         <div>
           <p className={labelClass}>Preview</p>
-          <div className="mt-2 flex rounded-xl bg-[#EEF0F2] p-4 [&>*]:!w-[377px] [&>*]:max-w-full">
+          <div className="mt-2 flex rounded-lg bg-[#EEF0F2] p-4 [&>*]:!w-[377px] [&>*]:max-w-full">
             <UpdateTile card={preview} trending={trending} index={0} total={1} />
           </div>
         </div>
       </div>
 
       <h2 className="mt-8 text-[16px] font-semibold">Published order</h2>
-      {cards === null ? <p className="mt-3 text-[13px] text-white/45">Loading</p> : null}
+      {cards === null ? <p className="mt-3 text-[13px] text-[var(--d-text-2)]">Loading</p> : null}
       <ul className="mt-3 space-y-2">
         {(cards ?? []).map((card, index) => (
-          <li key={card.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-[#161616] px-4 py-3">
-            <span className="w-6 text-[13px] tabular-nums text-white/40">{index + 1}</span>
+          <li key={card.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-3">
+            <span className="w-6 text-[13px] tabular-nums text-[var(--d-text-2)]">{index + 1}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14px] font-semibold">{card.title}</span>
-              <span className="block truncate text-[12px] text-white/45">{card.tag} · {card.href}{card.active ? '' : ' · hidden'}</span>
+              <span className="block truncate text-[12px] text-[var(--d-text-2)]">{card.tag} · {card.href}{card.active ? '' : ' · hidden'}</span>
             </span>
             <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Move ${card.title} up`} className={smallButton}>Up</button>
             <button type="button" onClick={() => move(index, 1)} disabled={index === (cards?.length ?? 0) - 1} aria-label={`Move ${card.title} down`} className={smallButton}>Down</button>
             <button type="button" onClick={() => toggle(card)} className={smallButton}>{card.active ? 'Hide' : 'Show'}</button>
             <button type="button" onClick={() => edit(card)} className={smallButton}>Edit</button>
-            <button type="button" onClick={() => remove(card)} className={`${smallButton} text-[#e0794f]`}>Delete</button>
+            <button type="button" onClick={() => remove(card)} className={`${smallButton} text-[var(--d-red)]`}>Delete</button>
           </li>
         ))}
       </ul>
@@ -245,7 +245,7 @@ export default function AdminUpdatesPage() {
 
 function PictureNote({ width, height }: { width: number; height: number }) {
   const { fits, text } = pictureNote(width, height);
-  return <p className={`mt-1.5 text-[13px] ${fits ? 'text-white/55' : 'text-[#e0b84f]'}`}>{text}</p>;
+  return <p className={`mt-1.5 text-[13px] ${fits ? 'text-[var(--d-text-2)]' : 'text-[#e0b84f]'}`}>{text}</p>;
 }
 
 function Segmented<T extends string | number>({ options, value, onChange }: {
@@ -257,7 +257,7 @@ function Segmented<T extends string | number>({ options, value, onChange }: {
     <div className="mt-1.5 flex flex-wrap gap-1.5">
       {options.map((o) => (
         <button key={String(o.value)} type="button" onClick={() => onChange(o.value)} aria-pressed={value === o.value}
-          className={`min-h-10 rounded-lg border px-3 text-[13px] font-semibold ${value === o.value ? 'border-[#AFC95B] bg-[#AFC95B]/15 text-white' : 'border-white/15 text-white/70 hover:border-white/40'}`}>
+          className={`min-h-10 rounded-lg border px-3 text-[13px] font-semibold ${value === o.value ? 'border-[var(--d-lime)] bg-[#1F2614] text-[var(--d-text)]' : 'border-[var(--d-line)] text-[var(--d-text)] hover:border-[var(--d-line-2)]'}`}>
           {o.label}
         </button>
       ))}

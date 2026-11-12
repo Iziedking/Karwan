@@ -833,3 +833,11 @@ Agree: yes.
 - Installed SDK: `viem` 2.55.11 (no package change).
 - Read-only test: none from this machine for the new key (the agent does not hold it); the owner runs the probe in the handoff.
 - Agree: yes.
+
+## 12 Nov 2026 · The desk reads who has money out paused (foundation, view 79)
+
+- Scope: `backend/src/moneyOut/store.ts` gains `pausedWallets()`, one read of the existing `money_out_state_v1.paused_at` column (Postgres) or the memory map, for the desk's account list. The desk's pause and its two-person unpause write the same `paused_at` field the person's own pause and World ID unpause already write. No Arc, Gateway, CCTP or Circle call, no signing step, no amount that moves, no new column.
+- Docs: none relied on, because nothing here calls Arc or Circle. Read 12 Nov 2026 in the code: the new method imports nothing new; `routes/adminAccounts.ts` reads a person's balance through the existing `money/ownedBalance.ts` (`readUsdcBalance`, `readPooledBalance`), unchanged and already covered by the entries above.
+- Installed SDK: `viem` 2.55.11, `@circle-fin/developer-controlled-wallets` 10.8.0 (no package file changed).
+- Read-only test: none on chain, since no chain read or write was added. Unit tests on node-services, 12 Nov 2026: `src/routes/adminAccounts.test.ts`, `src/moneyOut/guard.test.ts`, `src/moneyOut/chat.test.ts`, `src/routes/moneyOut.test.ts`.
+- Agree: yes, nothing to disagree with.

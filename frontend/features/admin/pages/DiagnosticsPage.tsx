@@ -13,13 +13,13 @@ type Older = Awaited<ReturnType<typeof api.adminOlderContracts>>['contracts'];
 type SeedRun = Awaited<ReturnType<typeof api.adminAgentSeedRun>>;
 type PagePolicy = Awaited<ReturnType<typeof api.adminPagePolicy>>;
 
-const PANEL = 'bg-[#161616] border border-white/10 rounded-2xl p-6';
-const CARD = 'bg-[#161616] border border-white/10 rounded-2xl p-5';
-const LABEL = 'mono text-[10px] uppercase tracking-[0.18em] text-white/40';
+const PANEL = 'bg-[var(--d-surface)] border border-[var(--d-line)] rounded-lg p-6';
+const CARD = 'bg-[var(--d-surface)] border border-[var(--d-line)] rounded-lg p-5';
+const LABEL = 'text-[10px] text-[var(--d-text-2)]';
 const BTN =
-  'shrink-0 mono text-[11px] uppercase tracking-[0.12em] font-bold px-4 py-2.5 rounded-lg bg-white text-[#0e0e0e] disabled:opacity-50 transition';
+  'shrink-0 text-[11px] font-bold px-4 py-2.5 rounded-lg bg-[var(--d-text)] text-[#0D0E10] disabled:opacity-50 transition';
 const INPUT =
-  'w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[13px] text-white font-mono focus:border-white/40 outline-none';
+  'w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[13px] text-[var(--d-text)] font-mono focus:border-[var(--d-line-2)] outline-none';
 
 function errMsg(e: unknown): string {
   return e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Failed';
@@ -97,8 +97,8 @@ export default function AdminDiagnostics() {
     <div className="space-y-8">
       <div>
         <p className={LABEL}>Diagnostics</p>
-        <h1 className="mt-2 font-sans text-[26px] font-extrabold text-white">Diagnostics</h1>
-        <p className="mt-1 text-[13px] text-white/50 max-w-[64ch]">
+        <h1 className="mt-2 font-sans text-[26px] font-semibold text-[var(--d-text)]">Diagnostics</h1>
+        <p className="mt-1 text-[13px] text-[var(--d-text-2)] max-w-[64ch]">
           Live backend health and the agent gas seed, so a failing model key, an unfunded operator
           wallet, a stalled watcher, or a cron that stopped firing is visible without reading logs.
         </p>
@@ -127,13 +127,13 @@ function PagePolicyPanel() {
       {data && data.blocked.length === 0 ? <HealthItem ok>Nothing blocked since {data.since}</HealthItem> : null}
       {data && data.blocked.length > 0 ? (
         <>
-          <p className="text-[12px] text-white/55 pb-1">
+          <p className="text-[12px] text-[var(--d-text-2)] pb-1">
             {data.total} reports since {data.since}
           </p>
           {data.blocked.slice(0, 40).map((b) => (
             <HealthItem key={`${b.directive} ${b.blocked}`} ok={false}>
-              <span className="mono text-[11.5px]">{b.blocked}</span>{' '}
-              <span className="text-white/45">
+              <span className="text-[11.5px]">{b.blocked}</span>{' '}
+              <span className="text-[var(--d-text-2)]">
                 {b.directive} · {b.count} · last {b.lastSeen}
               </span>
             </HealthItem>
@@ -159,7 +159,7 @@ function HealthItem({ ok, children }: { ok: boolean; children: ReactNode }) {
       <span className="mt-1">
         <Dot ok={ok} />
       </span>
-      <span className="min-w-0 break-words text-white/80">{children}</span>
+      <span className="min-w-0 break-words text-[var(--d-text)]">{children}</span>
     </div>
   );
 }
@@ -198,7 +198,7 @@ function HealthOverview() {
               {!data ? (busy ? 'Checking…' : 'Backend health') : healthy ? 'All systems healthy' : 'Degraded'}
             </h2>
             {data && (
-              <span className="mono text-[11px] text-white/35">
+              <span className="text-[11px] text-[var(--d-text-3)]">
                 checked {new Date(data.checkedAt).toLocaleTimeString()}
               </span>
             )}
@@ -208,20 +208,20 @@ function HealthOverview() {
           {busy ? 'Checking…' : 'Run check'}
         </button>
       </div>
-      {err && <p className="text-[12px] text-[#e0794f]">{err}</p>}
+      {err && <p className="text-[12px] text-[var(--d-red)]">{err}</p>}
       {data && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           <HealthCard title="Model gateway">
-            <p className="text-[12px] text-white/55 pb-1">
-              Primary: <span className="text-white/85">{data.modelGateway.primary}</span>
+            <p className="text-[12px] text-[var(--d-text-2)] pb-1">
+              Primary: <span className="text-[var(--d-text)]">{data.modelGateway.primary}</span>
             </p>
             {data.modelGateway.providers.length === 0 ? (
-              <p className="text-[12px] text-white/45">none configured</p>
+              <p className="text-[12px] text-[var(--d-text-2)]">none configured</p>
             ) : (
               data.modelGateway.providers.map((p) => (
                 <HealthItem key={p.name} ok={p.ok}>
                   {p.name}{' '}
-                  <span className="text-white/45">
+                  <span className="text-[var(--d-text-2)]">
                     {p.ok ? `${p.latencyMs}ms` : p.detail?.slice(0, 70) ?? 'failed'}
                   </span>
                 </HealthItem>
@@ -231,16 +231,16 @@ function HealthOverview() {
 
           <HealthCard title="Operator funds">
             {data.funds.length === 0 ? (
-              <p className="text-[12px] text-white/45">none configured</p>
+              <p className="text-[12px] text-[var(--d-text-2)]">none configured</p>
             ) : (
               data.funds.map((f) => (
                 <HealthItem key={f.label} ok={f.ok}>
                   {f.label}{' '}
-                  <span className="text-white/55">
+                  <span className="text-[var(--d-text-2)]">
                     {f.balanceUsdc != null ? `${f.balanceUsdc} USDC` : f.detail ?? '—'}
                   </span>
                   {f.address && (
-                    <span className="block mono text-[10px] text-white/30">{short(f.address)}</span>
+                    <span className="block text-[10px] text-[var(--d-text-3)]">{short(f.address)}</span>
                   )}
                 </HealthItem>
               ))
@@ -250,7 +250,7 @@ function HealthOverview() {
           <HealthCard title="Infrastructure">
             {data.infrastructure.map((i) => (
               <HealthItem key={i.label} ok={i.ok}>
-                {i.label} <span className="text-white/45">{i.detail}</span>
+                {i.label} <span className="text-[var(--d-text-2)]">{i.detail}</span>
               </HealthItem>
             ))}
           </HealthCard>
@@ -258,7 +258,7 @@ function HealthOverview() {
           <HealthCard title="Contract wiring">
             {data.contracts.map((ct) => (
               <HealthItem key={ct.label} ok={ct.ok}>
-                {ct.label} <span className="text-white/45">{ct.detail}</span>
+                {ct.label} <span className="text-[var(--d-text-2)]">{ct.detail}</span>
               </HealthItem>
             ))}
           </HealthCard>
@@ -266,7 +266,7 @@ function HealthOverview() {
           <HealthCard title="Features">
             {data.features.map((f) => (
               <HealthItem key={f.label} ok={f.on}>
-                {f.label} <span className="text-white/40">{f.on ? '' : 'off'}</span>
+                {f.label} <span className="text-[var(--d-text-2)]">{f.on ? '' : 'off'}</span>
               </HealthItem>
             ))}
           </HealthCard>
@@ -280,8 +280,8 @@ function HealthOverview() {
                 <span className="mt-1">
                   <StatusDot color={watcherColor(w.status)} />
                 </span>
-                <span className="min-w-0 break-words text-white/80">
-                  {w.label} <span className="text-white/45">{watcherDetail(w)}</span>
+                <span className="min-w-0 break-words text-[var(--d-text)]">
+                  {w.label} <span className="text-[var(--d-text-2)]">{watcherDetail(w)}</span>
                 </span>
               </div>
             ))}
@@ -291,7 +291,7 @@ function HealthOverview() {
             {(data.leases ?? []).map((l) => (
               <HealthItem key={l.name} ok={l.expiresInMs > 0}>
                 {l.name}{' '}
-                <span className="text-white/45">
+                <span className="text-[var(--d-text-2)]">
                   {l.thisProcess ? 'this process' : l.holder} · held {fmtSpan(l.heldForMs)} · {l.expiresInMs > 0 ? `expires in ${fmtSpan(l.expiresInMs)}` : 'expired, free to take'}
                 </span>
               </HealthItem>
@@ -302,7 +302,7 @@ function HealthOverview() {
             {(data.money?.lines ?? []).map((line) => (
               <HealthItem key={line.key} ok={line.ok}>
                 {MONEY_LINE[line.key]}: {line.key === 'sweep' ? (line.ok ? 'running' : 'late') : line.count}{' '}
-                <span className="text-white/45">
+                <span className="text-[var(--d-text-2)]">
                   {[line.detail, line.oldest ? `oldest ${line.oldest.reference}, ${fmtAge(Date.now() - line.oldest.at)}` : null].filter(Boolean).join(' · ')}
                 </span>
               </HealthItem>
@@ -311,7 +311,7 @@ function HealthOverview() {
             {data.money?.lastSweep && data.money.lastSweep.left.length > 0 ? (
               <div className="space-y-1 pt-1">
                 {data.money.lastSweep.left.slice(0, 20).map((l) => (
-                  <span key={l.reference} className="block mono text-[11px] text-white/55">
+                  <span key={l.reference} className="block text-[11px] text-[var(--d-text-2)]">
                     {l.reference} · {l.kind} · {l.state} · {l.reason}
                   </span>
                 ))}
@@ -322,7 +322,7 @@ function HealthOverview() {
           <HealthCard title="Deal guarantees">
             <HealthItem ok={(data.guarantees?.held ?? 0) === 0 && (data.guarantees?.errors ?? 0) === 0}>
               {data.guarantees?.held ?? 0} to check on the support page{' '}
-              <span className="text-white/45">
+              <span className="text-[var(--d-text-2)]">
                 {data.guarantees?.lastPassAt
                   ? `last pass ${fmtAge(Date.now() - data.guarantees.lastPassAt)} · kept ${data.guarantees.kept} · freed ${data.guarantees.freed} · unread ${data.guarantees.errors}`
                   : 'no pass yet'}
@@ -336,9 +336,9 @@ function HealthOverview() {
                 <span className="mt-1">
                   <StatusDot color={cronColor(cr.status)} />
                 </span>
-                <span className="min-w-0 break-words text-white/80">
-                  {cr.label} <span className="text-white/45">{cronDetail(cr)}</span>
-                  <span className="block mono text-[10px] text-white/30">{cr.schedule}</span>
+                <span className="min-w-0 break-words text-[var(--d-text)]">
+                  {cr.label} <span className="text-[var(--d-text-2)]">{cronDetail(cr)}</span>
+                  <span className="block text-[10px] text-[var(--d-text-3)]">{cr.schedule}</span>
                 </span>
               </div>
             ))}
@@ -375,10 +375,10 @@ function OlderContractsPanel() {
   return (
     <section className={PANEL}>
       <p className={LABEL}>Older contracts</p>
-      <h2 className="mt-1.5 font-sans text-[18px] font-bold text-white">Money still on older contracts</h2>
-      {err && <p className="mt-3 text-[13px] text-[#e0794f]">{err}</p>}
-      {!rows && !err && <p className="mt-3 text-[13px] text-white/50">Reading the chain…</p>}
-      {rows && rows.length === 0 && <p className="mt-3 text-[13px] text-white/50">Nothing is left on older contracts.</p>}
+      <h2 className="mt-1.5 font-sans text-[18px] font-bold text-[var(--d-text)]">Money still on older contracts</h2>
+      {err && <p className="mt-3 text-[13px] text-[var(--d-red)]">{err}</p>}
+      {!rows && !err && <p className="mt-3 text-[13px] text-[var(--d-text-2)]">Reading the chain…</p>}
+      {rows && rows.length === 0 && <p className="mt-3 text-[13px] text-[var(--d-text-2)]">Nothing is left on older contracts.</p>}
       {rows && rows.length > 0 && (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-[12.5px] tabular-nums">
@@ -394,10 +394,10 @@ function OlderContractsPanel() {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.address} className="border-t border-white/10 text-white/80">
+                <tr key={r.address} className="border-t border-[var(--d-line)] text-[var(--d-text)]">
                   <td className="py-2 pr-4">
                     {r.name.replace(/^Karwan/, '')}
-                    <span className="block mono text-[10px] text-white/30">{short(r.address)}</span>
+                    <span className="block text-[10px] text-[var(--d-text-3)]">{short(r.address)}</span>
                   </td>
                   <td className="py-2 pr-4 text-right">{usd(r.balanceUsdc)}</td>
                   <td className="py-2 pr-4 text-right">{usd(r.forPeopleUsdc)}</td>
@@ -457,8 +457,8 @@ function AgentSeedPanel() {
   return (
     <section className={PANEL}>
       <p className={LABEL}>Agent gas seed</p>
-      <h2 className="mt-1.5 font-sans text-[18px] font-bold text-white">Agent funding</h2>
-      <p className="mt-1 text-[13px] text-white/50 max-w-[60ch]">
+      <h2 className="mt-1.5 font-sans text-[18px] font-bold text-[var(--d-text)]">Agent funding</h2>
+      <p className="mt-1 text-[13px] text-[var(--d-text-2)] max-w-[60ch]">
         Check an account's agent balances against the operator wallet, then seed the agents if they
         activated unfunded. Seeding is idempotent and skips an already-funded agent.
       </p>
@@ -473,7 +473,7 @@ function AgentSeedPanel() {
           {busy === 'check' ? 'Checking…' : 'Check'}
         </button>
       </div>
-      {err && <p className="mt-4 text-[12px] text-[#e0794f]">{err}</p>}
+      {err && <p className="mt-4 text-[12px] text-[var(--d-red)]">{err}</p>}
       {status && (
         <div className="mt-5 space-y-2 text-[13px]">
           <Row label="Seed key">
@@ -488,10 +488,10 @@ function AgentSeedPanel() {
               <span className="inline-flex items-center gap-2 flex-wrap">
                 <Dot ok={Number(status.operator.balanceUsdc) >= status.seedAmountUsdc} />
                 <span className="font-mono">{short(status.operator.address)}</span>
-                <span className="text-white/55">{status.operator.balanceUsdc} USDC</span>
+                <span className="text-[var(--d-text-2)]">{status.operator.balanceUsdc} USDC</span>
               </span>
             ) : (
-              <span className="text-white/45">no key</span>
+              <span className="text-[var(--d-text-2)]">no key</span>
             )}
           </Row>
           {status.agents ? (
@@ -500,14 +500,14 @@ function AgentSeedPanel() {
                 <span className="inline-flex items-center gap-2 flex-wrap">
                   <Dot ok={Number(status.agents.buyer.balanceUsdc ?? 0) > 0} />
                   <span className="font-mono">{short(status.agents.buyer.address)}</span>
-                  <span className="text-white/55">{status.agents.buyer.balanceUsdc ?? '—'} USDC</span>
+                  <span className="text-[var(--d-text-2)]">{status.agents.buyer.balanceUsdc ?? '—'} USDC</span>
                 </span>
               </Row>
               <Row label="Seller agent">
                 <span className="inline-flex items-center gap-2 flex-wrap">
                   <Dot ok={Number(status.agents.seller.balanceUsdc ?? 0) > 0} />
                   <span className="font-mono">{short(status.agents.seller.address)}</span>
-                  <span className="text-white/55">{status.agents.seller.balanceUsdc ?? '—'} USDC</span>
+                  <span className="text-[var(--d-text-2)]">{status.agents.seller.balanceUsdc ?? '—'} USDC</span>
                 </span>
               </Row>
               <div className="pt-2">
@@ -517,7 +517,7 @@ function AgentSeedPanel() {
               </div>
             </>
           ) : (
-            <p className="text-white/45">No agent wallets for this address.</p>
+            <p className="text-[var(--d-text-2)]">No agent wallets for this address.</p>
           )}
         </div>
       )}
@@ -529,8 +529,8 @@ function AgentSeedPanel() {
             return (
               <p key={k} className="flex items-center gap-2 text-[12px]">
                 <Dot ok={r.ok} />
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/70">{k}</span>
-                <span className="text-white/55 break-words">
+                <span className="text-[10px] text-[var(--d-text)]">{k}</span>
+                <span className="text-[var(--d-text-2)] break-words">
                   {r.ok ? (r.txHash ? `sent ${short(r.txHash)}` : r.reason ?? 'ok') : r.reason ?? 'failed'}
                 </span>
               </p>
@@ -545,10 +545,10 @@ function AgentSeedPanel() {
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="mono text-[10px] uppercase tracking-[0.14em] text-white/40 w-28 shrink-0">
+      <span className="text-[10px] text-[var(--d-text-2)] w-28 shrink-0">
         {label}
       </span>
-      <span className="text-white/85">{children}</span>
+      <span className="text-[var(--d-text)]">{children}</span>
     </div>
   );
 }

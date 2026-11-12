@@ -22,10 +22,10 @@ import { parseNewsletterDocument } from '@/features/admin/newsletterMarkdown';
 /// rendered email is the default view and the edit box is one click away.
 
 const STATUS_STYLE: Record<NewsletterIssue['status'], string> = {
-  draft: 'border-white/20 text-white/60',
-  approved: 'border-[#AFC95B]/50 text-[#AFC95B]',
-  rejected: 'border-[#e0794f]/40 text-[#e0794f]',
-  sent: 'border-white/30 text-white/80',
+  draft: 'border-[var(--d-line)] text-[var(--d-text-2)]',
+  approved: 'border-[#3D4A22] text-[var(--d-lime)]',
+  rejected: 'border-[#5A2A2E] text-[var(--d-red)]',
+  sent: 'border-[var(--d-line-2)] text-[var(--d-text)]',
 };
 
 function when(ts: number): string {
@@ -35,7 +35,7 @@ function when(ts: number): string {
 function Findings({ findings }: { findings: DraftFinding[] }) {
   if (findings.length === 0) {
     return (
-      <p className="text-[12px] text-[#AFC95B]">
+      <p className="text-[12px] text-[var(--d-lime)]">
         Voice and claim checks pass. Every claim traces to a collected signal.
       </p>
     );
@@ -45,14 +45,14 @@ function Findings({ findings }: { findings: DraftFinding[] }) {
       {findings.map((f, i) => (
         <li key={i} className="text-[12px]">
           <span
-            className={`mono text-[10px] uppercase tracking-[0.1em] ${
-              f.severity === 'error' ? 'text-[#e0794f]' : 'text-white/40'
-            }`}
+            className={` text-[10px] ${
+ f.severity === 'error' ? 'text-[var(--d-red)]' : 'text-[var(--d-text-2)]'
+ }`}
           >
             line {f.line} · {f.rule}
           </span>
-          <span className="block text-white/60">{f.excerpt}</span>
-          <span className="block text-white/35">{f.fix}</span>
+          <span className="block text-[var(--d-text-2)]">{f.excerpt}</span>
+          <span className="block text-[var(--d-text-3)]">{f.fix}</span>
         </li>
       ))}
     </ul>
@@ -277,46 +277,46 @@ export default function AdminNewsletterPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">Newsletter</p>
-      <h1 className="mt-2 font-sans text-[24px] font-extrabold">Issues</h1>
-      <p className="mt-2 text-[13px] text-white/55 max-w-[68ch]">
+      <p className="text-[10px] text-[var(--d-text-2)]">Newsletter</p>
+      <h1 className="mt-2 font-sans text-[24px] font-semibold">Issues</h1>
+      <p className="mt-2 text-[13px] text-[var(--d-text-2)] max-w-[68ch]">
         Drafted from the signal pipeline when there is real news. Approving marks an issue ready.
         Sending is a separate step and does not happen here.
       </p>
 
       {err && (
-        <p className="mt-4 text-[12px] text-[#e0794f] border border-[#e0794f]/30 bg-[#e0794f]/10 rounded-lg px-3 py-2">
+        <p className="mt-4 text-[12px] text-[var(--d-red)] border border-[#5A2A2E] bg-[#3A1C1F] rounded-lg px-3 py-2">
           {err}
         </p>
       )}
       {notice && (
-        <p className="mt-4 text-[12px] text-white/70 border border-white/15 bg-white/5 rounded-lg px-3 py-2">
+        <p className="mt-4 text-[12px] text-[var(--d-text)] border border-[var(--d-line)] bg-[var(--d-surface)] rounded-lg px-3 py-2">
           {notice}
         </p>
       )}
 
       {engine && (
-        <div className="mt-6 border border-white/10 rounded-xl p-5 bg-[#161616]">
+        <div className="mt-6 border border-[var(--d-line)] rounded-lg p-5 bg-[var(--d-surface)]">
           <div className="flex items-center gap-2 flex-wrap">
             <span
-              className={`mono text-[9px] uppercase tracking-[0.14em] px-2 py-1 rounded border ${
-                engine.enabled ? 'border-[#AFC95B]/50 text-[#AFC95B]' : 'border-[#e0794f]/40 text-[#e0794f]'
-              }`}
+              className={` text-[9px] px-2 py-1 rounded border ${
+ engine.enabled ? 'border-[#3D4A22] text-[var(--d-lime)]' : 'border-[#5A2A2E] text-[var(--d-red)]'
+ }`}
             >
               {engine.enabled ? 'Engine on' : 'Engine off'}
             </span>
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/35">
+            <span className="text-[10px] text-[var(--d-text-3)]">
               {engine.waiting} signal{engine.waiting === 1 ? '' : 's'} waiting
             </span>
             {engine.clusters.map((c) => (
-              <span key={c.key} className="mono text-[10px] text-white/30">
+              <span key={c.key} className="text-[10px] text-[var(--d-text-3)]">
                 {c.key} {c.count}
               </span>
             ))}
           </div>
-          <p className="mt-3 text-[13px] text-white/70">{engine.reason}</p>
+          <p className="mt-3 text-[13px] text-[var(--d-text)]">{engine.reason}</p>
           {!engine.enabled && (
-            <p className="mt-1.5 text-[12px] text-white/35">
+            <p className="mt-1.5 text-[12px] text-[var(--d-text-3)]">
               Set NEWSLETTER_ENABLED to turn it on. Nothing drafts or approves while it is off.
             </p>
           )}
@@ -326,7 +326,7 @@ export default function AdminNewsletterPage() {
               type="button"
               onClick={() => draft(false)}
               disabled={busy || !engine.enabled}
-              className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-4 py-2.5 rounded-lg bg-white text-[#0e0e0e] disabled:opacity-40"
+              className="text-[10px] font-bold px-4 py-2.5 rounded-lg bg-[var(--d-text)] text-[#0D0E10] disabled:opacity-40"
             >
               {busy ? 'Drafting' : 'Draft an issue'}
             </button>
@@ -334,7 +334,7 @@ export default function AdminNewsletterPage() {
               type="button"
               onClick={() => draft(true)}
               disabled={busy || !engine.enabled}
-              className="mono text-[10px] uppercase tracking-[0.12em] px-4 py-2.5 rounded-lg border border-white/15 text-white/55 hover:text-white disabled:opacity-40"
+              className="text-[10px] px-4 py-2.5 rounded-lg border border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)] disabled:opacity-40"
               title="Ignores the thresholds and the send caps. Not the kill switch."
             >
               Force a draft
@@ -345,51 +345,51 @@ export default function AdminNewsletterPage() {
 
       <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
         <div className="space-y-2">
-          {issues === null && <p className="text-[13px] text-white/40">Loading</p>}
+          {issues === null && <p className="text-[13px] text-[var(--d-text-2)]">Loading</p>}
           {issues?.length === 0 && (
-            <p className="text-[13px] text-white/40">No issues yet.</p>
+            <p className="text-[13px] text-[var(--d-text-2)]">No issues yet.</p>
           )}
           {issues?.map((issue) => (
             <button
               key={issue.id}
               type="button"
               onClick={() => openIssue(issue.id)}
-              className={`w-full text-left border rounded-xl p-3 transition ${
-                open === issue.id ? 'border-white/40 bg-[#1c1c1c]' : 'border-white/10 bg-[#161616] hover:border-white/25'
-              }`}
+              className={`w-full text-left border rounded-lg p-3 transition ${
+ open === issue.id ? 'border-[var(--d-line-2)] bg-[#1c1c1c]' : 'border-[var(--d-line)] bg-[var(--d-surface)] hover:border-[var(--d-line-2)]'
+ }`}
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded border ${
-                    STATUS_STYLE[issue.status]
-                  }`}
+                  className={` text-[9px] px-2 py-0.5 rounded border ${
+ STATUS_STYLE[issue.status]
+ }`}
                 >
                   {issue.status}
                 </span>
-                <span className="mono text-[10px] text-white/30">{when(issue.createdAt)}</span>
+                <span className="text-[10px] text-[var(--d-text-3)]">{when(issue.createdAt)}</span>
               </div>
               <p className="mt-2 text-[13px] font-bold break-words">{issue.subject}</p>
               {issue.monthInReview && (
-                <p className="mt-1 mono text-[10px] text-white/30">month in review</p>
+                <p className="mt-1 text-[10px] text-[var(--d-text-3)]">month in review</p>
               )}
             </button>
           ))}
         </div>
 
         <div>
-          {open && !preview && <p className="text-[13px] text-white/40">Rendering</p>}
+          {open && !preview && <p className="text-[13px] text-[var(--d-text-2)]">Rendering</p>}
           {preview && (
-            <div className="border border-white/10 rounded-xl bg-[#161616] overflow-hidden">
-              <div className="p-4 border-b border-white/10">
+            <div className="border border-[var(--d-line)] rounded-lg bg-[var(--d-surface)] overflow-hidden">
+              <div className="p-4 border-b border-[var(--d-line)]">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="min-w-0">
-                    <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/35">
+                    <p className="text-[10px] text-[var(--d-text-3)]">
                       Subject
                     </p>
                     <p className="mt-1 text-[14px] font-bold break-words">{preview.issue.subject}</p>
-                    <p className="mt-1 text-[12px] text-white/50">{preview.issue.preheader}</p>
+                    <p className="mt-1 text-[12px] text-[var(--d-text-2)]">{preview.issue.preheader}</p>
                     {preview.issue.draftedBy && (
-                      <p className="mt-1.5 mono text-[10px] text-white/25">
+                      <p className="mt-1.5 text-[10px] text-[var(--d-text-3)]">
                         written by {preview.issue.draftedBy}
                       </p>
                     )}
@@ -403,7 +403,7 @@ export default function AdminNewsletterPage() {
                             setReviewDraft(null);
                             setEditing((v) => !v);
                           }}
-                          className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] px-3 rounded-lg border border-white/15 text-white/55 hover:text-white"
+                          className="min-h-11 text-[10px] px-3 rounded-lg border border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)]"
                         >
                           {editing ? 'Cancel' : 'Edit'}
                         </button>
@@ -411,7 +411,7 @@ export default function AdminNewsletterPage() {
                           type="button"
                           onClick={() => importInput.current?.click()}
                           disabled={importing}
-                          className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] px-3 rounded-lg border border-[#AFC95B]/45 text-[#AFC95B] hover:bg-[#AFC95B]/10 disabled:opacity-40"
+                          className="min-h-11 text-[10px] px-3 rounded-lg border border-[#3D4A22] text-[var(--d-lime)] hover:bg-[#1F2614] disabled:opacity-40"
                         >
                           {importing ? 'Reading' : 'Import HTML or Markdown'}
                         </button>
@@ -434,14 +434,14 @@ export default function AdminNewsletterPage() {
                               ? 'Mark ready to send'
                               : 'Fix the errors below first'
                           }
-                          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2 rounded-lg bg-white text-[#0e0e0e] disabled:opacity-40"
+                          className="text-[10px] font-bold px-3 py-2 rounded-lg bg-[var(--d-text)] text-[#0D0E10] disabled:opacity-40"
                         >
                           Approve
                         </button>
                         <button
                           type="button"
                           onClick={() => reject(preview.issue.id)}
-                          className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-[#e0794f]/40 text-[#e0794f]"
+                          className="text-[10px] px-3 py-2 rounded-lg border border-[#5A2A2E] text-[var(--d-red)]"
                         >
                           Reject
                         </button>
@@ -454,7 +454,7 @@ export default function AdminNewsletterPage() {
                           type="button"
                           onClick={() => send(preview.issue.id, false)}
                           disabled={busy}
-                          className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white disabled:opacity-40"
+                          className="text-[10px] px-3 py-2 rounded-lg border border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)] disabled:opacity-40"
                         >
                           Dry run
                         </button>
@@ -462,7 +462,7 @@ export default function AdminNewsletterPage() {
                           type="button"
                           onClick={() => send(preview.issue.id, true)}
                           disabled={busy}
-                          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2 rounded-lg bg-[#AFC95B] text-[#0e0e0e] disabled:opacity-40"
+                          className="text-[10px] font-bold px-3 py-2 rounded-lg bg-[var(--d-lime)] text-[#0D0E10] disabled:opacity-40"
                         >
                           Send for real
                         </button>
@@ -473,7 +473,7 @@ export default function AdminNewsletterPage() {
 
                 {preview.issue.status === 'sent' && (
                   <div className="mt-3">
-                    <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/35">
+                    <p className="text-[10px] text-[var(--d-text-3)]">
                       Sent · archived
                     </p>
                     <div className="mt-2 flex gap-2 flex-wrap">
@@ -483,28 +483,28 @@ export default function AdminNewsletterPage() {
                           type="button"
                           onClick={() => social(preview.issue.id, p)}
                           disabled={busy}
-                          className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white disabled:opacity-40"
+                          className="text-[10px] px-3 py-2 rounded-lg border border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)] disabled:opacity-40"
                         >
                           {p}
                         </button>
                       ))}
                     </div>
-                    <p className="mt-1.5 text-[11px] text-white/30">
+                    <p className="mt-1.5 text-[11px] text-[var(--d-text-3)]">
                       Generates text to copy. Nothing is posted anywhere.
                     </p>
                   </div>
                 )}
 
                 {socialDraft && (
-                  <div className="mt-4 border border-white/10 rounded-lg p-3 bg-[#0e0e0e]">
-                    <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                  <div className="mt-4 border border-[var(--d-line)] rounded-lg p-3 bg-[var(--d-bg)]">
+                    <p className="text-[10px] text-[var(--d-text-2)]">
                       {socialDraft.platform}
                     </p>
                     <div className="mt-2 space-y-2">
                       {socialDraft.posts.map((post, i) => (
                         <pre
                           key={i}
-                          className="whitespace-pre-wrap text-[13px] text-white/80 border-l-2 border-white/15 pl-3 font-sans"
+                          className="whitespace-pre-wrap text-[13px] text-[var(--d-text)] border-l-2 border-[var(--d-line)] pl-3 font-sans"
                         >
                           {post}
                         </pre>
@@ -512,10 +512,10 @@ export default function AdminNewsletterPage() {
                     </div>
                     {socialDraft.chapters && (
                       <>
-                        <p className="mt-3 mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                        <p className="mt-3 text-[10px] text-[var(--d-text-2)]">
                           Chapters
                         </p>
-                        <ul className="mt-1 text-[12px] text-white/60 space-y-0.5">
+                        <ul className="mt-1 text-[12px] text-[var(--d-text-2)] space-y-0.5">
                           {socialDraft.chapters.map((ch, i) => (
                             <li key={i}>{ch}</li>
                           ))}
@@ -524,10 +524,10 @@ export default function AdminNewsletterPage() {
                     )}
                     {socialDraft.shotList && (
                       <>
-                        <p className="mt-3 mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                        <p className="mt-3 text-[10px] text-[var(--d-text-2)]">
                           Shot list
                         </p>
-                        <ul className="mt-1 text-[12px] text-white/60 space-y-0.5">
+                        <ul className="mt-1 text-[12px] text-[var(--d-text-2)] space-y-0.5">
                           {socialDraft.shotList.map((shot, i) => (
                             <li key={i}>{shot}</li>
                           ))}
@@ -543,7 +543,7 @@ export default function AdminNewsletterPage() {
                 )}
 
                 {preview.issue.rejectionNote && (
-                  <p className="mt-3 text-[12px] text-white/60 border-l-2 border-[#e0794f] pl-3">
+                  <p className="mt-3 text-[12px] text-[var(--d-text-2)] border-l-2 border-[#5A2A2E] pl-3">
                     Rejected: {preview.issue.rejectionNote}
                   </p>
                 )}
@@ -568,28 +568,28 @@ export default function AdminNewsletterPage() {
               ) : editing ? (
                 <div className="p-4 space-y-3">
                   <label className="block">
-                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                    <span className="text-[10px] text-[var(--d-text-2)]">
                       Subject
                     </span>
                     <input
                       value={draftSubject}
                       onChange={(e) => setDraftSubject(e.target.value)}
-                      className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-white/40"
+                      className="mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-[var(--d-line-2)]"
                     />
                   </label>
                   <label className="block">
-                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                    <span className="text-[10px] text-[var(--d-text-2)]">
                       Preview text
                     </span>
                     <input
                       value={draftPreheader}
                       onChange={(e) => setDraftPreheader(e.target.value)}
-                      className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-white/40"
+                      className="mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-[var(--d-line-2)]"
                     />
                   </label>
                   {draftSections.map((s, i) => (
                     <label key={s.key} className="block">
-                      <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                      <span className="text-[10px] text-[var(--d-text-2)]">
                         {s.heading}
                       </span>
                       <textarea
@@ -600,14 +600,14 @@ export default function AdminNewsletterPage() {
                             prev.map((p, j) => (i === j ? { ...p, body: e.target.value } : p)),
                           )
                         }
-                        className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[13px] outline-none focus:border-white/40 resize-y"
+                        className="mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[13px] outline-none focus:border-[var(--d-line-2)] resize-y"
                       />
                     </label>
                   ))}
                   <button
                     type="button"
                     onClick={() => beginReview()}
-                    className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] font-bold px-4 rounded-lg bg-white text-[#0e0e0e]"
+                    className="min-h-11 text-[10px] font-bold px-4 rounded-lg bg-[var(--d-text)] text-[#0D0E10]"
                   >
                     Review changes
                   </button>
@@ -619,7 +619,7 @@ export default function AdminNewsletterPage() {
                   title="Issue preview"
                   srcDoc={preview.rendered.html}
                   sandbox=""
-                  className="w-full h-[720px] bg-white"
+                  className="w-full h-[720px] bg-[var(--d-text)]"
                 />
               )}
             </div>

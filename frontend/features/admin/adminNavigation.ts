@@ -116,8 +116,8 @@ const DESK_TABS: Record<string, DeskTab[]> = {
     { key: 'signals', label: 'Signals', keys: ['signals'] },
   ],
   '/admin/activity': [
-    { key: 'events', label: 'Events', keys: ['events'] },
     { key: 'log', label: 'Desk changes', keys: ['log'] },
+    { key: 'events', label: 'Market events', keys: ['events'] },
   ],
   '/admin/team': [
     { key: 'team', label: 'Team', keys: [], ownerOnly: true },

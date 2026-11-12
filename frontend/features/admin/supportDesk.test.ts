@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { channelLabel, dueLabel, kindLabel, stateLabel } from './supportDesk';
+import { canAskForFix, caseFromAddress, channelLabel, dueLabel, kindLabel, stateLabel } from './supportDesk';
 
 const NOW = Date.parse('2026-11-12T10:00:00+01:00');
 const MIN = 60_000;
@@ -35,4 +35,17 @@ test('kinds, states and channels read in plain words', () => {
   assert.equal(channelLabel('web'), 'Website');
   assert.equal(channelLabel('telegram'), 'Telegram');
   assert.equal(channelLabel('email'), 'Email');
+});
+
+test('asking for a fix shows only to a teammate with fix on Deals; the owner always', () => {
+  assert.equal(canAskForFix({ owner: false, access: { support: 'fix' } }), false);
+  assert.equal(canAskForFix({ owner: false, access: { support: 'change', deals: 'change' } }), false);
+  assert.equal(canAskForFix({ owner: false, access: { support: 'change', deals: 'fix' } }), true);
+  assert.equal(canAskForFix({ owner: true, access: {} }), true);
+});
+
+test('a case reference in the address opens that case; anything else opens the queue', () => {
+  assert.equal(caseFromAddress('?case=KS-1042'), 'KS-1042');
+  assert.equal(caseFromAddress('?case=<script>'), null);
+  assert.equal(caseFromAddress(''), null);
 });

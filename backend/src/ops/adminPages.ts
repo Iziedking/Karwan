@@ -30,6 +30,7 @@ export const ADMIN_PAGES: AdminPage[] = [
     label: 'Profiles',
     routes: [
       r('\\w+ /api/admin/profiles(/.*)?'),
+      r('\\w+ /api/admin/accounts(/.*)?'),
       r('\\w+ /api/admin/account-deletions(/.*)?'),
       r('\\w+ /api/admin/verification(/.*)?'),
       r(`POST /api/listings/${ANY}/photos/clear`),
@@ -73,7 +74,7 @@ export const ADMIN_PAGES: AdminPage[] = [
 ];
 
 /// Routes only the owner may call, whatever pages a member has.
-const OWNER_ONLY = [r('\\w+ /api/admin/access(/.*)?'), r('\\w+ /api/admin/team-members(/.*)?'), r('\\w+ /api/admin/team-keys(/.*)?')];
+const OWNER_ONLY = [r('GET /api/admin/settings'), r('\\w+ /api/admin/access(/.*)?'), r('\\w+ /api/admin/team-members(/.*)?'), r('\\w+ /api/admin/team-keys(/.*)?')];
 
 /// Routes any signed-in member may call: their own session, their own keys, and
 /// the money requests list. Approving one also needs the page its route is on.
@@ -142,6 +143,8 @@ const TWO_PEOPLE = [
   r('POST /api/admin/attestations/sweep'),
   r(`POST /api/admin/attestations/${ANY}/revoke`),
   r('POST /api/admin/usyc/(cover|run)'),
+  r(`POST /api/admin/accounts/${ANY}/unpause`),
+  r('POST /api/admin/deal-rules/off'),
 ];
 
 export function levelForRoute(method: string, path: string): DeskLevel {

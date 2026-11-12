@@ -2677,6 +2677,40 @@ export interface AdminMoneyMoves {
   counts: { stuck: number; moving: number; failed: number; done: number };
 }
 
+export type AdminAccountStatus = 'money_stuck' | 'active' | 'setting_up' | 'paused';
+
+/// One account in the desk's list (view 79). Never an email address.
+export interface AdminAccountRow {
+  address: string;
+  name: string;
+  handle: string | null;
+  joinedAt: number;
+  country: string | null;
+  deals: number;
+  disputes: number;
+  status: AdminAccountStatus;
+}
+
+/// One account on the desk (view 79), a named allowlist.
+export interface AdminAccountView {
+  address: string;
+  name: string;
+  handle: string | null;
+  country: string | null;
+  joinedAt: number;
+  signIn: 'email' | 'wallet';
+  telegramLinked: boolean;
+  status: AdminAccountStatus;
+  accountType: 'person' | 'business';
+  business: string;
+  money: { balanceUsdc: string | null; heldUsdc: string; agentsUsdc: string | null; stuckUsdc: string; currency: string | null };
+  record: { dealsDone: number; onTime: number; disputes: number; checked: string[]; agent: string | null };
+  moves: AdminMoneyMove[];
+  deals: Array<{ jobId: string; title: string; with: string; amountUsdc: string; stage: string; side: 'buyer' | 'seller' }>;
+  cases: Array<{ ref: string; kind: string; state: string; lastAt: number }>;
+  paused: { at: number; by: string } | null;
+}
+
 /// Home on the desk (view 79), filtered to the teammate's pages by the server.
 export interface AdminHomeView {
   needsYou: Array<{ kind: 'approval' | 'dispute' | 'late_case'; title: string; line: string; href: string; since: number; amountUsdc?: string }>;
@@ -4187,6 +4221,17 @@ export const api = {
   adminSession: () => json<{ me: AdminDeskMe | null; network?: AdminDeskNetwork }>('/api/admin/session', { headers: adminHeaders() }),
   adminHome: () => json<AdminHomeView>('/api/admin/home', { headers: adminHeaders() }),
   adminMoneyMoves: () => json<AdminMoneyMoves>('/api/admin/money-moves', { headers: adminHeaders() }),
+  adminAccounts: (email?: string) =>
+    json<{ count: number; accounts: AdminAccountRow[] }>(`/api/admin/accounts${email ? `?email=${encodeURIComponent(email)}` : ''}`, { headers: adminHeaders() }),
+  adminAccount: (address: string) => json<AdminAccountView>(`/api/admin/accounts/${encodeURIComponent(address)}`, { headers: adminHeaders() }),
+  adminPauseAccount: (address: string) =>
+    json<{ ok: true; paused: true }>(`/api/admin/accounts/${encodeURIComponent(address)}/pause`, { method: 'POST', headers: adminHeaders() }),
+  adminUnpauseAccount: (address: string, reason: string) =>
+    json<AdminMoneyRequestAnswer>(`/api/admin/accounts/${encodeURIComponent(address)}/unpause`, {
+      method: 'POST',
+      headers: { ...adminHeaders(), ...deskReasonHeader(reason) },
+      body: JSON.stringify({}),
+    }),
   /// The shared rate on the desk's own network, for Show amounts in (view 79).
   adminRates: () =>
     json<{ rates: Partial<Record<string, number>>; updatedAt: number | null; source: string | null }>('/api/admin/rates', { headers: adminHeaders() }),
@@ -4768,6 +4813,13 @@ export const api = {
     json<AdminFormLimits>('/api/admin/deal-rules', { headers: adminHeaders() }),
   adminSetDealRules: (on: boolean) =>
     json<AdminFormLimits>('/api/admin/deal-rules', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ on }) }),
+  /// Turning deal rules off waits for a second teammate (view 79).
+  adminDealRulesOff: (reason: string) =>
+    json<AdminMoneyRequestAnswer>('/api/admin/deal-rules/off', { method: 'POST', headers: { ...adminHeaders(), ...deskReasonHeader(reason) }, body: JSON.stringify({}) }),
+  adminSettings: () =>
+    json<{ switches: Array<{ key: 'deal_rules' | 'form_limits'; on: boolean; secondPerson: boolean }>; server: Array<{ name: string; on: boolean }> }>('/api/admin/settings', { headers: adminHeaders() }),
+  adminResetTeamMemberCode: (id: string) =>
+    json<{ member: TeamMemberView }>(`/api/admin/team-members/${encodeURIComponent(id)}/reset-code`, { method: 'POST', headers: adminHeaders() }),
   adminFormLimits: () =>
     json<AdminFormLimits>('/api/admin/form-limits', { headers: adminHeaders() }),
   adminSetFormLimits: (on: boolean) =>

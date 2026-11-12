@@ -99,7 +99,7 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
   }
 
   if (!view) {
-    return <div className="rounded-xl border border-white/10 p-3 text-[13px] text-white/60">{note ?? 'Reading the deal...'}</div>;
+    return <div className="rounded-lg border border-[var(--d-line)] p-3 text-[13px] text-[var(--d-text-2)]">{note ?? 'Reading the deal...'}</div>;
   }
   const held = view.verificationStatus === 'suspicious' || view.verificationStatus === 'malicious';
   const review = view.review;
@@ -109,32 +109,32 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
   const work = view.workMismatch;
 
   return (
-    <section className="space-y-3 rounded-xl border border-white/10 p-4" aria-label={`Review for ${view.jobId}`}>
+    <section className="space-y-3 rounded-lg border border-[var(--d-line)] p-4" aria-label={`Review for ${view.jobId}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-[14px] font-semibold text-white">{held ? 'Flagged delivery' : work ? 'Work does not match' : hold ? 'Held match' : 'Flagged delivery'}</p>
-        <p className="text-[13px] text-white/60">{view.amountUsdc} USDC · delivery {view.revision}{view.revision !== view.deliveryRevision ? ` of ${view.deliveryRevision}` : ''}{view.closed ? ' · deal closed' : ''}</p>
+        <p className="text-[14px] font-semibold text-[var(--d-text)]">{held ? 'Flagged delivery' : work ? 'Work does not match' : hold ? 'Held match' : 'Flagged delivery'}</p>
+        <p className="text-[13px] text-[var(--d-text-2)]">{view.amountUsdc} USDC · delivery {view.revision}{view.revision !== view.deliveryRevision ? ` of ${view.deliveryRevision}` : ''}{view.closed ? ' · deal closed' : ''}</p>
       </div>
 
       {hold && (
-        <div className="space-y-2 rounded-lg border border-white/10 p-3">
-          <p className="text-[13px] font-semibold text-white">Match held for a look</p>
-          <p className="text-[13px] text-white/60">The hold moved no money and blocks no release. Clear it once you have looked.</p>
-          <ul className="list-disc ps-5 text-[13px] text-white/80">
+        <div className="space-y-2 rounded-lg border border-[var(--d-line)] p-3">
+          <p className="text-[13px] font-semibold text-[var(--d-text)]">Match held for a look</p>
+          <p className="text-[13px] text-[var(--d-text-2)]">The hold moved no money and blocks no release. Clear it once you have looked.</p>
+          <ul className="list-disc ps-5 text-[13px] text-[var(--d-text)]">
             {hold.reasons.map((r, i) => (
-              <li key={i}>{r.text} <span className="text-white/40">(for the {r.audience === 'both' ? 'two of them' : r.audience})</span></li>
+              <li key={i}>{r.text} <span className="text-[var(--d-text-2)]">(for the {r.audience === 'both' ? 'two of them' : r.audience})</span></li>
             ))}
           </ul>
           {!view.closed && (
             <div className="space-y-2">
-              <label htmlFor={`hold-${view.jobId}`} className="block text-[13px] text-white/60">What you checked and what you found</label>
+              <label htmlFor={`hold-${view.jobId}`} className="block text-[13px] text-[var(--d-text-2)]">What you checked and what you found</label>
               <textarea
                 id={`hold-${view.jobId}`}
                 value={holdReason}
                 onChange={(e) => setHoldReason(e.target.value)}
                 rows={2}
-                className="w-full resize-y rounded-lg border border-white/15 bg-[#0e0e0e] px-3 py-2 text-[13px] text-white outline-none focus:border-white/40"
+                className="w-full resize-y rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-3 py-2 text-[13px] text-[var(--d-text)] outline-none focus:border-[var(--d-line-2)]"
               />
-              <button type="button" disabled={busy || holdReason.trim().length < 10} onClick={() => void clearHold()} className="min-h-10 rounded-lg bg-[#AFC95B] px-4 text-[13px] font-bold text-[#10171D] disabled:opacity-50">
+              <button type="button" disabled={busy || holdReason.trim().length < 10} onClick={() => void clearHold()} className="min-h-10 rounded-lg bg-[var(--d-lime)] px-4 text-[13px] font-bold text-[#0D0E10] disabled:opacity-50">
                 Clear the hold
               </button>
             </div>
@@ -143,19 +143,19 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
       )}
 
       {work && (
-        <div className="space-y-2 rounded-lg border border-white/10 p-3">
-          <p className="text-[13px] font-semibold text-white">The work check found a gap with the request</p>
-          <p className="text-[13px] text-white/60">The release is paused until the seller delivers again, the buyer accepts it after their own review, or you clear it. Clearing pays nothing; the buyer review window starts then.</p>
-          <p className="text-[13px] text-white/80">{work.reason}</p>
-          <label htmlFor={`work-${view.jobId}`} className="block text-[13px] text-white/60">What you checked and what you found</label>
+        <div className="space-y-2 rounded-lg border border-[var(--d-line)] p-3">
+          <p className="text-[13px] font-semibold text-[var(--d-text)]">The work check found a gap with the request</p>
+          <p className="text-[13px] text-[var(--d-text-2)]">The release is paused until the seller delivers again, the buyer accepts it after their own review, or you clear it. Clearing pays nothing; the buyer review window starts then.</p>
+          <p className="text-[13px] text-[var(--d-text)]">{work.reason}</p>
+          <label htmlFor={`work-${view.jobId}`} className="block text-[13px] text-[var(--d-text-2)]">What you checked and what you found</label>
           <textarea
             id={`work-${view.jobId}`}
             value={workReason}
             onChange={(e) => setWorkReason(e.target.value)}
             rows={2}
-            className="w-full resize-y rounded-lg border border-white/15 bg-[#0e0e0e] px-3 py-2 text-[13px] text-white outline-none focus:border-white/40"
+            className="w-full resize-y rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-3 py-2 text-[13px] text-[var(--d-text)] outline-none focus:border-[var(--d-line-2)]"
           />
-          <button type="button" data-work-clear disabled={busy || workReason.trim().length < 10} onClick={() => void clearWork()} className="min-h-10 rounded-lg bg-[#AFC95B] px-4 text-[13px] font-bold text-[#10171D] disabled:opacity-50">
+          <button type="button" data-work-clear disabled={busy || workReason.trim().length < 10} onClick={() => void clearWork()} className="min-h-10 rounded-lg bg-[var(--d-lime)] px-4 text-[13px] font-bold text-[#0D0E10] disabled:opacity-50">
             Work matches, clear it
           </button>
         </div>
@@ -163,13 +163,13 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
 
       {view.deliveries.length > 1 && (
         <div className="flex flex-wrap items-center gap-2 text-[13px]">
-          <span className="text-white/50">Delivery</span>
+          <span className="text-[var(--d-text-2)]">Delivery</span>
           {view.deliveries.map((d) => (
             <button
               key={d.revision}
               type="button"
               onClick={() => setRevision(d.current ? undefined : d.revision)}
-              className={`min-h-8 rounded-lg border px-3 ${d.revision === view.revision ? 'border-white/60 text-white' : 'border-white/15 text-white/60 hover:text-white'}`}
+              className={`min-h-8 rounded-lg border px-3 ${d.revision === view.revision ? 'border-[var(--d-line-2)] text-[var(--d-text)]' : 'border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)]'}`}
             >
               {d.revision}{d.current ? ' (current)' : ''}{d.reviewed ? ` · ${d.reviewed}` : ''}
             </button>
@@ -179,32 +179,32 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
 
       <dl className="space-y-2 text-[13px]">
         <div>
-          <dt className="text-white/50">Link (open it in an isolated browser)</dt>
+          <dt className="text-[var(--d-text-2)]">Link (open it in an isolated browser)</dt>
           <dd className="mt-1 flex items-start gap-2">
-            <code className="min-w-0 flex-1 select-text break-all rounded-lg bg-white/[0.06] px-2 py-1.5 text-white">{view.deliveryProof ?? 'No link'}</code>
+            <code className="min-w-0 flex-1 select-text break-all rounded-lg bg-[var(--d-hover)] px-2 py-1.5 text-[var(--d-text)]">{view.deliveryProof ?? 'No link'}</code>
             {view.deliveryProof ? (
-              <button type="button" onClick={() => void copyLink(view.deliveryProof!)} className="min-h-9 rounded-lg border border-white/15 px-3 text-[12px] text-white/80 hover:text-white">
+              <button type="button" onClick={() => void copyLink(view.deliveryProof!)} className="min-h-9 rounded-lg border border-[var(--d-line)] px-3 text-[12px] text-[var(--d-text)] hover:text-[var(--d-text)]">
                 {copied ? 'Copied' : 'Copy'}
               </button>
             ) : null}
           </dd>
         </div>
         <div className="flex gap-2">
-          <dt className="text-white/50">Scanner</dt>
-          <dd className={view.verificationStatus === 'malicious' ? 'font-semibold text-[#e0794f]' : 'text-white'}>
+          <dt className="text-[var(--d-text-2)]">Scanner</dt>
+          <dd className={view.verificationStatus === 'malicious' ? 'font-semibold text-[var(--d-red)]' : 'text-[var(--d-text)]'}>
             {view.verificationStatus ?? 'not scanned'}{view.verificationReasons.length ? `: ${view.verificationReasons.join(', ')}` : ''}
           </dd>
         </div>
         {review ? (
           <div>
-            <dt className="text-white/50">Review</dt>
+            <dt className="text-[var(--d-text-2)]">Review</dt>
             <dd className="mt-1 space-y-1">
               {review.steps.map((step) => (
-                <p key={step.at} className="text-white/80">
+                <p key={step.at} className="text-[var(--d-text)]">
                   {step.role} said {step.decision} · {new Date(step.at).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC: {step.reason}
                 </p>
               ))}
-              <p className="font-semibold text-white">
+              <p className="font-semibold text-[var(--d-text)]">
                 {review.decision === 'pending-approval' ? 'Waiting for the other credential.' : `Final: ${review.decision}.`}
               </p>
             </dd>
@@ -213,33 +213,33 @@ export function DeliveryReviewPanel({ jobId, onChanged }: { jobId: string; onCha
       </dl>
 
       {!held ? (
-        <p className="text-[13px] text-white/60">{hold ? 'The delivery link is not held.' : 'The current delivery is not held, so there is nothing to review.'}</p>
+        <p className="text-[13px] text-[var(--d-text-2)]">{hold ? 'The delivery link is not held.' : 'The current delivery is not held, so there is nothing to review.'}</p>
       ) : decided ? null : (
         <div className="space-y-2">
           {recordOnly && (
-            <p className="text-[13px] text-white/60">
+            <p className="text-[13px] text-[var(--d-text-2)]">
               {view.closed ? 'This deal is closed.' : 'This delivery was replaced.'} A decision here corrects the record only: clearing takes the offence off the seller and changes nothing for the money.
             </p>
           )}
-          <label htmlFor={`review-${view.jobId}`} className="block text-[13px] text-white/60">What you checked and what you found</label>
+          <label htmlFor={`review-${view.jobId}`} className="block text-[13px] text-[var(--d-text-2)]">What you checked and what you found</label>
           <textarea
             id={`review-${view.jobId}`}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
-            className="w-full resize-y rounded-lg border border-white/15 bg-[#0e0e0e] px-3 py-2 text-[13px] text-white outline-none focus:border-white/40"
+            className="w-full resize-y rounded-lg border border-[var(--d-line)] bg-[var(--d-bg)] px-3 py-2 text-[13px] text-[var(--d-text)] outline-none focus:border-[var(--d-line-2)]"
           />
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={busy || reason.trim().length < 10} onClick={() => void decide('safe')} className="min-h-10 rounded-lg bg-[#AFC95B] px-4 text-[13px] font-bold text-[#10171D] disabled:opacity-50">
+            <button type="button" disabled={busy || reason.trim().length < 10} onClick={() => void decide('safe')} className="min-h-10 rounded-lg bg-[var(--d-lime)] px-4 text-[13px] font-bold text-[#0D0E10] disabled:opacity-50">
               {recordOnly ? 'Link was safe, correct the record' : 'Link is safe, clear it'}
             </button>
-            <button type="button" disabled={busy || reason.trim().length < 10} onClick={() => void decide('unsafe')} className="min-h-10 rounded-lg border border-white/20 px-4 text-[13px] font-bold text-white disabled:opacity-50">
+            <button type="button" disabled={busy || reason.trim().length < 10} onClick={() => void decide('unsafe')} className="min-h-10 rounded-lg border border-[var(--d-line)] px-4 text-[13px] font-bold text-[var(--d-text)] disabled:opacity-50">
               {recordOnly ? 'Link was unsafe, keep the record' : 'Keep it blocked'}
             </button>
           </div>
         </div>
       )}
-      {note ? <p role="status" className="text-[13px] text-white/80">{note}</p> : null}
+      {note ? <p role="status" className="text-[13px] text-[var(--d-text)]">{note}</p> : null}
     </section>
   );
 }

@@ -45,8 +45,8 @@ function today(): string {
 }
 
 const inputClass =
-  'mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] focus:border-white/40 outline-none';
-const labelClass = 'mono text-[10px] uppercase tracking-[0.12em] text-white/40';
+  'mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] focus:border-[var(--d-line-2)] outline-none';
+const labelClass = 'text-[10px] text-[var(--d-text-2)]';
 
 export default function AdminSignalsPage() {
   const { confirm } = useDialog();
@@ -142,26 +142,26 @@ export default function AdminSignalsPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">Signals</p>
-      <h1 className="mt-2 font-sans text-[24px] font-extrabold">The pipeline</h1>
-      <p className="mt-2 text-[13px] text-white/55 max-w-[68ch]">
+      <p className="text-[10px] text-[var(--d-text-2)]">Signals</p>
+      <h1 className="mt-2 font-sans text-[24px] font-semibold">The pipeline</h1>
+      <p className="mt-2 text-[13px] text-[var(--d-text-2)] max-w-[68ch]">
         What the newsletter drafts from. Paste a link, an article or a raw note, and say what you
         think about it. The same link twice is one entry, so paste again to add a take you did not
         write the first time.
       </p>
 
       {err && (
-        <p className="mt-4 text-[12px] text-[#e0794f] border border-[#e0794f]/30 bg-[#e0794f]/10 rounded-lg px-3 py-2">
+        <p className="mt-4 text-[12px] text-[var(--d-red)] border border-[#5A2A2E] bg-[#3A1C1F] rounded-lg px-3 py-2">
           {err}
         </p>
       )}
       {notice && (
-        <p className="mt-4 text-[12px] text-white/70 border border-white/15 bg-white/5 rounded-lg px-3 py-2">
+        <p className="mt-4 text-[12px] text-[var(--d-text)] border border-[var(--d-line)] bg-[var(--d-surface)] rounded-lg px-3 py-2">
           {notice}
         </p>
       )}
 
-      <form onSubmit={drop} className="mt-6 border border-white/10 rounded-xl p-5 bg-[#161616]">
+      <form onSubmit={drop} className="mt-6 border border-[var(--d-line)] rounded-lg p-5 bg-[var(--d-surface)]">
         <p className={labelClass}>Drop something in</p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -206,7 +206,7 @@ export default function AdminSignalsPage() {
             maxLength={2000}
             className={inputClass}
           />
-          <span className="mt-1 block text-[11px] text-white/35">
+          <span className="mt-1 block text-[11px] text-[var(--d-text-3)]">
             Optional. Without one this cannot be told apart from another note, so pasting twice
             makes two entries.
           </span>
@@ -215,8 +215,8 @@ export default function AdminSignalsPage() {
         {/* The take sits in its own block, ahead of the excerpt. It is the field
             that makes an issue worth reading, and burying it under a paste box
             is how it ends up empty. */}
-        <div className="mt-4 border border-[#AFC95B]/30 bg-[#AFC95B]/[0.06] rounded-xl p-4">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[#AFC95B]">
+        <div className="mt-4 border border-[#3D4A22] bg-[#1F2614] rounded-lg p-4">
+          <span className="text-[10px] font-bold text-[var(--d-lime)]">
             Your take
           </span>
           <textarea
@@ -225,9 +225,9 @@ export default function AdminSignalsPage() {
             rows={3}
             maxLength={4000}
             placeholder="Why this matters to a supplier waiting ninety days."
-            className="mt-2 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] focus:border-white/40 outline-none resize-y"
+            className="mt-2 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] focus:border-[var(--d-line-2)] outline-none resize-y"
           />
-          <span className="mt-1 block text-[11px] text-white/40">
+          <span className="mt-1 block text-[11px] text-[var(--d-text-2)]">
             The draft is built around this. Without it the entry is a bookmark.
           </span>
         </div>
@@ -240,7 +240,7 @@ export default function AdminSignalsPage() {
             rows={2}
             maxLength={1000}
             placeholder="One line on what happened."
-            className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] focus:border-white/40 outline-none resize-y"
+            className="mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] focus:border-[var(--d-line-2)] outline-none resize-y"
           />
         </label>
 
@@ -251,9 +251,9 @@ export default function AdminSignalsPage() {
             onChange={(e) => setRawExcerpt(e.target.value)}
             rows={4}
             placeholder="Paste the part you want to draft from."
-            className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[13px] focus:border-white/40 outline-none resize-y"
+            className="mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[13px] focus:border-[var(--d-line-2)] outline-none resize-y"
           />
-          <span className="mt-1 block text-[11px] text-white/35">
+          <span className="mt-1 block text-[11px] text-[var(--d-text-3)]">
             {rawExcerpt.length > excerptMax
               ? `We keep the first ${excerptMax} characters. The rest is dropped.`
               : `${rawExcerpt.length} of ${excerptMax} characters kept. We hold an excerpt and cite the link, never the article.`}
@@ -278,11 +278,11 @@ export default function AdminSignalsPage() {
                   key={i.value}
                   type="button"
                   onClick={() => setImportance(i.value)}
-                  className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-2.5 rounded-lg border transition ${
-                    importance === i.value
-                      ? 'bg-white text-[#0e0e0e] border-white font-bold'
-                      : 'border-white/15 text-white/55 hover:text-white'
-                  }`}
+                  className={` text-[10px] px-3 py-2.5 rounded-lg border transition ${
+ importance === i.value
+ ? 'bg-[var(--d-text)] text-[#0D0E10] border-[var(--d-line-2)] font-bold'
+ : 'border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)]'
+ }`}
                 >
                   {i.label}
                 </button>
@@ -294,7 +294,7 @@ export default function AdminSignalsPage() {
         <button
           type="submit"
           disabled={saving || !source.trim() || !title.trim()}
-          className="mt-5 mono text-[10px] uppercase tracking-[0.12em] font-bold px-4 py-2.5 rounded-lg bg-white text-[#0e0e0e] disabled:opacity-40"
+          className="mt-5 text-[10px] font-bold px-4 py-2.5 rounded-lg bg-[var(--d-text)] text-[#0D0E10] disabled:opacity-40"
         >
           {saving ? 'Saving' : 'Add to pipeline'}
         </button>
@@ -306,41 +306,41 @@ export default function AdminSignalsPage() {
             key={o}
             type="button"
             onClick={() => setFilter(o)}
-            className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-lg border transition ${
-              filter === o
-                ? 'bg-white text-[#0e0e0e] border-white font-bold'
-                : 'border-white/15 text-white/50 hover:text-white'
-            }`}
+            className={` text-[10px] px-3 py-1.5 rounded-lg border transition ${
+ filter === o
+ ? 'bg-[var(--d-text)] text-[#0D0E10] border-[var(--d-line-2)] font-bold'
+ : 'border-[var(--d-line)] text-[var(--d-text-2)] hover:text-[var(--d-text)]'
+ }`}
           >
             {o === 'all' ? 'All' : ORIGIN_LABEL[o]}
           </button>
         ))}
         {withoutTake > 0 && (
-          <span className="text-[11px] text-white/35">{withoutTake} with no take yet</span>
+          <span className="text-[11px] text-[var(--d-text-3)]">{withoutTake} with no take yet</span>
         )}
       </div>
 
       <div className="mt-4 space-y-3">
-        {signals === null && <p className="text-[13px] text-white/40">Loading</p>}
+        {signals === null && <p className="text-[13px] text-[var(--d-text-2)]">Loading</p>}
         {signals !== null && shown.length === 0 && (
-          <p className="text-[13px] text-white/40">
+          <p className="text-[13px] text-[var(--d-text-2)]">
             Nothing here yet. Paste something above and it becomes the next issue.
           </p>
         )}
 
         {shown.map((s) => (
-          <article key={s.id} className="border border-white/10 rounded-xl p-4 bg-[#161616]">
+          <article key={s.id} className="border border-[var(--d-line)] rounded-lg p-4 bg-[var(--d-surface)]">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="mono text-[9px] uppercase tracking-[0.14em] px-2 py-1 rounded border border-white/15 text-white/50">
+                  <span className="text-[9px] px-2 py-1 rounded border border-[var(--d-line)] text-[var(--d-text-2)]">
                     {ORIGIN_LABEL[s.origin]}
                   </span>
-                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/35">
+                  <span className="text-[10px] text-[var(--d-text-3)]">
                     {s.source}
                   </span>
                   {s.importance === 'high' && (
-                    <span className="mono text-[9px] uppercase tracking-[0.14em] px-2 py-1 rounded bg-[#AFC95B]/15 text-[#AFC95B]">
+                    <span className="text-[9px] px-2 py-1 rounded bg-[#1F2614] text-[var(--d-lime)]">
                       High
                     </span>
                   )}
@@ -351,7 +351,7 @@ export default function AdminSignalsPage() {
                       href={s.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="hover:text-[#AFC95B] transition"
+                      className="hover:text-[var(--d-lime)] transition"
                     >
                       {s.title}
                     </a>
@@ -359,27 +359,27 @@ export default function AdminSignalsPage() {
                     s.title
                   )}
                 </h2>
-                {s.summary && <p className="mt-1.5 text-[13px] text-white/55">{s.summary}</p>}
+                {s.summary && <p className="mt-1.5 text-[13px] text-[var(--d-text-2)]">{s.summary}</p>}
                 {s.myTake ? (
-                  <p className="mt-2.5 text-[13px] text-white/80 border-l-2 border-[#AFC95B] pl-3">
+                  <p className="mt-2.5 text-[13px] text-[var(--d-text)] border-l-2 border-[var(--d-lime)] pl-3">
                     {s.myTake}
                   </p>
                 ) : (
-                  <p className="mt-2.5 text-[12px] text-white/30">
+                  <p className="mt-2.5 text-[12px] text-[var(--d-text-3)]">
                     No take yet. Paste the link again to add one.
                   </p>
                 )}
                 {s.tags.length > 0 && (
-                  <p className="mt-2 mono text-[10px] text-white/30">{s.tags.join(' · ')}</p>
+                  <p className="mt-2 text-[10px] text-[var(--d-text-3)]">{s.tags.join(' · ')}</p>
                 )}
               </div>
 
               <div className="shrink-0 text-right">
-                <p className="mono text-[10px] text-white/30">{when(s.publishedAt)}</p>
+                <p className="text-[10px] text-[var(--d-text-3)]">{when(s.publishedAt)}</p>
                 <button
                   type="button"
                   onClick={() => dismiss(s)}
-                  className="mt-2 mono text-[10px] uppercase tracking-[0.12em] text-white/35 hover:text-[#e0794f] transition"
+                  className="mt-2 text-[10px] text-[var(--d-text-3)] hover:text-[var(--d-red)] transition"
                 >
                   Dismiss
                 </button>
