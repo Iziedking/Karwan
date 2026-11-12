@@ -332,6 +332,7 @@ import { setDeskReplay } from './middleware/twoPeople.js';
 import { requestSizeLimit } from './middleware/requestSize.js';
 import { cspReportRoutes, pagePolicyAdminRoutes } from './routes/cspReport.js';
 import { adminRequestRoutes } from './routes/adminRequests.js';
+import { adminHomeRoutes } from './routes/adminHome.js';
 import { buildOperatorRouteCatalog } from './ops/routeCatalog.js';
 
 const app = new Hono();
@@ -553,6 +554,7 @@ app.use('/api/admin/*', requireAccessPass);
 // behind the session it hands out.
 app.route('/api/admin', adminDeskRoutes);
 app.route('/api/admin', adminRequestRoutes);
+app.route('/api/admin', adminHomeRoutes);
 // An approved money move runs as a request into this same app, as the approver.
 setDeskReplay((req) => Promise.resolve(app.fetch(req)));
 // Cases come before the ticket routes, whose /:id would take /cases.

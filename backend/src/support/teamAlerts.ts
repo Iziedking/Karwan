@@ -5,7 +5,7 @@ import type { CaseKind } from './caseRules.js';
 /// only: replies are written on the support desk, so each one carries a name
 /// and leaves a row.
 
-const KIND: Record<CaseKind, string> = {
+export const KIND: Record<CaseKind, string> = {
   money_in_deal: 'Money held in a deal',
   transfer_missing: 'Transfer did not arrive',
   account: 'Account and sign-in',

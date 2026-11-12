@@ -1,203 +1,125 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import {
-  api,
-  type AdminDealRow,
-  type AdminProfileRow,
-  type AdminTicketRow,
-} from '@/core/api';
-import { SOURCE_ROUTE_SNAPSHOT } from '@/features/admin/routeCatalog';
+import type { AdminHomeView } from '@/core/api';
+import { DeskCard, StatTile } from '@/features/admin/desk/DeskCard';
+import { DeskButton, DeskLink, DeskPage } from '@/features/admin/desk/DeskPage';
+import { Cell, DeskTable, type DeskColumn } from '@/features/admin/desk/DeskTable';
+import { StatusPill, type PillTone } from '@/features/admin/desk/StatusPill';
+import { useDesk } from '@/features/admin/desk/deskContext';
+import { firstName, greeting, waitLine, waited } from '@/features/admin/desk/homeWords';
+import { useDeskMoney } from '@/features/admin/desk/useDeskCurrency';
+import { useDeskHome } from '@/features/admin/desk/useDeskHome';
 
-interface HealthView {
-  overall: 'healthy' | 'degraded';
-  infrastructure: Array<{ label: string; ok: boolean }>;
-  watchers: Array<{ status: 'healthy' | 'stalled' | 'missing' | 'dormant' | 'starting' }>;
-  crons: Array<{ status: 'fresh' | 'stale' | 'unknown' }>;
-  contracts: Array<{ ok: boolean }>;
+type Need = AdminHomeView['needsYou'][number];
+type Tile = AdminHomeView['today'][number];
+type SystemRow = NonNullable<AdminHomeView['system']>[number];
+
+const NEED: Record<Need['kind'], { pill: string; tone: PillTone; action: string; primary?: true }> = {
+  approval: { pill: 'Second approval', tone: 'amber', action: 'Review and approve', primary: true },
+  dispute: { pill: 'Dispute', tone: 'red', action: 'Open the dispute' },
+  late_case: { pill: 'Late case', tone: 'red', action: 'Open the case' },
+};
+
+const SYSTEM: Record<SystemRow['state'], { word: string; tone: PillTone }> = {
+  working: { word: 'Working', tone: 'green' },
+  slow: { word: 'Slow', tone: 'amber' },
+  down: { word: 'Down', tone: 'red' },
+};
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const roleWord = (role: string | null) => (role ? role[0]!.toUpperCase() + role.slice(1) : 'Teammate');
+
+function Blank({ className }: { className: string }) {
+  return <div className={`rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] ${className}`} />;
 }
 
-interface ControlRoomData {
-  deals: AdminDealRow[];
-  profiles: AdminProfileRow[];
-  tickets: AdminTicketRow[];
-  pendingBusinesses: number;
-  health: HealthView | null;
-}
+export default function AdminHomePage() {
+  const { me } = useDesk();
+  const { home, failed, refresh } = useDeskHome();
+  const money = useDeskMoney();
+  const now = Date.now();
+  const name = firstName(me.name);
+  const title = name ? `${greeting(now)}, ${name}` : greeting(now);
 
-function NumberCard({ label, value, detail, href, urgent = false }: {
-  label: string;
-  value: number;
-  detail: string;
-  href: string;
-  urgent?: boolean;
-}) {
-  return (
-    <Link href={href} className={`group min-h-[132px] rounded-xl border-l-2 border-y border-r p-4 transition ${urgent && value > 0 ? 'border-l-[#e0794f] border-y-[#e0794f]/25 border-r-[#e0794f]/25 bg-[#171214] hover:border-y-[#e0794f]/50 hover:border-r-[#e0794f]/50' : 'border-l-transparent border-y-white/10 border-r-white/10 bg-[#111114] hover:border-l-[#AFC95B] hover:border-y-white/20 hover:border-r-white/20'}`}>
-      <div className="flex items-start justify-between gap-3">
-        <p className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">{label}</p>
-        <span aria-hidden="true" className="text-[15px] text-white/25 transition group-hover:translate-x-0.5 group-hover:text-[#AFC95B]">&rarr;</span>
-      </div>
-      <p className="mt-3 text-[32px] font-black leading-none tabular-nums">{value.toLocaleString()}</p>
-      <p className="mt-3 text-[10px] leading-4 text-white/38">{detail}</p>
-    </Link>
-  );
-}
+  if (!home) {
+    return (
+      <DeskPage title={title} subtitle={failed ? 'Home could not load. It tries again in two minutes.' : undefined} actions={failed ? <DeskButton onClick={() => void refresh()}>Try again</DeskButton> : undefined}>
+        {!failed && (
+          <>
+            <Blank className="h-[198px]" />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Blank key={i} className="h-[95px]" />)}</div>
+          </>
+        )}
+      </DeskPage>
+    );
+  }
 
-export default function AdminOverview() {
-  const [data, setData] = useState<ControlRoomData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setFailed(false);
-    const [deals, profiles, tickets, businesses, health] = await Promise.allSettled([
-      api.adminDeals(),
-      api.adminProfiles(),
-      api.adminSupportList(),
-      api.adminBusinessPending(),
-      api.adminHealth(),
-    ]);
-    const hasCoreFailure = deals.status === 'rejected' || profiles.status === 'rejected';
-    if (hasCoreFailure) setFailed(true);
-    setData({
-      deals: deals.status === 'fulfilled' ? deals.value.deals : [],
-      profiles: profiles.status === 'fulfilled' ? profiles.value.profiles : [],
-      tickets: tickets.status === 'fulfilled' ? tickets.value.tickets : [],
-      pendingBusinesses: businesses.status === 'fulfilled' ? businesses.value.pending.length : 0,
-      health: health.status === 'fulfilled' ? health.value : null,
-    });
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const view = useMemo(() => {
-    const deals = data?.deals ?? [];
-    const profiles = data?.profiles ?? [];
-    const disputed = deals.filter((deal) => deal.stage === 'disputed').length;
-    const active = deals.filter((deal) => ['open', 'accepted', 'delivered'].includes(deal.stage)).length;
-    // The support list endpoint returns open conversations only.
-    const openTickets = data?.tickets.length ?? 0;
-    const unhealthyInfrastructure = data?.health?.infrastructure.filter((item) => !item.ok).length ?? 0;
-    const unhealthyWatchers = data?.health?.watchers.filter((item) => item.status === 'stalled' || item.status === 'missing').length ?? 0;
-    const staleCrons = data?.health?.crons.filter((item) => item.status === 'stale').length ?? 0;
-    const unhealthyContracts = data?.health?.contracts.filter((item) => !item.ok).length ?? 0;
-    return {
-      deals,
-      profiles,
-      disputed,
-      active,
-      openTickets,
-      systemIssues: unhealthyInfrastructure + unhealthyWatchers + staleCrons + unhealthyContracts,
-    };
-  }, [data]);
-
-  const queues = [
-    { label: 'Open disputes', value: view.disputed, href: '/admin/disputes', copy: view.disputed ? 'Rulings require operator review.' : 'No deal rulings waiting.' },
-    { label: 'Business checks', value: data?.pendingBusinesses ?? 0, href: '/admin/business', copy: data?.pendingBusinesses ? 'Evidence is waiting for a decision.' : 'Verification queue is clear.' },
-    { label: 'Support tickets', value: view.openTickets, href: '/admin/support', copy: view.openTickets ? 'Customers are waiting for a response.' : 'No open customer conversations.' },
-    { label: 'System issues', value: view.systemIssues, href: '/admin/diagnostics', copy: view.systemIssues ? 'One or more checks need attention.' : 'No degraded checks reported.' },
+  const columns: DeskColumn<Need>[] = [
+    { key: 'kind', label: 'Needs you', width: '150px', render: (n) => <StatusPill tone={NEED[n.kind].tone}>{NEED[n.kind].pill}</StatusPill> },
+    {
+      key: 'what',
+      label: '',
+      width: 'minmax(0,3fr)',
+      render: (n) => <Cell main={n.title} under={n.amountUsdc ? `${n.line} · ${money(n.amountUsdc).main} held` : n.line} />,
+    },
+    { key: 'since', label: 'Waiting', width: '140px', render: (n) => <span className="text-[13px] font-medium">{waited(now - n.since)}</span> },
+    {
+      key: 'go',
+      label: '',
+      width: 'minmax(0,1.3fr)',
+      align: 'right',
+      render: (n) => <DeskLink href={n.href} tone={NEED[n.kind].primary ? 'primary' : 'secondary'}>{NEED[n.kind].action}</DeskLink>,
+    },
   ];
 
-  const nextQueue = queues.find((queue) => queue.value > 0);
+  function tile(t: Tile) {
+    switch (t.key) {
+      case 'accounts':
+        return <StatTile key={t.key} label="New accounts" value={t.count} line={`${t.extra} finished setup`} />;
+      case 'deals':
+        return <StatTile key={t.key} label="Deals started" value={t.count} line={t.count ? `${money(t.usdc).main} in total` : 'None yet today'} />;
+      case 'held':
+        return <StatTile key={t.key} label="Money held in deals" value={money(t.usdc).main} line={`across ${plural(t.count, 'deal', 'deals')}`} />;
+      case 'support':
+        return <StatTile key={t.key} label="Support" value={`${t.count} open`} line={t.minutes === null ? 'No first replies yet today' : `first reply in ${t.minutes} min on average`} />;
+    }
+  }
 
   return (
-    <div>
-      <div className="flex flex-col gap-5 border-b border-white/10 pb-7 xl:flex-row xl:items-end xl:justify-between">
-        <div className="max-w-[720px]">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#AFC95B]">Control room</p>
-          <h1 className="mt-3 font-sans text-[clamp(32px,4vw,52px)] font-black leading-none tracking-[-0.04em]">What needs attention now?</h1>
-          <p className="mt-4 text-[13px] leading-6 text-white/48">Start with exceptions, then monitor active trade and agent work. Wallet signing remains disconnected until a reviewed on-chain action needs it.</p>
-        </div>
-        <button type="button" onClick={() => void load()} disabled={loading} className="min-h-11 self-start rounded-lg border border-white/12 px-4 mono text-[9px] font-bold uppercase tracking-[0.12em] text-white/55 transition hover:border-white/25 hover:text-white disabled:opacity-45 xl:self-auto">{loading ? 'Refreshing...' : 'Refresh control room'}</button>
-      </div>
+    <DeskPage title={title} subtitle={waitLine(home.needsYou.length)}>
+      <DeskTable columns={columns} rows={home.needsYou} rowKey={(n) => `${n.kind}-${n.title}-${n.since}`} empty="Nothing waits for you right now." />
 
-      {failed && (
-        <div role="alert" className="mt-5 flex flex-col gap-3 rounded-xl border border-[#e0794f]/25 bg-[#e0794f]/7 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div><p className="text-[12px] font-bold text-[#efaa8d]">Some core operational data is unavailable.</p><p className="mt-1 text-[10px] text-white/40">Existing workspaces remain available. Retry before making a decision from these counts.</p></div>
-          <button type="button" onClick={() => void load()} className="min-h-11 rounded-lg border border-[#e0794f]/30 px-3 mono text-[9px] font-bold uppercase tracking-[0.1em] text-[#efaa8d]">Retry</button>
-        </div>
+      {home.today.length > 0 && (
+        <section aria-label="Today" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{home.today.map(tile)}</section>
       )}
 
-      <section aria-labelledby="next-action-heading" className="mt-7 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <div className="rounded-xl border border-[#AFC95B]/25 border-l-2 bg-[#AFC95B]/[0.055] p-5">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#AFC95B]">Start here</p>
-          <h2 id="next-action-heading" className="mt-2 text-[22px] font-extrabold tracking-[-0.02em]">
-            {nextQueue ? nextQueue.label : 'The queue is clear'}
-          </h2>
-          <p className="mt-2 max-w-[58ch] text-[12px] leading-5 text-white/50">
-            {nextQueue ? nextQueue.copy : 'No urgent exception is waiting. Review the operating picture, then keep an eye on active trade.'}
-          </p>
-          <Link href={nextQueue?.href ?? '/admin/deals'} className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-lg bg-[#AFC95B] px-4 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[#0A0A0B] transition hover:bg-[#c5dc70]">
-            {nextQueue ? `Open ${nextQueue.label.toLowerCase()}` : 'Review active trade'} <span aria-hidden="true">→</span>
-          </Link>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-[#111114] p-5">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-white/35">Operator loop</p>
-          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 xl:grid-cols-2">
-            {[
-              ['01', 'Review', 'Read the evidence.'],
-              ['02', 'Decide', 'Choose the next state.'],
-              ['03', 'Confirm', 'Check the consequence.'],
-              ['04', 'Record', 'Leave an audit trail.'],
-            ].map(([number, label, copy]) => (
-              <div key={number} className="border-t border-white/10 pt-2">
-                <p className="mono text-[9px] text-[#AFC95B]">{number}</p>
-                <p className="mt-1 text-[12px] font-bold text-white/80">{label}</p>
-                <p className="mt-1 text-[10px] leading-4 text-white/35">{copy}</p>
+      <div className="grid items-start gap-3 lg:grid-cols-2">
+        {home.system && (
+          <DeskCard title="System" action={<DeskLink href="/admin/health">Open Health</DeskLink>}>
+            <div className="space-y-2.5 px-4 pb-4 pt-1">
+              {home.system.map((row) => (
+                <div key={row.label} className="flex items-center justify-between gap-3 text-[13px]">
+                  <span>{row.label}</span>
+                  <StatusPill tone={SYSTEM[row.state].tone}>{row.detail ? `${SYSTEM[row.state].word} · ${row.detail}` : SYSTEM[row.state].word}</StatusPill>
+                </div>
+              ))}
+            </div>
+          </DeskCard>
+        )}
+        <DeskCard title="Team on the desk now">
+          <div className="space-y-2.5 px-4 pb-4 pt-1">
+            {home.onShift.length === 0 && <p className="text-[13px] text-[var(--d-text-3)]">Nobody else has used the desk in the last 30 minutes.</p>}
+            {home.onShift.map((m) => (
+              <div key={m.name} className="flex items-center justify-between gap-3 text-[13px]">
+                <span>{m.name}</span>
+                <span className="text-[var(--d-text-2)]">
+                  {roleWord(m.role)} · {m.openCases ? plural(m.openCases, 'case', 'cases') : `last active ${waited(now - m.lastAt)} ago`}
+                </span>
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section aria-labelledby="attention-heading" className="mt-7">
-        <div className="flex items-end justify-between gap-4"><div><p className="mono text-[9px] uppercase tracking-[0.15em] text-white/30">Priority queue</p><h2 id="attention-heading" className="mt-2 text-[18px] font-extrabold">Review before routine work</h2></div><p className="text-[10px] text-white/28">Live operator data</p></div>
-        {loading && !data ? (
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-[132px] animate-pulse rounded-xl border border-white/8 bg-white/[0.025]" />)}</div>
-        ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {queues.map((queue) => <NumberCard key={queue.label} {...queue} detail={queue.copy} urgent />)}
-          </div>
-        )}
-      </section>
-
-      <section aria-labelledby="business-heading" className="mt-8">
-        <p className="mono text-[9px] uppercase tracking-[0.15em] text-white/30">Operating picture</p>
-        <h2 id="business-heading" className="mt-2 text-[18px] font-extrabold">Trade network</h2>
-        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <NumberCard label="Active deals" value={view.active} detail="Open, agreed, or delivered." href="/admin/deals" />
-          <NumberCard label="Settled deals" value={view.deals.filter((deal) => deal.stage === 'settled').length} detail="Completed settlement records." href="/admin/deals" />
-          <NumberCard label="Profiles" value={view.profiles.length} detail="People and business accounts." href="/admin/profiles" />
-          <NumberCard label="Verified businesses" value={view.profiles.filter((profile) => profile.accountType === 'business' && profile.businessStatus === 'verified').length} detail="Approved trade identities." href="/admin/business" />
-        </div>
-      </section>
-
-      <section aria-labelledby="workspaces-heading" className="mt-8 grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-        <div className="rounded-xl border border-white/10 bg-[#121315] p-5">
-          <div className="flex items-start justify-between gap-4"><div><p className="mono text-[9px] uppercase tracking-[0.15em] text-white/30">Fast paths</p><h2 id="workspaces-heading" className="mt-2 text-[18px] font-extrabold">Common operator workflows</h2></div><span className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-3 mono text-[8px] uppercase tracking-[0.11em] text-white/35">Reviewed actions</span></div>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            {[
-              ['/admin/matching', 'Review agent matches', 'Assess evidence and ranking quality.'],
-              ['/admin/runtime', 'Inspect agent execution', 'Trace tasks, parity, and rollout readiness.'],
-              ['/admin/business', 'Verify a business', 'Review submitted company evidence.'],
-              ['/admin/treasury', 'Review treasury posture', 'Confirm authority before any transfer.'],
-              ['/admin/errors', 'Triage a failure', 'Diagnose recent operational errors.'],
-              ['/admin/team', 'Manage team access', 'Invite, disable, or remove operators.'],
-            ].map(([href, label, copy]) => (
-              <Link key={href} href={href} className="group min-h-[82px] rounded-lg border border-white/8 p-3 transition hover:border-[#AFC95B]/35 hover:bg-[#AFC95B]/[0.04]"><span className="flex items-center justify-between gap-3 text-[12px] font-bold text-white/75 group-hover:text-white">{label}<span aria-hidden="true" className="text-[#AFC95B]">→</span></span><span className="mt-2 block text-[10px] leading-4 text-white/33">{copy}</span></Link>
-            ))}
-          </div>
-        </div>
-
-        <Link href="/admin/routes" className="group flex min-h-[280px] flex-col justify-between rounded-xl border border-white/10 border-t-2 border-t-[#AFC95B] bg-[#111114] p-5 transition hover:border-white/20">
-          <div><p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#AFC95B]">Complete backend map</p><p className="mt-4 text-[44px] font-black leading-none tabular-nums">{SOURCE_ROUTE_SNAPSHOT.length}</p><p className="mt-2 text-[12px] font-bold text-white/75">mounted endpoints captured</p><p className="mt-4 text-[10px] leading-5 text-white/38">Search every admin, application, service, webhook, and public route. Routes with reviewed tools link directly to their workspace.</p></div>
-          <span className="mt-6 inline-flex min-h-11 items-center justify-between rounded-lg border border-[#AFC95B]/35 px-3 mono text-[9px] font-bold uppercase tracking-[0.11em] text-[#AFC95B]">Open API directory <span aria-hidden="true" className="transition group-hover:translate-x-1">→</span></span>
-        </Link>
-      </section>
-    </div>
+        </DeskCard>
+      </div>
+    </DeskPage>
   );
 }

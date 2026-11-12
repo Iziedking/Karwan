@@ -22,7 +22,7 @@ function errorOf(err: unknown): SignInEvent {
 function Brand() {
   return (
     <div className="flex items-center gap-2.5">
-      <img src="/brand/karwan-mark-lime.svg" alt="" className="size-[34px] rounded-[8px]" />
+      <img src="/karwan-app-icon.svg" alt="" className="size-[34px]" />
       <span className="text-[19px] font-semibold tracking-[-0.01em] text-[#EDEDED]">Karwan</span>
       <span className="text-[13px] text-[#8A8B90]">Desk</span>
     </div>
@@ -134,9 +134,9 @@ function SetupPicture({ otpauth }: { otpauth: string }) {
   );
 }
 
-export function DeskSignIn({ onSignedIn }: { onSignedIn: (me: AdminDeskMe) => void }) {
+export function DeskSignIn({ onSignedIn, initialNetwork }: { onSignedIn: (me: AdminDeskMe, network: Net) => void; initialNetwork?: Net }) {
   const [state, setState] = useState<SignInState>(START);
-  const [net, setNet] = useState<Net>('mainnet');
+  const [net, setNet] = useState<Net>(initialNetwork ?? 'mainnet');
   const [mainnetOpen, setMainnetOpen] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -156,7 +156,7 @@ export function DeskSignIn({ onSignedIn }: { onSignedIn: (me: AdminDeskMe) => vo
     setState(next);
     if (next.step === 'done') {
       setPassword('');
-      onSignedIn(next.me);
+      onSignedIn(next.me, net);
     }
     if (next.step === 'password' || event.kind === 'error') setCode('');
   }

@@ -79,6 +79,8 @@ const OWNER_ONLY = [r('\\w+ /api/admin/access(/.*)?'), r('\\w+ /api/admin/team-m
 /// the money requests list. Approving one also needs the page its route is on.
 const ANY_MEMBER = [
   r('GET /api/admin/session'),
+  r('GET /api/admin/rates'),
+  r('GET /api/admin/home'),
   r('\\w+ /api/admin/keys(/.*)?'),
   r('GET /api/admin/requests'),
   r(`POST /api/admin/requests/${ANY}/(approve|cancel)`),

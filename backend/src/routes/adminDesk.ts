@@ -9,6 +9,8 @@ import { checkCode, newCodeSecret, openSecret, otpauthUri, sealSecret } from '..
 import { codeLockedUntil, lastCodeStep, recordCode } from '../db/deskSignIn.js';
 import { config } from '../config.js';
 import { ADMIN_PAGES, cleanPages, accessFor, cleanAccess, type DeskLevel } from '../ops/adminPages.js';
+import { readSharedRates } from '../rates/sharedRate.js';
+import type { UsdcRates } from '../rates/usdcRates.js';
 
 /// The desk's own routes (view 64): sign-in, who is signed in, the owner's
 /// ticks per member, a member's keys for scripts, and the change log. Mounted
@@ -113,11 +115,20 @@ adminDeskRoutes.get('/session', requireAdmin, async (c) => {
   const p = deskPrincipal(c)!;
   if (!p.memberId) {
     const access = p.owner ? Object.fromEntries(ADMIN_PAGES.map((x) => [x.key, 'fix' as const])) : p.access;
-    return c.json({ me: { id: null, name: p.name, email: null, owner: p.owner, pages: Object.keys(access), access } });
+    return c.json({ me: { id: null, name: p.name, email: null, owner: p.owner, pages: Object.keys(access), access }, network: deskNetwork() });
   }
   const member = await getMember(p.memberId);
-  return c.json({ me: member ? me(member) : null });
+  return c.json({ me: member ? me(member) : null, network: deskNetwork() });
 });
+
+let deskRates: () => Promise<UsdcRates> = () => readSharedRates();
+
+export function useDeskRatesForTests(fn: () => Promise<UsdcRates>): void {
+  deskRates = fn;
+}
+
+/// The shared rate on this desk's own network, for Show amounts in (view 79).
+adminDeskRoutes.get('/rates', requireAdmin, async (c) => c.json(await deskRates()));
 
 // ---------------------------------------------------------------- the owner's ticks
 

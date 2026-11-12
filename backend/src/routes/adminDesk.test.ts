@@ -19,7 +19,7 @@ delete process.env.ADMIN_API_TOKEN;
 delete process.env.SUPPORT_API_TOKEN;
 
 const { Hono } = await import('hono');
-const { adminDeskRoutes } = await import('./adminDesk.js');
+const { adminDeskRoutes, useDeskRatesForTests } = await import('./adminDesk.js');
 const { requireAdmin, useAdminDeskStoreForTests } = await import('../middleware/adminAuth.js');
 const { memoryAdminDeskStore } = await import('../db/adminDesk.js');
 const { createInvite, redeemInvite, setDeskOwner, changePassword } = await import('../db/teamMembers.js');
@@ -211,4 +211,19 @@ test('on testnet the password alone signs in, as before', async () => {
   const r = (await (await signIn('owner@karwan.site')).json()) as { token?: string; step?: string };
   assert.ok(r.token);
   assert.equal(r.step, undefined);
+});
+
+test('the session says which network this desk is, so the page can mark real money', async () => {
+  const r = (await (await call('GET', '/api/admin/session', ownerToken)).json()) as { network?: string };
+  assert.equal(r.network, 'testnet');
+});
+
+test('any teammate reads the shared rate on their own desk, for Show amounts in', async () => {
+  useDeskRatesForTests(async () => ({ rates: { NGN: 1535, KES: 129 }, updatedAt: 1_700_000_000_000, source: 'test' }));
+  const dee = await member('dee.rates@karwan.site', 'Dee');
+  await call('PUT', `/api/admin/access/${dee.id}`, ownerToken, { access: { support: 'read' } });
+  const r = await call('GET', '/api/admin/rates', await tokenOf('dee.rates@karwan.site'));
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { rates: { NGN: 1535, KES: 129 }, updatedAt: 1_700_000_000_000, source: 'test' });
+  assert.equal((await call('GET', '/api/admin/rates')).status, 401);
 });

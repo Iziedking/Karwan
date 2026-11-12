@@ -76,9 +76,9 @@ test('the CSV has one row per answer, newest first, and keeps commas, quotes and
   assert.match(lines[2]!, /ada@example\.com$/);
 });
 
-test('the Survey page sits in the admin menu and the admin route maps to it', () => {
+test('the survey is a part of Waitlist and survey, and the admin route maps to it', () => {
   const nav = readFileSync(new URL('./adminNavigation.ts', import.meta.url), 'utf8');
-  assert.match(nav, /href: '\/admin\/survey'/);
+  assert.match(nav, /key: 'survey', label: 'Survey', keys: \['survey'\]/);
   const catalog = readFileSync(new URL('./routeCatalog.ts', import.meta.url), 'utf8');
-  assert.match(catalog, /\/\^\\\/api\\\/admin\\\/research\/, \{ href: '\/admin\/survey'/);
+  assert.match(catalog, /\/\^\\\/api\\\/admin\\\/research\/, \{ href: '\/admin\/waitlist\?tab=survey'/);
 });

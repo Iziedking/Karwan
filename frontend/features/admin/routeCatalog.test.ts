@@ -31,8 +31,10 @@ test('route classification is honest about access and mutation risk', () => {
 test('routes resolve to the nearest reviewed operator workspace', () => {
   assert.deepEqual(workspaceForRoute('/api/admin/disputes/:jobId/prepare'), {
     href: '/admin/disputes',
-    label: 'Dispute desk',
+    label: 'Disputes',
   });
+  assert.deepEqual(workspaceForRoute('/api/admin/profiles'), { href: '/admin/accounts', label: 'Accounts' });
+  assert.deepEqual(workspaceForRoute('/api/admin/usyc/run'), { href: '/admin/treasury?tab=yield', label: 'Treasury and yield' });
   assert.equal(workspaceForRoute('/api/auth/bootstrap'), null);
 });
 

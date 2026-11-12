@@ -2655,6 +2655,23 @@ function isDeskRequest(headers: HeadersInit): boolean {
 
 export type AdminDeskLevel = 'read' | 'change' | 'fix';
 
+/// The network the desk's server runs on (view 79).
+export type AdminDeskNetwork = 'testnet' | 'mainnet';
+
+/// Home on the desk (view 79), filtered to the teammate's pages by the server.
+export interface AdminHomeView {
+  needsYou: Array<{ kind: 'approval' | 'dispute' | 'late_case'; title: string; line: string; href: string; since: number; amountUsdc?: string }>;
+  today: Array<
+    | { key: 'accounts'; count: number; extra: number }
+    | { key: 'deals'; count: number; usdc: string }
+    | { key: 'held'; count: number; usdc: string }
+    | { key: 'support'; count: number; minutes: number | null }
+  >;
+  system: Array<{ label: string; state: 'working' | 'slow' | 'down'; detail?: string }> | null;
+  onShift: Array<{ name: string; role: string | null; lastAt: number; openCases: number }>;
+  counts: { waiting?: number; support?: number; disputes?: number };
+}
+
 export interface AdminDeskMe {
   id: string | null;
   name: string | null;
@@ -4137,7 +4154,11 @@ export const api = {
     const res = await fetch(adminApiUrl('/desks'), { cache: 'no-store', credentials: 'same-origin' });
     return res.ok ? ((await res.json()) as { mainnet: boolean }) : { mainnet: false };
   },
-  adminSession: () => json<{ me: AdminDeskMe | null }>('/api/admin/session', { headers: adminHeaders() }),
+  adminSession: () => json<{ me: AdminDeskMe | null; network?: AdminDeskNetwork }>('/api/admin/session', { headers: adminHeaders() }),
+  adminHome: () => json<AdminHomeView>('/api/admin/home', { headers: adminHeaders() }),
+  /// The shared rate on the desk's own network, for Show amounts in (view 79).
+  adminRates: () =>
+    json<{ rates: Partial<Record<string, number>>; updatedAt: number | null; source: string | null }>('/api/admin/rates', { headers: adminHeaders() }),
   adminAccess: () =>
     json<{ pages: Array<{ key: string; label: string }>; members: AdminDeskMember[] }>('/api/admin/access', { headers: adminHeaders() }),
   adminSetAccess: (memberId: string, pages: string[]) =>

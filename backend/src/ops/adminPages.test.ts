@@ -8,8 +8,9 @@ import { accessFor, allows, cleanPages, levelForRoute, mayCall, routeRule } from
 
 const snapshot = readFileSync(resolve(process.cwd(), '../frontend/features/admin/backendRouteSnapshot.generated.ts'), 'utf8');
 const ADMIN_OUTSIDE = ['GET /api/feedback', 'POST /api/feedback/:id/status', 'POST /api/listings/:id/photos/clear', 'POST /api/listings/:id/remove', 'POST /api/financier/admin/review'];
-/// Sign-in itself: behind Cloudflare Access, before any session or page.
-const BEFORE_SIGN_IN = new Set(['POST /api/admin/session']);
+/// Sign-in itself, its mainnet code step and sign-out: behind Cloudflare
+/// Access, before or without any session or page.
+const BEFORE_SIGN_IN = new Set(['POST /api/admin/session', 'POST /api/admin/session/code', 'DELETE /api/admin/session']);
 const adminRoutes = [
   ...[...snapshot.matchAll(/\{ method: "([A-Z]+)", path: "(\/api\/admin[^"]*)" \}/g)].map((m) => `${m[1]} ${m[2]}`),
   ...ADMIN_OUTSIDE,

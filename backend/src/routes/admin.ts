@@ -59,6 +59,7 @@ import { payOutsideFlags } from '../security/payOutsideFlags.js';
 import { pingAssistantProviders } from './assistant.js';
 import { readMoneyHealth } from '../ops/moneyHealthLive.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
+import { dealStage } from '../ops/deskHome.js';
 import { jobLeases } from '../ops/leasedLoop.js';
 import { guaranteeKeeperReport, listGuaranteeHolds } from '../deals/guaranteeKeeperLive.js';
 import { db, pgEnabled } from '../db/client.js';
@@ -449,16 +450,6 @@ adminRoutes.get('/events', async (c) => {
     return c.json({ error: 'query failed', detail: (err as Error).message }, 502);
   }
 });
-
-/// Coarse lifecycle stage for the admin deals table.
-function dealStage(d: DirectDeal): string {
-  if (d.cancelledAt) return 'cancelled';
-  if (d.settledAt) return 'settled';
-  if (d.disputed) return 'disputed';
-  if (d.delivered) return 'delivered';
-  if (d.acceptedAt) return 'accepted';
-  return 'open';
-}
 
 /// All deals as compact rows for the admin monitor, newest first. The full
 /// per-deal detail stays on the deal page; this is the index the operator

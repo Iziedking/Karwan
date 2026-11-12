@@ -7,6 +7,10 @@ function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+const BUTTON = 'inline-flex h-[30px] items-center rounded-md border border-[var(--d-line)] bg-[var(--d-button)] px-2.5 text-[13px] font-medium text-[var(--d-text)] transition hover:border-[var(--d-line-2)] disabled:opacity-50';
+
+/// The wallet a teammate signs money moves with on the desk. It is separate
+/// from any customer sign-in.
 export function AdminWalletControl() {
   const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
@@ -17,58 +21,36 @@ export function AdminWalletControl() {
 
   if (!isConnected || !address) {
     return (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <div className="hidden xl:block text-right">
-          <p className="mono text-[9px] uppercase tracking-[0.16em] text-white/35">Signing wallet</p>
-          <p className="mt-0.5 text-[11px] text-white/55">Separate from customer login</p>
-        </div>
-        {connectors.map((connector, index) => (
+      <div className="flex items-center gap-2">
+        {connectors.map((connector) => (
           <button
             key={connector.uid}
             type="button"
+            title="The wallet you sign money moves with. Separate from any customer sign-in."
             onClick={() => connect({ connector })}
             disabled={isPending || status === 'connecting'}
-            className={`min-h-11 rounded-lg border px-3 mono text-[10px] font-bold uppercase tracking-[0.11em] transition disabled:opacity-50 ${
-              index === 0
-                ? 'border-[#AFC95B] bg-[#AFC95B] text-[#0b0c0d] hover:bg-[#AFC95B]'
-                : 'border-white/15 text-white/65 hover:border-white/30 hover:text-white'
-            }`}
+            className={BUTTON}
           >
-            {isPending ? 'Connecting…' : connector.name === 'WalletConnect' ? 'Scan QR' : 'Connect wallet'}
+            {isPending ? 'Connecting' : connector.name === 'WalletConnect' ? 'Scan with a wallet' : 'Connect signing wallet'}
           </button>
         ))}
-        {error && <p className="w-full text-right text-[10px] text-[#e0794f]">Wallet connection was not completed.</p>}
+        {error && <span className="text-[12px] text-[var(--d-red)]">Not connected.</span>}
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
-      <div className="text-right">
-        <p className="mono text-[9px] uppercase tracking-[0.16em] text-white/35">Operator wallet</p>
-        <p className="mt-0.5 font-mono text-[11px] text-white/80">{shortAddress(address)}</p>
-      </div>
-      {wrongChain ? (
-        <button
-          type="button"
-          onClick={() => switchChain({ chainId: arcChain.id })}
-          disabled={switching}
-          className="min-h-11 rounded-lg border border-[#e0a24f]/50 bg-[#e0a24f]/10 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#efbd78] disabled:opacity-50"
-        >
-          {switching ? 'Switching…' : 'Switch to Arc'}
+    <div className="flex items-center gap-2">
+      <span title={address} className="inline-flex h-[30px] items-center gap-1.5 rounded-md border border-[var(--d-line)] px-2.5 text-[12px] text-[var(--d-text-2)]">
+        <span className="size-[7px] rounded-full" style={{ background: wrongChain ? 'var(--d-amber)' : 'var(--d-green)' }} />
+        <span className="tabular-nums">{shortAddress(address)}</span>
+      </span>
+      {wrongChain && (
+        <button type="button" onClick={() => switchChain({ chainId: arcChain.id })} disabled={switching} className={BUTTON}>
+          {switching ? 'Switching' : 'Switch to Arc'}
         </button>
-      ) : (
-        <span className="inline-flex min-h-11 items-center rounded-lg border border-[#AFC95B]/35 bg-[#AFC95B]/10 px-3 mono text-[9px] uppercase tracking-[0.12em] text-[#AFC95B]">
-          Arc ready
-        </span>
       )}
-      <button
-        type="button"
-        onClick={() => disconnect()}
-        className="min-h-11 rounded-lg border border-white/15 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/55 transition hover:border-white/30 hover:text-white"
-      >
-        Disconnect
-      </button>
+      <button type="button" onClick={() => disconnect()} className={BUTTON}>Disconnect</button>
     </div>
   );
 }

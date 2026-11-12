@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { WALLET_HOME, dealRouteBlocked, dealsAvailableOn } from './shared/utils/routes';
 import { adminGate } from './shared/admin/adminDesk';
+import { deskRedirectFor } from './features/admin/deskRedirects.mjs';
 import { accessKeys, accessPassValid } from './shared/admin/accessPass';
 import { buildCsp, cspHeaderName, cspMode, makeNonce, originsOf } from './shared/security/csp';
 import { REGION_COOKIE, regionFromHeader } from './shared/utils/region';
@@ -64,6 +65,9 @@ async function adminDesk(req: NextRequest): Promise<NextResponse | null> {
 export async function middleware(req: NextRequest) {
   const desk = await adminDesk(req);
   if (desk) return desk;
+  // Old desk addresses move only once the gate has let the request in.
+  const moved = deskRedirectFor(req.nextUrl.pathname);
+  if (moved) return NextResponse.redirect(new URL(moved, req.url), 307);
   // Where the web deal rail is closed (mainnet), its pages go to the wallet.
   // A deal's own page stays open for the deals people run from chat.
   if (dealRouteBlocked(req.nextUrl.pathname, DEALS_AVAILABLE)) {

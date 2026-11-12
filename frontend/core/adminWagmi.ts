@@ -33,5 +33,7 @@ export const adminWagmiConfig = createConfig({
   },
   multiInjectedProviderDiscovery: false,
   storage: null,
-  ssr: true,
+  // The desk mounts this provider only in the browser, after the session
+  // check; with no storage, ssr would try to restore a store that has none.
+  ssr: false,
 });
