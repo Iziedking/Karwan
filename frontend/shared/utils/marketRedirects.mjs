@@ -10,4 +10,6 @@ export const MARKET_REDIRECTS = [
   { source: '/supply', destination: '/seller', permanent: false },
   // The old onboarding page; setup replaced it (view 38).
   { source: '/onboarding', destination: '/setup', permanent: false },
+  // The address people type for help; the help page lives at /how-it-works.
+  { source: '/help', destination: '/how-it-works', permanent: false },
 ];

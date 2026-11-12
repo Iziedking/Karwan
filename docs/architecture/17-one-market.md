@@ -58,6 +58,8 @@ Every old place redirects, so links in emails, chats and bookmarks keep working:
 | `/supply` | The offer form, business fields |
 | `/buyer`, `/seller` | Stay as the request and offer forms, reached from Start |
 
+The same table also sends the address people type for help, `/help`, to the help page at `/how-it-works` (added 12 Nov 2026, after the live check found it was a 404).
+
 ## What fails where
 
 | Case | What the person sees |
