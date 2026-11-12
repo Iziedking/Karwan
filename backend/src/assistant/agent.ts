@@ -59,7 +59,7 @@ import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { dealReference } from '../deals/reference.js';
 import { withDealReferences } from './dealReferences.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
-import { localFigure } from '../rates/usdcRates.js';
+import { ownedInLocal } from '../money/ownedBalanceModel.js';
 import { readSharedRates } from '../rates/sharedRate.js';
 import { withLocalAmounts } from './localAmountTools.js';
 import { WAY_MONEY_FIELDS, saidOnWay } from '../agents/waysSaid.js';
@@ -319,19 +319,22 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       execute: async () => {
         try {
           const [owned, gas, record, profile, rates] = await Promise.all([
-            readOwnedBalance(address),
+            readOwnedBalance(address, method),
             publicClient.getBalance({ address: address as Address }),
             getAgentWallets(address),
             getProfile(address).catch(() => null),
             readSharedRates().catch(() => ({ rates: {}, updatedAt: null, source: null }) as const),
           ]);
-          const local = localFigure(owned.total, profile?.settings?.displayCurrency, rates);
+          const said = ownedInLocal(owned, profile?.settings?.displayCurrency, rates);
+          const local = said ? { currency: said.currency, amount: said.total, readyToSend: said.ready, withAgents: said.withAgents, rate: said.rate, updatedAt: said.updatedAt } : null;
           return {
             totalUsdc: owned.total.toFixed(2),
-            ...(local ? { local, localNote: `They read amounts in ${local.currency}. Give the balance as ${local.amount} ${local.currency}, the figure their screens show, with no USDC beside it and no "about". Their money stays in USDC underneath.` } : {}),
+            ...(local ? { local, localNote: `They read amounts in ${local.currency}. Give the balance as ${local.amount} ${local.currency}, the figure their screens show, with no USDC beside it and no "about". If you name the parts, they are ${local.readyToSend} ${local.currency} ready to send and ${local.withAgents} ${local.currency} with their agents: use these two figures as given and never work one out yourself. Their money stays in USDC underneath.` } : {}),
             parts: {
               walletOnArcUsdc: owned.wallet.toFixed(2),
               agentsUsdc: owned.agents.toFixed(2),
+              readyToSendUsdc: owned.ready.toFixed(2),
+              withAgentsUsdc: owned.withAgents.toFixed(2),
             },
             buyerAgent: record?.buyerAddress
               ? { address: record.buyerAddress, usdc: owned.buyer?.toFixed(2) ?? null }
@@ -342,7 +345,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             stakedUsdc: owned.staked > 0 ? owned.staked.toFixed(2) : null,
             gas: formatUnits(gas, NATIVE_DECIMALS),
             someSourcesUnread: owned.partial,
-            note: `totalUsdc is the balance on their balance page: give it first, as their balance. It is one balance on Arc. Name parts only in the page's words, as Where it is lists them: "ready to send", "Transfer balance", "with your agent" (money there is for checks and deals, and counts in the balance; the agent's weekly limit for checks is get_my_agent). Never say chains, and never count or list money on other networks: other networks are only a way to add money (list_bridge_sources, when they ask to add from elsewhere). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is their deal guarantee, set aside to protect their buyers, and is NOT part of the total: if you mention it, call it their deal guarantee, say it is not counted in the balance, and get the details from get_my_guarantee. walletOnArcUsdc already includes any Gateway balance; name it, as the Gateway balance, only if they ask. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
+            note: `totalUsdc is the balance on their balance page: give it first, as their balance. It is one balance on Arc. Name parts only in the page's words, as Where it is lists them: "ready to send", "Transfer balance", "with your agent" (money there is for checks and deals, and counts in the balance; the agent's weekly limit for checks is get_my_agent). Never say chains, and never count or list money on other networks: other networks are only a way to add money (list_bridge_sources, when they ask to add from elsewhere). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is their deal guarantee, set aside to protect their buyers, and is NOT part of the total: if you mention it, call it their deal guarantee, say it is not counted in the balance, and get the details from get_my_guarantee. walletOnArcUsdc already includes any Transfer balance a wallet account holds; an email account holds none and none is counted. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');
@@ -1220,7 +1223,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const view = firstTradeSteps(await readFirstTradeFacts(address), config.ARC_NETWORK);
+          const view = firstTradeSteps(await readFirstTradeFacts(address, method), config.ARC_NETWORK);
           return {
             ...view,
             note: view.complete

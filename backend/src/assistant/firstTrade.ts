@@ -11,11 +11,11 @@ import type { FirstTradeFacts } from './firstTradeSteps.js';
 
 export { firstTradeSteps } from './firstTradeSteps.js';
 
-export async function readFirstTradeFacts(address: string): Promise<FirstTradeFacts> {
+export async function readFirstTradeFacts(address: string, method: string | undefined): Promise<FirstTradeFacts> {
   const key = address.toLowerCase();
   const [wallets, owned, link, deals] = await Promise.all([
     getAgentWallets(key).catch(() => null),
-    readOwnedBalance(key).catch(() => null),
+    readOwnedBalance(key, method).catch(() => null),
     getTelegramLink(key).catch(() => null),
     listDealsForAddress(key).catch(() => []),
   ]);

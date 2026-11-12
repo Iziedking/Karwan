@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { config } from '../config.js';
-import { sessionAddress } from '../auth/session.js';
+import { readSession, sessionAddress } from '../auth/session.js';
 import {
   ensureMoneyRailIntent,
   getMoneyRailIntent,
@@ -124,7 +124,7 @@ function publicIntent(intent: Awaited<ReturnType<typeof getMoneyRailIntent>>) {
 moneyRoutes.get('/balance', async (c) => {
   const address = sessionAddress(c);
   if (!address) return c.json({ error: 'unauthorized' }, 401);
-  return c.json({ balance: await readOwnedBalance(address) });
+  return c.json({ balance: await readOwnedBalance(address, readSession(c)?.method) });
 });
 
 /// 1 USDC in each display currency (view 51). Public: a rate is not personal.

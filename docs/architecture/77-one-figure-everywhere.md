@@ -132,6 +132,11 @@ Added 12 Nov 2026, after the first pass:
 - **Lines worked out from a price.** One session of a month, a first week, a fee and a total keep their proportion of the figure typed (`scaledLocal` in `frontend/features/money/localAmount.ts`), so ₦50,000 a month over 4 sessions reads ₦12,500.
 - **The weekly limit.** A limit said to the assistant in the person's own currency is kept as said and worked out again when the shared rate changes, never past the 5 USDC ceiling (`limitAtRate` in `backend/src/agents/agentLimit.ts`). A choice tapped on Money replaces it.
 
+Added 12 Nov 2026, after the first live check:
+
+- **The assistant's balance is the screen's balance.** The server counted a Transfer balance for every account while the website counts one only for an account that signs in with its own wallet, so the assistant read 50 USDC high on an email account. One rule now decides it on the server (`holdsPool` in `backend/src/money/ownedBalanceModel.ts`), the same one Send already used.
+- **The assistant does no sums.** The balance tool gives the total and the two parts, "ready to send" and "with your agents", already in the person's currency and rounded as Money rounds them (`ownedInLocal`). Before, it gave the parts in USDC only and the assistant converted them itself, wrongly.
+
 Rulings while building:
 
 - An offer at exactly the budget reads the budget's figure only for a viewer who is shown the budget, so a hidden budget is never given away.
