@@ -9,6 +9,8 @@ import type { LocalCurrency } from '../rates/usdcRates.js';
 export interface PriceRange {
   min: number;
   max: number;
+  /// The range as answered in the person's own currency, when it was (view 77).
+  said?: { currency: LocalCurrency; min: number; max: number };
 }
 
 export interface Pace {
@@ -97,7 +99,7 @@ function takePrice(text: string, money?: BriefMoney | null): PriceRange | null {
     if (!local) return null;
     // Four places keep "₦30,000" reading back as ₦30,000, not ₦30,002.
     const usdc = (n: number) => Math.round((n / money.rate) * 10_000) / 10_000;
-    return { min: usdc(local.min), max: usdc(local.max) };
+    return { min: usdc(local.min), max: usdc(local.max), said: { currency: money.currency, min: local.min, max: local.max } };
   }
   if (OTHER_CURRENCY.test(text)) return null;
   return readRange(text.replace(/\$|usdc|usd|dollars?/g, ' '));

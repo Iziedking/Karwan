@@ -51,3 +51,32 @@ test('theLimitSavesFromZeroToFive', () => {
   assert.equal(agentLimitSchema.safeParse({ weeklyUsdc: -1 }).success, false);
   assert.equal(agentLimitSchema.safeParse({ weeklyUsdc: '1' }).success, false);
 });
+
+test('a weekly limit said in naira is the rule: it stays the figure said as the rate moves (view 77)', async () => {
+  const { limitAtRate, refreshSaidLimits, saidLimit } = await import('./agentLimit.js');
+  const { newAgentRecord } = await import('./agentRecord.js');
+  const at = (rate: number) => ({ rates: { NGN: rate }, updatedAt: 1, source: 'coingecko' as const });
+  const said = saidLimit(1, { currency: 'NGN', amounts: { weeklyUsdc: 1500 } });
+  assert.deepEqual(said, { currency: 'NGN', amount: '1500', usdc: 1 });
+  assert.equal(saidLimit(1, undefined), undefined, 'said in USDC');
+  const r = { ...newAgentRecord('0xabc'), weeklyBudgetUsdc: 1, weeklySaid: said };
+  const moved = limitAtRate(r, at(1600));
+  assert.equal(moved.weeklyBudgetUsdc, 0.9375);
+  assert.deepEqual(moved.weeklySaid, { currency: 'NGN', amount: '1500', usdc: 0.9375 });
+  assert.deepEqual(agentLimitView(moved, 10).weeklyLocal, { currency: 'NGN', amount: '1500' });
+  assert.equal(limitAtRate(r, at(1500)), r, 'same rate, nothing to do');
+  assert.equal(limitAtRate(r, at(100)).weeklyBudgetUsdc, 5, 'never past the ceiling');
+  assert.equal(limitAtRate(r, { rates: {}, updatedAt: null, source: null }), r, 'no rate: keeps its last USDC');
+  const tapped = limitAtRate({ ...r, weeklyBudgetUsdc: 5 }, at(1600));
+  assert.equal(tapped.weeklySaid, undefined, 'a choice tapped since drops the figure');
+  assert.equal(tapped.weeklyBudgetUsdc, 5);
+  assert.equal(agentLimitView({ ...r, weeklyBudgetUsdc: 5 }, 10).weeklyLocal, undefined);
+  const saved: string[] = [];
+  const n = await refreshSaidLimits({
+    list: async () => [r, { ...newAgentRecord('0xdef'), weeklyBudgetUsdc: 1 }],
+    rates: async () => at(1600),
+    save: async (owner, change) => { saved.push(owner); return change(r); },
+  });
+  assert.equal(n, 1);
+  assert.deepEqual(saved, ['0xabc']);
+});

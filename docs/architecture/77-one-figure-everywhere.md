@@ -122,9 +122,15 @@ Built 11 and 12 Nov 2026. Front end and back end deploy together.
 - **Kept figures.** Hourly and monthly work rates, offers on fixed-price requests, prices said to the assistant, and a send said in chat keep the figure as typed or said.
 - **Prices given to an agent.** Each way of dealing keeps the figure typed; the USDC behind it is worked out again every 15 minutes when the shared rate has changed (`backend/src/agents/waysSaid.ts`).
 - **Worth when paid.** A money movement and a settled deal keep what the amount was worth to each side at that moment (`backend/src/money/worth.ts`). Activity, Recent, receipts, the deal page, emails and Telegram read it. A payment with no kept figure reads at the shared rate, marked "about".
-- **Older payments.** `backend/src/scripts/backfill-payment-worth.ts` fills in payments and settled deals from before 12 Nov from the price published for the day each one happened. It has a preview mode and changes nothing when run twice. It is run by hand after deploy.
+- **Older payments.** `backend/src/scripts/backfill-payment-worth.ts` fills in payments and settled deals from before 12 Nov from the price published for the day each one happened. It has a preview mode and changes nothing when run twice. It is run by hand after deploy. The price source refuses the production server, so the prices are fetched elsewhere as one chart for each currency and handed to the script as a file. The source has no chart for the Kenyan shilling or the CFA franc, so payments read in those keep "about".
 - **One balance.** Money names the two parts under the balance. Send says "Ready to send" and, under it, what is with the agents. An order says "You can pay with" and names the rest only when it cannot use all of the balance. Home, Profile and the assistant already gave the same sum.
 - **Words.** The Currency and Local currency paragraphs of the terms changed in all five languages and in `docs/terms-and-conditions.md`, and the FAQ gained three answers: the rate, "about", and "Ready to send".
+
+Added 12 Nov 2026, after the first pass:
+
+- **Prices said, not typed.** A selling price answered in the setup questions, and any price given to the assistant for a way of dealing, is kept as said on the way, exactly as one typed in the editor is (`saidOnWay` in `backend/src/agents/waysSaid.ts`).
+- **Lines worked out from a price.** One session of a month, a first week, a fee and a total keep their proportion of the figure typed (`scaledLocal` in `frontend/features/money/localAmount.ts`), so ₦50,000 a month over 4 sessions reads ₦12,500.
+- **The weekly limit.** A limit said to the assistant in the person's own currency is kept as said and worked out again when the shared rate changes, never past the 5 USDC ceiling (`limitAtRate` in `backend/src/agents/agentLimit.ts`). A choice tapped on Money replaces it.
 
 Rulings while building:
 
@@ -135,9 +141,8 @@ Rulings while building:
 
 ## Not done
 
-- Prices given in the setup interview and through the assistant's own tools for ways of dealing are kept in USDC only, so they read at the shared rate.
-- Derived lines, such as a hire card's total and a price per session, read at the shared rate.
-- The agent's weekly limit is unchanged.
+- A price for buying answered in the setup questions is kept in USDC only: setup writes it to the older buying settings, which have no place for the figure said. A buying way added afterwards keeps it.
+- The three weekly limits offered on Money are fixed USDC amounts and read at the shared rate; only a limit said to the assistant is kept as said.
 - The "Done when" check on a live account, across every screen inside one minute, waits for the deploy.
 
 ## Build order, once approved

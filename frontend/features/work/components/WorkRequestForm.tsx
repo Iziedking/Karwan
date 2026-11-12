@@ -27,6 +27,8 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
   const [sessions, setSessions] = useState(String(prefill.sessions ?? ''));
   const [starts, setStarts] = useState(String(prefill.startsInDays ?? 7));
   const mostField = useRef<MoneyInputHandle>(null);
+  // The figure as typed, so the price of one session reads from it (view 77).
+  const [mostSaid, setMostSaid] = useState<{ currency: string; amount: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hourly = kind === 'hourly';
@@ -84,14 +86,14 @@ export function WorkRequestForm({ prefill }: { prefill: Partial<WorkRequestInput
         </fieldset>
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.most : t.form.mostMonthly}</span>
-          <span className="mt-2 block"><MoneyInput value={most} handle={mostField} onChange={(usdc) => setMost(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
+          <span className="mt-2 block"><MoneyInput value={most} handle={mostField} onTyped={setMostSaid} onChange={(usdc) => setMost(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
         </label>
         {hourly ? (
           <label className="block">
             <span className={fieldLabel}>{all.form.hours}</span>
             <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={hours} onChange={(e) => num(e.target.value, setHours, 2)} />
           </label>
-        ) : <SessionsField value={sessions} onChange={setSessions} monthUsdc={most} />}
+        ) : <SessionsField value={sessions} onChange={setSessions} monthUsdc={most} monthSaid={mostSaid} />}
         <label className="block">
           <span className={fieldLabel}>{hourly ? all.form.weeks : all.form.months}</span>
           <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={periods} onChange={(e) => num(e.target.value, setPeriods, 2)} />

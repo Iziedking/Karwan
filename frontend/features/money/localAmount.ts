@@ -118,3 +118,19 @@ export function prefilled(usdc: number | null | undefined, said: { currency: str
   if (said && said.currency === unit) return typingFilter(said.amount, unit);
   return typedFor(usdc, unit, rate);
 }
+
+/// A figure worked out from a kept price: one session of a month, a first
+/// week, a total (view 77). It is the kept figure in the same proportion as
+/// the USDC, so ₦50,000 a month over 4 sessions reads ₦12,500, not the USDC
+/// share at the rate of the day. Null without a kept price to work from.
+export function scaledLocal(
+  kept: { currency: string; amount: string } | null | undefined,
+  baseUsdc: number | string | null | undefined,
+  usdc: number | string | null | undefined,
+): { currency: string; amount: string } | null {
+  const base = Number(baseUsdc);
+  const part = Number(usdc);
+  const whole = Number(kept?.amount);
+  if (!kept || !(base > 0) || !Number.isFinite(part) || part < 0 || !(whole > 0)) return null;
+  return { currency: kept.currency, amount: String(Math.round(((whole * part) / base) * 100) / 100) };
+}

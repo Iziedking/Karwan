@@ -68,11 +68,16 @@ function usdcFields(shape: z.ZodRawShape): string[] {
 /// and every channel (website, Telegram) gets the same behaviour. The limits
 /// of each field are checked on the USDC figure, so ₦100,000 is not refused
 /// by a USDC ceiling it does not reach.
-export function withLocalAmounts<T extends Record<string, AnyTool>>(tools: T, readRates: () => Promise<UsdcRates>): T {
+///
+/// `moneyFields` names amount fields that do not end in Usdc, by tool: the
+/// prices of a way of dealing (priceMin, rateUsual...), so a price said to the
+/// assistant in naira is read as naira there too (view 77).
+export function withLocalAmounts<T extends Record<string, AnyTool>>(tools: T, readRates: () => Promise<UsdcRates>, moneyFields: Record<string, readonly string[]> = {}): T {
   const out: Record<string, AnyTool> = {};
   for (const [name, t] of Object.entries(tools)) {
     const schema = t.inputSchema;
-    const fields = schema instanceof z.ZodObject ? usdcFields(schema.shape) : [];
+    const named = schema instanceof z.ZodObject ? (moneyFields[name] ?? []).filter((key) => key in schema.shape && isNumber(schema.shape[key] as z.ZodTypeAny)) : [];
+    const fields = schema instanceof z.ZodObject ? [...usdcFields(schema.shape), ...named] : [];
     if (!(schema instanceof z.ZodObject) || fields.length === 0 || !t.execute) {
       out[name] = t;
       continue;

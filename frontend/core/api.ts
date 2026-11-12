@@ -375,6 +375,8 @@ export type ThemePreference = 'light' | 'dark' | 'system';
 
 export interface AgentLimit {
   weeklyUsdc: number;
+  /// The limit as it was said in the person's own currency, when it still stands (view 77).
+  weeklyLocal?: { currency: string; amount: string };
   spentUsdc: number;
   leftUsdc: number;
   recordChecks: number;

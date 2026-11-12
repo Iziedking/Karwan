@@ -17,6 +17,7 @@ import { ALERT } from '@/shared/ui/controls';
 import { localDay, microsToUsdc, runsText } from '../workModel';
 import { SellerBlock } from './SellerBlock';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { scaledLocal } from '@/features/money/localAmount';
 
 const GREEN = buttonClasses({ size: 'lg' });
 const QUIET_BUTTON = buttonClasses({ variant: 'secondary', size: 'lg' });
@@ -53,7 +54,8 @@ export function WorkRequestPage({ id }: { id: string }) {
   if (!r) return null;
 
   const hourly = r.kind === 'hourly';
-  const usdc = (m: string) => mt.text(microsToUsdc(m));
+  // The hire card's lines are worked out from the offer's rate, so they read from the figure typed (view 77).
+  const usdc = (m: string) => mt.price(microsToUsdc(m), hiring ? scaledLocal(hiring.offer.rateLocal, microsToUsdc(hiring.offer.rateMicros), microsToUsdc(m)) : null);
   const fail = (err: unknown) => {
     const need = err instanceof ApiError ? (err.body as { needMicros?: string } | undefined)?.needMicros : undefined;
     setError(need ? mt.fill(all.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : all.failed);

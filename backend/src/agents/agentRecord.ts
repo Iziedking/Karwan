@@ -4,6 +4,7 @@
 /// the weekly spend line, on by default. Pure; the store keeps it.
 
 import type { BriefPrefs, Goal, QuietHours } from './mandate.js';
+import type { LocalCurrency } from '../rates/usdcRates.js';
 
 export const DEFAULT_WEEKLY_BUDGET_USDC = 0.25;
 export const MAX_WEEKLY_BUDGET_USDC = 5;
@@ -14,6 +15,9 @@ export type SpendKind = 'record' | 'research';
 export interface AgentRecord {
   owner: string;
   weeklyBudgetUsdc: number;
+  /// The limit as it was said in the person's own currency, with the USDC it
+  /// last gave (view 77). The figure said is the rule; see agentLimit.ts.
+  weeklySaid?: { currency: LocalCurrency; amount: string; usdc: number };
   weeklyReport: boolean;
   spend: Array<{ at: number; usd: number; kind: SpendKind }>;
   lastWeeklyAt?: number;

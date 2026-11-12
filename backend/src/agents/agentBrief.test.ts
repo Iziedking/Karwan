@@ -103,3 +103,26 @@ test('setup reads the price in the currency the person reads (owner, 7 Nov 2026)
   assert.equal(r.patch.seller?.minBudgetUsdc, 20);
   assert.ok(r.lines.includes('Usually 30 USDC, lowest 20 USDC, delivers in about 3 days'), r.lines.join(' | '));
 });
+
+test('a price answered in naira is kept on the way as the rule the agent follows (view 77)', async () => {
+  const r = await readBrief(
+    { goals: ['work'], what: 'Logo design', price: '₦30,000 to ₦60,000, 3 days', paid: 'one_time' },
+    null,
+    { keywords: async () => ['logo'], money: { currency: 'NGN', rate: 1500 } },
+    'en',
+  );
+  const way = r.patch.agentWays?.sell[0] as { priceMin: number; priceUsual: number; said?: unknown };
+  assert.equal(way.priceMin, 20);
+  assert.equal(way.priceUsual, 30);
+  assert.deepEqual(way.said, { currency: 'NGN', amounts: { priceMin: { amount: '30000', usdc: 20 }, priceUsual: { amount: '45000', usdc: 30 } } });
+});
+
+test('a price answered in USDC keeps no figure beside it', async () => {
+  const r = await readBrief(
+    { goals: ['work'], what: 'Logo design', price: '20 to 40 USDC, 3 days', paid: 'one_time' },
+    null,
+    { keywords: async () => ['logo'], money: { currency: 'NGN', rate: 1500 } },
+    'en',
+  );
+  assert.equal((r.patch.agentWays?.sell[0] as { said?: unknown }).said, undefined);
+});

@@ -49,7 +49,8 @@ test('a request is said in words and Prepare my request drafts its parts; the re
   await expect(post).toBeEnabled();
 
   await post.click();
-  expect(draftedFrom).toBe('A logo for my bakery: three sketches first, then the final files.');
+  // The draft is asked for after the click; wait for it instead of reading at once.
+  await expect.poll(() => draftedFrom).toBe('A logo for my bakery: three sketches first, then the final files.');
   await expect(page.locator('[data-drafted]')).toHaveText(rf.drafted);
   await expect(page.getByRole('region').locator('dd').filter({ hasText: '30%: Three logo sketches to choose from' }).first()).toBeVisible();
   await expect(page.getByText(en.requestFlow.nothingPaid, { exact: true })).toBeVisible();

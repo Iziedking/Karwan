@@ -77,10 +77,10 @@ export function useMoneyText(defaults: MoneyTextOptions = {}) {
   /// A sentence with one price in it, "Up to {amount} an hour": the price reads
   /// as typed for anyone in its currency (view 77), at the shared rate otherwise.
   const fillPrice = useCallback(
-    (template: string, usdc: number | string | null | undefined, agreed?: { currency: string; amount: string } | null, key = 'amount'): string =>
+    (template: string, usdc: number | string | null | undefined, agreed?: { currency: string; amount: string } | null, key = 'amount', options?: MoneyTextOptions): string =>
       agreed && agreed.currency === currency && rate
         ? template.replace(new RegExp(`(USDC\\s?)?\\{${key}\\}(\\s?USDC)?`), () => formatTyped(agreed.amount, currency, locale))
-        : fill(template, { [key]: usdc }),
+        : fill(template, { [key]: usdc }, {}, options),
     [currency, rate, locale, fill],
   );
 

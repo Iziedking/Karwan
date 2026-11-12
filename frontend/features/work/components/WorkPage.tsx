@@ -12,6 +12,7 @@ import { hoursText, localDay, microsToUsdc, minutesFrom, monthLine, runsText, se
 import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
 import { workSteps } from '../workSteps';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { scaledLocal } from '@/features/money/localAmount';
 
 const GREEN = buttonClasses({ size: 'lg' });
 const QUIET_BUTTON = buttonClasses({ variant: 'secondary', size: 'lg' });
@@ -58,6 +59,8 @@ export function WorkPage({ id }: { id: string }) {
   const ts = t.sessions;
   const bySession = !hourly && !!v.sessions;
   const each = sessionPrice(v.rateMicros, v.sessions);
+  // Lines worked out from the rate read from the figure typed (view 77).
+  const fromRate = (micros: string) => scaledLocal(v.rateLocal, microsToUsdc(v.rateMicros), microsToUsdc(micros));
   const usdc = (micros: string) => mt.text(microsToUsdc(micros));
   const day = (ms: number) => localDay(ms, locale);
   const periodName = (k: number) => fill(hourly ? t.page.week : t.page.month, { n: k + 1 });
@@ -103,7 +106,7 @@ export function WorkPage({ id }: { id: string }) {
         {mt.fillPrice(hourly ? t.page.rateHour : t.page.rateMonth, microsToUsdc(v.rateMicros), v.rateLocal)}
       </p>
       <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">
-        {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, bySession ? fill(ts.term, { n: v.sessions ?? 0 }) : null, each ? mt.fill(ts.each, { amount: microsToUsdc(each) }) : null, runsText(v.runs, hourly, t.page), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}
+        {[hourly ? fill(t.page.upTo, { n: v.maxHours }) : null, bySession ? fill(ts.term, { n: v.sessions ?? 0 }) : null, each ? mt.fillPrice(ts.each, microsToUsdc(each), fromRate(each)) : null, runsText(v.runs, hourly, t.page), fill(t.page.starts, { date: day(v.startsAt) })].filter(Boolean).join(' · ')}
       </p>
       </div>
       {v.status === 'ending' ? <p className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{fill(hourly ? t.page.endsAfterWeek : t.page.endsAfterMonth, { n: lastK + 1 })}</p> : null}
@@ -256,7 +259,7 @@ export function WorkPage({ id }: { id: string }) {
       case 'fund':
         return (
           <>
-            <p className="text-[32px] font-semibold tabular-nums text-[var(--ink)]">{usdc(v.nextWeek?.totalMicros ?? '0')}</p>
+            <p className="text-[32px] font-semibold tabular-nums text-[var(--ink)]">{mt.price(microsToUsdc(v.nextWeek?.totalMicros ?? '0'), fromRate(v.nextWeek?.totalMicros ?? '0'))}</p>
             <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">{t.sheets.fund.body}</p>
             {buttons(mt.fill(t.sheets.fund.confirm, { amount: microsToUsdc(v.nextWeek?.totalMicros ?? '0') }), () => api.fundWork(v.id))}
           </>

@@ -49,7 +49,8 @@ const inNaira: Array<[string, { min: number; max: number } | null]> = [
 ];
 for (const [text, price] of inNaira) {
   test(`reads "${text}" for someone in naira`, () => {
-    assert.deepEqual(parseBriefPrice(text, naira).price, price);
+    const read = parseBriefPrice(text, naira).price;
+    assert.deepEqual(read && { min: read.min, max: read.max }, price);
   });
 }
 
@@ -57,4 +58,9 @@ test('a figure in naira reads back as the naira typed, not a cent off', () => {
   const rate = 1471.37;
   const read = parseBriefPrice('₦30,000', { currency: 'NGN', rate }).price!;
   assert.equal(Math.round(read.min * rate), 30000);
+});
+
+test('a price answered in naira carries the figures as answered; one in USDC carries none (view 77)', () => {
+  assert.deepEqual(parseBriefPrice('30k to 60k', naira).price?.said, { currency: 'NGN', min: 30000, max: 60000 });
+  assert.equal(parseBriefPrice('20 to 40 USDC', naira).price?.said, undefined);
 });

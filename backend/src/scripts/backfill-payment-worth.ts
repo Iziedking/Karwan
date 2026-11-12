@@ -14,9 +14,19 @@
 /// movement or deal is touched, and running it twice changes nothing: a record
 /// that already has its worth is left alone.
 ///
-/// Run once after deploying the change, inside the api container:
-///   DRY_RUN=1 node dist/scripts/backfill-payment-worth.js   (preview)
-///   node dist/scripts/backfill-payment-worth.js             (apply)
+/// The price source refuses the production server (12 Nov 2026: rate limit 2,
+/// none left, on every call), so the prices are fetched somewhere else and
+/// handed in as a file: one chart per currency for the whole stretch, a
+/// handful of calls instead of one per day.
+///
+///   1. Anywhere with the repo and a network (no database is touched):
+///        FETCH_ONLY=1 npm run backfill:payment-worth > usdc-history.json
+///   2. Into the api container, on stdin (nothing is left on the server):
+///        cat usdc-history.json | ssh karwan-vm 'docker exec -i -e RATES_FILE=- -e DRY_RUN=1 karwan-api node dist/scripts/backfill-payment-worth.js'
+///      then the same without DRY_RUN=1 to apply.
+///
+/// Without RATES_FILE it fetches the charts itself, which works wherever the
+/// source answers.
 
 import { parseUnits } from 'viem';
 import { pgEnabled, postgresExecutor } from '../db/client.js';
@@ -109,21 +119,81 @@ export async function planWorthBackfill(input: {
   return plan;
 }
 
-const WAIT_MS = 3_000;
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+/// Published USDC prices over time, by currency: [time in ms, price] pairs, as
+/// CoinGecko's market_chart/range returns them.
+export type PriceCharts = Partial<Record<LocalCurrency, Array<[number, number]>>>;
 
-/// One day of published USDC prices. The public endpoint allows a few calls a
-/// minute, so each new day waits before it asks, and a refusal is tried once more.
-async function historyFor(day: string): Promise<DayRates | null> {
-  const url = `https://api.coingecko.com/api/v3/coins/usd-coin/history?date=${day}&localization=false`;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    await sleep(attempt === 0 ? WAIT_MS : 60_000);
-    const response = await fetch(url, { signal: AbortSignal.timeout(15_000), headers: { accept: 'application/json' } });
-    if (response.status === 429) continue;
+/// The rates of one day (DD-MM-YYYY, UTC) from the charts: for each currency
+/// the published price nearest to noon that day, and none when the chart has
+/// nothing inside that day.
+export function ratesFromCharts(charts: PriceCharts): (day: string) => Promise<DayRates | null> {
+  return async (day) => {
+    const [dd, mm, yyyy] = day.split('-').map(Number);
+    const start = Date.UTC(yyyy!, mm! - 1, dd!);
+    const noon = start + 12 * 3_600_000;
+    const out: DayRates = {};
+    for (const currency of LOCAL) {
+      let best: [number, number] | null = null;
+      for (const point of charts[currency] ?? []) {
+        if (point[0] < start || point[0] >= start + 86_400_000 || !(point[1] > 0)) continue;
+        if (!best || Math.abs(point[0] - noon) < Math.abs(best[0] - noon)) best = point;
+      }
+      if (best) out[currency] = best[1];
+    }
+    return Object.keys(out).length ? out : null;
+  };
+}
+
+/// The charts in a file's text; anything that is not a chart is dropped.
+export function chartsFromText(text: string): PriceCharts {
+  const raw = JSON.parse(text) as Record<string, unknown>;
+  const out: PriceCharts = {};
+  for (const currency of LOCAL) {
+    const points = raw[currency];
+    if (!Array.isArray(points)) continue;
+    const good = points.filter((p): p is [number, number] => Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'number' && p[1] > 0);
+    if (good.length) out[currency] = good;
+  }
+  return out;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const say = (line: string) => process.stderr.write(`${line}\n`);
+
+/// One currency's chart for the stretch. A refusal waits as long as the source
+/// asks, a few times over, and says so, then gives up on that currency.
+async function chartFor(currency: LocalCurrency, fromMs: number, toMs: number): Promise<Array<[number, number]> | null> {
+  const url = `https://api.coingecko.com/api/v3/coins/usd-coin/market_chart/range?vs_currency=${currency.toLowerCase()}&from=${Math.floor(fromMs / 1000)}&to=${Math.ceil(toMs / 1000)}`;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const response = await fetch(url, { signal: AbortSignal.timeout(20_000), headers: { accept: 'application/json' } });
+    if (response.status === 429) {
+      const wait = Math.min(120, Math.max(15, Number(response.headers.get('retry-after')) || 30));
+      say(`${currency}: the price source said wait; trying again in ${wait}s (${attempt} of 5)`);
+      await sleep(wait * 1000);
+      continue;
+    }
     if (!response.ok) return null;
-    return ratesFromHistory(await response.json());
+    const prices = ((await response.json()) as { prices?: unknown }).prices;
+    return Array.isArray(prices) ? (prices as Array<[number, number]>) : null;
   }
   return null;
+}
+
+async function fetchCharts(currencies: readonly LocalCurrency[], fromMs: number, toMs: number): Promise<PriceCharts> {
+  const out: PriceCharts = {};
+  for (const currency of currencies) {
+    const chart = await chartFor(currency, fromMs, toMs).catch(() => null);
+    say(`${currency}: ${chart ? `${chart.length} prices` : 'no prices'}`);
+    if (chart) out[currency] = chart;
+    await sleep(2_500);
+  }
+  return out;
+}
+
+async function readAll(stream: NodeJS.ReadableStream): Promise<string> {
+  let text = '';
+  for await (const chunk of stream) text += chunk;
+  return text;
 }
 
 async function completedMovements(): Promise<MoneyMovement[]> {
@@ -132,14 +202,27 @@ async function completedMovements(): Promise<MoneyMovement[]> {
   return rows.rows.map((row) => row.data);
 }
 
+/// The stretch the charts cover when they are fetched on their own: from before
+/// Karwan's first payment to now.
+const FIRST_DAY = Date.UTC(2026, 6, 1);
+
 async function main() {
+  if (process.env.FETCH_ONLY === '1') {
+    process.stdout.write(JSON.stringify(await fetchCharts(LOCAL, FIRST_DAY, Date.now())));
+    return;
+  }
+  const file = process.env.RATES_FILE;
+  const { readFile } = await import('node:fs/promises');
+  const charts = file ? chartsFromText(file === '-' ? await readAll(process.stdin) : await readFile(file, 'utf8')) : await fetchCharts(LOCAL, FIRST_DAY, Date.now());
+  logger.info({ currencies: Object.keys(charts), from: file ? (file === '-' ? 'stdin' : file) : 'the price source' }, 'payment worth backfill: prices read');
+  if (Object.keys(charts).length === 0) throw new Error('no prices were read, so nothing can be worked out; fetch them with FETCH_ONLY=1 and pass RATES_FILE');
   const currencies = new Map<string, DisplayCurrency | undefined>();
   const currencyOf = async (address: string) => {
     const key = address.toLowerCase();
     if (!currencies.has(key)) currencies.set(key, (await getProfile(key).catch(() => null))?.settings?.displayCurrency);
     return currencies.get(key);
   };
-  const plan = await planWorthBackfill({ movements: await completedMovements(), deals: await listAllDeals(), currencyOf, ratesFor: historyFor });
+  const plan = await planWorthBackfill({ movements: await completedMovements(), deals: await listAllDeals(), currencyOf, ratesFor: ratesFromCharts(charts) });
   logger.info({ movements: plan.movements.length, deals: plan.deals.length, daysWithoutRates: plan.daysWithoutRates, dryRun }, 'payment worth backfill: planned');
   for (const change of plan.movements) {
     logger.info({ reference: change.reference, worth: change.worth }, 'payment worth backfill: movement');

@@ -90,3 +90,19 @@ test('figures are read from what the person typed: commas, decimals, k and m', (
   assert.deepEqual(figuresSaid([{ role: 'user', content: 'pay 50,000 naira, or 2.5k, max 1.2m' }, { role: 'assistant', content: 'that is 99' }]), [50000, 2500, 1200000]);
   assert.deepEqual(figuresSaid(undefined), []);
 });
+
+test('a way of dealing takes its prices in naira too, by the fields named for it (view 77)', async () => {
+  const seen: Array<{ args: unknown; said: unknown }> = [];
+  const tools = withLocalAmounts(
+    {
+      way: {
+        inputSchema: z.object({ shape: z.string(), priceMin: z.number().optional(), priceUsual: z.number().optional(), daysMin: z.number().optional() }),
+        execute: async (args: unknown, options: unknown) => { seen.push({ args, said: (options as { said?: unknown }).said }); return 'ok'; },
+      },
+    },
+    async () => RATES,
+    { way: ['priceMin', 'priceUsual', 'maxPrice'] },
+  );
+  await tools.way.execute!({ shape: 'one_time', priceMin: 50000, daysMin: 3, currency: 'NGN' }, {});
+  assert.deepEqual(seen[0], { args: { shape: 'one_time', priceMin: 37.144066, daysMin: 3 }, said: { currency: 'NGN', amounts: { priceMin: 50000 } } });
+});

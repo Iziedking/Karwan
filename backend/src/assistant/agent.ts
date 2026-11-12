@@ -62,6 +62,9 @@ import { readOwnedBalance } from '../money/ownedBalance.js';
 import { localFigure } from '../rates/usdcRates.js';
 import { readSharedRates } from '../rates/sharedRate.js';
 import { withLocalAmounts } from './localAmountTools.js';
+import { WAY_MONEY_FIELDS, saidOnWay } from '../agents/waysSaid.js';
+import { saidLimit } from '../agents/agentLimit.js';
+import type { LocalCurrency } from '../rates/usdcRates.js';
 import { moneyVoice } from './moneyVoice.js';
 import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
 import { AGENT_OFF_ANSWER, agentIsOn, agentSwitchOpen } from '../agents/agentPower.js';
@@ -1109,7 +1112,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         waitDays: z.number().int().optional(),
         maxDeposit: z.number().optional(),
       }),
-      execute: async ({ side, shape, remove, ...answers }) => {
+      execute: async ({ side, shape, remove, ...answers }, options: unknown) => {
         try {
           const saved = await getProfile(address);
           if (!saved) return { error: 'They have no profile yet. They need to finish signing up first.' };
@@ -1117,7 +1120,8 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           if (!remove) {
             const read = (side === 'sell' ? sellWaySchema : buyWaySchema).safeParse({ shape, ...answers });
             if (!read.success) return { needs: read.error.issues.map((i) => i.path.join('.') || i.message), note: 'Ask for what is missing or does not add up, then call this again.' };
-            way = read.data;
+            // A price said in their own currency is the rule the agent follows (view 77).
+            way = saidOnWay(read.data, (options as { said?: { currency: LocalCurrency; amounts: Record<string, number> } } | undefined)?.said);
           }
           const next = waysSchema.safeParse(withWay(waysOf(saved), side, shape, way));
           if (!next.success) return { error: 'That way could not be saved. Ask them to say it again in plain words.' };
@@ -2219,8 +2223,11 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
     set_agent_budget: tool({
       description: `Set the user's weekly budget for the data their agents pay for, from 0 to ${MAX_WEEKLY_BUDGET_USDC} USDC. 0 means they use free data only. Only when the user asks. Moves no money; it caps what the agents may spend.`,
       inputSchema: z.object({ weeklyUsdc: z.number().min(0).max(MAX_WEEKLY_BUDGET_USDC) }),
-      execute: async ({ weeklyUsdc }) => {
-        const r = await updateAgentRecord(address, (cur) => ({ ...cur, weeklyBudgetUsdc: Math.round(weeklyUsdc * 1e6) / 1e6, lastBudgetNoticeAt: undefined }));
+      execute: async ({ weeklyUsdc }, options: unknown) => {
+        const weekly = Math.round(weeklyUsdc * 1e6) / 1e6;
+        // A limit said in their own currency is the rule (view 77).
+        const weeklySaid = saidLimit(weekly, (options as { said?: { currency: LocalCurrency; amounts: Record<string, number> } } | undefined)?.said);
+        const r = await updateAgentRecord(address, (cur) => ({ ...cur, weeklyBudgetUsdc: weekly, weeklySaid, lastBudgetNoticeAt: undefined }));
         return { weeklyBudgetUsdc: r.weeklyBudgetUsdc, next: 'Say the new weekly budget and that it caps what the agents pay for data, nothing else.' };
       },
     }),
@@ -3221,7 +3228,7 @@ export async function runAssistantAgent(input: {
       model,
       system,
       messages: input.messages,
-      tools: withLocalAmounts(buildTools(input.address, input.method, actions, input.conversationId), () => readSharedRates()),
+      tools: withLocalAmounts(buildTools(input.address, input.method, actions, input.conversationId), () => readSharedRates(), { set_way_i_deal: WAY_MONEY_FIELDS }),
       // Allow a few reasoning+tool rounds (e.g. whats_pending, then read one
       // deal, then propose a button), then force a final text answer.
       stopWhen: stepCountIs(6),

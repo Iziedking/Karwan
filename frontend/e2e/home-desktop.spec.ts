@@ -30,6 +30,9 @@ test('asking on Home opens Help with the question sent and stays on Home (owner,
     }
     return route.fulfill({ json: {} });
   });
+  // Your first trade is a third lit card that shows once its own reads settle, sooner or later
+  // than this check. It is put away here, as its Hide does, so the count is the two cards under test.
+  await page.addInitScript((me) => window.localStorage.setItem('karwan:first-trade-hidden:' + me, '1'), ME.toLowerCase());
   await page.goto('/app');
   // The assistant card and the next step card are lit the same way, with a mark beside the title.
   await expect(page.locator('[data-lit-card]')).toHaveCount(2);

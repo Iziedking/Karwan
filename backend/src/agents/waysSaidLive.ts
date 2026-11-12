@@ -4,6 +4,8 @@ import { patchForWays } from '../routes/setup.js';
 import { leased } from '../ops/leasedLoop.js';
 import { logger } from '../logger.js';
 import { refreshSaidWays } from './waysSaid.js';
+import { refreshSaidLimits } from './agentLimit.js';
+import { listAgentRecords, updateAgentRecord } from '../db/agentRecords.js';
 
 /// Keeps every agent's typed prices true in the currency they were typed in
 /// (view 77). The shared rate changes at the start of a day, or on a move
@@ -23,6 +25,9 @@ async function tick(): Promise<void> {
       await liveSetupDeps.save(profile.address, patchForWays(ways, profile));
     },
   });
+  // A weekly limit said in their own currency follows the same rule.
+  const limits = await refreshSaidLimits({ list: listAgentRecords, rates: async () => rates, save: updateAgentRecord });
+  if (limits) logger.info({ accounts: limits, rateSetAt: rates.updatedAt }, 'said weekly limits brought to the new shared rate');
   appliedAt = rates.updatedAt;
   if (changed) logger.info({ accounts: changed, rateSetAt: rates.updatedAt }, 'typed agent prices brought to the new shared rate');
 }

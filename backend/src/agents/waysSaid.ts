@@ -19,6 +19,26 @@ const SAVE_SLACK = 0.02;
 
 type Way = { said?: SaidPrices } & Record<string, unknown>;
 
+/// The price fields of a way, for anything that reads a price said in words.
+export const WAY_MONEY_FIELDS: readonly string[] = [...MONEY];
+
+/// A figure as kept on a way: plain digits, at most two decimals.
+const asSaid = (n: number) => String(Math.round(n * 100) / 100);
+
+/// A way with the prices as they were said in the person's own currency
+/// (view 77): each named price keeps its figure beside the USDC it gave.
+/// Fields the way does not have, or that were said in USDC, are left alone.
+export function saidOnWay<W extends object>(way: W, said: { currency: SaidPrices['currency']; amounts: Record<string, number> } | undefined): W {
+  if (!said) return way;
+  const amounts: SaidPrices['amounts'] = {};
+  for (const [field, amount] of Object.entries(said.amounts)) {
+    const usdc = (way as Record<string, unknown>)[field];
+    if (!MONEY.has(field) || typeof usdc !== 'number' || !(amount > 0)) continue;
+    amounts[field] = { amount: asSaid(amount), usdc };
+  }
+  return Object.keys(amounts).length ? { ...way, said: { currency: said.currency, amounts } } : way;
+}
+
 function wayAtRate<W extends Way>(way: W, rates: UsdcRates, fresh: boolean): W {
   const said = way.said;
   if (!said) return way;

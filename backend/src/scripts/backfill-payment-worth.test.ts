@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { MoneyMovement } from '../money/model.js';
-import { dayOf, planWorthBackfill, ratesFromHistory } from './backfill-payment-worth.js';
+import { chartsFromText, dayOf, planWorthBackfill, ratesFromCharts, ratesFromHistory } from './backfill-payment-worth.js';
 
 const SENDER = '0x1111111111111111111111111111111111111111';
 const ADA = '0x2222222222222222222222222222222222222222';
@@ -72,4 +72,20 @@ test('a settled deal gets its worth for the buyer and the seller', async () => {
   assert.deepEqual(plan.deals.map((d) => d.jobId), ['0xabc']);
   assert.equal(plan.deals[0]!.worth[SENDER]!.amount, '150000');
   assert.equal(plan.deals[0]!.worth[ADA]!.amount, '13000');
+});
+
+test('the rates of a day come from the charts: the price nearest noon, and none for a day with no price', async () => {
+  const day = Date.UTC(2026, 10, 2);
+  const ratesOf = ratesFromCharts({
+    NGN: [[day - 3_600_000, 1490], [day + 3_600_000, 1500], [day + 13 * 3_600_000, 1510], [day + 23 * 3_600_000, 1530]],
+    KES: [[day + 86_400_000 + 5, 131]],
+  });
+  assert.deepEqual(await ratesOf('02-11-2026'), { NGN: 1510 });
+  assert.deepEqual(await ratesOf('03-11-2026'), { KES: 131 });
+  assert.equal(await ratesOf('04-11-2026'), null);
+});
+
+test('a prices file keeps only charts of known currencies with real prices', () => {
+  const charts = chartsFromText(JSON.stringify({ NGN: [[1, 1500], [2, 0], ['x', 3]], BTC: [[1, 2]], KES: 'no' }));
+  assert.deepEqual(charts, { NGN: [[1, 1500]] });
 });

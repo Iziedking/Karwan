@@ -162,7 +162,7 @@ moneyRoutes.post('/agent-limit', async (c) => {
   const parsed = agentLimitSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'The weekly limit is from 0 to 5 USDC.' }, 400);
   const weekly = Math.round(parsed.data.weeklyUsdc * 1e6) / 1e6;
-  const r = await updateAgentRecord(owner, (cur) => ({ ...cur, weeklyBudgetUsdc: weekly, lastBudgetNoticeAt: undefined }));
+  const r = await updateAgentRecord(owner, (cur) => ({ ...cur, weeklyBudgetUsdc: weekly, weeklySaid: undefined, lastBudgetNoticeAt: undefined }));
   logger.info({ owner, weeklyUsdc: weekly }, 'agent weekly limit changed');
   return c.json(agentLimitView(r, Date.now()));
 });

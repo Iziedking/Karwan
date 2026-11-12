@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cleanTyped, currencySign, formatTyped, rateMoved, typedFor, typingFilter, usdcFor } from './localAmount';
+import { cleanTyped, currencySign, formatTyped, rateMoved, scaledLocal, typedFor, typingFilter, usdcFor } from './localAmount';
 
 /// Amounts typed in your own currency (view 55).
 ///
@@ -65,4 +65,13 @@ test('a prefilled field starts on the figure as it was said (view 77)', async ()
   assert.equal(prefilled(37.14, null, 'NGN', 1346.11), typedFor(37.14, 'NGN', 1346.11));
   assert.equal(prefilled(37.14, { currency: 'NGN', amount: '50000' }, 'USDC', null), typedFor(37.14, 'USDC', null), 'reading USDC, the said naira figure is not used');
   assert.equal(prefilled(null, { currency: 'NGN', amount: '50000' }, 'NGN', 1346.11), '');
+});
+
+test('a line worked out from a kept price keeps its proportion of the figure typed (view 77)', () => {
+  const kept = { currency: 'NGN', amount: '50000' };
+  assert.deepEqual(scaledLocal(kept, 37.144066, 9.2860165), { currency: 'NGN', amount: '12500' });
+  assert.deepEqual(scaledLocal(kept, '37.144066', '37.886947'), { currency: 'NGN', amount: '51000' }, 'the price plus a 2% fee');
+  assert.deepEqual(scaledLocal({ currency: 'EUR', amount: '18.40' }, 20, 5), { currency: 'EUR', amount: '4.6' });
+  assert.equal(scaledLocal(null, 20, 5), null);
+  assert.equal(scaledLocal(kept, 0, 5), null);
 });

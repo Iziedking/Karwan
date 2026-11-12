@@ -2,13 +2,14 @@
 
 import { fieldLabel } from '@/features/deals/workspace/Sheet';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { scaledLocal } from '@/features/money/localAmount';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { sessionPriceTyped } from '../workModel';
 
 /// Sessions a month on monthly work (view 76). Empty means one fixed monthly
 /// price. The price of one session shows as soon as both figures are in.
-export function SessionsField({ value, onChange, monthUsdc }: { value: string; onChange: (v: string) => void; monthUsdc: string }) {
+export function SessionsField({ value, onChange, monthUsdc, monthSaid }: { value: string; onChange: (v: string) => void; monthUsdc: string; monthSaid?: { currency: string; amount: string } | null }) {
   const t = useTranslations().work.sessions;
   const mt = useMoneyText({ compact: true });
   const each = sessionPriceTyped(monthUsdc, value);
@@ -19,7 +20,7 @@ export function SessionsField({ value, onChange, monthUsdc }: { value: string; o
         <Hint>{t.fieldNote}</Hint>
       </span>
       <input id="work-sessions" className="form-input block w-full mt-2 tabular-nums" inputMode="numeric" value={value} onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 2))} />
-      {each ? <span className="mt-1 block text-[14px] text-[var(--ink-secondary)]">{mt.fill(t.each, { amount: each })}</span> : null}
+      {each ? <span className="mt-1 block text-[14px] text-[var(--ink-secondary)]">{mt.fillPrice(t.each, each, scaledLocal(monthSaid, monthUsdc, each))}</span> : null}
     </div>
   );
 }

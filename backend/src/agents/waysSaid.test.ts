@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { UsdcRates } from '../rates/usdcRates.js';
 import { waysSchema, type AgentWays } from './ways.js';
-import { refreshSaidWays, waysAtRate } from './waysSaid.js';
+import { refreshSaidWays, saidOnWay, waysAtRate } from './waysSaid.js';
 
 /// Prices a person gives their agent in their own currency (view 77): the
 /// typed figure is the rule, and the USDC follows the shared rate.
@@ -91,4 +91,14 @@ test('every account with a typed rule is brought to the new rate, and only those
   assert.equal(writes[0]!.address, '0xa');
   const way = writes[0]!.ways.sell[0]!;
   assert.equal(way.shape === 'one_time' && way.priceMin, 18.75);
+});
+
+test('a price said in words is kept on the way beside the USDC it gave (view 77)', () => {
+  const way = { shape: 'one_time' as const, priceMin: 20, priceUsual: 30, daysMin: 1, daysMax: 3 };
+  assert.deepEqual(saidOnWay(way, { currency: 'NGN', amounts: { priceMin: 30000, priceUsual: 45000.456, daysMin: 1, hoursMax: 9 } }), {
+    ...way,
+    said: { currency: 'NGN', amounts: { priceMin: { amount: '30000', usdc: 20 }, priceUsual: { amount: '45000.46', usdc: 30 } } },
+  });
+  assert.equal(saidOnWay(way, undefined), way, 'said in USDC: nothing kept');
+  assert.equal(saidOnWay(way, { currency: 'NGN', amounts: { maxPrice: 5000 } }), way, 'a price this way does not have');
 });

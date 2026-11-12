@@ -1,5 +1,6 @@
 'use client';
 import { MoneyInput, type MoneyInputHandle } from '@/features/money/components/MoneyInput';
+import { scaledLocal } from '@/features/money/localAmount';
 
 import { CARD_CLASS } from '@/shared/components/Card';
 import { buttonClasses } from '@/shared/components/Button';
@@ -37,6 +38,8 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
   const [title, setTitle] = useState(prefill.title ?? '');
   const [brief, setBrief] = useState(prefill.brief ?? '');
   const rateField = useRef<MoneyInputHandle>(null);
+  // The figure as typed, so the lines worked out from it read from it (view 77).
+  const [rateSaid, setRateSaid] = useState<{ currency: string; amount: string } | null>(null);
   const [card, setCard] = useState<WorkCard | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +62,7 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
     worker: `@${tag}`, kind, rateUsdc: rate, periods: Number(periods), startsInDays: Number(starts), title, brief,
     ...(hourly ? { maxHours: Number(hours) } : Number(sessions) >= 1 ? { sessions: Number(sessions) } : {}),
   });
-  const usdc = (m: string) => mt.text(microsToUsdc(m));
+  const usdc = (m: string) => mt.price(microsToUsdc(m), scaledLocal(rateSaid, rate, microsToUsdc(m)));
 
   async function review() {
     setError(null);
@@ -129,14 +132,14 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
         </fieldset>
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.rate : t.form.rateMonthly}</span>
-          <span className="mt-2 block"><MoneyInput value={rate} handle={rateField} onChange={(usdc) => setRate(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
+          <span className="mt-2 block"><MoneyInput value={rate} handle={rateField} onTyped={setRateSaid} onChange={(usdc) => setRate(usdc === null ? '' : String(usdc))} className="form-input block tabular-nums" /></span>
         </label>
         {hourly ? (
           <label className="block">
             <span className={fieldLabel}>{t.form.hours}</span>
             <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={hours} onChange={(e) => setHours(e.target.value.replace(/\D/g, '').slice(0, 2))} />
           </label>
-        ) : <SessionsField value={sessions} onChange={setSessions} monthUsdc={rate} />}
+        ) : <SessionsField value={sessions} onChange={setSessions} monthUsdc={rate} monthSaid={rateSaid} />}
         <label className="block">
           <span className={fieldLabel}>{hourly ? t.form.weeks : t.form.months}</span>
           <input className={`form-input block w-full mt-2 tabular-nums`} inputMode="numeric" value={periods} onChange={(e) => setPeriods(e.target.value.replace(/\D/g, '').slice(0, 2))} />

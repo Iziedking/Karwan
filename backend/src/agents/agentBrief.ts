@@ -3,6 +3,7 @@ import { parsePlace } from '../location/rules.js';
 import { parseBriefPrice, type BriefMoney } from './agentBriefParse.js';
 import { briefLines, type BriefAnswers, type BriefRead } from './agentBriefLines.js';
 import { legacyFromWays, usualOf, waysOf, withWay, type SellWay } from './ways.js';
+import { saidOnWay } from './waysSaid.js';
 
 /// The setup conversation's answers, read into the account's settings (view
 /// 19). Shared by the website, the Telegram interview and the assistant, so
@@ -95,8 +96,11 @@ export async function readBrief(
           ? { shape: 'milestones', priceMin: lowest, priceUsual: usual, daysMin: days.minDays, daysMax: days.maxDays, stages: 2 }
           : { shape: 'one_time', priceMin: lowest, priceUsual: usual, daysMin: days.minDays, daysMax: days.maxDays };
     if (way) {
+      // A price answered in their own currency is the rule the agent follows (view 77).
+      const told = price?.said;
+      const kept = told ? saidOnWay(way, { currency: told.currency, amounts: { priceMin: told.min, priceUsual: usualOf(told.min, told.max) } }) : way;
       const base = current?.agentWays ?? { sell: [], buy: waysOf({ buyer: current?.buyer }).buy };
-      const ways = withWay(base, 'sell', way.shape, way);
+      const ways = withWay(base, 'sell', way.shape, kept);
       patch.agentWays = ways;
       patch.seller = legacyFromWays(ways, { seller: patch.seller }).seller;
     }
