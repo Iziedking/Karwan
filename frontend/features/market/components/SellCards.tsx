@@ -34,7 +34,7 @@ export function RequestCard({ card, fits }: { card: DiscoveryCard; fits: boolean
     >
       <span className="relative block aspect-[4/3] overflow-hidden bg-[var(--raised)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={samplePhoto(card.category, card.id, card.deliveryKind)} alt="" loading="lazy" className="size-full object-cover" />
+        <img src={samplePhoto(card.category, card.id, card.deliveryKind, null, card.title)} alt="" loading="lazy" className="size-full object-cover" />
         {card.requestState === 'negotiating' || card.requestState === 'agreed' ? (
           <span data-request-state={card.requestState} className="absolute start-2.5 top-2.5 rounded-full bg-[var(--ink)] px-2.5 py-1 text-[13px] font-semibold text-[var(--canvas)]">{t.requestStates[card.requestState]}</span>
         ) : fits ? (
@@ -98,7 +98,7 @@ export function YourOffersStrip() {
 function OwnOffer({ listing }: { listing: Listing }) {
   const own = (listing as Listing & { photoUrls?: string[] }).photoUrls?.[0];
   const [failed, setFailed] = useState<string | null>(null);
-  const src = own && failed !== own ? photoSrc(own) : samplePhoto(listingCategory(listing), listing.id, listing.deliveryKind, listing.examplePhoto);
+  const src = own && failed !== own ? photoSrc(own) : samplePhoto(listingCategory(listing), listing.id, listing.deliveryKind, listing.examplePhoto, listing.title);
   return (
     <Link href={`/listings/${listing.id}`} className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}

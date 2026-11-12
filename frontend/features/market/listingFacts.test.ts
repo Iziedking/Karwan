@@ -13,6 +13,20 @@ test('an example offer shows the photograph fitted to its kind of work', () => {
   assert.equal(samplePhoto('design', 'lst_1', 'remote', null), samplePhoto('design', 'lst_1', 'remote'));
 });
 
+test('an offer with no photo shows the sample for the work its title names, before its category\'s stock', () => {
+  const seed = (kind: string) => `/market-samples/seed-${kind}.jpg`;
+  assert.equal(samplePhoto(null, 'lst_1', 'remote', null, 'Professional English to Bengali translation'), seed('translation'));
+  assert.equal(samplePhoto(null, 'lst_1', 'remote', null, 'Spanish to German translator'), seed('translation'));
+  assert.equal(samplePhoto('tech', 'lst_1', 'goods', null, 'Electronics Parts Supplier'), seed('phones-electronics'));
+  assert.equal(samplePhoto('lessons', 'lst_1', 'remote', null, 'A Germany tutor'), seed('tutoring'));
+  assert.equal(samplePhoto(null, 'lst_1', 'remote', null, 'Content writer and social media analyst'), seed('copywriting'));
+  assert.equal(samplePhoto(null, 'lst_1', 'remote', null, 'I build backend APIs'), seed('web-development'));
+  assert.equal(samplePhoto('fashion', 'lst_1', 'in_person', null, 'Tailoring services'), seed('fashion-tailoring'));
+  assert.equal(samplePhoto('design', 'lst_1', 'remote', 'brand-design', 'Spanish translation'), seed('brand-design'), 'an example keeps its own kind');
+  assert.equal(samplePhoto(null, 'lst_1', 'remote', null, 'I have 100 USDC for sale'), samplePhoto(null, 'lst_1', 'remote'), 'no kind named: the category stock as before');
+  assert.equal(samplePhoto('repairs', 'lst_1', 'remote', null, 'Fix my generator'), samplePhoto('repairs', 'lst_1', 'remote'));
+});
+
 test('every fitted photograph is a file with a credit, one per kind the seed has', () => {
   const credits = readFileSync('public/market-samples/CREDITS.md', 'utf8');
   const catalog = readFileSync('../backend/src/marketplace/marketSeed/catalog.ts', 'utf8');

@@ -113,7 +113,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
 
   const name = listing ? sellerLine(listing.seller ?? null, shop) : '';
   const deliverBy = quote?.deliverByUnix ? formatDealDate(quote.deliverByUnix * 1000, locale) : null;
-  const photo = listing ? ((listing as Listing & { photoUrls?: string[] }).photoUrls?.[0] ?? samplePhoto((CATEGORY_IDS as readonly string[]).includes(listing.category ?? '') ? (listing.category as CategoryId) : null, listing.id, listing.deliveryKind, listing.examplePhoto)) : null;
+  const photo = listing ? ((listing as Listing & { photoUrls?: string[] }).photoUrls?.[0] ?? samplePhoto((CATEGORY_IDS as readonly string[]).includes(listing.category ?? '') ? (listing.category as CategoryId) : null, listing.id, listing.deliveryKind, listing.examplePhoto, listing.title)) : null;
   const backHref = `/listings/${encodeURIComponent(listingId)}`;
   const firstName = listing?.seller?.name?.split(/\s+/)[0] || name;
 

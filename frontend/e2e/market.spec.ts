@@ -123,8 +123,9 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['dark', 'ar']] 
       // With no name to show, the card says the kind of seller its category makes them (view 74).
       await expect(cards(page).filter({ hasText: 'Ankara' })).toContainText(t.sellerKinds.fashion);
     }
-    // No photo of its own: a sample photo, marked, never a broken image.
-    await expect(logo.locator('img')).toHaveAttribute('src', /^\/market-samples\/design-[1-4]\.jpg$/);
+    // No photo of its own: a sample photo, marked, never a broken image. Its
+    // title names logo work, so the sample is the one for that work.
+    await expect(logo.locator('img')).toHaveAttribute('src', '/market-samples/seed-brand-design.jpg');
     await expect(logo).toContainText(t.samplePhoto);
     // Photos load lazily, so bring the card into view before checking it painted.
     await logo.scrollIntoViewIfNeeded();

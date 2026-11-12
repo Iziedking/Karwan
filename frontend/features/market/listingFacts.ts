@@ -77,11 +77,41 @@ function spread(seed: string, count: number): number {
   return ((h >>> 0) % count) + 1;
 }
 
+/// Words in a title that name a kind of work we hold a photograph for, the
+/// first kind in this order winning. Whole words only, so "api" is not "rapid".
+const KIND_WORDS: ReadonlyArray<readonly [(typeof SEED_PHOTOS)[number], readonly string[]]> = [
+  ['translation', ['translation', 'translations', 'translator', 'translators', 'translate', 'interpreter']],
+  ['tutoring', ['tutor', 'tutors', 'tutoring', 'lesson', 'lessons', 'teacher', 'teaching']],
+  ['phones-electronics', ['electronics', 'electronic', 'phone', 'phones', 'iphone', 'laptop', 'laptops', 'gadget', 'gadgets']],
+  ['fashion-tailoring', ['tailor', 'tailoring', 'fabric', 'fabrics', 'ankara', 'clothing', 'clothes']],
+  ['photo-video', ['photographer', 'photography', 'videographer', 'video editing', 'video editor']],
+  ['voice-audio', ['voice over', 'voiceover', 'voice-over', 'podcast']],
+  ['music-production', ['music', 'beats', 'mixing', 'mastering']],
+  ['copywriting', ['writer', 'writers', 'writing', 'copywriter', 'copywriting', 'blog']],
+  ['social-content', ['social media', 'content creator', 'instagram', 'tiktok']],
+  ['web-development', ['website', 'websites', 'frontend', 'backend', 'full stack', 'api', 'apis', 'web developer']],
+  ['smart-contracts', ['smart contract', 'smart contracts', 'solidity', 'nft', 'web3', 'onchain']],
+  ['software-ai', ['software', 'ai', 'automation', 'bot', 'machine learning', 'model building']],
+  ['data-analysis', ['data entry', 'data analysis', 'data analyst', 'spreadsheet', 'excel']],
+  ['bookkeeping', ['bookkeeping', 'bookkeeper', 'accounting', 'accountant']],
+  ['brand-design', ['logo', 'logos', 'branding', 'designer', 'graphic design']],
+  ['virtual-assistance', ['virtual assistant', 'assistant', 'project manager']],
+];
+const KIND_PATTERNS = KIND_WORDS.map(([kind, words]) => [kind, new RegExp(`(^|[^a-z0-9])(${words.join('|')})(?=$|[^a-z0-9])`)] as const);
+
+function kindFromTitle(title: string): string | null {
+  const lower = title.toLowerCase();
+  return KIND_PATTERNS.find(([, pattern]) => pattern.test(lower))?.[0] ?? null;
+}
+
 /// The same listing always shows the same photograph, and a row of listings
 /// from one category spreads across that category's photographs. An example
-/// offer shows the photograph fitted to its kind of work.
-export function samplePhoto(category: CategoryId | null, seed = '', kind?: 'goods' | 'in_person' | 'remote', examplePhoto?: string | null): string {
+/// offer shows the photograph fitted to its kind of work, and so does an offer
+/// or request with no photo whose title names a kind we hold one for.
+export function samplePhoto(category: CategoryId | null, seed = '', kind?: 'goods' | 'in_person' | 'remote', examplePhoto?: string | null, title?: string): string {
   if (examplePhoto && (SEED_PHOTOS as readonly string[]).includes(examplePhoto)) return `/market-samples/seed-${examplePhoto}.jpg`;
+  const named = title ? kindFromTitle(title) : null;
+  if (named) return `/market-samples/seed-${named}.jpg`;
   const group = category ?? (kind === 'goods' ? 'goods' : 'services');
   return `/market-samples/${group}-${spread(seed, SAMPLE_COUNT[group])}.jpg`;
 }
