@@ -16,6 +16,7 @@ import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { pickNudge, type Nudge } from '@/features/guide/pickNudge';
 import { coversControl } from '@/features/guide/coversControl';
+import { besideLauncher } from '@/features/guide/besideLauncher';
 
 const CLOSED_KEY = 'karwan:nextMove:closed';
 const SHOW_AFTER_MS = 1200;
@@ -30,6 +31,25 @@ function readClosed(): Set<string> {
 
 function typingTarget(el: EventTarget | null): boolean {
   return el instanceof HTMLElement && (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+}
+
+function noteBand(el: HTMLElement) {
+  const box = el.getBoundingClientRect();
+  const rtl = getComputedStyle(el).direction === 'rtl';
+  return { start: rtl ? window.innerWidth - box.right : box.left, top: box.top, bottom: box.bottom };
+}
+
+/// The Help button's row, from where it is laid out, not where a fade or a
+/// slide has it at this instant, so the note does not jump as it comes and goes.
+function launcherBand(note: HTMLElement) {
+  const launcher = document.querySelector<HTMLElement>('[data-float-launcher]');
+  if (!launcher) return null;
+  const box = launcher.getBoundingClientRect();
+  const style = getComputedStyle(launcher);
+  const rtl = getComputedStyle(note).direction === 'rtl';
+  const fromBottom = Number.parseFloat(style.bottom);
+  const bottom = Number.isFinite(fromBottom) ? window.innerHeight - fromBottom : box.bottom;
+  return { start: rtl ? window.innerWidth - box.right : box.left, top: bottom - launcher.offsetHeight, bottom };
 }
 
 /// The one next move, as one line and one button (view 57). Quiet by rule:
@@ -129,6 +149,12 @@ export function NextMoveNudge() {
       frame = 0;
       const el = noteRef.current;
       if (!el) return;
+      // Its own place first, then the place the Help button leaves it.
+      el.style.maxWidth = '';
+      el.style.bottom = '';
+      const fit = besideLauncher(noteBand(el), launcherBand(el), window.innerHeight);
+      if (fit.maxWidth !== null) el.style.maxWidth = `${fit.maxWidth}px`;
+      if (fit.bottom !== null) el.style.bottom = `${fit.bottom}px`;
       setCovering(coversControl(el.getBoundingClientRect(), (x, y) => document.elementsFromPoint(x, y), (hit) => el.contains(hit)));
     };
     const later = () => {

@@ -94,3 +94,19 @@ test('it steps aside while it would sit on a button, and comes back', async ({ p
   await page.evaluate(() => document.getElementById('under')?.remove());
   await expect(nudge).toBeVisible();
 });
+
+test('on a narrow screen it stops short of the Help button', async ({ page }) => {
+  // Live on 12 Nov 2026 at 460 px: Help sat under the note's corner, so the
+  // note stepped aside on every page and was never seen.
+  await page.setViewportSize({ width: 460, height: 700 });
+  await serveHome(page, [{ kind: 'choose_offer', ref: '0xj1', href: '/jobs/0xj1', count: 2 }]);
+  await openHome(page);
+  const help = page.locator('[data-float-launcher]');
+  const nudge = page.locator('[data-next-move="choose_offer"]');
+  await expect(help).toBeVisible();
+  await expect(nudge).toBeVisible();
+  const note = (await nudge.boundingBox())!;
+  const button = (await help.boundingBox())!;
+  const apart = note.x + note.width <= button.x || button.x + button.width <= note.x || note.y + note.height <= button.y || button.y + button.height <= note.y;
+  expect(apart).toBe(true);
+});
