@@ -1,6 +1,6 @@
 # 79 · A desk in plain words, for both networks
 
-Track: foundation, serving T2 (protected deals). Roadmap item F.1, its second half; the first half is the support desk of [view 78](78-a-support-desk-for-money.md). Proposed 12 Nov 2026 from the owner's design review in Figma (page "Support desk and admin · 12 Nov"). The owner decided on 12 Nov: mainnet asks for an authenticator code at every sign-in; one team list serves both networks; the API directory is the owner's alone unless the owner ticks it for someone. It keeps every lock of [view 64](64-named-operators-two-people-for-money.md).
+Track: foundation, serving T2 (protected deals). Roadmap item F.1, its second half; the first half is the support desk of [view 78](78-a-support-desk-for-money.md). Approved 12 Nov 2026. Proposed the same day from the owner's design review in Figma (page "Support desk and admin · 12 Nov"). The owner decided on 12 Nov: mainnet asks for an authenticator code at every sign-in; one team list serves both networks; the API directory is the owner's alone unless the owner ticks it for someone; a teammate sets up their code by scanning it at their first mainnet sign-in; one teammate may pause an account, and lifting the pause takes two. It keeps every lock of [view 64](64-named-operators-two-people-for-money.md).
 
 ## What is wrong today
 
@@ -36,7 +36,7 @@ sequenceDiagram
 
 - **The sign-in survives a refresh.** It lives in a cookie that page scripts cannot read, scoped to `admin.karwan.site`. Moving between pages and reloading keep you signed in. Closing the browser, 30 minutes without use, or 12 hours at most signs you out. These are fixed, not settings.
 - **Mainnet asks for a code every time.** After the password, a 6-digit code from an authenticator app on the teammate's phone. Five wrong codes lock that email for 15 minutes and tell the owner on Telegram.
-- **Setting up the code.** The first time a teammate signs in to mainnet, after the password, the desk shows a code to scan into their authenticator app and asks for one code back to prove it worked. The owner can reset a teammate's code from Team and pages; the next mainnet sign-in sets it up again. (No Figma frame yet; proposed here.)
+- **Setting up the code.** The first time a teammate signs in to mainnet, after the password, the desk shows a code to scan into their authenticator app and asks for one code back to prove it worked. The owner can reset a teammate's code from Team and pages; the next mainnet sign-in sets it up again.
 - **Which desk you are on is always visible.** The sign-in picks the network; the sidebar names it, and on mainnet every page carries "Mainnet. Every amount on this desk is real money." Switching network means signing in to the other desk.
 
 ## One team, two desks
@@ -119,7 +119,7 @@ The desk works on a phone. A support teammate signs in on the phone and opens on
 | The mainnet server is down | The mainnet desk says so at sign-in; the testnet desk keeps working. |
 | The shared rate has no figure for a currency | Amounts read in USDC with a note, never a guessed figure. |
 | A teammate presses a button their level does not allow | They cannot: it is not shown. If a stale page sends the request anyway, the server refuses it and the activity log keeps the row. |
-| Pause account | Stops money leaving that account, as the person's own pause does. One teammate with Accounts at "can change" may pause; lifting it is the person's own unpause with their code, or a request a second teammate approves. (Owner to confirm.) |
+| Pause account | Stops money leaving that account, as the person's own pause does. One teammate with Accounts at "can change" may pause; lifting it is the person's own unpause with their code, or a request a second teammate approves. |
 
 ## What it does not change
 
