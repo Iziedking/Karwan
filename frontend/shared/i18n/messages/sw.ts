@@ -10,6 +10,7 @@ import { assistantMemoryCopy } from './assistantMemory';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
+import { supportPageCopy } from './supportPage';
 import { escrowDocsCopy } from './escrowDocs';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
@@ -124,6 +125,7 @@ export const sw: Messages = {
   recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,
   networkUi: networkCopy.sw,
+  supportPage: supportPageCopy.sw,
   docsEscrowPage: escrowDocsCopy.sw,
   activityReview: { filterLabel: 'Chuja shughuli za karibuni kwa aina' },
   onboardingReview: { purpose: 'Weka kiasi cha biashara na muda wa kuwasilisha unaokufaa. Unaweza kubadilisha mapendeleo haya baadaye.', review: 'Kagua mapendeleo yako ya biashara', days: 'siku' },
@@ -4911,6 +4913,7 @@ export const sw: Messages = {
       { q: "Karwan hutumia kiwango gani kwa sarafu yangu?", a: "Kiwango kimoja cha pamoja kwa kila mtu, kinachowekwa kila siku saa sita usiku kwa saa za Lagos, na kubadilishwa ndani ya siku pale tu soko linaposogea zaidi ya nusu asilimia. Kila skrini, barua pepe na ujumbe hukitumia. Pesa yako inabaki katika USDC; hakuna sarafu ya ndani inayohamishwa." },
       { q: "Kwa nini malipo ya zamani yanasema \"takriban\"?", a: "Malipo hubaki na thamani yake kwa sarafu yako wakati yalipolipwa. Malipo yaliyofanywa kabla Karwan haijaanza kuhifadhi kiasi hicho husomwa kwa kiwango cha siku, yakiwa na \"takriban\". USDC iliyohamishwa ni kamili." },
       { q: "Kwa nini \"Tayari kutuma\" ni chini ya salio langu?", a: "Salio lako linajumuisha pesa zilizo kwa mawakala wako. \"Tayari kutuma\" ni kile ambacho hatua hii inaweza kutumia sasa. \"Zilete hapa\" huhamisha zilizobaki kwenye akaunti yako." },
+      { q: "Ninawezaje kumfikia mtu?", a: "Fungua Wasifu, kisha Msaada, na uulize. Roboti ya msaada hujibu kwanza kutoka kwenye akaunti yako; ukiomba mtu, au isipoweza kujibu, hufungua kesi yenye kumbukumbu kama KS-1042. Msaidizi wako kwenye Telegram hufanya vivyo hivyo. Timu hujibu saa 2 asubuhi hadi saa 4 usiku kwa saa za Lagos, jibu la kwanza ndani ya saa 2, pale ulipoandika mara ya mwisho na daima kwenye ukurasa wa kesi. Karwan haiombi kamwe nenosiri, misimbo au maneno yako ya urejeshaji." },
     ],
   },
   docsReputationPage: {

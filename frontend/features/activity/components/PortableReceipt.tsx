@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -56,6 +57,7 @@ export function PortableReceipt({
   const money = useMoneyText({ compact: true });
   const panelRef = useRef<HTMLDivElement>(null);
   const noteLabel = useTranslations().money.sendFlow.note;
+  const getHelp = useTranslations().supportPage.getHelp;
   const [mounted, setMounted] = useState(false);
   /// Which export is in flight. The work happens a frame after the press, so
   /// without this the button would look inert for that frame.
@@ -229,6 +231,17 @@ export function PortableReceipt({
           </button>
         </div>
         )}
+
+        {/* A transfer that failed or has not arrived opens Help and support about it (view 78). */}
+        {reference && item.status !== 'done' ? (
+          <Link
+            href={`/profile/help?transfer=${encodeURIComponent(reference)}`}
+            data-get-help
+            className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'mt-3 w-full print:hidden sm:w-auto' })}
+          >
+            {getHelp}
+          </Link>
+        ) : null}
 
         {/* Print. The receipt is ONE page.
 

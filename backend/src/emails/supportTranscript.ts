@@ -1,7 +1,6 @@
-// Emails a closed support conversation as the durable archive. The operator
-// inbox (SUPPORT_EMAIL) always gets a copy; the user gets one too when their
-// email is known. Keeping the record in an inbox is what lets the store stay
-// flat-file + short-retention instead of growing a Postgres table.
+// Support emails (view 78): a teammate's reply, the team's alert for a new
+// case, and the transcript when a case is solved. The case reference in the
+// subject threads a reply back into the same case.
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
@@ -9,14 +8,14 @@ import { brandedEmailHtml, emailFacts, emailHeading, emailQuote, emailText, emai
 import type { SupportConversation, SupportRole } from '../support/store.js';
 
 /// Reply-To for outbound support mail. When the inbound subdomain is set,
-/// replies thread back to the webhook (and into the same ticket); otherwise
+/// replies thread back to the webhook (and into the same case); otherwise
 /// they land in the support inbox.
 function replyToAddress(): string {
   return config.SUPPORT_REPLY_TO ?? config.SUPPORT_EMAIL;
 }
 
-/// Email an operator's reply back to an email-origin ticket's sender. The
-/// Ticket id in the subject lets the inbound webhook re-thread their reply.
+/// Email a teammate's reply to the person. The case reference in the
+/// subject lets the inbound webhook thread their answer.
 export async function emailOperatorReply(
   convo: SupportConversation,
   text: string,
@@ -29,14 +28,14 @@ export async function emailOperatorReply(
       from: config.RESEND_FROM,
       replyTo: replyToAddress(),
       to: convo.email,
-      subject: `Re: ${base} (Ticket ${convo.id})`,
+      subject: `Re: ${base} (Case ${convo.id})`,
       html: brandedEmailHtml({
-        title: `Ticket ${convo.id}`,
-        inner: emailHeading({ kicker: `Karwan support · Ticket ${convo.id}`, title: 'A reply to your support request' }) + emailQuote(text),
+        title: `Case ${convo.id}`,
+        inner: emailHeading({ kicker: `Karwan support · Case ${convo.id}`, title: 'A reply about your case' }) + emailQuote(text),
         preheader: text.slice(0, 120),
-        footerNote: `Reply to this email to continue. Ticket ${convo.id}.`,
+        footerNote: `Reply to this email to continue. Case ${convo.id}.`,
       }),
-      text: `${text}\n\nReply to this email to continue. Ticket ${convo.id}.`,
+      text: `${text}\n\nReply to this email to continue. Case ${convo.id}.`,
     });
     if (error) {
       logger.warn({ err: error.message, id: convo.id }, 'resend rejected operator reply email');
@@ -100,7 +99,7 @@ function transcriptText(convo: SupportConversation): string {
   return head + body;
 }
 
-/// Fires the moment a live chat opens so the team can pick up the ticket. Goes
+/// Fires the moment a case opens so the team can pick it up. Goes
 /// to SUPPORT_TEAM_EMAIL (a Google Group fans it to everyone) or SUPPORT_EMAIL.
 /// Short by design; the full transcript is emailed on close.
 export async function sendSupportAlertEmail(
@@ -112,22 +111,22 @@ export async function sendSupportAlertEmail(
   const who = convo.address ? convo.address : 'a guest';
   const firstAsk = convo.messages.filter((m) => m.role === 'user').slice(-1)[0]?.text ?? '';
   const html = brandedEmailHtml({
-    title: `Ticket ${convo.id}`,
+    title: `Case ${convo.id}`,
     inner:
-      emailHeading({ kicker: `New support ticket · ${convo.id}`, title: 'Someone opened live support' }) +
+      emailHeading({ kicker: `New case · ${convo.id}`, title: 'Someone asked for a person' }) +
       emailText('Pick it up in the admin page, Telegram, or by replying to the close-out email.') +
       emailFacts([['From', who]]) +
       (firstAsk ? emailQuote(firstAsk.slice(0, 400)) : ''),
-    footerNote: `Ticket ${convo.id}. Reply lands when the operator answers in the admin page or Telegram.`,
+    footerNote: `Case ${convo.id}. Answer it on the support desk.`,
   });
   try {
     const { error } = await client.emails.send({
       from: config.RESEND_FROM,
       replyTo: replyToAddress(),
       to,
-      subject: `New support ticket ${convo.id}`,
+      subject: `New case ${convo.id}`,
       html,
-      text: `New support ticket ${convo.id} from ${who}.\n\n${firstAsk}`.trim(),
+      text: `New case ${convo.id} from ${who}.\n\n${firstAsk}`.trim(),
     });
     if (error) {
       logger.warn({ err: error.message, id: convo.id }, 'resend rejected support alert');

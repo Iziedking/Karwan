@@ -51,7 +51,8 @@ export const ADMIN_NAVIGATION: AdminNavigationGroup[] = [
   {
     label: 'People and publishing',
     items: [
-      { href: '/admin/support', label: 'Support', description: 'Customer conversations', page: 'support' },
+      { href: '/admin/support', label: 'Support', description: 'Customer cases', page: 'support' },
+      { href: '/admin/support/room', label: 'Team room', description: 'Ask a teammate, case by case', page: 'support' },
       { href: '/admin/feedback', label: 'Feedback', description: 'Product feedback queue', page: 'feedback' },
       { href: '/admin/newsletter', label: 'Publishing', description: 'Draft, review and send', page: 'newsletter' },
       { href: '/admin/waitlist', label: 'Waitlist', description: 'Mainnet waitlist and invites', page: 'waitlist' },

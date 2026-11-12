@@ -29,6 +29,7 @@
     "backfill:deposit-wallets": "tsx --env-file=../.env src/scripts/backfill-deposit-wallets.ts",
     "backfill:release-amounts": "tsx --env-file=../.env src/scripts/backfill-release-amounts.ts",
     "backfill:payment-worth": "tsx --env-file=../.env src/scripts/backfill-payment-worth.ts",
+    "move:support-tickets": "tsx --env-file=../.env src/scripts/move-support-tickets.ts",
     "wallets:create": "tsx --env-file=../.env src/scripts/create-wallets.ts",
     "derive:probe": "tsx --env-file=../.env src/scripts/derive-probe.ts",
     "derive:provision-probe": "tsx --env-file=../.env src/scripts/derive-provision-probe.ts",

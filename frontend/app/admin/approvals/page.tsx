@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, type AdminMoneyRequest } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
@@ -90,6 +91,11 @@ export default function AdminApprovalsPage() {
               <p className="text-[14px] font-bold">{r.label}</p>
               <p className="mt-1 font-mono text-[12px] text-white/55">{r.method} {r.path}{r.query}</p>
               <p className="mt-2 text-[13px] text-white/75">{r.reason}</p>
+              {/^K[ST]-\d{4,}:/.test(r.reason) && (
+                <Link href={`/admin/support?case=${r.reason.split(':')[0]}`} className="mt-1 inline-flex min-h-9 items-center text-[12px] text-white/70 underline underline-offset-4">
+                  Open case {r.reason.split(':')[0]}
+                </Link>
+              )}
               <p className="mt-1 text-[12px] text-white/45">Asked by {r.requestedBy.name ?? r.requestedBy.email}, {when(r.requestedAt)}. Expires {when(r.expiresAt)}.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" disabled={busy === r.id} onClick={() => approve(r)} className="min-h-11 rounded-lg bg-[#AFC95B] px-4 text-[12px] font-bold text-[#0A0A0B] disabled:opacity-40">

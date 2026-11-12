@@ -91,6 +91,10 @@ import { adminNewsletterRoutes } from './routes/adminNewsletter.js';
 import { newsletterArchiveRoutes } from './routes/newsletterArchive.js';
 import { teamMcpRoutes } from './routes/teamMcp.js';
 import { supportTeamRoutes } from './routes/supportTeam.js';
+import { supportDeskRoutes } from './routes/supportDesk.js';
+import { supportCasesRoutes } from './routes/supportCases.js';
+import { teamRoomRoutes } from './routes/teamRoom.js';
+import { startOverdueTick } from './support/overdue.js';
 import { adminTreasuryRoutes } from './routes/adminTreasury.js';
 import { adminUsycRoutes } from './routes/adminUsyc.js';
 import { treasuryRoutes } from './routes/treasury.js';
@@ -111,7 +115,7 @@ import { assistantConversationRoutes } from './routes/assistantConversations.js'
 import { assistantMemoryRoutes } from './routes/assistantMemory.js';
 import { assistantPickUpRoutes } from './routes/assistantPickUp.js';
 import { assistantAttachRoutes } from './routes/assistantAttach.js';
-import { supportRoutes, startSupportSweeper } from './routes/support.js';
+import { supportRoutes } from './routes/support.js';
 import { configureAgentKitResearch, researchRoutes } from './routes/research.js';
 import { configureWorldIdProof, createPostgresWorldIdNullifierStore, verifyConfiguredWorldId, worldIdRoutes } from './routes/worldId.js';
 import type { IdKitResponseShape } from './worldid/idkitProof.js';
@@ -229,7 +233,7 @@ import { backfillBusFromChain } from './chain/eventBackfill.js';
 import { syncBridgeEventsToBus } from './chain/bridgeEventSync.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
 import { startAttestationSweep } from './attestation/sweep.js';
-import { startTelegramBot } from './telegram/bot.js';
+import { startTelegramBot, tellTeamChat } from './telegram/bot.js';
 import { startTelegramAgent } from './telegram/agent/live.js';
 import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
@@ -551,6 +555,9 @@ app.route('/api/admin', adminDeskRoutes);
 app.route('/api/admin', adminRequestRoutes);
 // An approved money move runs as a request into this same app, as the approver.
 setDeskReplay((req) => Promise.resolve(app.fetch(req)));
+// Cases come before the ticket routes, whose /:id would take /cases.
+app.route('/api/admin/support/cases', supportDeskRoutes);
+app.route('/api/admin/support/room', teamRoomRoutes);
 app.route('/api/admin/support', supportTeamRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/admin', pagePolicyAdminRoutes);
@@ -624,6 +631,7 @@ app.route('/api/assistant/memory', assistantMemoryRoutes);
 app.route('/api/assistant/pick-up', assistantPickUpRoutes);
 app.route('/api/assistant/attach', assistantAttachRoutes);
 app.route('/api/assistant', assistantRoutes);
+app.route('/api/support/cases', supportCasesRoutes);
 app.route('/api/support', supportRoutes);
 app.route('/api/research', researchRoutes);
 app.route('/api/world-id', worldIdRoutes);
@@ -724,6 +732,8 @@ stopFns.push(startClosedSessionRefresh());
 // agents are intentionally disabled during maintenance or rollout.
 stopFns.push(startChatRetentionSweep());
 stopFns.push(startDeliveryQuestionSweep());
+// Cases past their first-reply time, raised once to the team (view 78).
+stopFns.push(startOverdueTick(tellTeamChat));
 stopFns.push(startRatingAsker());
 stopFns.push(startRecordReadSweep());
 stopFns.push(startQuestionSweep());
@@ -1503,7 +1513,6 @@ async function boot() {
   stopFns.push(startShortlistChoices());
   // Live-support housekeeping: prune closed conversations, archive abandoned
   // ones. No-op-safe regardless of whether the handoff is configured.
-  stopFns.push(startSupportSweeper());
   // Deal steps become quiet lines in each deal's chat.
   registerDealTimeline();
   // Email notifier: deal lifecycle alerts to verified contact emails. No-op

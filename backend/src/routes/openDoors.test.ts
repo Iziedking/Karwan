@@ -101,13 +101,13 @@ test('the bridge relay is limited to 10 in 10 minutes per person', async () => {
   assert.equal((await bridgeRoutes.request('/relay', json('10.7.0.99', { bad: true }, { cookie: cookieFor(person) }))).status, 429);
 });
 
-function ticket(address?: string) {
-  const convo = createConversation({ address, transcript: [{ role: 'user', content: 'My payment is stuck' }] });
-  return { id: convo.id, key: issueTicketKey(convo.id)! };
+async function ticket(address?: string) {
+  const convo = await createConversation({ address, transcript: [{ role: 'user', content: 'My payment is stuck' }] });
+  return { id: convo.id, key: (await issueTicketKey(convo.id))! };
 }
 
 test('a support ticket is read, written and closed only with its key', async () => {
-  const t = ticket();
+  const t = await ticket();
   assert.equal((await supportRoutes.request(`/${t.id}/messages?since=0`)).status, 404);
   assert.equal((await supportRoutes.request(`/${t.id}/messages?since=0`, { headers: { 'x-ticket-key': 'f'.repeat(32) } })).status, 404);
   const read = await supportRoutes.request(`/${t.id}/messages?since=0`, { headers: { 'x-ticket-key': t.key } });
@@ -119,7 +119,7 @@ test('a support ticket is read, written and closed only with its key', async () 
 });
 
 test('the person who opened a ticket can read it with their session instead of the key', async () => {
-  const t = ticket(ME);
+  const t = await ticket(ME);
   assert.equal((await supportRoutes.request(`/${t.id}/messages?since=0`, { headers: { cookie: cookieFor(ME) } })).status, 200);
   assert.equal((await supportRoutes.request(`/${t.id}/messages?since=0`, { headers: { cookie: cookieFor(OTHER) } })).status, 404);
 });

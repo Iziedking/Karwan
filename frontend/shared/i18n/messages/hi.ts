@@ -10,6 +10,7 @@ import { assistantMemoryCopy } from './assistantMemory';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
+import { supportPageCopy } from './supportPage';
 import { escrowDocsCopy } from './escrowDocs';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
@@ -124,6 +125,7 @@ export const hi: Messages = {
   recovery: recoveryCopy.hi,
   docsProduct: docsProductCopy.hi,
   networkUi: networkCopy.hi,
+  supportPage: supportPageCopy.hi,
   docsEscrowPage: escrowDocsCopy.hi,
   activityReview: { filterLabel: 'हाल की गतिविधि को प्रकार के अनुसार फ़िल्टर करें' },
   onboardingReview: { purpose: 'अपने लिए उपयुक्त सौदे की रकम और डिलीवरी का समय तय करें। आप बाद में इन प्राथमिकताओं को बदल सकते हैं।', review: 'अपनी व्यापार प्राथमिकताएँ जाँचें', days: 'दिन' },
@@ -4912,6 +4914,7 @@ export const hi: Messages = {
       { q: "Karwan मेरी मुद्रा के लिए कौन सी दर इस्तेमाल करता है?", a: "सबके लिए एक साझा दर, जो हर दिन लागोस समय के अनुसार आधी रात को तय होती है और दिन के भीतर तभी बदलती है जब बाज़ार आधे प्रतिशत से ज़्यादा हिले. हर स्क्रीन, ईमेल और संदेश इसी का उपयोग करता है. आपका पैसा USDC में रहता है; कोई स्थानीय मुद्रा नहीं चलती." },
       { q: "किसी पुराने भुगतान पर \"लगभग\" क्यों लिखा है?", a: "भुगतान वही रखता है जो भुगतान के समय आपकी मुद्रा में उसका मूल्य था. Karwan के यह राशि रखने से पहले किया गया भुगतान आज की दर पर पढ़ा जाता है, \"लगभग\" के साथ. जो USDC गया वह सटीक है." },
       { q: "\"भेजने के लिए तैयार\" मेरे बैलेंस से कम क्यों है?", a: "आपके बैलेंस में आपके एजेंटों के पास का पैसा भी गिना जाता है. \"भेजने के लिए तैयार\" वह है जो यह कदम अभी इस्तेमाल कर सकता है. \"इसे यहाँ लाएँ\" बाकी को आपके खाते में ले आता है." },
+      { q: "किसी व्यक्ति से कैसे संपर्क करूँ?", a: "प्रोफ़ाइल खोलें, फिर मदद और सहायता, और पूछें। मदद बॉट पहले आपके खाते से जवाब देता है; जब आप किसी व्यक्ति को माँगते हैं, या वह जवाब नहीं दे पाता, तो वह KS-1042 जैसे संदर्भ के साथ एक मामला खोलता है। Telegram पर आपका सहायक भी यही करता है। टीम लागोस समय सुबह 8 से रात 10 बजे तक जवाब देती है, पहला जवाब 2 घंटे के भीतर, जहाँ आपने आख़िरी बार लिखा वहाँ और हमेशा मामले के पेज पर। Karwan कभी आपका पासवर्ड, कोड या सीड फ़्रेज़ नहीं माँगता।" },
     ],
   },
   docsReputationPage: {

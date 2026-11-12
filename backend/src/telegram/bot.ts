@@ -7,16 +7,14 @@ import { saveTelegramLink, findAddressByChatId, type TelegramLink } from '../db/
 import { bus, type KarwanEvent } from '../events.js';
 import { deliverableNoun, tradeTypeOf, type TradeType } from '../deals/tradeVocabulary.js';
 import {
-  appendOperatorMessage,
   appendUserMessage,
-  closeConversation,
   findOpenConversationByAddress,
   type SupportConversation,
 } from '../support/store.js';
-import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
+import { caseStore } from '../support/cases.js';
+import { newCaseAlert, operatorChatAnswer } from '../support/teamAlerts.js';
 import type { TgUpdate } from './agent/parse.js';
 import { isAgentUpdate, startPayload, textGoesToAgent } from './agent/routing.js';
-import { notifyUserOfReply } from '../support/notify.js';
 import { personNameOf } from '../channels/personName.js';
 
 // Minimal Telegram Bot API client. Direct HTTP calls (no SDK), long-polling
@@ -325,9 +323,9 @@ async function handleMessage(
   // into that ticket so the operator sees it, same as a widget or email reply.
   // (The operator chat is handled above and returns before this point.)
   const linkedAddr = await findAddressByChatId(chatId);
-  const ticket = linkedAddr ? findOpenConversationByAddress(linkedAddr) : null;
+  const ticket = linkedAddr ? await findOpenConversationByAddress(linkedAddr) : null;
   if (ticket) {
-    appendUserMessage(ticket.id, text);
+    await appendUserMessage(ticket.id, text, 'telegram');
     try {
       await relaySupportUserMessage(ticket, text);
     } catch {
@@ -355,21 +353,6 @@ export function supportHandoffEnabled(): boolean {
   return telegramEnabled() && supportOperatorChatId() !== null;
 }
 
-const CONV_TAG_RE = /(KSUP-[0-9a-f]+)/i;
-
-function roleTag(role: 'user' | 'assistant' | 'operator' | 'system'): string {
-  switch (role) {
-    case 'user':
-      return 'User';
-    case 'assistant':
-      return 'AI';
-    case 'operator':
-      return 'You';
-    default:
-      return 'System';
-  }
-}
-
 function truncate(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
@@ -383,80 +366,34 @@ async function handleOperatorMessage(
   text: string,
   repliedText?: string,
 ): Promise<boolean> {
-  const trimmed = text.trim();
-
-  const closeMatch = trimmed.match(/^\/close\s+(KSUP-[0-9a-f]+)/i);
-  if (closeMatch) {
-    const convo = closeConversation(closeMatch[1]!);
-    if (convo) void sendSupportTranscriptEmail(convo);
-    await sendTelegramMessage(
-      chatId,
-      convo
-        ? `*Karwan*: closed \`${closeMatch[1]}\` and emailed the transcript.`
-        : `*Karwan*: no open conversation \`${closeMatch[1]}\`.`,
-    );
-    return true;
-  }
-
-  let convId: string | null = null;
-  let body = trimmed;
-  const explicit = trimmed.match(/^\/r\s+(KSUP-[0-9a-f]+)\s+([\s\S]+)/i);
-  if (explicit) {
-    convId = explicit[1]!;
-    body = explicit[2]!;
-  } else if (repliedText) {
-    const m = repliedText.match(CONV_TAG_RE);
-    if (m) convId = m[1]!;
-  }
-  if (!convId) return false;
-
-  const convo = appendOperatorMessage(convId, body);
-  if (!convo) {
-    await sendTelegramMessage(
-      chatId,
-      `*Karwan*: \`${convId}\` is closed or unknown, so the user won't see that. Start fresh when they re-open the chat.`,
-    );
-    return true;
-  }
-  // Reach the user on every channel they have: email, Telegram, and the widget.
-  void notifyUserOfReply(convo, body);
+  // The team chat is for alerts only (view 78): a reply written here would
+  // carry no name and leave no row, so nothing in it reaches the customer.
+  const answer = operatorChatAnswer(text, repliedText);
+  if (!answer) return false;
+  await sendTelegramMessage(chatId, `${answer.ref}: answer it on the support desk. Nothing written here reaches the customer.`, undefined, { plain: true });
   return true;
 }
 
-/// Pushes a new live-support request (with its AI transcript) to the operator
-/// chat. The #KSUP tag at the foot is what an operator reply quotes back so we
-/// can route the response. No-op when the handoff isn't configured.
-export async function sendSupportRequestToOperator(convo: SupportConversation): Promise<void> {
+/// The team's Telegram chat, for alerts. No-op when support is not configured.
+export async function tellTeamChat(text: string): Promise<void> {
   const chatId = supportOperatorChatId();
   if (chatId === null) return;
-  const lines = convo.messages
-    .slice(-12)
-    .map((m) => `${roleTag(m.role)}: ${truncate(m.text, 600)}`);
-  const who = convo.address ? short(convo.address) : 'a guest';
-  const deals = (convo.dealIds ?? []).map((d) => `Deal ${d}: review the flagged delivery on the admin support page.`);
-  const head = [`Live support request from ${who}`, convo.id, ...deals].join('\n');
-  const tail =
-    `Reply to this message to respond. Or: /r ${convo.id} your reply  •  /close ${convo.id} to end + email it.`;
-  await sendTelegramMessage(
-    chatId,
-    `${head}\n\n${lines.join('\n')}\n\n${tail}\n#${convo.id}`,
-    undefined,
-    { plain: true },
-  );
+  await sendTelegramMessage(chatId, text, undefined, { plain: true });
 }
 
-/// Relays a user's follow-up message (sent after handoff) to the operator chat,
-/// tagged so a reply routes back to the same conversation.
+/// A new case, told to the team's chat with its reference and kind.
+export async function sendSupportRequestToOperator(convo: SupportConversation): Promise<void> {
+  const c = await caseStore().get(convo.id);
+  if (!c) return;
+  const who = convo.address ? short(convo.address) : convo.email ?? 'a guest';
+  const firstLine = convo.messages.find((m) => m.role === 'user')?.text ?? '';
+  await tellTeamChat(newCaseAlert({ ref: c.ref, kind: c.kind, who, lastChannel: c.lastChannel, firstLine }));
+}
+
+/// The customer wrote more on a case; the team's chat hears it.
 export async function relaySupportUserMessage(convo: SupportConversation, text: string): Promise<void> {
-  const chatId = supportOperatorChatId();
-  if (chatId === null) return;
-  const who = convo.address ? short(convo.address) : 'guest';
-  await sendTelegramMessage(
-    chatId,
-    `${who} (${convo.id}):\n${truncate(text, 1200)}\n\n#${convo.id}`,
-    undefined,
-    { plain: true },
-  );
+  const who = convo.address ? short(convo.address) : convo.email ?? 'guest';
+  await tellTeamChat(`${who} wrote on ${convo.id}:\n${truncate(text, 1200)}\n\nAnswer it on the support desk.\n#${convo.id}`);
 }
 
 function pruneExpired() {

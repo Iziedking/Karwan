@@ -54,6 +54,8 @@ export type RouteTitleKey =
   | 'theme'
   | 'editProfile'
   | 'devices'
+  | 'helpSupport'
+  | 'supportCase'
   | 'openDeals'
   | 'profileSetup'
   | 'recordSources'
@@ -142,6 +144,8 @@ const en: RouteTitleCopy = {
   theme: 'Theme',
   editProfile: 'Edit profile',
   devices: 'Signed-in devices',
+  helpSupport: 'Help and support',
+  supportCase: 'Support case',
   openDeals: 'Open deals',
   profileSetup: 'Your agent',
   wallets: 'Wallets',
@@ -229,6 +233,8 @@ const ar: RouteTitleCopy = {
   theme: 'المظهر',
   editProfile: 'تعديل الملف',
   devices: 'الأجهزة المسجّل دخولها',
+  helpSupport: 'المساعدة والدعم',
+  supportCase: 'طلب دعم',
   openDeals: 'الصفقات المفتوحة',
   profileSetup: 'وكيلك',
   wallets: 'المحافظ',
@@ -316,6 +322,8 @@ const fr: RouteTitleCopy = {
   theme: 'Thème',
   editProfile: 'Modifier le profil',
   devices: 'Appareils connectés',
+  helpSupport: 'Aide et assistance',
+  supportCase: 'Demande d’assistance',
   openDeals: 'Deals ouverts',
   profileSetup: 'Votre agent',
   wallets: 'Portefeuilles',
@@ -403,6 +411,8 @@ const hi: RouteTitleCopy = {
   theme: 'थीम',
   editProfile: 'प्रोफ़ाइल संपादित करें',
   devices: 'साइन-इन डिवाइस',
+  helpSupport: 'मदद और सहायता',
+  supportCase: 'सहायता मामला',
   openDeals: 'खुली डील',
   profileSetup: 'आपका एजेंट',
   wallets: 'वॉलेट',
@@ -490,6 +500,8 @@ const sw: RouteTitleCopy = {
   theme: 'Mwonekano',
   editProfile: 'Hariri wasifu',
   devices: 'Vifaa vilivyoingia',
+  helpSupport: 'Msaada',
+  supportCase: 'Kesi ya msaada',
   openDeals: 'Mikataba iliyo wazi',
   profileSetup: 'Wakala wako',
   wallets: 'Pochi',

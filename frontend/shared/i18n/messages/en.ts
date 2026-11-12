@@ -13,6 +13,7 @@ import { assistantMemoryCopy, type AssistantMemoryCopy } from './assistantMemory
 import { plainMoneyCopy, type PlainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
 import { networkCopy, type NetworkCopy } from './network';
+import { supportPageCopy, type SupportPageCopy } from './supportPage';
 import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
 import { protectionCopy, type ProtectionCopy } from './protection';
 import { moneyCopy, type MoneyCopy } from './money';
@@ -126,6 +127,7 @@ interface MessagesShape {
   recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
   networkUi: NetworkCopy;
+  supportPage: SupportPageCopy;
   docsEscrowPage: EscrowDocsCopy;
   landingEditorial: LandingEditorialCopy;
   activityReview: { filterLabel: string };
@@ -5414,6 +5416,7 @@ export const en: MessagesShape = {
   recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
   networkUi: networkCopy.en,
+  supportPage: supportPageCopy.en,
   docsEscrowPage: escrowDocsCopy.en,
   activityReview: { filterLabel: 'Filter recent activity by type' },
   onboardingReview: { purpose: 'Set the trade amounts and delivery times you want to work with. You can change these preferences later.', review: 'Review your trade preferences', days: 'days' },
@@ -10347,6 +10350,7 @@ export const en: MessagesShape = {
       { q: "What rate does Karwan use for my currency?", a: "One shared rate for everyone, set each day at midnight Lagos time and changed inside the day only when the market moves more than half a percent. Every screen, email and message uses it. Your money stays in USDC; no local currency moves." },
       { q: "Why does an older payment say about?", a: "A payment keeps what it was worth in your currency when it was paid. A payment made before Karwan kept that figure reads at the rate of the day, marked about. The USDC that moved is exact." },
       { q: "Why is Ready to send less than my balance?", a: "Your balance counts money with your agents. Ready to send is what that step can use now. Bring it here moves the rest to your account." },
+      { q: "How do I reach a person?", a: "Open Profile, then Help and support, and ask. The help bot answers from your account first; when you ask for a person, or it cannot answer, it opens a case with a reference such as KS-1042. Your assistant on Telegram does the same. People reply from 8am to 10pm Lagos time, the first reply within 2 hours, back where you last wrote and always on the case page. Karwan never asks for your password, codes or seed phrase." },
     ],
   },
   docsReputationPage: {

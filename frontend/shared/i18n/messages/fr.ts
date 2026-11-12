@@ -10,6 +10,7 @@ import { assistantMemoryCopy } from './assistantMemory';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
+import { supportPageCopy } from './supportPage';
 import { escrowDocsCopy } from './escrowDocs';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
@@ -124,6 +125,7 @@ export const fr: Messages = {
   recovery: recoveryCopy.fr,
   docsProduct: docsProductCopy.fr,
   networkUi: networkCopy.fr,
+  supportPage: supportPageCopy.fr,
   docsEscrowPage: escrowDocsCopy.fr,
   activityReview: { filterLabel: 'Filtrer l’activité récente par type' },
   onboardingReview: { purpose: 'Définissez les montants et délais de livraison qui vous conviennent. Vous pourrez modifier ces préférences plus tard.', review: 'Vérifiez vos préférences commerciales', days: 'jours' },
@@ -4914,6 +4916,7 @@ export const fr: Messages = {
       { q: "Quel taux Karwan utilise-t-il pour ma monnaie ?", a: "Un seul taux partagé pour tout le monde, fixé chaque jour à minuit, heure de Lagos, et modifié en cours de journée seulement si le marché bouge de plus d’un demi pour cent. Chaque écran, e-mail et message l’utilise. Votre argent reste en USDC ; aucune monnaie locale ne bouge." },
       { q: "Pourquoi un ancien paiement indique-t-il « environ » ?", a: "Un paiement garde ce qu’il valait dans votre monnaie au moment où il a été payé. Un paiement fait avant que Karwan ne garde ce montant se lit au taux du jour, marqué « environ ». Les USDC déplacés sont exacts." },
       { q: "Pourquoi « Prêt à envoyer » est-il inférieur à mon solde ?", a: "Votre solde compte l’argent chez vos agents. « Prêt à envoyer » est ce que cette étape peut utiliser maintenant. « Les ramener ici » déplace le reste vers votre compte." },
+      { q: "Comment joindre une personne ?", a: "Ouvrez Profil, puis Aide et assistance, et posez votre question. Le robot d'aide répond d'abord à partir de votre compte ; si vous demandez une personne, ou s'il ne peut pas répondre, il ouvre une demande avec une référence comme KS-1042. Votre assistant sur Telegram fait de même. L'équipe répond de 8 h à 22 h, heure de Lagos, une première réponse sous 2 heures, là où vous avez écrit et toujours sur la page de la demande. Karwan ne demande jamais votre mot de passe, vos codes ou votre phrase de récupération." },
     ],
   },
   docsReputationPage: {

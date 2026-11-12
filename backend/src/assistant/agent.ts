@@ -112,6 +112,8 @@ import { ratingTools } from './ratingTools.js';
 import { counterpartyTools } from './counterpartyTools.js';
 import { dealLinkTools } from './dealLink.js';
 import { memoryPreamble, memoryTools } from './memoryTools.js';
+import { supportTools, toolsForMode } from './supportTools.js';
+import { liveSupportToolDeps } from '../support/liveSupportToolDeps.js';
 import { addNotes, deleteNotes, getMemory, type AssistantMemory } from '../db/assistantMemory.js';
 import { conversationsMentioning } from '../db/assistantConversations.js';
 import { liveRatingToolDeps } from '../ratings/live.js';
@@ -3116,6 +3118,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
     ...counterpartyTools(address, { deals: listDealsForAddress, profile: getProfile }),
     ...dealLinkTools(address, { base: (config.FRONTEND_BASE_URL ?? (ARC.testnet ? 'https://testnet.karwan.site' : 'https://karwan.site')), profile: getProfile }),
     ...memoryTools(address, { memory: getMemory, add: addNotes, remove: deleteNotes, conversations: conversationsMentioning }),
+    ...supportTools(address, liveSupportToolDeps),
     ...networkTools(address),
     ...directDealTools(address, actions, conversationId),
     ...financeTools(address, method === 'circle' ? 'karwan' : 'wallet', actions, {
@@ -3231,7 +3234,7 @@ export async function runAssistantAgent(input: {
       model,
       system,
       messages: input.messages,
-      tools: withLocalAmounts(buildTools(input.address, input.method, actions, input.conversationId), () => readSharedRates(), { set_way_i_deal: WAY_MONEY_FIELDS }),
+      tools: withLocalAmounts(toolsForMode(buildTools(input.address, input.method, actions, input.conversationId), input.mode), () => readSharedRates(), { set_way_i_deal: WAY_MONEY_FIELDS }),
       // Allow a few reasoning+tool rounds (e.g. whats_pending, then read one
       // deal, then propose a button), then force a final text answer.
       stopWhen: stepCountIs(6),

@@ -1651,6 +1651,42 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       ALTER TABLE direct_offers_v1 ADD COLUMN price_local JSONB;
     `,
   },
+  {
+    // Support cases that last (view 78): one case per problem with a short
+    // running reference, its messages and team notes, and the team room.
+    version: 68,
+    name: 'support_cases',
+    sql: `
+      CREATE SEQUENCE support_case_ref_seq START 1001;
+      CREATE TABLE support_cases_v1 (
+        id TEXT PRIMARY KEY,
+        ref TEXT UNIQUE NOT NULL,
+        legacy_id TEXT UNIQUE,
+        address TEXT,
+        state TEXT NOT NULL,
+        due_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX support_cases_v1_address_idx ON support_cases_v1 (address);
+      CREATE INDEX support_cases_v1_queue_idx ON support_cases_v1 (state, due_at);
+      CREATE TABLE support_case_messages_v1 (
+        id TEXT PRIMARY KEY,
+        case_id TEXT NOT NULL,
+        at BIGINT NOT NULL,
+        role TEXT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX support_case_messages_v1_case_idx ON support_case_messages_v1 (case_id, at);
+      CREATE TABLE team_room_v1 (
+        id TEXT PRIMARY KEY,
+        case_id TEXT,
+        at BIGINT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX team_room_v1_case_idx ON team_room_v1 (case_id, at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

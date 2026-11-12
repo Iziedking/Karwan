@@ -2,6 +2,7 @@
 import { Price } from '@/features/money/components/Price';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ApiError, api, type DealView, type DirectDeal, type MoneyMovementView } from '@/core/api';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
@@ -23,7 +24,6 @@ import { SettlementRecord, type SettlementRecordFetchState } from '../components
 import { AgreementSection } from './AgreementSection';
 import { AnswerCancelSheet, AnswerTimeSheet, DeliverSheet, ProblemSheet, TurnDownSheet } from './DealSheets';
 import { actionLabel, actorLabel, automaticLine, fill, formatDealDate, formatUsdcAmount, heldMove, trustFactParts } from './presentation';
-import { callPerson } from '@/shared/assistant/openHelp';
 import { answersCancelHere, problemOptions, proposalOutcome } from './problems';
 import { findUnresolvedPayoutRecovery } from '../moneyRecovery';
 import { deliveryCheckStatus, heldDetailOf } from './checkStatus';
@@ -90,6 +90,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   onRetryRecord: () => void;
 }) {
   const copy = useTranslations().dealWorkspace;
+  const router = useRouter();
   const dp = useTranslations().dealPage;
   const dl = useTranslations().dealLive;
   const s = copy.simple;
@@ -200,7 +201,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   // A delivery that does not match what was agreed: the buyer asks for changes.
   const askForChanges = !!address && viewerIsBuyer && summary?.result === 'gap';
   const review = deal.deliveryReviewState?.state;
-  const askPerson = () => callPerson([], { message: fill(copy.checkPaused.supportMessage, { path: `/deals/${deal.jobId}` }), dealId: deal.jobId });
+  // Help and support opens already talking about this deal (view 78).
+  const askPerson = () => router.push(`/profile/help?deal=${deal.jobId}&ref=${encodeURIComponent(dealReference(deal.jobId) ?? '')}`);
   // The first link in the seller's note, wherever it sits in the sentence; the Delivery card lists them all.
   const firstLink = viewerIsBuyer ? linksIn(deal.deliveryProof)[0]?.url : undefined;
   const seeDelivery = firstLink ? (

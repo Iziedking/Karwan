@@ -11,25 +11,24 @@ import {
   closeConversation,
   createConversation,
   createEmailConversation,
+  findCase,
   getConversation,
   issueTicketKey,
   messagesSince,
-  sweep,
   ticketKeyMatches,
   type SupportConversation,
 } from '../support/store.js';
+import { parseRef } from '../support/caseRules.js';
 import {
   relaySupportUserMessage,
   sendSupportRequestToOperator,
   supportHandoffEnabled,
 } from '../telegram/bot.js';
-import { sendSupportTranscriptEmail, sendSupportAlertEmail } from '../emails/supportTranscript.js';
-import { leased } from '../ops/leasedLoop.js';
+import { sendSupportAlertEmail } from '../emails/supportTranscript.js';
 
-/// Live-support handoff. The assistant widget calls /start to escalate from the
-/// AI to a human; the operator answers over Telegram (see telegram/bot.ts) and
-/// the widget polls /:id/messages for the replies. Closing emails the
-/// transcript as the durable archive, so no Postgres table grows here.
+/// Support handoff. The assistant widget calls /start to open a case with a
+/// person (view 78); a teammate answers and the widget polls /:id/messages for
+/// the replies. The id is the case reference; cases are kept in the database.
 export const supportRoutes = new Hono();
 
 const startSchema = z.object({
@@ -76,9 +75,8 @@ supportRoutes.post(
     return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
   }
   const address = viewerAddress(c) ?? undefined;
-  const convo = createConversation({ address, email: body.email, transcript: body.messages });
   const dealId = await partyDeal(address, body.dealId);
-  if (dealId) attachDeal(convo.id, dealId);
+  const convo = await createConversation({ address, email: body.email, transcript: body.messages, ...(dealId ? { dealId } : {}) });
   try {
     await sendSupportRequestToOperator(convo);
   } catch (err) {
@@ -90,14 +88,14 @@ supportRoutes.post(
   void sendSupportAlertEmail(convo);
   // `at` anchors the widget's poll cursor: it only pulls messages newer than
   // the seeded transcript, so the handoff doesn't echo the AI history back.
-  // conversationId IS the ticket id (KSUP-…), shown to the user for tracing.
-  return c.json({ conversationId: convo.id, ticketKey: issueTicketKey(convo.id), at: convo.updatedAt });
+  // conversationId IS the case reference (KS-1042), shown to the person.
+  return c.json({ conversationId: convo.id, ticketKey: await issueTicketKey(convo.id), at: convo.updatedAt });
 });
 
 /// A ticket opens only for its private key or the signed-in person who opened
 /// it (view 68). Anything else answers like a ticket that does not exist.
-function ownTicket(c: Context, id: string): SupportConversation | null {
-  const convo = getConversation(id);
+async function ownTicket(c: Context, id: string): Promise<SupportConversation | null> {
+  const convo = await getConversation(id);
   if (!convo) return null;
   if (ticketKeyMatches(convo, c.req.header('x-ticket-key'))) return convo;
   const viewer = viewerAddress(c)?.toLowerCase();
@@ -118,11 +116,11 @@ supportRoutes.post(
   } catch (e) {
     return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
   }
-  if (!ownTicket(c, id)) return c.json({ error: 'not-open' }, 404);
-  const convo = appendUserMessage(id, body.text);
+  if (!(await ownTicket(c, id))) return c.json({ error: 'not-open' }, 404);
+  const convo = await appendUserMessage(id, body.text, 'web');
   if (!convo) return c.json({ error: 'not-open' }, 404);
   const dealId = await partyDeal(viewerAddress(c) ?? undefined, body.dealId);
-  if (dealId && convo.address && convo.address === viewerAddress(c)?.toLowerCase()) attachDeal(convo.id, dealId);
+  if (dealId && convo.address && convo.address === viewerAddress(c)?.toLowerCase()) await attachDeal(convo.id, dealId);
   try {
     await relaySupportUserMessage(convo, body.text);
   } catch (err) {
@@ -131,29 +129,29 @@ supportRoutes.post(
   return c.json({ ok: true });
 });
 
-supportRoutes.get('/:id/messages', (c) => {
+supportRoutes.get('/:id/messages', async (c) => {
   const id = c.req.param('id');
-  const convo = ownTicket(c, id);
+  const convo = await ownTicket(c, id);
   if (!convo) return c.json({ error: 'not-found' }, 404);
   const since = Number(c.req.query('since') ?? 0) || 0;
-  return c.json({ status: convo.status, messages: messagesSince(id, since) });
+  return c.json({ status: convo.status, messages: await messagesSince(id, since) });
 });
 
-supportRoutes.post('/:id/close', (c) => {
+supportRoutes.post('/:id/close', async (c) => {
   const id = c.req.param('id');
-  if (!ownTicket(c, id)) return c.json({ error: 'not-found' }, 404);
-  const convo = closeConversation(id);
+  if (!(await ownTicket(c, id))) return c.json({ error: 'not-found' }, 404);
+  const convo = await closeConversation(id);
   if (!convo) return c.json({ error: 'not-found' }, 404);
-  // The user ending their chat does NOT email a transcript. The archive
-  // transcript is sent once when the operator closes it (admin/Telegram) or
-  // when the sweeper auto-closes an abandoned ticket, so it never doubles up.
+  // The person ending their chat does not email a transcript; the case stays
+  // on the desk and on their Help and support page.
   return c.json({ ok: true });
 });
 
 /// Inbound email -> ticket. The mail provider (Resend Inbound, or a Cloudflare
 /// Email Worker) POSTs a received email here. The secret in the x-inbound-secret header gates it.
-/// A reply to one of our emails carries "Ticket KSUP-…" in the subject and
-/// re-threads into that conversation; anything else opens a new email ticket.
+/// A reply to one of our emails carries the case reference (or an old
+/// "Ticket KSUP-…") in the subject and threads into that case; anything else
+/// opens a new case.
 function parseEmailAddress(raw: string): string {
   const m = raw.match(/<([^>]+)>/);
   const addr = (m?.[1] ?? raw).trim().toLowerCase();
@@ -208,13 +206,13 @@ async function inboundMail(c: Context) {
   const text = String(data.text ?? data.plain ?? '').trim();
   if (!email || !text) return c.json({ error: 'missing from/text' }, 400);
 
-  const tagged = subject.match(/(KSUP-[0-9a-f]+)/i);
-  // A ticket id in the subject is not proof of who is writing. Thread only mail
-  // from the ticket's own address; anyone else who quotes the id gets a fresh
-  // ticket instead of speaking as the customer in the operator's thread.
-  const taggedOwner = tagged ? getConversation(tagged[1]!)?.email?.toLowerCase() : undefined;
-  if (tagged && taggedOwner === email) {
-    const existing = appendUserMessage(tagged[1]!, text);
+  const tag = parseRef(subject);
+  // A reference in the subject is not proof of who is writing. Thread only mail
+  // from the case's own address; anyone else who quotes it gets a case of
+  // their own instead of speaking as the customer.
+  const tagged = tag ? await findCase('ref' in tag ? tag.ref : tag.legacyId) : null;
+  if (tagged && tagged.email?.toLowerCase() === email) {
+    const existing = await appendUserMessage(tagged.ref, text, 'email', subject);
     if (existing) {
       try {
         await relaySupportUserMessage(existing, text);
@@ -226,7 +224,7 @@ async function inboundMail(c: Context) {
     }
   }
 
-  const convo = createEmailConversation({ email, subject, text });
+  const convo = await createEmailConversation({ email, subject, text });
   try {
     await sendSupportRequestToOperator(convo);
   } catch {
@@ -235,22 +233,4 @@ async function inboundMail(c: Context) {
   void sendSupportAlertEmail(convo);
   logger.info({ id: convo.id, email }, 'inbound email opened a new ticket');
   return c.json({ ok: true, ticketId: convo.id, threaded: false });
-}
-
-/// Slow housekeeping: drop expired closed conversations and auto-close abandoned
-/// open ones (archiving them on the way out). Hourly is plenty; this touches
-/// only the in-memory map plus a flat-file write.
-const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
-
-export function startSupportSweeper(): () => void {
-  const run = leased('supportSweeper', SWEEP_INTERVAL_MS, () => {
-    try {
-      const autoClosed = sweep();
-      for (const convo of autoClosed) void sendSupportTranscriptEmail(convo);
-    } catch (err) {
-      logger.warn({ err: (err as Error).message }, 'support sweep failed');
-    }
-  });
-  const timer = setInterval(() => void run(), SWEEP_INTERVAL_MS);
-  return () => clearInterval(timer);
 }

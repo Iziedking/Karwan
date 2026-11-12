@@ -222,6 +222,7 @@ export function ProfileAccountHub({
         <Row label={simple.contactTitle} value={rows.contact} href="/profile/contact" />
         <Row label={simple.walletsTitle} href="/profile/wallets" />
         <Row label={hub.devices} href="/profile/devices" />
+        <Row label={messages.supportPage.profileRow} href="/profile/help" />
         {DEALS_AVAILABLE ? (
           <Row
             label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { requireSupport, tokenRole } from '../middleware/adminAuth.js';
+import { deskPrincipal, requireSupport, tokenRole } from '../middleware/adminAuth.js';
 import {
   listOpenConversations,
   getConversation,
@@ -18,6 +18,7 @@ import { notifyUserOfReply } from '../support/notify.js';
 export const supportTeamRoutes = new Hono();
 
 supportTeamRoutes.use('*', requireSupport);
+
 
 /// What is waiting for a person at Karwan, without a ticket (view 21): open
 /// deals whose match the security agent held, with the offence each hold rests
@@ -235,8 +236,8 @@ supportTeamRoutes.get('/owed', async (c) => {
 supportTeamRoutes.get('/whoami', (c) => c.json({ role: tokenRole(c) }));
 
 /// Open support tickets, newest activity first, with a compact preview.
-supportTeamRoutes.get('/', (c) => {
-  const rows = listOpenConversations().map((convo) => {
+supportTeamRoutes.get('/', async (c) => {
+  const rows = (await listOpenConversations()).map((convo) => {
     const last = convo.messages[convo.messages.length - 1];
     return {
       id: convo.id,
@@ -253,8 +254,8 @@ supportTeamRoutes.get('/', (c) => {
 });
 
 /// Full transcript of one ticket for the reply view.
-supportTeamRoutes.get('/:id', (c) => {
-  const convo = getConversation(c.req.param('id'));
+supportTeamRoutes.get('/:id', async (c) => {
+  const convo = await getConversation(c.req.param('id'));
   if (!convo) return c.json({ error: 'ticket not found' }, 404);
   return c.json({
     id: convo.id,
@@ -275,15 +276,15 @@ supportTeamRoutes.post('/:id/reply', async (c) => {
   } catch (e) {
     return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
   }
-  const convo = appendOperatorMessage(id, body.text);
+  const convo = await appendOperatorMessage(id, body.text, deskPrincipal(c)?.memberId ?? undefined);
   if (!convo) return c.json({ error: 'ticket not open' }, 404);
   // Reach the user on every channel they have: email, Telegram, and the widget.
   void notifyUserOfReply(convo, body.text);
   return c.json({ ok: true });
 });
 
-supportTeamRoutes.post('/:id/close', (c) => {
-  const convo = closeConversation(c.req.param('id'));
+supportTeamRoutes.post('/:id/close', async (c) => {
+  const convo = await closeConversation(c.req.param('id'));
   if (!convo) return c.json({ error: 'ticket not found' }, 404);
   void sendSupportTranscriptEmail(convo);
   return c.json({ ok: true });

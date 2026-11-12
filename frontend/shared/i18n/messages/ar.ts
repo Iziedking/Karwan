@@ -10,6 +10,7 @@ import { assistantMemoryCopy } from './assistantMemory';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
+import { supportPageCopy } from './supportPage';
 import { escrowDocsCopy } from './escrowDocs';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
@@ -124,6 +125,7 @@ export const ar: Messages = {
   recovery: recoveryCopy.ar,
   docsProduct: docsProductCopy.ar,
   networkUi: networkCopy.ar,
+  supportPage: supportPageCopy.ar,
   docsEscrowPage: escrowDocsCopy.ar,
   activityReview: { filterLabel: 'تصفية النشاط الأخير حسب النوع' },
   onboardingReview: { purpose: 'حدّد مبالغ الصفقات ومواعيد التسليم المناسبة لك. يمكنك تعديل هذه التفضيلات لاحقًا.', review: 'راجع تفضيلات التداول', days: 'أيام' },
@@ -4914,6 +4916,7 @@ export const ar: Messages = {
       { q: "ما السعر الذي يستخدمه Karwan لعملتي؟", a: "سعر مشترك واحد للجميع، يُحدَّد كل يوم عند منتصف الليل بتوقيت لاغوس، ولا يتغير خلال اليوم إلا إذا تحرك السوق بأكثر من نصف بالمئة. تستخدمه كل شاشة وكل بريد وكل رسالة. تبقى أموالك بعملة USDC ولا تتحرك أي عملة محلية." },
       { q: "لماذا تظهر كلمة «نحو» بجانب دفعة قديمة؟", a: "تحتفظ الدفعة بقيمتها بعملتك وقت دفعها. الدفعة التي تمت قبل أن يحتفظ Karwan بهذا المبلغ تُقرأ بسعر اليوم مع كلمة «نحو». مبلغ USDC الذي تحرك دقيق." },
       { q: "لماذا «جاهز للإرسال» أقل من رصيدي؟", a: "رصيدك يشمل الأموال لدى وكلائك. «جاهز للإرسال» هو ما يمكن لهذه الخطوة استخدامه الآن. «أحضرها إلى هنا» ينقل الباقي إلى حسابك." },
+      { q: "كيف أتواصل مع شخص؟", a: "افتح الملف الشخصي ثم المساعدة والدعم واطرح سؤالك. يجيب مساعد الدعم أولًا من حسابك، وعندما تطلب شخصًا أو لا يستطيع الإجابة يفتح طلبًا برقم مرجعي مثل KS-1042. ويفعل مساعدك على Telegram الشيء نفسه. يرد الفريق من 8 صباحًا إلى 10 مساءً بتوقيت لاغوس، وأول رد خلال ساعتين، حيث كتبت آخر مرة ودائمًا في صفحة الطلب. لا يطلب Karwan أبدًا كلمة المرور أو الرموز أو عبارة الاسترداد." },
     ],
   },
   docsReputationPage: {

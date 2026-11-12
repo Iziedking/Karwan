@@ -1,6 +1,6 @@
 # 78 · A support desk for a product that holds money
 
-Track: foundation, serving T2 (protected deals). Proposed 12 Nov 2026 after the owner's design review in Figma (page "Support desk and admin · 12 Nov"). It replaces the support half of the floating Help panel, works inside the closed desk of [view 64](64-named-operators-two-people-for-money.md), and leaves the assistant to [view 57](57-a-guide-at-every-step.md), which becomes the one floating guide with full memory.
+Track: foundation, serving T2 (protected deals). Approved and built 12 Nov 2026, not deployed. Proposed 12 Nov 2026 after the owner's design review in Figma (page "Support desk and admin · 12 Nov"). It replaces the support half of the floating Help panel, works inside the closed desk of [view 64](64-named-operators-two-people-for-money.md), and leaves the assistant to [view 57](57-a-guide-at-every-step.md), which becomes the one floating guide with full memory.
 
 ## What is wrong today
 
@@ -118,17 +118,32 @@ Cases, messages, notes and every state change are stored in the database of the 
 
 | Part | Status |
 |---|---|
-| Ask for a person from the website, with the deal on screen attached | Live |
-| Teammates reply from a Telegram chat; replies reach the person by email, Telegram and the website | Live |
-| Email to support@ opens or continues a ticket | Live |
-| A private key on each ticket (view 68) and a support role that cannot touch deals or accounts | Live |
-| Help and support page in Profile, help bot that opens a case | Planned |
-| Short case references, cases kept in the database | Planned |
-| Get help with this on deals and transfers | Planned |
-| Desk queue, conversation, records panel, notes, states, due times | Planned |
-| Ask for a fix through Waiting for you | Planned |
-| Team room and asking a named teammate | Planned |
-| Telegram team chat becomes alerts only | Planned |
+| Email to support@ opens or continues a case, by its reference or an old ticket id | Built |
+| A private key for a guest's case (view 68) and a support role that cannot touch deals or accounts | Live |
+| Help and support page in Profile, help bot that opens a case | Built |
+| Short case references, cases kept in the database | Built |
+| The assistant opens, lists and adds to cases on every channel | Built |
+| Get help with this on a paused deal and on a failed or late transfer | Built |
+| Desk queue, conversation, records panel, notes, states, due times | Built |
+| Replies back the way the person came, with the channel that took it | Built |
+| Ask for a fix through Waiting for you | Built |
+| Team room and asking a named teammate | Built |
+| Telegram team chat becomes alerts only, with the late-case alert | Built |
+| Support desk on mainnet (code at sign-in, one team list) | Planned, view 79 |
+
+## As built
+
+- **Cases.** Cases, their messages and team notes, and the team room live in three tables added by migration 68; references run from 1001 per network (`KS-` mainnet, `KT-` testnet). Tickets kept in the old file are moved once by `move:support-tickets` (with a preview), keeping their old id so old email threads still land. A case is never closed by itself.
+- **The person's side.** `/profile/help` has the help bot and Your cases; `/profile/help/<ref>` is one case. The help bot runs with only reading tools, the guide, a page button and the three case tools. The floating panel on every page is the full assistant and keeps its conversations, until view 57 gives it its face and name.
+- **The desk.** The Support page shows the queue, one case with every message and note, and the records panel built from an allowlist. A reply that asks for a code, password, seed phrase, card or account number is held with the reason. An email case is tied to an account only when that account's verified email is the case's.
+- **Fixes.** The one money fix offered from a case is paying the next milestone of an attached deal, through the release route already behind a second person; the request's reason starts with the case reference and Waiting for you links back to the case.
+- **Alerts.** The team's Telegram chat hears of new cases, more from a customer, a teammate asked by name, and a case past its reply time (once, checked every 5 minutes). Anything written there reaches no customer.
+
+## Not done
+
+- The desk on mainnet waits for view 79's sign-in work.
+- A teammate asked by name hears it in the team chat, not privately: teammates have no linked Telegram yet.
+- The desk keeps today's look; the friendly redesign of every desk page is view 79.
 
 ## Build order, once approved
 

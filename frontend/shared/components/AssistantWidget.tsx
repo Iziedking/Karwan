@@ -68,7 +68,10 @@ export function AssistantWidget() {
   const suggestHuman = useCallback(() => setHumanSuggested(true), []);
   // On a deal page the assistant is told which deal "this" is (view 42).
   const viewingDeal = dealIdInPath(pathname);
-  const chat = useAssistantChat({ onNeedsHuman: suggestHuman, mode: 'help', viewingDeal });
+  // The floating panel is the full assistant and keeps its conversations, so
+  // it remembers across visits (view 78; its face and name come with view 57).
+  // Help and support with a person lives in Profile.
+  const chat = useAssistantChat({ onNeedsHuman: suggestHuman, mode: 'assistant', persist: true, viewingDeal });
   const turns = chat.messages;
   const loading = liveLoading || chat.busy;
   const error = liveError ?? chat.error;

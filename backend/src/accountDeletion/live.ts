@@ -189,7 +189,7 @@ const eraser: Eraser = {
     {
       name: 'support and feedback',
       run: async (address) => {
-        deleteConversationsFor(address);
+        await deleteConversationsFor(address);
         deleteFeedbackFromWallet(address);
       },
     },
