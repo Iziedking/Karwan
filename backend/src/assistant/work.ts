@@ -74,7 +74,8 @@ export const hours = (minutes: number) => {
   return h && m ? `${h} h ${m} m` : h ? `${h} h` : `${m} m`;
 };
 const period = (kind: 'hourly' | 'monthly') => (kind === 'hourly' ? 'week' : 'month');
-const sessionsOf = (n: number) => (n === 1 ? '1 session' : `${n} sessions`);
+const countOf = (n: number, one: string) => (n === 1 ? `1 ${one}` : `${n} ${one}s`);
+const sessionsOf = (n: number) => countOf(n, 'session');
 
 /// With `said`, the card reads in the currency the rate was said in (view 77);
 /// what is paid now keeps its exact USDC beside it, as money cards do (view 54).
@@ -88,13 +89,13 @@ export function buildWorkOfferConfirm(input: WorkInputPayload, card: WorkDraftCa
     id: `work_offer:${confirmNonce()}`,
     intent: 'work_offer',
     title: `Hire ${workerName}: ${card.title}`,
-    summary: `${hourly ? `${money(card.rateMicros)} an hour, up to ${card.maxHours} hours a week, for ${card.periods} weeks` : `${money(card.rateMicros)} a month${card.sessions ? ` for ${sessionsOf(card.sessions)}` : ''}, for ${card.periods} months`}, from ${day(card.startsAt)}. Your agent pays for the first ${period(card.kind)} now.`,
+    summary: `${hourly ? `${money(card.rateMicros)} an hour, up to ${countOf(card.maxHours, 'hour')} a week, for ${countOf(card.periods, 'week')}` : `${money(card.rateMicros)} a month${card.sessions ? ` for ${sessionsOf(card.sessions)}` : ''}, for ${countOf(card.periods, 'month')}`}, from ${day(card.startsAt)}. Your agent pays for the first ${period(card.kind)} now.`,
     warning: card.note,
     fields: [
       { label: hourly ? 'First week, the most it can bill' : 'First month', value: money(Number(card.totalMicros) - Number(card.feeHalfMicros)) },
       { label: 'Karwan fee', value: money(card.feeHalfMicros) },
       { label: 'You pay now', value: payNow },
-      { label: `The most for all ${card.periods} ${period(card.kind)}s`, value: money(card.mostMicros) },
+      { label: card.periods === 1 ? `The most for the ${period(card.kind)}` : `The most for all ${card.periods} ${period(card.kind)}s`, value: money(card.mostMicros) },
     ],
     payload: input,
     confirmLabel: `Pay ${money(card.totalMicros)}`,

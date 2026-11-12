@@ -32,6 +32,19 @@ test('a hire said in naira reads in naira, with the exact USDC on what is paid n
   assert.equal(card.payload.rateUsdc, '222.869', 'the record still moves the USDC the quote fixed');
 });
 
+test('one month reads "for 1 month", and one hour or one week reads as one (L-07)', () => {
+  const monthly = buildWorkOfferConfirm({ worker: '@ada', kind: 'monthly', rateUsdc: '300', periods: 1, sessions: 1, title: 'Maths lessons', brief: '' }, { kind: 'monthly', title: 'Maths lessons', rateMicros: '300000000', maxHours: 1, periods: 1, sessions: 1, startsAt: Date.UTC(2026, 10, 16), feeHalfMicros: '1500000', totalMicros: '301500000', mostMicros: '301500000', note: 'n' }, '@ada');
+  assert.match(monthly.summary, /a month for 1 session, for 1 month, from/);
+  assert.doesNotMatch(monthly.summary, /1 months/);
+  assert.ok(monthly.fields.some((f) => f.label === 'The most for the month'));
+  const hourly = buildWorkOfferConfirm({ worker: '@ada', kind: 'hourly', rateUsdc: '15', maxHours: 1, periods: 1, title: 'VA', brief: '' }, { kind: 'hourly', title: 'VA', rateMicros: '15000000', maxHours: 1, periods: 1, startsAt: Date.UTC(2026, 10, 16), feeHalfMicros: '75000', totalMicros: '15075000', mostMicros: '15075000', note: 'n' }, '@ada');
+  assert.match(hourly.summary, /an hour, up to 1 hour a week, for 1 week, from/);
+  assert.ok(hourly.fields.some((f) => f.label === 'The most for the week'));
+  const longer = buildWorkOfferConfirm({ worker: '@ada', kind: 'monthly', rateUsdc: '300', periods: 3, title: 'Bookkeeping', brief: '' }, { kind: 'monthly', title: 'Bookkeeping', rateMicros: '300000000', maxHours: 1, periods: 3, startsAt: Date.UTC(2026, 10, 16), feeHalfMicros: '1500000', totalMicros: '301500000', mostMicros: '904500000', note: 'n' }, '@ada');
+  assert.match(longer.summary, /for 3 months/);
+  assert.ok(longer.fields.some((f) => f.label === 'The most for all 3 months'));
+});
+
 test('recording a session is one unit with its note and link; a retainer still claims the month', () => {
   const s = buildWorkHoursConfirm(lessons, { minutes: 45, note: 'Fractions', link: 'https://example.com/rec' });
   assert.equal(s.title, 'Record a session on Maths lessons');

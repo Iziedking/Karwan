@@ -116,7 +116,8 @@ export function hoursText(minutes: number): string {
   return h ? `${h} h` : `${m} m`;
 }
 
-export const sessionsText = (n: number) => (n === 1 ? '1 session' : `${n} sessions`);
+export const countText = (n: number, one: string) => (n === 1 ? `1 ${one}` : `${n} ${one}s`);
+export const sessionsText = (n: number) => countText(n, 'session');
 
 export const termsOf = (s: StoredTimeTerms): TimeTermsT => ({
   ...s, rate: BigInt(s.rate), startsAt: BigInt(s.startsAt), acceptBy: BigInt(s.acceptBy),
@@ -268,7 +269,7 @@ export function createEngagements(p: WorkPorts) {
           return a;
         }
       }
-      p.tellPerson(live.worker, `${live.title}: you are offered ${usdcText(live.rateMicros)} USDC ${live.kind === 'hourly' ? `an hour, up to ${live.maxHours} hours a week, for ${live.periods} weeks` : `a month${live.sessions ? ` for ${sessionsText(live.sessions)}` : ''}, for ${live.periods} months`}. The first ${periodWord(live)} is already paid in. Accept before it starts.`, id);
+      p.tellPerson(live.worker, `${live.title}: you are offered ${usdcText(live.rateMicros)} USDC ${live.kind === 'hourly' ? `an hour, up to ${countText(live.maxHours, 'hour')} a week, for ${countText(live.periods, 'week')}` : `a month${live.sessions ? ` for ${sessionsText(live.sessions)}` : ''}, for ${countText(live.periods, 'month')}`}. The first ${periodWord(live)} is already paid in. Accept before it starts.`, id);
       return { ok: true, work: live };
     });
   }
