@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { WorkView, WorkWeekView } from '@/core/api';
-import { hoursText, localDay, minutesFrom, monthLine, runsText, sessionPrice, sessionPriceTyped, sessionRows, validLink, weekLine, workActions, workRequestHref } from './workModel';
+import { hoursText, localDay, localWhen, startLine, minutesFrom, monthLine, runsText, sessionPrice, sessionPriceTyped, sessionRows, validLink, weekLine, workActions, workRequestHref } from './workModel';
 
 const DAY = 86_400_000;
 const week = (over: Partial<WorkWeekView> = {}): WorkWeekView => ({
@@ -99,4 +99,21 @@ test('the price of one session shows for any month, not only one that divides to
   assert.equal(sessionPriceTyped('20', '4'), '5');
   assert.equal(sessionPriceTyped('20', ''), null);
   assert.equal(sessionPriceTyped('', '4'), null);
+});
+
+test('before it starts, the worker reads what opens and the hirer reads when it starts (S-07)', () => {
+  const on = { status: 'active', role: 'worker', kind: 'monthly', sessions: 4 } as const;
+  assert.equal(startLine(on), 'record-from');
+  assert.equal(startLine({ ...on, sessions: undefined }), 'claim-from');
+  assert.equal(startLine({ ...on, kind: 'hourly', sessions: undefined }), 'log-from');
+  assert.equal(startLine({ ...on, status: 'ending' }), 'record-from');
+  assert.equal(startLine({ ...on, role: 'hirer' }), 'starts');
+  // Not accepted yet: nothing opens for them until they say yes.
+  assert.equal(startLine({ ...on, status: 'offered' }), 'starts');
+});
+
+test('a start reads with its time, in the viewer own zone', () => {
+  const instant = Date.UTC(2026, 10, 12, 1, 54, 35);
+  assert.equal(localWhen(instant, 'en-GB'), new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(instant));
+  assert.notEqual(localWhen(instant, 'en-GB'), localDay(instant, 'en-GB'));
 });

@@ -28,6 +28,21 @@ export function localDay(ms: number, locale: string): string {
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(ms);
 }
 
+/// A start is a moment, not a day: work made at 02:54 opens at 02:54.
+export function localWhen(ms: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(ms);
+}
+
+export type StartLine = 'starts' | 'log-from' | 'claim-from' | 'record-from';
+
+/// What a period that has not started says. The worker on running work reads
+/// what opens for them then; everyone else reads when it starts.
+export function startLine(v: { status: string; role: 'hirer' | 'worker'; kind: string; sessions?: number | null }): StartLine {
+  if (v.role !== 'worker' || (v.status !== 'active' && v.status !== 'ending')) return 'starts';
+  if (v.kind === 'hourly') return 'log-from';
+  return v.sessions ? 'record-from' : 'claim-from';
+}
+
 export type WeekLine = 'not-started' | 'logging' | 'in-review' | 'with-review' | 'settled';
 
 export function weekLine(w: WorkWeekView, now: number): WeekLine {

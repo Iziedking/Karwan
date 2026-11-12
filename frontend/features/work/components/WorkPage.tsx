@@ -8,7 +8,7 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/workspace/Sheet';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
-import { hoursText, localDay, microsToUsdc, minutesFrom, monthLine, runsText, sessionPrice, sessionRows, validLink, weekLine, workActions } from '../workModel';
+import { hoursText, localDay, localWhen, microsToUsdc, minutesFrom, monthLine, runsText, sessionPrice, sessionRows, startLine, validLink, weekLine, workActions } from '../workModel';
 import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
 import { workSteps } from '../workSteps';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
@@ -90,6 +90,8 @@ export function WorkPage({ id }: { id: string }) {
     const at = monthLine(w, v.role, now);
     return at === 'review-after' ? fill(ts.reviewAfter, { date: day(w.end) }) : at === 'record-by' ? fill(ts.recordBy, { date: day(w.logBy) }) : fill(t.page.reviewBy, { date: day(w.reviewBy) });
   };
+  // A period not started yet says when, to the minute, and what opens then.
+  const opens = { starts: t.page.starts, 'log-from': t.page.logFrom, 'claim-from': t.page.claimFrom, 'record-from': ts.recordFrom }[startLine(v)];
   // One primary button on the screen: the newest week's step if it has one,
   // else the first step on the work as a whole.
   const primaryWeek = [...v.weeks].reverse().find((w) => w.canLog || w.canApprove)?.k ?? null;
@@ -150,7 +152,7 @@ export function WorkPage({ id }: { id: string }) {
               : bySession && line !== 'not-started' ? sessionDate(w)
               : line === 'in-review' ? fill(t.page.reviewBy, { date: day(w.reviewBy) })
               : line === 'logging' ? fill(t.page.logBy, { date: day(w.logBy) })
-              : fill(t.page.starts, { date: day(w.start) });
+              : fill(opens, { date: localWhen(w.start, locale) });
           return (
             <li key={w.k} className={`${CARD_CLASS} px-5 py-4`}>
               <div className="flex items-baseline justify-between gap-4">

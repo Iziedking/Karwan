@@ -46,6 +46,8 @@ export interface WorkCopy {
     paid: string;
     back: string;
     logBy: string;
+    logFrom: string;
+    claimFrom: string;
     reviewBy: string;
     withReview: string;
     notFunded: string;
@@ -100,7 +102,7 @@ export interface WorkCopy {
     closeSheet: { title: string; body: string; confirm: string };
   };
   /// Monthly work counted in sessions (view 76).
-  sessions: { field: string; fieldNote: string; each: string; postTitle: string; term: string; count: string; none: string; session: string; link: string; youSaid: string; theySaid: string; reviewAfter: string; recordBy: string; record: string; didNot: string; approve: string; approveOne: string; someNot: string; logCount: string; logNote: string; logLink: string; optional: string; told: string; logConfirm: string; flagTitle: string; flagWhat: string; flagBody: string; flagConfirm: string; approveBody: string; back: string; objectTitle: string; objectCount: string };
+  sessions: { field: string; fieldNote: string; each: string; postTitle: string; term: string; count: string; none: string; session: string; link: string; youSaid: string; theySaid: string; reviewAfter: string; recordBy: string; recordFrom: string; record: string; didNot: string; approve: string; approveOne: string; someNot: string; logCount: string; logNote: string; logLink: string; optional: string; told: string; logConfirm: string; flagTitle: string; flagWhat: string; flagBody: string; flagConfirm: string; approveBody: string; back: string; objectTitle: string; objectCount: string };
   notNow: string;
   failed: string;
   /// The two choices at the top of the deal form (view 32).
@@ -165,6 +167,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       paid: '{amount} USDC paid',
       back: '{amount} USDC came back',
       logBy: 'Log by {date}',
+      logFrom: 'Log hours from {date}',
+      claimFrom: 'Claim the month from {date}',
       reviewBy: 'Review by {date}',
       withReview: "With Karwan's review team",
       notFunded: 'Not paid for yet',
@@ -231,7 +235,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: 'You said this did not happen: {note}',
       theySaid: '{name} says this did not happen: {note}',
       reviewAfter: 'You review after {date}',
-      recordBy: 'Record by {date}',
+      recordBy: 'Record by {date}', recordFrom: 'Record sessions from {date}',
       record: 'Record a session',
       didNot: 'A session did not happen',
       approve: 'Approve {n} sessions',
@@ -313,6 +317,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       paid: '{amount} USDC payés',
       back: '{amount} USDC sont revenus',
       logBy: 'À déclarer avant le {date}',
+      logFrom: 'Heures à déclarer à partir du {date}',
+      claimFrom: 'Mois à déclarer à partir du {date}',
       reviewBy: 'À vérifier avant le {date}',
       withReview: "Chez l'équipe de vérification de Karwan",
       notFunded: 'Pas encore payée',
@@ -379,7 +385,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: "Vous avez dit qu'elle n'a pas eu lieu : {note}",
       theySaid: "{name} dit qu'elle n'a pas eu lieu : {note}",
       reviewAfter: 'Vous vérifiez après le {date}',
-      recordBy: 'À enregistrer avant le {date}',
+      recordBy: 'À enregistrer avant le {date}', recordFrom: 'Séances à enregistrer à partir du {date}',
       record: 'Enregistrer une séance',
       didNot: "Une séance n'a pas eu lieu",
       approve: 'Approuver {n} séances',
@@ -461,6 +467,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       paid: 'دُفع {amount} USDC',
       back: 'عاد {amount} USDC',
       logBy: 'سجّل قبل {date}',
+      logFrom: 'سجّل الساعات ابتداءً من {date}',
+      claimFrom: 'طالب بالشهر ابتداءً من {date}',
       reviewBy: 'راجع قبل {date}',
       withReview: 'لدى فريق المراجعة في Karwan',
       notFunded: 'لم يُدفع بعد',
@@ -527,7 +535,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: 'قلتَ إنها لم تتم: {note}',
       theySaid: '{name} يقول إنها لم تتم: {note}',
       reviewAfter: 'تراجع بعد {date}',
-      recordBy: 'سجّل قبل {date}',
+      recordBy: 'سجّل قبل {date}', recordFrom: 'سجّل الجلسات ابتداءً من {date}',
       record: 'تسجيل جلسة',
       didNot: 'جلسة لم تتم',
       approve: 'الموافقة على الجلسات ({n})',
@@ -609,6 +617,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       paid: '{amount} USDC भुगतान हुआ',
       back: '{amount} USDC वापस आया',
       logBy: '{date} तक दर्ज करें',
+      logFrom: '{date} से घंटे दर्ज करें',
+      claimFrom: '{date} से महीने का दावा करें',
       reviewBy: '{date} तक जाँचें',
       withReview: 'Karwan की समीक्षा टीम के पास',
       notFunded: 'अभी भुगतान नहीं हुआ',
@@ -675,7 +685,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: 'आपने कहा यह नहीं हुआ: {note}',
       theySaid: '{name} का कहना है यह नहीं हुआ: {note}',
       reviewAfter: '{date} के बाद आप जाँचेंगे',
-      recordBy: '{date} तक दर्ज करें',
+      recordBy: '{date} तक दर्ज करें', recordFrom: '{date} से सत्र दर्ज करें',
       record: 'सत्र दर्ज करें',
       didNot: 'एक सत्र नहीं हुआ',
       approve: '{n} सत्र स्वीकृत करें',
@@ -757,6 +767,8 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       paid: 'USDC {amount} zimelipwa',
       back: 'USDC {amount} zimerudi',
       logBy: 'Andika kabla ya {date}',
+      logFrom: 'Andika saa kuanzia {date}',
+      claimFrom: 'Dai mwezi kuanzia {date}',
       reviewBy: 'Kagua kabla ya {date}',
       withReview: 'Kwa timu ya ukaguzi ya Karwan',
       notFunded: 'Bado haijalipiwa',
@@ -823,7 +835,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: 'Ulisema hakikufanyika: {note}',
       theySaid: '{name} anasema hakikufanyika: {note}',
       reviewAfter: 'Utakagua baada ya {date}',
-      recordBy: 'Andika kabla ya {date}',
+      recordBy: 'Andika kabla ya {date}', recordFrom: 'Andika vipindi kuanzia {date}',
       record: 'Andika kipindi',
       didNot: 'Kipindi hakikufanyika',
       approve: 'Idhinisha vipindi {n}',

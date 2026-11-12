@@ -215,6 +215,23 @@ test('the worker records one session with a note and a link', async ({ page }) =
   expect(posted.body).toEqual({ minutes: 1, note: 'Fractions', k: 0, link: 'https://example.com/lesson-6' });
 });
 
+test('before the month starts, each side reads the hour it opens (S-07)', async ({ page }) => {
+  const start = Date.now() + 3 * 3_600_000;
+  const soon = { status: 'funded' as const, loggedMinutes: 0, log: [], start, end: start + 30 * DAY, logBy: start + 32 * DAY, reviewBy: start + 35 * DAY };
+  await serve(page, SELLER, lessons({ role: 'worker', startsAt: start }, soon));
+  await page.goto('/work/w_demo');
+  await expect(page.getByText(/^Record sessions from .*\d{1,2}:\d{2}/)).toBeVisible();
+  await expect(page.getByRole('button', { name: s.record })).toHaveCount(0);
+});
+
+test('before the month starts, the hirer reads when it starts, to the minute', async ({ page }) => {
+  const start = Date.now() + 3 * 3_600_000;
+  const soon = { status: 'funded' as const, loggedMinutes: 0, log: [], start, end: start + 30 * DAY, logBy: start + 32 * DAY, reviewBy: start + 35 * DAY };
+  await serve(page, BUYER, lessons({ startsAt: start }, soon));
+  await page.goto('/work/w_demo');
+  await expect(page.getByText(/^Starts .*\d{1,2}:\d{2}/)).toBeVisible();
+});
+
 test('the hirer says which session did not happen, and it is only a note', async ({ page }) => {
   const posted = { body: null as unknown, path: '' as string | undefined };
   await serve(page, BUYER, lessons({}, { canFlag: true }), posted);
