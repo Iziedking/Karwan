@@ -147,6 +147,8 @@ export function NextMoveNudge() {
     };
   }, [shownKey]);
 
+  // On a wide screen the note sits beside the side rail, clear of Sign out,
+  // and follows the rail when it is folded (--workspace-content-start).
   return (
     <AnimatePresence>
       {show && nudge ? (
@@ -161,7 +163,7 @@ export function NextMoveNudge() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: reduce ? 0 : 6 }}
           transition={{ duration: reduce ? dur.micro : dur.base, ease: ease.out }}
-          className="guide-voice fixed start-4 bottom-24 z-50 w-[min(360px,calc(100vw-6.5rem))] rounded-[20px] rounded-es-[8px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-14px_rgba(0,0,0,0.45)] data-[aside]:invisible lg:start-5 lg:bottom-5"
+          className="guide-voice fixed start-4 bottom-24 z-50 w-[min(360px,calc(100vw-6.5rem))] rounded-[20px] rounded-es-[8px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-14px_rgba(0,0,0,0.45)] data-[aside]:invisible lg:start-[calc(max(20px,50%_-_800px)_+_var(--workspace-content-start)_-_20px)] lg:bottom-5"
         >
           <div className="flex items-start gap-2">
             <p role="status" className="min-w-0 flex-1 pt-0.5 text-[16px] font-semibold leading-[1.3]">
