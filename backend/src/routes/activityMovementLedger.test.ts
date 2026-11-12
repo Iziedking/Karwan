@@ -160,6 +160,16 @@ test('projects escrow payouts with the correct sign for each counterparty', () =
   assert.equal(movementToPersonalLedgerItem(durable, seller).kind, 'payout');
 });
 
+test('a row on one account reads the worth it kept, and one from before reads none (L-08)', async () => {
+  const { activityEntryItem } = await import('./activityMovementLedger.js');
+  const base = { id: 'a1', address: buyer, ts: 5, kind: 'yield_claim' as const, summary: 'Claimed 2 USDC of yield', amountUsdc: '2' };
+  const kept = activityEntryItem({ ...base, worth: { currency: 'NGN', amount: '2692', rate: 1346, at: 5 } });
+  assert.deepEqual(kept.local, { currency: 'NGN', amount: '2692' });
+  assert.equal(kept.status, 'done');
+  assert.equal(kept.amountUsdc, '2');
+  assert.equal(activityEntryItem(base).local, undefined);
+});
+
 test('merge respects the route limit after sorting newest first', () => {
   const rows = mergeMovementLedger(
     [legacy({ id: 'old', ts: 10 }), legacy({ id: 'new', ts: 30 })],

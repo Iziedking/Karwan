@@ -5,6 +5,7 @@ import { and, eq, gte, desc, sql } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { activityLog } from './schema.js';
 import { logger } from '../logger.js';
+import type { LocalAmount } from '../rates/quote.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'activity-log.json');
 
@@ -70,6 +71,17 @@ export interface ActivityEntry {
   chain?: string;
   /// The other address involved (recipient, seller, ...), lowercase.
   counterparty?: string;
+  /// What the amount was worth to this account's owner when it was written,
+  /// in the currency they read (view 77). Absent on older rows and for anyone
+  /// who reads USDC.
+  worth?: LocalAmount;
+}
+
+/// Works out a row's worth before it is written. Set once at start
+/// (money/worthLive.ts); the db layer does not read rates itself.
+let worthOfEntry: ((entry: ActivityEntry) => Promise<LocalAmount | undefined>) | null = null;
+export function keepActivityWorthWith(fn: (entry: ActivityEntry) => Promise<LocalAmount | undefined>): void {
+  worthOfEntry = fn;
 }
 
 /// Append one entry. Never throws: recording memory must never fail the money
@@ -89,6 +101,11 @@ export async function appendActivity(
     address: input.address.toLowerCase(),
     ts: Date.now(),
   };
+  if (!entry.worth && entry.amountUsdc && worthOfEntry) {
+    // A row is written even when its worth cannot be: it then reads "about".
+    const worth = await worthOfEntry(entry).catch(() => undefined);
+    if (worth) entry.worth = worth;
+  }
   try {
     if (pgEnabled) {
       await db().insert(activityLog).values({
@@ -227,6 +244,39 @@ export async function fillActivityGaps(
     }
   }
   if (!changed) return false;
+  saveFile(store);
+  return true;
+}
+
+/// Every row with an amount and no kept worth, oldest first. For the worth
+/// backfill (scripts/backfill-payment-worth.ts) only.
+export async function listActivityWithoutWorth(): Promise<ActivityEntry[]> {
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(activityLog)
+      .where(sql`${activityLog.data}->>'amountUsdc' IS NOT NULL AND ${activityLog.data}->'worth' IS NULL`)
+      .orderBy(activityLog.ts);
+    return rows.map((r) => r.data);
+  }
+  return Object.values(loadFile())
+    .filter((e) => e.amountUsdc && !e.worth)
+    .sort((x, y) => x.ts - y.ts);
+}
+
+/// Keeps a row's worth, only when it has none, so a backfill run twice changes
+/// nothing. Returns whether the row changed.
+export async function keepActivityWorth(id: string, worth: LocalAmount): Promise<boolean> {
+  if (pgEnabled) {
+    const [row] = await db().select().from(activityLog).where(eq(activityLog.id, id)).limit(1);
+    if (!row || row.data.worth) return false;
+    await db().update(activityLog).set({ data: { ...row.data, worth } }).where(eq(activityLog.id, id));
+    return true;
+  }
+  const store = loadFile();
+  const entry = store[id];
+  if (!entry || entry.worth) return false;
+  entry.worth = worth;
   saveFile(store);
   return true;
 }

@@ -1,5 +1,6 @@
-/// Give older payments and settled deals what they were worth when they
-/// happened (view 77).
+/// Give older payments, settled deals and rows on one account (yield claimed,
+/// refunds, money back from an agent) what they were worth when they happened
+/// (view 77).
 ///
 /// Since 12 Nov 2026 a payment keeps what it was worth to each side at the
 /// moment it completes, and a deal does the same when it settles. Everything
@@ -35,7 +36,8 @@ import { updateMoneyMovement } from '../db/moneyMovements.js';
 import { getProfile } from '../db/profiles.js';
 import { logger } from '../logger.js';
 import type { MoneyMovement } from '../money/model.js';
-import { worthToPeople } from '../money/worth.js';
+import { activityWorth, worthToPeople } from '../money/worth.js';
+import { keepActivityWorth, listActivityWithoutWorth } from '../db/activityLog.js';
 import type { LocalAmount } from '../rates/quote.js';
 import { DISPLAY_CURRENCIES, type DisplayCurrency, type LocalCurrency, type UsdcRates } from '../rates/usdcRates.js';
 
@@ -71,16 +73,28 @@ interface DealRow {
   settledWorth?: Record<string, LocalAmount>;
 }
 
+/// A row on one account (yield claimed, a refund, money back from an agent).
+interface ActivityRow {
+  id: string;
+  address: string;
+  ts: number;
+  amountUsdc?: string;
+  worth?: LocalAmount;
+}
+
 export interface WorthPlan {
   movements: Array<{ reference: string; worth: Record<string, LocalAmount> }>;
   deals: Array<{ jobId: string; worth: Record<string, LocalAmount> }>;
+  activity: Array<{ id: string; worth: LocalAmount }>;
   daysWithoutRates: number;
 }
 
-/// What each older payment and settled deal would get. Nothing is written here.
+/// What each older payment, settled deal and account row would get. Nothing is
+/// written here.
 export async function planWorthBackfill(input: {
   movements: readonly MoneyMovement[];
   deals: readonly DealRow[];
+  activity?: readonly ActivityRow[];
   currencyOf: (address: string) => Promise<DisplayCurrency | undefined>;
   ratesFor: (day: string) => Promise<DayRates | null>;
 }): Promise<WorthPlan> {
@@ -91,7 +105,7 @@ export async function planWorthBackfill(input: {
     const rates = days.get(day);
     return rates ? { rates, updatedAt: ms, source: 'coingecko' } : null;
   };
-  const plan: WorthPlan = { movements: [], deals: [], daysWithoutRates: 0 };
+  const plan: WorthPlan = { movements: [], deals: [], activity: [], daysWithoutRates: 0 };
   for (const movement of input.movements) {
     if (movement.state !== 'completed' || movement.worth || !movement.completedAt) continue;
     const at = movement.completedAt;
@@ -114,6 +128,13 @@ export async function planWorthBackfill(input: {
     }
     const worth = await worthToPeople(micros, [deal.buyer, deal.seller].filter(Boolean), { currencyOf: input.currencyOf, rates: async () => rates, now: () => at });
     if (Object.keys(worth).length) plan.deals.push({ jobId: deal.jobId, worth });
+  }
+  for (const row of input.activity ?? []) {
+    if (row.worth || !row.amountUsdc) continue;
+    const rates = await ratesAt(row.ts);
+    if (!rates) continue;
+    const worth = await activityWorth(row, { currencyOf: input.currencyOf, rates: async () => rates, now: () => row.ts });
+    if (worth) plan.activity.push({ id: row.id, worth });
   }
   plan.daysWithoutRates = [...days.values()].filter((rates) => rates === null).length;
   return plan;
@@ -222,8 +243,8 @@ async function main() {
     if (!currencies.has(key)) currencies.set(key, (await getProfile(key).catch(() => null))?.settings?.displayCurrency);
     return currencies.get(key);
   };
-  const plan = await planWorthBackfill({ movements: await completedMovements(), deals: await listAllDeals(), currencyOf, ratesFor: ratesFromCharts(charts) });
-  logger.info({ movements: plan.movements.length, deals: plan.deals.length, daysWithoutRates: plan.daysWithoutRates, dryRun }, 'payment worth backfill: planned');
+  const plan = await planWorthBackfill({ movements: await completedMovements(), deals: await listAllDeals(), activity: await listActivityWithoutWorth(), currencyOf, ratesFor: ratesFromCharts(charts) });
+  logger.info({ movements: plan.movements.length, deals: plan.deals.length, activity: plan.activity.length, daysWithoutRates: plan.daysWithoutRates, dryRun }, 'payment worth backfill: planned');
   for (const change of plan.movements) {
     logger.info({ reference: change.reference, worth: change.worth }, 'payment worth backfill: movement');
     if (dryRun) continue;
@@ -234,7 +255,12 @@ async function main() {
     if (dryRun) continue;
     await patchDeal(change.jobId, { settledWorth: change.worth }, { keepUpdatedAt: true });
   }
-  logger.info({ applied: dryRun ? 0 : plan.movements.length + plan.deals.length, dryRun }, 'payment worth backfill: done');
+  for (const change of plan.activity) {
+    logger.info({ id: change.id, worth: change.worth }, 'payment worth backfill: account row');
+    if (dryRun) continue;
+    await keepActivityWorth(change.id, change.worth);
+  }
+  logger.info({ applied: dryRun ? 0 : plan.movements.length + plan.deals.length + plan.activity.length, dryRun }, 'payment worth backfill: done');
 }
 
 if (process.argv[1]?.endsWith('backfill-payment-worth.js') || process.argv[1]?.endsWith('backfill-payment-worth.ts')) {

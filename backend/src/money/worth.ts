@@ -39,6 +39,15 @@ export async function worthToPeople(amountMicros: string | bigint, addresses: re
   return worth;
 }
 
+/// The worth of a row on one account (yield claimed, a refund, money back from
+/// an agent) to that account's owner, when they read a local currency.
+export async function activityWorth(entry: { address: string; amountUsdc?: string }, deps: WorthDeps): Promise<LocalAmount | undefined> {
+  const usdc = Number(entry.amountUsdc);
+  if (!entry.amountUsdc || !Number.isFinite(usdc) || usdc <= 0) return undefined;
+  const micros = BigInt(Math.round(usdc * 1_000_000));
+  return (await worthToPeople(micros, [entry.address], deps))[entry.address.toLowerCase()];
+}
+
 /// The worth of a movement to everyone on it who reads a local currency.
 export function worthWhenPaid(movement: MoneyMovement, deps: WorthDeps): Promise<Record<string, LocalAmount>> {
   return worthToPeople(movement.amountMicros, [movement.initiatedBy, ...movement.participants.map((party) => party.address)], deps);

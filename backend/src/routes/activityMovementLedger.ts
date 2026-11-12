@@ -1,5 +1,6 @@
 import { formatUsdcMicros, type MoneyMovement } from '../money/model.js';
 import { figureForViewer } from '../money/worth.js';
+import type { ActivityEntry } from '../db/activityLog.js';
 
 export interface PersonalLedgerItem {
   id: string;
@@ -19,6 +20,26 @@ export interface PersonalLedgerItem {
   /// What the person who moved the money typed, in their own currency (view 55).
   /// Only on their own row: the other side reads the USDC at their own rate.
   local?: { currency: string; amount: string };
+}
+
+/// A row on one account (yield, a refund, money back from an agent) as the
+/// ledger shows it: done, with the worth it kept when it was written (view 77).
+export function activityEntryItem(e: ActivityEntry): PersonalLedgerItem {
+  return {
+    id: e.id,
+    ts: e.ts,
+    kind: e.kind as string,
+    summary: e.summary,
+    params: e.params ?? null,
+    amountUsdc: e.amountUsdc ?? null,
+    txHash: e.txHash ?? null,
+    refId: e.refId ?? null,
+    chain: e.chain ?? null,
+    jobId: e.jobId ?? null,
+    status: 'done',
+    movementState: null,
+    ...(e.worth ? { local: { currency: e.worth.currency, amount: e.worth.amount } } : {}),
+  };
 }
 
 function statusFor(state: MoneyMovement['state']): PersonalLedgerItem['status'] {

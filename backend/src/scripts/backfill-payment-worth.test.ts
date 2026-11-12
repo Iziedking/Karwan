@@ -74,6 +74,26 @@ test('a settled deal gets its worth for the buyer and the seller', async () => {
   assert.equal(plan.deals[0]!.worth[ADA]!.amount, '13000');
 });
 
+test('older rows on one account (yield, refunds, money back from an agent) get their worth too (L-08)', async () => {
+  const kept = { currency: 'NGN' as const, amount: '1', rate: 1, at: 1 };
+  const plan = await planWorthBackfill({
+    movements: [],
+    deals: [],
+    activity: [
+      { id: 'a1', address: SENDER, ts: MON, amountUsdc: '10' },
+      { id: 'a2', address: ADA, ts: MON, amountUsdc: '10' },
+      { id: 'a3', address: SENDER, ts: MON, amountUsdc: '10', worth: kept },
+      { id: 'a4', address: SENDER, ts: MON },
+      { id: 'a5', address: SENDER, ts: Date.UTC(2026, 9, 1), amountUsdc: '10' },
+    ],
+    currencyOf,
+    ratesFor,
+  });
+  assert.deepEqual(plan.activity.map((a) => a.id), ['a1', 'a2']);
+  assert.deepEqual(plan.activity[0]!.worth, { currency: 'NGN', amount: '15000', rate: 1500, at: MON });
+  assert.equal(plan.activity[1]!.worth.amount, '1300');
+});
+
 test('the rates of a day come from the charts: the price nearest noon, and none for a day with no price', async () => {
   const day = Date.UTC(2026, 10, 2);
   const ratesOf = ratesFromCharts({

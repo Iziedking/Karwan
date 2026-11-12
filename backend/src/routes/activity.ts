@@ -14,6 +14,7 @@ import { logger } from '../logger.js';
 import { getProfile } from '../db/profiles.js';
 import { recentRecipients } from '../money/recentPeople.js';
 import {
+  activityEntryItem,
   mergeMovementLedger,
   transferCounterparty,
   type PersonalLedgerItem,
@@ -332,20 +333,7 @@ activityRoutes.get('/me', async (c) => {
 
   const ledger = dropRoutedDeposits(entries, new Set(bridges.map((b) => b.bridgeId)));
 
-  const legacyItems: PersonalActivityItem[] = ledger.map((e) => ({
-      id: e.id,
-      ts: e.ts,
-      kind: e.kind as string,
-      summary: e.summary,
-      params: (e as { params?: Record<string, string> }).params ?? null,
-      amountUsdc: e.amountUsdc ?? null,
-      txHash: e.txHash ?? null,
-      refId: e.refId ?? null,
-      chain: e.chain ?? null,
-      jobId: e.jobId ?? null,
-      status: 'done' as const,
-      movementState: null,
-    }));
+  const legacyItems: PersonalActivityItem[] = ledger.map(activityEntryItem);
 
   const bridgeItems: PersonalActivityItem[] = bridges.map((b) => {
       const out = b.direction === 'out';

@@ -49,6 +49,15 @@ test('a payment from before this was kept has no figure, so it reads about', () 
   assert.equal(figureForViewer(movement(), SENDER), undefined);
 });
 
+test('a row on one account (yield, a refund, money back from an agent) keeps its worth to that person (L-08)', async () => {
+  const { activityWorth } = await import('./worth.js');
+  const deps = { currencyOf: currencies, rates: async () => RATES, now: () => NOW };
+  assert.deepEqual(await activityWorth({ address: SENDER, amountUsdc: '37.144' }, deps), { currency: 'NGN', amount: '50000', rate: 1346.11, at: NOW });
+  assert.equal(await activityWorth({ address: AGENT, amountUsdc: '37.144' }, deps), undefined, 'someone who reads USDC keeps none');
+  assert.equal(await activityWorth({ address: SENDER }, deps), undefined, 'a row with no amount keeps none');
+  assert.equal(await activityWorth({ address: SENDER, amountUsdc: 'abc' }, deps), undefined);
+});
+
 test('with no rate nothing is kept, and the payment still stands', async () => {
   const worth = await worthWhenPaid(movement(), { currencyOf: currencies, rates: async () => ({ rates: {}, updatedAt: null, source: null }), now: () => NOW });
   assert.deepEqual(worth, {});

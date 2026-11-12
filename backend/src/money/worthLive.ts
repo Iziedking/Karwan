@@ -5,7 +5,8 @@ import { logger } from '../logger.js';
 import type { MoneyMovement } from './model.js';
 import { parseUnits } from 'viem';
 import { onDealSettled, patchDeal, type DirectDeal } from '../db/deals.js';
-import { worthToPeople, worthWhenPaid, type WorthDeps } from './worth.js';
+import { keepActivityWorthWith } from '../db/activityLog.js';
+import { activityWorth, worthToPeople, worthWhenPaid, type WorthDeps } from './worth.js';
 
 /// Keeps what a payment was worth to each side when it completed (view 77).
 /// It runs after the movement is saved as completed and never holds the money
@@ -34,6 +35,7 @@ export async function keepWorth(movement: MoneyMovement): Promise<void> {
 }
 
 export function startKeepingWorth(): void {
+  keepActivityWorthWith((entry) => activityWorth(entry, live));
   onDealSettled((deal) => {
     void keepDealWorth(deal).catch((err: unknown) => {
       logger.warn({ jobId: deal.jobId, err: err instanceof Error ? err.message : String(err) }, 'worth when settled was not kept; the deal reads at the shared rate');
