@@ -71,6 +71,11 @@ export function sessionRows(w: WorkWeekView): SessionRow[] {
   return w.log.map((x, i) => ({ n: i + 1, at: x.at, note: x.note, ...(x.link ? { link: x.link } : {}), ...(x.flagged ? { flagged: x.flagged } : {}) })).reverse();
 }
 
+/// How many of the month's sessions the hirer has said did not happen.
+export function inQuestion(w: WorkWeekView): number {
+  return w.log.filter((x) => x.flagged).length;
+}
+
 /// What one session is worth, or null when the month does not divide evenly.
 export function sessionPrice(rateMicros: string, sessions: number | undefined): string | null {
   if (!sessions) return null;

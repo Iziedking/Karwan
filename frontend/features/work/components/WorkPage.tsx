@@ -8,7 +8,7 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { Sheet, fieldLabel } from '@/features/deals/workspace/Sheet';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT } from '@/shared/ui/controls';
-import { hoursText, localDay, localWhen, microsToUsdc, minutesFrom, monthLine, runsText, sessionPrice, sessionRows, startLine, validLink, weekLine, workActions } from '../workModel';
+import { hoursText, inQuestion, localDay, localWhen, microsToUsdc, minutesFrom, monthLine, runsText, sessionPrice, sessionRows, startLine, validLink, weekLine, workActions } from '../workModel';
 import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
 import { workSteps } from '../workSteps';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
@@ -87,7 +87,8 @@ export function WorkPage({ id }: { id: string }) {
   };
   // On sessions the objection is a count of sessions, typed in the one field.
   const minutes = hourly ? minutesFrom(h, m) : bySession && sheet?.kind === 'object' ? (/^\d+$/.test(h) && Number(h) > 0 ? Number(h) : null) : 1;
-  const sessionCount = (n: number) => fill(ts.count, { n, most: v.sessions ?? 0 });
+  // The count names the sessions the hirer has put in question, for both sides.
+  const sessionCount = (n: number, doubted = 0) => [fill(ts.count, { n, most: v.sessions ?? 0 }), doubted ? fill(ts.inQuestion, { n: doubted }) : null].filter(Boolean).join(' · ');
   const actions = workActions(v);
   const other = v.role === 'hirer' ? fill(t.page.hiring, { name: v.workerName }) : fill(t.page.hiredBy, { name: v.hirerName });
   const lastK = v.runs - 1;
@@ -173,7 +174,7 @@ export function WorkPage({ id }: { id: string }) {
                 <span className="text-[15px] font-semibold tabular-nums text-[var(--ink)]">
                   {hourly
                     ? (w.loggedMinutes ? fill(t.page.logged, { hours: hoursText(w.loggedMinutes), most: hoursText(v.maxHours * 60) }) : t.page.nothingLogged)
-                    : bySession ? (w.loggedMinutes ? sessionCount(w.loggedMinutes) : ts.none)
+                    : bySession ? (w.loggedMinutes ? sessionCount(w.loggedMinutes, inQuestion(w)) : ts.none)
                     : (w.loggedMinutes ? t.page.claimed : t.page.nothingLogged)}
                 </span>
               </div>
@@ -196,7 +197,11 @@ export function WorkPage({ id }: { id: string }) {
                     </li>
                   ))}
                 </ul>
-              ) : !bySession && w.log.length > 0 ? (
+              ) : null}
+              {bySession && v.role === 'worker' && w.log.length > 0 && (line === 'logging' || line === 'in-review') ? (
+                <p data-told className="mt-2 text-[14px] text-[var(--ink-secondary)]">{fill(ts.toldReview, { name: v.hirerName, date: day(w.end) })}</p>
+              ) : null}
+              {!bySession && w.log.length > 0 ? (
                 <ul className="mt-2 space-y-1">
                   {w.log.filter((x) => x.note).map((x) => (
                     <li key={x.at} dir="auto" className="text-[14px] text-[var(--ink-secondary)]">{hourly ? `${hoursText(x.minutes)} · ` : ''}{x.note}</li>

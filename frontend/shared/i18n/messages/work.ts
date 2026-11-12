@@ -102,7 +102,7 @@ export interface WorkCopy {
     closeSheet: { title: string; body: string; confirm: string };
   };
   /// Monthly work counted in sessions (view 76).
-  sessions: { field: string; fieldNote: string; each: string; postTitle: string; term: string; count: string; none: string; session: string; link: string; youSaid: string; theySaid: string; reviewAfter: string; recordBy: string; recordFrom: string; saved: string; flagSent: string; record: string; didNot: string; approve: string; approveOne: string; someNot: string; logCount: string; logNote: string; logLink: string; optional: string; told: string; logConfirm: string; flagTitle: string; flagWhat: string; flagBody: string; flagConfirm: string; approveBody: string; back: string; objectTitle: string; objectCount: string };
+  sessions: { field: string; fieldNote: string; each: string; postTitle: string; term: string; count: string; none: string; session: string; link: string; youSaid: string; theySaid: string; reviewAfter: string; recordBy: string; recordFrom: string; saved: string; flagSent: string; inQuestion: string; toldReview: string; record: string; didNot: string; approve: string; approveOne: string; someNot: string; logCount: string; logNote: string; logLink: string; optional: string; told: string; logConfirm: string; flagTitle: string; flagWhat: string; flagBody: string; flagConfirm: string; approveBody: string; back: string; objectTitle: string; objectCount: string };
   notNow: string;
   failed: string;
   /// The two choices at the top of the deal form (view 32).
@@ -235,7 +235,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: 'You said this did not happen: {note}',
       theySaid: '{name} says this did not happen: {note}',
       reviewAfter: 'You review after {date}',
-      recordBy: 'Record by {date}', recordFrom: 'Record sessions from {date}', saved: 'Session saved. {name} has been told.', flagSent: 'Note sent. {name} has been told.',
+      recordBy: 'Record by {date}', recordFrom: 'Record sessions from {date}', saved: 'Session saved. {name} has been told.', flagSent: 'Note sent. {name} has been told.', inQuestion: '{n} in question', toldReview: '{name} was told. They review after {date}.',
       record: 'Record a session',
       didNot: 'A session did not happen',
       approve: 'Approve {n} sessions',
@@ -385,7 +385,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: "Vous avez dit qu'elle n'a pas eu lieu : {note}",
       theySaid: "{name} dit qu'elle n'a pas eu lieu : {note}",
       reviewAfter: 'Vous vérifiez après le {date}',
-      recordBy: 'À enregistrer avant le {date}', recordFrom: 'Séances à enregistrer à partir du {date}', saved: 'Séance enregistrée. {name} est prévenu.', flagSent: 'Note envoyée. {name} est prévenu.',
+      recordBy: 'À enregistrer avant le {date}', recordFrom: 'Séances à enregistrer à partir du {date}', saved: 'Séance enregistrée. {name} est prévenu.', flagSent: 'Note envoyée. {name} est prévenu.', inQuestion: '{n} en question', toldReview: '{name} est prévenu et vérifie après le {date}.',
       record: 'Enregistrer une séance',
       didNot: "Une séance n'a pas eu lieu",
       approve: 'Approuver {n} séances',
@@ -535,7 +535,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: 'قلتَ إنها لم تتم: {note}',
       theySaid: '{name} يقول إنها لم تتم: {note}',
       reviewAfter: 'تراجع بعد {date}',
-      recordBy: 'سجّل قبل {date}', recordFrom: 'سجّل الجلسات ابتداءً من {date}', saved: 'حُفظت الجلسة. تم إبلاغ {name}.', flagSent: 'أُرسلت الملاحظة. تم إبلاغ {name}.',
+      recordBy: 'سجّل قبل {date}', recordFrom: 'سجّل الجلسات ابتداءً من {date}', saved: 'حُفظت الجلسة. تم إبلاغ {name}.', flagSent: 'أُرسلت الملاحظة. تم إبلاغ {name}.', inQuestion: 'موضع تساؤل: {n}', toldReview: 'تم إبلاغ {name}. تبدأ المراجعة بعد {date}.',
       record: 'تسجيل جلسة',
       didNot: 'جلسة لم تتم',
       approve: 'الموافقة على الجلسات ({n})',
@@ -685,7 +685,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: 'आपने कहा यह नहीं हुआ: {note}',
       theySaid: '{name} का कहना है यह नहीं हुआ: {note}',
       reviewAfter: '{date} के बाद आप जाँचेंगे',
-      recordBy: '{date} तक दर्ज करें', recordFrom: '{date} से सत्र दर्ज करें', saved: 'सत्र दर्ज हो गया। {name} को बता दिया गया है।', flagSent: 'नोट भेज दिया गया। {name} को बता दिया गया है।',
+      recordBy: '{date} तक दर्ज करें', recordFrom: '{date} से सत्र दर्ज करें', saved: 'सत्र दर्ज हो गया। {name} को बता दिया गया है।', flagSent: 'नोट भेज दिया गया। {name} को बता दिया गया है।', inQuestion: '{n} पर सवाल', toldReview: '{name} को बता दिया गया है। जाँच {date} के बाद होगी।',
       record: 'सत्र दर्ज करें',
       didNot: 'एक सत्र नहीं हुआ',
       approve: '{n} सत्र स्वीकृत करें',
@@ -835,7 +835,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       youSaid: 'Ulisema hakikufanyika: {note}',
       theySaid: '{name} anasema hakikufanyika: {note}',
       reviewAfter: 'Utakagua baada ya {date}',
-      recordBy: 'Andika kabla ya {date}', recordFrom: 'Andika vipindi kuanzia {date}', saved: 'Kipindi kimehifadhiwa. {name} ameambiwa.', flagSent: 'Ujumbe umetumwa. {name} ameambiwa.',
+      recordBy: 'Andika kabla ya {date}', recordFrom: 'Andika vipindi kuanzia {date}', saved: 'Kipindi kimehifadhiwa. {name} ameambiwa.', flagSent: 'Ujumbe umetumwa. {name} ameambiwa.', inQuestion: 'Vyenye swali: {n}', toldReview: '{name} ameambiwa. Atakagua baada ya {date}.',
       record: 'Andika kipindi',
       didNot: 'Kipindi hakikufanyika',
       approve: 'Idhinisha vipindi {n}',

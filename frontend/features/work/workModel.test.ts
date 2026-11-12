@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { WorkView, WorkWeekView } from '@/core/api';
-import { hoursText, localDay, localWhen, startLine, minutesFrom, monthLine, runsText, sessionPrice, sessionPriceTyped, sessionRows, validLink, weekLine, workActions, workRequestHref } from './workModel';
+import { hoursText, inQuestion, localDay, localWhen, startLine, minutesFrom, monthLine, runsText, sessionPrice, sessionPriceTyped, sessionRows, validLink, weekLine, workActions, workRequestHref } from './workModel';
 
 const DAY = 86_400_000;
 const week = (over: Partial<WorkWeekView> = {}): WorkWeekView => ({
@@ -116,4 +116,15 @@ test('a start reads with its time, in the viewer own zone', () => {
   const instant = Date.UTC(2026, 10, 12, 1, 54, 35);
   assert.equal(localWhen(instant, 'en-GB'), new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(instant));
   assert.notEqual(localWhen(instant, 'en-GB'), localDay(instant, 'en-GB'));
+});
+
+test('a month counts the sessions the hirer has put in question (S-15)', () => {
+  const log = [
+    { at: 1, minutes: 1, note: 'One' },
+    { at: 2, minutes: 1, note: 'Two', flagged: { at: 3, note: 'Nobody came' } },
+    { at: 4, minutes: 1, note: 'Three', flagged: { at: 5, note: 'Cut short' } },
+  ];
+  assert.equal(inQuestion(week({ loggedMinutes: 3, log })), 2);
+  assert.equal(inQuestion(week({ loggedMinutes: 1, log: log.slice(0, 1) })), 0);
+  assert.equal(inQuestion(week()), 0);
 });

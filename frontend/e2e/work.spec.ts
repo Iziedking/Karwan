@@ -248,6 +248,22 @@ test('the hirer says which session did not happen, and it is only a note', async
   expect(posted.body).toEqual({ k: 0, n: 4, note: 'Nobody came' });
 });
 
+test('a session in question shows in the count, and the worker reads who was told (S-12, S-15)', async ({ page }) => {
+  const log = sessionLog(5).map((x, i) => (i === 3 ? { ...x, flagged: { at: Date.now(), note: 'Nobody came' } } : x));
+  await serve(page, SELLER, lessons({ role: 'worker' }, { status: 'funded', log, canLog: true }));
+  await page.goto('/work/w_demo');
+  await expect(page.getByText('5 of 12 sessions · 1 in question')).toBeVisible();
+  await expect(page.locator('[data-told]')).toHaveText(/^@bisi was told\. They review after /);
+});
+
+test('the hirer reads the count with the session in question, and no line about being told', async ({ page }) => {
+  const log = sessionLog(5).map((x, i) => (i === 3 ? { ...x, flagged: { at: Date.now(), note: 'Nobody came' } } : x));
+  await serve(page, BUYER, lessons({}, { status: 'funded', log, canFlag: true }));
+  await page.goto('/work/w_demo');
+  await expect(page.getByText('5 of 12 sessions · 1 in question')).toBeVisible();
+  await expect(page.locator('[data-told]')).toHaveCount(0);
+});
+
 /// A slow answer: the button says it is working, and the page says what was saved (S-10, S-17).
 async function slowly(page: Page, path: string, view: WorkView) {
   await page.route(`${API}${path}`, async (route) => {
