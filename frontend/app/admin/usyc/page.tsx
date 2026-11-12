@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { adminApiUrl } from '@/shared/admin/adminDesk';
-import { deskReasonHeader, getAdminToken } from '@/core/api';
+import { deskReasonHeader } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
 
 
@@ -42,7 +42,7 @@ export default function AdminUsycPage() {
   // only"). The old sessionStorage cache outlived that promise and sat one
   // XSS away from exfiltration.
   // The desk session the console signed in with (view 64).
-  const [token, setToken] = useState(() => getAdminToken() ?? '');
+  const [token, setToken] = useState('desk');
   const [draft, setDraft] = useState('');
 
   if (!token) {
@@ -136,7 +136,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
     setLoading(true);
     try {
       const r = await fetch(adminApiUrl(`/api/admin/usyc`), {
-        headers: { 'x-admin-token': token },
+        headers: { 'x-karwan-desk': '1' },
       });
       if (r.status === 401) {
         setError('Token rejected. Lock and re-enter.');
@@ -154,7 +154,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
       // reads above fail, because it is the one an operator acts on.
       try {
         const lr = await fetch(adminApiUrl(`/api/admin/usyc/liquidity`), {
-          headers: { 'x-admin-token': token },
+          headers: { 'x-karwan-desk': '1' },
         });
         setLiq(lr.ok ? ((await lr.json()) as Liquidity) : null);
       } catch {
@@ -176,7 +176,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
       try {
         const r = await fetch(adminApiUrl(`/api/admin/usyc/run${dry ? '?dry=1' : ''}`), {
           method: 'POST',
-          headers: { 'x-admin-token': token, ...(dry ? {} : deskReasonHeader(reason!.trim())) },
+          headers: { 'x-karwan-desk': '1', ...(dry ? {} : deskReasonHeader(reason!.trim())) },
         });
         if (r.status === 202) {
           setRun({ ok: true, dryRun: false, steps: [{ action: 'Sent for approval', detail: 'A second member approves it on Approvals. Nothing has moved yet.', skipped: true }] });
@@ -203,7 +203,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
       try {
         const r = await fetch(adminApiUrl(`/api/admin/usyc/cover${dry ? '?dry=1' : ''}`), {
           method: 'POST',
-          headers: { 'x-admin-token': token, ...(dry ? {} : deskReasonHeader(reason!.trim())) },
+          headers: { 'x-karwan-desk': '1', ...(dry ? {} : deskReasonHeader(reason!.trim())) },
         });
         if (r.status === 202) {
           setCover({ error: 'Sent for approval. A second member approves it on Approvals. Nothing has moved yet.' } as CoverResult);

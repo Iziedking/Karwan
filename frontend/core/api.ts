@@ -2587,6 +2587,11 @@ async function jsonOnce<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: credentialsForApiRequest(headers, init?.credentials),
   });
   if (!res.ok) {
+    // A desk session that ended (another tab signed out, 30 minutes idle, the
+    // owner took a page away) sends every desk page back to the sign-in.
+    if (res.status === 401 && isDeskRequest(headers) && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(DESK_SIGNED_OUT_EVENT));
+    }
     let parsed: unknown = res.statusText;
     try {
       parsed = await res.json();
@@ -2635,30 +2640,20 @@ async function jsonOnce<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// Operator-only admin token, held IN MEMORY ONLY — a module variable, never
-// written to sessionStorage/localStorage/cookies. It survives client-side
-// navigation between admin pages (the SPA keeps this module alive) but is gone
-// on a hard refresh or new tab, so there is no persisted credential for an XSS
-// or cookie-theft attacker to lift. Sent as the X-Admin-Token header; the
-// backend fail-closes when ADMIN_API_TOKEN is unset (503) and 401s on mismatch.
-let adminToken: string | null = null;
-
-export function getAdminToken(): string | null {
-  return adminToken;
-}
-
-export function setAdminToken(token: string | null): void {
-  adminToken = token && token.trim() ? token.trim() : null;
-}
-
-/// Marks a desk call that has no session yet (sign-in), so it still goes
-/// through the admin address's proxy.
+// The desk's sign-in (view 79) is a cookie that belongs to admin.karwan.site
+// and that no page script can read. Desk calls carry only this header, which
+// sends them through the address's own proxy; the proxy adds the session.
 const DESK_HEADER = 'x-karwan-desk';
+
+/// Fired on the window when a desk call finds the sign-in gone.
+export const DESK_SIGNED_OUT_EVENT = 'karwan:desk-signed-out';
 
 function isDeskRequest(headers: HeadersInit): boolean {
   const h = new Headers(headers);
   return h.has('x-admin-token') || h.has(DESK_HEADER);
 }
+
+export type AdminDeskLevel = 'read' | 'change' | 'fix';
 
 export interface AdminDeskMe {
   id: string | null;
@@ -2666,7 +2661,16 @@ export interface AdminDeskMe {
   email: string | null;
   owner: boolean;
   pages: string[];
+  /// The level on each ticked page (view 79); the owner has fix on all.
+  access: Record<string, AdminDeskLevel>;
 }
+
+/// The password step answers a session on testnet; on mainnet it asks for the
+/// authenticator code, or to set one up the first time (view 79).
+export type AdminSignInAnswer =
+  | { expiresAt: number; me: AdminDeskMe; step?: undefined }
+  | { step: 'code'; ticket: string }
+  | { step: 'setup'; ticket: string; otpauth: string };
 
 export interface AdminDeskMember {
   id: string;
@@ -2750,8 +2754,7 @@ function adminCasePost(ref: string, action: string, body: unknown) {
 }
 
 function adminHeaders(): Record<string, string> {
-  const t = getAdminToken();
-  return t ? { 'x-admin-token': t } : {};
+  return { [DESK_HEADER]: '1' };
 }
 
 export interface AdminBackendRoute {
@@ -4117,12 +4120,23 @@ export const api = {
       buyer: { ok: boolean; txHash?: string; reason?: string };
       seller: { ok: boolean; txHash?: string; reason?: string };
     }>(`/api/admin/agent-seed/${address}`, { method: 'POST', headers: adminHeaders() }),
-  adminSignIn: (email: string, password: string) =>
-    json<{ token: string; expiresAt: number; me: AdminDeskMe }>('/api/admin/session', {
+  adminSignIn: (email: string, password: string, network: 'testnet' | 'mainnet') =>
+    json<AdminSignInAnswer>('/api/admin/session', {
       method: 'POST',
       headers: { [DESK_HEADER]: '1' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, network }),
     }),
+  adminSignInCode: (ticket: string, code: string) =>
+    json<{ expiresAt: number; me: AdminDeskMe }>('/api/admin/session/code', {
+      method: 'POST',
+      headers: { [DESK_HEADER]: '1' },
+      body: JSON.stringify({ ticket, code }),
+    }),
+  adminSignOut: () => json<{ ok: true }>('/api/admin/session', { method: 'DELETE', headers: { [DESK_HEADER]: '1' } }),
+  adminDesks: async (): Promise<{ mainnet: boolean }> => {
+    const res = await fetch(adminApiUrl('/desks'), { cache: 'no-store', credentials: 'same-origin' });
+    return res.ok ? ((await res.json()) as { mainnet: boolean }) : { mainnet: false };
+  },
   adminSession: () => json<{ me: AdminDeskMe | null }>('/api/admin/session', { headers: adminHeaders() }),
   adminAccess: () =>
     json<{ pages: Array<{ key: string; label: string }>; members: AdminDeskMember[] }>('/api/admin/access', { headers: adminHeaders() }),

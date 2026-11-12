@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { eq } from 'drizzle-orm';
-import { db, pgEnabled } from './client.js';
+import { teamDb as db, teamPgEnabled as pgEnabled } from './teamClient.js';
 import { teamMembers, teamInvites } from './schema.js';
 import { durableEphemeralMap } from './ephemeral.js';
 import type { TeamRole } from './teamKeys.js';
@@ -56,6 +56,10 @@ export interface TeamMember {
   deskOwner?: boolean;
   /// Desk pages the owner ticked for this member. Absent or empty: no desk.
   deskPages?: string[];
+  /// The level on each ticked page (view 79). Wins over deskPages when set.
+  deskAccess?: Record<string, 'read' | 'change' | 'fix'>;
+  /// The mainnet desk code's secret, sealed with DESK_CODE_KEY (view 79).
+  codeSecret?: string;
   /// Bumped when the owner takes a page away or revokes the member, so every
   /// desk session and key minted before it stops at once.
   deskEpoch?: number;
@@ -73,6 +77,7 @@ export interface TeamMemberView {
   locked: boolean;
   deskOwner: boolean;
   deskPages: string[];
+  deskAccess: Record<string, 'read' | 'change' | 'fix'> | null;
 }
 
 function nextSessionEpoch(member: TeamMember): number {
@@ -90,6 +95,7 @@ export function toMemberView(m: TeamMember): TeamMemberView {
     disabledAt: m.disabledAt ?? null,
     deskOwner: m.deskOwner === true,
     deskPages: m.deskPages ?? [],
+    deskAccess: m.deskAccess ?? null,
     active: !m.disabledAt,
     locked: !!m.lockedUntil && m.lockedUntil > Date.now(),
   };
@@ -586,15 +592,44 @@ export async function setDeskOwner(email: string): Promise<TeamMemberView | null
 /// The owner's ticks for one member. Taking any page away ends that member's
 /// desk sessions and keys, so nothing minted with more reach outlives it.
 export async function setDeskPages(id: string, pages: string[]): Promise<TeamMemberView | null> {
+  return setDeskAccess(id, Object.fromEntries(pages.map((p) => [p, 'fix' as const])));
+}
+
+/// The owner's levels for one member (view 79). Taking a page away or lowering
+/// a level ends that member's desk sessions and keys.
+export async function setDeskAccess(id: string, access: Record<string, 'read' | 'change' | 'fix'>): Promise<TeamMemberView | null> {
   const member = await getMember(id);
   if (!member) return null;
-  const before = new Set(member.deskPages ?? []);
-  const removed = [...before].some((p) => !pages.includes(p));
+  const rank = { read: 1, change: 2, fix: 3 } as const;
+  const before: Record<string, 'read' | 'change' | 'fix'> =
+    member.deskAccess ?? Object.fromEntries((member.deskPages ?? []).map((p) => [p, 'fix' as const]));
+  const lowered = Object.entries(before).some(([page, level]) => !access[page] || rank[access[page]!] < rank[level]);
   const next: TeamMember = {
     ...member,
-    deskPages: pages,
-    ...(removed ? { deskEpoch: Math.max(Date.now(), (member.deskEpoch ?? 0) + 1) } : {}),
+    deskAccess: access,
+    deskPages: Object.keys(access).sort(),
+    ...(lowered ? { deskEpoch: Math.max(Date.now(), (member.deskEpoch ?? 0) + 1) } : {}),
   };
+  await persistMember(next);
+  return toMemberView(next);
+}
+
+/// Keep a member's mainnet code secret, sealed, once a code proved their phone
+/// has it (view 79).
+export async function setCodeSecret(id: string, sealed: string): Promise<boolean> {
+  const member = await getMember(id);
+  if (!member) return false;
+  await persistMember({ ...member, codeSecret: sealed });
+  return true;
+}
+
+/// The owner resets a lost code: the secret goes, and every desk session and
+/// key ends, so the next mainnet sign-in sets it up again.
+export async function resetDeskCode(id: string): Promise<TeamMemberView | null> {
+  const member = await getMember(id);
+  if (!member) return null;
+  const next: TeamMember = { ...member, deskEpoch: Math.max(Date.now(), (member.deskEpoch ?? 0) + 1) };
+  delete next.codeSecret;
   await persistMember(next);
   return toMemberView(next);
 }
@@ -603,7 +638,7 @@ export async function setDeskPages(id: string, pages: string[]): Promise<TeamMem
 export async function revokeDesk(id: string): Promise<TeamMemberView | null> {
   const member = await getMember(id);
   if (!member) return null;
-  const next: TeamMember = { ...member, deskPages: [], deskEpoch: Math.max(Date.now(), (member.deskEpoch ?? 0) + 1) };
+  const next: TeamMember = { ...member, deskPages: [], deskAccess: {}, deskEpoch: Math.max(Date.now(), (member.deskEpoch ?? 0) + 1) };
   await persistMember(next);
   return toMemberView(next);
 }

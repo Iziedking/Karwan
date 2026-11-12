@@ -96,12 +96,67 @@ export function routeRule(method: string, path: string): RouteRule {
   return pages.length ? { kind: 'pages', pages } : { kind: 'none' };
 }
 
-export function mayCall(who: { owner: boolean; pages: readonly string[] }, method: string, path: string): boolean {
+// ---------------------------------------------------------------- levels (view 79)
+
+/// How much a member may do on a ticked page. Each level includes the ones
+/// before it: read opens the page, change makes changes that move no money,
+/// fix also asks for a money or chain move that a second member approves.
+export type DeskLevel = 'read' | 'change' | 'fix';
+export type DeskAccess = Record<string, DeskLevel>;
+
+const RANK: Record<DeskLevel, number> = { read: 1, change: 2, fix: 3 };
+
+function isLevel(v: unknown): v is DeskLevel {
+  return v === 'read' || v === 'change' || v === 'fix';
+}
+
+/// A member's levels. A list of pages from before levels reads as fix on each,
+/// which is what a tick allowed then, so nobody gains or loses anything.
+export function accessFor(m: { deskPages?: readonly string[]; deskAccess?: Record<string, unknown> }): DeskAccess {
+  const out: DeskAccess = {};
+  if (m.deskAccess) {
+    for (const [page, level] of Object.entries(m.deskAccess)) if (ADMIN_PAGE_KEYS.has(page) && isLevel(level)) out[page] = level;
+    return out;
+  }
+  for (const page of cleanPages(m.deskPages ?? [])) out[page] = 'fix';
+  return out;
+}
+
+export function cleanAccess(access: Record<string, unknown>): DeskAccess {
+  return accessFor({ deskAccess: access });
+}
+
+export function allows(access: DeskAccess, page: string, level: DeskLevel): boolean {
+  const have = access[page];
+  return !!have && RANK[have] >= RANK[level];
+}
+
+/// Routes that run only when a second member approves (`twoPeople`). Asking
+/// for one, and approving one, needs the fix level on its page.
+const TWO_PEOPLE = [
+  r(`POST /api/admin/deals/${ANY}/(release|resolve|force-cancel)`),
+  r('POST /api/admin/reset-history'),
+  r('POST /api/admin/reputation/backfill'),
+  r('POST /api/admin/attestations/sweep'),
+  r(`POST /api/admin/attestations/${ANY}/revoke`),
+  r('POST /api/admin/usyc/(cover|run)'),
+];
+
+export function levelForRoute(method: string, path: string): DeskLevel {
+  const m = method.toUpperCase();
+  if (m === 'GET' || m === 'HEAD') return 'read';
+  const line = `${m} ${path.replace(/\/+$/, '') || '/'}`;
+  return TWO_PEOPLE.some((re) => re.test(line)) ? 'fix' : 'change';
+}
+
+export function mayCall(who: { owner: boolean; pages?: readonly string[]; access?: DeskAccess }, method: string, path: string): boolean {
   if (who.owner) return true;
   const rule = routeRule(method, path);
   if (rule.kind === 'member') return true;
   if (rule.kind !== 'pages') return false;
-  return rule.pages.some((p) => who.pages.includes(p));
+  const access = who.access ?? accessFor({ deskPages: who.pages ?? [] });
+  const level = levelForRoute(method, path);
+  return rule.pages.some((p) => allows(access, p, level));
 }
 
 export function cleanPages(pages: readonly string[]): string[] {

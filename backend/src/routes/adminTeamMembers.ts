@@ -12,6 +12,7 @@ import {
   getMember,
   createPasswordReset,
   INVITE_TTL_MS,
+  resetDeskCode,
 } from '../db/teamMembers.js';
 import { sendTeamPasswordResetEmail } from '../emails/teamPasswordReset.js';
 import { revokeForMember } from '../db/oauth.js';
@@ -207,6 +208,15 @@ adminTeamMemberRoutes.patch('/:id', async (c) => {
 /// front of you, or has stopped trusting a link that arrived unprompted. Hands
 /// the link back like the invite routes do, so the admin can pass it on by
 /// whatever means, rather than the email being a hard dependency.
+/// POST /api/admin/team-members/:id/reset-code: a lost phone. The member's
+/// mainnet code goes, they are signed out of both desks, and their next mainnet
+/// sign-in sets a new one up (view 79).
+adminTeamMemberRoutes.post('/:id/reset-code', async (c) => {
+  const view = await resetDeskCode(c.req.param('id'));
+  if (!view) return c.json({ error: 'No such member.' }, 404);
+  return c.json({ member: view });
+});
+
 adminTeamMemberRoutes.post('/:id/reset', async (c) => {
   const id = c.req.param('id');
   const reset = await createPasswordReset(id);

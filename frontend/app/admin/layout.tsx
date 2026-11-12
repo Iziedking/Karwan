@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { WagmiProvider } from 'wagmi';
-import { api, setAdminToken, type AdminDeskMe } from '@/core/api';
+import { api, DESK_SIGNED_OUT_EVENT, type AdminDeskMe } from '@/core/api';
+import { DeskSignIn } from '@/features/admin/desk/DeskSignIn';
 import { adminWagmiConfig } from '@/core/adminWagmi';
 import { DialogProvider } from '@/shared/components/Dialog';
 import { AdminWalletControl } from '@/features/admin/AdminWalletControl';
@@ -45,98 +46,6 @@ function Navigation({ groups, pathname, compact = false }: {
         </section>
       ))}
     </nav>
-  );
-}
-
-function AccessGate({ onUnlock }: { onUnlock: (me: AdminDeskMe) => void }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function unlock(event: React.FormEvent) {
-    event.preventDefault();
-    if (!email.trim() || !password || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const { token, me } = await api.adminSignIn(email.trim(), password);
-      setAdminToken(token);
-      setPassword('');
-      onUnlock(me);
-    } catch (err) {
-      setAdminToken(null);
-      setError(err instanceof Error && err.message ? err.message : 'Sign-in could not be verified.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="min-h-screen bg-[#0A0A0B] px-4 py-6 text-white sm:px-6 sm:py-10">
-      <div className="mx-auto grid min-h-[calc(100svh-3rem)] max-w-[1040px] items-center gap-7 sm:min-h-[calc(100vh-5rem)] sm:gap-10 lg:grid-cols-[1fr_420px]">
-        <section className="max-w-[560px]">
-          <div className="mb-5 flex items-center gap-3">
-            <img src="/brand/karwan-mark-lime.svg" alt="Karwan" className="size-10 rounded-[10px]" />
-            <p className="mono text-[10px] font-bold uppercase tracking-[0.19em] text-[#AFC95B]">Karwan operator</p>
-          </div>
-          <h1 className="mt-4 max-w-[520px] font-sans text-[34px] font-black leading-[0.95] tracking-[-0.04em] sm:text-[clamp(36px,6vw,68px)]">Run trade operations with clear authority.</h1>
-          <p className="mt-4 max-w-[520px] text-[14px] leading-6 text-white/55 sm:mt-6 sm:text-[15px] sm:leading-7">Review customer work, watch agents and resolve exceptions from one operator console.</p>
-          <div className="mt-8 hidden gap-3 sm:grid sm:grid-cols-3">
-            {[
-              ['01', 'Sign in', 'Your own team account, on the pages the owner gave you.'],
-              ['02', 'Connect', 'Choose a separate signing wallet.'],
-              ['03', 'Act', 'Use reviewed tools with visible consequences.'],
-            ].map(([number, title, copy]) => (
-              <div key={number} className="border-t border-white/12 pt-3">
-                <p className="mono text-[9px] text-[#AFC95B]">{number}</p>
-                <p className="mt-2 text-[12px] font-bold text-white/85">{title}</p>
-                <p className="mt-1 text-[11px] leading-5 text-white/38">{copy}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <form onSubmit={unlock} className="rounded-2xl border border-white/12 bg-[#121315] p-4 shadow-2xl shadow-black/30 sm:p-7">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="mono text-[9px] uppercase tracking-[0.17em] text-white/35">Operator session</p>
-              <p className="mt-2 text-[20px] font-extrabold">Sign in</p>
-            </div>
-            <span className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-3 mono text-[9px] uppercase tracking-[0.12em] text-white/40">Session scoped</span>
-          </div>
-          <label htmlFor="desk-email" className="mt-7 block mono text-[10px] font-bold uppercase tracking-[0.13em] text-white/55">Team email</label>
-          <input
-            id="desk-email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="username"
-            aria-invalid={!!error}
-            className="mt-2 min-h-12 w-full rounded-lg border border-white/15 bg-[#0A0A0B] px-3 text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60"
-          />
-          <label htmlFor="desk-password" className="mt-4 block mono text-[10px] font-bold uppercase tracking-[0.13em] text-white/55">Password</label>
-          <input
-            id="desk-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-            aria-invalid={!!error}
-            aria-describedby="desk-help"
-            className="mt-2 min-h-12 w-full rounded-lg border border-white/15 bg-[#0A0A0B] px-3 text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60"
-          />
-          <p id="desk-help" className="mt-2 text-[11px] leading-5 text-white/38">Your team account. The session stays in this tab only and ends when you lock or refresh.</p>
-          <button type="submit" disabled={busy || !email.trim() || !password} className="mt-5 min-h-12 w-full rounded-lg bg-[#AFC95B] px-4 mono text-[11px] font-bold uppercase tracking-[0.13em] text-[#0A0A0B] transition hover:bg-[#AFC95B] disabled:cursor-not-allowed disabled:opacity-45">
-            {busy ? 'Signing in' : 'Sign in'}
-          </button>
-          {error && <p role="alert" className="mt-3 rounded-lg border border-[#e0794f]/25 bg-[#e0794f]/8 px-3 py-2.5 text-[12px] text-[#efaa8d]">{error}</p>}
-          <div className="mt-6 border-t border-white/8 pt-4">
-            <p className="text-[11px] leading-5 text-white/38">Signing is separate. The console will never reuse the customer wallet connected elsewhere in Karwan.</p>
-          </div>
-        </form>
-      </div>
-    </main>
   );
 }
 
@@ -218,17 +127,33 @@ function AdminConsole({ me, onLock, children }: {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [me, setMe] = useState<AdminDeskMe | null>(null);
+  // undefined while the desk asks whether this browser is still signed in.
+  const [me, setMe] = useState<AdminDeskMe | null | undefined>(undefined);
 
-  function lock() {
-    setAdminToken(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .adminSession()
+      .then((r) => live && setMe(r.me ?? null))
+      .catch(() => live && setMe(null));
+    const signedOut = () => setMe(null);
+    window.addEventListener(DESK_SIGNED_OUT_EVENT, signedOut);
+    return () => {
+      live = false;
+      window.removeEventListener(DESK_SIGNED_OUT_EVENT, signedOut);
+    };
+  }, []);
+
+  async function lock() {
+    await api.adminSignOut().catch(() => undefined);
     setMe(null);
   }
 
-  if (!me) return <AccessGate onUnlock={setMe} />;
+  if (me === undefined) return <main className="min-h-screen bg-[#0E0F11]" />;
+  if (!me) return <DeskSignIn onSignedIn={setMe} />;
   return (
     <WagmiProvider config={adminWagmiConfig} reconnectOnMount={false}>
-      <AdminConsole me={me} onLock={lock}>{children}</AdminConsole>
+      <AdminConsole me={me} onLock={() => void lock()}>{children}</AdminConsole>
     </WagmiProvider>
   );
 }

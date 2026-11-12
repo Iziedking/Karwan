@@ -1,7 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminApiUrl } from '@/shared/admin/adminDesk';
-import { getAdminToken } from '@/core/api';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { formatUnits, isAddress, parseUnits } from 'viem';
 import { settlementChain } from '@/core/arcNetwork';
@@ -106,7 +105,7 @@ export default function AdminTreasuryPage() {
   // It used to be cached in sessionStorage, which contradicted core/api.ts's
   // in-memory-only model and left the token one XSS away from exfiltration.
   // Re-entering it per visit is the intended cost.
-  const [token, setToken] = useState<string>(() => getAdminToken() ?? '');
+  const [token, setToken] = useState<string>('desk');
   const [tokenDraft, setTokenDraft] = useState('');
 
   const saveToken = useCallback(() => {
@@ -184,7 +183,7 @@ function TreasuryConsole({ token, onClearToken }: { token: string; onClearToken:
     setLoading(true);
     try {
       const r = await fetch(adminApiUrl(`/api/admin/treasuries`), {
-        headers: { 'x-admin-token': token },
+        headers: { 'x-karwan-desk': '1' },
       });
       if (r.status === 401) {
         setLoadError('Token rejected. Clear and re-enter.');

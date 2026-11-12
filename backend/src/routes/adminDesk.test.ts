@@ -167,3 +167,48 @@ test('a forged or altered session is refused', async () => {
   assert.equal((await call('GET', '/api/admin/health', 'desk.x.y')).status, 401);
   assert.equal((await call('GET', '/api/admin/health', ownerToken)).status, 200);
 });
+
+test('levels: read opens the page and refuses its changes; fix asks for a money move', async () => {
+  const cal = await member('cal@karwan.site', 'Cal');
+  const set = await call('PUT', `/api/admin/access/${cal.id}`, ownerToken, { access: { deals: 'read', support: 'change' } });
+  assert.equal(set.status, 200);
+  const calToken = await tokenOf('cal@karwan.site');
+  assert.equal((await call('GET', '/api/admin/support', calToken)).status, 200);
+  assert.equal((await call('POST', '/api/admin/deals/0xabc/release', calToken, {})).status, 403);
+  const me = (await (await call('GET', '/api/admin/session', calToken)).json()) as { me: { access: Record<string, string> } };
+  assert.deepEqual(me.me.access, { deals: 'read', support: 'change' });
+  await call('PUT', `/api/admin/access/${cal.id}`, ownerToken, { access: { deals: 'fix', support: 'change' } });
+  const again = await tokenOf('cal@karwan.site');
+  assert.equal((await call('POST', '/api/admin/deals/0xabc/release', again, {})).status, 200);
+});
+
+test('lowering a level ends the sessions minted with the higher one', async () => {
+  const dee = await member('dee@karwan.site', 'Dee');
+  await call('PUT', `/api/admin/access/${dee.id}`, ownerToken, { access: { support: 'change' } });
+  const deeToken = await tokenOf('dee@karwan.site');
+  assert.equal((await call('GET', '/api/admin/support', deeToken)).status, 200);
+  await call('PUT', `/api/admin/access/${dee.id}`, ownerToken, { access: { support: 'read' } });
+  assert.equal((await call('GET', '/api/admin/support', deeToken)).status, 401);
+});
+
+test('every signed-in answer carries the session renewed 30 minutes from now', async () => {
+  const { readDeskSession } = await import('../ops/deskSession.js');
+  const r = await call('GET', '/api/admin/session', ownerToken);
+  const renewed = r.headers.get('x-desk-session');
+  assert.ok(renewed);
+  const claims = readDeskSession(renewed, 'desk-test-secret', Date.now(), 'testnet');
+  assert.ok(claims);
+  assert.ok(Math.abs(claims.exp - (Date.now() + 30 * 60_000)) < 5_000);
+});
+
+test('signing out answers ok; there is nothing kept on the server to delete', async () => {
+  const r = await call('DELETE', '/api/admin/session', ownerToken);
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true });
+});
+
+test('on testnet the password alone signs in, as before', async () => {
+  const r = (await (await signIn('owner@karwan.site')).json()) as { token?: string; step?: string };
+  assert.ok(r.token);
+  assert.equal(r.step, undefined);
+});

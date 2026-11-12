@@ -3,8 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   api,
   ApiError,
-  getAdminToken,
-  setAdminToken,
   type FeedbackItem,
   type FeedbackStatus,
   type FeedbackCategory,
@@ -43,8 +41,8 @@ function useDeskImage(path: string): string | null {
   useEffect(() => {
     let live = true;
     let objectUrl: string | null = null;
-    const token = getAdminToken();
-    fetch(adminApiUrl(path.replace(/^https?:\/\/[^/]+/i, '')), { headers: token ? { 'x-admin-token': token } : {}, cache: 'no-store' })
+    // The desk's own cookie carries the sign-in (view 79).
+    fetch(adminApiUrl(path.replace(/^https?:\/\/[^/]+/i, '')), { cache: 'no-store', credentials: 'same-origin' })
       .then((r) => (r.ok ? r.blob() : null))
       .then((blob) => {
         if (!blob || !live) return;
@@ -89,32 +87,13 @@ export default function AdminFeedbackPage() {
     setPage(0);
   }, [filter]);
 
-  // Prompts for the X-Admin-Token if we don't have one yet. Returns false when
-  // the operator dismisses the prompt, so callers can stop instead of firing a
-  // request that's guaranteed to 401.
-  const ensureToken = useCallback((): boolean => {
-    if (getAdminToken()) return true;
-    const tok = window.prompt(t.tokenPrompt);
-    if (tok && tok.trim()) {
-      setAdminToken(tok.trim());
-      return true;
-    }
-    return false;
-  }, [t.tokenPrompt]);
-
   const load = useCallback(async () => {
     setError(null);
-    if (!ensureToken()) {
-      setError(t.errors.tokenRequired);
-      setItems([]);
-      return;
-    }
     try {
       const res = await api.listFeedback();
       setItems(res.feedback);
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        setAdminToken(null);
         setError(t.errors.tokenRejected);
       } else if (err instanceof ApiError && err.status === 503) {
         setError(t.errors.gateNotConfigured);
@@ -123,16 +102,7 @@ export default function AdminFeedbackPage() {
       }
       setItems([]);
     }
-  }, [ensureToken, t.errors.tokenRequired, t.errors.tokenRejected, t.errors.gateNotConfigured]);
-
-  // Lets the operator overwrite the stored token by hand, then reloads.
-  const promptForToken = useCallback(() => {
-    const tok = window.prompt(t.tokenPrompt, getAdminToken() ?? '');
-    if (tok !== null) {
-      setAdminToken(tok.trim() || null);
-      void load();
-    }
-  }, [load, t.tokenPrompt]);
+  }, [t.errors.tokenRejected, t.errors.gateNotConfigured]);
 
   useEffect(() => {
     void load();
@@ -162,7 +132,6 @@ export default function AdminFeedbackPage() {
       return true;
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        setAdminToken(null);
         setError(t.errors.tokenRejected);
       } else {
         setError((err as Error).message);
@@ -180,7 +149,6 @@ export default function AdminFeedbackPage() {
       );
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        setAdminToken(null);
         setError(t.errors.tokenRejected);
       } else {
         setError((err as Error).message);
@@ -224,14 +192,6 @@ export default function AdminFeedbackPage() {
             </h1>
           </div>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={promptForToken}
-              className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3.5 py-2 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
-              style={{ borderRadius: 8 }}
-            >
-              {t.actions.setToken}
-            </button>
             <button
               type="button"
               onClick={() => void load()}

@@ -13,8 +13,8 @@ import {
   type AdminDeskStore,
   type DeskVia,
 } from '../db/adminDesk.js';
-import { isDeskSession, memberStillAllowed, readDeskSession } from '../ops/deskSession.js';
-import { mayCall } from '../ops/adminPages.js';
+import { isDeskSession, memberStillAllowed, readDeskSession, renewDeskSession, type DeskNetwork, type DeskSessionClaims } from '../ops/deskSession.js';
+import { mayCall, accessFor, allows, levelForRoute, type DeskAccess } from '../ops/adminPages.js';
 import { requireAccessPass } from './accessPass.js';
 
 /// The admin desk's gate (view 64). After Cloudflare Access's pass, it works out
@@ -28,7 +28,13 @@ export interface DeskPrincipal {
   email: string | null;
   name: string | null;
   owner: boolean;
+  /// The pages ticked for this member, kept for callers that read the list.
   pages: string[];
+  /// The level on each ticked page (view 79). Empty for the owner, who has all.
+  access: DeskAccess;
+  /// The session's claims when the caller signed in on the desk; each answer
+  /// renews them (view 79).
+  session?: DeskSessionClaims;
 }
 
 let store: AdminDeskStore = pgEnabled ? postgresAdminDeskStore(postgresExecutor()) : memoryAdminDeskStore();
@@ -56,12 +62,18 @@ function providedToken(c: Context): string {
   return headerToken || bearerToken;
 }
 
+/// The network this server serves; a desk session is good on it alone.
+export function deskNetwork(): DeskNetwork {
+  return config.ARC_NETWORK === 'mainnet' ? 'mainnet' : 'testnet';
+}
+
 export function deskSecret(): string {
   return config.SESSION_SECRET ?? 'dev-only-unsigned';
 }
 
 function fromMember(m: TeamMember, via: DeskVia): DeskPrincipal {
-  return { via, memberId: m.id, email: m.email, name: m.name, owner: m.deskOwner === true, pages: m.deskOwner ? [] : (m.deskPages ?? []) };
+  const access = m.deskOwner ? {} : accessFor(m);
+  return { via, memberId: m.id, email: m.email, name: m.name, owner: m.deskOwner === true, pages: Object.keys(access), access };
 }
 
 export async function resolvePrincipal(c: Context): Promise<DeskPrincipal | null> {
@@ -70,11 +82,11 @@ export async function resolvePrincipal(c: Context): Promise<DeskPrincipal | null
   const accessEmail = (c.get('accessEmail' as never) as string | null | undefined) ?? null;
 
   if (isDeskSession(raw)) {
-    const claims = readDeskSession(raw, deskSecret(), Date.now());
+    const claims = readDeskSession(raw, deskSecret(), Date.now(), deskNetwork());
     if (!claims) return null;
     const member = await getMember(claims.id);
     if (!member || !memberStillAllowed(member, { se: claims.se, de: claims.de }, accessEmail)) return null;
-    return fromMember(member, 'session');
+    return { ...fromMember(member, 'session'), session: claims };
   }
   if (isDeskKey(raw)) {
     const key = await checkDeskKey(store, raw);
@@ -88,10 +100,10 @@ export async function resolvePrincipal(c: Context): Promise<DeskPrincipal | null
   // accepts them. Tests and local work still use them as stand-in callers.
   if (config.NODE_ENV === 'production') return null;
   if (config.ADMIN_API_TOKEN && constantTimeEqual(raw, config.ADMIN_API_TOKEN)) {
-    return { via: 'shared-token', memberId: null, email: null, name: 'shared admin token', owner: true, pages: [] };
+    return { via: 'shared-token', memberId: null, email: null, name: 'shared admin token', owner: true, pages: [], access: {} };
   }
   if (config.SUPPORT_API_TOKEN && constantTimeEqual(raw, config.SUPPORT_API_TOKEN)) {
-    return { via: 'shared-token', memberId: null, email: null, name: 'shared support token', owner: false, pages: ['support'] };
+    return { via: 'shared-token', memberId: null, email: null, name: 'shared support token', owner: false, pages: ['support'], access: { support: 'fix' } };
   }
   return null;
 }
@@ -160,7 +172,7 @@ const deskGate = (page?: string) => async function gate(c: Context, next: Next):
     }
     return c.json({ error: 'unauthorized' }, 401);
   }
-  const allowed = page ? principal.owner || principal.pages.includes(page) : mayCall(principal, method, path);
+  const allowed = page ? principal.owner || allows(principal.access, page, levelForRoute(method, path)) : mayCall(principal, method, path);
   if (!allowed) {
     await writeDeskRow({
       memberId: principal.memberId, memberEmail: principal.email, via: principal.via, method, path,
@@ -171,6 +183,10 @@ const deskGate = (page?: string) => async function gate(c: Context, next: Next):
   c.set('deskPrincipal' as never, principal as never);
   const request = change ? await readBody(c) : null;
   await next();
+  if (principal.session) {
+    const renewed = renewDeskSession(principal.session, deskSecret(), Date.now());
+    if (renewed) c.header('x-desk-session', renewed.token);
+  }
   if (!change) return;
   const status = c.res.status;
   await writeDeskRow({

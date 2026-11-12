@@ -631,6 +631,12 @@ const envSchema = z.object({
   IRIS_API_BASE: z.preprocess(blankToUndefined, z.string().url().optional()),
 
   DATABASE_URL: optionalString,
+  // The team list both desks share (view 79). Mainnet points at testnet's
+  // database with a login limited to the two team tables; unset, the team list
+  // is in this server's own database.
+  TEAM_DATABASE_URL: optionalString,
+  // Seals each teammate's mainnet desk code. The same value on both servers.
+  DESK_CODE_KEY: optionalString,
 
   // Telegram bot for deal alerts and chat notifications. When unset, the bot
   // module no-ops gracefully and the /telegram routes report "not configured".
