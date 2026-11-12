@@ -9,6 +9,7 @@ import {
   buildWorkRequestPostConfirm,
   buildWorkApproveConfirm,
   buildWorkFlagConfirm,
+  buildWorkUnflagConfirm,
   buildWorkHoursConfirm,
   buildWorkObjectConfirm,
   buildWorkOfferConfirm,
@@ -30,7 +31,7 @@ const WORK = z.string().min(3).max(64).describe('The work id, from list_my_work.
 const REQUEST = z.string().min(3).max(64).describe('The posted work id, from list_hourly_requests.');
 const errorOf = (r: { json: Record<string, unknown> }, fallback: string) => ({ error: typeof r.json.error === 'string' ? r.json.error : fallback });
 
-type Week = { k: number; loggedMinutes: number; approvedMinutes: number; canApprove: boolean; canObject: boolean; canLog: boolean; canFlag?: boolean; log?: unknown[]; ifPaid: { netMicros: string } };
+type Week = { k: number; loggedMinutes: number; approvedMinutes: number; canApprove: boolean; canObject: boolean; canLog: boolean; canFlag?: boolean; canUnflag?: boolean; log?: { flagged?: unknown }[]; ifPaid: { netMicros: string } };
 type WorkView = {
   id: string; title: string; kind: 'hourly' | 'monthly'; sessions?: number; role: 'hirer' | 'worker'; weeks: Week[];
   canAccept: boolean; canTakeBack: boolean; canGiveNotice: boolean; nextWeek: { k: number; totalMicros: string } | null; fundBlocked: string | null;
@@ -149,7 +150,22 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
         const x = weekOf(w, month ? month - 1 : undefined, (y) => y.canFlag === true);
         if (!x) return { error: 'No session is recorded for a month that is still open.' };
         if (session > (x.log?.length ?? 0)) return { error: `Only ${x.log?.length ?? 0} sessions are recorded for that month.` };
+        if (x.log?.[session - 1]?.flagged) return { error: 'That session already has their note. Offer to take it back first (propose_session_unflag); then a new note can be sent.' };
         return show(buildWorkFlagConfirm(w, { k: x.k, n: session, note }));
+      },
+    }),
+
+    propose_session_unflag: tool({
+      description: "Prepare a card for the hirer to take back a note saying a session did not happen ('I was wrong, the Tuesday lesson did happen', 'remove my note on session 2'), while the month is still running. The session counts as held again, the worker is told and no money moves. To change the words of a note, take it back and then send a new one.",
+      inputSchema: z.object({ workId: WORK, session: z.number().int().min(1).max(60).describe('Which recorded session, 1 for the first of that month.'), month: z.number().int().min(1).optional() }),
+      execute: async ({ workId, session, month }) => {
+        const w = await read(workId);
+        if ('error' in w) return w;
+        if (w.role !== 'hirer') return { error: 'Only the hirer can take back a note on a session.' };
+        const x = weekOf(w, month ? month - 1 : undefined, (y) => y.canUnflag === true);
+        if (!x) return { error: 'No session has a note in a month that is still open.' };
+        if (!x.log?.[session - 1]?.flagged) return { error: 'That session has no note to take back.' };
+        return show(buildWorkUnflagConfirm(w, { k: x.k, n: session }));
       },
     }),
 

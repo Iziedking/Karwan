@@ -148,6 +148,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/work/:/fund': { by: 'assistant', via: 'work_fund' },
   'POST /api/work/:/hours': { by: 'assistant', via: 'work_hours' },
   'POST /api/work/:/flag': { by: 'assistant', via: 'work_flag' },
+  'POST /api/work/:/unflag': { by: 'assistant', via: 'work_unflag' },
   'POST /api/work/:/approve': { by: 'assistant', via: 'work_approve' },
   'POST /api/work/:/object': { by: 'assistant', via: 'work_object' },
   'POST /api/work-requests': { by: 'assistant', via: 'work_request_post' },
@@ -258,7 +259,9 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/assistant/chat': ASSISTANT_OWN,
   'POST /api/assistant/conversations': ASSISTANT_OWN,
   'DELETE /api/assistant/conversations/:': ASSISTANT_OWN,
-  'POST /api/support/start': { by: 'assistant', via: '[[HUMAN]]' },
+  'POST /api/support/start': { by: 'internal', why: 'The website asks for a person this way only when the assistant itself cannot answer; otherwise the assistant opens a case with open_support_case.' },
+  'POST /api/support/cases': { by: 'assistant', via: 'open_support_case' },
+  'POST /api/support/cases/:/messages': { by: 'assistant', via: 'add_to_support_case' },
   'POST /api/support/:/message': { by: 'internal', why: 'Messages inside the support chat a person joined.' },
   'POST /api/support/:/close': { by: 'internal', why: 'Closing the support chat a person joined.' },
 

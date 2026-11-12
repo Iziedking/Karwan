@@ -264,6 +264,34 @@ test('the hirer reads the count with the session in question, and no line about 
   await expect(page.locator('[data-told]')).toHaveCount(0);
 });
 
+test('the hirer takes a note back, and a session with a note cannot be given another (S-16, S-18)', async ({ page }) => {
+  const posted = { body: null as unknown, path: '' as string | undefined };
+  const log = sessionLog(5).map((x, i) => (i === 3 ? { ...x, flagged: { at: Date.now(), note: 'Nobody came' } } : x));
+  await serve(page, BUYER, lessons({}, { status: 'funded', log, canFlag: true, canUnflag: true }), posted);
+  await page.goto('/work/w_demo');
+  await page.getByRole('button', { name: s.didNot }).click();
+  const flag = page.getByRole('dialog');
+  await expect(flag.getByRole('radio', { name: 'Session 4 · note sent' })).toBeDisabled();
+  await expect(flag.getByRole('radio', { name: 'Session 5', exact: true })).toBeEnabled();
+  await flag.getByRole('button', { name: t.notNow }).click();
+  await expect(page.locator('[data-take-back]')).toHaveCount(1);
+  await page.locator('[data-take-back="4"]').click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText('@ada is told and the session counts as held again. No money moves.');
+  await sheet.getByRole('button', { name: s.unflagConfirm }).click();
+  await expect.poll(() => posted.path).toBe('/api/work/w_demo/unflag');
+  expect(posted.body).toEqual({ k: 0, n: 4 });
+  await expect(page.locator('[data-work-saved]')).toHaveText('Note taken back. @ada has been told.');
+});
+
+test('the worker sees the note but cannot take it back', async ({ page }) => {
+  const log = sessionLog(5).map((x, i) => (i === 3 ? { ...x, flagged: { at: Date.now(), note: 'Nobody came' } } : x));
+  await serve(page, SELLER, lessons({ role: 'worker' }, { status: 'funded', log, canLog: true }));
+  await page.goto('/work/w_demo');
+  await expect(page.getByText('Nobody came')).toBeVisible();
+  await expect(page.locator('[data-take-back]')).toHaveCount(0);
+});
+
 /// A slow answer: the button says it is working, and the page says what was saved (S-10, S-17).
 async function slowly(page: Page, path: string, view: WorkView) {
   await page.route(`${API}${path}`, async (route) => {

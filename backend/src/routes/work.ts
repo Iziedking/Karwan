@@ -41,6 +41,7 @@ function withTyped<T extends { rateUsdc: string; quote?: string }>(body: T) {
 
 const hoursSchema = z.object({ minutes: z.number().int(), note: z.string().max(300).optional(), k: z.number().int().min(0).optional(), link: z.string().max(300).optional() });
 const flagSchema = z.object({ k: z.number().int().min(0), n: z.number().int().min(1), note: z.string().max(300) });
+const unflagSchema = z.object({ k: z.number().int().min(0), n: z.number().int().min(1) });
 const weekSchema = z.object({ k: z.number().int().min(0) });
 const objectSchema = z.object({ k: z.number().int().min(0), minutes: z.number().int(), reason: z.string().max(500) });
 
@@ -153,6 +154,15 @@ export function createWorkRoutes(deps: WorkRouteDeps) {
     if (!body.success) return c.json({ error: 'invalid body' }, 400);
     const id = c.req.param('id');
     return answer(c, me, id, (await deps.core.flagSession(me, id, body.data)) as Out);
+  });
+
+  app.post('/:id/unflag', async (c) => {
+    const me = who(c);
+    if (!me) return c.json({ error: 'not authenticated' }, 401);
+    const body = unflagSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json({ error: 'invalid body' }, 400);
+    const id = c.req.param('id');
+    return answer(c, me, id, (await deps.core.unflagSession(me, id, body.data)) as Out);
   });
 
   app.post('/:id/approve', async (c) => {

@@ -27,6 +27,7 @@ export interface WorkStepConfirm extends ConfirmActionBase {
 }
 export interface WorkHoursConfirm extends ConfirmActionBase { intent: 'work_hours'; payload: { workId: string; minutes: number; note: string; k?: number; link?: string } }
 export interface WorkFlagConfirm extends ConfirmActionBase { intent: 'work_flag'; payload: { workId: string; k: number; n: number; note: string } }
+export interface WorkUnflagConfirm extends ConfirmActionBase { intent: 'work_unflag'; payload: { workId: string; k: number; n: number } }
 export interface WorkApproveConfirm extends ConfirmActionBase { intent: 'work_approve'; payload: { workId: string; k: number } }
 export interface WorkObjectConfirm extends ConfirmActionBase { intent: 'work_object'; payload: { workId: string; k: number; minutes: number; reason: string } }
 
@@ -47,7 +48,7 @@ export interface WorkRequestHireConfirm extends ConfirmActionBase { intent: 'wor
 export interface WorkRequestCloseConfirm extends ConfirmActionBase { intent: 'work_request_close'; payload: { requestId: string } }
 
 export type WorkConfirm =
-  | WorkOfferConfirm | WorkStepConfirm | WorkHoursConfirm | WorkFlagConfirm | WorkApproveConfirm | WorkObjectConfirm
+  | WorkOfferConfirm | WorkStepConfirm | WorkHoursConfirm | WorkFlagConfirm | WorkUnflagConfirm | WorkApproveConfirm | WorkObjectConfirm
   | WorkRequestPostConfirm | WorkRequestOfferConfirm | WorkRequestHireConfirm | WorkRequestCloseConfirm;
 
 export interface WorkDraftCard {
@@ -160,6 +161,20 @@ export function buildWorkApproveConfirm(w: WorkRow, i: { k: number; minutes: num
     fields: [{ label: 'They receive', value: usdc(i.netMicros) }],
     payload: { workId: w.id, k: i.k },
     confirmLabel: 'Approve and pay',
+    cancelLabel: 'Not now',
+  };
+}
+
+export function buildWorkUnflagConfirm(w: WorkRow, i: { k: number; n: number }): WorkUnflagConfirm {
+  return {
+    kind: 'confirm',
+    id: `work_unflag:${w.id}:${i.k}:${i.n}:${confirmNonce()}`,
+    intent: 'work_unflag',
+    title: `Take back your note on session ${i.n} of ${w.title}`,
+    summary: 'The session counts as held again, and they are told. No money moves now.',
+    fields: [{ label: 'Session', value: `${i.n} of month ${i.k + 1}` }],
+    payload: { workId: w.id, k: i.k, n: i.n },
+    confirmLabel: 'Take it back',
     cancelLabel: 'Not now',
   };
 }

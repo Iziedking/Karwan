@@ -68,6 +68,7 @@ Notes:
 
 - **The session record.** Each entry has the date, a note of up to 300 characters and an optional link. The hirer sees the list on the work page and in chat. The record's hash goes on chain with each entry, as hours already do.
 - **Flagging early.** During the month the hirer can mark a session "did not happen". That is a note for the review; no money moves and nothing is disputed until the month's review.
+- **Taking a note back.** While the month is still open the hirer can take the note back, on the work page or through the assistant on any channel. The session counts as held again, the worker is told, and no money moves. A session that already has a note cannot be given a second one: to change the words, the hirer takes the note back and sends a new one, so the worker never holds two notes about one session.
 - **The review.** As view 32 decided: two days after the month to record, three days to review. Silence pays the recorded sessions. Sessions objected to go to the two people for 72 hours, then to Karwan's review team.
 - **Money.** The month's money is on the escrow before the month starts. A session is worth the month's price divided by the sessions agreed. Sessions not recorded come back to the hirer at settlement.
 - **A plain retainer stays.** Work with no sessions to count (a bookkeeper on call) is still one claim a month.
@@ -102,6 +103,7 @@ Logged in `docs/arc-circle-checks.md` before any code: a fork run of a month wit
 3. **Flagging a session during the month** (decided 11 Nov 2026): a note only, weighed at the review.
 4. **The behind-pace warning** (decided 11 Nov 2026): once, at the halfway point, when fewer than half the sessions are recorded. Both sides get the same message.
 5. **Where monthly work is not open** (decided 11 Nov 2026): say so and offer a one-time request.
+6. **Taking a note back** (decided 12 Nov 2026): the hirer can, while the month is open; one note a session, changed by taking it back and sending a new one.
 
 ## Status
 
@@ -116,3 +118,4 @@ Logged in `docs/arc-circle-checks.md` before any code: a fork run of a month wit
 | A period that has not started says when, to the minute | Built 12 Nov 2026, not deployed: the worker on running work reads "Record sessions from 12 Nov, 02:54" (or log hours, or claim the month), the hirer reads "Starts" with the same day and time, each in their own time zone |
 | Every step on the work page says it is working, and a session or a note says it was saved | Built 12 Nov 2026, not deployed: the sheet's button shows a spinner and "Working" until the answer comes; after a session is recorded the page reads "Session saved. @name has been told.", after a note "Note sent. @name has been told.", until the next step opens |
 | A session in question shows in the count, and the worker reads who was told | Built 12 Nov 2026, not deployed: the month reads "1 of 4 sessions · 1 in question" for both sides while the hirer's note stands, and under the sessions the worker reads "@name was told. They review after 10 Dec." |
+| Taking a note back, and one note a session | Built 12 Nov 2026, not deployed: the hirer takes a note back on the work page (Take back the note, under the note) or through the assistant on every channel (`propose_session_unflag`, `POST /api/work/:id/unflag`); the worker is told and the session counts as held. A session that has a note is shown as "note sent" in the sheet and cannot be picked again, and the server refuses a second note |

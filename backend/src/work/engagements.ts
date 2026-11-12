@@ -474,9 +474,31 @@ export function createEngagements(p: WorkPorts) {
     if (!Number.isInteger(i.n) || i.n < 1 || i.n > w.log.length) return refuse('BAD_HOURS', `Name a recorded session, 1 to ${w.log.length}.`);
     const note = i.note.trim();
     if (!note || note.length > 300) return refuse('BAD_REASON', 'Say what happened, in up to 300 characters.');
+    // One note a session, so the worker never holds two about the same one.
+    if (w.log[i.n - 1]!.flagged) return refuse('ALREADY_FLAGGED', 'That session already has your note. Take it back first to change it.');
     const log = w.log.map((x, n) => (n === i.n - 1 ? { ...x, flagged: { at: p.now(), note } } : x));
     const live = (await p.store.patch(id, { weeks: e.weeks.map((x) => (x.k === i.k ? { ...x, log } : x)) }))!;
     p.tellPerson(e.worker, `${e.title}: the hirer says session ${i.n} of month ${i.k + 1} did not happen: "${note}". It is looked at when the month is reviewed.`, id);
+    return { ok: true as const, work: live };
+  }
+
+  /// The hirer takes that note back while the month is open. The session
+  /// counts as held again; no money moves and nothing goes on chain.
+  async function unflagSession(hirer: Address, id: string, i: { k: number; n: number }) {
+    const e = await workFor(id, hirer, 'hirer');
+    if (isRefusal(e)) return e;
+    if (!e.sessions) return refuse('NO_SESSIONS', 'This work has no sessions to mark.');
+    const w = e.weeks.find((x) => x.k === i.k);
+    if (!w || (w.status !== 'funded' && w.status !== 'logged')) return refuse('LOG_CLOSED', 'That month is already being settled.');
+    if (!Number.isInteger(i.n) || i.n < 1 || i.n > w.log.length) return refuse('BAD_HOURS', w.log.length ? `Name a recorded session, 1 to ${w.log.length}.` : 'No session is recorded for that month yet.');
+    if (!w.log[i.n - 1]!.flagged) return refuse('NOT_FLAGGED', 'That session has no note to take back.');
+    const log = w.log.map((x, n) => {
+      if (n !== i.n - 1) return x;
+      const { flagged: _gone, ...rest } = x;
+      return rest;
+    });
+    const live = (await p.store.patch(id, { weeks: e.weeks.map((x) => (x.k === i.k ? { ...x, log } : x)) }))!;
+    p.tellPerson(e.worker, `${e.title}: the hirer took back the note on session ${i.n} of month ${i.k + 1}. It counts as held.`, id);
     return { ok: true as const, work: live };
   }
 
@@ -672,7 +694,8 @@ export function createEngagements(p: WorkPorts) {
       const win = windowsOf(e, w.k);
       return { ...w, ...win, settleAt: settleAt(e, w), canLog: role === 'worker' && (w.status === 'funded' || w.status === 'logged') && now >= win.start && now < win.logBy,
         canApprove: role === 'hirer' && w.status === 'logged' && w.loggedMinutes > w.approvedMinutes && now < settleAt(e, w) && (!e.sessions || now >= win.end),
-        canFlag: role === 'hirer' && !!e.sessions && (w.status === 'funded' || w.status === 'logged') && w.log.length > 0,
+        canFlag: role === 'hirer' && !!e.sessions && (w.status === 'funded' || w.status === 'logged') && w.log.some((x) => !x.flagged),
+        canUnflag: role === 'hirer' && !!e.sessions && (w.status === 'funded' || w.status === 'logged') && w.log.some((x) => !!x.flagged),
         canObject: role === 'hirer' && w.status === 'logged' && w.loggedMinutes > w.approvedMinutes && now >= win.logBy && now < settleAt(e, w),
         ifPaid: preview(e, w.loggedMinutes) };
     });
@@ -707,7 +730,7 @@ export function createEngagements(p: WorkPorts) {
     return { netMicros: r.net.toString(), backMicros: r.back.toString(), feeMicros: r.fee.toString() };
   }
 
-  return { draft, offer, accept, decline, cancel, logHours, flagSession, approveHours, objectHours, fundNext, giveNotice, runDue, view, mine, preview, get: (id: string) => p.store.get(id) };
+  return { draft, offer, accept, decline, cancel, logHours, flagSession, unflagSession, approveHours, objectHours, fundNext, giveNotice, runDue, view, mine, preview, get: (id: string) => p.store.get(id) };
 }
 
 export type Engagements = ReturnType<typeof createEngagements>;

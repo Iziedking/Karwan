@@ -772,6 +772,8 @@ async function runConfirmIntent(
         return open((await api.logHours(id, { minutes: p.minutes ?? 0, note: p.note ?? '', ...(p.k === undefined ? {} : { k: p.k }), ...(p.link ? { link: p.link } : {}) })).work, 'Logged. The hirer has been told.');
       case 'work_flag':
         return open((await api.flagSession(id, { k: p.k ?? 0, n: p.n ?? 0, note: p.note ?? '' })).work, 'Noted, and they are told. It is weighed when you review the month.');
+      case 'work_unflag':
+        return open((await api.unflagSession(id, { k: p.k ?? 0, n: p.n ?? 0 })).work, 'Taken back, and they are told. The session counts as held.');
       case 'work_approve':
         return open((await api.approveHours(id, p.k ?? 0)).work, 'Approved, and they are paid.');
       case 'work_object':

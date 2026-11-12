@@ -370,6 +370,26 @@ test('a month of sessions: each one recorded, flagged by a note, paid after the 
   assert.equal((await work.get('w_1'))!.weeks[0]!.log[1]!.flagged?.note, 'Nobody came');
   assert.ok(told.some((t) => t.to === WORKER && /session 2 of month 1 did not happen: "Nobody came"/.test(t.text)));
 
+  // One note a session; the hirer takes it back to change it (S-16, S-18).
+  const twice = await work.flagSession(HIRER, 'w_1', { k: 0, n: 2, note: 'Again' });
+  assert.ok(!twice.ok && twice.code === 'ALREADY_FLAGGED');
+  assert.equal((await work.get('w_1'))!.weeks[0]!.log[1]!.flagged?.note, 'Nobody came');
+  const seen = (await work.view('w_1', HIRER))!.weeks[0]!;
+  assert.equal(seen.canFlag, true, 'two sessions still have no note');
+  assert.equal(seen.canUnflag, true);
+  assert.equal((await work.view('w_1', WORKER))!.weeks[0]!.canUnflag, false);
+  assert.ok(!(await work.unflagSession(WORKER, 'w_1', { k: 0, n: 2 })).ok, 'only the hirer takes a note back');
+  const plain = await work.unflagSession(HIRER, 'w_1', { k: 0, n: 1 });
+  assert.ok(!plain.ok && plain.code === 'NOT_FLAGGED');
+  assert.ok((await work.unflagSession(HIRER, 'w_1', { k: 0, n: 2 })).ok);
+  assert.equal(calls.length, before, 'taking a note back puts nothing on chain');
+  assert.equal((await work.get('w_1'))!.weeks[0]!.log[1]!.flagged, undefined);
+  assert.equal((await work.get('w_1'))!.weeks[0]!.log[1]!.note, 'Decimals');
+  assert.ok(told.some((t) => t.to === WORKER && /took back the note on session 2 of month 1/.test(t.text)));
+  assert.equal((await work.view('w_1', HIRER))!.weeks[0]!.canUnflag, false);
+  assert.ok((await work.flagSession(HIRER, 'w_1', { k: 0, n: 2, note: 'Cut short' })).ok, 'a new note can follow');
+  assert.ok((await work.unflagSession(HIRER, 'w_1', { k: 0, n: 2 })).ok);
+
   at(win.end);
   const ok = await work.approveHours(HIRER, 'w_1', 0);
   assert.ok(ok.ok);

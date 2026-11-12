@@ -2192,6 +2192,7 @@ export interface AssistantConfirmAction {
     | 'work_fund'
     | 'work_hours'
     | 'work_flag'
+    | 'work_unflag'
     | 'work_approve'
     | 'work_object'
     | 'work_request_post'
@@ -2740,6 +2741,14 @@ export interface AdminDeskAction {
   result: unknown;
 }
 
+function adminCasePost(ref: string, action: string, body: unknown) {
+  return json<{ ok: true }>(`/api/admin/support/cases/${encodeURIComponent(ref)}/${action}`, {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+}
+
 function adminHeaders(): Record<string, string> {
   const t = getAdminToken();
   return t ? { 'x-admin-token': t } : {};
@@ -2962,6 +2971,108 @@ export interface NewsletterEngineState {
   monthInReview: boolean;
   waiting: number;
   clusters: Array<{ key: SectionKey; count: number }>;
+}
+
+/// A person's own case (view 78).
+export interface MyCase {
+  ref: string;
+  kind: AdminCaseKind;
+  state: AdminCaseState;
+  dueAt: number;
+  records: Array<{ kind: 'deal' | 'transfer'; id: string }>;
+  createdAt: number;
+  updatedAt: number;
+}
+export interface MyCaseRow extends MyCase {
+  lastLine: string;
+}
+export interface MyCaseMessage {
+  role: 'person' | 'bot' | 'teammate' | 'system';
+  text: string;
+  at: number;
+  channel: 'web' | 'telegram' | 'email' | 'desk';
+}
+
+/// A support case on the desk (view 78).
+export type AdminCaseKind = 'money_in_deal' | 'transfer_missing' | 'account' | 'using_karwan' | 'other';
+export type AdminCaseState = 'new' | 'waiting_us' | 'waiting_person' | 'solved';
+export type AdminCaseChannel = 'web' | 'telegram' | 'email';
+
+export interface AdminCaseRow {
+  ref: string;
+  kind: AdminCaseKind;
+  state: AdminCaseState;
+  person: { name: string; handle: string | null } | null;
+  email: string | null;
+  lastChannel: AdminCaseChannel;
+  dueAt: number;
+  firstRepliedAt: number | null;
+  assignee: string | null;
+  asked: string | null;
+  updatedAt: number;
+}
+
+export interface AdminCaseMessage {
+  id: string;
+  role: 'person' | 'bot' | 'teammate' | 'system' | 'note';
+  memberId?: string;
+  channel: AdminCaseChannel | 'desk';
+  text: string;
+  deliveredVia?: string[];
+  heldReason?: string;
+  at: number;
+}
+
+export interface AdminCaseRecordPanel {
+  kind: 'deal' | 'transfer';
+  reference: string;
+  amountUsdc: string;
+  worth: { currency: string; amount: string } | null;
+  state: string;
+  nextStep?: string;
+  otherSide?: { name: string; handle: string | null } | null;
+  summary?: string;
+  failedReason?: string | null;
+  updatedAt: number;
+}
+
+export interface AdminRoomMessage {
+  id: string;
+  caseId?: string;
+  memberId?: string;
+  text: string;
+  asks?: string;
+  at: number;
+}
+
+export interface AdminCaseView {
+  case: {
+    id: string;
+    ref: string;
+    address?: string;
+    email?: string;
+    contactVerified: boolean;
+    kind: AdminCaseKind;
+    state: AdminCaseState;
+    lastChannel: AdminCaseChannel;
+    assignee?: string;
+    asked?: string;
+    records: Array<{ kind: 'deal' | 'transfer'; id: string }>;
+    fixes: Array<{ requestId: string; action: string }>;
+    dueAt: number;
+    firstRepliedAt?: number;
+    createdAt: number;
+    updatedAt: number;
+  };
+  messages: AdminCaseMessage[];
+  person: {
+    name: string;
+    handle: string | null;
+    verified: boolean;
+    network: 'mainnet' | 'testnet';
+    earlierCases: Array<{ ref: string; kind: AdminCaseKind; state: AdminCaseState; createdAt: number }>;
+  } | null;
+  records: AdminCaseRecordPanel[];
 }
 
 export interface AdminTicketRow {
@@ -3315,6 +3426,8 @@ export interface WorkWeekView {
   canLog: boolean;
   canApprove: boolean;
   canFlag?: boolean;
+  /// The hirer can take back a note on a session of this month (view 76).
+  canUnflag?: boolean;
   canObject: boolean;
   ifPaid: { netMicros: string; backMicros: string; feeMicros: string };
 }
@@ -4087,6 +4200,33 @@ export const api = {
     json<{ ok: true }>(`/api/admin/support/${id}/close`, {
       method: 'POST',
       headers: adminHeaders(),
+    }),
+  /// Support cases (view 78).
+  adminCases: (filter: { state?: AdminCaseState; askedMe?: boolean } = {}) => {
+    const q = new URLSearchParams();
+    if (filter.state) q.set('state', filter.state);
+    if (filter.askedMe) q.set('asked', 'me');
+    const qs = q.toString();
+    return json<{ cases: AdminCaseRow[] }>(`/api/admin/support/cases${qs ? `?${qs}` : ''}`, { headers: adminHeaders() });
+  },
+  adminCase: (ref: string) => json<AdminCaseView>(`/api/admin/support/cases/${encodeURIComponent(ref)}`, { headers: adminHeaders() }),
+  adminCaseTeam: () => json<{ team: Array<{ id: string; name: string }>; me: string | null }>('/api/admin/support/cases/team', { headers: adminHeaders() }),
+  adminCaseReply: (ref: string, text: string) => adminCasePost(ref, 'reply', { text }),
+  adminCaseNote: (ref: string, text: string) => adminCasePost(ref, 'note', { text }),
+  adminCaseState: (ref: string, state: AdminCaseState) => adminCasePost(ref, 'state', { state }),
+  adminCaseAssign: (ref: string, memberId: string) => adminCasePost(ref, 'assign', { memberId }),
+  adminCaseAsk: (ref: string, memberId: string, text: string) => adminCasePost(ref, 'ask', { memberId, text }),
+  adminCaseAttach: (ref: string, kind: 'deal' | 'transfer', id: string) => adminCasePost(ref, 'records', { kind, id }),
+  adminCaseLink: (ref: string, address: string) => adminCasePost(ref, 'link', { address }),
+  adminCaseFix: (ref: string, requestId: string) => adminCasePost(ref, 'fixes', { requestId }),
+  /// The team room: the shared room, or one case's thread.
+  adminRoom: (caseRef?: string) =>
+    json<{ messages: AdminRoomMessage[] }>(`/api/admin/support/room${caseRef ? `?case=${encodeURIComponent(caseRef)}` : ''}`, { headers: adminHeaders() }),
+  adminRoomPost: (text: string, caseRef?: string) =>
+    json<{ message: AdminRoomMessage }>('/api/admin/support/room', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(caseRef ? { text, case: caseRef } : { text }),
     }),
   adminListTeamKeys: () =>
     json<{ keys: TeamAccessKeyView[] }>('/api/admin/team-keys', { headers: adminHeaders() }),
@@ -6115,6 +6255,8 @@ export const api = {
   fundWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/fund`, { method: 'POST', body: JSON.stringify({}) }),
   flagSession: (id: string, body: { k: number; n: number; note: string }) =>
     json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/flag`, { method: 'POST', body: JSON.stringify(body) }),
+  unflagSession: (id: string, body: { k: number; n: number }) =>
+    json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/unflag`, { method: 'POST', body: JSON.stringify(body) }),
   logHours: (id: string, body: { minutes: number; note?: string; k?: number; link?: string }) =>
     json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/hours`, { method: 'POST', body: JSON.stringify(body) }),
   approveHours: (id: string, k: number) =>
@@ -6543,6 +6685,16 @@ export const api = {
     }>(`/api/support/${id}/messages?since=${since}`, { headers: ticketKeyHeader(id) }),
   supportClose: (id: string) =>
     json<{ ok: boolean }>(`/api/support/${id}/close`, { method: 'POST', headers: ticketKeyHeader(id) }).finally(() => forgetTicketKey(id)),
+  /// A signed-in person's own cases (view 78).
+  myCases: () => json<{ cases: MyCaseRow[] }>('/api/support/cases'),
+  myCase: (ref: string) => json<{ case: MyCase; messages: MyCaseMessage[] }>(`/api/support/cases/${encodeURIComponent(ref)}`),
+  openCase: (text: string, records: Array<{ kind: 'deal' | 'transfer'; id: string }> = []) =>
+    json<{ ref: string; joined: boolean; dueAt: number; outOfHours: string | null }>('/api/support/cases', {
+      method: 'POST',
+      body: JSON.stringify({ text, records }),
+    }),
+  writeToCase: (ref: string, text: string) =>
+    json<{ ok: true }>(`/api/support/cases/${encodeURIComponent(ref)}/messages`, { method: 'POST', body: JSON.stringify({ text }) }),
 
   // What research costs: the person's agents pay for it themselves (view 48).
   researchStatus: () =>

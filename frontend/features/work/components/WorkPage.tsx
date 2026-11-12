@@ -22,7 +22,8 @@ type SheetKind =
   | { kind: 'log'; k: number }
   | { kind: 'approve'; w: WorkWeekView }
   | { kind: 'object'; w: WorkWeekView }
-  | { kind: 'flag'; w: WorkWeekView };
+  | { kind: 'flag'; w: WorkWeekView }
+  | { kind: 'unflag'; w: WorkWeekView; n: number };
 
 /// One piece of hourly work (view 32), the same page for both sides. The
 /// rate and this week's hours lead; each money step opens the confirm sheet.
@@ -194,6 +195,7 @@ export function WorkPage({ id }: { id: string }) {
                           {v.role === 'hirer' ? fill(ts.youSaid, { note: x.flagged.note }) : fill(ts.theySaid, { name: v.hirerName, note: x.flagged.note })}
                         </p>
                       ) : null}
+                      {x.flagged && w.canUnflag ? <button type="button" data-take-back={x.n} onClick={() => open({ kind: 'unflag', w, n: x.n })} className={`${QUIET_BUTTON} mt-3`}>{ts.takeBackNote}</button> : null}
                     </li>
                   ))}
                 </ul>
@@ -244,6 +246,7 @@ export function WorkPage({ id }: { id: string }) {
       case 'approve': return t.sheets.approve.title;
       case 'object': return bySession ? ts.objectTitle : t.sheets.object.title;
       case 'flag': return ts.flagTitle;
+      case 'unflag': return ts.takeBackNote;
       case 'fund': return t.sheets.fund.title;
       case 'notice': return t.sheets.notice.title;
       case 'accept': return t.sheets.accept.title;
@@ -338,9 +341,9 @@ export function WorkPage({ id }: { id: string }) {
           <>
             <div role="radiogroup" aria-label={ts.flagTitle} className="flex flex-wrap gap-2">
               {sessionRows(w).map((x) => (
-                <button key={x.n} type="button" role="radio" aria-checked={pick === x.n} onClick={() => setPick(x.n)}
-                  className={`inline-flex min-h-11 items-center rounded-full border px-4 text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${pick === x.n ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--surface)]' : 'border-[var(--line)] text-[var(--ink)]'}`}>
-                  {fill(ts.session, { n: x.n })}
+                <button key={x.n} type="button" role="radio" aria-checked={pick === x.n} disabled={!!x.flagged} onClick={() => setPick(x.n)}
+                  className={`inline-flex min-h-11 items-center rounded-full border px-4 text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50 ${pick === x.n ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--surface)]' : 'border-[var(--line)] text-[var(--ink)]'}`}>
+                  {fill(x.flagged ? ts.hasNote : ts.session, { n: x.n })}
                 </button>
               ))}
             </div>
@@ -350,6 +353,16 @@ export function WorkPage({ id }: { id: string }) {
             </label>
             <p className="mt-4 rounded-[14px] bg-[var(--ash)] px-3.5 py-3 text-[14px] text-[var(--ink)]">{ts.flagBody}</p>
             {buttons(ts.flagConfirm, () => api.flagSession(v.id, { k: w.k, n: pick ?? 0, note: note.trim() }), !ok, fill(ts.flagSent, { name: v.workerName }))}
+          </>
+        );
+      }
+      case 'unflag': {
+        const { w, n } = sheet;
+        return (
+          <>
+            <p className="text-[15px] font-semibold text-[var(--ink)]">{fill(ts.session, { n })}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink)]">{fill(ts.unflagBody, { name: v.workerName })}</p>
+            {buttons(ts.unflagConfirm, () => api.unflagSession(v.id, { k: w.k, n }), false, fill(ts.noteTaken, { name: v.workerName }))}
           </>
         );
       }

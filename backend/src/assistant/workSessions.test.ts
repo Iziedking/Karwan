@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildWorkApproveConfirm, buildWorkFlagConfirm, buildWorkHoursConfirm, buildWorkObjectConfirm, buildWorkOfferConfirm, buildWorkRequestPostConfirm } from './work.js';
+import { buildWorkApproveConfirm, buildWorkFlagConfirm, buildWorkUnflagConfirm, buildWorkHoursConfirm, buildWorkObjectConfirm, buildWorkOfferConfirm, buildWorkRequestPostConfirm } from './work.js';
 import { ROUTES as executorRoutes } from '../channels/executor.js';
 
 /// View 76: the assistant's cards for monthly work counted in sessions.
@@ -32,6 +32,15 @@ test('the flag card says no money moves', () => {
   assert.equal(f.intent, 'work_flag');
   assert.match(f.summary, /No money moves now/);
   assert.deepEqual(f.payload, { workId: 'w_1', k: 0, n: 2, note: 'Nobody came' });
+});
+
+test('the take-back card names the session and says the worker is told', () => {
+  const u = buildWorkUnflagConfirm(lessons, { k: 0, n: 2 });
+  assert.equal(u.intent, 'work_unflag');
+  assert.equal(u.title, 'Take back your note on session 2 of Maths lessons');
+  assert.match(u.summary, /counts as held again/);
+  assert.deepEqual(u.payload, { workId: 'w_1', k: 0, n: 2 });
+  assert.deepEqual(executorRoutes.work_unflag!({ workId: 'w_1', k: 0, n: 2 }), { method: 'POST', path: '/api/work/w_1/unflag', body: { k: 0, n: 2 } });
 });
 
 test('approving and objecting count sessions', () => {
