@@ -823,3 +823,13 @@ Agree: yes.
 - Added the same day: a settled deal keeps its worth the same way (`db/deals.ts`, `money/worthLive.ts`), emails and Telegram read the kept worth, and `backend/src/scripts/backfill-payment-worth.ts` fills older records from CoinGecko daily history (`GET /coins/{id}/history`, checked against the CoinGecko API reference on 12 Nov 2026). Still no Arc or Circle call. `backend/package.json` gained one script line and no dependency.
 - Added 12 Nov 2026 (L-08): rows on one account in the activity log (yield claimed, refunds, money back from an agent) keep their worth the same way (`money/worth.ts` `activityWorth`, `money/worthLive.ts`, `db/activityLog.ts`), and the same backfill fills older ones. Still no Arc or Circle call and no package change. Unit tests on node-services: `src/money/worth.test.ts`, `src/scripts/backfill-payment-worth.test.ts`, `src/routes/activityMovementLedger.test.ts`.
 - Agree: yes, nothing to disagree with.
+
+## 12 Nov 2026: Arc RPC order on prod, Alchemy first (L-10)
+
+- What: the owner adds a new Alchemy key and wants it first, with dRPC and Arc's public endpoint behind it, on testnet and mainnet. Config only: no code change (`chain/networks.ts` already takes a primary `ARC_RPC_URL` or `ARC_TESTNET_RPC_URL` and an ordered fallback list `ARC_RPC_URLS` or `ARC_TESTNET_RPC_URLS`; `chain/client.ts` rotates in that order on any error, ranking off).
+- Docs, read 12 Nov 2026 (docs.arc.io/arc/references/rpc-endpoints and arc/references/node-requirements): mainnet Alchemy `https://arc-mainnet.g.alchemy.com/v2/<key>`, dRPC `https://rpc.drpc.mainnet.arc.io`, public `https://rpc.mainnet.arc.io`; testnet Alchemy `https://arc-testnet.g.alchemy.com/v2/<key>`, dRPC `https://rpc.drpc.testnet.arc.io`, public `https://rpc.testnet.arc.io`. The public endpoint is load-balanced and can answer `-32014` for a block it has not imported yet; retry after a short wait.
+- Prod as read 12 Nov 2026 (hosts only): testnet primary Canteen, then rpc-testnet.karwan.site, public, arc-testnet.drpc.org, a disabled QuickNode and the old Alchemy key; mainnet primary rpc.karwan.site, then public.
+- Known limit (measured 19 Aug 2026, see the lifetime stats notes): Alchemy's free plan serves `eth_getLogs` over 10 blocks only. With Alchemy first, a wide log read (the start-up replay asks for 10,000 blocks) fails there and moves on to dRPC (10,000) or the public endpoint (30,000 blocks, 20 addresses). It still works, but each such read spends one Alchemy request. Check the new plan's range before relying on it.
+- Installed SDK: `viem` 2.55.11 (no package change).
+- Read-only test: none from this machine for the new key (the agent does not hold it); the owner runs the probe in the handoff.
+- Agree: yes.
