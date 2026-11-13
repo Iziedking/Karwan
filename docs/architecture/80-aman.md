@@ -53,4 +53,4 @@ Legal pages and help answers keep "the assistant" where they describe what it is
 
 | Piece | State |
 |---|---|
-| Name and Home box | Approved by the owner 13 Nov 2026 ("use Aman"); building |
+| Name and Home box | Approved by the owner 13 Nov 2026 ("use Aman"). Built 13 Nov 2026, not deployed: server and website type checks clean, guide, canon and name tests 64/64, website unit tests 12/12, five-language check ok, browser tests 7/7 at phone, tablet and desktop |
