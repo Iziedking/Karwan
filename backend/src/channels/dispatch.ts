@@ -105,7 +105,7 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
 
   const welcome = () =>
     acceptButton(
-      "Hi, I'm the Karwan agent. I find customers and suppliers for you, check who they are, and keep your money in escrow until the work is done.\n\n" +
+      "Hi, I'm Aman, your Karwan agent. I find customers and suppliers for you, check who they are, and keep your money in escrow until the work is done.\n\n" +
         `This is a free beta. Please read the terms first: ${deps.webBase}/terms/chat`,
     );
 

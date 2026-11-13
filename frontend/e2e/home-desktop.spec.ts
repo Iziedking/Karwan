@@ -18,9 +18,7 @@ test('Home has no Telegram card; Telegram is linked from Contact on Profile', as
   await expect(page.getByRole('heading', { name: 'Telegram' })).toHaveCount(0);
 });
 
-test('asking on Home opens Help with the question sent and stays on Home (owner, 6 Nov 2026)', async ({ page }, testInfo) => {
-  await serveHome(page, true);
-  const asked: string[] = [];
+async function serveAman(page: Page, asked: string[]) {
   await page.route(`${API}/api/assistant/**`, (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/assistant/chat') {
@@ -28,8 +26,15 @@ test('asking on Home opens Help with the question sent and stays on Home (owner,
       asked.push(body.messages.at(-1)?.content ?? '');
       return route.fulfill({ json: { reply: 'Tell me what you sell.' } });
     }
-    return route.fulfill({ json: {} });
+    if (path === '/api/assistant/conversations' && route.request().method() === 'GET') return route.fulfill({ json: { conversations: [] } });
+    return route.fulfill({ json: { conversation: { id: 'c-1', title: 'New', createdAt: 1, updatedAt: 1, messages: [] } } });
   });
+}
+
+test('a suggestion on Home opens Aman with it sent, and Aman on switched off comes back to Home (owner, 13 Nov 2026, view 80)', async ({ page }, testInfo) => {
+  await serveHome(page, true);
+  const asked: string[] = [];
+  await serveAman(page, asked);
   // Your first trade is a third lit card that shows once its own reads settle, sooner or later
   // than this check. It is put away here, as its Hide does, so the count is the two cards under test.
   await page.addInitScript((me) => window.localStorage.setItem('karwan:first-trade-hidden:' + me, '1'), ME.toLowerCase());
@@ -39,12 +44,30 @@ test('asking on Home opens Help with the question sent and stays on Home (owner,
   await expect(page.getByRole('button', { name: 'Check a deal' })).toBeVisible();
   await page.locator('[data-lit-card]').first().screenshot({ path: testInfo.outputPath('next-step-card.png') });
   await page.locator('[data-lit-card]').last().screenshot({ path: testInfo.outputPath('assistant-card.png') });
+  await expect(page.getByRole('heading', { name: 'Ask Aman' })).toBeVisible();
   await page.getByRole('button', { name: 'Post my offer' }).click();
-  const help = page.getByRole('dialog');
-  await expect(help).toBeVisible();
-  await expect(help.getByText('Tell me what you sell.')).toBeVisible();
-  await expect(page).toHaveURL(/\/app$/);
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/assistant');
+  await expect(page.getByText('Tell me what you sell.')).toBeVisible();
   expect(asked).toEqual(['Post my offer']);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('aman-from-home.png') });
+  const on = page.locator('button[aria-pressed="true"]:visible').first();
+  await expect(on).toContainText('Aman');
+  await on.click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/app');
+});
+
+test('typing in the Home box opens Aman with the words sent', async ({ page }) => {
+  await serveHome(page, true);
+  const asked: string[] = [];
+  await serveAman(page, asked);
+  await page.goto('/app');
+  const box = page.locator('[data-ask-card] input');
+  await box.fill('Find a tailor in Aba');
+  await box.press('Enter');
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/assistant');
+  await expect(page.getByText('Tell me what you sell.')).toBeVisible();
+  expect(asked).toEqual(['Find a tailor in Aba']);
 });
 
 /// Owner notes, 3 Nov 2026: the round money buttons are back, Add money the green one (4 Nov), and

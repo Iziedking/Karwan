@@ -4,10 +4,12 @@ import { readFileSync } from 'node:fs';
 
 const source = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8');
 
-test('the assistant card on Home opens Help with the words sent, never assistant mode (owner, 6 Nov 2026)', () => {
+test('the assistant card on Home opens assistant mode with the words carried, and remembers Home as the way back (owner, 13 Nov 2026, view 80)', () => {
   const ask = source('./components/AskCard.tsx');
-  assert.match(ask, /openHelp\(clean, \{ send: true \}\)/);
-  assert.doesNotMatch(ask, /router\.push|'\/assistant'|carryAsk/);
+  assert.match(ask, /carryAsk\(clean\)/);
+  assert.match(ask, /rememberReturn\(pathname\)/);
+  assert.match(ask, /router\.push\('\/assistant'\)/);
+  assert.doesNotMatch(ask, /openHelp/);
 });
 
 test('the assistant card and the next step card share the lit card: the light, the mark beside the title, neutral pills', () => {

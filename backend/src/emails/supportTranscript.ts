@@ -63,7 +63,7 @@ function stripMd(s: string): string {
 /// The transcript goes to the person who asked, so they are "You".
 const ROLE_LABEL: Record<SupportRole, string> = {
   user: 'You',
-  assistant: 'Karwan assistant',
+  assistant: 'Aman, Karwan assistant',
   operator: 'Karwan support',
   system: 'Karwan',
 };

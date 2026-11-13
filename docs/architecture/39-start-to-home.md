@@ -26,7 +26,7 @@ The balance is the top line of the page, not a card: the amount, the active trad
 
 - **The next step from setup** (Find work, Get paid, Post what you need), as today.
 - **Your first trade**: a ring with the steps done, the next step as a button (Add USDC, Tell your agent), and "See all steps", which opens the full list in a side drawer (bottom sheet on a phone). Steps that hold a choice, Connect Telegram and Start a deal, open the drawer. It goes away after the first settled deal, as today.
-- **Ask your assistant**: a box and three suggestions. What is sent, typed or a suggestion, opens the Help panel with it already sent, so the person stays on Home (changed 6 Nov 2026; assistant mode now opens only from its own address).
+- **Ask Aman**: a box and three suggestions. What is sent, typed or a suggestion, opens assistant mode with it already sent as a new conversation, and switching Aman on off there comes back to Home (changed 13 Nov 2026, view 80; from 6 Nov to 13 Nov it opened the Help panel).
 
 The three cards share one look: a soft accent light from the top, a mark beside the title (the first trade card has its progress ring there), and neutral pill buttons.
 

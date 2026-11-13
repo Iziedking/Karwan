@@ -50,7 +50,7 @@ const text = (body: string): OutMessage => ({ kind: 'text', body });
 
 const CHOOSE: OutMessage = {
   kind: 'buttons',
-  body: "Hi, I'm the Karwan agent. I find customers and suppliers, check who they are, and hold the money in escrow until the work is done.",
+  body: "Hi, I'm Aman, your Karwan agent. I find customers and suppliers, check who they are, and hold the money in escrow until the work is done.",
   buttons: [
     { id: 'ob:have', title: 'I have a Karwan account' },
     { id: 'ob:new', title: "I'm new" },

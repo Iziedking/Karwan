@@ -1,24 +1,30 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { openHelp } from '@/shared/assistant/openHelp';
+import { usePathname, useRouter } from 'next/navigation';
+import { rememberReturn } from '@/features/assistant/assistantReturn';
+import { carryAsk } from '@/features/assistant/carriedAsk';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { CARD_PILL, CardGlyph, LitCard, type CardIcon } from './LitCard';
 
 const CHIP_ICONS: readonly CardIcon[] = ['tag', 'request', 'shield'];
 
-/// The assistant on Home: a box to type in and three things it can do straight
-/// away. What is sent opens Help with it already asked (owner, 6 Nov 2026),
-/// so the person stays on Home.
+/// Aman on Home: a box to type in and three things it can do straight away.
+/// What is sent opens assistant mode with it already asked, and the switch
+/// there brings the person back here (owner, 13 Nov 2026, view 80).
 export function AskCard() {
   const t = useTranslations().startFlow.home.ask;
   const id = useId();
+  const router = useRouter();
+  const pathname = usePathname();
   const [text, setText] = useState('');
   const ask = (words: string) => {
     const clean = words.trim();
     if (!clean) return;
-    openHelp(clean, { send: true });
+    carryAsk(clean);
+    rememberReturn(pathname);
     setText('');
+    router.push('/assistant');
   };
   return (
     <LitCard icon="spark" title={t.title} body={t.body} titleId={`${id}-title`}>

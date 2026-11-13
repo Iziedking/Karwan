@@ -2,6 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { KARWAN_ASSISTANT_SYSTEM, KARWAN_PRODUCT_IDENTITY } from './knowledge.js';
 
+test('the assistant is called Aman on every channel, and never says it is a person (view 80)', async () => {
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /^You are Aman, Karwan's assistant\./);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /never claim to be a person/);
+  const guide = JSON.stringify((await import('./platformGuide.js')).PLATFORM_GUIDE);
+  assert.match(guide, /The assistant is called Aman, on the website and in Telegram/);
+  assert.match(guide, /Ask Aman box on Home[^.]*opens \/assistant/);
+  assert.doesNotMatch(guide, /Ask your assistant card on Home opens Help/);
+  const { readFileSync } = await import('node:fs');
+  for (const file of ['../channels/onboarding.ts', '../channels/dispatch.ts']) {
+    const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.match(source, /Hi, I'm Aman, your Karwan agent\./, file);
+    assert.doesNotMatch(source, /I'm the Karwan agent/, file);
+  }
+});
+
 test('assistant explains the trust layer before its technology', () => {
   assert.equal(
     KARWAN_PRODUCT_IDENTITY,
