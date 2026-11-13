@@ -224,8 +224,8 @@ async function completedMovements(): Promise<MoneyMovement[]> {
 }
 
 /// The stretch the charts cover when they are fetched on their own: from before
-/// Karwan's first payment to now.
-const FIRST_DAY = Date.UTC(2026, 6, 1);
+/// Karwan's first settled deal (19 May 2026 on testnet) to now.
+const FIRST_DAY = Date.UTC(2026, 4, 1);
 
 async function main() {
   if (process.env.FETCH_ONLY === '1') {
