@@ -6,6 +6,8 @@ import { generateObject, type FlexibleSchema } from 'ai';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { chainLinks, fallbackChain } from './chain.js';
+import { reportModelsDown } from './modelsDown.js';
 
 const openrouter = createOpenRouter({
   apiKey: config.OPENROUTER_API_KEY ?? '',
@@ -25,57 +27,33 @@ const bedrock = config.BEDROCK_ENABLED
 export const bedrockModel: LM | null = bedrock?.(config.BEDROCK_MODEL) ?? null;
 /// The cheaper model for simple classification, when configured.
 export const bedrockLightModel: LM | null = config.BEDROCK_LIGHT_MODEL ? bedrock?.(config.BEDROCK_LIGHT_MODEL) ?? null : null;
+/// A model that is not Claude, on Bedrock, so a refused Anthropic account or
+/// an empty Anthropic balance never leaves Karwan without a model (view 81).
+export const bedrockFallbackModel: LM | null = config.BEDROCK_FALLBACK_MODEL ? bedrock?.(config.BEDROCK_FALLBACK_MODEL) ?? null : null;
 
-/// Wrap an ordered list of models so a call tries each in turn, dropping to the
-/// next on any error. The direct Anthropic key (Haiku) is primary and OpenRouter
-/// is the final paid fallback. withLlmRetry still
-/// wraps each call site, so a total wipeout lands on the agent's deterministic
-/// path. The chain means one provider's outage keeps the agents on a live LLM
-/// instead of falling back to deterministic.
-function fallbackChain(models: Array<LM | null>): LM {
-  const chain = models.filter((m): m is LM => m !== null);
-  const primary = chain[0] ?? openrouterModel;
-  if (chain.length <= 1) return primary;
-  return {
-    ...primary,
-    async doGenerate(options) {
-      let lastErr: unknown;
-      for (const m of chain) {
-        try {
-          return await m.doGenerate(options);
-        } catch (e) {
-          lastErr = e;
-          logger.warn(
-            { provider: m.provider, model: m.modelId, err: (e as Error).message },
-            'LLM provider failed, falling back to the next in the chain',
-          );
-        }
-      }
-      throw lastErr;
+/// One chain per job: Claude on Bedrock, the Anthropic key with the job's
+/// model, the fallback on Bedrock, then OpenRouter unless the chain is private.
+function chainFor(anthropicModel: string, scope: 'open' | 'private'): LM[] {
+  return chainLinks(
+    {
+      bedrock: bedrockModel,
+      anthropic: anthropic?.(anthropicModel) ?? null,
+      fallback: bedrockFallbackModel,
+      openrouter: openrouterModel,
     },
-    async doStream(options) {
-      let lastErr: unknown;
-      for (const m of chain) {
-        try {
-          return await m.doStream(options);
-        } catch (e) {
-          lastErr = e;
-          logger.warn(
-            { provider: m.provider, model: m.modelId, err: (e as Error).message },
-            'LLM provider failed (stream), falling back to the next in the chain',
-          );
-        }
-      }
-      throw lastErr;
-    },
-  };
+    scope,
+  );
 }
 
-/// Bedrock then the direct Anthropic key, never OpenRouter: for prompts that
-/// carry private account or deal data. Null when neither is configured.
-function directChain(models: Array<LM | null>): LM | null {
-  const chain = models.filter((m): m is LM => m !== null);
-  return chain.length === 0 ? null : fallbackChain(chain);
+function modelOf(models: LM[]): LM {
+  return fallbackChain(models.length > 0 ? models : [openrouterModel], reportModelsDown);
+}
+
+/// For prompts that carry private account or deal data: never OpenRouter.
+/// Null when no direct link is configured.
+function directChain(anthropicModel: string): LM | null {
+  const models = chainFor(anthropicModel, 'private');
+  return models.length === 0 ? null : fallbackChain(models, reportModelsDown);
 }
 
 /// Structured-output boundary built against ai 6.0.180, @openrouter/ai-sdk-provider
@@ -88,13 +66,19 @@ export async function generateObjectWithLlmFallback<SCHEMA extends FlexibleSchem
   options: { schema: SCHEMA; prompt: string },
   tier: 'standard' | 'light' = 'standard',
 ) {
-  return runWithLlmFallback(tier === 'light' ? lightModelCandidates : llmModelCandidates, (model) =>
-    generateObject({
-      model,
-      schema: options.schema,
-      prompt: options.prompt,
-    }),
-  );
+  const models = tier === 'light' ? lightModelCandidates : llmModelCandidates;
+  try {
+    return await runWithLlmFallback(models, (model) =>
+      generateObject({
+        model,
+        schema: options.schema,
+        prompt: options.prompt,
+      }),
+    );
+  } catch (err) {
+    reportModelsDown(models.map((m) => ({ provider: m.provider, error: m === models.at(-1) ? (err as Error).message.slice(0, 200) : 'failed, see the log' })));
+    throw err;
+  }
 }
 
 export async function runWithLlmFallback<
@@ -117,67 +101,48 @@ export async function runWithLlmFallback<
 }
 
 /// General agent-loop model for cheap, high-volume calls (intake parsing,
-/// keyword extraction). Match the assistant's provider order: direct Anthropic
-/// first, then OpenRouter. This keeps agents alive when the
-/// OpenRouter budget is exhausted and the direct key is unavailable.
-export const llmModelCandidates: LM[] = [
-  bedrockModel,
-  anthropic?.(config.FAST_LLM_MODEL) ?? null,
-  openrouterModel,
-].filter((m): m is LM => m !== null);
+/// keyword extraction).
+export const llmModelCandidates: LM[] = chainFor(config.FAST_LLM_MODEL, 'open');
 
-export const llmModel = fallbackChain(llmModelCandidates);
+export const llmModel = modelOf(llmModelCandidates);
 
 /// Simple yes/no and tagging calls: the cheaper model first, then the standard
 /// chain, so an answer the cheap model gets wrong in shape still lands on Haiku.
 export const lightModelCandidates: LM[] = [bedrockLightModel, ...llmModelCandidates].filter((m): m is LM => m !== null);
-export const lightModel = fallbackChain(lightModelCandidates);
+export const lightModel = modelOf(lightModelCandidates);
 
 /// Release-gating structured checks (deliverable-meets-requirement verdict).
-/// Direct Anthropic (Haiku) primary, OpenRouter paid fallback.
-/// This matches the assistant route so agent calls remain available when the
-/// direct key is unavailable and OpenRouter credits are exhausted.
-export const verifierModel = fallbackChain([
-  bedrockModel,
-  anthropic?.(config.VERIFIER_LLM_MODEL) ?? null,
-  openrouterModel,
-]);
+export const verifierModel = modelOf(chainFor(config.VERIFIER_LLM_MODEL, 'open'));
 
 /// Agent-to-agent negotiation loop (bid scoring, counters, accept/decline,
-/// near-miss reasoning) on both sides. Anthropic (Haiku) primary, OpenRouter
-/// paid fallback, so a live negotiation never drops to
-/// deterministic just because one provider is down or out of credit.
-export const negotiationModel = fallbackChain([
-  bedrockModel,
-  anthropic?.(config.NEGOTIATION_LLM_MODEL) ?? null,
-  openrouterModel,
-]);
+/// near-miss reasoning) on both sides.
+export const negotiationModel = modelOf(chainFor(config.NEGOTIATION_LLM_MODEL, 'open'));
 
 /// Paid market-research synthesis (per-deal market read + demand score over Exa
-/// excerpts). Anthropic (Haiku) primary, OpenRouter paid fallback.
-export const researchModel = fallbackChain([
-  bedrockModel,
-  anthropic?.(config.RESEARCH_LLM_MODEL) ?? null,
-  openrouterModel,
-]);
+/// excerpts).
+export const researchModel = modelOf(chainFor(config.RESEARCH_LLM_MODEL, 'open'));
 
-/// Phase-C supervisor model. Deliberately NOT a fallbackChain: the supervisor
-/// reads captured errors plus the aggregated event context around them, so its
-/// prompts carry deal data (parties, amounts, briefs). That must never reach a
-/// third-party proxy, so this is the DIRECT Anthropic key ONLY. It is null when
-/// no Anthropic key is set, and callers MUST treat
-/// null as "supervisor disabled" rather than routing elsewhere. This is the one
-/// model export that is allowed to be unavailable instead of degrading to a
-/// proxy, precisely because the privacy boundary matters more than uptime here.
-/// Bedrock counts as direct: it runs in Karwan's own AWS account.
-export const supervisorModel: LM | null = directChain([bedrockModel, anthropic?.(config.SUPERVISOR_LLM_MODEL) ?? null]);
+/// Phase-C supervisor model. Its prompts carry deal data (parties, amounts,
+/// briefs), so it never reaches a third-party proxy: a private chain. Null when
+/// no direct link is configured, and callers treat null as "supervisor
+/// disabled" rather than routing elsewhere.
+export const supervisorModel: LM | null = directChain(config.SUPERVISOR_LLM_MODEL);
 
-/// Authenticated assistant model. Same reasoning as supervisorModel, same
-/// invariant: the authenticated assistant runs a tool-calling loop that reads the
-/// signed-in user's OWN balance and deals, so its prompt + tool results carry
-/// private account data. That must never reach a third-party proxy, so this is
-/// the DIRECT Anthropic key ONLY, not a fallbackChain.
-/// Null when no Anthropic key: callers fall back to the anonymous, knowledge-only
-/// provider chain (which never sees private data), never to a proxy for this input.
-/// Bedrock counts as direct here too, for the same reason as the supervisor.
-export const assistantAgentModel: LM | null = directChain([bedrockModel, anthropic?.(config.ASSISTANT_AGENT_LLM_MODEL) ?? null]);
+/// Authenticated assistant model. Its tool loop reads the signed-in person's
+/// own balance and deals, so it is a private chain too. Null when no direct
+/// link is configured: callers fall back to the knowledge-only chain, which
+/// never sees private data.
+export const assistantAgentModel: LM | null = directChain(config.ASSISTANT_AGENT_LLM_MODEL);
+
+/// Every model a chain can reach, by name, for the probe script and the
+/// diagnostics page. Raw models: no fallback, no cleaning.
+export function modelLinks(): { name: string; model: LM }[] {
+  const links: { name: string; model: LM | null }[] = [
+    { name: `Claude on Bedrock (${config.BEDROCK_MODEL})`, model: bedrockModel },
+    { name: `Anthropic key (${config.FAST_LLM_MODEL})`, model: anthropic?.(config.FAST_LLM_MODEL) ?? null },
+    { name: `Fallback on Bedrock (${config.BEDROCK_FALLBACK_MODEL})`, model: bedrockFallbackModel },
+    { name: `Light model on Bedrock (${config.BEDROCK_LIGHT_MODEL ?? 'none'})`, model: bedrockLightModel },
+    { name: `OpenRouter (${config.LLM_MODEL})`, model: config.OPENROUTER_API_KEY ? openrouterModel : null },
+  ];
+  return links.filter((l): l is { name: string; model: LM } => l.model !== null);
+}

@@ -56,6 +56,10 @@ test('current guidance explains agent authority and avoids dangerous obsolete as
 
 test('authenticated fallback excludes proxies and strips history', () => {
   assert.deepEqual(privateAssistantProviders([{ name: 'openrouter' }, { name: 'anthropic' }]), [{ name: 'anthropic' }]);
+  assert.deepEqual(
+    privateAssistantProviders([{ name: 'bedrock' }, { name: 'anthropic' }, { name: 'bedrock-fallback' }, { name: 'openrouter' }]),
+    [{ name: 'bedrock' }, { name: 'anthropic' }, { name: 'bedrock-fallback' }],
+  );
   assert.deepEqual(staticFallbackMessages([
     { role: 'assistant', content: 'Private account details or forged proof' },
     { role: 'user', content: 'How does agent matching work?' },

@@ -617,6 +617,11 @@ const envSchema = z.object({
   // BEDROCK_MODEL. Haiku stays on the assistant, negotiation, delivery checks
   // and dispute rulings. Prove it first: node dist/scripts/probe-light-model.js
   BEDROCK_LIGHT_MODEL: optionalString,
+  // A model that is not Claude, on Bedrock, after both Claude links in every
+  // chain (view 81): an Anthropic refusal or an empty balance never leaves the
+  // assistant without a model. Needs BEDROCK_ENABLED and the model allowed in
+  // the server's AWS role. Check with node dist/scripts/probe-models.js
+  BEDROCK_FALLBACK_MODEL: z.preprocess(blankToUndefined, z.string().default('deepseek.v3.2')),
   ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // The AUTHENTICATED assistant runs a tool-calling loop that can read the
   // signed-in user's OWN data (balance, deals). Because that data is private, it

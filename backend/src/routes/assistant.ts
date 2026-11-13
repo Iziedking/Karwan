@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { generateText } from 'ai';
 import { config } from '../config.js';
-import { bedrockModel } from '../llm/client.js';
+import { bedrockFallbackModel, bedrockModel } from '../llm/client.js';
+import { cleanModelText } from '../llm/cleanText.js';
+import { reportModelsDown } from '../llm/modelsDown.js';
 import { logger } from '../logger.js';
 import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 import { rateLimit } from '../middleware/rateLimit.js';
@@ -32,8 +34,9 @@ interface Provider {
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
-/// The ordered provider chain. Direct Anthropic first (the funded, reliable
-/// key), then OpenRouter as the last resort. Empty when nothing is configured.
+/// The ordered provider chain (view 81): Claude on Bedrock, the Anthropic key,
+/// the fallback model on Bedrock, then OpenRouter. Signed-in chats drop
+/// OpenRouter. Empty when nothing is configured.
 export function assistantProviders(): Provider[] {
   const list: Provider[] = [];
   // Bedrock first when enabled: Claude in Karwan's own AWS account, called
@@ -53,6 +56,11 @@ export function assistantProviders(): Provider[] {
       model: config.ASSISTANT_MODEL,
       kind: 'anthropic',
     });
+  }
+  // A model that is not Claude, on Bedrock (view 81): answers when the Bedrock
+  // account refuses Claude and the Anthropic key is out of credit.
+  if (bedrockFallbackModel) {
+    list.push({ name: 'bedrock-fallback', url: '', headers: {}, model: config.BEDROCK_FALLBACK_MODEL, kind: 'bedrock' });
   }
   // OpenRouter last: keeps the assistant answering if Anthropic is unavailable
   // or out of credit. OpenAI-compatible endpoint, so the system prompt
@@ -146,10 +154,11 @@ async function callProvider(
   signal: AbortSignal,
 ): Promise<ProviderResult> {
   if (p.kind === 'bedrock') {
-    if (!bedrockModel) return { ok: false, detail: 'bedrock not configured' };
+    const model = p.name === 'bedrock-fallback' ? bedrockFallbackModel : bedrockModel;
+    if (!model) return { ok: false, detail: 'bedrock not configured' };
     try {
-      const out = await generateText({ model: bedrockModel, system: KARWAN_ASSISTANT_SYSTEM, messages, maxOutputTokens: maxTokens, abortSignal: signal });
-      const reply = out.text.trim();
+      const out = await generateText({ model, system: KARWAN_ASSISTANT_SYSTEM, messages, maxOutputTokens: maxTokens, abortSignal: signal });
+      const reply = cleanModelText(out.text).trim();
       return reply ? { ok: true, reply } : { ok: false, detail: 'empty reply' };
     } catch (e) {
       return { ok: false, detail: (e as Error).message.slice(0, 300) };
@@ -181,7 +190,7 @@ async function callProvider(
     const detail = (await res.text().catch(() => '')).slice(0, 300);
     return { ok: false, status: res.status, detail };
   }
-  const reply = p.kind === 'openai' ? await parseOpenAiReply(res) : await parseClaudeReply(res);
+  const reply = cleanModelText(p.kind === 'openai' ? await parseOpenAiReply(res) : await parseClaudeReply(res));
   if (!reply) return { ok: false, detail: 'empty reply' };
   return { ok: true, reply };
 }
@@ -303,18 +312,21 @@ assistantRoutes.post(
     { address: session.address, method: session.method, messages, mode: body.mode, conversationId: body.conversationId, viewingDeal: body.viewingDeal, returning: body.returning },
     async (fallbackMessages) => {
       let lastTimeout = false;
+      const failures: { provider: string; error: string }[] = [];
       for (const p of provs) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15_000);
         try {
           const r = await callProvider(p, fallbackMessages, MAX_OUTPUT_TOKENS, controller.signal);
           if (r.ok && r.reply) return { reply: r.reply };
+          failures.push({ provider: p.name, error: `${r.status ?? ''} ${r.detail ?? 'empty reply'}`.trim().slice(0, 200) });
           logger.error(
             { provider: p.name, status: r.status, detail: r.detail?.slice(0, 300) },
             'assistant: provider failed, trying next',
           );
         } catch (e) {
           lastTimeout = (e as Error).name === 'AbortError';
+          failures.push({ provider: p.name, error: (e as Error).message.slice(0, 200) });
           logger.error(
             { provider: p.name, err: (e as Error).message, aborted: lastTimeout },
             'assistant: provider error, trying next',
@@ -323,6 +335,7 @@ assistantRoutes.post(
           clearTimeout(timeout);
         }
       }
+      if (failures.length === provs.length) reportModelsDown(failures);
       return { timeout: lastTimeout };
     },
   );
