@@ -191,32 +191,32 @@ export function ProfileAccountHub({
         </RowGroup>
       ) : null}
 
-      {/* Your record and your money, one line each; Money holds the balance,
-          the agent and the guarantee (view 51, fifth round). */}
+      {/* One card: your record and money, then what you trade and your agent.
+          Money holds the balance, the agent and the guarantee (view 51, fifth
+          round); one card, not two (owner, 12 Nov 2026). */}
       <RowGroup>
         <Row label={pp.yourRecord} value={summary ?? undefined} href={`/credit-passport/${address}`} />
         <Row label={mpg.money} value={balanceText(heroAmount(balanceFacts))} href="/account" />
+        {DEALS_AVAILABLE ? (
+          <>
+            <Row label={pp.buying} value={trade.requests} href={marketViewHref('yours', 'requests')} />
+            <Row label={pp.selling} value={trade.offers} href={marketViewHref('yours', 'offers')} />
+            <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} />
+            {/* On a computer the switch sits in the top bar, so it is not said twice. */}
+            {wideScreen || !ASSISTANT_MODE_ENTRY ? null : (
+              <ToggleRow
+                label={messages.assistantMode.use}
+                checked={false}
+                onChange={() => {
+                  // Off again, it comes back to exactly this place (section and anchor too).
+                  rememberReturn(window.location.pathname);
+                  router.push('/assistant');
+                }}
+              />
+            )}
+          </>
+        ) : null}
       </RowGroup>
-
-      {DEALS_AVAILABLE ? (
-        <RowGroup title={mpg.trading}>
-          <Row label={pp.buying} value={trade.requests} href={marketViewHref('yours', 'requests')} />
-          <Row label={pp.selling} value={trade.offers} href={marketViewHref('yours', 'offers')} />
-          <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} />
-          {/* On a computer the switch sits in the top bar, so it is not said twice. */}
-          {wideScreen || !ASSISTANT_MODE_ENTRY ? null : (
-            <ToggleRow
-              label={messages.assistantMode.use}
-              checked={false}
-              onChange={() => {
-                // Off again, it comes back to exactly this place (section and anchor too).
-                rememberReturn(window.location.pathname);
-                router.push('/assistant');
-              }}
-            />
-          )}
-        </RowGroup>
-      ) : null}
 
       <RowGroup title={mpg.account}>
         <Row label={simple.contactTitle} value={rows.contact} href="/profile/contact" />

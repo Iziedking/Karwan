@@ -259,7 +259,7 @@ The owner's note: everything about money folds into one page, Money, and Profile
 - **Two rows that lead somewhere:**
   - **Your record**, with its one-line summary.
   - **Money**, with the one figure, "Balance, agent, guarantee". This replaces the three money rows.
-- **Trading:** Buying, Selling, Your agent, and the assistant switch (moved here from the top).
+- **Trading:** Buying, Selling, Your agent, and the assistant switch (moved here from the top). Since 12 Nov 2026 these sit in the same card as Your record and Money, with no Trading heading: one card, not two.
 - **Account:** Contact, Wallets, Business profile, Passkey, Account recovery.
 - **Preferences:** Language, Theme, Show amounts in, More settings.
 - **Then:** Help and how it works. Sign out stays as it is today: a full-width outlined button, with "Terms · Privacy notice" under it.

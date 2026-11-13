@@ -136,11 +136,13 @@ test('Profile sums your record up in one row that opens its own page (view 48, b
   for (const moved of [p.share, p.publicView, 'Where your record comes from']) {
     await expect(page.getByRole('link', { name: new RegExp(`^${moved}`) })).toHaveCount(0);
   }
-  // One Your agent row sits with trade and money (owner, 3 Nov 2026), and Where your record comes from has its own page.
-  const trade = page.locator('section').filter({ has: page.getByRole('heading', { name: en.moneyPages.profile.trading, exact: true }) });
+  // One card holds your record, money, buying, selling and one Your agent row (owner, 12 Nov 2026).
+  await expect(page.getByRole('heading', { name: en.moneyPages.profile.trading, exact: true })).toHaveCount(0);
+  const trade = page.locator('section').filter({ has: page.getByRole('link', { name: new RegExp(`^${p.yourRecord}`) }) });
+  await expect(trade.getByRole('link', { name: new RegExp(`^${en.moneyPages.profile.money}`) })).toHaveAttribute('href', '/account');
   await expect(page.getByRole('link', { name: new RegExp(`^${en.profile.simple.agentsTitle}`) })).toHaveCount(1);
   await expect(trade.getByRole('link', { name: new RegExp(`^${en.profile.simple.agentsTitle}`) })).toHaveCount(1);
-  // Buying and selling sit with the money in one Trade and money group (owner notes, 3 Nov 2026).
+  // Buying and selling sit in the same card as the money.
   await expect(trade.getByRole('link', { name: new RegExp(`^${p.buying}`) })).toHaveAttribute('href', '/market?view=yours&list=requests');
   await expect(trade.getByRole('link', { name: new RegExp(`^${p.selling}`) })).toHaveAttribute('href', '/market?view=yours&list=offers');
   await expect(page.getByRole('link', { name: en.profile.hub.editProfile })).toHaveAttribute('href', '/profile/edit');

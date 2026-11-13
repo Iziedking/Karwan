@@ -115,10 +115,13 @@ test('documentation returns to a useful internal destination', () => {
   assert.equal(getProductBackHref('/how-it-works', true), '/app');
 });
 
-test('every signed-in page but Home has a Back (owner, 23 Oct)', () => {
+test('the main pages have no Back; the pages inside them do (owner, 12 Nov)', () => {
   assert.equal(getProductBackHref('/app', true), null);
-  for (const root of ['/market', '/financier', '/activity', '/profile', '/messages/ada']) {
-    assert.notEqual(getProductBackHref(root, true), null, root);
+  for (const main of ['/market', '/deals', '/account', '/messages', '/financier', '/profile']) {
+    assert.equal(getProductBackHref(main, true), null, main);
+  }
+  for (const inner of ['/activity', '/messages/ada', '/settings', '/listings/1']) {
+    assert.notEqual(getProductBackHref(inner, true), null, inner);
   }
   assert.equal(getProductBackHref('/profile/wallets', true), '/profile');
   assert.equal(getProductBackHref('/market', false), null);
@@ -498,9 +501,11 @@ test('profile says each thing once: one Your record row, Edit profile in the hea
   // Money is one row with one figure; the balance, the agent and the guarantee live on Money (view 51, fifth round).
   assert.match(hub, /<Row label=\{mpg\.money\} value=\{balanceText\(heroAmount\(balanceFacts\)\)\} href="\/account" \/>/);
   for (const gone of ['pp.withAgents', 'dealGuarantee.profile', 'hub.activityReceipts', 'pp.tradeAndMoney']) assert.ok(!hub.includes(gone), gone);
-  const trade = hub.slice(hub.indexOf('<RowGroup title={mpg.trading}>'));
-  const group = trade.slice(0, trade.indexOf('</RowGroup>'));
-  for (const piece of ['pp.buying', 'pp.selling', 'simple.agentsTitle', 'messages.assistantMode.use']) assert.ok(group.includes(piece), piece);
+  // Record, money, buying, selling and the agent are one card, not two (owner, 12 Nov 2026).
+  assert.doesNotMatch(hub, /mpg\.trading/);
+  const card = hub.slice(hub.lastIndexOf('<RowGroup>', hub.indexOf('pp.yourRecord')));
+  const group = card.slice(0, card.indexOf('</RowGroup>'));
+  for (const piece of ['pp.yourRecord', 'mpg.money', 'pp.buying', 'pp.selling', 'simple.agentsTitle', 'messages.assistantMode.use']) assert.ok(group.includes(piece), piece);
   assert.match(hub, /<RowGroup title=\{mpg\.preferences\}>[\s\S]*<DisplayCurrencySection \/>/);
   // One agent row, not two that open the same page (owner, 3 Nov 2026).
   assert.equal(hub.split('simple.agentsTitle').length - 1, 1);
