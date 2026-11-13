@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { WagmiProvider } from 'wagmi';
 import { api, DESK_SIGNED_OUT_EVENT, type AdminDeskNetwork } from '@/core/api';
 import { adminWagmiConfig } from '@/core/adminWagmi';
 import { DialogProvider } from '@/shared/components/Dialog';
-import { canOpenPath } from '@/features/admin/adminNavigation';
+import { canOpenPath, firstPage } from '@/features/admin/adminNavigation';
 import { DeskSignIn } from '@/features/admin/desk/DeskSignIn';
 import { DeskShell } from '@/features/admin/desk/DeskShell';
 import { DeskPage } from '@/features/admin/desk/DeskPage';
@@ -29,12 +29,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // undefined while the desk asks whether this browser is still signed in.
   const [desk, setDesk] = useState<DeskState | null | undefined>(undefined);
   const [signInTo, setSignInTo] = useState<AdminDeskNetwork | undefined>(undefined);
+  const router = useRouter();
+
+  // A support teammate on a phone starts on Support (view 79); only when the
+  // desk opens on Home, never when they chose a page.
+  function open(next: DeskState) {
+    setDesk(next);
+    if (window.location.pathname !== '/admin') return;
+    const page = firstPage(deskMe(next.me), window.matchMedia('(max-width: 767px)').matches);
+    if (page !== '/admin') router.replace(page);
+  }
 
   useEffect(() => {
     let live = true;
     api
       .adminSession()
-      .then((r) => live && setDesk(r.me ? { me: r.me, network: r.network ?? 'testnet' } : null))
+      .then((r) => {
+        if (!live) return;
+        if (r.me) open({ me: r.me, network: r.network ?? 'testnet' });
+        else setDesk(null);
+      })
       .catch(() => live && setDesk(null));
     const signedOut = () => setDesk(null);
     window.addEventListener(DESK_SIGNED_OUT_EVENT, signedOut);
@@ -51,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (desk === undefined) return <main className="min-h-screen bg-[#0D0E10]" />;
-  if (!desk) return <DeskSignIn initialNetwork={signInTo} onSignedIn={(me, network) => setDesk({ me, network })} />;
+  if (!desk) return <DeskSignIn initialNetwork={signInTo} onSignedIn={(me, network) => open({ me, network })} />;
   const signs = desk.me.owner || desk.me.pages.some((p) => p !== 'support' && p !== 'feedback');
   return (
     <WagmiProvider config={adminWagmiConfig} reconnectOnMount={false}>

@@ -103,7 +103,7 @@ function CodeBoxes({ value, onChange }: { value: string; onChange: (v: string) =
           onKeyDown={(e) => {
             if (e.key === 'Backspace' && !d && i > 0) refs.current[i - 1]?.focus();
           }}
-          className="h-14 w-12 rounded-[10px] border border-[#2C2D32] bg-[#1C1D21] text-center text-[20px] font-semibold text-[#EDEDED] outline-none focus:border-[#8A8B90]"
+          className="h-14 w-12 min-w-0 shrink rounded-[10px] border border-[#2C2D32] bg-[#1C1D21] text-center text-[20px] font-semibold text-[#EDEDED] outline-none focus:border-[#8A8B90]"
         />
       ))}
     </div>

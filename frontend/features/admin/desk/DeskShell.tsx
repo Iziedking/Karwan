@@ -5,10 +5,12 @@ import { usePathname } from 'next/navigation';
 import { Menu, Search, X } from 'lucide-react';
 import type { AdminDeskNetwork } from '@/core/api';
 import { AdminWalletControl } from '@/features/admin/AdminWalletControl';
-import { DESK_COLOURS, useDesk } from './deskContext';
+import { DESK_COLOURS, deskMe, useDesk } from './deskContext';
 import { DeskSidebar } from './DeskSidebar';
 import { useDeskHome } from './useDeskHome';
 import { CommandMenu } from './CommandMenu';
+import { DeskTabBar } from './DeskTabBar';
+import { phoneTabs } from '@/features/admin/adminNavigation';
 
 const STRIP = {
   testnet: { line: 'Testnet. Test money only; nothing here moves real funds.', bg: '#16202B', fg: 'var(--d-blue)' },
@@ -34,6 +36,7 @@ export function DeskShell({ signs, onSignOut, onSwitch, children }: {
   const [drawer, setDrawer] = useState(false);
   const [account, setAccount] = useState(false);
   const strip = STRIP[network];
+  const tabBar = phoneTabs(deskMe(me)).length > 0;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -115,9 +118,10 @@ export function DeskShell({ signs, onSignOut, onSwitch, children }: {
         </header>
 
         {signs && <div className="border-b border-[var(--d-line)] px-4 py-3 md:hidden"><AdminWalletControl /></div>}
-        <main className="w-full flex-1 px-4 py-5 lg:px-8">{children}</main>
+        <main className={`w-full flex-1 px-4 py-5 lg:px-8 ${tabBar ? 'pb-24 md:pb-5' : ''}`}>{children}</main>
       </div>
 
+      <DeskTabBar pathname={pathname} counts={counts} />
       <CommandMenu open={search} onClose={() => setSearch(false)} />
       {drawer && <button type="button" aria-label="Close the menu" onClick={() => setDrawer(false)} className="fixed right-3 top-3 z-50 grid size-9 place-items-center rounded-md bg-[var(--d-surface)] lg:hidden"><X aria-hidden="true" className="size-4" /></button>}
     </div>

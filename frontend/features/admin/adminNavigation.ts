@@ -196,3 +196,19 @@ export function jumpTo(me: DeskMe, query: string): DeskJump[] {
   }
   return out;
 }
+
+const PHONE_TABS = ['/admin/support', '/admin/support/room', '/admin/waiting'];
+
+/// A support teammate's phone bar (frame 272:768): Support, Team room,
+/// Waiting for you. Everyone else uses the menu.
+export function phoneTabs(me: DeskMe): DeskItem[] {
+  if (me.owner || pageAccess(me, ['support']) === null) return [];
+  const items = DESK_GROUPS.flatMap((group) => group.items);
+  return PHONE_TABS.map((href) => items.find((item) => item.href === href)!).filter((item) => opens(me, item));
+}
+
+/// Where the desk opens after sign-in: a support teammate on a phone starts on
+/// Support, everyone else on Home.
+export function firstPage(me: DeskMe, isPhone: boolean): string {
+  return isPhone && phoneTabs(me).length > 0 ? '/admin/support' : '/admin';
+}

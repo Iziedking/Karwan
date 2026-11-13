@@ -34,6 +34,8 @@ test('each kind of move has a plain label', () => {
   assert.equal(kind('attestation-sweep'), 'Chain write');
   assert.equal(kind('reputation-backfill'), 'Chain write');
   assert.equal(kind('force-cancel'), 'Close a deal');
+  assert.equal(kind('account-unpause'), 'Lift a pause');
+  assert.equal(kind('deal-rules-off'), 'Deal rules off');
   assert.equal(kind('something-new'), 'Money move');
 });
 

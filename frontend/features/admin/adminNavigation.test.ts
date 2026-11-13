@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { DESK_GROUPS, canOpenPath, deskItemFor, jumpTo, pageAccess, sidebarFor, tabsFor, type DeskMe } from './adminNavigation';
+import { DESK_GROUPS, canOpenPath, deskItemFor, firstPage, jumpTo, pageAccess, phoneTabs, sidebarFor, tabsFor, type DeskMe } from './adminNavigation';
 import { DESK_REDIRECTS, deskRedirectFor } from './deskRedirects.mjs';
 
 const owner: DeskMe = { owner: true, access: {} };
@@ -107,4 +107,17 @@ test('an old address moves only after the desk gate, so the public site never hi
   assert.equal(deskRedirectFor('/market'), null);
   const config = readFileSync(new URL('../../next.config.mjs', import.meta.url), 'utf8');
   assert.equal(config.includes('DESK_REDIRECTS'), false, 'next.config redirects run before the middleware gate');
+});
+
+test('on a phone a teammate ticked for support opens on Support; on a laptop everyone opens on Home', () => {
+  const support = member({ support: 'change' });
+  assert.equal(firstPage(support, true), '/admin/support');
+  assert.equal(firstPage(support, false), '/admin');
+  assert.equal(firstPage(member({ deals: 'read' }), true), '/admin');
+  assert.equal(firstPage(owner, true), '/admin');
+});
+
+test('the phone tab bar is Support, Team room and Waiting for you, for support teammates only', () => {
+  assert.deepEqual(phoneTabs(member({ support: 'read' })).map((t) => t.label), ['Support', 'Team room', 'Waiting for you']);
+  assert.deepEqual(phoneTabs(member({ deals: 'fix' })), []);
 });

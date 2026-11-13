@@ -12,6 +12,11 @@ test('a figure kept when the money moved wins over today’s rate', () => {
   assert.equal(deskMoney('52.10', 'KES', { KES: 129 }, { kept: { currency: 'NGN', amount: '80000' } }).main, formatLocal(52.1, 'KES', 129, 'en'));
 });
 
+test('a kept figure that is not a number falls back to today’s rate, never NaN', () => {
+  assert.equal(deskMoney('52.10', 'NGN', { NGN: 1535 }, { kept: { currency: 'NGN', amount: '633,000' } }).main, '₦79,974');
+  assert.equal(deskMoney('52.10', 'NGN', { NGN: 1535 }, { kept: { currency: 'NGN', amount: '' } }).main, '₦79,974');
+});
+
 test('the person’s own currency is added when it differs from the desk’s', () => {
   assert.equal(deskMoney('52.10', 'NGN', { NGN: 1535, KES: 129 }, { theirs: 'KES' }).forThem, 'KES 6,721 for them');
   assert.equal(deskMoney('52.10', 'NGN', { NGN: 1535, KES: 129 }, { theirs: 'NGN' }).forThem, null);

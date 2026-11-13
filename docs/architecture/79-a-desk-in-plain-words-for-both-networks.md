@@ -134,13 +134,38 @@ The desk works on a phone. A support teammate signs in on the phone and opens on
 |---|---|
 | Closed address, sign-in per member, pages ticked by the owner, two people for money (view 64) | Live |
 | Support desk and team room (view 78) | Built, not deployed |
-| Sign-in that survives a refresh, with the 30 minute and 12 hour limits | Planned |
-| Mainnet desk, authenticator code at every sign-in | Planned |
-| One team list for both desks | Planned |
-| Levels per ticked page | Planned |
-| Pages renamed and regrouped, Home, One account, Settings | Planned |
-| Show amounts in | Planned |
-| Phone layout for support | Planned |
+| Sign-in that survives a refresh, with the 30 minute and 12 hour limits | Built, not deployed |
+| Mainnet desk, authenticator code at every sign-in | Built, not deployed |
+| One team list for both desks | Built, not deployed |
+| Levels per ticked page | Built, not deployed |
+| Pages renamed and regrouped, Home, One account, Settings | Built, not deployed |
+| Show amounts in | Built, not deployed |
+| Pause an account, lifting it with a second teammate | Built, not deployed |
+| Phone layout for support | Built, not deployed |
+
+## As built
+
+- **Sign-in.** The site's own desk address holds two cookies, the session and which network it belongs to; the browser never sees the session itself. A session lasts 30 minutes from the last use and never more than 12 hours, and ends when the browser closes. On mainnet a password opens a short ticket that only the code can turn into a session; a teammate with no code yet scans one at that step. Five wrong codes lock that email on mainnet for 15 minutes and tell the owner on Telegram; a code works once.
+- **One team list.** Production keeps the team in the testnet database. The mainnet server reads and writes those two tables through its own login that can touch nothing else, so the owner changes the team once. Failed sign-ins, code locks and the last code used stay with the network they happened on.
+- **Levels.** Each ticked page carries read only, can change or can ask for a fix. The server decides by the route: reading is read only, a route behind two people needs a fix, anything else needs can change. Pages ticked before levels existed read as can ask for a fix, which is what they allowed.
+- **The pages.** Every old page has a place in the sidebar and an old address sends a teammate to the new one. Home asks the server once for what waits for this teammate. Money moves lists every top-up, send, withdrawal and move between networks with stuck ones first. Accounts finds a person by tag, address or email; the email is matched by the server and never sent back. One account shows their money, record, moves, deals and cases from an allowlist. Activity log reads each change as a sentence and exports a file. Settings reads the server's own switches as on or off, never their values.
+- **Two people.** Lifting an account's pause and turning deal rules off are requests a second teammate approves on Waiting for you, which can also turn a request down.
+- **On a phone.** Under 1,024 px the sidebar opens from a menu button. A teammate ticked for Support who signs in on a phone opens on Support, with a bar for Support, Team room and Waiting for you.
+
+## Not done
+
+- The summary tiles at the top of Treasury and yield wait for a server read of the treasury in one call.
+- Disputes has no list of disputes already ruled.
+- The accounts list has no balance column; balances show on one account.
+- A case cannot be opened from the desk; a teammate opens the person's latest case from their account.
+- One account does not yet sum up the person's agents.
+
+## Deploy notes
+
+- Set `DESK_CODE_KEY` (`openssl rand -hex 32`, on the server) to the same value in both servers' env files.
+- On mainnet, set `TEAM_DATABASE_URL` to a login on the testnet database limited to `team_members` and `team_invites`.
+- On the site, set `ADMIN_MAINNET_BACKEND_URL` to the mainnet API address; without it the mainnet desk says it is not set up.
+- Old support tickets move once with `move:support-tickets` (view 78), run with `DRY_RUN=1` first.
 
 ## Build order, once approved
 
@@ -157,8 +182,12 @@ The desk works on a phone. A support teammate signs in on the phone and opens on
 | Part | File |
 |---|---|
 | Desk sign-in and sessions | `backend/src/routes/adminDesk.ts`, `backend/src/ops/deskSession.ts`, `backend/src/middleware/adminAuth.ts` |
-| Team list | `backend/src/db/teamMembers.ts` |
+| Team list | `backend/src/db/teamMembers.ts`, `backend/src/db/teamClient.ts` |
 | Desk address and proxy | `frontend/app/api/admin-proxy/[...path]/route.ts`, `frontend/shared/admin/adminDesk.ts`, `frontend/middleware.ts` |
 | Desk shell and pages | `frontend/app/admin/`, `frontend/features/admin/adminNavigation.ts` |
+| Mainnet code | `backend/src/ops/deskCode.ts`, `backend/src/db/deskSignIn.ts` |
+| Levels | `backend/src/ops/adminPages.ts` |
+| Home, Money moves, Accounts, Settings | `backend/src/routes/adminHome.ts`, `adminMoves.ts`, `adminAccounts.ts`, `adminSettings.ts` |
+| Phone bar | `frontend/features/admin/desk/DeskTabBar.tsx` |
 | Shared rate | `backend/src/rates/sharedRate.ts` (view 77) |
 | Designs | Figma, page "Support desk and admin · 12 Nov" |

@@ -26,6 +26,8 @@ function kindOf(action: string): string {
   if (action === 'release') return 'Release';
   if (action === 'resolve') return 'Rule a dispute';
   if (action === 'force-cancel') return 'Close a deal';
+  if (action === 'account-unpause') return 'Lift a pause';
+  if (action === 'deal-rules-off') return 'Deal rules off';
   if (action.startsWith('usyc') || action.startsWith('treasury')) return 'Treasury move';
   if (action.startsWith('attestation') || action.startsWith('reputation')) return 'Chain write';
   return 'Money move';

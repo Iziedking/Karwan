@@ -28,8 +28,9 @@ export function deskMoney(usdc: string, currency: DisplayCurrency, rates: DeskRa
   const exact = `${formatBalance(value, 'en')} USDC`;
   const forThem = theirLine(value, currency, rates, opts.theirs);
   if (currency === 'USDC') return { main: exact, under: null, forThem };
-  if (opts.kept && opts.kept.currency === currency) {
-    const kept = formatLocal(Number(opts.kept.amount), currency, 1, 'en');
+  const keptValue = opts.kept?.amount?.trim() ? Number(opts.kept.amount) : NaN;
+  if (opts.kept && opts.kept.currency === currency && Number.isFinite(keptValue)) {
+    const kept = formatLocal(keptValue, currency, 1, 'en');
     if (kept) return { main: kept, under: exact, forThem };
   }
   const local = formatLocal(value, currency, rates[currency] ?? null, 'en');
