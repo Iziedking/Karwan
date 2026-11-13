@@ -27,6 +27,16 @@ test('an offer with no photo shows the sample for the work its title names, befo
   assert.equal(samplePhoto('repairs', 'lst_1', 'remote', null, 'Fix my generator'), samplePhoto('repairs', 'lst_1', 'remote'));
 });
 
+/// Owner, 13 Nov 2026: the carpentry offer showed a woman at a laptop, and
+/// "Software Sales" showed the toy robot meant for AI work.
+test('a title that names a trade or sales work picks the photograph for it', () => {
+  assert.equal(samplePhoto(null, 'lst_f6a6d1', 'remote', null, 'Carpentry and wood construction'), '/market-samples/repairs-1.jpg');
+  assert.equal(samplePhoto('home', 'lst_1', 'in_person', null, 'Joinery and woodwork'), '/market-samples/repairs-1.jpg');
+  assert.equal(samplePhoto('tech', 'lst_3d0a15', 'remote', null, 'Software Sales'), '/market-samples/seed-hr-recruiting.jpg');
+  assert.equal(samplePhoto('tech', 'lst_1', 'remote', null, 'NFT whitelist sales'), '/market-samples/seed-smart-contracts.jpg', 'the work named first still wins');
+  assert.equal(samplePhoto(null, 'lst_1', 'remote', null, 'AI chatbot for your shop'), '/market-samples/seed-software-ai.jpg');
+});
+
 test('every fitted photograph is a file with a credit, one per kind the seed has', () => {
   const credits = readFileSync('public/market-samples/CREDITS.md', 'utf8');
   const catalog = readFileSync('../backend/src/marketplace/marketSeed/catalog.ts', 'utf8');

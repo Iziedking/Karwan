@@ -43,11 +43,6 @@ export function ListingCard({ card }: { card: DiscoveryCard }) {
             className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none"
           />
         )}
-        {picture === 'sample' && !card.example ? (
-          <span className="absolute bottom-2 end-2 rounded-full bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] px-2 py-0.5 text-[13px] font-medium text-[var(--ink)]">
-            {t.samplePhoto}
-          </span>
-        ) : null}
         {card.example || card.partyKind === 'business' ? (
           <span className="absolute start-2 top-2 rounded-full bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] px-2 py-0.5 text-[13px] font-medium text-[var(--ink)]">
             {card.example ? t.example : t.business}

@@ -265,11 +265,6 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             <div className="relative mt-2 overflow-hidden rounded-[var(--radius-card)] bg-[var(--raised)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={samplePhoto(category, listing.id, listing.deliveryKind, listing.examplePhoto, listing.title)} alt="" className="aspect-[4/3] w-full object-cover lg:aspect-[16/9]" />
-              {!listing.example ? (
-                <span className="absolute bottom-3 end-3 rounded-full bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] px-2.5 py-1 text-[13px] font-medium text-[var(--ink)]">
-                  {shop.samplePhoto}
-                </span>
-              ) : null}
             </div>
           )}
 

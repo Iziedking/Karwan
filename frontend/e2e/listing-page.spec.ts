@@ -61,7 +61,7 @@ test('a buyer sees the offer, the seller and one way to order', async ({ page },
   await expect(page.getByText('Your logo in 3 versions: full, short and icon')).toBeVisible();
   await expect(page.getByText('2 rounds of changes')).toBeVisible();
   await expect(page.getByText('Ada does the work and sends it to you.')).toBeVisible();
-  await expect(page.getByText(t.samplePhoto).first()).toBeVisible();
+  await expect(page.getByText('Sample photo')).toHaveCount(0);
   const order = page.getByRole('link', { name: 'Order · 120 USDC' }).filter({ visible: true });
   await expect(order).toHaveCount(1);
   await expect(order).toHaveAttribute('href', '/order/lst_logo');

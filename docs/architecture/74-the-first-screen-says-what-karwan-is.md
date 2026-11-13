@@ -44,8 +44,8 @@ flowchart TB
 
 ## The market before sign-in
 
-- A listing with no photo of its own shows a real photograph that fits its category, marked "Sample photo". Each category has several, and the listing picks one, so a row seldom repeats a picture.
-- A real seller's listing with no photo of its own keeps a sample photograph for its category, marked "Sample photo".
+- A listing with no photo of its own shows a real photograph that fits its category. Each category has several, and the listing picks one, so a row seldom repeats a picture. A title that names a kind of work (carpentry, translation, sales and the rest) picks the photograph for that work first.
+- A real seller's listing with no photo of its own keeps a stock photograph for its category. Since 13 Nov 2026 it carries no "Sample photo" label: the owner chose to show it the way other markets show category pictures, unlabelled.
 - The price reads in the visitor's currency first, with the dollar figure small beside it.
 
 ## What stays the same

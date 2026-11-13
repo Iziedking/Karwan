@@ -4,17 +4,18 @@ export const CATEGORY_IDS = ['design', 'tech', 'phones', 'fashion', 'food', 'far
 export type CategoryId = (typeof CATEGORY_IDS)[number];
 
 /// Words that place an offer, matched whole, the first category in list order
-/// winning. The seller's own pick always wins over these.
+/// winning. The seller's own pick always wins over these, and the title's
+/// words over the description's.
 const WORDS: Record<CategoryId, readonly string[]> = {
-  design: ['logo', 'logos', 'brand', 'branding', 'flyer', 'flyers', 'poster', 'banner', 'design', 'designer', 'illustration', 'photo', 'photos', 'photography', 'photographer', 'video', 'editing', 'animation', 'menu design', 'business card', 'business cards', 'cards', 'printing'],
+  design: ['logo', 'logos', 'brand', 'branding', 'flyer', 'flyers', 'poster', 'banner', 'design', 'designer', 'illustration', 'photo', 'photos', 'photography', 'photographer', 'video', 'video editing', 'photo editing', 'animation', 'menu design', 'business card', 'business cards', 'cards', 'printing'],
   tech: ['website', 'websites', 'landing page', 'app', 'apps', 'code', 'coding', 'developer', 'dashboard', 'software', 'web3', 'wordpress', 'shopify', 'api', 'bot', 'automation', 'smart contract', 'contract deployment', 'gas optimisation', 'gas optimization', 'solidity', 'seo'],
-  phones: ['phone', 'phones', 'iphone', 'samsung', 'galaxy', 'tecno', 'infinix', 'itel', 'pixel', 'smartphone', 'android', 'charger', 'airpods', 'laptop', 'laptops', 'macbook', 'notebook', 'computer', 'computers', 'tablet', 'ipad', 'thinkpad', 'chromebook', 'electronics', 'electronic', 'components', 'gadget', 'gadgets', 'accessories', 'headphones', 'earbuds', 'camera', 'cameras'],
+  phones: ['phone', 'phones', 'iphone', 'samsung', 'galaxy', 'tecno', 'infinix', 'itel', 'pixel', 'smartphone', 'android', 'charger', 'airpods', 'laptop', 'laptops', 'macbook', 'computer', 'computers', 'tablet', 'ipad', 'thinkpad', 'chromebook', 'electronics', 'electronic', 'components', 'gadget', 'gadgets', 'accessories', 'headphones', 'earbuds', 'camera', 'cameras'],
   fashion: ['ankara', 'fabric', 'fabrics', 'wax print', 'dress', 'dresses', 'shirt', 'shirts', 't-shirt', 't-shirts', 'shoes', 'sneakers', 'handbag', 'handbags', 'wig', 'wigs', 'tailoring', 'tailor', 'aso ebi', 'lace', 'clothes', 'clothing', 'jewellery', 'jewelry'],
   food: ['cake', 'cakes', 'jollof', 'catering', 'chef', 'meal', 'meals', 'snacks', 'small chops', 'pastries', 'soup', 'suya', 'food'],
   farm: ['rice', 'maize', 'yam', 'cassava', 'beans', 'garri', 'produce', 'farm', 'poultry', 'eggs', 'cocoa', 'cashew', 'sesame', 'palm oil', 'tomatoes', 'pepper', 'grain', 'cotton lint', 'fertiliser', 'fertilizer'],
-  home: ['fridge', 'freezer', 'sofa', 'bed', 'mattress', 'furniture', 'table', 'chairs', 'curtains', 'generator', 'cooker', 'gas cooker', 'microwave', 'fan', 'television', 'tv', 'kitchen', 'cleaning'],
+  home: ['fridge', 'freezer', 'sofa', 'bed', 'mattress', 'furniture', 'table', 'chairs', 'curtains', 'generator', 'cooker', 'gas cooker', 'microwave', 'fan', 'television', 'tv', 'kitchen', 'cleaning', 'carpentry', 'carpenter', 'joinery', 'woodwork', 'wooden'],
   lessons: ['lesson', 'lessons', 'tutor', 'tutoring', 'teacher', 'class', 'classes', 'course', 'coaching', 'waec', 'jamb', 'maths', 'math', 'english lessons', 'jss1', 'jss2', 'jss3', 'ss1', 'ss2', 'ss3'],
-  repairs: ['repair', 'repairs', 'fix', 'fixing', 'plumber', 'plumbing', 'electrician', 'mechanic', 'servicing', 'installation', 'ac repair', 'screen replacement'],
+  repairs: ['repair', 'repairs', 'fixing', 'plumber', 'plumbing', 'electrician', 'mechanic', 'servicing', 'installation', 'ac repair', 'screen replacement'],
   rentals: ['rent', 'rental', 'rentals', 'hire', 'for hire', 'lease', 'shortlet', 'apartment', 'car hire', 'canopy'],
 };
 
@@ -28,7 +29,7 @@ export function inferCategory(text: string): CategoryId | null {
 }
 
 export function categoryOf(listing: { category?: CategoryId; title: string; description: string }): CategoryId | null {
-  return listing.category ?? inferCategory(`${listing.title} ${listing.description}`);
+  return listing.category ?? inferCategory(listing.title) ?? inferCategory(listing.description);
 }
 
 /// The category names as the assistant's cards say them (the web reads its own

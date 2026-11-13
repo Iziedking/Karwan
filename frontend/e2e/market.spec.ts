@@ -123,10 +123,10 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['dark', 'ar']] 
       // With no name to show, the card says the kind of seller its category makes them (view 74).
       await expect(cards(page).filter({ hasText: 'Ankara' })).toContainText(t.sellerKinds.fashion);
     }
-    // No photo of its own: a sample photo, marked, never a broken image. Its
-    // title names logo work, so the sample is the one for that work.
+    // No photo of its own: a stock photograph for the work its title names,
+    // never a broken image, and no label on it (owner, 13 Nov 2026).
     await expect(logo.locator('img')).toHaveAttribute('src', '/market-samples/seed-brand-design.jpg');
-    await expect(logo).toContainText(t.samplePhoto);
+    await expect(logo).not.toContainText('Sample photo');
     // Photos load lazily, so bring the card into view before checking it painted.
     await logo.scrollIntoViewIfNeeded();
     await expect.poll(() => logo.locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
@@ -154,7 +154,6 @@ test('See all lists every offer, examples last and marked', async ({ page }) => 
   await page.getByRole('button', { name: en.marketShop.seeAll }).click();
   await expect(cards(page)).toHaveCount(10);
   await expect(cards(page).last()).toContainText(en.marketShop.example);
-  await expect(cards(page).last()).not.toContainText(en.marketShop.samplePhoto);
   // Ten fit on one page: no Previous and Next.
   await expect(page.locator('[data-market-pager]')).toHaveCount(0);
 });
@@ -240,10 +239,10 @@ test('Sell shows your own live offers with their pictures, and each request as a
   await expect(strip).not.toContainText('An old offer that ended');
   await expect(strip).not.toContainText('Already matched');
   await expect(strip.getByRole('link', { name: t.seeAll })).toHaveAttribute('href', '/market?view=yours&list=offers');
-  // A request has no photo of its own: its picture is a sample, and says so.
+  // A request has no photo of its own: its picture is a stock photograph, unlabelled.
   const card = page.locator('[data-request-row]').first();
   await expect(card.locator('img')).toHaveCount(1);
-  await expect(card).toContainText(t.samplePhoto);
+  await expect(card).not.toContainText('Sample photo');
   await sound(page, testInfo, 'sell-cards');
 });
 

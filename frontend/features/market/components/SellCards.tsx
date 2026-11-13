@@ -17,7 +17,7 @@ import { marketViewHref } from '../marketQuery';
 /// One buyer's request on the Sell side (owner notes, 3 Nov 2026), drawn like
 /// an offer on Buy: a picture, what they need, the most they pay, by when, and
 /// who asks with how many offers so far. A request has no photo of its own, so
-/// the picture is a sample for its category and says so.
+/// the picture is a stock photograph for its category.
 export function RequestCard({ card, fits }: { card: DiscoveryCard; fits: boolean }) {
   const { locale, t: messages } = useLocale();
   const t = messages.marketShop;
@@ -42,9 +42,7 @@ export function RequestCard({ card, fits }: { card: DiscoveryCard; fits: boolean
         ) : null}
         {card.example ? (
           <span className="absolute end-2.5 top-2.5 rounded-full bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] px-2.5 py-1 text-[13px] font-semibold text-[var(--ink-secondary)]">{t.example}</span>
-        ) : (
-          <span className="absolute bottom-2.5 end-2.5 rounded-full bg-[color-mix(in_srgb,var(--canvas)_72%,transparent)] px-2 py-0.5 text-[13px] font-medium text-[var(--ink)]">{t.samplePhoto}</span>
-        )}
+        ) : null}
       </span>
       <span className="flex flex-1 flex-col p-4">
         <span dir="auto" className="line-clamp-2 text-[15px] font-medium leading-[21px] text-[var(--ink)]">{card.title}</span>

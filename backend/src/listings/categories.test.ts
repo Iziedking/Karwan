@@ -25,6 +25,24 @@ test("the seller's pick wins over the words", () => {
   assert.equal(categoryOf({ title: 'iPhone 12', description: 'Used, works well' }), 'phones');
 });
 
+/// Owner, 13 Nov 2026: "find what doesn't rhyme". A word in the description
+/// put a leather notebook in Phones, an audit's "fix list" in Repairs and a
+/// serving tray's "food-safe" finish in Food.
+test('the title places an offer before its description does', () => {
+  assert.equal(categoryOf({ title: 'Carved wooden serving tray', description: 'Carved from mahogany with a food-safe finish.' }), 'home');
+  assert.equal(categoryOf({ title: 'Carpentry and wood construction', description: 'Professional carpentry and wood construction services.' }), 'home');
+  assert.equal(categoryOf({ title: 'Wedding cake', description: 'Three tiers, delivered to your venue in Lagos' }), 'food');
+  assert.equal(categoryOf({ title: 'Used, works well', description: 'iPhone 12, 128 GB' }), 'phones', 'a title with no category word leaves it to the description');
+});
+
+test('loose words no longer misplace an offer', () => {
+  assert.equal(categoryOf({ title: 'Leather notebook', description: 'A hand-stitched leather notebook with refillable pages.' }), null);
+  assert.equal(categoryOf({ title: 'Social media audit', description: 'A review of your profiles and last 30 posts with a prioritised fix list.' }), null);
+  assert.equal(categoryOf({ title: 'Proofreading and editing', description: 'A line edit and proofread of up to 3,000 words.' }), null);
+  assert.equal(inferCategory('Video editing for your YouTube channel'), 'design');
+  assert.equal(inferCategory('AC repair and servicing'), 'repairs');
+});
+
 test('the frontend lists the same categories, in the same order', () => {
   const source = readFileSync(new URL('../../../frontend/features/market/marketModel.ts', import.meta.url), 'utf8');
   const list = /export const CATEGORY_IDS = \[([^\]]*)\]/.exec(source)?.[1] ?? '';

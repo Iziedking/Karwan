@@ -25,8 +25,8 @@ export const CATEGORY_ICON: Record<CategoryId, IconName> = {
 };
 
 /// Stock photographs (Unsplash License, credits beside the files), several per
-/// category, shown when an offer has no photo of its own. On a real seller's
-/// offer the card marks it as a sample, so it never passes for their item.
+/// category, shown when an offer has no photo of its own. Like the category
+/// pictures on any market, they carry no label (owner, 13 Nov 2026).
 export const SAMPLE_COUNT: Record<CategoryId | 'goods' | 'services', number> = {
   design: 4,
   tech: 4,
@@ -77,9 +77,14 @@ function spread(seed: string, count: number): number {
   return ((h >>> 0) % count) + 1;
 }
 
+/// Kinds a title can name that no example offer has, with the photograph that
+/// fits them: a carpenter at work, and two people talking business.
+const TITLE_ONLY_PHOTOS = { carpentry: 'repairs-1', sales: 'seed-hr-recruiting' } as const;
+
 /// Words in a title that name a kind of work we hold a photograph for, the
 /// first kind in this order winning. Whole words only, so "api" is not "rapid".
-const KIND_WORDS: ReadonlyArray<readonly [(typeof SEED_PHOTOS)[number], readonly string[]]> = [
+const KIND_WORDS: ReadonlyArray<readonly [(typeof SEED_PHOTOS)[number] | keyof typeof TITLE_ONLY_PHOTOS, readonly string[]]> = [
+  ['carpentry', ['carpentry', 'carpenter', 'carpenters', 'joinery', 'woodwork', 'woodworking', 'furniture maker']],
   ['translation', ['translation', 'translations', 'translator', 'translators', 'translate', 'interpreter']],
   ['tutoring', ['tutor', 'tutors', 'tutoring', 'lesson', 'lessons', 'teacher', 'teaching']],
   ['phones-electronics', ['electronics', 'electronic', 'phone', 'phones', 'iphone', 'laptop', 'laptops', 'gadget', 'gadgets']],
@@ -91,6 +96,7 @@ const KIND_WORDS: ReadonlyArray<readonly [(typeof SEED_PHOTOS)[number], readonly
   ['social-content', ['social media', 'content creator', 'instagram', 'tiktok']],
   ['web-development', ['website', 'websites', 'frontend', 'backend', 'full stack', 'api', 'apis', 'web developer']],
   ['smart-contracts', ['smart contract', 'smart contracts', 'solidity', 'nft', 'web3', 'onchain']],
+  ['sales', ['sales', 'salesperson', 'sales rep', 'business development']],
   ['software-ai', ['software', 'ai', 'automation', 'bot', 'machine learning', 'model building']],
   ['data-analysis', ['data entry', 'data analysis', 'data analyst', 'spreadsheet', 'excel']],
   ['bookkeeping', ['bookkeeping', 'bookkeeper', 'accounting', 'accountant']],
@@ -99,9 +105,12 @@ const KIND_WORDS: ReadonlyArray<readonly [(typeof SEED_PHOTOS)[number], readonly
 ];
 const KIND_PATTERNS = KIND_WORDS.map(([kind, words]) => [kind, new RegExp(`(^|[^a-z0-9])(${words.join('|')})(?=$|[^a-z0-9])`)] as const);
 
-function kindFromTitle(title: string): string | null {
+/// The photograph file a title names, without its folder or extension.
+function photoFromTitle(title: string): string | null {
   const lower = title.toLowerCase();
-  return KIND_PATTERNS.find(([, pattern]) => pattern.test(lower))?.[0] ?? null;
+  const kind = KIND_PATTERNS.find(([, pattern]) => pattern.test(lower))?.[0];
+  if (!kind) return null;
+  return kind in TITLE_ONLY_PHOTOS ? TITLE_ONLY_PHOTOS[kind as keyof typeof TITLE_ONLY_PHOTOS] : `seed-${kind}`;
 }
 
 /// The same listing always shows the same photograph, and a row of listings
@@ -110,8 +119,8 @@ function kindFromTitle(title: string): string | null {
 /// or request with no photo whose title names a kind we hold one for.
 export function samplePhoto(category: CategoryId | null, seed = '', kind?: 'goods' | 'in_person' | 'remote', examplePhoto?: string | null, title?: string): string {
   if (examplePhoto && (SEED_PHOTOS as readonly string[]).includes(examplePhoto)) return `/market-samples/seed-${examplePhoto}.jpg`;
-  const named = title ? kindFromTitle(title) : null;
-  if (named) return `/market-samples/seed-${named}.jpg`;
+  const named = title ? photoFromTitle(title) : null;
+  if (named) return `/market-samples/${named}.jpg`;
   const group = category ?? (kind === 'goods' ? 'goods' : 'services');
   return `/market-samples/${group}-${spread(seed, SAMPLE_COUNT[group])}.jpg`;
 }

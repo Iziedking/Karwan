@@ -249,13 +249,15 @@ test('a market price reads in the chosen currency with USDC under it, and card f
   assert.match(card, /<span className="truncate">\{rating\}<\/span>/);
 });
 
-test('market cards are quiet: a framed photo, never a boxed card, a real photo or a marked sample, and example stock says so (view 48)', () => {
+test('market cards are quiet: a framed photo, never a boxed card, stock photos unlabelled, and example stock says so (view 48, owner 13 Nov)', () => {
   const card = source('../../features/market/components/ListingCard.tsx');
   assert.match(card, /aspect-\[4\/3\] overflow-hidden rounded-\[var\(--radius-card\)\] bg-\[var\(--raised\)\]/);
   assert.doesNotMatch(card, /border border-\[var\(--line\)\] bg-\[var\(--surface\)\]/);
   assert.doesNotMatch(card, /--market-surface|market-card-glyph|WORK_ICON/);
   assert.match(card, /card\.example \? t\.example/);
-  assert.match(card, /picture === 'sample' && !card\.example/);
+  for (const file of ['../../features/market/components/ListingCard.tsx', '../../features/market/components/SellCards.tsx', '../../features/listings/components/ListingDetail.tsx']) {
+    assert.doesNotMatch(source(file), /\.samplePhoto\}/, file);
+  }
 });
 
 test('account action is Withdraw, the route out that works for every account', () => {
