@@ -4,11 +4,27 @@ import { usePathname, useRouter } from 'next/navigation';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { isLandingRoute, dealRouteBlocked } from '@/shared/utils/routes';
 import { backWithinKarwan, installNavigationTracker } from '@/shared/utils/navigationHistory';
+import { markRouterReady, watchTraversals } from '@/shared/utils/earlyTraversalScript';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Mounted once at the root; all back controls share the same tab history.
+/// The page the app last showed. It lives outside React on purpose: when Back
+/// crashes the app right after start-up, React unmounts this tree, and the
+/// watch must still see the old page and reload at the new address.
+const shown = { path: '' };
+const watched = new WeakSet<Window>();
+
 export function RouteTrail() {
-  useEffect(() => installNavigationTracker(window), []);
+  const pathname = usePathname();
+  useEffect(() => { shown.path = pathname; }, [pathname]);
+  useEffect(() => {
+    markRouterReady(window);
+    if (!watched.has(window)) {
+      watched.add(window);
+      watchTraversals(window, () => shown.path);
+    }
+    return installNavigationTracker(window);
+  }, []);
   return null;
 }
 

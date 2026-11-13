@@ -18,6 +18,7 @@ import { ScrollReset } from '@/shared/components/ScrollReset';
 import { SmoothScroll } from '@/shared/components/SmoothScroll';
 import { ThemeRouteSync } from '@/shared/components/ThemeRouteSync';
 import { THEME_PREPAINT_SCRIPT } from '@/shared/hooks/themePrepaintScript';
+import { EARLY_TRAVERSAL_SCRIPT } from '@/shared/utils/earlyTraversalScript';
 import { DialogProvider } from '@/shared/components/Dialog';
 import { WorkspaceBottomNav } from '@/shared/components/WorkspaceBottomNav';
 import { PageFeedbackPrompt } from '@/shared/components/PageFeedbackPrompt';
@@ -177,6 +178,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {API_ORIGIN ? <link rel="dns-prefetch" href={API_ORIGIN} /> : null}
         {/* Pre-paint theme. The markup is dark; this switches to light only
             when light was chosen in Profile, and never on the landing page. */}
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: EARLY_TRAVERSAL_SCRIPT }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_PREPAINT_SCRIPT }} />
         {/* Pre-hydration locale flip. Reads the karwan-locale cookie and
             applies <html lang/dir> before the React tree paints, so RTL

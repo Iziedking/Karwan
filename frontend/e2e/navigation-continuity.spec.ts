@@ -20,23 +20,49 @@ async function world(page:Page,locale:keyof typeof messages='en',theme='light',s
 }
 const urlOf=(page:Page)=>new URL(page.url()).pathname+new URL(page.url()).search+new URL(page.url()).hash;
 for(const locale of ['en','fr','ar','hi','sw'] as const)for(const theme of ['light','dark']){
- test('back and forward preserve market context '+locale+' '+theme,async({page},info)=>{
+ test('back reload and forward preserve market context '+locale+' '+theme,async({page},info)=>{
+  test.setTimeout(60000);
   await world(page,locale,theme);const t=messages[locale];const source='/market?category=design&q=Logo#results';
   await page.goto(source);await expect(page.getByRole('searchbox',{name:t.marketShop.search})).toHaveValue('Logo');
   await expect.poll(()=>page.evaluate(()=>!!history.state?.__karwanNavigationV2)).toBe(true);
   await page.locator('a[href="/profile"]:visible').first().click();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
   // Profile is a main page, so it has no Back; the browser's own Back returns to the market as it was.
-  await expect(page.locator('[data-back]:visible')).toHaveCount(0);
-  await page.goBack();await expect.poll(()=>urlOf(page)).toBe(source);
-  await expect(page.getByRole('searchbox',{name:t.marketShop.search})).toHaveValue('Logo');
-  await page.goForward();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
-  await page.goBack();await expect.poll(()=>urlOf(page)).toBe(source);
+  // The page's own Back and Forward: right after a reload the guard may reload the page mid-step, which Playwright's goBack cannot follow.
+  await page.reload();await expect(page.locator('[data-back]:visible')).toHaveCount(0);
+  await page.evaluate(()=>history.back()).catch(()=>{});await expect.poll(()=>urlOf(page)).toBe(source);
+  await expect(page.getByRole('searchbox',{name:t.marketShop.search})).toHaveValue('Logo',{timeout:10000});
+  await page.evaluate(()=>history.forward()).catch(()=>{});await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
+  // Forward may reload the page; Back is pressed once Profile shows, not while it loads.
+  await expect(page.locator('h1').filter({hasText:'@me_test'})).toBeVisible({timeout:10000});
+  await page.evaluate(()=>history.back()).catch(()=>{});await expect.poll(()=>urlOf(page)).toBe(source);
+  await expect(page.getByRole('searchbox',{name:t.marketShop.search})).toHaveValue('Logo',{timeout:10000});
   await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
   const axe=await new AxeBuilder({page}).include('main').analyze();expect(axe.violations.filter(v=>v.impact==='serious'||v.impact==='critical')).toEqual([]);
   await page.screenshot({path:info.outputPath('restored-'+locale+'-'+theme+'.png'),fullPage:true});
  });
 }
+for(const waitUntil of ['commit','load'] as const)test('Back pressed while a reload is still starting opens the page Back chose ('+waitUntil+')',async({page})=>{
+ await world(page);const source='/market?category=design&q=Logo';
+ await page.goto(source);await expect(page.getByRole('searchbox',{name:en.marketShop.search})).toHaveValue('Logo');
+ await expect.poll(()=>page.evaluate(()=>!!history.state?.__karwanNavigationV2)).toBe(true);
+ await page.locator('a[href="/profile"]:visible').first().click();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
+ // The page's own Back: the guard may reload mid-step, which Playwright's goBack cannot follow.
+ await page.reload({waitUntil});await page.evaluate(()=>history.back()).catch(()=>{});
+ await expect(page.getByRole('searchbox',{name:en.marketShop.search})).toHaveValue('Logo',{timeout:20000});
+ expect(new URL(page.url()).pathname+new URL(page.url()).search).toBe(source);
+ await page.goForward();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
+});
+test('Back pressed the moment the app is ready still opens the page Back chose',async({page})=>{
+ await world(page);const source='/market?category=design&q=Logo';
+ await page.goto(source);await expect(page.getByRole('searchbox',{name:en.marketShop.search})).toHaveValue('Logo');
+ await expect.poll(()=>page.evaluate(()=>!!history.state?.__karwanNavigationV2)).toBe(true);
+ await page.locator('a[href="/profile"]:visible').first().click();await expect.poll(()=>new URL(page.url()).pathname).toBe('/profile');
+ await page.reload({waitUntil:'commit'});await page.waitForFunction(()=>(window as unknown as Record<string,unknown>).__karwanRouterReady===true,null,{polling:10});
+ await page.evaluate(()=>history.back()).catch(()=>{});
+ await expect(page.getByRole('searchbox',{name:en.marketShop.search})).toHaveValue('Logo',{timeout:20000});
+ expect(new URL(page.url()).pathname+new URL(page.url()).search).toBe(source);
+});
 test('same-path query history updates the selected market side and search',async({page})=>{
  await world(page);await page.goto('/market?category=design&q=Logo');
  await expect(page.getByRole('searchbox',{name:en.marketShop.search})).toHaveValue('Logo');
