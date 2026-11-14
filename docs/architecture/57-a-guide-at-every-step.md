@@ -139,11 +139,71 @@ On Telegram and over MCP there is no face, but the guide is the same assistant w
 
 The designer's final mascot and its animation set, the mobile app, voice, and games.
 
+## Amendment, 13 Nov 2026: the face opens the assistant page
+
+The owner, 13 Nov: the assistant has a mascot that moves around the screen only to help, never as a disturbance, and that a person can decline, as in the reference. We draw the mascot ourselves instead of waiting for a designer. Tapping it opens the full assistant page. Help and support with a person stays in Profile ([view 78](78-a-support-desk-for-money.md)). Five things change in this view.
+
+### 1. Tap the face, and the assistant page opens
+
+Section 4 above said the assistant opens right beside the guide. It now opens the full assistant page, `/assistant`, on a phone, a tablet and a laptop alike. Ctrl+K opens the same page. The page has a way back to exactly where you were, the same as today's assistant mode (`assistantReturn`). The page is redesigned (see "The assistant page" below).
+
+### 2. The corner Help button and its panel go
+
+The face is the way in. The panel was already the full assistant, with the same memory and tools, so nothing is lost. Talk to a person stays in Profile > Help and support (view 78), and the assistant page links there quietly.
+
+### 3. We draw the mascot
+
+An original character in Karwan's colours, flat shapes with fixed colours: no gradients, orbs or glows. Five moods: idle, talking, thinking, pleased, waiting for you. Three sizes: a small face in the header, the guide beside the page, and a larger one on the assistant page. Drawn in Figma first, then one file in the product, so a later redraw is still one file. Nothing is taken from the reference's art, words or theatrics.
+
+### 4. How it moves, so it never disturbs
+
+- It settles beside the part of the page the person is using.
+- It moves only when it has a next move for that part, or when the part it sits beside scrolls away.
+- It never moves while the person types or scrolls fast, or while a confirm or money screen is open.
+- It never covers a button or a field (the covers check built on 12 Nov).
+- With reduced motion on, it stays still.
+- It speaks at most one line first per page visit, as before.
+
+### 5. Declining it, and what is remembered
+
+- **Not now** on its line hides it for that page visit. Two on a page keep it quiet there for the visit.
+- **Hide the guide** in its menu shrinks it to the small face in the header, which never speaks first and still opens the assistant page.
+- **Show the guide on pages** in Settings turns even that off. Then Ctrl+K and the assistant link in the menu are the way in.
+- Each choice is kept on the account, so a new phone or laptop remembers it, not only this device.
+
+### The assistant page
+
+One column, the conversation first.
+
+- At the top: the guide's face, its name, Back to where you were.
+- An empty conversation opens with three or four questions for the page you came from ("What happens to my money if they don't deliver?" from a deal, "How do I get paid?" from Money), then the text box.
+- Confirm cards, past conversations and memory work as they do today.
+- A quiet **Talk to a person** at the bottom opens Profile > Help and support.
+- Drawn for phone, tablet and laptop.
+
+### What it replaces now
+
+| Today | Becomes |
+|---|---|
+| The corner "? Help" launcher and its panel (`AssistantWidget`) | Tap the guide, or Ctrl+K: the assistant page |
+| The next-move note (`NextMoveNudge`) as its own piece | The guide's one line |
+| The parked way into assistant mode (`ASSISTANT_MODE_ENTRY`) | The guide is the way in |
+
+### Decisions for the owner (13 Nov)
+
+1. **Tapping the face opens `/assistant` on every screen size**, with Back to where you were, and Ctrl+K does the same. Recommended.
+2. **The corner Help button and its panel go.** Talk to a person stays in Profile > Help and support, linked from the assistant page. Recommended.
+3. **We draw the mascot in Figma**, five moods and three sizes, flat shapes. Recommended.
+4. **The name.** "Kara" stays the placeholder until you give the name. It lives in one setting.
+5. **The movement and decline rules above.** Recommended as written.
+6. **Order:** Figma (the mascot sheet, the mascot on Home, Market, a deal and Money, the decline states, the assistant page on three sizes) for your yes, then spec, plan and a test-first build. The assistant guide, canon, all five languages and this view's Status go in the same batch.
+
 ## Status
 
 | Part | State |
 |---|---|
 | This view | Approved 6 Nov 2026, next move first |
+| 13 Nov amendment: the face opens the assistant page, the corner Help goes, we draw the mascot | Waiting for the owner |
 | Next-move rules on the shared core, `GET /api/guide/next`, `whats_pending` returns the same move | Built 6 Nov 2026, not deployed |
 | Next-move nudge on every signed-in page, in the rounded type; the fading notes and the sign-up guide share that type | Built 6 Nov 2026, not deployed |
 | The nudge steps aside while a button or a field is under it, sits above the bottom bar wherever the bar shows, and after a close says nothing more on that page | Built 12 Nov 2026, live on the test site |
