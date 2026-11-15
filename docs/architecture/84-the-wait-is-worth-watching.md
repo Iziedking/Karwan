@@ -1,0 +1,74 @@
+# 84 · The wait is worth watching
+
+Track T6, roadmap T6.7. Builds on [view 57](57-a-guide-at-every-step.md) (the assistant page) and [view 80](80-aman.md) (Aman).
+
+## What is hard today
+
+After a person sends a message to Aman, three grey dots pulse until the whole answer is ready. A turn that reads the account can take several seconds, because Aman may look things up a few times before it answers. Nothing on the page says what is happening, and the answer then drops in all at once. For a trader new to assistants, the wait feels like the app has stalled.
+
+## The idea
+
+Make the wait shorter, and make what is left of it worth watching.
+
+1. **Shorter.** The fixed part of every request (Aman's instructions and the guide to Karwan) is kept warm on the model's side between turns, so each turn starts faster. The answer still goes out only after Karwan has checked it (an answer that states account facts must have read the account first, and is asked again if it did not), and then appears word by word in under a second instead of dropping in all at once.
+2. **Honest.** While Aman works, one line says what it is doing right now, such as "Checking your deal", "Reading your balance" or "Drafting the card". Each line comes from the step Aman really takes, never from a timer.
+3. **Worth watching.** Under that line, a short tip is drawn in motion, one at a time: how a deal keeps money safe, or how to stay safe ("Karwan never asks for your code or password"). Tips fit the page the person came from: deal tips from a deal, safety tips from Money.
+
+```mermaid
+sequenceDiagram
+  participant P as Person
+  participant W as Assistant page
+  participant S as Shared core
+  participant M as Model
+  P->>W: Sends a message
+  W->>S: The turn
+  S->>M: Instructions (kept warm) and the conversation
+  M-->>S: Wants to read a deal
+  S-->>W: Now: Checking your deal
+  S->>M: What the deal says
+  M-->>S: The answer
+  S->>S: Check: account facts were read
+  S-->>W: The checked answer
+  W-->>P: Status line and tips, then the answer word by word
+```
+
+## The wait, on the page
+
+- Aman's face in the thread takes its thinking mood.
+- The status line changes as Aman moves from step to step, with a short fade.
+- One tip at a time is drawn in under the status line. A tip stays long enough to read and gives way to the next only while the wait lasts. When the first words of the answer arrive, the tip and status give way to the answer.
+- With reduced motion on, the tip and status change without movement.
+- A quick answer (under about a second) shows no tip at all, so a fast turn never flashes.
+
+## Tips
+
+A fixed list, written and checked like the rest of the copy, in all five languages. Every tip states something true about Karwan today, in plain words, with no figures that can go stale. Each tip belongs to a kind: deal, money, safety or reputation. The page the person came from picks the kind first. The same list serves Telegram, where a slow turn sends one tip while Aman works.
+
+## Channels
+
+The status lines and tips are part of the turn on the shared core, so any channel can show them. The assistant page shows all of it. Telegram shows "typing" while Aman works, and on a turn longer than about four seconds sends one short tip, once per turn.
+
+## What fails where
+
+| Failure | What the person sees |
+|---|---|
+| The live stream breaks mid-turn | The page asks for the finished turn once and shows it whole |
+| A step has no status line written for it | "Working on it" |
+| Warm instructions are not reused (the model provider dropped them) | The turn is as fast as today, nothing else changes |
+| The answer fails | The error the page shows today, with Try again |
+
+## Decisions for the owner
+
+1. **Make it shorter and make the wait worth watching, together** (approach A). Agreed 15 Nov 2026.
+2. **Tips are a fixed, checked list in five languages, chosen by the page the person came from.** Recommended.
+3. **Status lines come only from steps Aman really takes.** Recommended.
+4. **Telegram shows typing and sends one tip on a slow turn.** Recommended.
+5. **The answer is checked before it is shown,** then revealed word by word. Showing words while they are written would show answers that the check can still throw away. Recommended.
+6. **A faster model is measured, not switched.** Claude Haiku 5.5 is on Bedrock and is built for low waits. We measure it beside today's model on the same turns and bring the numbers to the owner before any switch.
+7. **Order:** Figma (the waiting state on phone and laptop, the tip in motion, the answer arriving, Telegram's line) for the owner's yes, then spec, plan and a test-first build.
+
+## Status
+
+| Part | State |
+|---|---|
+| This view | Proposed 15 Nov 2026 |
