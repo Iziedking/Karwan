@@ -3,14 +3,15 @@
    (0 to 1) from useSceneProgress and move with transforms and opacity only. */
 
 .page {
-  --bg: #0f1012;
-  --tile: #16181b;
-  --raised: #1d2024;
+  /* Graphite, the same ground as the product (owner, 15 Nov 2026). */
+  --bg: #16181b;
+  --tile: #1e2124;
+  --raised: #26292e;
   --line: rgb(236 238 231 / 0.1);
   --line-strong: rgb(236 238 231 / 0.16);
   --ink: #f4f4f1;
-  --mute: #a3a8ae;
-  --quiet: #81878e;
+  --mute: #aab0b6;
+  --quiet: #959ba2;
   --green: #afc95b;
   --on-green: #16202a;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -30,7 +31,7 @@
 .textLink { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none; }
 .textLink:hover { text-decoration: underline; text-underline-offset: 6px; }
 
-.glow { position: absolute; z-index: 0; inset-inline-end: -5%; top: 8%; width: min(760px, 70vw); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, rgb(233 238 220 / 0.07), rgb(233 238 220 / 0.03) 55%, transparent); pointer-events: none; }
+.glow { position: absolute; z-index: 0; inset-inline-end: -5%; top: 8%; width: min(760px, 70vw); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, rgb(54 58 64 / 0.8), rgb(38 41 46 / 0.5) 55%, transparent); pointer-events: none; }
 
 /* ---------- 1 Hero ---------- */
 .hero { position: relative; height: 520vh; }
@@ -168,7 +169,7 @@
 .panelSteps li[data-on] + li::before, .panelSteps li + li[data-on]::before { width: 40px; background: var(--green); }
 .panelCopy .textLink { margin-top: 36px; }
 .panelTitle { margin-top: 14px !important; font-size: clamp(34px, 3.9vw, 56px); font-weight: 600; line-height: 1.04; letter-spacing: -0.03em; max-width: 560px; }
-.board { position: relative; z-index: 1; width: 100%; max-width: 600px; aspect-ratio: 600 / 520; justify-self: end; border-radius: 24px; background: rgb(22 24 27 / 0.6); }
+.board { position: relative; z-index: 1; width: 100%; max-width: 600px; aspect-ratio: 600 / 520; justify-self: end; border-radius: 24px; background: rgb(30 33 36 / 0.6); }
 .boardFlow { position: absolute; top: 4.5%; inset-inline-start: 4%; color: var(--quiet); font-size: 14px; font-weight: 500; }
 .boardLines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .boardLines path { fill: none; stroke: var(--green); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: calc(1 - clamp(0, calc(var(--p, 1) * 1.8 - var(--i, 0) * 0.18), 1)); opacity: 0.75; }
@@ -210,10 +211,10 @@
 .clip { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.08); transition: transform 1.2s var(--ease), opacity 0.4s var(--ease); }
 video.clip:not([data-ready]) { opacity: 0; }
 .tile[data-arrived] .clip { transform: scale(1); }
-.tileShade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgb(15 16 18 / 0.55), rgb(15 16 18 / 0) 26%, rgb(15 16 18 / 0) 40%, rgb(15 16 18 / 0.82) 68%, rgb(15 16 18 / 0.96)); transition: opacity 0.3s var(--ease); }
+.tileShade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgb(22 24 27 / 0.55), rgb(22 24 27 / 0) 26%, rgb(22 24 27 / 0) 40%, rgb(22 24 27 / 0.82) 68%, rgb(22 24 27 / 0.96)); transition: opacity 0.3s var(--ease); }
 .tile:hover .tileShade { opacity: 0.88; }
 .tileIndex { position: absolute; top: 24px; inset-inline-start: 28px; font-size: 14px; font-weight: 500; }
-.place { position: absolute; top: 20px; inset-inline-end: 24px; padding: 6px 12px; border-radius: 999px; background: rgb(15 16 18 / 0.72); font-size: 14px; font-weight: 500; transition: background-color 0.3s var(--ease), color 0.3s var(--ease); }
+.place { position: absolute; top: 20px; inset-inline-end: 24px; padding: 6px 12px; border-radius: 999px; background: rgb(22 24 27 / 0.72); font-size: 14px; font-weight: 500; transition: background-color 0.3s var(--ease), color 0.3s var(--ease); }
 .tile:hover .place { background: var(--green); color: var(--on-green); }
 .tileText { position: absolute; inset-inline: 28px; bottom: 76px; display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
 .tileText h3 { font-size: clamp(26px, 2.5vw, 36px); font-weight: 600; line-height: 1.12; letter-spacing: -0.02em; max-width: 440px; }

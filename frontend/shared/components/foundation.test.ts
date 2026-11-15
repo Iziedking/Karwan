@@ -19,8 +19,8 @@ test('canonical theme is the Figma new look: dark ground by default, light on re
     '--action: #AFC95B', '--on-action: #16202A',
   ]) assert.ok(light.includes(declaration), `light ${declaration}`);
   for (const declaration of [
-    '--canvas: #0F1012', '--surface: #16181B', '--raised: #1D2024', '--ash: #24272B',
-    '--ink: #F4F4F1', '--ink-secondary: #A3A8AE', '--ink-muted: #81878E',
+    '--canvas: #16181B', '--surface: #1E2124', '--raised: #26292E', '--ash: #2F3337',
+    '--ink: #F4F4F1', '--ink-secondary: #AAB0B6', '--ink-muted: #959BA2',
   ]) assert.ok(dark.includes(declaration), `dark ${declaration}`);
   assert.ok(light.includes('--line-base: var(--ink)'));
   assert.ok(dark.includes('--line-base: #ECEEE7'));

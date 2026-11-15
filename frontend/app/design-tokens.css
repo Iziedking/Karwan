@@ -223,17 +223,18 @@
 }
 
 html[data-theme="dark"] {
-  --canvas: #0F1012;
+  /* Darker graphite (owner, 15 Nov 2026): a soft dark grey, not near black. */
+  --canvas: #16181B;
   --soft-green: #2B3226;
   --soft-green-edge: color-mix(in srgb, #AFC95B 32%, transparent);
   --soft-green-chip: #33402A;
   --soft-green-ink: #AFC95B;
-  --surface: #16181B;
-  --raised: #1D2024;
-  --ash: #24272B;
+  --surface: #1E2124;
+  --raised: #26292E;
+  --ash: #2F3337;
   --ink: #F4F4F1;
-  --ink-secondary: #A3A8AE;
-  --ink-muted: #81878E;
+  --ink-secondary: #AAB0B6;
+  --ink-muted: #959BA2;
   --tint: color-mix(in srgb, var(--ink) 8%, transparent);
   --line-base: #ECEEE7;
   --offer: #C5DB7E;

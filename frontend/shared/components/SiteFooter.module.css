@@ -19,8 +19,8 @@
    desktop screen tall enough to show all of it below the top bar, it sits
    under the page (sticky to the bottom) and the landing's last scene lifts off
    it like a curtain; data-curtain says it fits. Nothing moves. */
-.landing { background: #0f1012; border-top: 0; overflow: clip; }
-.landing .panel { background: rgb(22 24 27 / 0.72); }
+.landing { background: #16181b; border-top: 0; overflow: clip; }
+.landing .panel { background: rgb(30 33 36 / 0.72); }
 .glow { position: absolute; z-index: -1; inset-inline: 15%; top: 4%; height: 70%; border-radius: 50%; background: rgb(175 201 91 / 0.12); filter: blur(140px); pointer-events: none; }
 .wordmark { position: absolute; z-index: -1; inset-inline-start: 4%; bottom: -0.22em; font-size: clamp(120px, 22vw, 340px); font-weight: 600; line-height: 1; letter-spacing: -0.04em; color: transparent; -webkit-text-stroke: 1px rgb(244 244 241 / 0.08); pointer-events: none; user-select: none; }
 @media (min-width: 1024px) {

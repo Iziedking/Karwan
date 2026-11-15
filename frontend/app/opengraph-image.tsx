@@ -12,12 +12,12 @@ export const alt = 'Karwan · Meet anywhere. Make it a deal.';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-const BG = '#0F1012';
-const RAISED = '#1D2024';
+const BG = '#16181B';
+const RAISED = '#26292E';
 const LINE = '#25282C';
 const INK = '#F4F4F1';
-const MUTE = '#A3A8AE';
-const QUIET = '#81878E';
+const MUTE = '#AAB0B6';
+const QUIET = '#959BA2';
 const GREEN = '#AFC95B';
 const ON_GREEN = '#16202A';
 

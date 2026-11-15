@@ -108,10 +108,10 @@ const DESCRIPTION =
   "Find buyers and sellers, review their record and agree clear trade terms. Try Karwan’s market and USDC escrow with test funds. Mainnet access is by invitation.";
 
 /// Viewport tag lives in its own export per the Next.js 15 metadata split.
-/// themeColor reads as #0e0e0e so Android Chrome paints the address bar in
-/// brand ink rather than the default white.
+/// themeColor is the graphite ground so Android Chrome paints the address bar
+/// in the page's own colour rather than the default white.
 export const viewport: import('next').Viewport = {
-  themeColor: '#0e0e0e',
+  themeColor: '#16181b',
 };
 
 export const metadata: Metadata = {
