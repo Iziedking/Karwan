@@ -12,6 +12,11 @@ import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { setupCopy } from '@/shared/i18n/messages/setup';
 import { yourAgentCopy } from '@/shared/i18n/messages/yourAgent';
+import { profilePagesFor } from '@/shared/i18n/messages/profilePages';
+import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
+import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { moneyHref } from '@/features/money/moneyRoutes';
+import { ResearchRows } from '@/features/profile/components/ResearchRows';
 import { fill } from '@/features/deals/workspace/presentation';
 import { AgentPanel, type PanelKey } from './agentPanels';
 import { BeFoundPanel, NEEDS_KEY, ReachPanel, type FindPanelKey } from './findPanels';
@@ -33,6 +38,11 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
   const { locale } = useLocale();
   const t = yourAgentCopy[locale as keyof typeof yourAgentCopy] ?? yourAgentCopy.en;
   const own = (setupCopy[locale as keyof typeof setupCopy] ?? setupCopy.en).choices.own;
+  const parts = profilePagesFor(locale).agent;
+  // Its money (view 83): the total at both agents, kept and moved on Money > Agent.
+  const agentMoney = useMoneyBalances();
+  const mt = useMoneyText();
+  const atAgents = agentMoney.buyer == null && agentMoney.seller == null ? null : (agentMoney.buyer ?? 0) + (agentMoney.seller ?? 0);
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState<PanelKey | null>(null);
@@ -131,7 +141,7 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
         </section>
       ) : null}
 
-      <RowGroup>
+      <RowGroup title={parts.doesForYou}>
         {profile.seller ? (
           <>
             {answer(t.rows.sell, profile.seller.skills.length ? profile.seller.skills.join(', ') : t.notSet, 'sell')}
@@ -143,7 +153,16 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
         {profile.buyer ? answer(t.rows.buy, fill(t.buyLine, { max: money(profile.buyer.maxBudgetUsdc), days: profile.buyer.maxDeadlineDays }), 'buy') : null}
       </RowGroup>
 
-      <RowGroup>
+      {activated && !activationLoading ? (
+        <div data-its-money className="space-y-7">
+          <RowGroup title={parts.itsMoney}>
+            <Row label={parts.agentMoney} value={atAgents == null ? undefined : mt.text(atAgents)} href={moneyHref('agent')} />
+          </RowGroup>
+          <ResearchRows />
+        </div>
+      ) : null}
+
+      <RowGroup title={parts.reaches}>
         {profile.seller ? (
           <Row inline label={<span className="block"><span className="block text-[13px] font-medium text-[var(--lp-text-sub)]">{t.find.beFound}</span><span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{beFoundLine}</span></span>}>
             <button type="button" onClick={() => setFindOpen('beFound')} className={changeClass}>{t.change}</button>

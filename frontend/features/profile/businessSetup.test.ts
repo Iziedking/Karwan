@@ -38,6 +38,6 @@ test('rejects empty and oversized names', () => {
 
 test('the profile business entry opens its own page, not first-time onboarding', () => {
   const hub = readFileSync(new URL('./components/ProfileAccountHub.tsx', import.meta.url), 'utf8');
-  assert.match(hub, /href="\/profile\/business"/);
+  assert.match(readFileSync(new URL('./hubRows.ts', import.meta.url), 'utf8'), /business: '\/profile\/business'/);
   assert.doesNotMatch(hub, /href=\{business \? '\/business\/verification' : '\/onboarding'\}/);
 });

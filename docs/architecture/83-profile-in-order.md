@@ -19,7 +19,6 @@ that language and theme live only in Settings.
   shows the same money.
 - **Names that do not say what is inside.** "Contact" holds Email, Telegram and
   X. "More settings" opens the only settings page.
-- **No way back.** Settings has no Back to Profile.
 
 ## The idea in one line
 
@@ -48,10 +47,10 @@ flowchart LR
 | Page | What it holds |
 |---|---|
 | Profile | Photo, name, @handle and account kind, Edit profile. The first card is unchanged: Your record, Money, Savings pocket, Buying, Selling, Your agent. Account: Sign-in and security, Where we reach you, Wallets, Business (business accounts only). One card with Settings (its value is the language and theme, "English · Dark") and Help and support. Terms, Privacy and Sign out at the foot. |
-| Your agent (`/profile/setup`) | Agent on. What it does for you: what you sell, your price, how you get paid, when you buy, agent permissions. Its money: the agent's money, opening Money > Agent. Who it reaches: be found by, reach out to. More ways to get paid, Ask Aman. |
-| Sign-in and security (`/profile/security`) | How you sign in: email, passkey, recovery password. Signed in now: each device with where and when, This device marked, Sign out on each. Sign out of the others. |
+| Your agent (`/profile/setup`) | Agent on. What it does for you: what you sell, your price, how you get paid, when you buy, agent permissions. Its money: the agent's money, opening Money > Agent, and what market research costs it. Who it reaches: be found by, reach out to. More ways to get paid, Ask Aman. |
+| Sign-in and security (`/profile/security`) | How you sign in: email, passkey (or add one), recovery password; a wallet account sees its wallet. Signed in now: each device with when it was last used, This device marked, Sign out on each. Sign out everywhere. |
 | Where we reach you (`/profile/contact`) | Email, Telegram and X, each with its state and its one action. What we tell you about opens Settings at Notifications. |
-| Settings (`/settings`) | Display: language, theme, show amounts in, sound, start a trade with. Notifications and privacy: notifications, who can reach you, show my record publicly, outside agents can offer, publishing settled deals. Assistant: what Aman remembers. Delete account. Back to Profile. |
+| Settings (`/settings`) | Language, theme, show amounts in, sound, start a trade with. Notifications and privacy: notifications, who can reach you, show my record publicly, outside agents can offer, publishing settled deals. What Aman remembers. Delete account. The passkey moves to Sign-in and security. Back to Profile, as today. |
 | Edit profile, Wallets, Help and support, Business | Unchanged, with Back to Profile. |
 
 ## Old links
@@ -60,7 +59,7 @@ flowchart LR
 |---|---|
 | `/profile/theme` | `/settings` |
 | `/profile/devices` | `/profile/security` |
-| `/profile/agent-funds` | `/profile/setup`, at Its money |
+| `/profile/agent-funds` | Money > Agent (`/account?tab=agent`), where the agent's money is topped up and taken out |
 
 Assistant replies, emails and bookmarks that use the old links keep working.
 
@@ -92,5 +91,5 @@ Assistant replies, emails and bookmarks that use the old links keep working.
 
 | Part | State |
 |---|---|
-| This view | Proposed 15 Nov 2026 |
-| Profile, Your agent, Sign-in and security, Where we reach you, Settings, old links | Not built |
+| This view | Approved by the owner, 15 Nov 2026 |
+| Profile, Your agent, Sign-in and security, Where we reach you, Settings, old links | Built 15 Nov 2026 |

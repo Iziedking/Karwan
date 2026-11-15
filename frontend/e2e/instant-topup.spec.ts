@@ -286,13 +286,10 @@ test('an unknown add-money error keeps its recovery copy free of protocol words'
   await captureTopUpScreen(page, testInfo, 'bridge-add-unconfirmed-error', { root: card, primary: 1, maxHeadingWeight: 500 });
 });
 
-test('agent funds top up and withdraw in place from the profile', async ({ page }) => {
+test('the old agent funds link opens the agent money on Money', async ({ page }) => {
   test.skip(topUpBefore || topUpMainnet, 'Testnet agent funding.');
-  const copy = topUpMessages.en;
   await open(page, '/profile/agent-funds', 'light', 'en');
-  await page.getByRole('button', { name: copy.money.home.topUp, exact: true }).first().click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page).toHaveURL(/\/profile\/agent-funds/);
+  await expect(page).toHaveURL(/\/account\?tab=agent$/);
 });
 
 test('deal recovery keeps the outer confirmation locked until child funding finishes', async ({ page }, testInfo) => {

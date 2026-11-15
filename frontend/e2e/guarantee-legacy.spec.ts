@@ -52,14 +52,15 @@ test('Profile shows one Money row; the deal guarantee lives on Money; Earlier de
   await page.goto('/profile');
   const money = page.getByRole('link', { name: new RegExp(`^${en.moneyPages.profile.money}`) });
   await expect(money).toHaveAttribute('href', '/account');
-  await expect(page.getByRole('link', { name: new RegExp(g.profile.dealGuarantee) })).toHaveCount(0);
+  // The money kept aside is the Savings pocket row (view 82); nothing on Profile is called a deal guarantee.
+  await expect(page.getByRole('link', { name: /Deal guarantee/ })).toHaveCount(0);
   await expect(page.getByRole('link', { name: g.profile.legacyContracts })).toHaveCount(0);
 });
 
 test('the old staking address opens the deal guarantee, with a quiet way to the previous contract', async ({ page }) => {
   await serveGuarantee(page);
   await page.goto('/stake');
-  await expect(page).toHaveURL(/\/account\?tab=guarantee$/);
+  await expect(page).toHaveURL(/\/pocket$/);
   await expect(page.locator('[data-guaranteed]')).toContainText('125');
   await expect(page.locator('[data-guarantee-tab]')).toContainText(en.moneyPages.guarantee.inPlace);
   // The guarantee is a part of Money: no score out of 1000 (view 44, P13).
@@ -149,4 +150,32 @@ test('Profile sums your record up in one row that opens its own page (view 48, b
   // Said elsewhere already, so not here.
   await expect(page.getByRole('link', { name: en.payLink.create.title })).toHaveCount(0);
   await expect(page.getByRole('link', { name: new RegExp(`^${en.profile.hub.openDeals}`) })).toHaveCount(0);
+});
+
+test('Profile says each thing once: the account card, then settings and help (view 83)', async ({ page }) => {
+  await serveGuarantee(page);
+  await page.route(`${API}/api/auth/sessions`, (route) => route.fulfill({ json: { sessions: [
+    { id: 's1', device: 'Chrome on Windows', via: 'email', current: true, lastSeenAt: Date.now() },
+    { id: 's2', device: 'Safari on iPhone', via: 'email', current: false, lastSeenAt: Date.now() - 86_400_000 },
+  ] } }));
+  await page.goto('/profile');
+  const account = page.locator('section').filter({ has: page.getByRole('heading', { name: en.moneyPages.profile.account, exact: true }) });
+  const links = account.getByRole('link');
+  await expect(links.nth(0)).toHaveAttribute('href', '/profile/security');
+  await expect(links.nth(1)).toHaveAttribute('href', '/profile/contact');
+  await expect(links.nth(2)).toHaveAttribute('href', '/profile/wallets');
+  const settings = page.getByRole('link', { name: new RegExp(`^${en.settings.title}`) });
+  await expect(settings).toHaveAttribute('href', '/settings');
+  await expect(settings).toContainText('English');
+  await expect(page.getByRole('link', { name: en.supportPage.profileRow })).toHaveAttribute('href', '/profile/help');
+  // Said once, in Settings or on Sign-in and security.
+  for (const gone of [en.settings.language, en.settings.theme, en.profile.hub.devices, en.moneyPages.profile.moreSettings, en.nav.help]) {
+    await expect(page.getByRole('link', { name: new RegExp(`^${gone}`) })).toHaveCount(0);
+  }
+
+  await page.goto('/profile/devices');
+  await expect(page).toHaveURL(/\/profile\/security$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Sign-in and security' })).toBeVisible();
+  await expect(page.locator('[data-devices] li')).toHaveCount(2);
+  await expect(page.getByText(en.profile.hub.devicesPage.thisDevice)).toBeVisible();
 });

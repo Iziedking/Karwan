@@ -46,7 +46,7 @@ export function QuickStartBand() {
 
   const steps: Step[] = [
     ...(!activated
-      ? [{ n: '01', ...t.steps.activate, href: '/profile/agent-funds' }]
+      ? [{ n: '01', ...t.steps.activate, href: '/account?tab=agent' }]
       : []),
     {
       n: activated ? '01' : '02',

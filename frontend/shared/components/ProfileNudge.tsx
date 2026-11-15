@@ -93,7 +93,7 @@ export function ProfileNudge() {
       title: activationCopy.title,
       body: activationCopy.body,
       cta: activationCopy.cta,
-      href: '/profile/agent-funds',
+      href: '/account?tab=agent',
     };
   }
 

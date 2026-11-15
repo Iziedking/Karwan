@@ -15,7 +15,8 @@ import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { profilePagesFor } from '@/shared/i18n/messages/profilePages';
 import { type UserProfile } from '@/core/api';
 import {
   FullBleed,
@@ -27,17 +28,14 @@ import {
 } from '@/shared/components/Bands';
 import { ProfileAccountHub } from '@/features/profile/components/ProfileAccountHub';
 import { YourAgent } from '@/features/agent/YourAgent';
-import { AgentFundsList } from '@/features/profile/components/AgentFundsList';
-import { ResearchRows } from '@/features/profile/components/ResearchRows';
 import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
-type ProfileSection = 'wallets' | 'open-deals' | 'agents' | 'identity' | 'preferences';
+type ProfileSection = 'wallets' | 'open-deals' | 'identity' | 'preferences';
 
 const PROFILE_SECTION_BY_PATH: Record<string, ProfileSection> = {
   '/profile/wallets': 'wallets',
   '/profile/open-deals': 'open-deals',
-  '/profile/agent-funds': 'agents',
   '/profile/setup': 'identity',
   '/profile/contact': 'preferences',
 };
@@ -46,7 +44,7 @@ const PROFILE_ROUTE_BY_PANEL = {
   wallets: '/profile/wallets',
   money: '/account',
   'open-deals': '/deals',
-  agents: '/profile/agent-funds',
+  agents: '/account?tab=agent',
   identity: '/profile/setup',
   preferences: '/profile/contact',
 } as const;
@@ -83,6 +81,7 @@ export default function ProfilePage() {
 function ProfilePageInner() {
   const messages = useTranslations();
   const t = messages.profile;
+  const { locale } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const activeSection = PROFILE_SECTION_BY_PATH[pathname] ?? null;
@@ -145,12 +144,12 @@ function ProfilePageInner() {
 
   const isBusiness = isBusinessWorkspace;
   const simple = t.simple;
+  const reach = profilePagesFor(locale).reach;
   const sectionTitle: Record<ProfileSection, string> = {
     wallets: simple.walletsTitle,
     'open-deals': simple.openDealsTitle,
-    agents: simple.agentFundsTitle,
     identity: simple.agentsTitle,
-    preferences: simple.contactTitle,
+    preferences: reach.title,
   };
   const profilePanels: ProfilePanel[] = [
     {
@@ -193,24 +192,18 @@ function ProfilePageInner() {
       ),
     },
     {
-      key: 'agents',
-      label: t.tabs.agents,
-      content: (
-        <div className="space-y-7" data-guide="profile-agents">
-          <AgentFundsList onSetUp={() => setActivationOpen(true)} />
-          {activation.activated ? <ResearchRows /> : null}
-        </div>
-      ),
-    },
-    {
       key: 'preferences',
       label: t.tabs.preferences,
       content: (
-        <div data-guide="profile-preferences">
+        <div data-guide="profile-preferences" className="space-y-7">
           <RowGroup>
             <Row label={messages.profile.hub.email}>{address && <ProfileEmailButton address={address} tone="light" />}</Row>
             <Row label={<span className="block"><span className="block">{messages.profile.hub.telegram}</span><span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{messages.profile.hub.telegramNote}</span></span>}><TelegramConnectButton address={address ?? undefined} tone="light" /></Row>
             <Row label={<span className="block"><span className="block">{messages.profile.hub.x}</span><span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{messages.profile.hub.xNote}</span></span>}><ConnectXButton tone="light" /></Row>
+          </RowGroup>
+          {/* What we send is chosen in Settings; it is not repeated here (view 83). */}
+          <RowGroup>
+            <Row label={reach.whatWeTell} href="/settings" />
           </RowGroup>
         </div>
       ),
