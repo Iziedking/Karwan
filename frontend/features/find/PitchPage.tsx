@@ -12,7 +12,7 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { findPeopleCopy, type FindPeopleCopy } from '@/shared/i18n/messages/findPeople';
 import { daysText, distanceText, fillFind, firstName } from './foundModel';
 import { PersonPhoto } from './FoundPeople';
-import { buyerTopUpHref } from '@/features/money/moneyRoutes';
+import { MoneySheet } from '@/features/money/components/MoneySheet';
 
 export const pitchKey = (id: string) => ['pitch', id] as const;
 
@@ -25,6 +25,9 @@ export function PitchPage({ id }: { id: string }) {
   const client = useQueryClient();
   const pitch = useQuery({ queryKey: pitchKey(id), queryFn: () => api.pitchView(id).then((r) => r.pitch), staleTime: 30_000, retry: 1 });
   const [confirming, setConfirming] = useState(false);
+  // Adding money to the buying agent happens on this page (B-06).
+  const [topUp, setTopUp] = useState<number | null>(null);
+  const [askKey, setAskKey] = useState(0);
   const [busy, setBusy] = useState<'not_now' | 'no' | null>(null);
   const [failed, setFailed] = useState(false);
   const p = pitch.data;
@@ -108,7 +111,15 @@ export function PitchPage({ id }: { id: string }) {
           {p.answer === 'no' ? t.saidNo : p.answer === 'not_now' ? t.saidNotNow : t.pitchGone}
         </p>
       )}
-      <AskSheet open={confirming} pitch={p} t={t} name={name} onClose={() => setConfirming(false)} onPosted={async () => { setConfirming(false); await client.invalidateQueries({ queryKey: pitchKey(id) }); }} />
+      <AskSheet key={askKey} open={confirming} pitch={p} t={t} name={name} onClose={() => setConfirming(false)} onPosted={async () => { setConfirming(false); await client.invalidateQueries({ queryKey: pitchKey(id) }); }} onTopUp={(amount) => { setConfirming(false); setTopUp(amount > 0 ? amount : 0); }} />
+      <MoneySheet
+        open={topUp !== null}
+        onClose={() => { setTopUp(null); setConfirming(true); }}
+        move="topUp"
+        agent="buyer"
+        prefillAmount={topUp ? topUp : undefined}
+        onDone={() => setAskKey((k) => k + 1)}
+      />
     </Shell>
   );
 }
@@ -142,7 +153,7 @@ function Posted({ pitch: p, t }: { pitch: PitchView; t: FindPeopleCopy }) {
   );
 }
 
-function AskSheet({ open, pitch: p, t, name, onClose, onPosted }: { open: boolean; pitch: PitchView; t: FindPeopleCopy; name: string; onClose: () => void; onPosted: () => Promise<void> }) {
+function AskSheet({ open, pitch: p, t, name, onClose, onPosted, onTopUp }: { open: boolean; pitch: PitchView; t: FindPeopleCopy; name: string; onClose: () => void; onPosted: () => Promise<void>; onTopUp: (amount: number) => void }) {
   const { address } = useAuth();
   const mt = useMoneyText({ compact: true });
   const [busy, setBusy] = useState(false);
@@ -196,7 +207,7 @@ function AskSheet({ open, pitch: p, t, name, onClose, onPosted }: { open: boolea
         {error ? (
           <p role="alert" className="w-full text-center text-[13px] text-[var(--color-critical)]">
             {error.text}
-            {error.fund ? <> <Link href={buyerTopUpHref(error.topUp)} data-fund-agent className="font-semibold underline">{t.addMoney}</Link></> : null}
+            {error.fund ? <> <button type="button" onClick={() => onTopUp(Number(error.topUp))} data-fund-agent className="font-semibold underline">{t.addMoney}</button></> : null}
           </p>
         ) : null}
         <button type="button" data-post-privately onClick={() => void post()} disabled={busy} className={buttonClasses({ variant: 'primary', size: 'lg', className: 'w-full disabled:opacity-60' })}>

@@ -162,3 +162,26 @@ Rulings while building:
 4. Worth when paid on movements and settled deals; Activity, receipts and finished deals reading it.
 5. One balance with named parts on Home, Money, the order page, Send, Withdraw, Help.
 6. Guide, canon, FAQ and this view's "As built" section.
+
+## Moving money in place (B-06, owner, 15 Nov 2026)
+
+Track T5. "Bring it here" on Send, Withdraw and an order page sent the person to Money and opened Where it is, so they lost the step they were on. The owner's rule: a funding step stays on the page it belongs to, in a card that does the move and updates the page when it is done.
+
+```
+Send / Withdraw / order page / Find / Pitch
+   │  short, and money sits with your agents (or your buying agent is short)
+   ▼
+"Bring it here" or "Add money"  ──►  the money card over the page (same card as Money's agent moves)
+                                       │ amount filled in: what is missing, rounded up to the cent
+                                       │ confirm ─► move ─► Done
+                                       ▼
+                                 balances read again; the page shows the new figure
+```
+
+### The rules
+
+- **The card is the one Money already uses** for moving money between the balance and an agent, so the confirm, the progress, the receipt and the errors read the same everywhere.
+- **Bring it here** takes money back to the balance from the agent holding more, which is also the one that covers what is missing whenever either can. The amount is what is missing, rounded up to the cent and capped at what that agent holds; with no amount missing it is everything that agent holds.
+- **Add money to your agent** on Find and Pitch moves what the agent is short from the balance to the buying agent, in the same card.
+- **The page does not change underneath.** Closing the card leaves the person where they were, with what they typed. A finished move reads the balances again, so the figure and the button on the page update.
+- **Money from outside stays its own page.** Adding from another network or an exchange needs an address, a network and minutes to arrive, so "Add money" from outside Karwan still opens `/add`.

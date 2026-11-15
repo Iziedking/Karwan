@@ -97,7 +97,7 @@ test('pick two, ask them, and see how each answered', async ({ page }, info) => 
   await page.screenshot({ path: info.outputPath('asked.png'), fullPage: true });
 });
 
-test('short of money to ask, Add money tops up the buying agent and the ask waits with the same people', async ({ page }) => {
+test('short of money to ask, Add money tops up the buying agent on this page and the ask comes back with the same people (B-06)', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.route(`${API}/api/find/finds/${ID}`, (route) => route.fulfill({ json: { find: FIND } }));
   await page.route(`${API}/api/jobs`, (route) => route.fulfill({ status: 409, json: { error: 'fund the buying agent', code: 'FUND_BUYER_AGENT', topUpNeededUsdc: '23.67' } }));
@@ -107,11 +107,14 @@ test('short of money to ask, Add money tops up the buying agent and the ask wait
   await page.locator('[data-ask]').click();
   const ask = page.locator('[data-ask-sheet]');
   await ask.getByRole('button', { name: 'Send to 1 person' }).click();
-  const add = ask.locator('[data-fund-agent]');
-  await expect(add).toHaveAttribute('href', '/account/agent?move=topUp&agent=buyer&amount=23.67');
-  await add.click();
-  await expect(page).toHaveURL(/\/account\/agent\?move=topUp&agent=buyer&amount=23\.67$/);
-  await page.goBack();
+  await ask.locator('[data-fund-agent]').click();
+  // The ask steps aside for the money card, then the card is the only sheet.
+  await expect(page.locator('[data-ask-sheet]')).toHaveCount(0);
+  const card = page.getByRole('dialog');
+  await expect(card).toContainText('Top up buying agent');
+  await expect(card.getByRole('button', { name: /^Top up 23\.67 USDC/ })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/find/${ID}$`));
+  await page.keyboard.press('Escape');
   await expect(page.locator('[data-ask-sheet]').getByRole('heading', { name: 'Ask Ngozi' })).toBeVisible();
   await expect(page.locator('[data-found-person]').nth(0)).toHaveAttribute('data-picked', 'true');
 });

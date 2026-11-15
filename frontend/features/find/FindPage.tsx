@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,7 +13,7 @@ import { findPeopleCopy, type FindPeopleCopy } from '@/shared/i18n/messages/find
 import { askedText, endsText, fillFind, firstName, PICK_MAX, titleOf } from './foundModel';
 import { BuyersFound } from './BuyersFound';
 import { PeopleList, PersonSheet, PhotoStack } from './FoundPeople';
-import { buyerTopUpHref } from '@/features/money/moneyRoutes';
+import { MoneySheet } from '@/features/money/components/MoneySheet';
 
 export const findKey = (id: string) => ['find', id] as const;
 
@@ -28,12 +28,11 @@ export function FindPage({ id }: { id: string }) {
   const [open, setOpen] = useState<number | null>(null);
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [confirming, setConfirming] = useState(false);
+  // Adding money to the buying agent happens on this page (B-06): the ask
+  // steps aside for the money card and comes back with the same people picked.
+  const [topUp, setTopUp] = useState<number | null>(null);
+  const [askKey, setAskKey] = useState(0);
   const f = find.data;
-  // Back from topping up the buying agent: the same people picked, the ask open again.
-  useEffect(() => {
-    const resumed = takeResume(id);
-    if (resumed) { setPicked(new Set(resumed)); setConfirming(true); }
-  }, [id]);
   const sent = !!f?.jobId;
   const canPick = !!f && !sent && f.status === 'shortlisted';
 
@@ -111,28 +110,19 @@ export function FindPage({ id }: { id: string }) {
             onClose={() => setOpen(null)}
             pick={canPick && open !== null ? { picked: picked.has(open), full: n >= PICK_MAX, onToggle: () => { toggle(open); setOpen(null); } } : undefined}
           />
-          <AskSheet open={confirming} find={f} picks={[...picked].sort((a, b) => a - b)} t={t} locale={locale} onClose={() => setConfirming(false)} onSent={() => { setConfirming(false); setPicked(new Set()); }} onTopUp={() => keepResume(id, [...picked])} />
+          <AskSheet key={askKey} open={confirming} find={f} picks={[...picked].sort((a, b) => a - b)} t={t} locale={locale} onClose={() => setConfirming(false)} onSent={() => { setConfirming(false); setPicked(new Set()); }} onTopUp={(amount) => { setConfirming(false); setTopUp(amount > 0 ? amount : 0); }} />
+          <MoneySheet
+            open={topUp !== null}
+            onClose={() => { setTopUp(null); setConfirming(true); }}
+            move="topUp"
+            agent="buyer"
+            prefillAmount={topUp ? topUp : undefined}
+            onDone={() => setAskKey((k) => k + 1)}
+          />
         </>
       )}
     </div>
   );
-}
-
-const RESUME_KEY = (id: string) => `karwan:find-ask:${id}`;
-
-function keepResume(id: string, picks: number[]) {
-  try { window.sessionStorage.setItem(RESUME_KEY(id), JSON.stringify(picks)); } catch { /* the ask simply reopens empty */ }
-}
-
-function takeResume(id: string): number[] | null {
-  try {
-    const raw = window.sessionStorage.getItem(RESUME_KEY(id));
-    window.sessionStorage.removeItem(RESUME_KEY(id));
-    const picks: unknown = raw ? JSON.parse(raw) : null;
-    return Array.isArray(picks) && picks.length > 0 && picks.every((n) => Number.isInteger(n) && n >= 0) ? picks.slice(0, PICK_MAX) : null;
-  } catch {
-    return null;
-  }
 }
 
 function AskSheet({ open, find, picks, t, locale, onClose, onSent, onTopUp }: {
@@ -143,7 +133,7 @@ function AskSheet({ open, find, picks, t, locale, onClose, onSent, onTopUp }: {
   locale: string;
   onClose: () => void;
   onSent: () => void;
-  onTopUp: () => void;
+  onTopUp: (amount: number) => void;
 }) {
   const { address } = useAuth();
   const client = useQueryClient();
@@ -205,7 +195,7 @@ function AskSheet({ open, find, picks, t, locale, onClose, onSent, onTopUp }: {
         {error ? (
           <p role="alert" className="w-full text-center text-[13px] text-[var(--color-critical)]">
             {error.text}
-            {error.fund ? <> <Link href={buyerTopUpHref(error.topUp)} onClick={onTopUp} data-fund-agent className="font-semibold underline">{t.addMoney}</Link></> : null}
+            {error.fund ? <> <button type="button" onClick={() => onTopUp(Number(error.topUp))} data-fund-agent className="font-semibold underline">{t.addMoney}</button></> : null}
           </p>
         ) : null}
         <button type="button" data-send onClick={() => void send()} disabled={busy} className={buttonClasses({ variant: 'primary', size: 'lg', className: 'w-full disabled:opacity-60' })}>

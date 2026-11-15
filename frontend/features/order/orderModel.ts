@@ -1,5 +1,7 @@
 import type { Listing, ListingQuote } from '@/core/api';
 import { fundingShortfall } from '@/features/deposit/fundingPlan';
+import { bringFrom } from '@/features/money/bringItHere';
+import type { InPlaceMove } from '@/features/money/components/BringItHere';
 
 /// Where an order stands on its review page (view 44, Figma 05 to 09).
 
@@ -73,4 +75,23 @@ export function orderTermsOf(listing: Listing): {
     milestonePcts,
     ...(listing.termsDraft?.reviewWindowDays ? { reviewWindowDays: listing.termsDraft.reviewWindowDays } : {}),
   };
+}
+
+/// The move "Bring it here" makes on an order page, in place (view 77, B-06).
+/// An email account pays from its balance and buying agent, so money with its
+/// selling agent comes back to the balance. A wallet account pays from its
+/// buying agent, so the wallet tops it up. What is missing, up to the cent.
+export function orderBring(
+  money: { balance: number | null; seller: number | null },
+  circle: boolean,
+  shortUsdc: number | null,
+): InPlaceMove | null {
+  if (circle) {
+    const from = bringFrom({ buyer: 0, seller: money.seller }, shortUsdc);
+    return from ? { move: 'withdraw', ...from } : null;
+  }
+  const held = Math.floor(Math.max(0, money.balance ?? 0) * 1e6) / 1e6;
+  if (!(held > 0)) return null;
+  const need = shortUsdc != null && shortUsdc > 0 ? Math.ceil(Math.round(shortUsdc * 1e6) / 1e4) / 100 : null;
+  return { move: 'topUp', agent: 'buyer', amount: need === null ? held : Math.min(need, held) };
 }

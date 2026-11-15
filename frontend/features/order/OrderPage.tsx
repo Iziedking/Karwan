@@ -22,7 +22,9 @@ import { useFundsLanded } from '@/features/deposit/useDepositWatch';
 import { CATEGORY_IDS, type CategoryId } from '@/features/market/marketModel';
 import { samplePhoto, sellerLine } from '@/features/market/listingFacts';
 import { AddMoneyPanel } from './AddMoneyPanel';
-import { orderPhase, payRest, shortByUsdc, shortfallUsdc, spendableUsdc, type OrderQuoteError } from './orderModel';
+import { orderBring, orderPhase, payRest, shortByUsdc, shortfallUsdc, spendableUsdc, type OrderQuoteError } from './orderModel';
+import { BringItHere } from '@/features/money/components/BringItHere';
+import { ADD_HREF } from '@/features/money/moneyRoutes';
 import { usePayOrder, type PaidIn } from './usePayOrder';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
@@ -144,6 +146,8 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
   const held = !!quote?.waitsForSeller;
   const payUsdc = quote?.youPayUsdc ?? null;
   const short = quote && spendable !== null ? shortfallUsdc(quote.youPayUsdc, spendable) : '0';
+  // Bring it here moves what is missing on this page, not on Money (B-06).
+  const bring = orderBring({ balance: money.balance, seller: money.seller }, circle, Number(short) > 0 ? Number(short) : null);
   const failure = outcome === 'failed' ? t.failed : outcome && typeof outcome === 'object' ? mt.fill(t.totalChanged, { amount: outcome.totalChanged }, {}, { exact: true }) : null;
 
   return (
@@ -207,7 +211,11 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
         {rest ? (
           <p data-order-rest className="mt-1 text-[13px] font-medium text-[var(--ink-secondary)]">
             {mt.fill(rest.where === 'agents' ? copy.moneyMove.one.withAgents : t.restElsewhere, { amount: rest.amount })}{' '}
-            <Link href="/account?where=1" className="font-semibold text-[var(--ink)] underline underline-offset-4">{copy.moneyPages.withdraw.bringIt}</Link>
+            {bring ? (
+              <BringItHere plan={bring} label={copy.moneyPages.withdraw.bringIt} />
+            ) : (
+              <Link href={`${ADD_HREF}?mode=moveToBalance`} className="font-semibold text-[var(--ink)] underline underline-offset-4">{copy.moneyPages.withdraw.bringIt}</Link>
+            )}
           </p>
         ) : null}
         {arrived ? <p role="status" className="mt-1 text-[14px] text-[var(--ink-secondary)]">{mt.fill(t.arrived, { amount: arrived }, {}, { exact: true })}</p> : null}

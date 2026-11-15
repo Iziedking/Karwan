@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Listing, ListingQuote } from '@/core/api';
-import { orderPhase, orderTermsOf, payRest, shortByUsdc, shortfallUsdc, spendableUsdc } from './orderModel';
+import { orderBring, orderPhase, orderTermsOf, payRest, shortByUsdc, shortfallUsdc, spendableUsdc } from './orderModel';
 
 /// Where an order stands on its review page (view 44, Figma 05 to 09).
 ///
@@ -59,4 +59,12 @@ test('an order names the rest of the balance only when it cannot pay with all of
   assert.deepEqual(payRest({ balance: 0, pool: 0, buyer: 5, seller: 2 }, false), { amount: 2, where: 'agents' });
   assert.equal(payRest({ ...all, balance: null }, true), null, 'not read yet');
   assert.equal(payRest({ ...all, seller: null }, true), null, 'no agents set up');
+});
+
+test('Bring it here on an order moves what is missing in place, from where the account can pay (B-06, owner, 15 Nov 2026)', () => {
+  assert.deepEqual(orderBring({ balance: 10, seller: 50 }, true, 20.001), { move: 'withdraw', agent: 'seller', amount: 20.01 });
+  assert.deepEqual(orderBring({ balance: 30, seller: 0 }, false, 12), { move: 'topUp', agent: 'buyer', amount: 12 });
+  assert.deepEqual(orderBring({ balance: 5, seller: 0 }, false, 12), { move: 'topUp', agent: 'buyer', amount: 5 });
+  assert.equal(orderBring({ balance: 30, seller: 0 }, true, 12), null, 'an email account with nothing at its selling agent has nothing to bring');
+  assert.deepEqual(orderBring({ balance: 0, seller: 8 }, true, null), { move: 'withdraw', agent: 'seller', amount: 8 });
 });

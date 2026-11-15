@@ -7,6 +7,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
+import { BringItHere } from './BringItHere';
+import { bringFrom } from '../bringItHere';
 import { Hint } from '@/shared/components/Hint';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
@@ -139,6 +141,10 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
   // The part as Money names it; the send itself can still use every micro of `max`.
   const readyShown = available === null ? null : centsDown(available);
   const amount = amt.usdc;
+  // Bring it here moves money to the balance on this page, not on Money (B-06).
+  const sendShort = amount !== null && max !== null && amount > max ? amount - max : null;
+  const fromAgent = bringFrom({ buyer: balances.buyer, seller: balances.seller }, sendShort);
+  const bring = fromAgent ? { move: 'withdraw' as const, ...fromAgent } : null;
   const blocker = sheetBlocker({ move: 'send', amount, available: max, recipient: recipientStatus });
   const busy = sheetBusy(state);
   const moved = pressed ?? amount ?? 0;
@@ -368,7 +374,7 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
             {withAgents > 0 ? (
               <p data-send-with-agents className="mt-1 text-center text-[13px] font-medium text-[var(--ink-secondary)]">
                 {money.fill(one.withAgents, { amount: withAgents })}{' '}
-                <Link href="/account?where=1" className="font-semibold text-[var(--ink)] underline underline-offset-4">{messages.moneyPages.withdraw.bringIt}</Link>
+                <BringItHere plan={bring} label={messages.moneyPages.withdraw.bringIt} />
               </p>
             ) : null}
             <div className="mt-5 flex justify-center gap-2">

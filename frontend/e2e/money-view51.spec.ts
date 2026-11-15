@@ -198,7 +198,15 @@ test('withdraw asks where it goes first, then the address and network, then how 
   await expect(flow).toHaveAttribute('data-stage', 'amount');
   await expect(flow.locator('[data-withdraw-ready]')).toHaveText('1,240.50 USDC ready to withdraw');
   await expect(flow.locator('[data-withdraw-elsewhere]')).toContainText('120.00 USDC is with your agents.');
-  await expect(flow.getByRole('link', { name: 'Bring it here' })).toHaveAttribute('href', '/account?where=1');
+  // B-06: Bring it here opens the money card on this page, filled in, and closing it keeps the withdrawal.
+  await flow.getByRole('button', { name: 'Bring it here' }).click();
+  const card = page.getByRole('dialog');
+  await expect(card).toContainText('Withdraw from buying agent');
+  await expect(card.getByRole('button', { name: /^Withdraw 120(\.00)? USDC/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/withdraw$/);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(flow).toHaveAttribute('data-stage', 'amount');
 });
 
 test('a wallet account can withdraw to its own wallet on another network', async ({ page }) => {

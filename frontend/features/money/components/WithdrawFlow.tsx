@@ -23,6 +23,9 @@ import { shortAddr, withdrawCheck, withdrawSplit, withdrawTargets, ADDRESS_RE, t
 import { AmountHero } from './AmountHero';
 import { Keypad } from './Keypad';
 import { useMoneyText } from '../hooks/useMoneyText';
+import { BringItHere } from './BringItHere';
+import { bringFrom } from '../bringItHere';
+import { ADD_HREF } from '../moneyRoutes';
 
 type DestKey = CctpChainKey | 'arc';
 
@@ -84,6 +87,9 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
   const destName = dest === 'arc' ? 'Arc' : SOURCE_CHAINS[dest].name;
   const amount = amt.usdc;
   const check = withdrawCheck({ address, amount, ready: split.ready });
+  // Bring it here moves money from an agent on this page; a Transfer balance has its own move (B-06).
+  const fromAgent = bringFrom({ buyer: balances.buyer, seller: balances.seller }, amount !== null && amount > split.ready ? amount - split.ready : null);
+  const bring = fromAgent ? { move: 'withdraw' as const, ...fromAgent } : null;
   // The networks a withdrawal can reach; your own wallet is already on Arc, so it goes elsewhere.
   const destKeys: DestKey[] = target === 'ownWallet' ? [...WITHDRAW_DEST_KEYS] : ['arc', ...WITHDRAW_DEST_KEYS];
 
@@ -269,7 +275,11 @@ export function WithdrawFlow({ prefillAmount, prefillAddress, onClose }: { prefi
             {split.elsewhere > 0 ? (
               <p data-withdraw-elsewhere className="text-center text-[13px] font-medium text-[var(--ink-secondary)]">
                 {money.fill(balances.pool >= 0.01 ? w.elsewhere : all.moneyMove.one.withAgents, { amount: split.elsewhere })}{' '}
-                <Link href="/account?where=1" className="font-semibold text-[var(--ink)] underline underline-offset-4">{w.bringIt}</Link>
+                {bring ? (
+                  <BringItHere plan={bring} label={w.bringIt} />
+                ) : (
+                  <Link href={`${ADD_HREF}?mode=moveToBalance`} className="font-semibold text-[var(--ink)] underline underline-offset-4">{w.bringIt}</Link>
+                )}
               </p>
             ) : null}
             <button type="button" disabled={!check.ok} onClick={() => setReviewing(true)} className={buttonClasses({ size: 'lg', className: 'w-full' })}>
