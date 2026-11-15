@@ -30,8 +30,7 @@ import { formatDisplay } from '../displayCurrency';
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency';
 import { Hint } from '@/shared/components/Hint';
 import { CoachNote } from '@/shared/components/CoachNote';
-import { GuaranteeTab } from '@/features/guarantee/GuaranteeTab';
-import { ADD_HREF, WITHDRAW_HREF, agentMoveHref, moneyTab, type MoneyTab } from '../moneyRoutes';
+import { ADD_HREF, WITHDRAW_HREF, agentMoveHref, moneyHref, moneyTab, type MoneyTab } from '../moneyRoutes';
 import { useMoneyText } from '../hooks/useMoneyText';
 import { HeldInDealsCard } from './HeldInDealsCard';
 
@@ -79,6 +78,8 @@ function MoneyHomeInner() {
   // it slides in as it does on a tap instead of mounting below the screen.
   const whereAsked = params.get('where') === '1';
   useEffect(() => { if (whereAsked) setWhereOpen(true); }, [whereAsked]);
+  // The savings pocket left Money for its own page (view 82); an old tab link lands there.
+  useEffect(() => { if (tab === 'guarantee') router.replace(moneyHref('guarantee')); }, [tab, router]);
   const isWallet = useAuth().method === 'web3';
   const heldDeals = useHeldDeals();
 
@@ -121,17 +122,17 @@ function MoneyHomeInner() {
       </div>
       <div className="min-w-0 divide-y divide-[var(--line)] [&>*]:py-8">
         <section aria-labelledby="money-balance" className="space-y-6">
-          {/* Everything about money on one page: Balance, Agent, Deal guarantee (view 51, fifth round). */}
+          {/* Balance and Agent; the savings pocket is its own page from Profile (view 82). */}
           <Segmented
             label={pages.tabs.label}
             value={tab}
             onChange={chooseTab}
-            options={[{ value: 'balance', label: pages.tabs.balance }, { value: 'agent', label: pages.tabs.agent }, { value: 'guarantee', label: pages.tabs.guarantee }]}
+            options={[{ value: 'balance', label: pages.tabs.balance }, { value: 'agent', label: pages.tabs.agent }]}
           />
           {tab === 'agent' ? (
             <AgentsTab onSetUp={() => setSetupOpen(true)} withAgent={agents} agent={richerAgent} />
           ) : tab === 'guarantee' ? (
-            <GuaranteeTab />
+            <div aria-busy="true" className={`h-40 ${SOFT}`} />
           ) : state === 'loading' ? (
             <div aria-busy="true" className="space-y-4">
               <div className={`h-4 w-28 ${SOFT}`} />

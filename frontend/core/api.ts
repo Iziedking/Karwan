@@ -1268,6 +1268,8 @@ export interface DirectDeal {
   /// Stake percentage chosen by the buyer for this deal (50..100). Only
   /// meaningful when requireStake is true.
   requireStakePct?: number;
+  /// When the seller backed the deal guarantee from their savings pocket (view 82).
+  guaranteeBackedAt?: number;
   /// The agent's paid market read, carried from the match proposal so it stays
   /// visible on the deal page after funding. Agent-matched deals only.
   marketRead?: {
@@ -5404,6 +5406,8 @@ export const api = {
       caller: string;
       expectedAgreementVersion: number;
       expectedAgreementDigest: string;
+      /// The seller backs the buyer's deal guarantee from their savings pocket (view 82).
+      backGuarantee?: boolean;
     },
   ) =>
     json<{

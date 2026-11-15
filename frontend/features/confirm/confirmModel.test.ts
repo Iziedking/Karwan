@@ -76,7 +76,7 @@ test('each_action_reads_as_its_consequence', () => {
   });
   for (const kind of ['deal_guarantee', 'deal_insurance'] as const) {
     assert.deepEqual(actionLines({ kind, wallet: '0xaa', amountMicros: '25000000', recipient: '0xvault', detail: {} }, copy), {
-      headline: 'Put up 25 USDC as your deal guarantee',
+      headline: 'Add 25 USDC to your savings pocket',
       lines: [copy.guaranteeLine],
     });
   }

@@ -4,7 +4,7 @@ import { MAX_REVIEW_DAYS, reviewHasStarted } from '../deals/reviewClock.js';
 import { recheckDelivery, scheduleRecheck } from '../deals/deliveryRecheck.js';
 import { postedPriceUsdc } from '../deals/postedPrice.js';
 import { boardStore } from '../db/marketBoard.js';
-import { approvedDeadline, sellerMayAskMoreTime } from '../deals/deliveryDeadline.js';
+import { approvedDeadline, deliveryClosed, sellerMayAskMoreTime } from '../deals/deliveryDeadline.js';
 import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { SELLER_LINK_DETAIL, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { prohibitedBody } from '../policy/prohibited.js';
@@ -40,6 +40,7 @@ import { suiteRecordSides } from '../deals/suiteRecordStatusLive.js';
 import { outcomeOf } from '../deals/suiteRecordStatus.js';
 import { recordNudgeDue } from '../deals/recordNudge.js';
 import { fundDirectSuiteDeps, fundDirectV3Deps } from '../deals/fundDirectV3Live.js';
+import { backingRefusal } from '../deals/dealGuarantee.js';
 import { chatFundingRefusal } from '../deals/chatDealGate.js';
 import { chatFundingDeps } from '../deals/chatFundingLive.js';
 import { moneyOutGuard } from '../moneyOut/live.js';
@@ -387,6 +388,8 @@ const sellerDeclineSchema = callerSchema.extend({ note: z.string().trim().min(1)
 const sellerAcceptSchema = callerSchema.extend({
   expectedAgreementVersion: z.number().int().positive(),
   expectedAgreementDigest: z.string().regex(/^[a-fA-F0-9]{64}$/),
+  /// The seller backs the buyer's deal guarantee from their savings pocket (view 82).
+  backGuarantee: z.boolean().optional(),
 });
 const fundSchema = z.object({
   caller: addrSchema,
@@ -964,6 +967,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   // buyer edit before funding sends the revised deal back to seller review.
   if (deal.sellerApprovedAt) {
     patch.sellerApprovedAt = undefined;
+    patch.guaranteeBackedAt = undefined;
     patch.sellerApprovedTermsDigest = undefined;
   }
 
@@ -1137,6 +1141,7 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
   Object.assign(patch, await dealTrustPatch({ ...deal, ...patch }));
   if (patch.terms !== undefined) patch.termsDigest = termsDigest(patch.terms);
   patch.sellerApprovedAt = undefined;
+  patch.guaranteeBackedAt = undefined;
   patch.sellerApprovedTermsDigest = undefined;
   patch.sellerApprovedAgreementVersion = undefined;
   patch.sellerApprovedAgreementDigest = undefined;
@@ -2025,7 +2030,8 @@ async function acceptAsSellerAgent(deal: DirectDeal, listing: Listing): Promise<
       heldByOpenOrder: held,
       sellerAsksFirst: await sellerAsksFirst(deal.seller),
     });
-    if (!allowed || !sellerAgents || inFlight.has(jobId)) return false;
+    // A deal guarantee is the seller's own call: their agent never backs one.
+    if (!allowed || !sellerAgents || inFlight.has(jobId) || deal.requireStake) return false;
     // A goods offer is one item: claim it for this order before accepting, so
     // two orders arriving together never both get it.
     if (goods) {
@@ -2139,6 +2145,16 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   try {
     const sellerAgents = await ensureUserAgentWallets(deal.seller);
 
+    // A deal guarantee the buyer asked for is backed here, from the seller's
+    // savings pocket, or the seller cannot agree (view 82).
+    let guaranteeBackedAt: number | undefined;
+    if (deal.requireStake && (await fundingEscrowFor(deal, jobId)) === 'suite') {
+      const free = await fundDirectSuiteDeps().guarantee.freeOf(sellerAgents.sellerAddress as `0x${string}`);
+      const refusal = backingRefusal(deal, body.backGuarantee === true, free);
+      if (refusal) return c.json(refusal, 409);
+      guaranteeBackedAt = Date.now();
+    }
+
     const sellerApprovedAt = Date.now();
     const approval = await approveSellerAgreement(
       jobId,
@@ -2153,6 +2169,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
         sellerDeclineNote: undefined,
         sellerAgentWalletId: sellerAgents.sellerWalletId,
         sellerAgentAddress: sellerAgents.sellerAddress,
+        ...(guaranteeBackedAt ? { guaranteeBackedAt } : {}),
       },
     );
     if (!approval.ok) {
@@ -3069,6 +3086,15 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   }
   if (deal.delivered && (deal.cancelledAt || deal.settledAt)) {
     return c.json({ error: 'a closed deal cannot receive a delivery correction' }, 409);
+  }
+  // Past the date and its grace the escrow refuses a delivery and the rest goes
+  // back to the buyer, so a retry can never land (B-04, 15 Nov 2026).
+  const graceMs = dealEscrowOps.isV3(deal) && deal.escrowTerms ? deal.escrowTerms.reclaimGrace * 1000 : config.DEAL_DEADLINE_RECLAIM_GRACE_MS;
+  if (deliveryClosed(deal, Date.now(), graceMs)) {
+    return c.json({
+      error: 'The delivery date and its grace time have passed, so the escrow no longer takes a delivery. What is left goes back to the buyer.',
+      code: 'DELIVERY_TOO_LATE',
+    }, 409);
   }
   // Goods deliver a shipment reference; everything else delivers a link.
   //

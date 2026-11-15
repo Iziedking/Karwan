@@ -99,7 +99,10 @@ export function getProductBackHref(
   if (matchesRoute(pathname, '/invite')) return isAuthenticated ? home : '/';
   if (pathname === '/setup') return isAuthenticated ? '/profile' : '/start';
   if (pathname === '/assistant') return home;
-  if (pathname === '/add' || pathname === '/withdraw' || matchesRoute(pathname, '/account/agent') || matchesRoute(pathname, '/account/guarantee')) return '/account';
+  if (pathname === '/add' || pathname === '/withdraw' || matchesRoute(pathname, '/account/agent')) return '/account';
+  // The savings pocket opens from Profile; its moves come back to it (view 82).
+  if (matchesRoute(pathname, '/account/guarantee')) return '/pocket';
+  if (pathname === '/pocket') return isAuthenticated ? '/profile' : home;
   if (matchesRoute(pathname, '/stake')) return dealsAvailable ? '/guarantee' : home;
   if (isPublicEditorialRoute(pathname)) return isAuthenticated ? home : '/';
 
@@ -196,6 +199,7 @@ const DEAL_ROUTES = [
   '/order',
   '/financier',
   '/guarantee',
+  '/pocket',
   '/legacy',
   '/business',
   '/credit-passport',

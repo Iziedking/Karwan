@@ -2,7 +2,11 @@ import type { Address } from 'viem';
 import { config } from '../config.js';
 import { bus } from '../events.js';
 import { readUsdcAllowance, readUsdcBalance, usdc } from '../chain/contracts.js';
-import { publicClient } from '../chain/client.js';
+import { ARC, publicClient } from '../chain/client.js';
+import { agreementEscrowAbi } from '../chain/abis/agreementEscrow.js';
+import { guaranteeVaultAbi } from '../chain/guaranteeVault.js';
+import { registryAbi } from '../identity/suiteIdentity.js';
+import { dcwEvmSigner } from '../x402/dcwSigner.js';
 import { dealEscrowV3Abi } from '../chain/abis/dealEscrowV3.js';
 import { readDealTermsLimits, readDealV3, requireDealEscrowV3 } from '../chain/dealEscrowV3Live.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -18,7 +22,7 @@ import type { FundDirectV3Deps } from './fundDirectV3.js';
 import type { FundDirectSuiteDeps } from './fundDirectSuite.js';
 import { readAgreementLimits } from '../chain/agreementEscrowReads.js';
 import { agreementEscrow, readAgreementView } from '../chain/agreementEscrowLive.js';
-import { suiteAddresses } from '../chain/suiteConfig.js';
+import { guaranteeVaultEnabled, suiteAddresses } from '../chain/suiteConfig.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import type { FundAgentMatchV3Deps } from '../agents/fundAgentMatchV3.js';
 import type { FundAgentMatchSuiteDeps } from '../agents/fundAgentMatchSuite.js';
@@ -173,6 +177,35 @@ export function fundDirectSuiteDeps(): FundDirectSuiteDeps {
       bus.emitEvent({ type: e.type as Parameters<typeof bus.emitEvent>[0]['type'], jobId: e.jobId, actor: e.actor, payload: e.payload });
     },
     now: () => Date.now(),
+    guarantee: suiteGuaranteeDeps(addrs.identity, escrowAddress),
+  };
+}
+
+/// The seller's savings pocket behind a deal guarantee (view 82). The vault
+/// draws on the identity the seller agent is bound to, as "get paid now" does;
+/// without a checked vault no deal guarantee can be backed.
+function suiteGuaranteeDeps(identityRegistry: `0x${string}`, escrowAddress: `0x${string}`): FundDirectSuiteDeps['guarantee'] {
+  const vault = guaranteeVaultEnabled();
+  const noVault = async (): Promise<never> => {
+    throw new Error('the savings pocket is not set up on this network');
+  };
+  return {
+    chainId: ARC.chainId,
+    vault: vault ?? ('0x' + '00'.repeat(20)) as `0x${string}`,
+    freeOf: async (agent) => {
+      if (!vault) return 0n;
+      const id = await publicClient.readContract({ address: identityRegistry, abi: registryAbi, functionName: 'identityOf', args: [agent] });
+      if (id === 0n) return 0n;
+      return publicClient.readContract({ address: vault, abi: guaranteeVaultAbi, functionName: 'freeOf', args: [id, usdc as `0x${string}`] });
+    },
+    accountOf: async (dealId) => {
+      const a = await publicClient.readContract({ address: escrowAddress, abi: agreementEscrowAbi, functionName: 'accountOf', args: [dealId] });
+      return { horizon: BigInt(a.horizon), payer: a.payer };
+    },
+    sign: vault
+      ? (walletId, address, typed) =>
+          dcwEvmSigner(walletId, address, 'Karwan: back a deal guarantee').signTypedData(typed as Parameters<ReturnType<typeof dcwEvmSigner>['signTypedData']>[0])
+      : noVault,
   };
 }
 

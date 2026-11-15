@@ -433,6 +433,7 @@ export function createExecutor(deps: {
         caller: p.caller,
         expectedAgreementVersion: deal.agreementVersion,
         expectedAgreementDigest: deal.agreementDigest,
+        ...(p.backGuarantee === true ? { backGuarantee: true } : {}),
       }));
     }
 

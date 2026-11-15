@@ -10,7 +10,12 @@ export function moneyTab(value: string | null | undefined): MoneyTab {
   return value === 'agent' || value === 'agents' ? 'agent' : value === 'guarantee' ? 'guarantee' : 'balance';
 }
 
+/// The savings pocket's own page (view 82). It left Money; Money's old
+/// guarantee tab, `/guarantee` and `/stake` all land here.
+export const POCKET_HREF = '/pocket';
+
 export function moneyHref(tab: MoneyTab): string {
+  if (tab === 'guarantee') return POCKET_HREF;
   return tab === 'balance' ? '/account' : `/account?tab=${tab}`;
 }
 

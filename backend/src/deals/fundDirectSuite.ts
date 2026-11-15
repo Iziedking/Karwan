@@ -16,6 +16,8 @@ import { DEAL_STATE, EscrowProofError, type DealV3View } from '../chain/dealEscr
 import type { ContractCallLifecycle } from '../chain/txs.js';
 import type { DirectDeal } from '../db/deals.js';
 import type { PlanMovementLegInput } from '../money/model.js';
+import { holdUntil, reserveTypedData } from '../chain/tradeFinance.js';
+import { guaranteeNeedOf } from './dealGuarantee.js';
 import { CHECK_POLICY_V1, fundingSaltV3 } from './fundDirectV3.js';
 import { kindOf } from './dealKind.js';
 import { termsFloorMs } from './releaseWindow.js';
@@ -35,6 +37,8 @@ type Hex = `0x${string}`;
 const USDC_DECIMALS = 6;
 const DAY = 86_400;
 const ACCEPT_WINDOW_SECS = 3 * DAY;
+/// How long the seller's signed reservation stays usable: one accept, sent at once.
+const RESERVE_SIGNATURE_LIFE_S = 3_600;
 const DEFAULT_DELIVERY_SECS = 30 * DAY;
 /// The refusal for a deal over the hub's per-deal cap, naming the largest deal
 /// the cap allows once the buyer's half of the fee is added. The cap is the
@@ -71,6 +75,16 @@ export interface FundDirectSuiteDeps {
   patchDeal(jobId: string, patch: Record<string, unknown>): Promise<void>;
   emit(event: { type: string; jobId: string; actor: 'buyer' | 'seller' | 'platform'; payload: Record<string, unknown> }): void;
   now(): number;
+  /// The seller's savings pocket behind a deal guarantee (view 82).
+  guarantee: {
+    chainId: number;
+    vault: Hex;
+    /// What is free in the pocket the seller agent draws on.
+    freeOf(sellerAgent: Hex): Promise<bigint>;
+    /// Read after funding: the deal's horizon and who paid in.
+    accountOf(dealId: Hex): Promise<{ horizon: bigint; payer: Hex }>;
+    sign(walletId: string, address: Hex, typed: ReturnType<typeof reserveTypedData>): Promise<Hex>;
+  };
 }
 
 export interface FundDirectSuiteInput {
@@ -92,6 +106,9 @@ export interface FundDirectSuiteInput {
     escrowTerms?: StoredAgreementTerms;
     escrowTermsHash?: string;
     fundTxHash?: string;
+    requireStake?: boolean;
+    requireStakePct?: number;
+    guaranteeBackedAt?: number;
   };
   buyerAgent: { walletId: string; address: Hex };
   sellerAgent: { walletId: string; address: Hex };
@@ -166,6 +183,22 @@ async function steps(deps: FundDirectSuiteDeps, input: FundDirectSuiteInput, ctx
     if (buyerPaysMicros(amount, limits.feeBps) > limits.perDealCapMicros) {
       return { status: 409, body: { error: overCapCopy(limits, deps.settings.network), code: 'OVER_BETA_CAP' } };
     }
+    // A deal guarantee the buyer asked for must be backed by the seller, and
+    // still covered by their savings pocket, before any money moves.
+    let sellerStakeMicros = 0n;
+    if (deal.requireStake) {
+      if (!deal.guaranteeBackedAt) {
+        return { status: 409, body: { error: 'The seller has not backed the deal guarantee yet. Nothing was paid.', code: 'GUARANTEE_NOT_BACKED' } };
+      }
+      sellerStakeMicros = guaranteeNeedOf(deal);
+      const free = await deps.guarantee.freeOf(sellerAgent.address);
+      if (free < sellerStakeMicros) {
+        return {
+          status: 409,
+          body: { error: 'The seller’s savings pocket no longer covers the deal guarantee. Nothing was paid.', code: 'GUARANTEE_SHORT', missingUsdc: usdc(sellerStakeMicros - free) },
+        };
+      }
+    }
     await readyBuyer(deps, deal.buyer, buyerPaysMicros(amount, limits.feeBps));
 
     // The delivery window starts when the money is protected.
@@ -191,6 +224,7 @@ async function steps(deps: FundDirectSuiteDeps, input: FundDirectSuiteInput, ctx
           reviewWindowSecs: review,
           reclaimGraceSecs: Math.min(deps.settings.reclaimGraceSecs, limits.maxReview),
           ...(deal.evidenceRequired ? { checked: { verifier: deps.verifier, checkPolicy: CHECK_POLICY_V1 } } : {}),
+          sellerStakeMicros,
           agreementHash: `0x${deal.agreementDigest.replace(/^0x/, '')}` as Hex,
           nowSecs,
         },
@@ -334,14 +368,35 @@ async function activate(
     contractAddress: deps.escrow.address,
   });
   try {
-    await deps.escrow.accept({
+    const accept = {
       walletId: sellerAgent.walletId,
       jobId: s.escrowDealId,
       termsHash: agreementTermsHash(s.terms),
       idempotencyKey: activation.idempotencyKey,
       lifecycle: activation.lifecycle,
       dealKey: jobId,
-    });
+    };
+    if (s.terms.sellerStake > 0n) {
+      // The reservation must match the escrow's own: until the horizon plus
+      // the long-stop plus 30 days, for whoever paid in. Both are read back.
+      const account = await deps.guarantee.accountOf(s.escrowDealId);
+      const deadline = BigInt(Math.floor(deps.now() / 1000) + RESERVE_SIGNATURE_LIFE_S);
+      const typed = reserveTypedData({
+        chainId: deps.guarantee.chainId,
+        vault: deps.guarantee.vault,
+        family: deps.escrow.address,
+        ref: s.escrowDealId,
+        asset: s.terms.asset,
+        amount: s.terms.sellerStake,
+        beneficiary: account.payer,
+        expiresAt: holdUntil(account.horizon),
+        deadline,
+      });
+      const sig = await deps.guarantee.sign(sellerAgent.walletId, sellerAgent.address, typed);
+      await deps.escrow.acceptWithStake({ ...accept, deadline, sig });
+    } else {
+      await deps.escrow.accept(accept);
+    }
   } catch (err) {
     const code = err instanceof EscrowProofError ? 'ACCEPT_NOT_CONFIRMED' : 'ACCEPT_ESCROW_FAILED';
     const error = 'Escrow activation did not complete. Retry is safe because Karwan checks the existing escrow before another transfer.';

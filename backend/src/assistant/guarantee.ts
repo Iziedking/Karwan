@@ -47,7 +47,7 @@ const EPS = 0.000_001;
 const usdc = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
 const day = (unixSeconds: number) =>
   new Date(unixSeconds * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-const EARNS = 'At the USYC rate, paid by Karwan on testnet';
+const EARNS = 'At the US Treasury bill rate, paid by Karwan on testnet';
 
 export function buildGuaranteePutUpConfirm(i: {
   address: string;
@@ -64,8 +64,8 @@ export function buildGuaranteePutUpConfirm(i: {
     kind: 'confirm',
     id: `guarantee_put_up:${usdc(i.amountUsdc)}:${confirmNonce()}`,
     intent: 'guarantee_put_up',
-    title: 'Deposit to your deal guarantee',
-    summary: `${usdc(i.amountUsdc)} USDC set aside. It protects your buyers and can back an advance.`,
+    title: 'Add to your savings pocket',
+    summary: `${usdc(i.amountUsdc)} USDC into your savings pocket. It earns while it sits and can back your deals and advances.`,
     warning: `Coming back takes ${i.waitDays} days. Deals and advances can hold part of it until they finish.`,
     fields: [
       { label: 'Amount', value: `${usdc(i.amountUsdc)} USDC` },
@@ -92,7 +92,7 @@ export function buildGuaranteeTakeOutConfirm(i: {
 }): GuaranteeTakeOutConfirm | { error: string } {
   if (!(i.freeUsdc > EPS)) {
     if (i.heldUsdc > EPS) return { error: `Deals hold all ${usdc(i.heldUsdc)} USDC of their guarantee until they finish. It can be withdrawn then.` };
-    return { error: 'They have no deal guarantee to withdraw.' };
+    return { error: 'They have nothing in their savings pocket to take out.' };
   }
   const amount = i.amountUsdc ?? i.freeUsdc;
   if (!(amount > 0)) return { error: 'The amount must be greater than 0.' };
@@ -105,7 +105,7 @@ export function buildGuaranteeTakeOutConfirm(i: {
     kind: 'confirm',
     id: `guarantee_take_out:${usdc(amount)}:${confirmNonce()}`,
     intent: 'guarantee_take_out',
-    title: 'Withdraw from your deal guarantee',
+    title: 'Take out of your savings pocket',
     summary: `${usdc(amount)} USDC comes back on ${day(ready)}.`,
     warning: restarts
       ? `Withdrawing more restarts the ${i.waitDays} days for all ${usdc(amount + i.comingBackUsdc)} USDC coming back. While it comes back it no longer protects your deals.`
@@ -122,13 +122,13 @@ export function buildGuaranteeTakeOutConfirm(i: {
 }
 
 export function buildGuaranteeCancelConfirm(i: { address: string; comingBackUsdc: number; signer: GuaranteeSigner }): GuaranteeCancelConfirm | { error: string } {
-  if (!(i.comingBackUsdc > EPS)) return { error: 'Nothing is coming back from their deal guarantee.' };
+  if (!(i.comingBackUsdc > EPS)) return { error: 'Nothing is coming back from their savings pocket.' };
   return {
     kind: 'confirm',
     id: `guarantee_cancel_take_out:${usdc(i.comingBackUsdc)}:${confirmNonce()}`,
     intent: 'guarantee_cancel_take_out',
-    title: 'Keep your deal guarantee',
-    summary: `${usdc(i.comingBackUsdc)} USDC stays in your guarantee and protects your buyers again.`,
+    title: 'Keep it in your savings pocket',
+    summary: `${usdc(i.comingBackUsdc)} USDC stays in your savings pocket and can back your deals again.`,
     fields: [{ label: 'Amount', value: `${usdc(i.comingBackUsdc)} USDC` }],
     payload: { address: i.address, amountUsdc: usdc(i.comingBackUsdc), signer: i.signer },
     confirmLabel: 'Keep it',
@@ -143,13 +143,13 @@ export function buildGuaranteeCollectConfirm(i: {
   nowUnix: number;
   signer: GuaranteeSigner;
 }): GuaranteeCollectConfirm | { error: string } {
-  if (!(i.comingBackUsdc > EPS) || i.readyAt === null) return { error: 'Nothing is coming back from their deal guarantee, so there is nothing to collect.' };
+  if (!(i.comingBackUsdc > EPS) || i.readyAt === null) return { error: 'Nothing is coming back from their savings pocket, so there is nothing to collect.' };
   if (i.nowUnix < i.readyAt) return { error: `It is not ready yet. It can be collected on ${day(i.readyAt)}.` };
   return {
     kind: 'confirm',
     id: `guarantee_collect:${usdc(i.comingBackUsdc)}:${confirmNonce()}`,
     intent: 'guarantee_collect',
-    title: 'Collect from your deal guarantee',
+    title: 'Collect from your savings pocket',
     summary: `${usdc(i.comingBackUsdc)} USDC goes back to your balance.`,
     fields: [
       { label: 'Amount', value: `${usdc(i.comingBackUsdc)} USDC` },

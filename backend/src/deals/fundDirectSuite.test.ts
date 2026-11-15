@@ -17,6 +17,8 @@ const JOB = 'deal-s1';
 const NOW_MS = 1_800_000_000_000;
 const LIMITS: AgreementLimits = { minReview: 3_600, maxReview: 2_592_000, maxHorizon: 31_536_000, perDealCapMicros: 1_005_000_000n, feeBps: 100 };
 const Z20 = `0x${'00'.repeat(20)}` as Hex;
+const VAULT = `0x${'77'.repeat(20)}` as Hex;
+const HORIZON = 1_900_000_000n;
 
 const blank = (): DealV3View => ({
   state: DEAL_STATE.None, buyer: Z20, seller: Z20, buyerId: Z20, sellerId: Z20, count: 0, paid: 0, extUsed: 0, revision: 0,
@@ -25,7 +27,7 @@ const blank = (): DealV3View => ({
   feeReleased: 0n, reserved: 0n, termsHash: `0x${'00'.repeat(32)}`,
 });
 
-function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean; agentBlocked?: boolean } = {}) {
+function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean; agentBlocked?: boolean; pocketFree?: bigint } = {}) {
   const chain = new Map<string, DealV3View>();
   const calls: string[] = [];
   const patches: Array<Record<string, unknown>> = [];
@@ -35,6 +37,8 @@ function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean; agentBlock
   const events: string[] = [];
   const plan: Array<'ok' | 'revert'> = [];
   let allowance = 0n;
+  const signed: Array<{ walletId: string; address: Hex; typed: { message: Record<string, unknown>; primaryType: string } }> = [];
+  const accepted: unknown[][] = [];
   let tx = 0;
   let termsHash: Hex = `0x${'00'.repeat(32)}`;
   const receipts = new Map<string, Array<{ name: string; jobId: Hex; args: Record<string, unknown> }>>();
@@ -52,7 +56,8 @@ function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean; agentBlock
         chain.set(id, { ...blank(), state: DEAL_STATE.Funded, buyer: BUYER_AGENT, seller: SELLER_AGENT, count: 1, termsHash });
         receipts.set(hash, [{ name: 'DealFunded', jobId: id, args: { buyer: BUYER_AGENT } }]);
       }
-      if (name === 'accept') chain.set(first, { ...chain.get(first)!, state: DEAL_STATE.Accepted });
+      if (name === 'accept' || name === 'acceptWithStake') chain.set(first, { ...chain.get(first)!, state: DEAL_STATE.Accepted });
+      if (name === 'acceptWithStake') accepted.push(input.abiParameters as unknown[]);
       return { txHash: hash };
     },
     readView: async (id) => chain.get(id) ?? blank(),
@@ -96,8 +101,18 @@ function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean; agentBlock
     },
     emit: (e) => events.push(e.type),
     now: () => NOW_MS,
+    guarantee: {
+      chainId: 5042002,
+      vault: VAULT,
+      freeOf: async () => opts.pocketFree ?? 1_000_000_000n,
+      accountOf: async () => ({ horizon: HORIZON, payer: BUYER_AGENT }),
+      sign: async (walletId, address, typed) => {
+        signed.push({ walletId, address, typed: typed as never });
+        return `0x${'5e'.repeat(65)}` as Hex;
+      },
+    },
   };
-  return { deps, chain, calls, patches, attention, events, plan, records, freed };
+  return { deps, chain, calls, patches, attention, events, plan, records, freed, signed, accepted };
 }
 
 const input = (over: Partial<FundDirectSuiteInput["deal"]> = {}, total = 251_250_000n): FundDirectSuiteInput => ({
@@ -206,3 +221,38 @@ test('an over-cap refusal names the largest deal the contract allows, and beta o
   assert.equal(overCapCopy({ perDealCapMicros: 101_000_000_000n, feeBps: 200 }, 'testnet'), 'Deals can be up to 100,000 USDC on testnet.');
 });
 
+
+test('a deal guarantee the seller has not backed is refused before any call', async () => {
+  const w = world();
+  const r = await fundDirectDealSuite(w.deps, input({ requireStake: true, requireStakePct: 50 }));
+  assert.equal(r.status, 409);
+  assert.equal(r.body.code, 'GUARANTEE_NOT_BACKED');
+  assert.deepEqual(w.calls, []);
+});
+
+test('a backed guarantee the pocket no longer covers is refused before any call', async () => {
+  const w = world({ pocketFree: 100_000_000n });
+  const r = await fundDirectDealSuite(w.deps, input({ requireStake: true, requireStakePct: 50, guaranteeBackedAt: 1 }));
+  assert.equal(r.status, 409);
+  assert.equal(r.body.code, 'GUARANTEE_SHORT');
+  assert.equal(r.body.missingUsdc, '25');
+  assert.deepEqual(w.calls, []);
+});
+
+test('a backed guarantee goes into the terms and the seller accepts with it reserved', async () => {
+  const w = world();
+  const r = await fundDirectDealSuite(w.deps, input({ requireStake: true, requireStakePct: 50, guaranteeBackedAt: 1 }));
+  assert.equal(r.status, 200);
+  assert.deepEqual(w.calls, ['approve', 'fund', 'acceptWithStake']);
+  const terms = w.patches[0]!.escrowTerms as { sellerStake: string };
+  assert.equal(terms.sellerStake, '125000000');
+  const sig = w.signed[0]!;
+  assert.equal(sig.walletId, 'seller-w');
+  assert.equal(sig.address, SELLER_AGENT);
+  assert.equal(sig.typed.primaryType, 'Reserve');
+  assert.equal(sig.typed.message.family, ESCROW);
+  assert.equal(sig.typed.message.beneficiary, BUYER_AGENT);
+  assert.equal(sig.typed.message.amount, 125_000_000n);
+  assert.equal(sig.typed.message.expiresAt, HORIZON + 210n * 86_400n);
+  assert.equal(String(w.accepted[0]![2]), String(sig.typed.message.deadline));
+});

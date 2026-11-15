@@ -595,7 +595,7 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   profile: { label: 'Your profile', build: () => '/profile' },
   activity: { label: 'Your activity', build: () => '/activity' },
   how_it_works: { label: 'How it works', build: () => '/how-it-works' },
-  guarantee: { label: 'Your deal guarantee', build: () => '/guarantee' },
+  guarantee: { label: 'Your savings pocket', build: () => '/pocket' },
   legacy: { label: 'Earlier deals', build: () => '/legacy' },
   settings: { label: 'Settings', build: () => '/settings' },
   feedback: { label: 'Send feedback', build: () => '/feedback' },
@@ -1152,22 +1152,29 @@ export function buildAcceptDealConfirm(i: {
   amountUsdc: string;
   counterpartyLabel: string;
   deadlineLabel: string;
+  /// The deal guarantee the buyer asked for; agreeing backs it from the
+  /// seller's savings pocket (view 82).
+  guaranteeUsdc?: string;
 }): AcceptDealConfirm | { error: string } {
   if (!i.jobId) return { error: 'Missing the deal id.' };
+  const guarantee = i.guaranteeUsdc;
   return {
     kind: 'confirm',
     id: `accept_deal:${i.jobId}:${confirmNonce()}`,
     intent: 'accept_deal',
-    title: 'Agree to this deal',
-    summary: `Agree to deliver ${i.counterpartyLabel}'s ${i.amountUsdc} USDC deal. The buyer funds escrow afterward.`,
+    title: guarantee ? 'Back it from my pocket' : 'Agree to this deal',
+    summary: guarantee
+      ? `Agree to deliver ${i.counterpartyLabel}'s ${i.amountUsdc} USDC deal and back a ${guarantee} USDC deal guarantee from your savings pocket. It frees when the deal ends well. The buyer funds escrow afterward.`
+      : `Agree to deliver ${i.counterpartyLabel}'s ${i.amountUsdc} USDC deal. The buyer funds escrow afterward.`,
     warning: 'Agreement confirms the terms but does not move buyer money. Start work only after the deal shows escrow funded.',
     fields: [
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
       { label: 'Buyer', value: i.counterpartyLabel },
       { label: 'Deliver by', value: i.deadlineLabel },
+      ...(guarantee ? [{ label: 'Deal guarantee', value: `${guarantee} USDC from your savings pocket` }] : []),
     ],
-    payload: { jobId: i.jobId, caller: i.caller },
-    confirmLabel: 'Agree to terms',
+    payload: { jobId: i.jobId, caller: i.caller, ...(guarantee ? { backGuarantee: true } : {}) },
+    confirmLabel: guarantee ? 'Back it from my pocket' : 'Agree to terms',
     cancelLabel: 'Not now',
   };
 }

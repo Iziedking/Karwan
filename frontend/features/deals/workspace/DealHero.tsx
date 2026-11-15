@@ -51,6 +51,7 @@ import { CheckedCard } from './CheckedCard';
 import { CheckNotRun } from './CheckNotRun';
 import { titleMoneyLine, whatItIs } from './titleLine';
 import { momentFor } from './momentLine';
+import { GuaranteeTermRow } from './GuaranteeTermRow';
 
 const PRIMARY_CLASS = buttonClasses({ variant: 'primary', size: 'lg', className: 'w-full' });
 const SECONDARY_CLASS = buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' });
@@ -94,6 +95,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const dp = useTranslations().dealPage;
   const dl = useTranslations().dealLive;
   const s = copy.simple;
+  const guaranteeCopy = useTranslations().dealGuarantee;
   const dj = useTranslations().disputeJudge;
   const dd = useTranslations().directDealDetail;
   const declineCopy = dd.actionPanel.awaitingAcceptance;
@@ -152,6 +154,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     ? null
     : view.next.action === 'respond-cancel' && (outcome === 'refund' || outcome === 'pay')
       ? dp.answerProposal
+      : view.next.action === 'accept' && deal.requireStake
+        ? guaranteeCopy.ask.back
       : mt.currency === 'USDC'
         ? actionLabel(view.next, copy, locale)
         : mt.line(actionLabel(view.next, copy, 'en') ?? '') || null;
@@ -645,6 +649,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             <div className="mt-5 border-t border-[var(--line)] pt-5">
               <DealRoute deal={deal} vertical />
             </div>
+            <GuaranteeTermRow deal={deal} viewerIsBuyer={viewerIsBuyer} />
             {moment ? <div data-deal-check className="mt-5 border-t border-[var(--line)] pt-5">{moment}</div> : null}
             {papers}
             <div className="mt-5 has-[>[data-move-bar]:empty]:hidden lg:mt-6">{moveBar}</div>

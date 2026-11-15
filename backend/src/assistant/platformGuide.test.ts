@@ -275,7 +275,8 @@ test('the guide walks Add money and Withdraw as the new look shows them (view 48
   // Add money and Withdraw are pages, the same from Home and Money (view 51, fourth round).
   assert.match(said('deposit'), /Add money is one page \(\/add\)/);
   assert.match(said('account'), /an Added card stays until Done/);
-  assert.match(said('account'), /Balance, Agent and Deal guarantee/);
+  assert.match(said('account'), /two parts, Balance and Agent/);
+  assert.match(said('account'), /savings pocket is its own page, \/pocket/);
   assert.match(said('withdraw'), /Review opens the move once more/);
   assert.match(said('withdraw'), /Nothing moves before that/);
 });

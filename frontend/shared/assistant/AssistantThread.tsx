@@ -598,7 +598,7 @@ async function runConfirmIntent(
     };
   }
   if (action.intent === 'accept_deal') {
-    const p = action.payload as { jobId: string; caller: string };
+    const p = action.payload as { jobId: string; caller: string; backGuarantee?: boolean };
     // Acceptance is bound to the exact terms the assistant just showed. Read
     // the current snapshot first so a stale assistant card cannot approve a
     // later edit, and let the backend enforce the digest under its lock.
@@ -610,6 +610,7 @@ async function runConfirmIntent(
       caller: p.caller,
       expectedAgreementVersion: deal.agreementVersion,
       expectedAgreementDigest: deal.agreementDigest,
+      ...(p.backGuarantee === true ? { backGuarantee: true } : {}),
     });
     return {
       successText: 'Terms agreed. The buyer will review the exact total and fund escrow next.',

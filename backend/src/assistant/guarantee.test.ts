@@ -15,10 +15,10 @@ test('putting up says what it protects, how long coming back takes, and the yiel
   const c = buildGuaranteePutUpConfirm({ address: ME, amountUsdc: 100, balanceUsdc: 250, waitDays: 7, signer: 'karwan' });
   assert.ok(!('error' in c));
   assert.equal(c.intent, 'guarantee_put_up');
-  assert.equal(c.title, 'Deposit to your deal guarantee');
-  assert.match(c.summary!, /protects your buyers/);
+  assert.equal(c.title, 'Add to your savings pocket');
+  assert.match(c.summary!, /savings pocket/);
   assert.deepEqual(c.fields.map((f) => f.label), ['Amount', 'Coming back takes', 'Earns', 'Balance after']);
-  assert.equal(c.fields.find((f) => f.label === 'Earns')!.value, 'At the USYC rate, paid by Karwan on testnet');
+  assert.equal(c.fields.find((f) => f.label === 'Earns')!.value, 'At the US Treasury bill rate, paid by Karwan on testnet');
   assert.deepEqual(c.payload, { address: ME, amountUsdc: '100.00', signer: 'karwan' });
   for (const w of [c.title, c.summary, c.warning, ...c.fields.map((f) => f.value)]) assert.doesNotMatch(String(w ?? ''), /stake|vault|insurance/i);
 });

@@ -58,6 +58,7 @@ export const EXACT: Record<string, RouteTitleKey> = {
   '/settings': 'settings',
   '/setup': 'setUp',
   '/guarantee': 'guarantee',
+  '/pocket': 'guarantee',
   '/contests/new': 'runContest',
   '/agent-jobs': 'agentJobs',
   '/work/new': 'hireByHour',

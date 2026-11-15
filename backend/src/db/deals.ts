@@ -557,6 +557,9 @@ export interface DirectDeal {
   /// Unset when requireStake is false; default 50 when requireStake is true
   /// and the slider was not surfaced (older clients).
   requireStakePct?: number;
+  /// When the seller backed the buyer's deal guarantee from their savings
+  /// pocket, as part of agreeing (view 82). Cleared when the terms change.
+  guaranteeBackedAt?: number;
   // --- SME trade-finance fields (Phase 2 Track 2) -----------------------
   /// Match lane this deal belongs to. 'service' is the single-service P2P
   /// flow, open to every account type; 'finance' is SME/B2B trade-finance,

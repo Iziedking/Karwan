@@ -42,7 +42,7 @@ export interface ConfirmPresenceCopy {
 const en: ConfirmPresenceCopy = {
   title: "Confirm it's you",
   moveOut: 'Send {amount} USDC to {to}',
-  guarantee: 'Put up {amount} USDC as your deal guarantee',
+  guarantee: 'Add {amount} USDC to your savings pocket',
   guaranteeLine: 'It protects your buyers and lets financiers advance you money on your deals. You can take it back when no deal is using it.',
   setup: 'Set up your Karwan record',
   setupLine: 'Your agents run your deals for you. Your buying agent can pay up to {perPayment} USDC at a time and {total} USDC in total for one year.',
@@ -79,7 +79,7 @@ const en: ConfirmPresenceCopy = {
 const ar: ConfirmPresenceCopy = {
   title: 'أكّد أنك أنت',
   moveOut: 'إرسال {amount} USDC إلى {to}',
-  guarantee: 'وضع {amount} USDC كضمان للصفقة',
+  guarantee: 'إضافة {amount} USDC إلى جيب الادخار',
   guaranteeLine: 'يحمي المشترين منك ويتيح للممولين تقديم سلفة لك على صفقاتك. يمكنك استرداده حين لا تستخدمه أي صفقة.',
   setup: 'أنشئ سجلك في Karwan',
   setupLine: 'وكلاؤك يديرون صفقاتك نيابة عنك. يمكن لوكيل الشراء أن يدفع حتى {perPayment} USDC في المرة و{total} USDC إجمالًا لمدة سنة.',
@@ -116,7 +116,7 @@ const ar: ConfirmPresenceCopy = {
 const fr: ConfirmPresenceCopy = {
   title: "Confirmez que c'est vous",
   moveOut: 'Envoyer {amount} USDC à {to}',
-  guarantee: 'Déposer {amount} USDC en garantie de transaction',
+  guarantee: 'Ajouter {amount} USDC à votre poche d’épargne',
   guaranteeLine: 'Elle protège vos acheteurs et permet aux financeurs de vous avancer de l’argent sur vos transactions. Vous pouvez la reprendre quand aucune transaction ne l’utilise.',
   setup: 'Créez votre dossier Karwan',
   setupLine: 'Vos agents mènent vos transactions pour vous. Votre agent d’achat peut payer jusqu’à {perPayment} USDC à la fois et {total} USDC au total pendant un an.',
@@ -153,7 +153,7 @@ const fr: ConfirmPresenceCopy = {
 const hi: ConfirmPresenceCopy = {
   title: 'पुष्टि करें कि यह आप हैं',
   moveOut: '{to} को {amount} USDC भेजें',
-  guarantee: '{amount} USDC डील गारंटी के रूप में रखें',
+  guarantee: 'अपनी बचत पॉकेट में {amount} USDC जोड़ें',
   guaranteeLine: 'यह आपके खरीदारों की रक्षा करता है और फ़ाइनेंसरों को आपकी डील पर आपको पैसा अग्रिम देने देता है। जब कोई डील इसका उपयोग न कर रही हो, तब आप इसे वापस ले सकते हैं।',
   setup: 'अपना Karwan रिकॉर्ड बनाएँ',
   setupLine: 'आपके एजेंट आपकी डील आपके लिए चलाते हैं। आपका खरीद एजेंट एक बार में {perPayment} USDC तक और एक साल में कुल {total} USDC तक भुगतान कर सकता है।',
@@ -190,7 +190,7 @@ const hi: ConfirmPresenceCopy = {
 const sw: ConfirmPresenceCopy = {
   title: 'Thibitisha kuwa ni wewe',
   moveOut: 'Tuma USDC {amount} kwa {to}',
-  guarantee: 'Weka USDC {amount} kama dhamana ya mpango',
+  guarantee: 'Ongeza USDC {amount} kwenye mfuko wako wa akiba',
   guaranteeLine: 'Inawalinda wanunuzi wako na inawaruhusu wafadhili kukupa pesa mapema kwa mikataba yako. Unaweza kuirudisha wakati hakuna mkataba unaoitumia.',
   setup: 'Fungua rekodi yako ya Karwan',
   setupLine: 'Mawakala wako wanaendesha mikataba yako kwa niaba yako. Wakala wako wa kununua anaweza kulipa hadi USDC {perPayment} kwa mara moja na USDC {total} kwa jumla kwa mwaka mmoja.',

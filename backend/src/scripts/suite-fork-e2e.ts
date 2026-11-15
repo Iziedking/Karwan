@@ -42,6 +42,8 @@ import {
   settleCall, submitCall, timeEscrowAbi, timeTermsHash, weekCost,
 } from '../chain/timeEscrow.js';
 import { createFamilyFinancing, testFinancierTerms, type FamilyFinancingPorts } from '../money/familyFinancing.js';
+import { fundDirectDealSuite, type FundDirectSuiteDeps } from '../deals/fundDirectSuite.js';
+import { holdUntil } from '../chain/tradeFinance.js';
 
 /// The escrow-family path end to end on an Arc fork of the deployed suite
 /// (plan 2, Task 13), with the backend's own adapters and local keys in place
@@ -1066,12 +1068,178 @@ async function agentJobRun(): Promise<void> {
   check('the seller misses the deadline: the agent claims everything back', refunded === funded, `${refunded} back (want ${funded})`);
 }
 
+/// A deal guarantee the buyer asked for, backed from the seller's savings
+/// pocket (view 82), with the app's own funding core: an unbacked ask moves no
+/// money; a backed one is funded, and the seller agent's signature reserves the
+/// guarantee for the buyer until the horizon plus 210 days.
+async function dealGuaranteeRun(): Promise<void> {
+  const limits = await readAgreementLimits(pub, D.hub!, D.agreement!, USDC);
+  check('the hub opens the Agreement family for USDC', limits.perDealCapMicros > 0n, `cap ${limits.perDealCapMicros}`);
+  if (limits.perDealCapMicros === 0n || !D.vault) return;
+  const accounts: Record<string, LocalAccount> = {};
+  for (const id of ['buyer-id', 'buyer-agent', 'buyer-seller-agent', 'seller-id', 'seller-agent', 'seller-buyer-agent']) {
+    accounts[id] = privateKeyToAccount(generatePrivateKey());
+    await anvil.setBalance({ address: accounts[id]!.address, value: 5_000n * 10n ** 18n });
+  }
+  const wallet = (id: string) => createWalletClient({ account: accounts[id]!, chain, transport: http(RPC) });
+  const sendAs = async (id: string, to: Hex, abi: readonly unknown[], functionName: string, args: unknown[]) => {
+    const hash = await wallet(id).writeContract({ address: to, abi: abi as never, functionName: functionName as never, args: args as never, account: accounts[id]!, chain });
+    const receipt = await pub.waitForTransactionReceipt({ hash });
+    if (receipt.status !== 'success') throw new Error(`${functionName} reverted (${hash})`);
+    return receipt;
+  };
+  const people: Record<string, { identity: string; buyer: string; seller: string }> = {
+    [accounts['buyer-id']!.address.toLowerCase()]: { identity: 'buyer-id', buyer: 'buyer-agent', seller: 'buyer-seller-agent' },
+    [accounts['seller-id']!.address.toLowerCase()]: { identity: 'seller-id', buyer: 'seller-buyer-agent', seller: 'seller-agent' },
+  };
+  const walletsOf = async (user: string) => {
+    const w = people[user.toLowerCase()];
+    if (!w) return null;
+    return {
+      identity: { address: accounts[w.identity]!.address, walletId: w.identity },
+      buyer: { address: accounts[w.buyer]!.address, walletId: w.buyer },
+      seller: { address: accounts[w.seller]!.address, walletId: w.seller },
+    };
+  };
+  const nowSecs = await chainNow();
+  const identity = createSuiteIdentity({
+    registry: D.identity!,
+    chainId: CHAIN_ID,
+    now: () => nowSecs,
+    binding: async (w) => {
+      const [id, kind, expiry] = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'bindingOf', args: [w] });
+      return { id: BigInt(id), kind: Number(kind), expiry: BigInt(expiry) };
+    },
+    nonce: (w) => pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'nonces', args: [w] }),
+    identityCount: async () => BigInt(await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'identityCount' })),
+    agentLimit: async (w) => {
+      const [perPayment, total, used] = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'agentLimitOf', args: [w] });
+      return { perPayment, total, used };
+    },
+    wallets: walletsOf,
+    ensureWallets: walletsOf,
+    isDeployed: async () => true,
+    deployAgent: async () => undefined,
+    signTypedData: (walletId, typed) => accounts[walletId]!.signTypedData!(typed),
+    execute: async (walletId, fn, args) => ({ txHash: (await sendAs(walletId, D.identity!, registryAbi, fn, args)).transactionHash }),
+  });
+  for (const who of ['buyer-id', 'seller-id']) await identity.setUpIdentityForCustodial(accounts[who]!.address);
+  const sellerUser = accounts['seller-id']!.address;
+  const sellerAgent = accounts['seller-agent']!.address;
+  const { identityId } = await identity.identityStatus(sellerUser);
+  check('the seller has a record with the selling agent bound', identityId !== 0n, `id ${identityId}`);
+
+  const pocket = 100_000_000n;
+  await sendAs('seller-id', USDC, erc20Abi, 'approve', [D.vault, pocket]);
+  await sendAs('seller-id', D.vault, guaranteeVaultAbi, 'stake', [USDC, pocket]);
+  const freeOf = async (agent: Hex) => {
+    const id = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'identityOf', args: [agent] });
+    return id === 0n ? 0n : pub.readContract({ address: D.vault!, abi: guaranteeVaultAbi, functionName: 'freeOf', args: [id, USDC] });
+  };
+  check('100 USDC is in the seller\'s savings pocket', (await freeOf(sellerAgent)) === pocket);
+
+  const escrow = createAgreementEscrow(
+    agreementEscrowPorts(reads, D.agreement!, CHAIN_ID, {
+      execute: async (input) => {
+        const item = parseAbiItem(`function ${input.abiFunctionSignature}`) as AbiFunction;
+        const hash = await wallet(input.walletId).writeContract({
+          address: input.contractAddress as Hex,
+          abi: [item],
+          functionName: item.name,
+          args: coerce(item.inputs, input.abiParameters as unknown[]) as never,
+          account: accounts[input.walletId]!,
+          chain,
+        });
+        const receipt = await pub.waitForTransactionReceipt({ hash });
+        if (receipt.status !== 'success') throw new Error(`${item.name} reverted (${hash})`);
+        return { txHash: hash };
+      },
+      emit: () => {},
+    }),
+  );
+  const patches: Array<Record<string, unknown>> = [];
+  const deps: FundDirectSuiteDeps = {
+    escrow,
+    asset: USDC,
+    verifier: D.verifier!,
+    readView: (id) => reads.view(D.agreement!, id),
+    readLimits: () => readAgreementLimits(pub, D.hub!, D.agreement!, USDC),
+    settings: { baseReviewSecs: limits.minReview, reclaimGraceSecs: DAY },
+    ensureRecord: (user, role) => identity.ensureRecord(user, role),
+    freeBuyingAgent: (user, amount) => identity.freeBuyingAgent(user, amount),
+    readUsdcBalance: (owner) => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [owner] }),
+    readUsdcAllowance: (owner, spender) => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'allowance', args: [owner, spender] }),
+    approveUsdc: async (i) => {
+      await sendAs(i.walletId, USDC, erc20Abi, 'approve', [i.spender, i.amount]);
+    },
+    movements: {
+      ensure: async (i) => ({ reference: 'mm-guarantee', amountMicros: i.amountMicros.toString() }),
+      prepareLeg: async (_r, leg) => ({ legId: leg.key, idempotencyKey: `${leg.key}-key` }),
+      verifyLeg: async () => undefined,
+      needsAttention: async () => undefined,
+      complete: async () => undefined,
+    },
+    patchDeal: async (_j, patch) => { patches.push(patch); },
+    emit: () => {},
+    now: () => nowSecs * 1000,
+    guarantee: {
+      chainId: CHAIN_ID,
+      vault: D.vault,
+      freeOf,
+      accountOf: async (dealId) => {
+        const a = await pub.readContract({ address: D.agreement!, abi: agreementEscrowAbi, functionName: 'accountOf', args: [dealId] });
+        return { horizon: BigInt(a.horizon), payer: a.payer };
+      },
+      sign: (walletId, _address, typed) => accounts[walletId]!.signTypedData!(typed as never),
+    },
+  };
+  const amountUsdc = '60';
+  const total = buyerPaysMicros(60_000_000n, limits.feeBps);
+  const input = (jobId: string, over: Record<string, unknown>) => ({
+    jobId,
+    deal: {
+      buyer: accounts['buyer-id']!.address,
+      seller: sellerUser,
+      dealAmountUsdc: amountUsdc,
+      createdAt: nowSecs * 1000 - 1000,
+      agreementDigest: 'ce'.repeat(32),
+      requireStake: true,
+      requireStakePct: 50,
+      ...over,
+    },
+    buyerAgent: { walletId: 'buyer-agent', address: accounts['buyer-agent']!.address },
+    sellerAgent: { walletId: 'seller-agent', address: sellerAgent },
+    milestonePcts: [100],
+    authorizedTotalMicros: total,
+    operationKey: `fund:${jobId}`,
+  });
+
+  const before = await pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [accounts['buyer-agent']!.address] });
+  const unbacked = await fundDirectDealSuite(deps, input('deal-g-unbacked', {}));
+  const after = await pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [accounts['buyer-agent']!.address] });
+  check('an ask the seller has not backed is refused and moves no money', unbacked.body.code === 'GUARANTEE_NOT_BACKED' && before === after, String(unbacked.body.code));
+
+  const r = await fundDirectDealSuite(deps, input('deal-g-backed', { guaranteeBackedAt: 1 }));
+  check('a backed ask is funded and accepted', r.status === 200, JSON.stringify(r.body).slice(0, 200));
+  const intent = patches.find((x) => typeof x.escrowDealId === 'string');
+  const dealId = intent?.escrowDealId as Hex | undefined;
+  if (!dealId) return;
+  const view = await reads.view(D.agreement!, dealId);
+  check('the escrow reads Accepted', view.state === DEAL_STATE.Accepted, `state ${view.state}`);
+  check('the escrow holds a 30 USDC deal guarantee in its terms', view.reserved === 30_000_000n, `${view.reserved}`);
+  check('30 USDC of the pocket now backs the deal, 70 USDC stays free', (await freeOf(sellerAgent)) === 70_000_000n, `${await freeOf(sellerAgent)} free`);
+  const account = await pub.readContract({ address: D.agreement!, abi: agreementEscrowAbi, functionName: 'accountOf', args: [dealId] });
+  const held = await pub.readContract({ address: D.vault, abi: vaultReservationAbi, functionName: 'expiryOf', args: [D.agreement!, dealId] });
+  check('the guarantee is held until the horizon plus 210 days', held === holdUntil(BigInt(account.horizon)), `until ${held}`);
+}
+
 async function main(): Promise<void> {
   console.log(`suite fork e2e, ${phase}, block ${await pub.getBlockNumber()}`);
   await parity();
   if (phase === 'full') await full();
   if (phase === 'guarantee') await guaranteeRun();
   if (phase === 'financing') await financingRun();
+  if (phase === 'dealguarantee') await dealGuaranteeRun();
   if (phase === 'contest') await contestRun();
   if (phase === 'hourly') await hourlyRun();
   if (phase === 'agentjob') await agentJobRun();

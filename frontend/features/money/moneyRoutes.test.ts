@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { agentMoveHref, bridgeRedirect, buyerTopUpHref, guaranteeStepHref, moneyHref, moneyTab } from './moneyRoutes';
+import { agentMoveHref, bridgeRedirect, buyerTopUpHref, guaranteeStepHref, moneyHref, moneyTab, POCKET_HREF } from './moneyRoutes';
 
 const q = (s: string) => new URLSearchParams(s);
 
@@ -30,7 +30,9 @@ test('theMoneyTabReadsFromTheAddress', () => {
   assert.equal(moneyTab(null), 'balance');
   assert.equal(moneyTab('nonsense'), 'balance');
   assert.equal(moneyHref('balance'), '/account');
-  assert.equal(moneyHref('guarantee'), '/account?tab=guarantee');
+  // The savings pocket left Money for its own page (view 82); old links land there.
+  assert.equal(moneyHref('guarantee'), '/pocket');
+  assert.equal(POCKET_HREF, '/pocket');
 });
 
 test('agentAndGuaranteeMovesHaveTheirOwnPages', () => {

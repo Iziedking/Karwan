@@ -32,6 +32,9 @@ import { useTheme } from '@/shared/hooks/useTheme';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { LOCALE_NAMES } from '@/shared/i18n/locales';
 import { routeTitlesCopy } from '@/shared/i18n/messages/routeTitles';
+import { useGuarantee } from '@/features/guarantee/useGuarantee';
+import { guaranteeView } from '@/features/guarantee/guaranteeView';
+import { POCKET_HREF } from '@/features/money/moneyRoutes';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -130,6 +133,9 @@ export function ProfileAccountHub({
   const balanceFacts = { balance: money.balance, pool: money.pool, agents: agentTotal, loading: money.loading, error: money.error };
   const mt = useMoneyText();
   const balanceText = (value: number | null) => (value == null ? undefined : mt.text(value));
+  // The savings pocket sits under Money (view 82); its value is the whole pocket.
+  const pocket = guaranteeView(useGuarantee().data);
+  const pocketText = pocket?.kind === 'on' ? balanceText(Number(pocket.guaranteed)) : undefined;
   // What setup already filled in, instead of "Set up" (accountRows.ts).
   const rows = accountRows(
     {
@@ -197,6 +203,7 @@ export function ProfileAccountHub({
       <RowGroup>
         <Row label={pp.yourRecord} value={summary ?? undefined} href={`/credit-passport/${address}`} />
         <Row label={mpg.money} value={balanceText(heroAmount(balanceFacts))} href="/account" />
+        {pocket?.kind === 'off' ? null : <Row label={messages.moneyPages.tabs.guarantee} value={pocketText} href={POCKET_HREF} />}
         {DEALS_AVAILABLE ? (
           <>
             <Row label={pp.buying} value={trade.requests} href={marketViewHref('yours', 'requests')} />

@@ -140,3 +140,14 @@ test('milestones_keep_the_split_the_parties_agreed', () => {
   assert.equal(code(() => buildAgreementTerms(input({ kind: 'milestones', milestonePcts: [20, 20, 20, 20, 10, 10] }), LIMITS)), 'bad_stages');
   assert.equal(code(() => buildAgreementTerms(input({ kind: 'milestones', milestonePcts: [100] }), LIMITS)), 'bad_stages');
 });
+
+test('a deal guarantee the buyer asked for goes into the terms', () => {
+  const t = buildAgreementTerms(input({ sellerStakeMicros: 25_000_000n }), LIMITS);
+  assert.equal(t.sellerStake, 25_000_000n);
+  assert.equal(buildAgreementTerms(input(), LIMITS).sellerStake, 0n);
+});
+
+test('a deal guarantee larger than the deal is refused', () => {
+  const t = input();
+  assert.equal(code(() => buildAgreementTerms(input({ sellerStakeMicros: t.amountMicros + 1n }), LIMITS)), 'bad_terms');
+});

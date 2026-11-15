@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { classifyConfirmError, dealMovedSinceSnapshot, snapshotDeal, type ConfirmSnapshot } from './confirmLogic';
 import { actionConsequence, actionLabel, fill, formatUsdcAmount, isIrreversibleAction } from './presentation';
 import { useFundingQuote } from './useFundingQuote';
+import { guaranteeTerm } from '../guaranteeAsk';
 
 type SheetAction = 'accept' | 'fund' | 'release' | 'claim' | 'review-manually';
 const SHEET_ACTIONS: readonly string[] = ['accept', 'fund', 'release', 'claim', 'review-manually'];
@@ -36,6 +37,7 @@ export function useWorkspaceActions(
 ) {
   const copy = useTranslations().dealWorkspace;
   const dd = useTranslations().directDealDetail;
+  const ask = useTranslations().dealGuarantee.ask;
   const dp = useTranslations().dealPage;
   const { locale } = useLocale();
   const { activated } = useActivation();
@@ -95,10 +97,12 @@ export function useWorkspaceActions(
     }
 
     if (next.action === 'accept') {
+      // Agreeing to a deal with a guarantee asked for backs it (view 82).
+      const term = guaranteeTerm(deal);
       const base: SheetState = {
         action: 'accept',
-        title: activated ? copy.actions.accept : dd.acceptConsentModal.title,
-        consequence: activated ? copy.consequence.accept : dd.acceptConsentModal.body,
+        title: term ? ask.back : activated ? copy.actions.accept : dd.acceptConsentModal.title,
+        consequence: term ? say(fill(ask.confirmSeller, { amount: formatUsdcAmount(String(term.usdc), figureLocale) })) : activated ? copy.consequence.accept : dd.acceptConsentModal.body,
         irreversible: false,
         snapshot,
         quote: null,
@@ -115,7 +119,7 @@ export function useWorkspaceActions(
       snapshot,
       quote: null,
     });
-  }, [deal, address, locale, copy, dd, displayName, activated, fundingQuote, say, figureLocale]);
+  }, [deal, address, locale, copy, dd, ask, displayName, activated, fundingQuote, say, figureLocale]);
 
   // The work check found a gap: the buyer releases this part after looking themselves.
   const openAcceptRelease = useCallback(() => {
@@ -146,6 +150,7 @@ export function useWorkspaceActions(
           caller: address,
           expectedAgreementVersion: deal.agreementVersion!,
           expectedAgreementDigest: deal.agreementDigest!,
+          ...(deal.requireStake ? { backGuarantee: true } : {}),
         });
         await accept();
       } else if (sheet.action === 'fund') {
@@ -207,6 +212,12 @@ export function useWorkspaceActions(
       } else if (sheet.action === 'accept') {
         // Closing the confirmation sheet is a choice, not a failure.
         if (err instanceof ConfirmCancelled) return;
+        if (code === 'GUARANTEE_SHORT') {
+          const missing = err instanceof ApiError ? (err.body as { missingUsdc?: string } | undefined)?.missingUsdc : undefined;
+          setErrorCode(code);
+          setError(say(fill(ask.short, { amount: formatUsdcAmount(missing ?? '0', figureLocale) })));
+          return;
+        }
         setError(message?.trim() ? message : err instanceof Error && err.message ? err.message : dd.errors.approvalFailed);
       } else {
         setError(message?.trim() ? message : dd.actionPanel.releaseBlocked.skipFailed);
@@ -215,7 +226,7 @@ export function useWorkspaceActions(
       busyRef.current = false;
       setBusy(false);
     }
-  }, [deal, address, sheet, refresh, copy, dd, fundingQuote, locale, viewerIsBuyer, say, figureLocale]);
+  }, [deal, address, sheet, refresh, copy, dd, ask, fundingQuote, locale, viewerIsBuyer, say, figureLocale]);
 
   const close = useCallback(() => {
     if (busy) return;

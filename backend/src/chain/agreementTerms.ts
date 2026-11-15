@@ -66,6 +66,9 @@ export interface AgreementTermsInput {
   partialBps?: number;
   fallbackBps?: number;
   checked?: { verifier: Hex; checkPolicy: Hex };
+  /// The deal guarantee the buyer asked for, reserved from the seller's savings
+  /// pocket when the deal is accepted (view 82). Zero or absent: none.
+  sellerStakeMicros?: bigint;
   agreementHash: Hex;
   nowSecs: number;
 }
@@ -150,6 +153,8 @@ export function buildAgreementTerms(input: AgreementTermsInput, limits: Agreemen
   const partialBps = input.partialBps ?? 0;
   const fallbackBps = input.fallbackBps ?? 5_000;
   if (partialBps >= BPS || fallbackBps > BPS) throw new AgreementTermsError('bad_terms', 'A share is out of range.');
+  const sellerStake = input.sellerStakeMicros ?? 0n;
+  if (sellerStake < 0n || sellerStake > input.amountMicros) throw new AgreementTermsError('bad_terms', 'A deal guarantee cannot be more than the deal.');
 
   return {
     asset: input.asset,
@@ -172,7 +177,7 @@ export function buildAgreementTerms(input: AgreementTermsInput, limits: Agreemen
     parts: 0,
     partEvery: 0,
     cancelFeeBps: 0,
-    sellerStake: 0n,
+    sellerStake,
     verifier: input.checked?.verifier ?? ZERO_ADDRESS,
     checkPolicy: input.checked?.checkPolicy ?? ZERO_BYTES32,
     agreementHash: input.agreementHash,

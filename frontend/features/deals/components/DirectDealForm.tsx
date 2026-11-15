@@ -12,6 +12,7 @@ import { kindChoices, preselectedKind, type KindChoice, workKindHref } from '../
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { api, ApiError, type Partner, type TrustView } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
+import { GuaranteeAskField } from './GuaranteeAskField';
 import { sfx } from '@/shared/utils/sfx';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { cn } from '@/shared/utils/cn';
@@ -748,6 +749,15 @@ export function DirectDealForm() {
             <AcceptWithin hours={acceptanceHours} onChange={setAcceptanceHours} disabled={submitting} />
           </div>
         </FoldRow>
+        <GuaranteeAskField
+          on={requireStake}
+          pct={requireStakePct}
+          amountUsdc={amountValid ? (amount as number) : null}
+          seller={recipient}
+          disabled={submitting}
+          onToggle={setRequireStake}
+          onPct={setRequireStakePct}
+        />
       </div>
 
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden

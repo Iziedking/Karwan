@@ -224,6 +224,21 @@ export function createAgreementEscrow(ports: AgreementEscrowPorts) {
       return { txHash };
     },
 
+    /// The seller accepts a deal that asks for a deal guarantee and reserves it
+    /// from their savings pocket with their own signature (view 82).
+    async acceptWithStake(args: Op & { jobId: Hex; termsHash: Hex; deadline: bigint; sig: Hex }) {
+      const { txHash } = await write(
+        args,
+        args.jobId,
+        'acceptWithStake(bytes32,bytes32,uint256,bytes)',
+        [args.jobId, args.termsHash, args.deadline.toString(), args.sig],
+        `acceptWithStake(${args.jobId})`,
+        (d) => d.state === DEAL_STATE.Accepted,
+      );
+      ports.emit({ type: 'escrow.accepted', jobId: args.dealKey ?? args.jobId, actor: 'seller', payload: { txHash, guarantee: true } });
+      return { txHash };
+    },
+
     async cancelUnaccepted(args: Op & { jobId: Hex }) {
       const { txHash } = await write(args, args.jobId, 'cancelUnaccepted(bytes32)', [args.jobId], `cancelUnaccepted(${args.jobId})`, (d) => d.state === DEAL_STATE.Refunded);
       ports.emit({ type: 'escrow.refunded', jobId: args.dealKey ?? args.jobId, actor: 'buyer', payload: { txHash } });

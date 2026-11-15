@@ -20,6 +20,7 @@ import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { CATEGORY_IDS } from '../listings/categories.js';
 import { formatUnits, parseUnits, type Address } from 'viem';
+import { guaranteeNeedOf } from '../deals/dealGuarantee.js';
 import { assistantAgentModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
 import { systemPromptFor } from './knowledge.js';
@@ -713,12 +714,12 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     get_my_guarantee: tool({
       description:
-        "The signed-in user's deal guarantee: money they set aside to protect their buyers and back advances. In place, held by deals until they finish, free to take out, coming back and the day it is ready, the yield they can claim, and anything still on the previous contract. Use for 'my guarantee', 'how much have I put up', 'my yield', 'can I take it out', and the old words 'my stake' or 'my insurance'. Never guess these numbers.",
+        "The signed-in user's savings pocket: money they keep aside, which earns and which a buyer can ask them to back a deal with (a deal guarantee). In the pocket, backing deals until they finish, free to take out, coming back and the day it is ready, what it earned, and anything still on the previous contract. Use for 'my savings pocket', 'my pocket', 'my guarantee', 'how much have I put aside', 'my yield', 'can I take it out', and the old words 'my stake' or 'my insurance'. Never guess these numbers.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
           const [snap, yieldSnap] = await Promise.all([guaranteeSnapshot(address), readStakerYield(address).catch(() => null)]);
-          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          if (!snap) return { error: 'The savings pocket is not available right now.' };
           const s = snap.state;
           return {
             inPlaceUsdc: micros(s.inPlaceMicros).toFixed(2),
@@ -733,11 +734,11 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
               yieldSnap && yieldSnap.configured
                 ? { claimableNowUsdc: yieldSnap.claimableUsdc, lifetimeEarnedUsdc: yieldSnap.lifetimeCreditedUsdc, lifetimeClaimedUsdc: yieldSnap.lifetimeClaimedUsdc }
                 : null,
-            note: 'Call it their deal guarantee, never stake, vault or insurance. It earns at the USYC rate, paid by Karwan on testnet; never say it is invested in USYC. Money on the previous contract is withdrawn from Earlier deals (get_my_legacy_positions). Ready money: propose_guarantee_collect; to keep it, propose_guarantee_cancel_take_out.',
+            note: 'Call it their savings pocket; the part a deal holds is a deal guarantee. Never say stake, vault or insurance. It earns at the US Treasury bill rate (the USYC rate), paid by Karwan on testnet; never say it is invested in USYC. Money on the previous contract is withdrawn from Earlier deals (get_my_legacy_positions). Ready money: propose_guarantee_collect; to keep it, propose_guarantee_cancel_take_out.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_guarantee failed');
-          return { error: 'Could not read the deal guarantee right now. Try again shortly.' };
+          return { error: 'Could not read the savings pocket right now. Try again shortly.' };
         }
       },
     }),
@@ -966,7 +967,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
           if (yieldSnap?.configured && Number(yieldSnap.claimableUsdc) > 0) {
             actionNeeded.push(
-              `${yieldSnap.claimableUsdc} USDC of yield on your deal guarantee is ready to claim at /guarantee.`,
+              `${yieldSnap.claimableUsdc} USDC earned in your savings pocket is ready to move to your balance at /pocket.`,
             );
           }
 
@@ -1626,6 +1627,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             deadlineLabel: deal.deadlineUnix
               ? new Date(deal.deadlineUnix * 1000).toISOString().slice(0, 10)
               : 'as agreed',
+            ...(deal.requireStake ? { guaranteeUsdc: formatUnits(guaranteeNeedOf(deal), 6) } : {}),
           });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
@@ -1742,14 +1744,14 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_guarantee_put_up: tool({
       description:
-        "Prepare a card to put up USDC as a deal guarantee: money set aside to protect their buyers and back advances, coming back 7 days after they take it out, earning at the USYC rate paid by Karwan. Use for 'put up a guarantee', 'stake 50', 'add deal insurance', 'how do I raise my reputation' (after explaining, offer the card).",
+        "Prepare a card to add USDC to their savings pocket: money kept aside that can back their deals and advances, coming back 7 days after they take it out, earning at the US Treasury bill rate paid by Karwan on testnet. Use for 'add to my pocket', 'save 50', 'put up a guarantee', 'stake 50', 'add deal insurance', 'how do I raise my reputation' (after explaining, offer the card).",
       inputSchema: z.object({
         amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to put up.'),
       }),
       execute: async ({ amountUsdc }) => {
         try {
           const [snap, balance] = await Promise.all([guaranteeSnapshot(address), readUsdcBalance(address)]);
-          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          if (!snap) return { error: 'The savings pocket is not available right now.' };
           const built = buildGuaranteePutUpConfirm({ address, amountUsdc, balanceUsdc: micros(balance), waitDays: snap.waitDays, signer: method === 'circle' ? 'karwan' : 'wallet' });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
@@ -1763,7 +1765,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_claim_yield: tool({
       description:
-        "Prepare a confirm card to claim the yield earned on their deal guarantee into their wallet. Use for 'claim my yield', 'collect my earnings', or proactively when get_my_guarantee or whats_pending shows claimable yield.",
+        "Prepare a confirm card to move what their savings pocket earned into their balance. Use for 'claim my yield', 'collect my earnings', or proactively when get_my_guarantee or whats_pending shows claimable yield.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
@@ -1772,7 +1774,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           }
           const snap = await readStakerYield(address);
           if (!snap.configured || !(Number(snap.claimableUsdc) > 0)) {
-            return { error: 'They have no yield to claim right now. Yield is credited daily on the deal guarantee.' };
+            return { error: 'Nothing has been earned to move yet. Earnings are added daily in the savings pocket.' };
           }
           const built = buildClaimYieldConfirm({ caller: address, claimableUsdc: snap.claimableUsdc });
           if ('error' in built) return built;
@@ -1787,14 +1789,14 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_guarantee_take_out: tool({
       description:
-        "Prepare a card to take money out of their deal guarantee. It comes back after 7 days and is then collected. Use for 'take out my guarantee', 'unstake', 'withdraw my insurance'. Leave amountUsdc out to take out everything deals are not holding.",
+        "Prepare a card to take money out of their savings pocket. It comes back after 7 days and is then collected. Use for 'take out of my pocket', 'take out my guarantee', 'unstake', 'withdraw my insurance'. Leave amountUsdc out to take out everything deals are not holding.",
       inputSchema: z.object({
         amountUsdc: z.number().positive().max(1_000_000).optional().describe('How much to take out. Omit for all that is free.'),
       }),
       execute: async ({ amountUsdc }) => {
         try {
           const snap = await guaranteeSnapshot(address);
-          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          if (!snap) return { error: 'The savings pocket is not available right now.' };
           const s = snap.state;
           const built = buildGuaranteeTakeOutConfirm({
             address,
@@ -1811,36 +1813,36 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           return { ok: true, shown: built.title };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_guarantee_take_out failed');
-          return { error: 'Could not read their deal guarantee right now. Try again shortly.' };
+          return { error: 'Could not read their savings pocket right now. Try again shortly.' };
         }
       },
     }),
 
     propose_guarantee_cancel_take_out: tool({
-      description: "Prepare a card to keep the money coming back from their deal guarantee, so it protects their buyers again. Use for 'cancel taking it out', 'keep my guarantee'.",
+      description: "Prepare a card to keep the money coming back from their savings pocket, so it can back their deals again. Use for 'cancel taking it out', 'keep it in my pocket', 'keep my guarantee'.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
           const snap = await guaranteeSnapshot(address);
-          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          if (!snap) return { error: 'The savings pocket is not available right now.' };
           const built = buildGuaranteeCancelConfirm({ address, comingBackUsdc: micros(snap.state.comingBackMicros), signer: method === 'circle' ? 'karwan' : 'wallet' });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
           return { ok: true, shown: built.title };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_guarantee_cancel_take_out failed');
-          return { error: 'Could not read their deal guarantee right now. Try again shortly.' };
+          return { error: 'Could not read their savings pocket right now. Try again shortly.' };
         }
       },
     }),
 
     propose_guarantee_collect: tool({
-      description: "Prepare a card to collect money from their deal guarantee once it is ready. Use for 'collect my guarantee', 'claim my unstaked money', or when get_my_guarantee shows it is ready.",
+      description: "Prepare a card to collect money from their savings pocket once it is ready. Use for 'collect from my pocket', 'collect my guarantee', 'claim my unstaked money', or when get_my_guarantee shows it is ready.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
           const snap = await guaranteeSnapshot(address);
-          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          if (!snap) return { error: 'The savings pocket is not available right now.' };
           const built = buildGuaranteeCollectConfirm({
             address,
             comingBackUsdc: micros(snap.state.comingBackMicros),
@@ -1853,7 +1855,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           return { ok: true, shown: built.title };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_guarantee_collect failed');
-          return { error: 'Could not read their deal guarantee right now. Try again shortly.' };
+          return { error: 'Could not read their savings pocket right now. Try again shortly.' };
         }
       },
     }),
@@ -3166,7 +3168,7 @@ function authenticatedPreamble(address: string, method: string, timeZone: string
     'Product behaviour -> get_product_facts. Balances -> get_my_balance. Cross-chain source inventory -> list_bridge_sources.',
     'Specific deal, World ID or CRE recorded status -> get_deal_status. Other deals -> list_my_deals.',
     'Every deal has a reference such as D68F-E7D8, returned as reference by list_my_deals and get_deal_status. Any tool that takes a jobId takes the reference too. Name a deal to the person by its reference, never the long 0x id, and never ask them for the long id: find the deal with list_my_deals instead.',
-    'Past money moves and bridges -> recall_activity. Deal guarantee and yield -> get_my_guarantee. Older contracts -> get_my_legacy_positions. Reputation -> get_my_reputation.',
+    'Past money moves and bridges -> recall_activity. Savings pocket, deal guarantees and earnings -> get_my_guarantee. Older contracts -> get_my_legacy_positions. Reputation -> get_my_reputation.',
     'Offers, requests and bids -> get_my_market_activity. Pending work -> whats_pending. Finance -> get_my_financing.',
     'Getting paid early: the seller asks with propose_get_paid_early, reads offers with list_early_payment_offers, then propose_take_early_payment or propose_turn_down_early_payment. A financier reads list_requests_i_can_fund and offers with propose_early_payment_offer.',
     'Profile -> get_my_profile. Skills and eligibility -> get_my_skills. Business registration/workspaces -> get_my_workspaces.',

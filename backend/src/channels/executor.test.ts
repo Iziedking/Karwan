@@ -382,3 +382,13 @@ test('a request confirmed in chat keeps its drafted parts, its agreement and the
   await execute({ address: ME }, action('post_request', { posterAddress: ME, brief: 'Logo', budgetUsdc: 80, deadlineDays: 2, milestonePcts: [30, 70], terms: 'Payment: two parts', heldAttachments: true }, 'p2'));
   assert.deepEqual(calls[0]!.body, { posterAddress: ME, brief: 'Logo', budgetUsdc: 80, deadlineSeconds: 172800, milestonePcts: [30, 70], terms: 'Payment: two parts', heldAttachments: true });
 });
+
+test('accept_deal with a deal guarantee backs it from the savings pocket, as the card said', async () => {
+  const { execute, calls } = setup((c) =>
+    c.method === 'GET'
+      ? { status: 200, json: { deal: { agreementVersion: 3, agreementDigest: '0xd1' } } }
+      : { status: 200, json: { accepted: true } },
+  );
+  await execute({ address: ME }, action('accept_deal', { jobId: '0xdeal', caller: ME, backGuarantee: true }));
+  assert.deepEqual(calls[1].body, { caller: ME, expectedAgreementVersion: 3, expectedAgreementDigest: '0xd1', backGuarantee: true });
+});

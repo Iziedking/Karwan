@@ -101,11 +101,12 @@ test('profile photo is a user-initiated saved image with a generated fallback', 
   assert.match(hub, /type="file" accept="image\/jpeg,image\/png,image\/webp"/);
 });
 
-test('the deal guarantee lives on Money, and the old guarantee and staking pages only redirect there', () => {
+test('the savings pocket has its own page, and the old guarantee and staking pages only redirect there (view 82)', () => {
   for (const page of ['../../app/guarantee/page.tsx', '../../app/stake/page.tsx']) {
-    assert.match(source(page), /redirect\('\/account\?tab=guarantee'\)/, page);
+    assert.match(source(page), /redirect\('\/pocket'\)/, page);
   }
-  assert.match(source('../../features/money/components/MoneyHome.tsx'), /<GuaranteeTab \/>/);
+  assert.match(source('../../app/pocket/page.tsx'), /<GuaranteeTab \/>/);
+  assert.doesNotMatch(source('../../features/money/components/MoneyHome.tsx'), /<GuaranteeTab \/>/);
 });
 
 test('documentation returns to a useful internal destination', () => {
