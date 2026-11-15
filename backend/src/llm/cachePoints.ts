@@ -14,6 +14,28 @@ export function withoutCachePoints(model: LanguageModel): LanguageModel {
   });
 }
 
+/// The hour-long cache is for Claude only; Bedrock refuses the whole call when
+/// another model gets it. Those models keep the ordinary five-minute cache.
+export function fitCachePoints(model: LanguageModel): LanguageModel {
+  if (/anthropic\./.test((model as LanguageModelV3).modelId ?? '')) return model;
+  return wrapLanguageModel({
+    model: model as LanguageModelV3,
+    middleware: {
+      specificationVersion: 'v3',
+      transformParams: async ({ params }) => ({ ...params, prompt: withoutHour(params.prompt) }),
+    },
+  });
+}
+
+function withoutHour(prompt: LanguageModelV3Prompt): LanguageModelV3Prompt {
+  return prompt.map((message) => {
+    const point = message.providerOptions?.bedrock?.cachePoint as Record<string, unknown> | undefined;
+    if (!point || !('ttl' in point)) return message;
+    const { ttl: _drop, ...rest } = point;
+    return { ...message, providerOptions: { ...message.providerOptions, bedrock: { ...message.providerOptions!.bedrock, cachePoint: rest } } } as typeof message;
+  });
+}
+
 function stripped(prompt: LanguageModelV3Prompt): LanguageModelV3Prompt {
   return prompt.map((message) => {
     const bedrock = message.providerOptions?.bedrock;

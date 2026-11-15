@@ -7,7 +7,7 @@ import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { chainLinks, fallbackChain } from './chain.js';
-import { withoutCachePoints } from './cachePoints.js';
+import { fitCachePoints, withoutCachePoints } from './cachePoints.js';
 import { reportModelsDown } from './modelsDown.js';
 
 const openrouter = createOpenRouter({
@@ -25,9 +25,12 @@ type LM = LanguageModelV3;
 const bedrock = config.BEDROCK_ENABLED
   ? createAmazonBedrock({ region: config.BEDROCK_REGION, credentialProvider: fromNodeProviderChain() })
   : null;
-export const bedrockModel: LM | null = bedrock?.(config.BEDROCK_MODEL) ?? null;
+/// Each Bedrock model gets the cache it can take: an hour for Claude, five
+/// minutes for the rest (view 84).
+const onBedrock = (id: string): LM | null => (bedrock ? (fitCachePoints(bedrock(id)) as LM) : null);
+export const bedrockModel: LM | null = onBedrock(config.BEDROCK_MODEL);
 /// The cheaper model for simple classification, when configured.
-export const bedrockLightModel: LM | null = config.BEDROCK_LIGHT_MODEL ? bedrock?.(config.BEDROCK_LIGHT_MODEL) ?? null : null;
+export const bedrockLightModel: LM | null = config.BEDROCK_LIGHT_MODEL ? onBedrock(config.BEDROCK_LIGHT_MODEL) : null;
 /// A model that is not Claude, on Bedrock, so a refused Anthropic account or
 /// an empty Anthropic balance never leaves Karwan without a model (view 81).
 /// It has no prompt caching, so the assistant's cache points are taken out

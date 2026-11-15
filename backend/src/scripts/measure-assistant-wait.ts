@@ -14,7 +14,7 @@ import { wrapLanguageModel, type LanguageModel } from 'ai';
 import type { LanguageModelV3, LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { config } from '../config.js';
 import { runAssistantAgent } from '../assistant/agent.js';
-import { withoutCachePoints } from '../llm/cachePoints.js';
+import { fitCachePoints, withoutCachePoints } from '../llm/cachePoints.js';
 
 const TURNS = [
   'What is my balance?',
@@ -45,7 +45,7 @@ async function main() {
   const cache = !process.argv.includes('--no-cache');
   const base =
     provider === 'bedrock'
-      ? createAmazonBedrock({ region: config.BEDROCK_REGION, credentialProvider: fromNodeProviderChain() })(modelId)
+      ? fitCachePoints(createAmazonBedrock({ region: config.BEDROCK_REGION, credentialProvider: fromNodeProviderChain() })(modelId))
       : createAnthropic({ apiKey: config.ANTHROPIC_API_KEY })(modelId);
 
   // Keeps the cache usage of every call this turn makes.
