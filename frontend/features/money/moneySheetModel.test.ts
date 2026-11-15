@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   chipAmount,
+  receiptHref,
   recipientInput,
   tagLookupStatus,
   afterRecheck,
@@ -217,4 +218,11 @@ test('a wallet-signed pool spend: landed, declined, or waiting', () => {
   assert.deepEqual(fromWalletPoolSpend({ error: new Error('User rejected the request.') }), { kind: 'failed', declined: true });
   assert.deepEqual(fromWalletPoolSpend({ error: new Error('attestation timed out') }), { kind: 'slow', reference: null, txHash: null });
   assert.deepEqual(fromWalletPoolSpend({}), { kind: 'slow', reference: null, txHash: null });
+});
+
+test('a finished movement opens its own receipt in the history, by reference first (B-05, owner, 15 Nov 2026)', () => {
+  assert.equal(receiptHref({ kind: 'confirmed', reference: 'KWN-7Q2D', txHash: '0xab' }), '/activity?receipt=KWN-7Q2D');
+  assert.equal(receiptHref({ kind: 'confirmed', reference: null, txHash: '0xab' }), '/activity?receipt=0xab');
+  assert.equal(receiptHref({ kind: 'confirmed', reference: null, txHash: null }), '/activity');
+  assert.equal(receiptHref({ kind: 'slow', reference: 'KWN-1', txHash: null }), null);
 });

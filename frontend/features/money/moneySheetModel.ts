@@ -114,6 +114,14 @@ export type SheetStep = 'signed' | 'sent' | 'confirmed';
 export const SHEET_STEPS: SheetStep[] = ['signed', 'sent', 'confirmed'];
 
 /// How far the progress line is: steps done, and the step in progress.
+/// Where a finished movement's receipt lives: the history opens the row whose
+/// reference or transaction hash matches. Only a confirmed movement has one.
+export function receiptHref(state: SheetState): string | null {
+  if (state.kind !== 'confirmed') return null;
+  const key = state.reference ?? state.txHash;
+  return key ? `/activity?receipt=${encodeURIComponent(key)}` : '/activity';
+}
+
 export function sheetProgress(state: SheetState): { done: number; current: SheetStep | null } | null {
   switch (state.kind) {
     case 'signing':

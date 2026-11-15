@@ -33,6 +33,7 @@ import {
   SHEET_STEPS,
   chipAmount,
   groupAddress,
+  receiptHref,
   recipientInput,
   sheetBlocker,
   sheetBusy,
@@ -257,7 +258,10 @@ export function SendFlow({ prefillRecipient, prefillAmount, prefillSaid, prefill
             </div>
             <div className="mt-auto flex flex-col gap-2 pt-8">
               {state.kind === 'confirmed' ? (
-                <button type="button" onClick={onClose} className={`${PRIMARY} w-full`}>{t.sheet.done}</button>
+                <>
+                  <button type="button" onClick={onClose} className={`${PRIMARY} w-full`}>{t.sheet.done}</button>
+                  <Link href={receiptHref(state) ?? '/activity'} data-send-receipt className={`${SECONDARY} w-full`}>{messages.activity.myMoney.viewReceipt}</Link>
+                </>
               ) : state.kind === 'slow' ? (
                 <>
                   <button type="button" onClick={() => void checkAgain()} className={`${PRIMARY} w-full`}>{t.sheet.checkAgain}</button>

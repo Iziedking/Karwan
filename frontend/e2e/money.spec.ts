@@ -327,6 +327,30 @@ test('recent people start a send, and a note goes with it to the server (view 50
   await expect.poll(() => body?.note).toBe('Logo, first draft');
 });
 
+test('a finished send offers its receipt beside Done (B-05, owner, 15 Nov 2026)', async ({ page }, info) => {
+  const ADA = '0x2222222222222222222222222222222222222222';
+  await serveMoney(page, {
+    balances: funded,
+    tags: { ada: { displayName: 'Ada Obi', address: ADA } },
+    arcSend: (route) => route.fulfill({ json: { ok: true, txHash: `0x${'ab'.repeat(32)}`, explorerUrl: 'https://x.test', reference: 'KWN-7Q2D-PX4M-ABCD', movementState: 'completed' } }),
+  });
+  await page.goto('/send?to=@ada');
+  const flow = page.getByRole('region', { name: 'Send money' });
+  await expect(flow.getByLabel('Amount', { exact: true })).toBeVisible();
+  if (info.project.name === 'phone') {
+    const keypad = flow.getByRole('group', { name: 'Amount keypad' });
+    for (const key of ['2', '5']) await keypad.getByRole('button', { name: key, exact: true }).click();
+  } else {
+    await flow.getByLabel('Amount', { exact: true }).fill('25');
+  }
+  await flow.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Send 25.00 USDC' }).click();
+  const receipt = flow.getByRole('link', { name: 'Open receipt' });
+  await expect(receipt).toHaveAttribute('href', '/activity?receipt=KWN-7Q2D-PX4M-ABCD');
+  await expect(flow.getByRole('button', { name: 'Done', exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath('send-receipt.png'), fullPage: true });
+});
+
 test('an email account sends from its own wallet; a pool is never counted', async ({ page }) => {
   await serveMoney(page, {
     balances: { ...funded, [ME.toLowerCase()]: 100 },
