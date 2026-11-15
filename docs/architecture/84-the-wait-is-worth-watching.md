@@ -71,4 +71,5 @@ The status lines and tips are part of the turn on the shared core, so any channe
 
 | Part | State |
 |---|---|
-| This view | Proposed 15 Nov 2026 |
+| This view | Approved 15 Nov 2026 |
+| Figma: section "5 · The wait is worth watching (view 84)" (330:2078) on the page "Aman · the guide with a face · 15 Nov": four phone states (sent, a tip drawn in, the next step, the answer word by word), the laptop wait, Telegram on a slow turn, and the timing and motion strip | Drawn 15 Nov 2026, waiting for the owner's yes |

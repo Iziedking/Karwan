@@ -506,20 +506,16 @@ function HoverTooltip({ point, xPct }: { point: NetworkOnchainDayPoint; xPct: nu
   return (
     <div
       role="tooltip"
-      className="absolute pointer-events-none px-3 py-2.5"
+      className="absolute pointer-events-none rounded-[14px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-3 py-2.5 text-[var(--ink)] shadow-[0_8px_24px_-4px_rgba(0,0,0,0.18)]"
       style={{
         top: 36,
         left: `${xPct}%`,
         transform: flipLeft ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
-        background: 'rgba(14,14,14,0.96)',
-        border: '1px solid rgba(255,255,255,0.18)',
-        borderRadius: 8,
-        boxShadow: '0 4px 18px rgba(0,0,0,0.55)',
         minWidth: 156,
         zIndex: 2,
       }}
     >
-      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--ink-secondary)]">
         {formatTooltipDate(point.ts)}
       </p>
       <div className="mt-2 space-y-1.5">
@@ -539,10 +535,10 @@ function TipRow({ color, label, value }: { color: string; label: string; value: 
         className="inline-block w-2 h-2 shrink-0"
         style={{ background: color, borderRadius: 1 }}
       />
-      <span className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)] flex-1">
+      <span className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--ink-secondary)] flex-1">
         {label}
       </span>
-      <span className="font-sans text-[14px] font-extrabold tabular-nums text-[var(--lp-workspace-ink)]">
+      <span className="font-sans text-[14px] font-extrabold tabular-nums text-[var(--ink)]">
         {value}
       </span>
     </div>

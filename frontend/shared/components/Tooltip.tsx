@@ -29,7 +29,7 @@ export function Tooltip({
       {off ? null : <span
         aria-hidden
         className={cn(
-          'pointer-events-none absolute z-50 inline-flex items-center gap-2 whitespace-nowrap rounded-[10px] bg-[var(--lp-dark)] px-3 py-2 text-[14px] font-medium leading-none text-[var(--lp-card)] opacity-0 transition-opacity duration-150',
+          'pointer-events-none absolute z-50 inline-flex items-center gap-2 whitespace-nowrap rounded-[12px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-3 py-2 text-[14px] font-medium leading-none text-[var(--ink)] shadow-[0_8px_24px_-4px_rgba(0,0,0,0.18)] opacity-0 transition-opacity duration-150',
           'group-hover/tip:opacity-100 group-hover/tip:delay-300 group-has-[:focus-visible]/tip:opacity-100 group-has-[:focus-visible]/tip:delay-0',
           'motion-reduce:transition-none [@media(hover:none)]:hidden',
           side === 'end'
@@ -41,7 +41,7 @@ export function Tooltip({
       >
         {label}
         {shortcut ? (
-          <kbd className="rounded-[6px] border border-[color-mix(in_srgb,var(--lp-card)_30%,transparent)] px-1.5 py-1 font-sans text-[13px] font-medium leading-none">
+          <kbd className="rounded-[6px] border border-[var(--soft-green-edge)] bg-[var(--soft-green-chip)] text-[var(--soft-green-ink)] px-1.5 py-1 font-sans text-[13px] font-medium leading-none">
             {shortcut}
           </kbd>
         ) : null}
