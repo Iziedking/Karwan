@@ -8,16 +8,35 @@ import { Icon } from '@/shared/components/Icon';
 
 /// The testnet note as an info mark beside a page title. Nothing on mainnet.
 export function NetworkHint() {
-  const t = useTranslations().networkUi;
   const network = networkPresentation(settlementChain);
   if (network.environment === 'mainnet') return null;
   return (
     <span className="ms-2 inline-flex align-middle text-[15px] font-normal tracking-normal" data-network-context={network.environment}>
-      <Hint side="bottom">
-        <span className="block font-semibold">{t.settlementNetwork}: <bdi>Arc</bdi> · {t[network.environment]}</span>
-        <span className="mt-1 block">{t[network.noticeKey]}</span>
-      </Hint>
+      <Hint side="bottom"><NetworkLines /></Hint>
     </span>
+  );
+}
+
+/// The same testnet note inside another tip, so a page that already has an
+/// info mark does not show a second one. Nothing on mainnet.
+export function NetworkNote() {
+  const network = networkPresentation(settlementChain);
+  if (network.environment === 'mainnet') return null;
+  return (
+    <span className="mt-2 block border-t border-[var(--line)] pt-2" data-network-context={network.environment}>
+      <NetworkLines />
+    </span>
+  );
+}
+
+function NetworkLines() {
+  const t = useTranslations().networkUi;
+  const network = networkPresentation(settlementChain);
+  return (
+    <>
+      <span className="block font-semibold">{t.settlementNetwork}: <bdi>Arc</bdi> · {t[network.environment]}</span>
+      <span className="mt-1 block">{t[network.noticeKey]}</span>
+    </>
   );
 }
 

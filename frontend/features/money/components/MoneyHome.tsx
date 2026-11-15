@@ -7,7 +7,7 @@ import { m } from 'motion/react';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivationModal } from '@/shared/components/ActivationModal';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
-import { NetworkHint } from '@/shared/components/NetworkContext';
+import { NetworkNote } from '@/shared/components/NetworkContext';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -149,7 +149,7 @@ function MoneyHomeInner() {
             <div className="space-y-5">
               <div className="relative flex justify-center text-center">
                 <h1 id="money-balance" className="flex flex-col items-center space-y-1.5">
-                  <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{mm.one.yourBalance}<Hint>{pages.tips.balance}</Hint></span>
+                  <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{mm.one.yourBalance}<Hint>{pages.tips.balance}<NetworkNote /></Hint></span>
                   <span className="flex items-baseline gap-2 tabular-nums" dir="ltr">
                     {/* Counts to a new value; under reduced motion it fades instead. */}
                     <m.span
@@ -171,18 +171,16 @@ function MoneyHomeInner() {
                     {partsLine ? <span data-balance-parts dir="auto">{partsLine}</span> : mm.one.whereItIs}<span aria-hidden className="ms-1 rtl:rotate-180">›</span>
                   </button>
                 </h1>
-                <span className="absolute end-0 top-0"><NetworkHint /></span>
               </div>
               <CoachNote id="money-balance">{pages.firstVisit}</CoachNote>
-              <p role="status" aria-live="polite" className="flex items-start justify-center gap-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
-                <span
-                  aria-hidden
-                  className="mt-[7px] size-2 shrink-0 rounded-full"
-                  data-balance-dot
-                  style={{ background: balances.error || movingText || state === 'empty' ? 'var(--ink-muted)' : 'var(--ink)' }}
-                />
-                {balances.error ? t.home.staleBalance : state === 'empty' ? t.home.empty : movingText ?? t.home.readyOnArc}
-              </p>
+              {/* A line only when there is news: an old figure, an empty account or money on its way.
+                  A balance that is simply there needs no "available" line under it (owner, 15 Nov 2026). */}
+              {balances.error || state === 'empty' || movingText ? (
+                <p role="status" aria-live="polite" className="flex items-start justify-center gap-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
+                  <span aria-hidden className="mt-[7px] size-2 shrink-0 rounded-full bg-[var(--ink-muted)]" data-balance-dot />
+                  {balances.error ? t.home.staleBalance : state === 'empty' ? t.home.empty : movingText}
+                </p>
+              ) : null}
               {balances.error ? <button type="button" onClick={balances.refetch} className={buttonClasses({ variant: 'secondary' })}>{t.home.tryAgain}</button> : null}
               {/* Add money is the one green button on the page (view 48). */}
               {/* On a phone Add money takes the full row, so no label wraps. */}

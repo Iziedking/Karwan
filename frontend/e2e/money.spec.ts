@@ -25,20 +25,19 @@ test('the balance is the loudest thing on the page, with one primary action', as
   const heading = page.getByRole('heading', { level: 1 });
   await expect(heading).toContainText('Your balance');
   await expect(heading).toContainText('1,360.50');
-  await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
+  // A balance that is simply there has no "available" line under it.
+  await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Add money', exact: true })).toHaveAttribute('href', '/add');
   await expect(page.getByRole('link', { name: 'Withdraw', exact: true })).toHaveAttribute('href', '/withdraw');
   await expect(page.getByRole('link', { name: 'Send', exact: true })).toHaveAttribute('href', '/send');
   expect(await accentControls(page)).toBe(1);
 });
 
-test('the ready dot is ink, not green, and Add money stays on one line on a phone', async ({ page }) => {
+test('no status line under a balance that is simply there, and Add money stays on one line on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
-  await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
-  const dot = await page.locator('[data-balance-dot]').evaluate((el) => getComputedStyle(el).backgroundColor);
-  expect(dot).not.toBe('rgb(175, 201, 91)');
+  await expect(page.locator('[data-balance-dot]')).toHaveCount(0);
   const add = await page.locator('[data-money-actions]').getByRole('link', { name: 'Add money', exact: true }).evaluate((el) => {
     const r = document.createRange();
     r.selectNodeContents(el);

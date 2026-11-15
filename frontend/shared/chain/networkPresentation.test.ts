@@ -58,9 +58,12 @@ test('testnet warnings stay beside balances while mainnet shows network identity
   assert.match(source('../../features/landing/components/Closing.tsx'), /DEALS_AVAILABLE \? t\.network : editorial\.trade/);
   for (const file of [
     '../../app/bridge/page.tsx',
-    '../../features/money/components/MoneyHome.tsx',
     '../../features/bridge/components/CrossChainFlow.tsx',
   ]) assert.match(source(file), /<NetworkHint \/>/, file);
+  // Money already has an info mark on the balance: the note sits inside it, not as a second mark.
+  const money = source('../../features/money/components/MoneyHome.tsx');
+  assert.match(money, /<Hint>\{pages\.tips\.balance\}<NetworkNote \/><\/Hint>/);
+  assert.doesNotMatch(money, /<NetworkHint \/>/);
   const component = source('../components/NetworkContext.tsx');
   assert.match(component, /networkPresentation\(settlementChain\)/);
   assert.match(component, /t\[network.noticeKey\]/);
