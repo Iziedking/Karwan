@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API, funded } from './moneyFixtures';
+import { API, RATES, funded } from './moneyFixtures';
 import { JOB, makeJob, serveSearch } from './searchFixtures';
 
 /// View 73: each offer on the shortlist says where its price started and why
@@ -132,4 +132,20 @@ test('your call: the buyer agrees at the seller price or lets the agent keep bar
   await actions.getByRole('button', { name: /^Agree at 210/ }).click();
   await expect.poll(() => answers.length).toBe(1);
   expect(answers[0]).toMatchObject({ seller: `0x${'1'.repeat(40)}`, choice: 'agree' });
+});
+
+test('a request read in naira says "Up to ₦..." with no USDC after it, and the parts in naira too (owner, 15 Nov 2026)', async ({ page }, info) => {
+  await serveSearch(page, {
+    balances: funded,
+    rates: RATES,
+    settings: { displayCurrency: 'NGN' },
+    job: makeJob({ budgetUsdc: '45', quantity: { count: 2, unit: 'milestones' }, bids: [] }),
+  });
+  await page.goto(`/jobs/${JOB}`);
+  const header = page.locator('header').filter({ has: page.locator('h1') }).first();
+  await expect(header).toContainText(/Up to ₦60,575/);
+  await expect(header).not.toContainText(/₦[\d,]+ USDC/);
+  await expect(header).toContainText(/2 milestones, ₦60,575 for all, about ₦[\d,]+ each/);
+  await expect(header).not.toContainText('USDC');
+  await page.screenshot({ path: info.outputPath('request-in-naira.png') });
 });

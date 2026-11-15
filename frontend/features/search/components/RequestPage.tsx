@@ -134,11 +134,11 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
             <p className="text-[13px] font-medium text-[var(--ink-muted)]">{fill(rf.reference, { reference: requestRef(job.jobId) })}</p>
             <h1 className="break-words text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)] sm:text-[28px]">{title}</h1>
             <p className="text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">
-              {fill(rf.upTo, { amount: money.price(job.budgetUsdc, job.budgetLocal) })}
+              {money.fillPrice(rf.upTo, job.budgetUsdc, job.budgetLocal)}
               {job.deadlineUnix ? ` · ${fill(rf.neededBy, { date: formatDealDate(job.deadlineUnix * 1000, locale) })}` : ''}
             </p>
             {quantityLine(rp, job.quantity, job.budgetUsdc) ? (
-              <p className="text-[15px] tabular-nums text-[var(--ink-secondary)]">{quantityLine(rp, job.quantity, job.budgetUsdc)}</p>
+              <p className="text-[15px] tabular-nums text-[var(--ink-secondary)]">{money.line(quantityLine(rp, job.quantity, job.budgetUsdc)!)}</p>
             ) : null}
           </div>
         </header>
