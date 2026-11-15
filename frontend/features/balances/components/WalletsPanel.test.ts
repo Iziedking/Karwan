@@ -24,3 +24,10 @@ test('a money unit never drops below 14px, at any amount size', () => {
   const money = readFileSync(new URL('../../../shared/components/Money.tsx', import.meta.url), 'utf8');
   assert.match(money, /text-\[max\(14px,0\.45em\)\]/);
 });
+
+test('every card keeps its address and its button on one line, so the cards line up', () => {
+  // A wrapping line put Get USDC under the address on some cards and beside it on others (iPhone, 15 Nov 2026).
+  assert.doesNotMatch(panel, /flex flex-wrap items-center justify-between gap-x-3 ps-\[52px\]/);
+  assert.match(panel, /flex items-center justify-between gap-x-3 ps-\[52px\]/);
+  assert.match(panel, /<span dir="ltr" className="truncate">/);
+});

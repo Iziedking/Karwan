@@ -301,3 +301,17 @@ test('with naira chosen a withdrawal is typed and confirmed in naira, and the US
   await expect.poll(() => sent.length).toBe(1);
   expect(sent[0].amountUsdc).toBe(37.144066);
 });
+
+test('leaving a pocket move returns to the pocket, and Back from there does not open the move again', async ({ page }) => {
+  // Back from the pocket used to open the move just left (owner's iPhone, 15 Nov 2026).
+  await serveMoney(page, { balances: funded, guarantee: { inPlaceUsdc: '500.00', heldUsdc: '0.00', freeUsdc: '500.00' } });
+  await page.goto('/account');
+  await page.goto('/pocket');
+  await page.locator('[data-guarantee-actions]').getByRole('link', { name: 'Add to pocket' }).click();
+  await expect(page).toHaveURL(/\/account\/guarantee\?step=put_up$/);
+  await page.locator('[data-money-page]').getByLabel('Go back').first().click();
+  await expect(page).toHaveURL(/\/pocket$/);
+  await page.goBack();
+  await expect(page).not.toHaveURL(/\/account\/guarantee/);
+  await expect(page).toHaveURL(/\/account$/);
+});

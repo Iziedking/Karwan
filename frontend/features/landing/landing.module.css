@@ -130,9 +130,9 @@
   .platformsLabel { margin-top: 28px !important; }
   .actions { margin-top: 28px; }
   .stage { align-self: stretch; }
-  .buyerPhone { transform: translateX(calc(var(--seller) * -54px)) scale(0.5); transform-origin: top center; }
+  .buyerPhone { transform: translateX(calc(var(--seller) * -54px)) scale(var(--fit, 0.5)); transform-origin: top center; }
   .stage { place-items: start center; padding-top: 16px; }
-  .sellerPhone { inset-inline-start: calc(50% + 4px); top: 16px; transform: translate(calc((1 - var(--seller)) * 40px), 0) scale(0.5); transform-origin: top left; }
+  .sellerPhone { inset-inline-start: calc(50% + 4px); top: 16px; transform: translate(calc((1 - var(--seller)) * 40px), 0) scale(var(--fit, 0.5)); transform-origin: top left; }
 }
 @media (max-width: 1023px) and (max-height: 760px) {
   .platformsLabel, .platforms { display: none; }

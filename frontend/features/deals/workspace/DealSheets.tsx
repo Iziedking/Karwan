@@ -69,11 +69,12 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
   const carrier = carriers.find((c) => c.slug === shipment.carrier);
 
   useEffect(() => {
-    if (!open || !ships || carriers.length) return;
+    // Only a shipped delivery picks a courier; work in person ends in the code.
+    if (!open || method !== 'shipped' || carriers.length) return;
     let live = true;
-    api.listCarriers().then((r) => { if (live) setCarriers(r.carriers); }).catch(() => {});
+    api.listCarriers().then((r) => { if (live) setCarriers(r.carriers ?? []); }).catch(() => {});
     return () => { live = false; };
-  }, [open, ships, carriers.length]);
+  }, [open, method, carriers.length]);
 
   const inPerson = ships && mode === 'person';
   const submit = () =>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { useMotionLevel } from '@/shared/motion/MotionLevel';
-import { clipChoice, createFrameLoop, enterProgress, mostInView, pinnedProgress, type ClipChoice } from './motion';
+import { clipChoice, createFrameLoop, enterProgress, mostInView, phoneFit, pinnedProgress, type ClipChoice } from './motion';
 
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
@@ -154,4 +154,21 @@ export function useMostInView(refs: RefObject<Map<string, Element>>, order: read
     return () => observer.disconnect();
   }, [refs, order]);
   return playing;
+}
+
+/// Writes `--fit` on the hero stage: the scale that fits the phone into the
+/// room it has, read again whenever that room changes (view 86, part C).
+export function usePhoneFit(ref: RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const fit = () => {
+      const pad = parseFloat(getComputedStyle(el).paddingTop) || 0;
+      el.style.setProperty('--fit', String(phoneFit(el.clientHeight - pad)));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
 }

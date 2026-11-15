@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { agentMoveHref, bridgeRedirect, buyerTopUpHref, guaranteeStepHref, moneyHref, moneyTab, POCKET_HREF } from './moneyRoutes';
+import { agentMoveHref, bridgeRedirect, buyerTopUpHref, guaranteeStepHref, leaveMoneyPage, moneyHref, moneyTab, POCKET_HREF } from './moneyRoutes';
 
 const q = (s: string) => new URLSearchParams(s);
 
@@ -45,4 +45,13 @@ test('shortOfMoneyToAskOpensTheBuyingAgentTopUpWithWhatIsMissing', () => {
   assert.equal(buyerTopUpHref('23.67'), '/account/agent?move=topUp&agent=buyer&amount=23.67');
   assert.equal(buyerTopUpHref(undefined), '/account/agent?move=topUp&agent=buyer');
   assert.equal(buyerTopUpHref('0'), '/account/agent?move=topUp&agent=buyer');
+});
+
+test('leaving a money page goes back in this tab, never stacking the page it came from', () => {
+  const calls: string[] = [];
+  const router = { replace: (href: string) => calls.push(`replace ${href}`), push: (href: string) => calls.push(`push ${href}`), back: () => calls.push('back') };
+  leaveMoneyPage(router, '/pocket', () => true);
+  assert.deepEqual(calls, []);
+  leaveMoneyPage(router, '/pocket', () => false);
+  assert.deepEqual(calls, ['replace /pocket']);
 });

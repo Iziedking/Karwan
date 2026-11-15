@@ -96,3 +96,11 @@ export function createFrameLoop(requestFrame: (cb: () => void) => unknown) {
     size: () => subscribers.size,
   };
 }
+
+/// How much the hero phone is scaled on a phone or tablet: as large as the room
+/// under the words allows (the drawing is 700 px tall plus its floor), at most
+/// half size, never under 0.3 so the screen stays readable (view 86, part C).
+export function phoneFit(room: number, drawn = 720): number {
+  if (!Number.isFinite(room) || room <= 0) return 0.5;
+  return Math.min(0.5, Math.max(0.3, room / drawn));
+}

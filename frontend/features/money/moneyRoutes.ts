@@ -1,3 +1,5 @@
+import { backWithinKarwan } from '@/shared/utils/navigationHistory';
+
 /// Where money pages live (view 51, fourth and fifth rounds). Add money and
 /// Withdraw are pages; the old `/bridge` links still land on them.
 
@@ -56,7 +58,6 @@ export function guaranteeStepHref(step: 'put_up' | 'take_out'): string {
 }
 
 /// Leaving a money page goes back where the person came from, or to Money.
-export function leaveMoneyPage(router: { back: () => void; push: (href: string) => void }, fallback = '/account'): void {
-  if (typeof window !== 'undefined' && window.history.length > 1 && document.referrer.startsWith(window.location.origin)) router.back();
-  else router.push(fallback);
+export function leaveMoneyPage(router: { replace: (href: string) => void }, fallback = '/account', back: () => boolean = backWithinKarwan): void {
+  if (!back()) router.replace(fallback);
 }

@@ -70,7 +70,7 @@ function CopyAddress({
       aria-label={copied ? wp.copyAddress.copied : wp.copyAddress.idle}
       className="group -ms-1.5 inline-flex min-h-11 min-w-11 max-w-full items-center gap-1.5 rounded-full px-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
     >
-      <span dir="ltr">{short(address)}</span>
+      <span dir="ltr" className="truncate">{short(address)}</span>
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[6px] border border-transparent transition-[border-color,background,color] group-hover:border-[var(--lp-border-light)] group-hover:bg-[var(--lp-card)]">
         {copied ? (
           <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
@@ -125,7 +125,7 @@ function Row({
         </p>
         <MoneyValue value={primary} size="sm" />
       </div>
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 ps-[52px]">
+      <div className="mt-1 flex items-center justify-between gap-x-3 ps-[52px] [&>*:last-child]:shrink-0">
         {address ? <CopyAddress address={address} copied={copied} onCopied={onCopied} /> : <span />}
         {action}
       </div>

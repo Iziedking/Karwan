@@ -81,7 +81,7 @@ flowchart LR
 | View | Approved 15 Nov 2026 |
 | Lighter clips | Built 15 Nov 2026, not deployed |
 | Device levels | Built 15 Nov 2026, not deployed |
-| iPhone fit | Waiting for the owner's screenshots |
+| iPhone fit | First screenshots fixed 15 Nov, not deployed: the hero phone scales to the room under the words, wallet cards keep Get USDC beside the address, leaving a pocket move goes back instead of stacking the pocket, and every page has an error screen that reports. More screenshots to come |
 | Measured after deploy | Not yet |
 
 ## As built

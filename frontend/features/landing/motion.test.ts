@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { clipChoice, createFrameLoop, enterProgress, mostInView, pinnedProgress, stepAt, stagger } from './motion';
+import { clipChoice, createFrameLoop, enterProgress, mostInView, phoneFit, pinnedProgress, stepAt, stagger } from './motion';
 
 test('a pinned scene runs from 0 when its top meets the screen top to 1 when its bottom meets the screen bottom', () => {
   assert.equal(pinnedProgress({ top: 100, height: 3000, viewport: 900 }), 0);
@@ -95,4 +95,12 @@ test('the frame loop asks for no frame when nobody is listening', () => {
   loop.wake();
   assert.equal(frames.length, 0);
   assert.equal(loop.size(), 0);
+});
+
+test('the hero phone on a phone shrinks to the room under the words, never past half size', () => {
+  // The drawn phone is 700 px tall; on an iPhone 15 Pro about 300 px are left (15 Nov 2026).
+  assert.equal(phoneFit(800), 0.5);
+  assert.ok(Math.abs(phoneFit(300) - 300 / 720) < 1e-9);
+  assert.equal(phoneFit(100), 0.3);
+  assert.equal(phoneFit(Number.NaN), 0.5);
 });

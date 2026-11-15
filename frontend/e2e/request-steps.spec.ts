@@ -361,7 +361,8 @@ test('the request asks how it reaches the buyer, and posts it with the request (
   await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
   const post = page.locator('button[data-guide="buyer-submit"]');
   await post.click();
-  await expect(page.getByText(dm.label.in_person, { exact: true })).toBeVisible();
+  // The review lists it as a row of its own.
+  await expect(page.locator('dd').getByText(dm.label.in_person, { exact: true })).toBeVisible();
   await post.click();
   await expect.poll(() => posted).not.toBeNull();
   expect(posted).toMatchObject({ deliveryKind: 'in_person' });

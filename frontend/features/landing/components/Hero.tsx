@@ -8,7 +8,7 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { landingCopy, type LandingCopy, type Platform } from '@/shared/i18n/messages/landing';
 import { landingEntryRoutes } from '@/features/home/landingEntry';
 import { heroStage, heroView, type HeroStage } from '../heroStages';
-import { useReducedMotionPreference, useSceneProgress } from '../useLandingMotion';
+import { usePhoneFit, useReducedMotionPreference, useSceneProgress } from '../useLandingMotion';
 import { PlatformIcon } from './PlatformIcon';
 import s from '../landing.module.css';
 
@@ -108,6 +108,8 @@ export function Hero() {
   const h = t.hero;
   const entry = landingEntryRoutes(DEALS_AVAILABLE);
   const ref = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  usePhoneFit(stageRef);
   const [stage, setStage] = useState<HeroStage>(0);
   const [platform, setPlatform] = useState<Platform>('tiktok');
   const onProgress = useCallback((p: number) => setStage(heroStage(p)), []);
@@ -160,7 +162,7 @@ export function Hero() {
             <span className={s.sceneBar} aria-hidden><span /></span>
           </div>
         </div>
-        <div className={s.stage} role="group" aria-label={h.phoneLabel}>
+        <div ref={stageRef} className={s.stage} role="group" aria-label={h.phoneLabel}>
           <div className={s.buyerPhone}>
             <div className={s.tilt}>
               <Device className={s.turn} back={<><span className={s.camera}><i /><i /><i /><b /></span><img src="/brand/karwan-mark-lime.svg" alt="" width={64} height={64} /></>}>
