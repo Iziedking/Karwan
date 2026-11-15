@@ -2,15 +2,16 @@
 /// turns for one test account and prints, per turn: the time to the first
 /// tool call, the whole turn, and the cache tokens read and written.
 ///
-///   docker compose exec -T karwan-api node dist/scripts/measure-assistant-wait.js --account 0x... [--model <bedrock id>] [--no-cache]
+///   docker compose exec -T karwan-api node dist/scripts/measure-assistant-wait.js --account 0x... [--provider bedrock|anthropic] [--model <id>] [--no-cache]
 ///
 /// Testnet only: it reads the account like the assistant does and prepares
 /// cards it never confirms, so nothing moves. Costs about ten assistant turns
 /// of model tokens per run.
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { wrapLanguageModel, type LanguageModel } from 'ai';
-import type { LanguageModelV3 } from '@ai-sdk/provider';
+import type { LanguageModelV3, LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { config } from '../config.js';
 import { runAssistantAgent } from '../assistant/agent.js';
 import { withoutCachePoints } from '../llm/cachePoints.js';
@@ -37,28 +38,33 @@ async function main() {
   if (config.ARC_NETWORK === 'mainnet') throw new Error('testnet only');
   const account = arg('--account');
   if (!account) throw new Error('--account 0x... is required');
-  const modelId = arg('--model') ?? config.BEDROCK_MODEL;
+  const provider = arg('--provider') ?? 'bedrock';
+  if (provider !== 'bedrock' && provider !== 'anthropic') throw new Error('--provider is bedrock or anthropic');
+  if (provider === 'anthropic' && !config.ANTHROPIC_API_KEY) throw new Error('no Anthropic key set');
+  const modelId = arg('--model') ?? (provider === 'bedrock' ? config.BEDROCK_MODEL : config.ASSISTANT_MODEL);
   const cache = !process.argv.includes('--no-cache');
-  const bedrock = createAmazonBedrock({ region: config.BEDROCK_REGION, credentialProvider: fromNodeProviderChain() });
+  const base =
+    provider === 'bedrock'
+      ? createAmazonBedrock({ region: config.BEDROCK_REGION, credentialProvider: fromNodeProviderChain() })(modelId)
+      : createAnthropic({ apiKey: config.ANTHROPIC_API_KEY })(modelId);
 
   // Keeps the cache usage of every call this turn makes.
   let usage = { read: 0, write: 0 };
   const counted = wrapLanguageModel({
-    model: bedrock(modelId) as LanguageModelV3,
+    model: base as LanguageModelV3,
     middleware: {
       specificationVersion: 'v3',
       wrapGenerate: async ({ doGenerate }) => {
         const out = await doGenerate();
-        const u = (out.providerMetadata?.bedrock?.usage ?? {}) as { cacheReadInputTokens?: number; cacheWriteInputTokens?: number };
-        usage.read += u.cacheReadInputTokens ?? 0;
-        usage.write += u.cacheWriteInputTokens ?? 0;
+        usage.read += out.usage.inputTokens.cacheRead ?? 0;
+        usage.write += out.usage.inputTokens.cacheWrite ?? 0;
         return out;
       },
     },
   });
-  const model: LanguageModel = cache ? counted : withoutCachePoints(counted);
+  const model: LanguageModel = cache ? counted : withoutAnthropicCache(withoutCachePoints(counted));
 
-  console.log(`model ${modelId}, cache ${cache ? 'on' : 'off'}`);
+  console.log(`${provider} ${modelId}, cache ${cache ? 'on' : 'off'}`);
   console.log('turn  first tool ms  total ms  cache read  cache write');
   for (const [i, question] of TURNS.entries()) {
     usage = { read: 0, write: 0 };
@@ -80,6 +86,22 @@ async function main() {
       console.log(`${String(i + 1).padStart(4)}  FAIL ${((e as Error).message ?? String(e)).slice(0, 120)}`);
     }
   }
+}
+
+/// For --no-cache on the direct Anthropic path: drops the cache marks the
+/// assistant puts on its system message.
+function withoutAnthropicCache(model: LanguageModel): LanguageModel {
+  const strip = (prompt: LanguageModelV3Prompt): LanguageModelV3Prompt =>
+    prompt.map((message) => {
+      const anthropic = message.providerOptions?.anthropic;
+      if (!anthropic || !('cacheControl' in anthropic)) return message;
+      const { cacheControl: _drop, ...rest } = anthropic;
+      return { ...message, providerOptions: { ...message.providerOptions, anthropic: rest } };
+    });
+  return wrapLanguageModel({
+    model: model as LanguageModelV3,
+    middleware: { specificationVersion: 'v3', transformParams: async ({ params }) => ({ ...params, prompt: strip(params.prompt) }) },
+  });
 }
 
 main().then(() => process.exit(0), (e) => {
