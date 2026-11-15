@@ -47,6 +47,9 @@ export interface UserSettings {
   contactFrom?: 'anyone' | 'verified';
   /// Let sellers reach me with their standing needs (view 72). Absent means off.
   reachable?: boolean;
+  /// How Aman, the guide, shows (view 57): beside the page, only a small face
+  /// in the top bar, or not at all. Absent means beside the page.
+  guide?: 'on' | 'face' | 'off';
 }
 
 /// At my place, I come to you (how far), online (view 72).

@@ -51,9 +51,7 @@ test('a suggestion on Home opens Aman with it sent, and Aman on switched off com
   expect(asked).toEqual(['Post my offer']);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('aman-from-home.png') });
-  const on = page.locator('button[aria-pressed="true"]:visible').first();
-  await expect(on).toContainText('Aman');
-  await on.click();
+  await page.getByRole('button', { name: 'Go back', exact: true }).first().click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/app');
 });
 

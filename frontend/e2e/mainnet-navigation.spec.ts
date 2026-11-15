@@ -4,7 +4,6 @@ import {API,funded} from './moneyFixtures';
 import {BUYER,JOB,deliveredDeal} from './fixtures';
 import {en} from '../shared/i18n/messages/en';
 import {dealRouteRecoveryKey} from '../features/deals/dealRouteRecovery';
-import {ASSISTANT_MODE_ENTRY} from '../features/assistant/assistantModeEntry';
 
 async function world(page:import('@playwright/test').Page){
  await page.addInitScript(()=>{localStorage.setItem('karwan:guide:disabled','1');localStorage.setItem('karwan-theme','dark');});
@@ -40,29 +39,25 @@ test('unknown mainnet routes recover directly to the signed-in wallet',async({pa
 });
 
 
-test('assistant mode returns to the exact mainnet account context',async({page},info)=>{
- test.skip(info.project.name!=='desktop','The mainnet account toolbar exposes entry on desktop.');
- test.skip(!ASSISTANT_MODE_ENTRY,'The Use assistant switch is parked (owner, 6 Nov 2026).');
+test('Ctrl+K opens the assistant page and Back returns to the exact mainnet account context (view 57)',async({page})=>{
  await world(page);const target='/account?section=money#balance';await page.goto(target);
- const toggle=page.locator('button[aria-pressed="false"]:visible').filter({hasText:new RegExp(en.assistantMode.use+'|'+en.assistantMode.short)}).first();
- await toggle.click();await expect.poll(()=>new URL(page.url()).pathname).toBe('/assistant');
- await page.locator('button[aria-pressed="true"]:visible').first().click();
+ await page.locator('main').first().waitFor();await page.keyboard.press('Control+k');
+ await expect.poll(()=>new URL(page.url()).pathname).toBe('/assistant');
+ await page.getByRole('button',{name:en.nav.backAria,exact:true}).first().click();
  await expect.poll(()=>new URL(page.url()).pathname+new URL(page.url()).search+new URL(page.url()).hash).toBe(target);
 });
 
 
-test('the Use assistant switch shows only on the assistant page while it is parked',async({page})=>{
- test.skip(ASSISTANT_MODE_ENTRY,'The switch is back.');
+test('no corner launcher and no assistant switch anywhere (view 57)',async({page})=>{
  await world(page);await page.goto('/account');
- await expect(page.locator('button[aria-pressed]:visible').filter({hasText:new RegExp(en.assistantMode.use+'|'+en.assistantMode.short)})).toHaveCount(0);
- await page.goto('/assistant');
- await expect(page.locator('button[aria-pressed="true"]:visible').first()).toBeVisible();
+ await expect(page.locator('[data-float-launcher]')).toHaveCount(0);
+ await expect(page.locator('button[aria-pressed]:visible').filter({hasText:new RegExp(en.assistantMode.use+'|'+en.assistantMode.on)})).toHaveCount(0);
 });
 
 
 test('a directly opened assistant closes to the mainnet wallet on every screen size',async({page})=>{
  await world(page);await page.goto('/assistant');
- await page.locator('button[aria-pressed="true"]:visible').first().click();
+ await page.getByRole('button',{name:en.nav.backAria,exact:true}).first().click();
  await expect.poll(()=>new URL(page.url()).pathname).toBe('/account');
 });
 

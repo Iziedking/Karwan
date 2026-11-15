@@ -41,3 +41,10 @@ test('be found and be reached save as settings; a way to meet must be real (view
   assert.equal(settingsSchema.safeParse({ settings: { meet: { atMyPlace: true, comeToYouKm: 500, online: false } } }).success, false);
   assert.equal(settingsSchema.safeParse({ settings: { contactFrom: 'friends' } }).success, false);
 });
+
+test('how the guide shows saves as on, face or off, and nothing else (view 57)', () => {
+  for (const guide of ['on', 'face', 'off']) {
+    assert.equal(settingsSchema.parse({ settings: { guide } }).settings.guide, guide);
+  }
+  assert.equal(settingsSchema.safeParse({ settings: { guide: 'loud' } }).success, false);
+});

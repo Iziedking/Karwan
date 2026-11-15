@@ -43,6 +43,8 @@ export const settingsSchema = z.object({
       .optional(),
     contactFrom: z.enum(['anyone', 'verified']).optional(),
     reachable: z.boolean().optional(),
+    /// How the guide shows (view 57).
+    guide: z.enum(['on', 'face', 'off']).optional(),
   }),
 });
 

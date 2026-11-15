@@ -14,8 +14,7 @@ import { TaskEntryLink } from './TaskEntryLink';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { getShellSurface, isAssistantRoute, START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
-import { AssistantModeSwitch } from './AssistantModeSwitch';
-import { ASSISTANT_MODE_ENTRY } from '@/features/assistant/assistantModeEntry';
+import { HeaderAman } from '@/shared/guide/HeaderAman';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import type { UserProfile } from '@/core/api';
@@ -120,13 +119,8 @@ export function TopNav() {
             </>
           ) : showAppChrome ? (
               <>
-                {/* Parked for now (assistantModeEntry.ts): shown only on /assistant,
-                    as the way back out. */}
-                {showFullChrome && (ASSISTANT_MODE_ENTRY || isAssistantRoute(pathname)) ? (
-                  <span className={shell === 'workspace' && !isAssistantRoute(pathname) ? 'hidden lg:contents' : 'contents'}>
-                    <AssistantModeSwitch />
-                  </span>
-                ) : null}
+                {/* With the guide hidden from pages, Aman waits here (view 57). */}
+                {showFullChrome ? <HeaderAman /> : null}
                 <NotificationBell />
                 {/* In the workspace the person is at the foot of the rail on
                     desktop and the Profile tab on a phone, so the header pill

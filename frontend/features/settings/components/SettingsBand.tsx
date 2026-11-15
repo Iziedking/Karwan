@@ -16,6 +16,7 @@ import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { PublishDealsRows } from './PublishDealsRows';
 import { AssistantMemoryRows } from './AssistantMemoryRows';
 import { DisplayCurrencySection } from './DisplayCurrencySection';
+import { GuideSwitchRow } from './GuideSwitchRow';
 import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { sfx } from '@/shared/utils/sfx';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
@@ -30,7 +31,7 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export function SettingsBand() {
-  const { address, isAuthenticated, method, email, hasPasskey, refresh, signOut } = useAuth();
+  const { address, isAuthenticated, signOut } = useAuth();
   const { locale, t } = useLocale();
   const { preference, mounted } = useTheme();
   const [sheet, setSheet] = useState<null | 'language' | 'theme' | 'reach' | 'delete'>(null);
@@ -184,6 +185,7 @@ export function SettingsBand() {
           checked={settings.tradesAs === 'business'}
           onChange={(on) => save({ tradesAs: on ? 'business' : 'self' })}
         />
+        <GuideSwitchRow />
       </RowGroup>
 
       <RowGroup title={t.settings.groups.notificationsPrivacy}>
@@ -209,12 +211,6 @@ export function SettingsBand() {
       </RowGroup>
 
       <AssistantMemoryRows />
-
-      {method === 'circle' && email && (
-        <RowGroup title={t.settings.groups.security}>
-          <PasskeyRow hasPasskey={hasPasskey} email={email} onAdded={() => refresh()} />
-        </RowGroup>
-      )}
 
       <RowGroup>
         <Row label={<span className="text-[var(--color-critical)]">{t.settings.accountDelete}</span>} onClick={() => setSheet('delete')} />
@@ -365,7 +361,8 @@ export function useAddPasskey(email: string | null | undefined, onAdded: () => v
   return { addPasskey, busy, error, justAdded, supports, copy: t };
 }
 
-function PasskeyRow({
+/// The passkey row, on Sign-in and security (view 83).
+export function PasskeyRow({
   hasPasskey,
   email,
   onAdded,

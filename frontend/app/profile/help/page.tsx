@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { api, type MyCaseRow } from '@/core/api';
 import { AssistantThread } from '@/shared/assistant/AssistantThread';
+import { takePersonCarry } from '@/shared/assistant/openAssistant';
 import { useAssistantChat } from '@/shared/assistant/useAssistantChat';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { buttonClasses } from '@/shared/components/Button';
@@ -38,6 +39,12 @@ function HelpAndSupport() {
   const [input, setInput] = useState(prefill?.text ?? '');
   const [cases, setCases] = useState<MyCaseRow[] | null>(null);
   const answered = useRef(0);
+
+  // Brought here from the assistant page: what they last said, ready to send.
+  useEffect(() => {
+    const carried = takePersonCarry();
+    if (carried?.message) setInput(carried.message);
+  }, []);
 
   const loadCases = () => void api.myCases().then((r) => setCases(r.cases)).catch(() => setCases((prev) => prev ?? []));
   useEffect(loadCases, []);

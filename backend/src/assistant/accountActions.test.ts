@@ -101,3 +101,11 @@ test('the business workspace, what it trades and the company card', () => {
   assert.match(err(buildEditCompanyCardConfirm({ address: ME, isBusiness: false, patch: { region: 'Lagos' } })), /business accounts/);
   assert.deepEqual(ok(buildEditCompanyCardConfirm({ address: ME, isBusiness: true, patch: { region: 'Lagos', hideFromDiscovery: true } })).payload, { address: ME, smeProfile: { region: 'Lagos', hideFromDiscovery: true } });
 });
+
+test('the assistant can hide or show the guide with a card (view 57)', () => {
+  const card = ok(buildChangeSettingsConfirm({ address: ME, settings: { guide: 'off' }, hasTelegram: false, hasEmail: false }));
+  assert.deepEqual(card.payload.settings, { guide: 'off' });
+  assert.deepEqual(card.fields, [{ label: 'The guide on pages', value: 'Off' }]);
+  const face = ok(buildChangeSettingsConfirm({ address: ME, settings: { guide: 'face' }, hasTelegram: false, hasEmail: false }));
+  assert.deepEqual(face.fields, [{ label: 'The guide on pages', value: 'A small face in the top bar' }]);
+});

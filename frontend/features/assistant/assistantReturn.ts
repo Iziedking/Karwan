@@ -21,6 +21,14 @@ export function rememberReturn(pathname: string): void {
   try { sessionStorage.setItem(RETURN_KEY, path); } catch { /* Use Home when storage is blocked. */ }
 }
 
+/// Where the assistant was opened from, left in place for Back.
+export function peekReturn(): string | null {
+  try {
+    const path = sessionStorage.getItem(RETURN_KEY);
+    return path && remembered(path) ? path : null;
+  } catch { return null; }
+}
+
 export function takeReturn(dealsAvailable = dealsAvailableOn(process.env.NEXT_PUBLIC_ARC_NETWORK)): string {
   const home = dealsAvailable ? '/app' : '/account';
   try {

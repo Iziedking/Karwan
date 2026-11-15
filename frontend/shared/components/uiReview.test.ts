@@ -485,8 +485,9 @@ test('profile is tidy: one way to change the photo, rows say what they open, no 
   const menu = source('../../features/profile/components/PhotoMenu.tsx');
   assert.match(menu, /role="menu"/);
   assert.match(menu, /role="menuitem"/);
-  // Signed-in devices is a real page now (view 65), not a dead row.
-  assert.match(hub, /<Row label=\{hub\.devices\} href="\/profile\/devices" \/>/);
+  // Signed-in devices lives on Sign-in and security (view 65, view 83), opened from the Account card.
+  assert.match(hub, /hubAccountRows\(\{ dealsAvailable: DEALS_AVAILABLE \}\)[\s\S]*href=\{PROFILE_PAGE_HREF\[key\]\}/);
+  assert.match(source('../../features/profile/hubRows.ts'), /security: '\/profile\/security'/);
   assert.doesNotMatch(hub, /hub\.accountLabel|shortAddress\(address\)\}/);
 });
 
@@ -508,8 +509,12 @@ test('profile says each thing once: one Your record row, Edit profile in the hea
   assert.doesNotMatch(hub, /mpg\.trading/);
   const card = hub.slice(hub.lastIndexOf('<RowGroup>', hub.indexOf('pp.yourRecord')));
   const group = card.slice(0, card.indexOf('</RowGroup>'));
-  for (const piece of ['pp.yourRecord', 'mpg.money', 'pp.buying', 'pp.selling', 'simple.agentsTitle', 'messages.assistantMode.use']) assert.ok(group.includes(piece), piece);
-  assert.match(hub, /<RowGroup title=\{mpg\.preferences\}>[\s\S]*<DisplayCurrencySection \/>/);
+  for (const piece of ['pp.yourRecord', 'mpg.money', 'pp.buying', 'pp.selling', 'simple.agentsTitle', 'menu.ask']) assert.ok(group.includes(piece), piece);
+  // Ask Aman opens the assistant page from Profile, on every network (view 57).
+  assert.match(group, /openAssistant\(window\.location\.pathname/);
+  assert.doesNotMatch(hub, /ASSISTANT_MODE_ENTRY|messages\.assistantMode\.use/);
+  // Language, theme and the currency are said once, in Settings (view 83).
+  for (const gone of ['mpg.preferences', '<DisplayCurrencySection', '/profile/theme', 'mpg.moreSettings', '/how-it-works', 'hub.devices']) assert.ok(!hub.includes(gone), gone);
   // One agent row, not two that open the same page (owner, 3 Nov 2026).
   assert.equal(hub.split('simple.agentsTitle').length - 1, 1);
   assert.doesNotMatch(hub, /howAgentTrades/);

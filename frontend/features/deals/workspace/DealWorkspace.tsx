@@ -151,6 +151,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
       </div>
       <div className="min-w-0">
+      <div data-guide-anchor="deal-move">
       <DealHero
         deal={deal}
         view={deal.view}
@@ -165,6 +166,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         recordState={recordState}
         onRetryRecord={() => setRecordKey((key) => key + 1)}
       />
+      </div>
       {address && deal.verificationPolicy === 'high_signal' ? (
         <div className="mt-6 empty:hidden">
           <HighSignalVerificationCard deal={deal} caller={address} onRefresh={() => { void refresh(); }} />

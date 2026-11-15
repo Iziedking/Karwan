@@ -21,6 +21,8 @@ export type SettingsPatch = {
   meet?: { atMyPlace: boolean; comeToYouKm: number | null; online: boolean };
   contactFrom?: 'anyone' | 'verified';
   reachable?: boolean;
+  /// How the guide shows (view 57).
+  guide?: 'on' | 'face' | 'off';
 };
 
 export interface ChangeSettingsConfirm extends ConfirmActionBase {
@@ -157,6 +159,7 @@ function settingFields(s: SettingsPatch): Array<{ label: string; value: string }
   if (s.meet) rows.push({ label: 'How you meet people', value: meetLine(s.meet) });
   if (s.contactFrom) rows.push({ label: 'Who can send you deal alerts', value: s.contactFrom === 'verified' ? 'Verified people only' : 'Anyone on Karwan' });
   if (s.reachable !== undefined) rows.push({ label: 'Let sellers reach me', value: onOff(s.reachable) });
+  if (s.guide) rows.push({ label: 'The guide on pages', value: s.guide === 'face' ? 'A small face in the top bar' : onOff(s.guide === 'on') });
   return rows;
 }
 

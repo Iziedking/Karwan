@@ -1,34 +1,22 @@
-/// Opens the Help panel from anywhere, optionally with a question typed in.
-/// The panel (shared/components/AssistantWidget.tsx) listens for this event.
-export const HELP_OPEN_EVENT = 'karwan:help-open';
+import { carryAsk } from '@/features/assistant/carriedAsk';
+import { announceOpen, carryForPerson } from './openAssistant';
+
+/// Opens the assistant page from anywhere, optionally with a question to send
+/// there (view 57). The names stay so every caller keeps working.
 
 type Turn = { role: 'user' | 'assistant'; content: string };
 
-export interface HelpOpenDetail {
-  prefill?: string;
-  /// Send the prefill as the person's message straight away.
-  send?: boolean;
-  /// Bring in a person straight away.
-  person?: boolean;
-  /// What the person already said elsewhere, such as assistant mode. It goes
-  /// to the person joining as context; Help keeps its own conversation.
-  context?: Turn[];
-  /// A first message for the person joining, sent and shown in Help. Goes
-  /// into an open ticket when there is one.
-  message?: string;
-  /// A deal this is about, so support opens it without asking.
-  dealId?: string;
-}
-
 export function openHelp(prefill?: string, opts: { send?: boolean } = {}): void {
   if (typeof window === 'undefined') return;
-  const detail: HelpOpenDetail = opts.send ? { prefill, send: true } : { prefill };
-  window.dispatchEvent(new CustomEvent<HelpOpenDetail>(HELP_OPEN_EVENT, { detail }));
+  if (opts.send && prefill) carryAsk(prefill);
+  announceOpen({ to: 'assistant' });
 }
 
-/// The assistant could not do it, or the person asked for one: Help opens and
-/// connects them to the team, with what was said so far as context.
+/// The assistant could not do it, or the person asked for one: Help and support
+/// opens with what they last said ready to send, and the deal it is about.
 export function callPerson(context: Turn[], options: { message?: string; dealId?: string } = {}): void {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent<HelpOpenDetail>(HELP_OPEN_EVENT, { detail: { person: true, context, ...options } }));
+  const lastSaid = [...context].reverse().find((t) => t.role === 'user')?.content ?? '';
+  carryForPerson({ message: (options.message ?? lastSaid).trim(), dealId: options.dealId ?? null });
+  announceOpen({ to: 'person', href: options.dealId ? `/profile/help?deal=${encodeURIComponent(options.dealId)}` : '/profile/help' });
 }

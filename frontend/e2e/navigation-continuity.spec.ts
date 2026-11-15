@@ -9,7 +9,6 @@ import { PROFILE, serveSearch } from './searchFixtures';
 import { API, ME, funded } from './moneyFixtures';
 import { JOB, deliveredDeal } from './fixtures';
 import { dealRouteRecoveryKey } from '../features/deals/dealRouteRecovery';
-import { ASSISTANT_MODE_ENTRY } from '../features/assistant/assistantModeEntry';
 const messages={en,ar,fr,hi,sw};
 async function world(page:Page,locale:keyof typeof messages='en',theme='light',signedIn=true){
  await page.context().addCookies([{name:'karwan-locale',value:locale,domain:'127.0.0.1',path:'/'}]);
@@ -122,13 +121,11 @@ test('back and reload preserve the reading position on a long help page',async({
 });
 
 
-test('assistant mode returns to the exact source task on every screen size',async({page},info)=>{
- test.skip(!ASSISTANT_MODE_ENTRY,'The Use assistant switch is parked (owner, 6 Nov 2026).');
+test('Ask Aman opens the assistant page and Back returns to the exact source task on every screen size (view 57)',async({page})=>{
  await world(page);const target='/profile?section=record#sources';await page.goto(target);
- if(info.project.name==='desktop')await page.locator('button[aria-pressed="false"]:visible').filter({hasText:en.assistantMode.use}).first().click();
- else await page.getByRole('switch',{name:en.assistantMode.use,exact:true}).click();
+ await page.getByRole('button',{name:/Ask Aman/}).first().click();
  await expect.poll(()=>new URL(page.url()).pathname).toBe('/assistant');
- await page.locator('button[aria-pressed="true"]:visible').first().click();
+ await page.getByRole('button',{name:en.nav.backAria,exact:true}).first().click();
  await expect.poll(()=>urlOf(page)).toBe(target);
 });
 

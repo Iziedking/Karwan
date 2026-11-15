@@ -17,10 +17,14 @@ import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotio
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ease } from '@/shared/motion/tokens';
-import { greetingKey } from './conversationGroups';
 import { ConversationList } from './ConversationList';
 import { PickUpLine } from './PickUpLine';
-import { takeReturn } from './assistantReturn';
+import { peekReturn, takeReturn } from './assistantReturn';
+import { suggestedQuestions } from './suggestedQuestions';
+import { AmanFace } from '@/shared/guide/AmanFace';
+import { guideCopy } from '@/shared/i18n/messages/guide';
+import { routeTitlesCopy } from '@/shared/i18n/messages/routeTitles';
+import { routeTitleKey } from '@/shared/seo/routeTitle';
 import { takeAsk } from './carriedAsk';
 import { conversationToResume, NEW_CHAT, readOpenConversation, rememberOpenConversation } from './resumeConversation';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -70,6 +74,13 @@ function AssistantPage() {
   }, [staged]);
   const { locale } = useLocale();
   const photoCopy = offerPhotosCopy[locale];
+  const aman = guideCopy[locale];
+  // Where the assistant was opened from: Back goes there, and the questions fit it.
+  const [cameFrom, setCameFrom] = useState<string | null>(null);
+  useEffect(() => setCameFrom(peekReturn()), []);
+  const fromKey = cameFrom ? routeTitleKey(cameFrom.split(/[?#]/)[0] ?? '/', '') : null;
+  const fromPage = fromKey && fromKey !== 'server' ? routeTitlesCopy[locale][fromKey] : null;
+  const questions = suggestedQuestions(cameFrom).map((key) => aman.questions[key]);
   const [listOpen, setListOpen] = useState(false);
   const [openError, setOpenError] = useState(false);
   /// The conversation waiting for a delete confirmation: the open one or any in the list.
@@ -152,6 +163,7 @@ function AssistantPage() {
   // A message you just sent is always brought into view; a new reply only when
   // you were already at the newest message.
   const last = chat.messages[chat.messages.length - 1];
+  const empty = chat.messages.length === 0;
   const hasThread = chat.messages.length > 0;
   useEffect(() => {
     if (last?.role === 'user' || atLatestRef.current) toLatest(true);
@@ -178,9 +190,10 @@ function AssistantPage() {
   }, [router, listOpen]);
 
   const name = profile?.handle ? `@${profile.handle}` : (profile?.displayName ?? '').trim().split(/\s+/)[0] ?? '';
-  const template = t[greetingKey(new Date().getHours())];
-  // Without a name the greeting drops it with its comma.
-  const greeting = name ? template.replace('{name}', name) : template.replace(/[,،]\s*\{name\}/, '');
+  // Without a name the greeting drops it with its stop.
+  const greeting = name ? aman.greeting.replace('{name}', name) : aman.greeting.replace(/^[^{]*\{name\}[.。।،]?\s*/, '');
+  const mood = chat.busy ? 'thinking' : empty ? 'waiting' : 'idle';
+  const back = () => router.push(takeReturn());
 
   async function send(text: string) {
     const question = text.trim();
@@ -242,47 +255,62 @@ function AssistantPage() {
   const column = (
     <ConversationList list={list.data ?? []} currentId={chat.conversationId} onNew={() => void startNew()} onOpen={(id) => void openConversation(id)} onRemove={(id) => { setListOpen(false); setRemoveError(false); setRemoveId(id); }} />
   );
-  const empty = chat.messages.length === 0;
-
   return (
     <div className="flex min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full text-[var(--ink)]">
-      <aside className="hidden w-[264px] shrink-0 border-e border-[var(--line)] px-4 py-5 lg:block">
+      <aside className="hidden w-[300px] shrink-0 border-e border-[var(--line)] px-4 py-5 lg:block">
         <div className="sticky top-[calc(var(--lp-nav-h,72px)+20px)]">{column}</div>
       </aside>
 
       {/* On wide screens the column sits in the middle of the window, not just beside the list. */}
-      <section className="flex min-w-0 flex-1 flex-col xl:pe-[264px]">
-        <div className="flex items-center justify-between gap-2 px-4 pt-3 lg:hidden">
-          <button type="button" onClick={() => setListOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h10" /></svg>
-            {t.conversations}
+      <section className="flex min-w-0 flex-1 flex-col xl:pe-[300px]">
+        {/* The top bar (view 57, Figma board 4): Back to where it was opened, Aman, and the conversations. */}
+        <div className="flex items-center gap-2 px-3 pt-3 sm:px-5">
+          <button type="button" onClick={back} aria-label={messages.nav.backAria} className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
+            <Icon name="arrow-left" size={20} directional />
           </button>
-          <button type="button" onClick={() => void startNew()} aria-label={t.newConversation} className="grid size-11 place-items-center rounded-full text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-          </button>
-        </div>
-
-        <div className="mx-auto flex w-full max-w-[760px] flex-1 flex-col gap-3 px-4 pb-4 pt-6 sm:px-6 sm:pt-8">
-          <div className="flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => callPerson(chat.messages.map((message) => ({ role: message.role, content: message.content })))}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--line)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
-            >
-              <Icon name="user" size={20} />
-              {messages.assistant.humanButton}
-            </button>
+          <span className="flex min-w-0 items-center gap-2 ps-1">
+            <AmanFace size={30} mood={mood} label={null} />
+            <span className="guide-voice text-[18px] font-bold">{aman.label}</span>
+          </span>
+          <span className="ms-auto flex items-center gap-1">
             {chat.conversationId ? (
-              <button type="button" onClick={() => { setRemoveError(false); setRemoveId(chat.conversationId); }} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[14px] font-semibold text-[var(--ink-secondary)] hover:bg-[var(--raised)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>
-                {t.remove}
+              <button type="button" onClick={() => { setRemoveError(false); setRemoveId(chat.conversationId); }} aria-label={t.remove} className="grid size-11 place-items-center rounded-full text-[var(--ink-secondary)] hover:bg-[var(--raised)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>
               </button>
             ) : null}
-          </div>
+            <button type="button" onClick={() => void startNew()} aria-label={t.newConversation} className="grid size-11 place-items-center rounded-full text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] lg:hidden">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+            <button type="button" onClick={() => setListOpen(true)} aria-label={t.conversations} className="grid size-11 place-items-center rounded-full border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] lg:hidden">
+              <Icon name="list" size={20} />
+            </button>
+          </span>
+        </div>
+
+        <div className="mx-auto flex w-full max-w-[640px] flex-1 flex-col gap-3 px-4 pb-4 pt-6 sm:px-0 sm:pt-8">
           {empty ? (
-            <m.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="pt-6 sm:pt-12">
-              <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[28px]">{greeting}</h1>
-              <p className="mt-2 max-w-[52ch] text-[15px] font-medium text-[var(--ink-secondary)]">{t.greetingBody}</p>
+            <m.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="flex flex-col items-center pt-6 text-center sm:pt-12">
+              <AmanFace size={96} mood={mood} label={null} />
+              <h1 className="guide-voice mt-5 text-[26px] font-bold tracking-[-0.01em] sm:text-[30px]">{greeting}</h1>
+              <p className="mt-2 max-w-[44ch] text-[15px] font-medium text-[var(--ink-secondary)]">{t.greetingBody}</p>
+              {fromPage ? (
+                <span data-assistant-from className="mt-4 inline-flex min-h-8 items-center rounded-full bg-[var(--raised)] px-3 text-[13px] font-semibold text-[var(--ink-secondary)]">
+                  {aman.from.replace('{page}', fromPage)}
+                </span>
+              ) : null}
+              <div data-assistant-questions className="mt-6 flex w-full flex-col items-stretch gap-2 sm:items-center">
+                {questions.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => void send(q)}
+                    disabled={chat.busy}
+                    className="min-h-11 rounded-full border border-[var(--line)] bg-[var(--surface)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </m.div>
           ) : (
             <div ref={threadRef}>
@@ -296,7 +324,7 @@ function AssistantPage() {
         </div>
 
         <div className="sticky bottom-0 bg-[var(--canvas)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
-          <div className="relative mx-auto max-w-[760px]">
+          <div className="relative mx-auto max-w-[640px]">
             {!empty && !atLatest ? (
               <button
                 type="button"
@@ -306,21 +334,6 @@ function AssistantPage() {
               >
                 <Icon name="arrow-down" size={20} />
               </button>
-            ) : null}
-            {empty ? (
-              <div className="mb-3 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
-                {t.chips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => void send(chip)}
-                    disabled={chat.busy}
-                    className="min-h-11 shrink-0 rounded-full border border-[var(--line)] bg-[var(--raised)] px-4 text-[14px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--raised)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
             ) : null}
             {pickUp.data && !pickUpGone ? (
               <PickUpLine
@@ -377,7 +390,7 @@ function AssistantPage() {
                   }}
                 />
               </label>
-              <label htmlFor="assistant-ask" className="sr-only">{t.placeholder}</label>
+              <label htmlFor="assistant-ask" className="sr-only">{aman.box}</label>
               <textarea
                 ref={askRef}
                 id="assistant-ask"
@@ -398,7 +411,7 @@ function AssistantPage() {
                 }}
                 rows={1}
                 dir="auto"
-                placeholder={t.placeholder}
+                placeholder={aman.box}
                 className="max-h-36 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-[16px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
               />
               <button
@@ -410,6 +423,17 @@ function AssistantPage() {
                 <Icon name="return" size={20} directional />
               </button>
             </form>
+            <div className="mt-2 flex justify-center">
+              <button
+                type="button"
+                data-talk-to-person
+                onClick={() => callPerson(chat.messages.map((message) => ({ role: message.role, content: message.content })))}
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-[14px] font-semibold text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
+              >
+                <Icon name="user" size={16} />
+                {aman.person}
+              </button>
+            </div>
           </div>
         </div>
       </section>

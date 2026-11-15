@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RETURN_KEY, rememberReturn, takeReturn } from './assistantReturn';
+import { RETURN_KEY, peekReturn, rememberReturn, takeReturn } from './assistantReturn';
 
 /// Turning the assistant off goes back to the page it was turned on from.
 ///
@@ -53,4 +53,18 @@ test('assistant return refuses external, sign-in and self-loop destinations',()=
  for(const path of ['https://outside.example','//outside.example','/start?next=/market','/assistant?chat=1','/%61ssistant']){data.set(RETURN_KEY,path);assert.equal(takeReturn(),'/app',path);}
  data.set(RETURN_KEY,'/deals/0xabc');assert.equal(takeReturn(false),'/account');
  data.set(RETURN_KEY,'/account?section=money#balance');assert.equal(takeReturn(false),'/account?section=money#balance');
+});
+
+test('the assistant page can read where it came from without using it up', () => {
+  fakeStorage();
+  rememberReturn('/market?q=rice');
+  assert.equal(peekReturn(), '/market?q=rice');
+  assert.equal(peekReturn(), '/market?q=rice');
+  assert.equal(takeReturn(), '/market?q=rice');
+  assert.equal(peekReturn(), null);
+});
+
+test('peeking with blocked storage gives nothing', () => {
+  fakeStorage(true);
+  assert.equal(peekReturn(), null);
 });

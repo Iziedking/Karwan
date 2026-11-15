@@ -56,6 +56,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             move (view 48). */}
         <m.div
           data-guide="home-money"
+          data-guide-anchor="balance"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}

@@ -206,11 +206,21 @@ One column, the conversation first.
 |---|---|
 | This view | Approved 6 Nov 2026, next move first |
 | 13 Nov amendment: the face opens the assistant page, the corner Help goes, we draw the mascot, its name is Aman | Approved 15 Nov 2026 |
-| Figma: page "Aman · the guide with a face · 15 Nov" (314:570): the Aman component, five moods (314:627); the Aman line (315:681); Aman beside Home, Market, a deal and Money; the decline states; the assistant page on phone, tablet and laptop | Drawn 15 Nov 2026, waiting for the owner's yes |
+| Figma: page "Aman · the guide with a face · 15 Nov" (314:570): the Aman component, five moods (314:627); the Aman line (315:681); Aman beside Home, Market, a deal and Money; the decline states; the assistant page on phone, tablet and laptop | Drawn 15 Nov 2026, approved 15 Nov on a 9 by 9 dot grid |
 | Next-move rules on the shared core, `GET /api/guide/next`, `whats_pending` returns the same move | Built 6 Nov 2026, not deployed |
 | Next-move nudge on every signed-in page, in the rounded type; the fading notes and the sign-up guide share that type | Built 6 Nov 2026, not deployed |
 | The nudge steps aside while a button or a field is under it, sits above the bottom bar wherever the bar shows, and after a close says nothing more on that page | Built 12 Nov 2026, live on the test site |
-| On a phone the nudge stops short of the Help button, measured from where the button is, and sits above it when there is too little room beside it | Built 12 Nov 2026, not deployed |
+| On a phone the nudge stops short of the Help button, measured from where the button is, and sits above it when there is too little room beside it | Built 12 Nov 2026, replaced 15 Nov: the Help button is gone |
 | The first-run welcome and any page tour that opens by itself are for someone new: an account with a deal, or one set up more than a day ago, is never shown them on a new device. The Page tour button stays for everyone | Built 12 Nov 2026, not deployed |
 | Figma: placeholder face, gate, tour, sign-up and first open (phone, dark) | Drawn 6 Nov 2026 |
-| Face, name, gate, tours, companion beside the page, Ask from the face | Waiting for the designer's mascot |
+| Aman beside the page with the one next move, the face opens the assistant page, Ctrl+K, Not now, Not on this page, Hide the guide, Settings switch, Ask Aman in Profile, the corner Help button and the parked switch removed, the assistant page redesigned | Built 15 Nov 2026, not deployed |
+| Gate and tours with the face (modes 1 and 2) | Not started |
+
+## As built (15 Nov 2026)
+
+- The face is one pure geometry, `frontend/features/guide/amanDots.ts`: 61 dots on a 9 by 9 grid at pitch 10.7 in a 96 box, 24 of them rim, radius 2.2, each mood's eyes and mouth laid over a green patch with the dots under it removed. `frontend/shared/guide/AmanFace.tsx` draws it as inline SVG at 28, 30, 56 and 96, in fixed colours.
+- Where it sits is `features/guide/placeAman.ts`: docked at the inline end, 16 above the bottom bar (24 from the edge on a laptop), or just under the part a move names through `data-guide-anchor` (`balance` on Home, `request:<id>` on a Market request, `deal-move` on a deal, `agent` on Money); `anchorFor` in `pickNudge.ts` maps a move to its anchor.
+- When it moves or speaks is `features/guide/amanMotion.ts`: not while typing, scrolling faster than 1200 px a second, with a dialog open, on Send, Withdraw, Add or Cash out, or with reduced motion; one line a page; a blink every 4 to 7 seconds. What declining keeps is `features/guide/guideChoices.ts`, per visit in session storage; the account keeps `settings.guide` (`on`, `face`, `off`), saved through `POST /api/settings` and changeable by the assistant's settings card.
+- `frontend/shared/guide/AmanGuide.tsx` replaces `NextMoveNudge` and `AssistantWidget`; `HeaderAman.tsx` is the 28 face in the top bar for `face`; `AmanMenu.tsx` is the press-and-hold menu. `openAssistant`, `isShortcut` and `useAssistantShortcut` in `shared/assistant` are the way in; `openHelp` now opens the assistant page and `callPerson` opens Help and support with the last message ready to send.
+- The assistant page (`features/assistant/AssistantMode.tsx`) has a round Back, Aman at 30, the conversations in a 300 px rail on a laptop or a sheet, the empty page with Aman at 96, "From {page}" and three questions from `suggestedQuestions.ts`, a 640 px column and Talk to a person under the box.
+- Copy is `frontend/shared/i18n/messages/guide.ts` in five languages; the assistant's guide and the canon doc `assistant-mode-and-help` say the same.

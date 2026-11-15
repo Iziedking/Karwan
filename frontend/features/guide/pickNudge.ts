@@ -43,3 +43,25 @@ export function pickNudge(input: {
   if (!top) return null;
   return { key: nudgeKey(top), ...top };
 }
+
+const DEAL_MOVES: ReadonlySet<NextMoveCopyKind> = new Set([
+  'dispute_statement',
+  'approve_delivery',
+  'answer_cancel',
+  'answer_extension',
+  'take_back',
+  'fund_deal',
+  'agree_terms',
+  'deliver_soon',
+]);
+
+/// The part of the page a move is about (a `data-guide-anchor` value), so Aman
+/// sits beside it (view 57). A web concern only: the server's moves stay as they are.
+export function anchorFor(n: Nudge): string | null {
+  if (n.kind === 'add_money') return 'balance';
+  if (n.kind === 'choose_offer' || n.kind === 'approve_match') {
+    const ref = n.key.slice(n.key.indexOf(':') + 1);
+    return ref ? `request:${ref}` : null;
+  }
+  return DEAL_MOVES.has(n.kind) ? 'deal-move' : null;
+}

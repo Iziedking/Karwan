@@ -12,24 +12,24 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { heroAmount } from '@/features/money/balanceModel';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
-import { ProfileFrame, Row, RowGroup, ToggleRow } from '../ui/ProfileUi';
+import { ProfileFrame, Row, RowGroup } from '../ui/ProfileUi';
 import { liveOffers, openRequests } from '@/features/home/tradeHub';
 import { marketViewHref } from '@/features/market/marketQuery';
 import { useRouter } from 'next/navigation';
-import { rememberReturn } from '@/features/assistant/assistantReturn';
-import { ASSISTANT_MODE_ENTRY } from '@/features/assistant/assistantModeEntry';
+import { openAssistant } from '@/shared/assistant/openAssistant';
+import { AmanFace } from '@/shared/guide/AmanFace';
+import { guideCopy } from '@/shared/i18n/messages/guide';
 import { ProfileSignOut } from './ProfileSignOut';
 import { PhotoMenu } from './PhotoMenu';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
-import { useAddPasskey } from '@/features/settings/components/SettingsBand';
+import { hubAccountRows, HUB_SETTINGS_ROWS, PROFILE_PAGE_HREF, type HubRow } from '../hubRows';
+import { profilePagesFor } from '@/shared/i18n/messages/profilePages';
 import { accountRows } from '../accountRows';
 import { useQuery } from '@tanstack/react-query';
-import { DisplayCurrencySection } from '@/features/settings/components/DisplayCurrencySection';
 import { recordSummary } from '../ownRecord';
 import { useTheme } from '@/shared/hooks/useTheme';
-import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { LOCALE_NAMES } from '@/shared/i18n/locales';
 import { routeTitlesCopy } from '@/shared/i18n/messages/routeTitles';
 import { useGuarantee } from '@/features/guarantee/useGuarantee';
@@ -53,7 +53,6 @@ export function ProfileAccountHub({
   const photoInput = useRef<HTMLInputElement>(null);
   const messages = useTranslations();
   const router = useRouter();
-  const nav = messages.nav;
   const businessCopy = messages.businessProfilePage;
   const hub = messages.profile.hub;
   const pp = messages.profilePage;
@@ -112,14 +111,12 @@ export function ProfileAccountHub({
 
   // The balance is the money page's one balance on Arc; the agents show beside it.
   const money = useMoneyBalances();
-  const { hasPasskey, method, email, refresh } = useAuth();
-  const passkey = useAddPasskey(email, () => refresh());
+  const { hasPasskey, method } = useAuth();
   const { locale } = useLocale();
   const { preference, mounted } = useTheme();
   const themeNow = mounted ? preference : 'dark';
   const simple = messages.profile.simple;
   const mpg = messages.moneyPages.profile;
-  const wideScreen = useMediaQuery('(min-width: 1024px)');
   const me = address.toLowerCase();
   const myRequests = useQuery({ queryKey: ['search', 'myRequests', me], queryFn: () => api.buyer(me).then((r) => r.jobs), enabled: DEALS_AVAILABLE && !!me, staleTime: 15_000 });
   const myListings = useQuery({ queryKey: ['trade-hub', 'listings', me], queryFn: () => api.listingsForSeller(me).then((r) => r.listings), enabled: DEALS_AVAILABLE && !!me, staleTime: 15_000 });
@@ -148,6 +145,22 @@ export function ProfileAccountHub({
     },
     { setUp: simple.setUp, telegram: messages.setup.choices.reach.options.telegram.label },
   );
+  const pages = profilePagesFor(locale);
+  const label: Record<HubRow, string> = {
+    security: pages.security.title,
+    reach: pages.reach.title,
+    wallets: simple.walletsTitle,
+    business: business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open,
+    settings: messages.settings.title,
+    help: messages.supportPage.profileRow,
+  };
+  // A wallet account signs with its wallet; passkeys belong to email accounts.
+  const value: Partial<Record<HubRow, string>> = {
+    security: method === 'circle' ? (hasPasskey ? pages.security.passkeyOn : pages.security.passkeyOff) : undefined,
+    reach: rows.contact,
+    business: rows.business,
+    settings: `${LOCALE_NAMES[locale]} · ${themeNow === 'light' ? messages.settings.themeLight : messages.settings.themeDark}`,
+  };
 
   return (
     <ProfileFrame
@@ -209,60 +222,30 @@ export function ProfileAccountHub({
             <Row label={pp.buying} value={trade.requests} href={marketViewHref('yours', 'requests')} />
             <Row label={pp.selling} value={trade.offers} href={marketViewHref('yours', 'offers')} />
             <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} />
-            {/* On a computer the switch sits in the top bar, so it is not said twice. */}
-            {wideScreen || !ASSISTANT_MODE_ENTRY ? null : (
-              <ToggleRow
-                label={messages.assistantMode.use}
-                checked={false}
-                onChange={() => {
-                  // Off again, it comes back to exactly this place (section and anchor too).
-                  rememberReturn(window.location.pathname);
-                  router.push('/assistant');
-                }}
-              />
-            )}
           </>
         ) : null}
+        <Row
+          label={
+            <span className="inline-flex items-center gap-2.5">
+              <AmanFace size={28} mood="idle" label={null} />
+              {guideCopy[locale].menu.ask}
+            </span>
+          }
+          onClick={() => openAssistant(window.location.pathname, (href) => router.push(href))}
+        />
       </RowGroup>
 
+      {/* The account in one card, settings and help in the next (view 83). */}
       <RowGroup title={mpg.account}>
-        <Row label={simple.contactTitle} value={rows.contact} href="/profile/contact" />
-        <Row label={simple.walletsTitle} href="/profile/wallets" />
-        <Row label={hub.devices} href="/profile/devices" />
-        <Row label={messages.supportPage.profileRow} href="/profile/help" />
-        {DEALS_AVAILABLE ? (
-          <Row
-            label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}
-            value={rows.business}
-            href="/profile/business"
-          />
-        ) : null}
-        {/* A wallet account signs with its wallet; passkeys belong to email accounts. */}
-        {method === 'circle' ? (
-          <>
-            {hasPasskey || passkey.justAdded ? (
-              <Row label={hub.passkey} value={simple.on} />
-            ) : (
-              <Row
-                label={hub.passkey}
-                value={passkey.busy ? passkey.copy.addingButton : passkey.error ?? simple.off}
-                onClick={passkey.supports && !passkey.busy ? () => void passkey.addPasskey() : undefined}
-              />
-            )}
-            <Row label={hub.recovery} soon={hub.soon} />
-          </>
-        ) : null}
-      </RowGroup>
-
-      <RowGroup title={mpg.preferences}>
-        <Row label={messages.settings.language} value={LOCALE_NAMES[locale]} href="/settings" />
-        <Row label={messages.settings.theme} value={themeNow === 'light' ? messages.settings.themeLight : messages.settings.themeDark} href="/profile/theme" />
-        <DisplayCurrencySection />
-        <Row label={mpg.moreSettings} href="/settings" />
+        {hubAccountRows({ dealsAvailable: DEALS_AVAILABLE }).map((key) => (
+          <Row key={key} label={label[key]} value={value[key]} href={PROFILE_PAGE_HREF[key]} />
+        ))}
       </RowGroup>
 
       <RowGroup>
-        <Row label={nav.help} href="/how-it-works" />
+        {HUB_SETTINGS_ROWS.map((key) => (
+          <Row key={key} label={label[key]} value={value[key]} href={PROFILE_PAGE_HREF[key]} />
+        ))}
       </RowGroup>
 
       {/* The account address lives in Wallets, with a copy button. */}

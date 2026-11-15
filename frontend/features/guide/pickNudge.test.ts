@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pickNudge, type NextMove } from './pickNudge';
+import { anchorFor, pickNudge, type NextMove, type Nudge } from './pickNudge';
 import { nextMoveCopy } from '@/shared/i18n/messages/nextMove';
 
 const deliver: NextMove = { kind: 'approve_delivery', ref: '0xd1', href: '/deals/0xd1', amountUsdc: '120' };
@@ -47,4 +47,16 @@ test('every move has a line and a button in every language, with no dashes', () 
     assert.match(copy.moves.choose_offer.line, /\{count\}/, locale);
     assert.match(copy.moves.deliver_soon.line, /\{days\}/, locale);
   }
+});
+
+test('each move names the part of the page Aman sits beside (view 57)', () => {
+  const n = (kind: Nudge['kind'], key = `${kind}:0xr1`): Nudge => ({ key, kind, href: '/x' });
+  assert.equal(anchorFor(n('add_money', 'add_money:')), 'balance');
+  assert.equal(anchorFor(n('choose_offer')), 'request:0xr1');
+  assert.equal(anchorFor(n('approve_match')), 'request:0xr1');
+  for (const kind of ['dispute_statement', 'approve_delivery', 'answer_cancel', 'answer_extension', 'take_back', 'fund_deal', 'agree_terms', 'deliver_soon'] as const) {
+    assert.equal(anchorFor(n(kind)), 'deal-move', kind);
+  }
+  assert.equal(anchorFor(n('first_post', 'first_post:')), null);
+  assert.equal(anchorFor(n('choose_offer', 'choose_offer:')), null);
 });

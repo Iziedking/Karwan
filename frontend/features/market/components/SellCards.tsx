@@ -29,6 +29,7 @@ export function RequestCard({ card, fits }: { card: DiscoveryCard; fits: boolean
     <Link
       href={card.href}
       data-request-row
+      data-guide-anchor={`request:${card.id}`}
       data-fits={fits || undefined}
       className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
     >

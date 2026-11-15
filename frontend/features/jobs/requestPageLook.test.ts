@@ -68,8 +68,7 @@ test('main actions are Karwan green, never ink-filled (owner, 7 Nov 2026)', () =
     '../assistant/PickUpLine.tsx',
     '../profile/components/RegisterBusinessBand.tsx',
     '../profile/components/SmeCompanyBand.tsx',
-    '../../shared/components/AssistantWidget.tsx',
-    '../../shared/components/NextMoveNudge.tsx',
+    '../../shared/guide/AmanGuide.tsx',
   ]) {
     assert.match(source(file), /bg-\[var\(--action\)\][^"]*text-\[var\(--on-action\)\]/, file);
   }

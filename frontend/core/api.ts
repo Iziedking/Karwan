@@ -410,6 +410,8 @@ export interface UserSettings {
   meet?: Meet;
   contactFrom?: 'anyone' | 'verified';
   reachable?: boolean;
+  /// How Aman, the guide, shows (view 57). Absent means beside the page.
+  guide?: 'on' | 'face' | 'off';
 }
 
 /// How a seller meets people, for in-person work (view 72).
