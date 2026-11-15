@@ -394,6 +394,9 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /What buyers need as picture cards like Buy/);
   assert.match(all, /one Money row shows the same one figure as Money/);
   assert.doesNotMatch(all, /sit under Selling/);
+  // B-09: a short agent sends no payment and works on free data (owner, 15 Nov 2026).
+  assert.match(all, /An agent with too little in its own wallet sends no payment at all/);
+  assert.match(all, /hears once a week, in the app and on Telegram, to add money to it under Money, Agent/);
   // B-08: every deal says how it reaches the buyer, and work in person ends in the code (owner, 15 Nov 2026).
   assert.match(all, /Every deal says how it reaches the buyer, Online, In person or Shipped/);
   assert.match(all, /work done in person \(tailoring, cleaning, repairs, lessons\) ends with the buyer’s six-digit handover code and never a link/);

@@ -192,11 +192,31 @@ export interface ResearchDeps {
 const RESEARCH_FAILURE_QUIET_MS = 24 * 3_600_000;
 const researchFailureTold = new Map<string, number>();
 
+const SHORT_NOTICE_QUIET_MS = 7 * 24 * 3_600_000;
+const shortTold = new Map<string, number>();
+
+/// A selling agent too short to pay for research works on Karwan's own prices,
+/// and its person hears once a week to add money to it (B-09, owner, 15 Nov
+/// 2026). A buying agent says so on its shortlist instead.
+export function tellAgentShort(req: ResearchRequest, emit: (e: PaidEvent) => void, now = Date.now()): boolean {
+  if (req.actor !== 'seller') return false;
+  const key = req.forAccount.toLowerCase();
+  const last = shortTold.get(key);
+  if (last !== undefined && now - last < SHORT_NOTICE_QUIET_MS) return false;
+  shortTold.set(key, now);
+  emit({
+    type: 'agent.research.failed',
+    actor: 'seller',
+    payload: { kind: 'research', user: req.forAccount, ref: req.ref, focus: req.focus, short: true },
+  });
+  return true;
+}
+
 /// Research that did not finish, told to the person once per request a day.
 /// A short balance is not a failure: it has its own "add money" notice.
 export function tellResearchFailed(req: ResearchRequest, err: unknown, emit: (e: PaidEvent) => void, now = Date.now()): boolean {
   const message = err instanceof Error ? err.message : String(err);
-  if (message.startsWith(READS_BALANCE_EMPTY)) return false;
+  if (message.startsWith(READS_BALANCE_EMPTY)) return tellAgentShort(req, emit, now);
   const key = `${req.forAccount.toLowerCase()}|${req.ref.toLowerCase()}`;
   const last = researchFailureTold.get(key);
   if (last !== undefined && now - last < RESEARCH_FAILURE_QUIET_MS) return false;

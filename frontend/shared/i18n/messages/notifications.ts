@@ -9,7 +9,7 @@ export interface NotifyCopy {
   matchedSellerPrice: string; matchedSeller: string; matchedBuyerPrice: string; matchedBuyer: string;
   approvedSellerPrice: string; approvedSeller: string; approvedBuyerPrice: string; approvedBuyer: string;
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
-  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; agentWeekly: string; agentWeeklyLeft: string; agentBudget: string; researchFailed: string; researchFailedPaid: string; researchYourRequest: string; agentWeeklyInsight: string; agentWeeklyInsights: string; questionDecided: string; agentWeeklyQuestions: string; briefMore: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
+  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; agentWeekly: string; agentWeeklyLeft: string; agentBudget: string; researchFailed: string; researchFailedPaid: string; researchShort: string; researchYourRequest: string; agentWeeklyInsight: string; agentWeeklyInsights: string; questionDecided: string; agentWeeklyQuestions: string; briefMore: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
   recordNeededOffers: string; recordNeededDeal: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
@@ -49,6 +49,7 @@ const en: NotifyCopy = {
   agentBudget: 'Your agents reached their {budget} USDC data budget for this week and are using free data.',
   researchFailed: "Research for {title} didn't finish. Your agent carried on with Karwan's own prices.",
   researchFailedPaid: "Research for {title} didn't finish, and {amount} USDC was spent on it. Your agent carried on with Karwan's own prices.",
+  researchShort: "Your selling agent has no money for research, so it is using Karwan's own prices for now. Add money to it under Money, Agent.",
   researchYourRequest: "your request",
   agentWeeklyInsight: "Your agent has one thing to tell you about how you trade. Ask it what it sees.",
   agentWeeklyInsights: "Your agent has {count} things to tell you about how you trade. Ask it what it sees.",
@@ -208,6 +209,7 @@ const fr: NotifyCopy = {
   agentBudget: 'Vos agents ont atteint leur budget de données de {budget} USDC cette semaine et utilisent des données gratuites.',
   researchFailed: "La recherche pour {title} n'a pas abouti. Votre agent a continué avec les prix de Karwan.",
   researchFailedPaid: "La recherche pour {title} n'a pas abouti, et {amount} USDC y ont été dépensés. Votre agent a continué avec les prix de Karwan.",
+  researchShort: "Votre agent de vente n'a pas d'argent pour ses recherches, il utilise donc les prix de Karwan pour l'instant. Ajoutez-lui de l'argent dans Argent, Agent.",
   researchYourRequest: "votre demande",
   agentWeeklyInsight: "Votre agent a une chose à vous dire sur votre façon d'échanger. Demandez-lui ce qu'il voit.",
   agentWeeklyInsights: "Votre agent a {count} choses à vous dire sur votre façon d'échanger. Demandez-lui ce qu'il voit.",
@@ -367,6 +369,7 @@ const ar: NotifyCopy = {
   agentBudget: 'بلغ وكلاؤك ميزانية البيانات البالغة {budget} USDC لهذا الأسبوع ويستخدمون بيانات مجانية.',
   researchFailed: "لم يكتمل البحث عن {title}. واصل وكيلك بأسعار كروان نفسها.",
   researchFailedPaid: "لم يكتمل البحث عن {title}، وأُنفق عليه {amount} USDC. واصل وكيلك بأسعار كروان نفسها.",
+  researchShort: "ليس لدى وكيل البيع لديك مال للبحث، لذا يستخدم أسعار كروان نفسها حاليًا. أضف إليه المال من المال، الوكيل.",
   researchYourRequest: "طلبك",
   agentWeeklyInsight: "لدى وكيلك أمر واحد يخبرك به عن طريقة تداولك. اسأله عمّا يراه.",
   agentWeeklyInsights: "لدى وكيلك {count} أمور يخبرك بها عن طريقة تداولك. اسأله عمّا يراه.",
@@ -526,6 +529,7 @@ const hi: NotifyCopy = {
   agentBudget: 'आपके एजेंट इस हफ़्ते {budget} USDC के डेटा बजट तक पहुँच गए हैं और मुफ़्त डेटा इस्तेमाल कर रहे हैं।',
   researchFailed: "{title} के लिए खोज पूरी नहीं हुई। आपका एजेंट Karwan की अपनी कीमतों के साथ आगे बढ़ा।",
   researchFailedPaid: "{title} के लिए खोज पूरी नहीं हुई, और इस पर {amount} USDC खर्च हुए। आपका एजेंट Karwan की अपनी कीमतों के साथ आगे बढ़ा।",
+  researchShort: "आपके बेचने वाले एजेंट के पास खोज के लिए पैसा नहीं है, इसलिए वह अभी Karwan की अपनी कीमतें इस्तेमाल कर रहा है। पैसा, एजेंट में जाकर उसमें पैसा जोड़ें।",
   researchYourRequest: "आपका अनुरोध",
   agentWeeklyInsight: "आपके एजेंट के पास आपके व्यापार के बारे में बताने के लिए एक बात है। उससे पूछें कि वह क्या देख रहा है।",
   agentWeeklyInsights: "आपके एजेंट के पास आपके व्यापार के बारे में बताने के लिए {count} बातें हैं। उससे पूछें कि वह क्या देख रहा है।",
@@ -685,6 +689,7 @@ const sw: NotifyCopy = {
   agentBudget: 'Mawakala wako wamefikia bajeti yao ya data ya USDC {budget} wiki hii na wanatumia data ya bure.',
   researchFailed: "Utafiti wa {title} haukukamilika. Wakala wako aliendelea kwa bei za Karwan zenyewe.",
   researchFailedPaid: "Utafiti wa {title} haukukamilika, na {amount} USDC zilitumika. Wakala wako aliendelea kwa bei za Karwan zenyewe.",
+  researchShort: "Wakala wako wa kuuza hana pesa za utafiti, kwa hivyo anatumia bei za Karwan zenyewe kwa sasa. Mwongezee pesa kwenye Pesa, Wakala.",
   researchYourRequest: "ombi lako",
   agentWeeklyInsight: "Wakala wako ana jambo moja la kukuambia kuhusu jinsi unavyofanya biashara. Muulize anachoona.",
   agentWeeklyInsights: "Wakala wako ana mambo {count} ya kukuambia kuhusu jinsi unavyofanya biashara. Muulize anachoona.",

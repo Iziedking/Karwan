@@ -28,6 +28,7 @@ type TgKey =
   | 'openInKarwan'
   | 'researchFailed'
   | 'researchFailedPaid'
+  | 'researchShort'
   | 'insight.testnetBudget'
   | 'insight.missedByPrice'
   | 'insight.budgetBelowBand'
@@ -175,6 +176,7 @@ const en: Record<TgKey, string> = {
   'insight.heading': "*What your agent sees:*",
   'researchFailed': "*Research for {title} didn't finish.* Your agent carried on with Karwan's own prices.",
   'researchFailedPaid': "*Research for {title} didn't finish*, and {amount} USDC was spent on it. Your agent carried on with Karwan's own prices.",
+  'researchShort': "*Your selling agent has no money for research*, so it is using Karwan's own prices for now. Add money to it under Money, Agent.",
   'mandate.sellWork': 'Your agent sells work from {lowest} USDC (usually {usual}), in {min} to {max} days.',
   'mandate.sellGoods': 'Your agent sells {what} from {lowest} USDC (usually {usual}).',
   'mandate.sellDeposit': 'Your agent rents out {what} for a {lowest} USDC deposit.',
@@ -316,6 +318,7 @@ const ar: Partial<Record<TgKey, string>> = {
   'insight.heading': "*ما يراه وكيلك:*",
   'researchFailed': "*لم يكتمل البحث عن {title}.* واصل وكيلك بأسعار كروان نفسها.",
   'researchFailedPaid': "*لم يكتمل البحث عن {title}*، وأُنفق عليه {amount} USDC. واصل وكيلك بأسعار كروان نفسها.",
+  'researchShort': "*ليس لدى وكيل البيع لديك مال للبحث*، لذا يستخدم أسعار كروان نفسها حاليًا. أضف إليه المال من المال، الوكيل.",
   'mandate.sellWork': 'يبيع وكيلك العمل بدءًا من {lowest} USDC (عادةً {usual})، خلال {min} إلى {max} أيام.',
   'mandate.sellGoods': 'يبيع وكيلك {what} بدءًا من {lowest} USDC (عادةً {usual}).',
   'mandate.sellDeposit': 'يؤجّر وكيلك {what} مقابل تأمين قدره {lowest} USDC.',
@@ -457,6 +460,7 @@ const fr: Partial<Record<TgKey, string>> = {
   'insight.heading': "*Ce que voit votre agent :*",
   'researchFailed': "*La recherche pour {title} n'a pas abouti.* Votre agent a continué avec les prix de Karwan.",
   'researchFailedPaid': "*La recherche pour {title} n'a pas abouti*, et {amount} USDC y ont été dépensés. Votre agent a continué avec les prix de Karwan.",
+  'researchShort': "*Votre agent de vente n'a pas d'argent pour ses recherches*, il utilise donc les prix de Karwan pour l'instant. Ajoutez-lui de l'argent dans Argent, Agent.",
   'mandate.sellWork': 'Votre agent vend du travail à partir de {lowest} USDC (habituellement {usual}), en {min} à {max} jours.',
   'mandate.sellGoods': 'Votre agent vend {what} à partir de {lowest} USDC (habituellement {usual}).',
   'mandate.sellDeposit': 'Votre agent loue {what} contre un dépôt de {lowest} USDC.',
@@ -598,6 +602,7 @@ const hi: Partial<Record<TgKey, string>> = {
   'insight.heading': "*आपका एजेंट क्या देख रहा है:*",
   'researchFailed': "*{title} के लिए खोज पूरी नहीं हुई।* आपका एजेंट Karwan की अपनी कीमतों के साथ आगे बढ़ा।",
   'researchFailedPaid': "*{title} के लिए खोज पूरी नहीं हुई*, और इस पर {amount} USDC खर्च हुए। आपका एजेंट Karwan की अपनी कीमतों के साथ आगे बढ़ा।",
+  'researchShort': "*आपके बेचने वाले एजेंट के पास खोज के लिए पैसा नहीं है*, इसलिए वह अभी Karwan की अपनी कीमतें इस्तेमाल कर रहा है। पैसा, एजेंट में जाकर उसमें पैसा जोड़ें।",
   'mandate.sellWork': 'आपका एजेंट {lowest} USDC से काम बेचता है (आमतौर पर {usual}), {min} से {max} दिनों में।',
   'mandate.sellGoods': 'आपका एजेंट {what} {lowest} USDC से बेचता है (आमतौर पर {usual})।',
   'mandate.sellDeposit': 'आपका एजेंट {what} {lowest} USDC की जमा राशि पर किराए पर देता है।',
@@ -739,6 +744,7 @@ const sw: Partial<Record<TgKey, string>> = {
   'insight.heading': "*Anachoona wakala wako:*",
   'researchFailed': "*Utafiti wa {title} haukukamilika.* Wakala wako aliendelea kwa bei za Karwan zenyewe.",
   'researchFailedPaid': "*Utafiti wa {title} haukukamilika*, na {amount} USDC zilitumika. Wakala wako aliendelea kwa bei za Karwan zenyewe.",
+  'researchShort': "*Wakala wako wa kuuza hana pesa za utafiti*, kwa hivyo anatumia bei za Karwan zenyewe kwa sasa. Mwongezee pesa kwenye Pesa, Wakala.",
   'mandate.sellWork': 'Wakala wako anauza kazi kuanzia {lowest} USDC (kwa kawaida {usual}), kwa siku {min} hadi {max}.',
   'mandate.sellGoods': 'Wakala wako anauza {what} kuanzia {lowest} USDC (kwa kawaida {usual}).',
   'mandate.sellDeposit': 'Wakala wako anakodisha {what} kwa amana ya {lowest} USDC.',

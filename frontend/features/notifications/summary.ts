@@ -100,6 +100,8 @@ export function summaryFor(
     case 'agent.question.decided':
       return fill(c.questionDecided, { title: str('title') || c.researchYourRequest });
     case 'agent.research.failed': {
+      // A selling agent with no money for research (B-09): add money to it.
+      if (payload?.short === true) return c.researchShort;
       const title = str('title') || c.researchYourRequest;
       const amount = str('amountUsd');
       return amount ? fill(c.researchFailedPaid, { title, amount }) : fill(c.researchFailed, { title });

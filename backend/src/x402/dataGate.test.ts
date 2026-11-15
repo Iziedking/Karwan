@@ -225,3 +225,18 @@ test('a short balance is not told as a research failure', async () => {
   assert.equal(sent, false);
   assert.equal(told.length, 0);
 });
+
+test('a selling agent too short to research tells its person once a week to add money (B-09, owner, 15 Nov 2026)', async () => {
+  const { tellResearchFailed } = await import('./dataGate.js');
+  const told: PaidEvent[] = [];
+  const short = new Error('reads balance not yet credited (available 0 USDC)');
+  const req = { payerAgent: '0xS', forAccount: '0xShortSeller', keywords: ['tailor'], focus: 'negotiation' as const, ref: '0xr1', actor: 'seller' as const };
+  const t0 = Date.UTC(2026, 10, 15);
+  assert.equal(tellResearchFailed(req, short, (e) => told.push(e), t0), true);
+  assert.equal(tellResearchFailed({ ...req, ref: '0xr2' }, short, (e) => told.push(e), t0 + 3_600_000), false);
+  assert.equal(told.length, 1);
+  assert.equal(told[0]!.type, 'agent.research.failed');
+  assert.deepEqual(told[0]!.payload, { kind: 'research', user: '0xShortSeller', ref: '0xr1', focus: 'negotiation', short: true });
+  assert.equal(tellResearchFailed({ ...req, ref: '0xr3' }, short, (e) => told.push(e), t0 + 8 * 86_400_000), true);
+  assert.equal(told.length, 2);
+});

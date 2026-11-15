@@ -35,6 +35,8 @@ export function notificationKind(type: string): NotificationKind {
 /// per request) and the record reminder. Null for anything else.
 export function sellerNudge(type: string, payload: Record<string, unknown> | undefined, ts: number): { id: string; href: string } | null {
   if (type === 'trend.match') return { id: `trend.match-${ts}`, href: '/market' };
+  // A selling agent short of money for research opens where money is added to it (B-09).
+  if (type === 'agent.research.failed' && payload?.short === true) return { id: `${type}-${ts}`, href: '/account?tab=agent' };
   if (type === 'agent.weekly' || type === 'agent.budget' || type === 'agent.research.failed' || type === 'agent.brief') return { id: `${type}-${ts}`, href: '/profile/setup' };
   // A live note is about one request (view 52, step 4).
   if (type === 'agent.note') {

@@ -19,3 +19,8 @@ test('a seller nudge opens the request it is about, once per request', () => {
   assert.deepEqual(sellerNudge('record.setup_needed', { reason: 'offers' }, 7), { id: 'record.setup_needed-7', href: '/assistant' });
   assert.deepEqual(sellerNudge('record.setup_needed', { reason: 'deal', jobId: '0xdeal' }, 7), { id: 'record.setup_needed-0xdeal', href: '/deals/0xdeal' });
 });
+
+test('a selling agent short of money for research opens Money, Agent (B-09, owner, 15 Nov 2026)', () => {
+  assert.equal(sellerNudge('agent.research.failed', { short: true }, 1)?.href, '/account?tab=agent');
+  assert.equal(sellerNudge('agent.research.failed', { ref: '0xr' }, 1)?.href, '/profile/setup');
+});

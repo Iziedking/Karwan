@@ -15,6 +15,8 @@ import { logger } from '../logger.js';
 import type { FinancialCommandShadowObserver } from '../agents/financialCommandShadow.js';
 import { buildLegacyX402FundingObservation } from '../agents/financialCommandProjection.js';
 import { gatewayFundingCoordinator } from './gatewayFundingCoordinator.js';
+import { gatewayDepositUsd, usdcUnitsToUsd } from './gatewayDeposit.js';
+import { readUsdcBalance } from '../chain/contracts.js';
 import { ARC } from '../chain/client.js';
 import { issuerAddress } from '../attestation/issuer.js';
 import { verifyRecordRead, type SignedRecordRead } from '../verification/recordReadSignature.js';
@@ -188,10 +190,22 @@ async function ensureGatewayFundingOnce(
   const availableUsd = await gatewayAvailableUsd(x402.address);
   if (availableUsd >= neededUsd) return { funded: true, availableUsd };
 
-  const depositUsd = Math.max(config.X402_GATEWAY_DEPOSIT_USD, neededUsd);
-  const amountAtomic = BigInt(Math.round(depositUsd * 10 ** USDC_DECIMALS));
   const payerAgentAddress =
     payerWalletId === record.buyerWalletId ? record.buyerAddress : record.sellerAddress;
+  // A short agent sends nothing: the caller hears READS_BALANCE_EMPTY and works
+  // on free data (B-09). An unreadable balance keeps the old top-up.
+  const held = await readUsdcBalance(payerAgentAddress).catch(() => null);
+  const depositUsd = held === null
+    ? Math.max(config.X402_GATEWAY_DEPOSIT_USD, neededUsd)
+    : gatewayDepositUsd(neededUsd, usdcUnitsToUsd(held), config.X402_GATEWAY_DEPOSIT_USD);
+  if (depositUsd === null) {
+    logger.info(
+      { user: record.userAddress, payerAgentAddress, neededUsd, walletUsd: held === null ? null : usdcUnitsToUsd(held) },
+      'x402: paying agent cannot cover the read, nothing sent',
+    );
+    return { funded: false, availableUsd };
+  }
+  const amountAtomic = BigInt(Math.round(depositUsd * 10 ** USDC_DECIMALS));
   publishX402GatewayFundingShadow({
     dealRoomId,
     payerAgentAddress,

@@ -45,6 +45,10 @@ function pitchUrl(pitchId: string | undefined): string | null {
 }
 
 /// The person's own agent page (view 45), where its budget and weekly line live.
+function agentMoneyUrl(): string | null {
+  return config.FRONTEND_BASE_URL ? `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/account?tab=agent` : null;
+}
+
 function yourAgentUrl(): string | null {
   return config.FRONTEND_BASE_URL ? `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/profile/setup` : null;
 }
@@ -650,6 +654,8 @@ ${tg('bargain.yourCallChoice', locale, { price })}`,
     case 'agent.research.failed': {
       // Only a person's own research has a `user`; platform research tells nobody.
       const p = e.payload ?? {};
+      // A selling agent with no money for research (B-09): add money to it.
+      if (p.short === true) return withLink(tg('researchShort', locale), agentMoneyUrl());
       const ref = typeof p.ref === 'string' ? p.ref : undefined;
       const title = (typeof p.title === 'string' && p.title) || (ref ? requestTitle(getBrief(ref)?.briefText) : null) || 'your request';
       const amount = Number(p.amountUsd);
