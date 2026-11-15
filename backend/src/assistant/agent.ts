@@ -353,7 +353,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             stakedUsdc: owned.staked > 0 ? owned.staked.toFixed(2) : null,
             gas: formatUnits(gas, NATIVE_DECIMALS),
             someSourcesUnread: owned.partial,
-            note: `totalUsdc is the balance on their balance page: give it first, as their balance. It is one balance on Arc. Name parts only in the page's words, as Where it is lists them: "ready to send", "Transfer balance", "with your agent" (money there is for checks and deals, and counts in the balance; the agent's weekly limit for checks is get_my_agent). Never say chains, and never count or list money on other networks: other networks are only a way to add money (list_bridge_sources, when they ask to add from elsewhere). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is their deal guarantee, set aside to protect their buyers, and is NOT part of the total: if you mention it, call it their deal guarantee, say it is not counted in the balance, and get the details from get_my_guarantee. walletOnArcUsdc already includes any Transfer balance a wallet account holds; an email account holds none and none is counted. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
+            note: `totalUsdc is the balance on their balance page: give it first, as their balance. It is one balance on Arc. Name parts only in the page's words, as Where it is lists them: "ready to send", "Transfer balance", "with your agent" (money there is for checks and deals, and counts in the balance; the agent's weekly limit for checks is get_my_agent). Never say chains, and never count or list money on other networks: other networks are only a way to add money (list_bridge_sources, when they ask to add from elsewhere). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is the money in their savings pocket, kept aside and earning, and is NOT part of the total: if you mention it, call it their savings pocket (say deal guarantee only for the part of it backing a particular deal), say it is not counted in the balance, and get the details from get_my_guarantee. walletOnArcUsdc already includes any Transfer balance a wallet account holds; an email account holds none and none is counted. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');
@@ -769,7 +769,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     get_my_reputation: tool({
       description:
-        "The signed-in user's reputation: score (0-1000), tier (NEW / COLD / ESTABLISHED / STRONG / ELITE), and the record behind it — deals completed, disputes, lifetime volume, stake, account age. Use for 'what is my reputation', 'why is my score low', 'how do I reach the next tier', or when they ask how counterparties see them.",
+        "The signed-in user's reputation: score (0-1000), tier (NEW / COLD / ESTABLISHED / STRONG / ELITE), and the record behind it — deals completed, disputes, lifetime volume, money in the savings pocket, account age. Use for 'what is my reputation', 'why is my score low', 'how do I reach the next tier', or when they ask how counterparties see them.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
@@ -785,11 +785,11 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
               failed: inputs.failedCount,
               cancelsLast90d: inputs.cancelsLast90d,
               lifetimeVolumeUsdc: inputs.lifetimeVolumeUsdc.toFixed(2),
-              stakeUsdc: inputs.stakeUsdc.toFixed(2),
-              stakeDays: Math.round(inputs.stakeDays),
+              savingsPocketUsdc: inputs.stakeUsdc.toFixed(2),
+              daysInPocket: Math.round(inputs.stakeDays),
               activeDays: inputs.activeDays,
             },
-            note: 'Tier breakpoints: COLD at 200, ESTABLISHED at 400, STRONG at 600, ELITE at 800. The fastest levers are completing deals cleanly, staking (amount and duration both count), and avoiding cancellations and disputes. Full breakdown lives on /reputation.',
+            note: 'Tier breakpoints: COLD at 200, ESTABLISHED at 400, STRONG at 600, ELITE at 800. The fastest levers are completing deals cleanly, keeping money in the savings pocket (how much and how long both count), and avoiding cancellations and disputes. Call that money the savings pocket; a deal guarantee is only the part of it backing a particular deal. Full breakdown lives on /reputation.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_reputation failed');

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { canonUpdated, canonVersion, findDocs, findFacts, isStatable } from './canon.js';
 
@@ -81,4 +82,15 @@ test('the canon leads with unified reputation and keeps it off the live list', (
   const direction = findFacts({ q: 'unified reputation' }).find((fact) => fact.id === 'unified-reputation-roadmap');
   assert.ok(direction);
   assert.equal(isStatable(direction), false);
+});
+
+test('money kept aside is the savings pocket; a deal guarantee is only the part backing a deal', () => {
+  // The record called idle pocket money a deal guarantee (owner, 15 Nov 2026).
+  const agent = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(agent, /call it their deal guarantee/);
+  assert.match(agent, /savingsPocketUsdc: inputs\.stakeUsdc/);
+  assert.doesNotMatch(agent, /\bstakeUsdc: inputs\.stakeUsdc/);
+  const raw = readFileSync(new URL('./canon/canon.public.json', import.meta.url), 'utf8');
+  assert.doesNotMatch(raw, /The deal guarantee, tenure and activity all raise/);
+  assert.doesNotMatch(raw, /three parts: Balance, Agent and Deal guarantee/);
 });
