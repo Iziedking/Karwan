@@ -1303,6 +1303,8 @@ export interface DirectDeal {
   tradeType?: 'service' | 'goods' | 'mixed';
   /// Goods only: shipped with tracking, or handed over in person (view 32).
   goodsWay?: 'shipped' | 'in_person';
+  /// How it reaches the buyer (view 85). Absent on older deals: read it with deliveryMethodOf.
+  deliveryMethod?: 'online' | 'in_person' | 'shipped';
   /// Match lane. 'finance' is the trade-finance (SME) lane factoring applies to;
   /// 'service' (or absent) is the P2P lane, never factorable.
   tradeLane?: 'service' | 'finance';
@@ -5381,6 +5383,8 @@ export const api = {
     tradeType?: 'service' | 'goods' | 'mixed';
     /// Goods only: shipped, or handed over in person (view 32).
     goodsWay?: 'shipped' | 'in_person';
+    /// How it reaches the buyer (view 85).
+    deliveryMethod?: 'online' | 'in_person' | 'shipped';
     incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
     paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
     counterpartyCompany?: { name?: string; sector?: string; region?: string };

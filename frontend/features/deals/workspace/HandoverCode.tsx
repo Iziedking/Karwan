@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { api } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// The buyer's six-digit code for goods handed over in person (view 33). It
-/// shows only when asked, and asking again issues a new code.
-export function HandoverCode({ jobId, caller }: { jobId: string; caller: string }) {
-  const t = useTranslations().deliveryCard.code;
+/// The buyer's six-digit code for goods handed over or work done in person
+/// (views 33 and 85). It shows only when asked, and asking again issues a new
+/// code; work in stages takes a new code for each stage.
+export function HandoverCode({ jobId, caller, work = false }: { jobId: string; caller: string; work?: boolean }) {
+  const c = useTranslations().deliveryCard.code;
+  const t = work ? { ...c, title: c.titleWork, body: c.bodyWork, hint: c.hintWork } : c;
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

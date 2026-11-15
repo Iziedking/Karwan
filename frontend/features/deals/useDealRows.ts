@@ -15,9 +15,13 @@ import { dealReference } from './dealReference';
 import { classifyDirectDeal, dealState, orderDeals, rowMove, type Orderable } from './dealsList';
 import { useDirectDeals } from './hooks/useDirectDeals';
 import { whatItIs } from './workspace/titleLine';
+import { deliveryMethodOf, type DeliveryMethod } from './workspace/delivery';
+import { deliveryMethodCopy } from '@/shared/i18n/messages/deliveryMethod';
 
 export interface DealRow extends Orderable {
   key: string;
+  /// How it reaches the buyer; requests still being agreed have none yet (view 85).
+  deliveryMethod?: DeliveryMethod;
   row: Omit<Parameters<typeof OpenDealRow>[0], 'yourMove'>;
 }
 
@@ -43,8 +47,10 @@ export function useDealRows() {
       const c = classifyDirectDeal(deal, me);
       const live = labelFor(c.stage, c.isBuyer, p.chips);
       seen.add(deal.jobId.toLowerCase());
+      const method = deliveryMethodOf(deal);
       rows.push({
         key: deal.jobId,
+        deliveryMethod: method,
         yourMove: c.yourMove,
         finished: c.finished,
         dueUnix: c.finished ? null : deal.deadlineUnix ?? null,
@@ -63,6 +69,7 @@ export function useDealRows() {
           due: c.finished ? undefined : due(deal.deadlineUnix),
           move: (() => { const m = rowMove(deal); return m ? messages.dealsPage.move[m] : undefined; })(),
           state: dealState({ yourMove: c.yourMove, finished: c.finished, deal }),
+          method: deliveryMethodCopy[locale].label[method],
           // An ended deal's line says when it ended.
           ...(c.finished ? { due: shortDate(deal.settledAt ?? deal.cancelledAt ?? deal.updatedAt, locale) } : {}),
         },

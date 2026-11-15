@@ -36,8 +36,10 @@ export interface DeliveryCardCopy {
     inPerson: string;
     codeLabel: string;
     codeNote: string;
+    codeNoteWork: string;
     photosLabel: string;
     photosRequired: string;
+    photosRequiredWork: string;
     photosOptional: string;
     addPhotos: string;
     removeTemplate: string;
@@ -49,6 +51,9 @@ export interface DeliveryCardCopy {
     show: string;
     showAgain: string;
     hint: string;
+    titleWork: string;
+    bodyWork: string;
+    hintWork: string;
   };
 }
 
@@ -96,8 +101,10 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       inPerson: "In person",
       codeLabel: "The buyer's handover code",
       codeNote: "The buyer shows it once they hold the item.",
+      codeNoteWork: "The buyer shows it once the work is done.",
       photosLabel: "Photos",
       photosRequired: "Goods over 50 USDC are delivered with a photo of the item.",
+      photosRequiredWork: "Work over 50 USDC done in person is delivered with a photo of it.",
       photosOptional: "Optional. Up to 4.",
       addPhotos: "Add photos",
       removeTemplate: "Remove photo {n}",
@@ -109,6 +116,9 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       show: "Show my handover code",
       showAgain: "Show a new code",
       hint: "Show it only with the item in hand. A new code replaces this one.",
+      titleWork: "Is the work done?",
+      bodyWork: "When the work is done and you are happy with it, show this code to the seller. It works once and counts as the work delivered.",
+      hintWork: "Show it only once the work is done. A new code replaces this one.",
     },
   },
   fr: {
@@ -154,8 +164,10 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       inPerson: "En main propre",
       codeLabel: "Le code de remise de l’acheteur",
       codeNote: "L’acheteur le montre une fois l’article en main.",
+      codeNoteWork: "L’acheteur le montre une fois le travail terminé.",
       photosLabel: "Photos",
       photosRequired: "Les marchandises de plus de 50 USDC sont livrées avec une photo de l’article.",
+      photosRequiredWork: "Un travail fait en personne de plus de 50 USDC est livré avec une photo.",
       photosOptional: "Facultatif. Jusqu’à 4.",
       addPhotos: "Ajouter des photos",
       removeTemplate: "Retirer la photo {n}",
@@ -167,6 +179,9 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       show: "Afficher mon code de remise",
       showAgain: "Afficher un nouveau code",
       hint: "Montrez-le seulement avec l’article en main. Un nouveau code remplace celui-ci.",
+      titleWork: "Le travail est-il terminé ?",
+      bodyWork: "Quand le travail est terminé et qu’il vous convient, montrez ce code au vendeur. Il ne sert qu’une fois et vaut livraison du travail.",
+      hintWork: "Montrez-le seulement une fois le travail terminé. Un nouveau code remplace celui-ci.",
     },
   },
   ar: {
@@ -212,8 +227,10 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       inPerson: "يدًا بيد",
       codeLabel: "رمز الاستلام الخاص بالمشتري",
       codeNote: "يعرضه المشتري بعد أن يستلم السلعة بيده.",
+      codeNoteWork: "يعرضه المشتري بعد انتهاء العمل.",
       photosLabel: "الصور",
       photosRequired: "السلع التي تزيد عن 50 USDC تُسلَّم مع صورة للسلعة.",
+      photosRequiredWork: "العمل الحضوري الذي تزيد قيمته على 50 USDC يُسلَّم مع صورة له.",
       photosOptional: "اختياري. حتى 4 صور.",
       addPhotos: "أضف صورًا",
       removeTemplate: "إزالة الصورة {n}",
@@ -225,6 +242,9 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       show: "اعرض رمز الاستلام",
       showAgain: "اعرض رمزًا جديدًا",
       hint: "اعرضه فقط والسلعة بيدك. الرمز الجديد يلغي هذا الرمز.",
+      titleWork: "هل انتهى العمل؟",
+      bodyWork: "عندما ينتهي العمل وتكون راضيًا عنه، اعرض هذا الرمز على البائع. يعمل مرة واحدة ويُحتسب تسليمًا للعمل.",
+      hintWork: "اعرضه فقط بعد انتهاء العمل. الرمز الجديد يحل محل هذا الرمز.",
     },
   },
   hi: {
@@ -270,8 +290,10 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       inPerson: "हाथों-हाथ",
       codeLabel: "खरीदार का हैंडओवर कोड",
       codeNote: "खरीदार इसे सामान हाथ में आने के बाद दिखाता है।",
+      codeNoteWork: "खरीदार इसे काम पूरा होने के बाद दिखाता है।",
       photosLabel: "फ़ोटो",
       photosRequired: "50 USDC से ज़्यादा का सामान उसकी फ़ोटो के साथ डिलीवर होता है।",
+      photosRequiredWork: "50 USDC से ज़्यादा का आमने-सामने किया गया काम एक फ़ोटो के साथ सौंपा जाता है।",
       photosOptional: "वैकल्पिक। 4 तक।",
       addPhotos: "फ़ोटो जोड़ें",
       removeTemplate: "फ़ोटो {n} हटाएँ",
@@ -283,6 +305,9 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       show: "मेरा हैंडओवर कोड दिखाएँ",
       showAgain: "नया कोड दिखाएँ",
       hint: "इसे सिर्फ़ सामान हाथ में होने पर दिखाएँ। नया कोड इसकी जगह ले लेता है।",
+      titleWork: "क्या काम पूरा हो गया?",
+      bodyWork: "जब काम पूरा हो जाए और आप संतुष्ट हों, तो यह कोड विक्रेता को दिखाएँ। यह एक बार चलता है और काम सौंपे जाने के रूप में गिना जाता है।",
+      hintWork: "इसे काम पूरा होने के बाद ही दिखाएँ। नया कोड इसकी जगह ले लेता है।",
     },
   },
   sw: {
@@ -328,8 +353,10 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       inPerson: "Ana kwa ana",
       codeLabel: "Namba ya makabidhiano ya mnunuzi",
       codeNote: "Mnunuzi anaionyesha akishakuwa na bidhaa mkononi.",
+      codeNoteWork: "Mnunuzi anaionyesha kazi ikishakamilika.",
       photosLabel: "Picha",
       photosRequired: "Bidhaa za zaidi ya 50 USDC zinawasilishwa na picha ya bidhaa.",
+      photosRequiredWork: "Kazi ya ana kwa ana ya zaidi ya USDC 50 hukabidhiwa na picha yake.",
       photosOptional: "Si lazima. Hadi 4.",
       addPhotos: "Ongeza picha",
       removeTemplate: "Ondoa picha {n}",
@@ -341,6 +368,9 @@ export const deliveryCardCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Delivery
       show: "Onyesha namba yangu ya makabidhiano",
       showAgain: "Onyesha namba mpya",
       hint: "Ionyeshe tu ukiwa na bidhaa mkononi. Namba mpya inachukua nafasi ya hii.",
+      titleWork: "Kazi imekamilika?",
+      bodyWork: "Kazi ikishakamilika na umeridhika nayo, mwonyeshe muuzaji namba hii. Inatumika mara moja na inahesabiwa kama kazi imekabidhiwa.",
+      hintWork: "Ionyeshe tu kazi ikishakamilika. Namba mpya inachukua nafasi ya hii.",
     },
   },
 };

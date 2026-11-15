@@ -580,6 +580,9 @@ export interface DirectDeal {
   dealKind?: import('../chain/agreementTerms.js').DealKind;
   /// Goods only: how they reach the buyer, chosen on the deal (view 32).
   goodsWay?: 'shipped' | 'in_person';
+  /// How it reaches the buyer: online, in person or shipped (view 85). Older
+  /// rows have none and read it with deliveryMethodOf.
+  deliveryMethod?: import('../deals/deliveryProofRules.js').DeliveryMethod;
   /// Incoterms 2020 set. Only the subset relevant to SME cross-border deals
   /// per sme-research.md §2: FOB, CIF, DAP, EXW, FCA, DDP.
   incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';

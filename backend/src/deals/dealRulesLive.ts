@@ -19,7 +19,7 @@ export async function dealRuleRefusal(deal: DirectDeal): Promise<Extract<RuleVer
       verified: f.worldIdPassed || isVerified(level),
     }))
     : null;
-  const verdict = checkDealRules({ amountUsdc: Number(deal.dealAmountUsdc), kind: dealKindOf(deal), goodsWay: deal.goodsWay ?? null, seller });
+  const verdict = checkDealRules({ amountUsdc: Number(deal.dealAmountUsdc), kind: dealKindOf(deal), goodsWay: deal.goodsWay ?? (deal.deliveryMethod === 'shipped' || deal.deliveryMethod === 'in_person' ? deal.deliveryMethod : null), seller });
   if (verdict.verdict === 'ok') return null;
   const { on } = await dealRulesState();
   logger.info({ jobId: deal.jobId, rule: verdict.rule, enforced: on }, on ? 'deal rule refused funding' : 'deal rule would refuse funding (switch off)');

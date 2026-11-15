@@ -27,6 +27,7 @@ import { CreationReview } from './CreationReview';
 import { AttachField } from '@/features/attachments/AttachField';
 import type { PickedAttachment } from '@/features/attachments/attachments';
 import { attachCopy } from '@/shared/i18n/messages/attachCopy';
+import { deliveryMethodCopy } from '@/shared/i18n/messages/deliveryMethod';
 import { FoldRow } from './FoldRow';
 import { Button } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
@@ -233,6 +234,8 @@ export function DirectDealForm() {
   // 'service' so the existing service-flow deal experience is unchanged.
   const [tradeType, setTradeType] = useState<'service' | 'goods' | 'mixed'>('service');
   const [goodsWay, setGoodsWay] = useState<'shipped' | 'in_person'>('shipped');
+  // A service is done online or at a place (view 85); in person ends in the buyer's code.
+  const [workWhere, setWorkWhere] = useState<'online' | 'in_person'>('online');
   // How do you want to pay? comes first unless a link or a listing already says (view 44, K1).
   const [kind, setKind] = useState<KindChoice | null>(() => preselectedKind({ kind: search.get('kind') }) ?? (search.get('listing') ? 'one' : null));
   function applyKind(next: KindChoice) {
@@ -502,6 +505,7 @@ export function DirectDealForm() {
         requireStakePct: requireStake ? requireStakePct : undefined,
         tradeType: tradeType !== 'service' ? tradeType : undefined,
         goodsWay: tradeType !== 'service' ? goodsWay : undefined,
+        deliveryMethod: tradeType === 'service' ? workWhere : goodsWay,
         incoterms: isBusiness && tradeType !== 'service' && incoterms ? incoterms : undefined,
         paymentTerms: isBusiness && tradeType !== 'service' ? paymentTerms : undefined,
         counterpartyCompany: isBusiness && tradeType !== 'service' ? counterpartyCompany : undefined,
@@ -672,6 +676,16 @@ export function DirectDealForm() {
             );
           })}
         </div>
+        {tradeType === 'service' ? (
+          <div data-work-where className="mt-3 flex flex-wrap gap-2" role="group" aria-label={deliveryMethodCopy[locale].question}>
+            {(['online', 'in_person'] as const).map((m) => (
+              <button key={m} type="button" aria-pressed={workWhere === m} disabled={submitting} onClick={() => setWorkWhere(m)}
+                className={cn(chip, workWhere === m ? chipOn : chipOff)}>
+                {deliveryMethodCopy[locale].label[m]}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {tradeType !== 'service' ? (
           <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={wf.goods}>
             {(['shipped', 'in_person'] as const).map((way) => (

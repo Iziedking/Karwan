@@ -32,6 +32,7 @@ import { Icon } from '@/shared/components/Icon';
 import { Button } from '@/shared/components/Button';
 import { DueChips } from '@/features/deals/components/DueChips';
 import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS, chip, chipOn, chipOff } from '@/features/deals/terms/TermsBuilder';
+import { deliveryMethodCopy, type DeliveryMethod } from '@/shared/i18n/messages/deliveryMethod';
 import { durationText } from '@/features/deals/durationText';
 import { composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
@@ -217,6 +218,7 @@ export function PostJobForm() {
   const initialSplit = search.get('milestones');
   const parsedInitialSplit = initialSplit ? parseMilestoneSplit(initialSplit) : null;
   const initialTradeType = search.get('tradeType');
+  const initialReach = search.get('reach');
   const initialIncoterms = search.get('incoterms');
   const initialPaymentTerms = search.get('paymentTerms');
   const [brief, setBrief] = useState(initialBrief);
@@ -271,6 +273,14 @@ export function PostJobForm() {
   const [tradeType, setTradeType] = useState<TradeType>(
     initialTradeType === 'goods' || initialTradeType === 'mixed' ? initialTradeType : 'service',
   );
+  // How it reaches the buyer (view 85): carried to the deal, so work done in
+  // person is never asked for a link.
+  const [reach, setReach] = useState<DeliveryMethod>(
+    initialReach === 'online' || initialReach === 'in_person' || initialReach === 'shipped'
+      ? initialReach
+      : initialTradeType === 'goods' ? 'shipped' : 'online',
+  );
+  const dm = deliveryMethodCopy[locale];
   const [incoterms, setIncoterms] = useState<IncotermsCode | null>(
     INCOTERM_CODES.some((code) => code === initialIncoterms)
       ? (initialIncoterms as IncotermsCode)
@@ -389,7 +399,8 @@ export function PostJobForm() {
         milestonePcts: dealTerms.parts.map((part) => part.pct),
         terms: agreementText,
         reviewWindowDays: dealTerms.reviewWindowDays,
-        tradeType: tradeType !== 'service' ? tradeType : undefined,
+        tradeType: tradeType !== 'service' ? tradeType : reach === 'shipped' ? 'goods' : undefined,
+        deliveryKind: reach === 'shipped' ? 'goods' : reach === 'in_person' ? 'in_person' : 'remote',
         incoterms: tradeType !== 'service' && incoterms ? incoterms : undefined,
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
         counterpartyCompany: tradeType !== 'service' ? sourcingProfile : undefined,
@@ -540,6 +551,18 @@ export function PostJobForm() {
         <div className="mt-4">
           <AttachField on="request" value={attachments} onChange={setAttachments} disabled={submitting} />
         </div>
+      </div>
+
+      <div data-request-reach className="space-y-2">
+        <p className="text-[14px] font-medium text-[var(--ink)]">{dm.question}</p>
+        <div className="flex flex-wrap gap-2" role="group" aria-label={dm.question}>
+          {(['online', 'in_person', 'shipped'] as const).map((m) => (
+            <button key={m} type="button" aria-pressed={reach === m} disabled={submitting} onClick={() => setReach(m)} className={cn(chip, reach === m ? chipOn : chipOff)}>
+              {dm.label[m]}
+            </button>
+          ))}
+        </div>
+        <p className="text-[14px] text-[var(--ink-secondary)]">{dm.hint[reach]}</p>
       </div>
 
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
@@ -828,6 +851,7 @@ export function PostJobForm() {
         requestAnimationFrame(() => formRef.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus());
       }} rows={[
         { label: t.sectionWork.requestLabel, value: brief },
+        { label: dm.question, value: dm.label[reach] },
         { label: t.sectionTerms.budgetLabel, value: money.text(budget) },
         { label: rf.neededByLabel, value: durationText(
           deadlineUnit === 'min' ? { days: 0, hours: 0, minutes: Number(deadlineValue) } : deadlineUnit === 'hr' ? { days: 0, hours: Number(deadlineValue) } : { days: Number(deadlineValue), hours: 0 },

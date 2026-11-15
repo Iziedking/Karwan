@@ -431,3 +431,27 @@ test('an old link to the previous deal page opens the deal page there is now', a
   await expect(page.locator('[data-steps-card]')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toBeVisible();
 });
+
+test('work done in person is delivered with the buyer’s code, never a link (B-08, view 85)', async ({ page }) => {
+  const f = en.deliveryCard.form;
+  await serveDeal(page, { ...awaitingDelivery, deliveryMethod: 'in_person' }, SELLER);
+  const delivered = capture(page, 'delivered');
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.locator('[data-delivery-method]')).toHaveText('In person');
+  await page.getByRole('button', { name: en.dealWorkspace.actions.deliver }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText(s.deliverTitle);
+  // No carrier choice and no link field: only the buyer's code.
+  await expect(dialog.getByRole('radio', { name: f.byCourier })).toHaveCount(0);
+  await expect(dialog.getByLabel(s.proofLabel)).toHaveCount(0);
+  await expect(dialog).toContainText(f.codeNoteWork);
+  await expect(dialog).toContainText(f.photosRequiredWork);
+  const submit = dialog.getByRole('button', { name: en.dealPage.sendDelivery });
+  await dialog.getByLabel(f.codeLabel).fill('12345');
+  await dialog.locator('input[type="file"]').setInputFiles({ name: 'fitting.png', mimeType: 'image/png', buffer: ONE_PIXEL_PNG });
+  await expect(submit).toBeDisabled();
+  await dialog.getByLabel(f.codeLabel).fill('123456');
+  await submit.click();
+  await expect.poll(() => delivered.body).toMatchObject({ caller: SELLER, handoverCode: '123456' });
+  expect((delivered.body as { deliveryProof?: string; shipment?: unknown }).shipment).toBeUndefined();
+});

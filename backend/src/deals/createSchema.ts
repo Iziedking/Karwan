@@ -77,6 +77,8 @@ export const createSchema = z
     tradeType: z.enum(['service', 'goods', 'mixed']).optional(),
     /// Goods only: shipped with tracking at delivery, or handed over in person (view 32).
     goodsWay: z.enum(['shipped', 'in_person']).optional(),
+    /// How it reaches the buyer (view 85). Absent reads from the trade type.
+    deliveryMethod: z.enum(['online', 'in_person', 'shipped']).optional(),
     incoterms: z.enum(['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']).optional(),
     paymentTerms: z.enum(['immediate', 'net30', 'net60', 'net90']).optional(),
     counterpartyCompany: z

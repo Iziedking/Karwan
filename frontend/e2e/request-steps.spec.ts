@@ -3,6 +3,9 @@ import { en } from '../shared/i18n/messages/en';
 import { TERMS_COPY } from '../features/deals/terms/termsCopy';
 import { API, ME, funded, serveMoney } from './moneyFixtures';
 import { attachCopy } from '../shared/i18n/messages/attachCopy';
+import { deliveryMethodCopy } from '../shared/i18n/messages/deliveryMethod';
+
+const dm = deliveryMethodCopy.en;
 
 const rs = en.dealCreation.requestSteps;
 const DAY_S = 86_400;
@@ -336,4 +339,31 @@ test('the desk starts a request; your requests open in Market, Yours (view 44, B
   const yours = page.getByRole('link', { name: en.buyerHub.managedDeals.headline });
   await expect(yours).toHaveAttribute('href', '/market?view=yours&list=requests');
   await expect(page.getByText(en.buyerHub.managedDeals.statesEmpty)).toHaveCount(0);
+});
+
+test('the request asks how it reaches the buyer, and posts it with the request (B-08, view 85)', async ({ page }) => {
+  await signedInBuyer(page);
+  let posted: Record<string, unknown> | null = null;
+  await page.route(`${API}/api/jobs`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posted = route.request().postDataJSON();
+    return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
+  });
+  await page.route(`${API}/api/deals/draft`, route => route.fulfill({ status: 503, json: { error: 'down' } }));
+  await page.goto('/buyer?mode=managed');
+  await page.locator('textarea[data-guide="buyer-brief"]').fill('Sew two agbada and two shirts to my measurements.');
+  const reach = page.locator('[data-request-reach]');
+  await expect(reach).toContainText(dm.question);
+  await expect(reach.getByRole('button', { name: dm.label.online })).toHaveAttribute('aria-pressed', 'true');
+  await reach.getByRole('button', { name: dm.label.in_person }).click();
+  await expect(reach).toContainText(dm.hint.in_person);
+  await page.locator('input[data-guide="buyer-budget"]').fill('222');
+  await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
+  const post = page.locator('button[data-guide="buyer-submit"]');
+  await post.click();
+  await expect(page.getByText(dm.label.in_person, { exact: true })).toBeVisible();
+  await post.click();
+  await expect.poll(() => posted).not.toBeNull();
+  expect(posted).toMatchObject({ deliveryKind: 'in_person' });
+  expect((posted as unknown as { tradeType?: string }).tradeType).toBeUndefined();
 });

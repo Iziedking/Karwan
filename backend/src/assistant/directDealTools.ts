@@ -115,6 +115,7 @@ export function directDealTools(address: string, actions: AssistantAction[], con
         acceptWithinHours: z.number().min(0.25).max(720).optional().describe('Hours the seller has to accept. Omit for the default 24.'),
         tradeType: z.enum(['service', 'goods', 'mixed']).optional().describe('goods for any item, for anyone (a phone, a dress); mixed only for business orders with goods and work.'),
         goodsWay: z.enum(['shipped', 'in_person']).optional().describe('Goods only: shipped with a tracking number at delivery, or handed over in person with the buyer\'s handover code. Ask which if they did not say.'),
+        deliveryMethod: z.enum(['online', 'in_person', 'shipped']).optional().describe('How it reaches the buyer. For work: online (sent as a link or file) or in_person (done at a place, like tailoring, cleaning or repairs, finished with the buyer\'s handover code). Ask for work if it is not clear.'),
         incoterms: z.enum(['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']).optional().describe('Goods only.'),
         paymentTerms: z.enum(['immediate', 'net30', 'net60', 'net90']).optional().describe('Goods only.'),
         company: z.object({ name: z.string().max(120).optional(), sector: z.string().max(40).optional(), region: z.string().max(80).optional() }).optional().describe("Goods only: the seller's company."),

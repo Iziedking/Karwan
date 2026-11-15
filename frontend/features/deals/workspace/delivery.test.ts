@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deliveryNeedsPhoto, deliveryNeedsShipment, deliveryReady } from './delivery';
+import { deliveryMethodOf, deliveryNeedsPhoto, deliveryNeedsShipment, deliveryReady } from './delivery';
 
 /// What the deliver sheet asks for and when it lets the seller submit. Goods
 /// and mixed orders state the carrier and tracking reference the buyer can
@@ -49,4 +49,20 @@ test('goods over 50 USDC wait for a photo of the item', () => {
   assert.equal(deliveryNeedsPhoto({ tradeType: 'service', dealAmountUsdc: '500' }), false);
   assert.equal(deliveryReady({ ...ready, photoRequired: true, photos: 0 }), false);
   assert.equal(deliveryReady({ ...ready, photoRequired: true, photos: 1 }), true);
+});
+
+test('work done in person ends in the buyer’s code, never a link or a carrier (B-08, view 85)', () => {
+  const base = { tradeType: 'service' as const, method: 'in_person' as const, proof: 'https://drive.example/x', shipment: empty, carrier: undefined };
+  assert.equal(deliveryReady(base), false);
+  assert.equal(deliveryReady({ ...base, handoverCode: '12345' }), false);
+  assert.equal(deliveryReady({ ...base, handoverCode: '123456' }), true);
+  assert.equal(deliveryNeedsPhoto({ deliveryMethod: 'in_person', dealAmountUsdc: '222' }), true);
+  assert.equal(deliveryNeedsPhoto({ deliveryMethod: 'online', tradeType: 'goods', dealAmountUsdc: '222' }), false);
+});
+
+test('a deal with no method reads it from its trade type (view 85)', () => {
+  assert.equal(deliveryMethodOf({}), 'online');
+  assert.equal(deliveryMethodOf({ tradeType: 'goods' }), 'shipped');
+  assert.equal(deliveryMethodOf({ tradeType: 'goods', goodsWay: 'in_person' }), 'in_person');
+  assert.equal(deliveryMethodOf({ tradeType: 'service', deliveryMethod: 'in_person' }), 'in_person');
 });

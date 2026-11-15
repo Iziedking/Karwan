@@ -31,7 +31,7 @@ import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
 import { workMismatchOpen } from '../deals/workMismatch.js';
 import { deliveryForAssistant } from '../deals/deliveryHistoryView.js';
 import { recheckDelivery } from '../deals/deliveryRecheck.js';
-import { deliveryNeeds } from '../deals/deliveryProofRules.js';
+import { deliveryMethodOf, deliveryNeeds } from '../deals/deliveryProofRules.js';
 import { deliveryPhotos } from '../deals/deliveryPhotos.js';
 import { CARRIERS } from '../deals/carriers.js';
 import { extractUrls } from '../security/extractUrls.js';
@@ -292,6 +292,8 @@ export function summarizeDeal(deal: DirectDeal, viewer: string): Record<string, 
     counterparty: isBuyer ? deal.sellerPaytag ?? deal.seller : deal.buyer,
     amountUsdc: deal.dealAmountUsdc,
     phase: dealPhase(deal),
+    // How it reaches the buyer: online, in_person or shipped (view 85).
+    deliveryMethod: deliveryMethodOf(deal),
     deadline: deal.deadlineUnix ? new Date(deal.deadlineUnix * 1000).toISOString() : null,
     releasePaused: deal.releaseBlockedReason ?? null,
     // Dates make relative-time questions answerable ("the deal from last week").
@@ -1676,6 +1678,9 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           const needs = deliveryNeeds(deal);
           const photos = deliveryPhotos.heldCount(address, Date.now());
           const found = carrier ? CARRIERS.find((c) => c.slug === carrier.toLowerCase() || c.name.toLowerCase() === carrier.toLowerCase()) ?? CARRIERS.find((c) => c.slug === 'other')! : undefined;
+          if (needs.handover && !handoverCode) {
+            return { error: 'This deal is done in person. Ask for the six-digit code the buyer shows once the work is done or they hold the item; no link or tracking number is needed.' };
+          }
           if (needs.goods && !handoverCode && !(found && trackingNumber)) {
             return { error: 'This deal includes goods. Ask for the carrier and tracking number, or, if they hand it over in person, the six-digit code the buyer shows once they hold the item.' };
           }

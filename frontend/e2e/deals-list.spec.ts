@@ -189,3 +189,26 @@ test('on desktop a row that needs you carries its move; a move with no short nam
   }
   await expect(page.locator('[data-row-move]')).toHaveCount(1);
 });
+
+test('each deal names how it arrives, and Deals filters by it (B-08, view 85)', async ({ page }) => {
+  const inPerson = deal(WAITING, { sellerApprovedAt: 2, acceptedAt: 3, deliveryMethod: 'in_person', terms: 'Tailoring at home' });
+  const online = deal(FUND, { sellerApprovedAt: 2 });
+  await serve(page, [inPerson, online]);
+  await page.goto('/deals');
+  await expect(page.locator(`a[href="/deals/${inPerson.jobId}"]`)).toContainText('In person');
+  await expect(page.locator(`a[href="/deals/${online.jobId}"]`)).toContainText('Online');
+  const filter = page.locator('[data-method-filter]');
+  await expect(filter.getByRole('button')).toHaveText(['All', 'Online', 'In person']);
+  await filter.getByRole('button', { name: 'In person' }).click();
+  await expect(filter.getByRole('button', { name: 'In person' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator(`a[href="/deals/${inPerson.jobId}"]`)).toBeVisible();
+  await expect(page.locator(`a[href="/deals/${online.jobId}"]`)).toHaveCount(0);
+  await filter.getByRole('button', { name: 'All' }).click();
+  await expect(page.locator(`a[href="/deals/${online.jobId}"]`)).toBeVisible();
+});
+
+test('with every deal arriving one way, there is no filter', async ({ page }) => {
+  await serve(page, world);
+  await page.goto('/deals');
+  await expect(page.locator('[data-method-filter]')).toHaveCount(0);
+});

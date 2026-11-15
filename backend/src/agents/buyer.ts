@@ -1,6 +1,7 @@
 import { locationOf } from '../location/live.js';
 import { loadPublicRating } from '../ratings/publicRating.js';
 import { kindOf } from '../location/rules.js';
+import { methodFromKind } from '../deals/deliveryProofRules.js';
 import { blocksOffer, SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerBindingRefusal, sellerLinkFor } from '../deals/sellerBinding.js';
 import { carriedGate } from './proposalCarry.js';
 import { offerToChoose, priceAsSeen, withAgreedPrice, type OfferChoice } from './chooseOffer.js';
@@ -4800,6 +4801,10 @@ ${brief.terms}`
           : brief.briefText.trim()
         : proposal.termsHash,
       reviewWindowDays: brief?.reviewWindowDays,
+      // How it reaches the buyer comes from the request, so work done in person
+      // is never asked for a link (B-08, view 85).
+      ...(brief?.tradeType ? { tradeType: brief.tradeType } : {}),
+      ...(brief ? { deliveryMethod: methodFromKind(kindOf(brief)) } : {}),
       acceptedAt: now,
       fundTxHash,
       origin: 'agent',

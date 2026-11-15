@@ -140,7 +140,7 @@ import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { ensureUserAgentWallets } from '../circle/userAgents.js';
 import { refundMovementKey, takeBackUnaccepted, TakeBackRefused } from '../deals/takeBackUnaccepted.js';
 import { deliveryHistoryFor, entryHeld } from '../deals/deliveryHistoryView.js';
-import { MAX_DELIVERY_PHOTOS, PHOTO_REQUIRED_ABOVE_USDC, deliveryFingerprint, deliveryNeeds, photoFingerprint } from '../deals/deliveryProofRules.js';
+import { MAX_DELIVERY_PHOTOS, PHOTO_REQUIRED_ABOVE_USDC, deliveryFingerprint, deliveryMethodOf, deliveryNeeds, photoFingerprint } from '../deals/deliveryProofRules.js';
 import { checkHandoverCode, issueHandoverCode } from '../deals/handoverCode.js';
 import { deliveryPhotoId, deliveryPhotos } from '../deals/deliveryPhotos.js';
 import { decodePhotoDataUrl, type Photo } from '../listings/photos.js';
@@ -738,6 +738,7 @@ dealsRoutes.post('/direct', async (c) => {
     tradeType: body.tradeType,
     dealKind: kindOf({ tradeType: body.tradeType, firstReleasePct: body.firstReleasePct, milestonePcts: body.milestonePcts }),
     ...(body.goodsWay ? { goodsWay: body.goodsWay } : {}),
+    deliveryMethod: deliveryMethodOf({ deliveryMethod: body.deliveryMethod, tradeType: body.tradeType, goodsWay: body.goodsWay }),
     incoterms: body.incoterms,
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
@@ -3130,8 +3131,8 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     if (!checked.ok) {
       if (checked.record) await patchDeal(jobId, { handover: checked.record });
       const said = {
-        'no-code': { error: 'The buyer has not shown a handover code yet. Ask them to open the deal and show it once they hold the item.', status: 409 as const },
-        used: { error: 'This deal was already handed over.', status: 409 as const },
+        'no-code': { error: 'The buyer has not shown a handover code yet. Ask them to open the deal and show it once the work is done or they hold the item.', status: 409 as const },
+        used: { error: 'This was already handed over. For the next stage, ask the buyer to show a new code.', status: 409 as const },
         locked: { error: 'Too many wrong codes. Try again in 15 minutes, or ask the buyer to show a new code.', status: 429 as const },
         wrong: { error: 'That code does not match. Check it with the buyer and enter it again.', status: 400 as const },
       }[checked.reason];
@@ -3146,6 +3147,16 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       trackingUrl: null,
       dispatchedAt: handedOverAt,
     };
+  }
+  // Work done or goods handed over in person end only in the buyer's code (view 85).
+  if (needs.handover && !handedOverAt) {
+    return c.json(
+      {
+        error: 'Enter the 6-digit code the buyer shows once the work is done or they hold the item.',
+        code: 'handover-required',
+      },
+      400,
+    );
   }
   if (includesGoods && !handedOverAt) {
     if (!body.shipment) {
@@ -3566,8 +3577,9 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   return c.json({ accepted: true, jobId, verificationStatus }, 200);
 });
 
-/// The buyer's handover code for goods handed over in person (view 33). Shown
-/// only when they hold the item; asking again issues a new code and the old one
+/// The buyer's handover code for goods handed over or work done in person
+/// (views 33 and 85). Shown only when they hold the item or the work is done,
+/// one per stage that pays out; asking again issues a new code and the old one
 /// stops working. Only its hash is kept.
 dealsRoutes.post('/direct/:jobId/handover-code', async (c) => {
   const jobId = c.req.param('jobId');
@@ -3585,10 +3597,16 @@ dealsRoutes.post('/direct/:jobId/handover-code', async (c) => {
   if (body.caller.toLowerCase() !== deal.buyer.toLowerCase()) {
     return c.json({ error: 'only the buyer has a handover code' }, 403);
   }
-  if (!deliveryNeeds(deal).goods) return c.json({ error: 'a handover code is for goods', code: 'not-goods' }, 409);
+  if (!deliveryNeeds(deal).goods) return c.json({ error: 'a handover code is for a deal handed over in person', code: 'not-goods' }, 409);
   if (!deal.acceptedAt) return c.json({ error: 'the deal has not started yet', code: 'not-started' }, 409);
   if (deal.settledAt || deal.cancelledAt || deal.disputed) return c.json({ error: 'this deal is no longer open' }, 409);
-  if (deal.handover?.usedAt || deal.shipment?.arrivedAt) return c.json({ error: 'the item was already handed over', code: 'handover-used' }, 409);
+  if (deal.handover?.usedAt || deal.shipment?.arrivedAt) {
+    // In person in stages: each stage that pays out is handed over with its own code (view 85).
+    const nextStage = deal.delivered && dealEscrowOps.isV3(deal)
+      ? awaitingNextDelivery(deal, (await dealEscrowOps.read(deal)).milestonesReleased)
+      : false;
+    if (!nextStage) return c.json({ error: 'the item was already handed over', code: 'handover-used' }, 409);
+  }
   const { code, record } = issueHandoverCode(jobId, Date.now());
   await patchDeal(jobId, { handover: record });
   return c.json({ code, issuedAt: record.issuedAt }, 200);

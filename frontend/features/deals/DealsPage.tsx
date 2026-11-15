@@ -7,17 +7,27 @@ import { Button, buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
-import { useDealRows } from './useDealRows';
+import { useDealRows, type DealRow } from './useDealRows';
+import { chip, chipOff, chipOn } from '@/features/deals/terms/TermsBuilder';
+import { deliveryMethodCopy, type DeliveryMethod } from '@/shared/i18n/messages/deliveryMethod';
 
 const PAGE = 10;
 
 export function DealsPage() {
-  const { t: messages } = useLocale();
+  const { t: messages, locale } = useLocale();
   const t = messages.dealsPage;
   const p = messages.pending;
-  const { groups, failed, loaded, refresh } = useDealRows();
+  const dm = deliveryMethodCopy[locale];
+  const { groups: all, failed, loaded, refresh } = useDealRows();
   const [finishedShown, setFinishedShown] = useState(PAGE);
-  const total = groups.needsYou.length + groups.active.length + groups.finished.length;
+  // View 85: one list, filtered by how each deal reaches the buyer. The filter
+  // shows only when the deals arrive in more than one way.
+  const [method, setMethod] = useState<DeliveryMethod | 'all'>('all');
+  const kinds = (['online', 'in_person', 'shipped'] as const).filter((m) =>
+    [...all.needsYou, ...all.active, ...all.finished].some((r) => r.deliveryMethod === m));
+  const pick = (rows: DealRow[]) => (method === 'all' ? rows : rows.filter((r) => r.deliveryMethod === method));
+  const groups = { needsYou: pick(all.needsYou), active: pick(all.active), finished: pick(all.finished) };
+  const total = all.needsYou.length + all.active.length + all.finished.length;
 
   return (
     <div>
@@ -41,6 +51,16 @@ export function DealsPage() {
             </a>
           ))}
         </nav>
+      ) : null}
+
+      {kinds.length > 1 ? (
+        <div data-method-filter role="group" aria-label={dm.filterLabel} className="mb-6 flex flex-wrap gap-2">
+          {(['all', ...kinds] as const).map((m) => (
+            <button key={m} type="button" aria-pressed={method === m} onClick={() => setMethod(m)} className={cn(chip, method === m ? chipOn : chipOff)}>
+              {m === 'all' ? dm.all : dm.label[m]}
+            </button>
+          ))}
+        </div>
       ) : null}
 
       {failed && total === 0 ? (

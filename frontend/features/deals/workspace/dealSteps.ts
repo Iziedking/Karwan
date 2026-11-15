@@ -1,4 +1,5 @@
 import type { DirectDeal } from '@/core/api';
+import { deliveryMethodOf } from './delivery';
 
 /// The steps of a deal for its kind (view 44, spec section 6): what the track
 /// on the deal page shows, and where the money is on a deal paid in stages.
@@ -26,7 +27,9 @@ function partsOf(deal: DirectDeal): number[] {
 }
 
 export function dealKindOf(deal: DirectDeal): DealKind {
-  if (deal.tradeType === 'goods' || deal.tradeType === 'mixed') return deal.goodsWay === 'in_person' ? 'in_person' : 'shipped';
+  if (deal.tradeType === 'goods' || deal.tradeType === 'mixed') return deal.goodsWay === 'in_person' || deal.deliveryMethod === 'in_person' ? 'in_person' : 'shipped';
+  // Work done in person in one payment is handed over, not delivered as a link (view 85).
+  if (deliveryMethodOf(deal) === 'in_person' && partsOf(deal).length <= 1) return 'in_person';
   return partsOf(deal).length > 1 ? 'stages' : 'one';
 }
 

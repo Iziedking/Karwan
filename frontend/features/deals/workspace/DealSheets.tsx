@@ -7,7 +7,7 @@ import { fill } from './presentation';
 import { moneySplit } from './dealSteps';
 import { proposalOutcome, proposeKinds, type Problem } from './problems';
 import type { WrongChoice } from './wrongChoices';
-import { MAX_DELIVERY_PHOTOS, deliveryNeedsPhoto, deliveryNeedsShipment, deliveryReady, type Shipment } from './delivery';
+import { MAX_DELIVERY_PHOTOS, deliveryMethodOf, deliveryNeedsPhoto, deliveryReady, type Shipment } from './delivery';
 import { resizePhoto } from '@/features/listings/photos';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
@@ -53,9 +53,12 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
   const placeholder = useTranslations().pageBits.dealDetail.containerRefPlaceholder;
   const f = useTranslations().deliveryCard.form;
   const sendLabel = useTranslations().dealPage.sendDelivery;
-  const ships = deliveryNeedsShipment(deal.tradeType);
+  // How it reaches the buyer (view 85): work done in person ends in the buyer's code.
+  const method = deliveryMethodOf(deal);
+  const ships = method !== 'online';
+  const goodsDeal = deal.tradeType === 'goods' || deal.tradeType === 'mixed';
   const photoRequired = deliveryNeedsPhoto(deal);
-  const [mode, setMode] = useState<'courier' | 'person'>('courier');
+  const [mode, setMode] = useState<'courier' | 'person'>(method === 'in_person' ? 'person' : 'courier');
   const [code, setCode] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoError, setPhotoError] = useState(false);
@@ -110,8 +113,8 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
     }`;
 
   return (
-    <Sheet open={open} title={ships ? s.shipTitle : s.deliverTitle} onClose={onClose} busy={move.busy}>
-      {ships ? (
+    <Sheet open={open} title={method === 'shipped' ? s.shipTitle : s.deliverTitle} onClose={onClose} busy={move.busy}>
+      {method === 'shipped' ? (
         <fieldset className="mb-4">
           <legend className={fieldLabel}>{f.how}</legend>
           <div role="radiogroup" className="mt-2 flex flex-wrap gap-2">
@@ -137,7 +140,7 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
               maxLength={6}
               className="form-input mt-1.5 block font-mono text-[20px] tracking-[0.3em]"
             />
-            <span className="mt-1.5 block text-[14px] font-normal text-[var(--lp-text-sub)]">{f.codeNote}</span>
+            <span className="mt-1.5 block text-[14px] font-normal text-[var(--lp-text-sub)]">{goodsDeal ? f.codeNote : f.codeNoteWork}</span>
           </label>
           <label className={`${fieldLabel} mt-4 block`}>
             {s.shipNoteLabel}
@@ -208,7 +211,7 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
       )}
       <div className="mt-4">
         <p className={fieldLabel}>{f.photosLabel}</p>
-        <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{photoRequired ? f.photosRequired : f.photosOptional}</p>
+        <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{photoRequired ? (goodsDeal ? f.photosRequired : f.photosRequiredWork) : f.photosOptional}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {photos.map((src, index) => (
             <button
@@ -235,7 +238,7 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
       <div className="mt-6">
         <button
           type="button"
-          disabled={move.busy || !deliveryReady({ tradeType: deal.tradeType, proof, shipment, carrier, handoverCode: inPerson ? code : null, photos: photos.length, photoRequired })}
+          disabled={move.busy || !deliveryReady({ tradeType: deal.tradeType, method, proof, shipment, carrier, handoverCode: inPerson ? code : null, photos: photos.length, photoRequired })}
           onClick={submit}
           className={primaryButton}
         >

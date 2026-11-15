@@ -37,7 +37,8 @@ import { AttachmentList } from '@/features/attachments/AttachmentList';
 import { BuyerPodPanel } from '@/features/trade/components/BuyerPodPanel';
 import { HandoverCode } from './HandoverCode';
 import { RecordNudge } from './RecordNudge';
-import { deliveryNeedsShipment } from './delivery';
+import { deliveryMethodOf } from './delivery';
+import { deliveryMethodCopy } from '@/shared/i18n/messages/deliveryMethod';
 import { linksIn } from './deliveryCardModel';
 import { DealMoment } from './DealMoment';
 import { dealKindOf, moneySplit } from './dealSteps';
@@ -281,7 +282,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const isSeller = !!address && deal.seller.toLowerCase() === address.toLowerCase();
   const layers = dealLayers({
     delivered: !!deal.delivered || !!deal.deliveredAt,
-    needsHandover: viewerIsBuyer && !!address && deliveryNeedsShipment(deal.tradeType) && view.stage === 'awaiting-delivery' && !deal.shipment?.arrivedAt,
+    needsHandover: viewerIsBuyer && !!address && deliveryMethodOf(deal) !== 'online' && view.stage === 'awaiting-delivery' && !deal.shipment?.arrivedAt,
     canGetPaid: financingVisible(deal, isSeller) && deal.escrowVersion === 'suite',
     funded: !!deal.acceptedAt || !!deal.fundTxHash,
     problems: problems.length,
@@ -321,7 +322,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           </div>
         );
       case 'handover':
-        return address ? <HandoverCode jobId={deal.jobId} caller={address} /> : null;
+        return address ? <HandoverCode jobId={deal.jobId} caller={address} work={deal.tradeType !== 'goods' && deal.tradeType !== 'mixed'} /> : null;
       case 'getPaid':
         return <GetPaidNow deal={deal} viewerIsSeller={isSeller} onChanged={onChanged} />;
       case 'agreement':
@@ -641,6 +642,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             <h1 id="deal-amount" className="mt-1">
               <Price usdc={Number(deal.dealAmountUsdc)} agreed={figure} size="hero" figureClassName="text-[44px] font-semibold leading-none tracking-[-0.03em] text-[var(--ink)] lg:text-[52px]" />
             </h1>
+            {/* View 85: how it reaches the buyer, under the price. */}
+            <p data-delivery-method className="mt-2 text-[13px] font-medium text-[var(--ink-secondary)]">{deliveryMethodCopy[locale].label[deliveryMethodOf(deal)]}</p>
             {paidShare !== null ? (
               <div aria-hidden data-paid-bar className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--ash)]">
                 <div data-route-fill className="h-full rounded-full bg-[var(--action)]" style={{ width: `${paidShare}%` }} />

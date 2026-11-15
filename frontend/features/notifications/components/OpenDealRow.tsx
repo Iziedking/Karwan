@@ -32,6 +32,7 @@ export function OpenDealRow({
   due,
   move,
   state,
+  method,
   variant = 'card',
 }: {
   href: string;
@@ -54,11 +55,13 @@ export function OpenDealRow({
   move?: string;
   /// Where the deal stands, as the pill on the card (owner notes, 3 Nov 2026).
   state?: DealState;
+  /// How it reaches the buyer, in words (view 85).
+  method?: string;
   variant?: 'card' | 'feature' | 'row' | 'ended';
 }) {
   const who = counterparty ?? role;
   const heading = title || who;
-  const statusLine = [status, next, due].filter(Boolean).join(' · ');
+  const statusLine = [status, method, next, due].filter(Boolean).join(' · ');
   const money = useMoneyText({ compact: true });
   const label = [heading, status, reference, money.text(amount)].filter(Boolean).join(', ');
 
@@ -74,7 +77,7 @@ export function OpenDealRow({
         >
           <span className="min-w-0 flex-1">
             <span dir="auto" className="block truncate text-[15px] font-medium text-[var(--ink)]">{heading}</span>
-            <span className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">{[title ? who : role, due].filter(Boolean).join(' · ')}</span>
+            <span className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">{[title ? who : role, method, due].filter(Boolean).join(' · ')}</span>
           </span>
           <span className="flex shrink-0 flex-col items-end gap-1.5">
             <Price usdc={Number(amount)} size="inline" className={cn('text-[15px] font-medium', struck ? 'text-[var(--ink-muted)] line-through' : 'text-[var(--ink)]')} />
