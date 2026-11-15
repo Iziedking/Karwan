@@ -16,6 +16,7 @@ import { TagPrompt } from '@/features/signup/components/TagPrompt';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { ScrollReset } from '@/shared/components/ScrollReset';
 import { SmoothScroll } from '@/shared/components/SmoothScroll';
+import { MotionLevel } from '@/shared/motion/MotionLevel';
 import { ThemeRouteSync } from '@/shared/components/ThemeRouteSync';
 import { THEME_PREPAINT_SCRIPT } from '@/shared/hooks/themePrepaintScript';
 import { EARLY_TRAVERSAL_SCRIPT } from '@/shared/utils/earlyTraversalScript';
@@ -198,6 +199,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AppProviders initialLocale={DEFAULT_LOCALE}>
           <ScrollbarWidthProbe />
           <ScrollReset />
+          <MotionLevel />
           <SmoothScroll />
           <RouteTrail />
           <ThemeRouteSync />

@@ -61,6 +61,8 @@
 .buyerPhone { position: relative; perspective: 1700px; transform: translateX(calc(var(--seller) * -90px)); transition: transform 0.1s linear; }
 .tilt { transform-style: preserve-3d; transform: rotateX(7deg) rotateZ(calc(sin(calc(var(--turn) * 360deg)) * -3deg)); }
 .turn { transform-style: preserve-3d; transform: rotateY(calc(var(--turn) * 360deg)); }
+/* A lite or still device keeps the phone facing front (view 86). */
+:global(html[data-motion='lite']) .heroSticky, :global(html[data-motion='still']) .heroSticky { --turn: 0; }
 .sellerPhone { position: absolute; top: 50%; inset-inline-start: calc(50% + 40px); perspective: 1700px; opacity: var(--seller); transform: translate(calc((1 - var(--seller)) * 60px), -46%); pointer-events: none; }
 .sellerPhone .device { --w: 292px; --h: 602px; --r: 44px; --depth: 26px; transform: rotateX(7deg) rotateY(calc(-18deg - (1 - var(--seller)) * 30deg)); }
 

@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { smoothScrollAllowed } from '@/shared/utils/smoothScroll';
+import { useMotionLevel } from '@/shared/motion/MotionLevel';
 
 /// A mouse wheel or trackpad glides the page to a stop instead of jumping
 /// (owner, 24 Oct 2026). Desktop pointers only: phones keep their own native
@@ -10,8 +11,10 @@ import { smoothScrollAllowed } from '@/shared/utils/smoothScroll';
 /// thread, a list, a sheet) scrolls natively inside it.
 export function SmoothScroll() {
   const pathname = usePathname();
+  // A lite or still device scrolls natively (view 86).
+  const level = useMotionLevel();
   useEffect(() => {
-    if (!smoothScrollAllowed(pathname, window)) return;
+    if (level !== 'full' || !smoothScrollAllowed(pathname, window)) return;
     let stop = () => {};
     let cancelled = false;
     void import('lenis').then(({ default: Lenis }) => {
@@ -35,6 +38,6 @@ export function SmoothScroll() {
       cancelled = true;
       stop();
     };
-  }, [pathname]);
+  }, [pathname, level]);
   return null;
 }

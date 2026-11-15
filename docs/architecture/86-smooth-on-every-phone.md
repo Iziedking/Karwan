@@ -30,7 +30,6 @@ Keep the full effect wherever the device can carry it, and step down quietly whe
    - Only the clip most in view plays; the others hold their still frame.
    - Each clip is loaded at the size its tile is drawn at, so a laptop gets the smaller file when the tile is small.
    - A clip loads only as its section comes near.
-   - Sections far off screen are not drawn until they come near.
 2. **Three levels for the device.** On the first visit the page reads what the browser tells it: memory, processor cores, connection speed, Save-Data and reduced motion. From that it picks a level.
 
    | Level | Who gets it | What they see |
@@ -71,12 +70,26 @@ flowchart LR
 ## Decisions for the owner
 
 1. **Lighter for everyone first, then three device levels.** Agreed 15 Nov 2026.
-2. **Lite drops the turning phone and the gliding wheel, but keeps one clip.** Recommended.
-3. **A level stepped down for frame time is remembered on that device.** Recommended, so a slow phone does not judder on every visit.
+2. **Lite drops the turning phone and the gliding wheel, but keeps one clip.** Approved 15 Nov 2026.
+3. **A level stepped down for frame time is remembered on that device.** Approved 15 Nov 2026, so a slow phone does not judder on every visit.
 4. **The iPhone fit is fixed from the owner's screenshots**, page by page, in the same batch.
 
 ## Status
 
 | Part | State |
 |---|---|
-| View | Draft, 15 Nov 2026 |
+| View | Approved 15 Nov 2026 |
+| Lighter clips | Built 15 Nov 2026, not deployed |
+| Device levels | Built 15 Nov 2026, not deployed |
+| iPhone fit | Waiting for the owner's screenshots |
+| Measured after deploy | Not yet |
+
+## As built
+
+- **One clip plays.** In the trade section only the tile most in view plays, once at least a third of it shows; the others hold their frame.
+- **Clip size.** The large clip loads only when a tile is drawn wider than 1280 pixels on the screen; a laptop tile is about 520 to 700 pixels, so it now gets the 720p clip. A clip loads only once its tile is a screen away.
+- **Levels.** The page reads the device after it has loaded and sets the level for the whole app. The first stretch of scrolling is counted: 60 frames while scrolling, and if a quarter of them run under 30 a second, the device steps down a level and keeps it for 30 days.
+  - **Lite:** no gliding wheel and the hero phone faces front.
+  - **Still:** behaves exactly like reduced motion.
+- **Dropped:** not drawing far sections until they come near. Sections then held a guessed height, so scrolling to the footer or to a chip landed in the wrong place. The clip changes carry the gain.
+

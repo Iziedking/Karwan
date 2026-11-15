@@ -78,7 +78,8 @@ test('clips play only on screen, and reduced motion plays none', async ({ page }
   await trades.scrollIntoViewIfNeeded();
   const first = trades.locator('video').first();
   await expect(first).toHaveAttribute('poster', /\/media\/landing\/trades\/tailor-poster\.webp/);
-  await expect(first.locator('source')).toHaveAttribute('src', /tailor-1080\.mp4$/);
+  // A tile is drawn at about 520 pixels here, so the 720p clip is enough (view 86).
+  await expect(first.locator('source')).toHaveAttribute('src', /tailor-720\.mp4$/);
   await page.locator('section[aria-labelledby="landing-closing"]').scrollIntoViewIfNeeded();
   await expect.poll(() => first.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
 

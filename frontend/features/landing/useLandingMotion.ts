@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { clipChoice, createFrameLoop, enterProgress, pinnedProgress, type ClipChoice } from './motion';
+import { useMotionLevel } from '@/shared/motion/MotionLevel';
+import { clipChoice, createFrameLoop, enterProgress, mostInView, pinnedProgress, type ClipChoice } from './motion';
 
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
@@ -32,10 +33,12 @@ function listen(on: boolean) {
   }
 }
 
-/// True when the person asked for less motion. False on the server and on the
-/// first paint, so the markup hydrates the same either way.
+/// True when the person asked for less motion, or the device is on the still
+/// level (view 86). False on the server and on the first paint, so the markup
+/// hydrates the same either way.
 export function useReducedMotionPreference(): boolean {
-  return useMediaQuery(REDUCED);
+  const reduced = useMediaQuery(REDUCED);
+  return useMotionLevel() === 'still' || reduced;
 }
 
 /// Writes the scene's progress (0 to 1) into its `--p` custom property every
@@ -108,10 +111,10 @@ interface NetworkInformationLike {
   effectiveType?: string;
 }
 
-/// Which clip this screen loads: the poster until the browser has been read,
-/// then the small or large clip, or the poster for reduced motion and slow or
-/// saving connections.
-export function useClipChoice(): ClipChoice {
+/// Which clip a tile loads: the poster until the browser has been read, then
+/// the small or large clip for the pixels the tile is drawn at, or the poster
+/// for reduced motion and slow or saving connections (view 86).
+export function useClipChoice(ref: RefObject<Element | null>, cap?: 'small'): ClipChoice {
   const reduced = useReducedMotionPreference();
   const [choice, setChoice] = useState<ClipChoice>('poster');
   useEffect(() => {
@@ -120,11 +123,35 @@ export function useClipChoice(): ClipChoice {
       reducedMotion: reduced,
       saveData: connection?.saveData === true,
       effectiveType: connection?.effectiveType,
-      viewportWidth: window.innerWidth,
+      pixels: (ref.current?.getBoundingClientRect().width ?? window.innerWidth) * (window.devicePixelRatio || 1),
+      cap,
     }));
     decide();
     window.addEventListener('resize', decide, { passive: true });
     return () => window.removeEventListener('resize', decide);
-  }, [reduced]);
+  }, [ref, reduced, cap]);
   return choice;
+}
+
+/// The one clip in a group that plays: the tile most in view (view 86). One
+/// observer for the group; `order` decides ties.
+export function useMostInView(refs: RefObject<Map<string, Element>>, order: readonly string[]): string | null {
+  const [playing, setPlaying] = useState<string | null>(null);
+  useEffect(() => {
+    const els = refs.current;
+    if (!els || typeof IntersectionObserver === 'undefined') return;
+    const ratios: Record<string, number> = {};
+    const keyOf = new Map<Element, string>();
+    for (const [key, el] of els) keyOf.set(el, key);
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const key = keyOf.get(entry.target);
+        if (key) ratios[key] = entry.isIntersecting ? entry.intersectionRatio : 0;
+      }
+      setPlaying(mostInView(ratios, order));
+    }, { threshold: [0, 0.35, 0.5, 0.6, 0.75, 1] });
+    for (const el of keyOf.keys()) observer.observe(el);
+    return () => observer.disconnect();
+  }, [refs, order]);
+  return playing;
 }

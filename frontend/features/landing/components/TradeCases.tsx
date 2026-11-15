@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { landingCopy } from '@/shared/i18n/messages/landing';
 import { figureParts, formatFigure } from '../figures';
 import { stagger } from '../motion';
 import { TRADE_CLIPS, clipFiles, type TradeClip } from '../tradeClips';
-import { useClipChoice, useInView, useReducedMotionPreference } from '../useLandingMotion';
+import { useClipChoice, useInView, useMostInView, useReducedMotionPreference } from '../useLandingMotion';
+import { useMotionLevel } from '@/shared/motion/MotionLevel';
 import s from '../landing.module.css';
 
 /// How many milestones each kind of trade has, and how many are released.
@@ -42,7 +43,9 @@ function Figure({ text, start }: { text: string; start: boolean }) {
   return <strong className={s.figure}><span className={s.srOnly}>{text}</span><span aria-hidden>{shown}</span></strong>;
 }
 
-function Tile({ clip, index }: { clip: TradeClip; index: number }) {
+const ORDER = TRADE_CLIPS.map((clip) => clip.key);
+
+function Tile({ clip, index, playing, register }: { clip: TradeClip; index: number; playing: boolean; register: (key: string, el: Element | null) => void }) {
   const { locale } = useLocale();
   const t = landingCopy[locale] ?? landingCopy.en;
   const item = t.trades.items[clip.key];
@@ -51,8 +54,9 @@ function Tile({ clip, index }: { clip: TradeClip; index: number }) {
   const video = useRef<HTMLVideoElement>(null);
   const arrived = useInView(ref, { once: true, rootMargin: '0px 0px -10% 0px' });
   const full = useInView(ref, { once: true, rootMargin: '0px 0px -35% 0px' });
-  const onScreen = useInView(ref);
-  const choice = useClipChoice();
+  // The clip is fetched only once its tile is a screen away (view 86).
+  const near = useInView(ref, { once: true, rootMargin: '100% 0px' });
+  const choice = useClipChoice(ref, useMotionLevel() === 'lite' ? 'small' : undefined);
   const files = clipFiles(clip.key);
   /// The poster stays under the clip, which fades in on its first frame, so
   /// the tile never shows a blank frame between the two.
@@ -61,14 +65,19 @@ function Tile({ clip, index }: { clip: TradeClip; index: number }) {
   useEffect(() => {
     const el = video.current;
     if (!el) return;
-    if (onScreen) void el.play().catch(() => {});
+    if (playing) void el.play().catch(() => {});
     else el.pause();
-  }, [onScreen, choice]);
+  }, [playing, choice, near]);
+
+  const setRef = useCallback((el: HTMLElement | null) => {
+    ref.current = el;
+    register(clip.key, el);
+  }, [register, clip.key]);
 
   return (
-    <article ref={ref} className={s.tile} data-wide={index % 4 === 0 || index % 4 === 3 ? '' : undefined} data-arrived={arrived ? '' : undefined} data-drawn={full ? '' : undefined} style={{ transitionDelay: `${stagger(index % 2)}ms` }}>
+    <article ref={setRef} className={s.tile} data-wide={index % 4 === 0 || index % 4 === 3 ? '' : undefined} data-arrived={arrived ? '' : undefined} data-drawn={full ? '' : undefined} style={{ transitionDelay: `${stagger(index % 2)}ms` }}>
       <img className={s.clip} src={files.poster} alt="" loading="lazy" decoding="async" />
-      {choice !== 'poster' && (
+      {near && choice !== 'poster' && (
         <video key={choice} ref={video} className={s.clip} muted loop playsInline preload="none" poster={files.poster} aria-hidden="true" data-ready={ready ? '' : undefined} onPlaying={() => setReady(true)}>
           <source src={choice === 'small' ? files.small : files.large} type="video/mp4" />
         </video>
@@ -103,6 +112,13 @@ function Tile({ clip, index }: { clip: TradeClip; index: number }) {
 export function TradeCases() {
   const { locale } = useLocale();
   const t = (landingCopy[locale] ?? landingCopy.en).trades;
+  // Only the tile most in view plays; the rest hold their frame (view 86).
+  const tiles = useRef(new Map<string, Element>());
+  const register = useCallback((key: string, el: Element | null) => {
+    if (el) tiles.current.set(key, el);
+    else tiles.current.delete(key);
+  }, []);
+  const playing = useMostInView(tiles, ORDER);
   return (
     <section className={s.trades} aria-labelledby="landing-trades">
       <div className={s.glow} aria-hidden />
@@ -114,7 +130,7 @@ export function TradeCases() {
         </div>
       </header>
       <div className={s.tiles}>
-        {TRADE_CLIPS.map((clip, index) => <Tile key={clip.key} clip={clip} index={index} />)}
+        {TRADE_CLIPS.map((clip, index) => <Tile key={clip.key} clip={clip} index={index} playing={playing === clip.key} register={register} />)}
       </div>
     </section>
   );

@@ -34,21 +34,41 @@ export function stagger(index: number, gapMs = 80): number {
 
 export type ClipChoice = 'poster' | 'small' | 'large';
 
-/// Phones load the small clip. Reduced motion, Save-Data and 2G keep the poster.
+/// The clip a tile loads, from the pixels it is drawn at (its width times the
+/// screen's density): the 720p clip covers up to 1280 (view 86). Reduced
+/// motion, Save-Data and 2G keep the poster; a lite device stops at small.
 export function clipChoice({
   reducedMotion,
   saveData,
   effectiveType,
-  viewportWidth,
+  pixels,
+  cap,
 }: {
   reducedMotion: boolean;
   saveData: boolean;
   effectiveType: string | undefined;
-  viewportWidth: number;
+  pixels: number;
+  cap?: 'small';
 }): ClipChoice {
   if (reducedMotion || saveData) return 'poster';
   if (effectiveType === '2g' || effectiveType === 'slow-2g') return 'poster';
-  return viewportWidth < 768 ? 'small' : 'large';
+  if (cap === 'small') return 'small';
+  return pixels > 1280 ? 'large' : 'small';
+}
+
+/// The one tile whose clip plays: the most visible, once at least `min` of it
+/// shows. A tie goes to the earlier tile.
+export function mostInView(ratios: Record<string, number>, order: readonly string[], min = 0.35): string | null {
+  let best: string | null = null;
+  let top = min;
+  for (const key of order) {
+    const r = ratios[key] ?? 0;
+    if (r > top || (best === null && r >= top)) {
+      best = key;
+      top = r;
+    }
+  }
+  return best;
 }
 
 /// One requestAnimationFrame for the whole page. Scroll and resize wake it;
