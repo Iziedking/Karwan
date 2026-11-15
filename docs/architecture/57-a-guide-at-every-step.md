@@ -266,7 +266,7 @@ All of it stops with reduced motion or on a phone held at the still level ([view
 
 ### 2. A face for the moment
 
-Five moods become eight. Each is a new face in the same dots, drawn in Figma first.
+Five moods become nine: four new faces (excited, sad, worried, hurt) beside the five there are, each in the same dots.
 
 | Mood | When | What it says (one line, then it goes) |
 |---|---|---|
@@ -306,10 +306,10 @@ Money kept aside is the **savings pocket**. A **deal guarantee** is only the par
 ### Decisions for the owner (15 Nov, evening)
 
 1. **One living face everywhere**: blink, eyes, breathing, with the still rules above. Recommended.
-2. **Eight moods and the events table above.** Recommended. Say if a mood or a line should change.
+2. **Nine faces and the events table above.** Recommended. Say if a mood or a line should change.
 3. **The tour is offered once to a new account, never run by itself**, and can be started again any time. Recommended.
 4. **3 days, then 14 days, kept on the account**, and at most one setup ask a day. Recommended.
-5. **Order:** Figma (the eight moods, the living face frames, a tour on Home on phone and laptop, the reaction lines), then spec, plan and a test-first build. The assistant guide, canon, all five languages and this view's Status go in the same batch.
+5. **Order:** Figma (the nine faces, the living face frames, a tour on Home on phone and laptop, the reaction lines), then spec, plan and a test-first build. The assistant guide, canon, all five languages and this view's Status go in the same batch.
 
 ## Status
 
@@ -327,7 +327,8 @@ Money kept aside is the **savings pocket**. A **deal guarantee** is only the par
 | Aman beside the page with the one next move, the face opens the assistant page, Ctrl+K, Not now, Not on this page, Hide the guide, Settings switch, Ask Aman in Profile, the corner Help button and the parked switch removed, the assistant page redesigned | Built 15 Nov 2026, not deployed |
 | 15 Nov amendment: Aman out of sight, six steps to fully set up, the assistant in plain words | Approved and built 15 Nov 2026, not deployed |
 | Gate and tours with the face (modes 1 and 2) | Not started |
-| 15 Nov evening amendment: a living face everywhere, eight moods that react to what happens, a tour on request, Not now held for days on the account | Written 15 Nov 2026, waiting for the owner |
+| 15 Nov evening amendment: a living face everywhere, nine faces that react to what happens, a tour on request, Not now held for days on the account | Approved 15 Nov 2026 |
+| Figma: section "6 · Aman alive (15 Nov evening)" (343:2961) on the Aman page: the nine faces (the Aman set gained Excited, Sad, Worried, Hurt), blink, eyes and breathing frames, the six reaction lines, the Home tour on a phone (offer and three stops) and a laptop, Not now held for days; component Guide/Tour step (343:5285) | Drawn 15 Nov 2026, waiting for the owner |
 | The savings pocket named as such in the assistant, the record and the canon; a deal guarantee only for the part backing a deal | Built 15 Nov 2026, not deployed |
 
 ## As built (15 Nov 2026)
