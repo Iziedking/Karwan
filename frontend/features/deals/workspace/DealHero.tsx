@@ -639,7 +639,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             </h1>
             {paidShare !== null ? (
               <div aria-hidden data-paid-bar className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--ash)]">
-                <div className="h-full rounded-full bg-[var(--action)]" style={{ width: `${paidShare}%` }} />
+                <div data-route-fill className="h-full rounded-full bg-[var(--action)]" style={{ width: `${paidShare}%` }} />
               </div>
             ) : null}
             <div className="mt-5 border-t border-[var(--line)] pt-5">

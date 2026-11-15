@@ -2677,3 +2677,54 @@ html.lenis, html.lenis body { height: auto; }
 [dir='rtl'] .guide-voice {
   font-family: var(--font-guide-arabic), var(--font-arabic), system-ui, sans-serif;
 }
+
+/* Deal route motion (view 48, owner 15 Nov 2026). The route keeps its look;
+   on first paint the travelled line draws in from the start and each reached
+   stop pops as the line gets there, and later only a newly reached stop moves
+   (features/deals/routeMotion.ts sets data-route-enter and --route-delay).
+   At rest the current ring breathes and the dashes ahead drift towards the
+   next stop: ambient on purpose, the owner's exception to "motion only
+   explains change". */
+@keyframes route-draw-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes route-draw-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes route-pop { 0% { transform: scale(0); } 65% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes route-breathe { 0% { transform: scale(1); opacity: 0.45; } 70%, 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes route-drift { from { background-position: 0 0; } to { background-position: 8px 0; } }
+[data-route-mark][data-route-enter] {
+  animation: route-pop 360ms var(--ease-out) var(--route-delay, 0ms) both;
+}
+[data-route-line][data-route-enter] {
+  transform-origin: left center;
+  animation: route-draw-x 90ms linear var(--route-delay, 0ms) both;
+}
+[dir="rtl"] [data-route-line][data-route-enter] { transform-origin: right center; }
+[data-route-connector][data-route-enter] {
+  transform-origin: center top;
+  animation: route-draw-y 240ms var(--ease-out) var(--route-delay, 0ms) both;
+}
+[data-route-mark="here"] { position: relative; }
+[data-route-mark="here"]::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid;
+  border-color: inherit;
+  pointer-events: none;
+  animation: route-breathe 2.4s var(--ease-out) 1.2s infinite;
+}
+[data-route-line="ahead"] { animation: route-drift 1.4s linear infinite; }
+[dir="rtl"] [data-route-line="ahead"] { animation-direction: reverse; }
+[data-route-fill] {
+  transform-origin: left center;
+  animation: route-draw-x 900ms var(--ease-out) 200ms both;
+}
+[dir="rtl"] [data-route-fill] { transform-origin: right center; }
+@media (prefers-reduced-motion: reduce) {
+  [data-route-enter],
+  [data-route-mark="here"]::after,
+  [data-route-line="ahead"],
+  [data-route-fill] {
+    animation: none !important;
+  }
+}
