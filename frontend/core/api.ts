@@ -6,6 +6,7 @@ import type {
   AuthenticationResponseJSON,
 } from '@simplewebauthn/browser';
 import { credentialsForApiRequest } from './adminTransport';
+import { SseParser } from '../shared/assistant/sseParser';
 import type { KdfParams } from '@/features/recovery/crypto';
 import type { Offer } from '@/features/offers/model';
 import type { SurveyAnswer, SurveySummary } from '@/features/admin/surveyPresentation';
@@ -2571,6 +2572,65 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
       init = { ...init, headers: { ...(init?.headers as Record<string, string> | undefined), [CONFIRM_HEADER]: grant } };
     }
   }
+}
+
+/// The stream ended before the answer came: the page asks for the finished turn.
+export class StreamBroken extends Error {
+  constructor() {
+    super('assistant-stream-broken');
+  }
+}
+
+async function readTurnStream(
+  body: { messages: Array<{ role: 'user' | 'assistant'; content: string }>; mode?: 'help' | 'assistant'; conversationId?: string | null; viewingDeal?: string | null; turnId: string },
+  opts: { onStep: (step: { kind: 'status'; tool: string } | { kind: 'retrying' }) => void; signal?: AbortSignal },
+): Promise<{ reply: string; actions?: AssistantAction[] }> {
+  const payload = {
+    messages: body.messages,
+    ...(body.mode ? { mode: body.mode } : {}),
+    ...(body.conversationId ? { conversationId: body.conversationId } : {}),
+    ...(body.viewingDeal ? { viewingDeal: body.viewingDeal } : {}),
+    turnId: body.turnId,
+  };
+  const headers = { 'content-type': 'application/json', accept: 'text/event-stream' };
+  const res = await fetch(`${BASE}/api/assistant/chat`, {
+    method: 'POST',
+    cache: 'no-store',
+    headers,
+    body: JSON.stringify(payload),
+    credentials: credentialsForApiRequest(headers, undefined),
+    signal: opts.signal,
+  });
+  const streamed = (res.headers.get('content-type') ?? '').includes('text/event-stream');
+  if (!streamed) {
+    // A refusal before the turn starts (sign-in, quota, a bad body) comes as JSON.
+    const parsed = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) {
+      throw new ApiError(res.status, typeof parsed.error === 'string' ? parsed.error : res.statusText, parsed.detail, typeof parsed.code === 'string' ? parsed.code : undefined, parsed);
+    }
+    return parsed as { reply: string; actions?: AssistantAction[] };
+  }
+  if (!res.body) throw new StreamBroken();
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  const parser = new SseParser();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      for (const frame of parser.push(value)) {
+        const data = JSON.parse(frame.data || '{}') as Record<string, unknown>;
+        if (frame.event === 'status' && typeof data.tool === 'string') opts.onStep({ kind: 'status', tool: data.tool });
+        else if (frame.event === 'retrying') opts.onStep({ kind: 'retrying' });
+        else if (frame.event === 'done') return data as { reply: string; actions?: AssistantAction[] };
+        else if (frame.event === 'error') {
+          throw new ApiError(502, typeof data.error === 'string' ? data.error : 'assistant-error', undefined, typeof data.code === 'string' ? data.code : undefined, data);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  throw new StreamBroken();
 }
 
 async function jsonOnce<T>(path: string, init?: RequestInit): Promise<T> {
@@ -6781,6 +6841,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ messages, ...(mode ? { mode } : {}), ...(conversationId ? { conversationId } : {}), ...(viewingDeal ? { viewingDeal } : {}) }),
     }),
+
+  /// The same turn as `assistantChat`, read as a stream so the page can show
+  /// each step Aman takes (view 84). Resolves with the checked answer.
+  assistantChatStream: (
+    body: {
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+      mode?: 'help' | 'assistant';
+      conversationId?: string | null;
+      viewingDeal?: string | null;
+      turnId: string;
+    },
+    opts: { onStep: (step: { kind: 'status'; tool: string } | { kind: 'retrying' }) => void; signal?: AbortSignal },
+  ) => readTurnStream(body, opts),
+  /// A finished turn kept for two minutes, for a page whose stream broke.
+  assistantTurnResult: (turnId: string) =>
+    json<{ ok: boolean; reply?: string; actions?: AssistantAction[]; error?: string; code?: string }>(
+      `/api/assistant/chat/result/${encodeURIComponent(turnId)}`,
+    ),
 
   // Live support handoff. The widget escalates from the AI to a human; the
   // operator replies over Telegram and the widget polls for the deltas.

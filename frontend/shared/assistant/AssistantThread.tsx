@@ -1,5 +1,9 @@
 'use client';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
+import { AssistantWait } from './AssistantWait';
+import { revealSteps } from './reveal';
+import type { WaitStep } from './waitStatus';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { encodeFunctionData, erc20Abi, parseUnits } from 'viem';
 import { GATEWAY_CHAINS } from '@/features/bridge/config';
@@ -58,6 +62,8 @@ export interface Turn {
   /// it differs from what is shown: the line saying a file arrived and what it
   /// shows (view 66).
   forModel?: string;
+  /// An answer that has just arrived, revealed word by word (view 84). Never saved.
+  fresh?: boolean;
 }
 
 const isPast = (a: AssistantAction | PastAssistantAction): a is PastAssistantAction => 'status' in a;
@@ -65,30 +71,69 @@ const isPast = (a: AssistantAction | PastAssistantAction): a is PastAssistantAct
 /// The conversation itself: each turn as a bubble, the assistant's actions
 /// under its reply, and the thinking dots while a reply is on its way. The
 /// help panel and the assistant page render the same thread.
-export function AssistantThread({ messages, busy, onNavigate }: { messages: readonly Turn[]; busy: boolean; onNavigate: () => void }) {
+export function AssistantThread({ messages, busy, onNavigate, wait = null, from = null }: {
+  messages: readonly Turn[];
+  busy: boolean;
+  onNavigate: () => void;
+  /// While a turn runs: the step Aman is on (view 84).
+  wait?: { status: WaitStep | null; startedAt: number } | null;
+  /// The page the person came from, which picks the tips.
+  from?: string | null;
+}) {
+  const seed = messages.filter((m) => m.role === 'user').length;
   return (
     <>
       {messages.map((m, i) => (
-        <div key={i} className="space-y-2">
-          <Bubble role={m.role}>
-            {m.image ? <img src={m.image} alt="" className={`max-h-60 w-auto max-w-full rounded-[12px] object-contain${m.imageOnly ? '' : ' mb-1.5'}`} /> : null}
-            {m.role === 'assistant' ? <RichText text={m.content} onNavigate={onNavigate} /> : m.imageOnly ? null : m.content}
-          </Bubble>
-          {m.role === 'assistant' && m.actions?.some((a) => !isPast(a)) && (
-            <ActionButtons actions={m.actions.filter((a): a is AssistantAction => !isPast(a))} onNavigate={onNavigate} />
-          )}
-          {m.role === 'assistant' && m.actions?.filter(isPast).map((a, j) => <PastCard key={j} action={a} />)}
-        </div>
+        <AssistantTurn key={i} m={m} onNavigate={onNavigate} />
       ))}
-      {busy && (
+      {wait ? (
+        <AssistantWait wait={wait} from={from} seed={seed} />
+      ) : busy ? (
         <Bubble role="assistant">
           <span className="inline-flex gap-1" aria-label="Thinking">
             <Dot /> <Dot /> <Dot />
           </span>
         </Bubble>
-      )}
+      ) : null}
     </>
   );
+}
+
+/// One turn. An answer that just arrived is revealed word by word within
+/// 600 ms, and its cards come after the words (view 84).
+function AssistantTurn({ m, onNavigate }: { m: Turn; onNavigate: () => void }) {
+  const shown = useRevealed(m.role === 'assistant' && m.fresh ? m.content : null);
+  const whole = shown === null;
+  return (
+    <div className="space-y-2">
+      <Bubble role={m.role}>
+        {m.image ? <img src={m.image} alt="" className={`max-h-60 w-auto max-w-full rounded-[12px] object-contain${m.imageOnly ? '' : ' mb-1.5'}`} /> : null}
+        {m.role === 'assistant'
+          ? whole ? <RichText text={m.content} onNavigate={onNavigate} /> : <span className="whitespace-pre-wrap">{shown}</span>
+          : m.imageOnly ? null : m.content}
+      </Bubble>
+      {whole && m.role === 'assistant' && m.actions?.some((a) => !isPast(a)) && (
+        <ActionButtons actions={m.actions.filter((a): a is AssistantAction => !isPast(a))} onNavigate={onNavigate} />
+      )}
+      {whole && m.role === 'assistant' && m.actions?.filter(isPast).map((a, j) => <PastCard key={j} action={a} />)}
+    </div>
+  );
+}
+
+/// The words of `text` shown so far, or null once it is all out (or when there
+/// is nothing to reveal, or motion is reduced).
+function useRevealed(text: string | null): string | null {
+  const reduce = useHydratedReducedMotion();
+  const steps = useMemo(() => (text && !reduce ? revealSteps(text) : []), [text, reduce]);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (steps.length === 0) return;
+    setTick(0);
+    const id = setInterval(() => setTick((n) => (n + 1 >= steps.length ? (clearInterval(id), steps.length) : n + 1)), 40);
+    return () => clearInterval(id);
+  }, [steps]);
+  if (!text || steps.length === 0 || tick >= steps.length) return null;
+  return text.trim().split(/(\s+)/).slice(0, steps[tick]! * 2 - 1).join('');
 }
 
 /// A card from a saved conversation: what was offered and whether it was done.

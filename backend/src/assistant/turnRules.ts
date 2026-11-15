@@ -1,4 +1,5 @@
 import { mayAnswer } from './safety.js';
+import { tell, type OnStep } from './turnEvents.js';
 
 /// What one try of the assistant produced, as the turn judges it.
 export interface TryOutcome {
@@ -28,4 +29,13 @@ export function replyStands(t: TryOutcome): boolean {
   if (t.proposal) return true;
   if (!t.text) return false;
   return t.acted > 0 || mayAnswer({ needsLiveState: t.needsLiveState, grounded: t.grounded, subjects: t.subjects, reply: t.text });
+}
+
+/// One try, and a second that must read first when the first one needs it.
+/// The second try is announced, so the person sees the answer being checked.
+export async function answerWithRetry<T>(ask: (forceRead: boolean) => Promise<T>, needsRetry: (t: T) => boolean, onStep?: OnStep): Promise<T> {
+  const first = await ask(false);
+  if (!needsRetry(first)) return first;
+  tell(onStep, { kind: 'retrying' });
+  return ask(true);
 }

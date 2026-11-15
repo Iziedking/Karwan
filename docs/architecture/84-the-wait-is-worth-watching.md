@@ -72,4 +72,14 @@ The status lines and tips are part of the turn on the shared core, so any channe
 | Part | State |
 |---|---|
 | This view | Approved 15 Nov 2026 |
-| Figma: section "5 · The wait is worth watching (view 84)" (330:2078) on the page "Aman · the guide with a face · 15 Nov": four phone states (sent, a tip drawn in, the next step, the answer word by word), the laptop wait, Telegram on a slow turn, and the timing and motion strip | Drawn 15 Nov 2026, waiting for the owner's yes |
+| Figma: section "5 · The wait is worth watching (view 84)" (330:2078) on the page "Aman · the guide with a face · 15 Nov": four phone states (sent, a tip drawn in, the next step, the answer word by word), the laptop wait, Telegram on a slow turn, and the timing and motion strip | Drawn 15 Nov 2026, approved by the owner 15 Nov |
+| The build: warm instructions, the turn's steps, the streamed page, status lines and tips in five languages, the answer word by word, Telegram typing and one tip | Built 15 Nov 2026, not deployed |
+| Timing before and after (the same ten turns on Claude Haiku 4.5, without and with warm instructions, and on Claude Haiku 5.5) | Script ready, not yet run |
+
+## As built
+
+- **Warm instructions.** The instructions that are the same for everyone go to the model as their own part, kept warm for an hour; the lines about the person follow. Amazon Bedrock reads the tool list before the instructions, so the one warm point covers both. The backup model, which cannot keep anything warm, gets the request without it.
+- **What the person sees.** Each step Aman takes is reported as it starts, and a second try that checks an answer against the account is reported too. The page asks for these as a stream; Telegram and older clients get the same single answer as before.
+- **A broken connection.** The page gives each turn its own id, and the server keeps the finished answer for two minutes for that person only, so a page whose stream broke asks for it once.
+- **Tips.** One list, written for the page in five languages; Telegram uses the English deal and safety tips, and a check fails the build if the two drift apart. The tip card follows the drawing: a label for its kind, the tip, and a thin line for how long it stays.
+- **Models.** Claude Haiku 5.5 is available on Bedrock (checked 15 Nov 2026 in us-east-1, `us.anthropic.claude-haiku-5-5`). The timing script runs the same ten turns on a model of choice, with or without warm instructions, and prints the time to the first step, the whole turn, and the warm tokens read and written. The numbers go here once it has run on testnet; no model is switched without the owner.

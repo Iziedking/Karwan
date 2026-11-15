@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { assessGrounding } from './grounding.js';
-import { replyStands, retryWithRead } from './turnRules.js';
+import { answerWithRetry, replyStands, retryWithRead } from './turnRules.js';
+import type { TurnEvent } from './turnEvents.js';
 
 /// The testnet conversation of 1 Nov 2026 that made two payment links and
 /// then handed the person to the team.
@@ -53,4 +54,30 @@ test('only tools that change something count as acting, and only when they worke
   assert.deepEqual(assessGrounding(conversation, steps('create_payment_link', { error: 'offline' })).acted, []);
   assert.deepEqual(assessGrounding(conversation, steps('get_my_balance', { wallet: {} })).acted, []);
   assert.deepEqual(assessGrounding(conversation, steps('rate_deal', { ok: true })).acted, ['rate_deal']);
+});
+
+test('a retry is announced once, before the second try', async () => {
+  const events: TurnEvent[] = [];
+  const calls: boolean[] = [];
+  const out = await answerWithRetry(
+    async (forceRead) => { calls.push(forceRead); return forceRead ? 'second' : 'first'; },
+    (t) => t === 'first',
+    (e) => events.push(e),
+  );
+  assert.equal(out, 'second');
+  assert.deepEqual(calls, [false, true]);
+  assert.deepEqual(events, [{ kind: 'retrying' }]);
+});
+
+test('no retry, no event', async () => {
+  const events: TurnEvent[] = [];
+  const calls: boolean[] = [];
+  const out = await answerWithRetry(
+    async (forceRead) => { calls.push(forceRead); return 'first'; },
+    () => false,
+    (e) => events.push(e),
+  );
+  assert.equal(out, 'first');
+  assert.deepEqual(calls, [false]);
+  assert.deepEqual(events, []);
 });

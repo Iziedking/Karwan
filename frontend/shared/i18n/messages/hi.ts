@@ -6,6 +6,8 @@ import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { startFlowCopy } from './startFlow';
 import { assistantModeCopy } from './assistantMode';
+import { assistantWaitCopy } from './assistantWait';
+import { assistantTipsCopy } from './assistantTips';
 import { assistantMemoryCopy } from './assistantMemory';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
@@ -100,6 +102,8 @@ export const hi: Messages = {
   setup: setupCopy.hi,
   startFlow: startFlowCopy.hi,
   assistantMode: assistantModeCopy.hi,
+  assistantWait: assistantWaitCopy.hi,
+  assistantTips: assistantTipsCopy.hi,
   assistantMemory: assistantMemoryCopy.hi,
   plainMoney: plainMoneyCopy.hi,
   requestList: requestListCopy.hi,

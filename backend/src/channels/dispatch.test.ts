@@ -543,3 +543,29 @@ test('with the chat kept as a conversation, a card shown can still be confirmed 
   await s.dispatch(msg({ id: 'c1', kind: 'button', replyId: 'confirm:act_1:n1' }));
   assert.deepEqual(s.executed, ['act_1:n1']);
 });
+
+test('a slow turn shows typing and sends one tip before the reply', async () => {
+  const log: string[] = [];
+  const s = setup({
+    active: true,
+    chat: async () => {
+      await new Promise((r) => setTimeout(r, 80));
+      return { ok: true, reply: 'Hello from the agent.' };
+    },
+    extra: {
+      wait: {
+        typing: async () => { log.push('typing'); },
+        tip: () => 'Check a seller\'s record before you pay them.',
+        everyMs: 20,
+        tipAfterMs: 30,
+      },
+    },
+  });
+  await s.dispatch(msg({ text: 'is ada safe?' }));
+  assert.ok(log.length >= 2, `typing ${log.length}`);
+  const bodies = s.sent.map(bodyOf);
+  const tipAt = bodies.indexOf('Check a seller\'s record before you pay them.');
+  assert.ok(tipAt !== -1, 'the tip was sent');
+  assert.ok(tipAt < bodies.findIndex((b) => /Hello from the agent/.test(b)), 'the tip came first');
+  assert.equal(bodies.filter((b) => b === 'Check a seller\'s record before you pay them.').length, 1);
+});

@@ -23,6 +23,11 @@ export function createTelegramApi(deps: { token: string; fetch: typeof fetch; ma
     return (await call('sendMessage', { chat_id: chatId, ...message })) !== null;
   }
 
+  /// Shows "typing" in the chat for a few seconds while Aman works (view 84).
+  async function sendChatAction(chatId: number, action: 'typing'): Promise<boolean> {
+    return (await call('sendChatAction', { chat_id: chatId, action })) !== null;
+  }
+
   async function answerCallback(callbackId: string): Promise<void> {
     await call('answerCallbackQuery', { callback_query_id: callbackId });
   }
@@ -48,5 +53,5 @@ export function createTelegramApi(deps: { token: string; fetch: typeof fetch; ma
     return (await call('deleteMessage', { chat_id: chatId, message_id: messageId })) !== null;
   }
 
-  return { sendMessage, answerCallback, download, deleteMessage };
+  return { sendMessage, sendChatAction, answerCallback, download, deleteMessage };
 }

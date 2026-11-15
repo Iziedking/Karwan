@@ -6,6 +6,8 @@ import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { startFlowCopy } from './startFlow';
 import { assistantModeCopy } from './assistantMode';
+import { assistantWaitCopy } from './assistantWait';
+import { assistantTipsCopy } from './assistantTips';
 import { assistantMemoryCopy } from './assistantMemory';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
@@ -100,6 +102,8 @@ export const ar: Messages = {
   setup: setupCopy.ar,
   startFlow: startFlowCopy.ar,
   assistantMode: assistantModeCopy.ar,
+  assistantWait: assistantWaitCopy.ar,
+  assistantTips: assistantTipsCopy.ar,
   assistantMemory: assistantMemoryCopy.ar,
   plainMoney: plainMoneyCopy.ar,
   requestList: requestListCopy.ar,

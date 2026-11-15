@@ -205,6 +205,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/agents/status" },
   { method: "POST", path: "/api/assistant/attach" },
   { method: "POST", path: "/api/assistant/chat" },
+  { method: "GET", path: "/api/assistant/chat/result/:turnId" },
   { method: "GET", path: "/api/assistant/conversations" },
   { method: "POST", path: "/api/assistant/conversations" },
   { method: "DELETE", path: "/api/assistant/conversations/:id" },

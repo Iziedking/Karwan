@@ -7,7 +7,8 @@ import { logger } from '../logger.js';
 import type { AssistantAction } from './actions.js';
 import { assistantAgentEnabled, runAssistantAgent, type AssistantChatMessage } from './agent.js';
 import { proposalReply, requiresLiveAccountState, staticFallbackMessages } from './safety.js';
-import { replyStands, retryWithRead, type TryOutcome } from './turnRules.js';
+import { answerWithRetry, replyStands, retryWithRead, type TryOutcome } from './turnRules.js';
+import type { OnStep } from './turnEvents.js';
 import { getMemory, type AssistantMemory } from '../db/assistantMemory.js';
 import { liveMemoryWriterDeps, writeMemoryNotes } from './memoryWriter.js';
 import { noteRequestCards } from './requestLinks.js';
@@ -30,7 +31,11 @@ const STATE_UNAVAILABLE: AssistantTurnResult = {
 };
 
 export async function runAssistantTurn(
-  input: { address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant'; conversationId?: string; viewingDeal?: string; returning?: boolean },
+  input: {
+    address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant'; conversationId?: string; viewingDeal?: string; returning?: boolean;
+    /// Hears each step the turn takes, for a channel that shows them (view 84).
+    onStep?: OnStep;
+  },
   fallback: FallbackReply,
 ): Promise<AssistantTurnResult> {
   // Stateful prompts fail closed rather than falling through to an ungrounded
@@ -59,18 +64,22 @@ export async function runAssistantTurn(
         viewingDeal: input.viewingDeal,
         ...(pickUp ? { pickUp: pickUpPreamble(pickUp, Date.now()) } : {}),
         forceRead,
+        onStep: input.onStep,
       });
-      let { text, actions, grounded, subjects, acted } = await ask(false);
-      const outcome = (): TryOutcome => ({
-        text, hasActions: actions.length > 0, proposal: !!proposalReply(actions), acted: acted.length, needsLiveState, grounded, subjects,
+      type Try = Awaited<ReturnType<typeof ask>>;
+      const outcomeOf = (t: Try): TryOutcome => ({
+        text: t.text, hasActions: t.actions.length > 0, proposal: !!proposalReply(t.actions), acted: t.acted.length, needsLiveState, grounded: t.grounded, subjects: t.subjects,
       });
       // A reply that states account facts without reading them gets one more
       // try that must read first. A person is called only if that fails too.
       // A try that already changed something is answered as it is.
-      if (retryWithRead(outcome())) {
-        logger.info('assistant: unread account claim, retrying with a required read');
-        ({ text, actions, grounded, subjects, acted } = await ask(true));
-      }
+      const answered = await answerWithRetry(ask, (t) => {
+        const again = retryWithRead(outcomeOf(t));
+        if (again) logger.info('assistant: unread account claim, retrying with a required read');
+        return again;
+      }, input.onStep);
+      const { text, actions } = answered;
+      const outcome = (): TryOutcome => outcomeOf(answered);
       // Notes are written after the reply goes out, never holding it up.
       const remember = (reply: string) => {
         if (!memory?.enabled) return;

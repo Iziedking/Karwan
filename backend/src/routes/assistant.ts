@@ -9,7 +9,8 @@ import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { chatBodySchema } from '../assistant/chatBody.js';
 import { readSession } from '../auth/session.js';
-import { runAssistantTurn } from '../assistant/turn.js';
+import { runAssistantTurn, type FallbackReply } from '../assistant/turn.js';
+import { finishedTurn, keepFinishedTurn, streamTurn, turnBody, wantsStream } from './assistantStream.js';
 import { consumeAssistantQuota } from '../db/assistantUsage.js';
 import { privateAssistantProviders } from '../assistant/safety.js';
 
@@ -308,9 +309,8 @@ assistantRoutes.post(
   // Bound to the cryptographically verified session address, never a client
   // parameter. Only generic help can fall back, and only through a direct
   // provider; account history never reaches a proxy or tool-less model.
-  const result = await runAssistantTurn(
-    { address: session.address, method: session.method, messages, mode: body.mode, conversationId: body.conversationId, viewingDeal: body.viewingDeal, returning: body.returning },
-    async (fallbackMessages) => {
+  const turnInput = { address: session.address, method: session.method, messages, mode: body.mode, conversationId: body.conversationId, viewingDeal: body.viewingDeal, returning: body.returning };
+  const fallback: FallbackReply = async (fallbackMessages) => {
       let lastTimeout = false;
       const failures: { provider: string; error: string }[] = [];
       for (const p of provs) {
@@ -337,8 +337,23 @@ assistantRoutes.post(
       }
       if (failures.length === provs.length) reportModelsDown(failures);
       return { timeout: lastTimeout };
-    },
-  );
-  if (result.ok) return c.json(result.actions ? { reply: result.reply, actions: result.actions } : { reply: result.reply });
-  return c.json(result.code ? { error: result.error, code: result.code } : { error: result.error }, result.status);
+  };
+  // The page asks for a stream so it can show what Aman is doing (view 84).
+  // Telegram, WhatsApp and older clients get the same JSON as always.
+  if (wantsStream(c.req.header('accept'))) {
+    return streamTurn(c, (onStep) => runAssistantTurn({ ...turnInput, onStep }, fallback), { address: session.address, turnId: body.turnId });
+  }
+  const result = await runAssistantTurn(turnInput, fallback);
+  if (body.turnId) keepFinishedTurn(session.address, body.turnId, result);
+  return result.ok ? c.json(turnBody(result)) : c.json(turnBody(result), result.status);
+});
+
+/// A finished turn, for a page whose stream broke before the answer came
+/// (view 84). Only the person who asked can read it, for two minutes.
+assistantRoutes.get('/chat/result/:turnId', (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated', code: 'assistant_signin_required' }, 401);
+  const result = finishedTurn(session.address, c.req.param('turnId'));
+  if (!result) return c.json({ error: 'not-found' }, 404);
+  return c.json({ ...turnBody(result), ok: result.ok });
 });

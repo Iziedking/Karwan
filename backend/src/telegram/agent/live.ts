@@ -11,6 +11,7 @@ import { createTagStep } from '../../channels/tagStep.js';
 import { checkKarwanTag } from '../../profile/karwanTag.js';
 import { MONEY_INTENTS, createMoneyStepPresenter } from '../../channels/moneySteps.js';
 import { callAsAccount } from '../../channels/inProcess.js';
+import { tipForChat } from '../../channels/waitNotes.js';
 import { MEDIA_MAX_BYTES } from '../../channels/invoiceExtract.js';
 import { createChatFileIntake, keepChat } from '../../channels/fileArrival.js';
 import { chatOpenLinks, chatOpenUrl } from '../../channels/openLinksLive.js';
@@ -202,6 +203,13 @@ export function startTelegramAgent(): boolean {
     saveAccount: saveTelegramAccount,
     send,
     drain: async () => {},
+    // Typing while Aman works, and one tip on a slow turn (view 84).
+    wait: {
+      typing: async (to) => {
+        await api.sendChatAction(chatIdOf(to), 'typing');
+      },
+      tip: (to) => tipForChat(to),
+    },
     chat: async (address, messages, opts) => {
       const r = await callAsAccount(address, 'POST', '/api/assistant/chat', { messages, ...opts });
       if (r.status === 200) {

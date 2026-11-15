@@ -16,6 +16,8 @@
     "check:admin-routes": "tsx scripts/generate-admin-route-catalog.ts --check",
     "generate:page-routes": "tsx scripts/page-route-map.ts",
     "check:page-routes": "tsx scripts/page-route-map.ts --check",
+    "emit:wait-tips": "tsx scripts/emit-wait-tips.ts",
+    "check:wait-tips": "tsx scripts/emit-wait-tips.ts --check",
     "check:audit": "tsx scripts/audit-gate.ts",
     "test:auth": "tsx --test shared/auth/authPresentation.test.ts shared/auth/postAuthRoute.test.ts shared/auth/sessionStore.test.ts",
     "test:admin": "tsx --test features/admin/*.test.ts core/adminTransport.test.ts",

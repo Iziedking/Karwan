@@ -52,3 +52,10 @@ test('a message is deleted by chat and message id', async () => {
   assert.equal(await api.deleteMessage(4242, 77), true);
   assert.match(calls[0]!, /deleteMessage \{"chat_id":4242,"message_id":77\}/);
 });
+
+test('typing is shown in the chat', async () => {
+  const calls: string[] = [];
+  const api = createTelegramApi({ token: 't', maxFileBytes: 100, fetch: fakeFetch({ '/sendChatAction': { ok: true, result: true } }, calls) });
+  assert.equal(await api.sendChatAction(4242, 'typing'), true);
+  assert.match(calls[0]!, /sendChatAction \{"chat_id":4242,"action":"typing"\}/);
+});

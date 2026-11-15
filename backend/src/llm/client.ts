@@ -7,6 +7,7 @@ import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { chainLinks, fallbackChain } from './chain.js';
+import { withoutCachePoints } from './cachePoints.js';
 import { reportModelsDown } from './modelsDown.js';
 
 const openrouter = createOpenRouter({
@@ -29,7 +30,11 @@ export const bedrockModel: LM | null = bedrock?.(config.BEDROCK_MODEL) ?? null;
 export const bedrockLightModel: LM | null = config.BEDROCK_LIGHT_MODEL ? bedrock?.(config.BEDROCK_LIGHT_MODEL) ?? null : null;
 /// A model that is not Claude, on Bedrock, so a refused Anthropic account or
 /// an empty Anthropic balance never leaves Karwan without a model (view 81).
-export const bedrockFallbackModel: LM | null = config.BEDROCK_FALLBACK_MODEL ? bedrock?.(config.BEDROCK_FALLBACK_MODEL) ?? null : null;
+/// It has no prompt caching, so the assistant's cache points are taken out
+/// before a call reaches it (view 84).
+export const bedrockFallbackModel: LM | null = config.BEDROCK_FALLBACK_MODEL && bedrock
+  ? (withoutCachePoints(bedrock(config.BEDROCK_FALLBACK_MODEL)) as LM)
+  : null;
 
 /// One chain per job: Claude on Bedrock, the Anthropic key with the job's
 /// model, the fallback on Bedrock, then OpenRouter unless the chain is private.

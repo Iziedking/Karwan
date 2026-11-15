@@ -6,6 +6,7 @@ import { CARD_TTL_MS, type ChatAccount, type InboundMessage } from './types.js';
 import { expandNumberReply } from './numberReply.js';
 import type { FileArrival } from './fileArrival.js';
 import { RETURN_AFTER_MS } from '../assistant/pickUp.js';
+import { withWaitNotes } from './waitNotes.js';
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -30,6 +31,9 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
   /// `returning` says the person is back after a break, so the assistant may
   /// pick up unfinished work (view 66).
   chat: (address: string, messages: ChatMessage[], opts?: { conversationId?: string; returning?: boolean }) => Promise<ChatResult>;
+  /// While a turn runs: typing, and on a slow turn one short tip sent first
+  /// (view 84). A channel without these shows nothing while it waits.
+  wait?: { typing?: (to: string) => Promise<void>; tip?: (to: string) => string | null; everyMs?: number; tipAfterMs?: number };
   executeConfirm: (account: { address: string }, action: ConfirmAction) => Promise<ExecuteResult>;
   /// A past client's Yes or No to a work confirmation. The client may have no
   /// Karwan account, so this runs before anything else. Returns the reply.
@@ -274,7 +278,23 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
     // Back after six quiet hours: the assistant may pick up what was left.
     const returning = first.lastInboundAt !== null && deps.now() - first.lastInboundAt >= RETURN_AFTER_MS;
     await keep([{ role: 'user', content: said }]);
-    const result = await deps.chat(address, history, { ...(keptId ? { conversationId: keptId } : {}), ...(returning ? { returning: true } : {}) });
+    const wait = deps.wait;
+    const result = await withWaitNotes(
+      () => deps.chat(address, history, { ...(keptId ? { conversationId: keptId } : {}), ...(returning ? { returning: true } : {}) }),
+      {
+        ...(wait?.typing ? { typing: () => wait.typing!(account.to) } : {}),
+        ...(wait?.tip
+          ? {
+              tip: async () => {
+                const line = wait.tip!(account.to);
+                if (line) await reply(text(line));
+              },
+            }
+          : {}),
+        ...(wait?.everyMs ? { everyMs: wait.everyMs } : {}),
+        ...(wait?.tipAfterMs ? { tipAfterMs: wait.tipAfterMs } : {}),
+      },
+    );
     if (!result.ok) {
       const userFacing = result.code === 'assistant_quota_exhausted' ? result.error : "I couldn't check that just now. Try again in a minute.";
       await deps.saveAccount({ ...account, history });

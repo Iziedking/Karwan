@@ -16,7 +16,7 @@ import { currentMarket } from '../intelligence/marketStoreLive.js';
 import { onPreviousEscrow } from '../deals/previousEscrow.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { prohibitedReason } from '../policy/prohibited.js';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, stepCountIs, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import { CATEGORY_IDS } from '../listings/categories.js';
 import { formatUnits, parseUnits, type Address } from 'viem';
@@ -24,6 +24,8 @@ import { guaranteeNeedOf } from '../deals/dealGuarantee.js';
 import { assistantAgentModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
 import { systemPromptFor } from './knowledge.js';
+import { systemMessages } from './systemParts.js';
+import { toolCallEvents, type OnStep } from './turnEvents.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
 import { workMismatchOpen } from '../deals/workMismatch.js';
@@ -3219,8 +3221,12 @@ export async function runAssistantAgent(input: {
   /// A second try after a reply stated account facts without reading them:
   /// the first step must call a tool, so the answer rests on a fresh read.
   forceRead?: boolean;
+  /// Hears each tool call as it starts (view 84).
+  onStep?: OnStep;
+  /// Another model for this turn: the timing script compares models with it.
+  model?: LanguageModel;
 }): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number; acted: string[] }> {
-  const model = assistantAgentModel;
+  const model = input.model ?? assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
   // The account's own currency sets how the assistant speaks about money. A
@@ -3230,12 +3236,19 @@ export async function runAssistantAgent(input: {
     .catch(() => '');
   // The person's own time zone, from their agent's settings; Lagos until set.
   const timeZone = await getAgentRecord(input.address).then((r) => r.brief?.timeZone).catch(() => undefined) ?? 'Africa/Lagos';
-  const system = systemPromptFor({ mode: input.mode, hidden: hiddenGuideIds(liveFeatures) }) +'\n' + authenticatedPreamble(input.address, input.method, timeZone)
-    + (voice ? '\n' + voice : '')
-    + (input.memory ? '\n' + memoryPreamble(input.memory) : '')
-    + (input.viewingDeal ? '\n' + viewingDealLine(input.viewingDeal) : '')
-    + (input.pickUp ? '\n' + input.pickUp : '')
-    + (input.forceRead ? '\nRead the account with the tool for what the person asked about before you answer. State only what that read returned.' : '');
+  // The fixed instructions are the same for everyone and stay warm between
+  // turns; the lines about this person follow, uncached (view 84).
+  const system = systemMessages(
+    systemPromptFor({ mode: input.mode, hidden: hiddenGuideIds(liveFeatures) }),
+    [
+      authenticatedPreamble(input.address, input.method, timeZone),
+      voice,
+      input.memory ? memoryPreamble(input.memory) : '',
+      input.viewingDeal ? viewingDealLine(input.viewingDeal) : '',
+      input.pickUp ?? '',
+      input.forceRead ? 'Read the account with the tool for what the person asked about before you answer. State only what that read returned.' : '',
+    ].filter(Boolean).join('\n'),
+  );
   const actions: AssistantAction[] = [];
 
   const result = await withLlmTimeout(
@@ -3250,6 +3263,7 @@ export async function runAssistantAgent(input: {
       stopWhen: stepCountIs(6),
       ...(input.forceRead ? { prepareStep: ({ stepNumber }: { stepNumber: number }) => (stepNumber === 0 ? { toolChoice: 'required' as const } : undefined) } : {}),
       maxOutputTokens: 900,
+      ...toolCallEvents(input.onStep),
     }),
     ASSISTANT_AGENT_MS,
   );

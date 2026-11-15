@@ -314,7 +314,7 @@ function AssistantPage() {
             </m.div>
           ) : (
             <div ref={threadRef}>
-              <AssistantThread messages={chat.messages} busy={chat.busy} onNavigate={() => undefined} />
+              <AssistantThread messages={chat.messages} busy={chat.busy} wait={chat.wait} from={cameFrom} onNavigate={() => undefined} />
             </div>
           )}
           {openError ? <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[14px]">{t.loadError}</p> : null}

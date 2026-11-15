@@ -71,7 +71,7 @@ function HelpAndSupport() {
       <section className={`${CARD_CLASS} space-y-3 p-4`}>
         {chat.messages.length > 0 && (
           <div className="max-h-[50vh] space-y-3 overflow-y-auto">
-            <AssistantThread messages={chat.messages} busy={chat.busy} onNavigate={() => undefined} />
+            <AssistantThread messages={chat.messages} busy={chat.busy} wait={chat.wait} from={prefill?.viewingDeal ? '/deals' : null} onNavigate={() => undefined} />
           </div>
         )}
         {chat.error && <p role="alert" className="text-[14px] text-[var(--ink-secondary)]">{chat.error}</p>}

@@ -22,4 +22,7 @@ export const chatBodySchema = z.object({
   /// The person is back after a break (a chat app sets it): the assistant may
   /// pick up unfinished work, read on the server (view 66).
   returning: z.boolean().optional(),
+  /// The page's own id for this turn, so a page whose stream broke can fetch
+  /// the finished turn once (view 84).
+  turnId: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional(),
 });

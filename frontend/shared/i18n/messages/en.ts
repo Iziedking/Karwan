@@ -9,6 +9,8 @@ import { firstTradeCopy, type FirstTradeCopy } from './firstTrade';
 import { setupCopy, type SetupCopy } from './setup';
 import { startFlowCopy, type StartFlowCopy } from './startFlow';
 import { assistantModeCopy, type AssistantModeCopy } from './assistantMode';
+import { assistantWaitCopy, type AssistantWaitCopy } from './assistantWait';
+import { assistantTipsCopy, type AssistantTipsCopy } from './assistantTips';
 import { assistantMemoryCopy, type AssistantMemoryCopy } from './assistantMemory';
 import { plainMoneyCopy, type PlainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
@@ -102,6 +104,8 @@ interface MessagesShape {
   setup: SetupCopy;
   startFlow: StartFlowCopy;
   assistantMode: AssistantModeCopy;
+  assistantWait: AssistantWaitCopy;
+  assistantTips: AssistantTipsCopy;
   assistantMemory: AssistantMemoryCopy;
   plainMoney: PlainMoneyCopy;
   requestList: RequestListCopy;
@@ -5391,6 +5395,8 @@ export const en: MessagesShape = {
   setup: setupCopy.en,
   startFlow: startFlowCopy.en,
   assistantMode: assistantModeCopy.en,
+  assistantWait: assistantWaitCopy.en,
+  assistantTips: assistantTipsCopy.en,
   assistantMemory: assistantMemoryCopy.en,
   plainMoney: plainMoneyCopy.en,
   requestList: requestListCopy.en,

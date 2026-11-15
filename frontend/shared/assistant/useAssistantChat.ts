@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, StreamBroken } from '@/core/api';
+import type { WaitStep } from './waitStatus';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { confirmOutcomes, type Turn } from './AssistantThread';
 import { savedAction } from './savedAction';
@@ -26,6 +27,10 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  /// While a turn runs: the step Aman is on, and when the wait began (view 84).
+  const [wait, setWait] = useState<{ status: WaitStep | null; startedAt: number } | null>(null);
+  /// The running turn, so leaving or starting over stops reading it.
+  const running = useRef<AbortController | null>(null);
   const { onNeedsHuman, persist = false, mode, viewingDeal } = opts;
   // An exchange is saved when the next one starts or the page is left, so its
   // cards are saved with their outcome. Mirrors of the latest state for saving outside a render.
@@ -72,16 +77,35 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
   /// Asks the assistant with `history` and puts its reply after `shown`.
   const answer = useCallback(
     async (history: Array<{ role: 'user' | 'assistant'; content: string }>, shown: Turn[]) => {
+      running.current?.abort();
+      const controller = new AbortController();
+      running.current = controller;
+      const turnId = newTurnId();
+      setWait({ status: null, startedAt: Date.now() });
       try {
-        const { reply, actions } = await api.assistantChat(history, mode, live.current.conversationId, viewingDeal);
+        const { reply, actions } = await api
+          .assistantChatStream(
+            { messages: history, mode, conversationId: live.current.conversationId, viewingDeal, turnId },
+            { onStep: (step) => { if (!controller.signal.aborted) setWait((w) => (w ? { ...w, status: step } : w)); }, signal: controller.signal },
+          )
+          .catch(async (e: unknown) => {
+            // The stream broke before the answer: ask once for the finished turn.
+            if (controller.signal.aborted || !(e instanceof StreamBroken || e instanceof TypeError)) throw e;
+            const kept = await api.assistantTurnResult(turnId);
+            if (!kept.ok) throw new ApiError(502, kept.error ?? 'assistant-error', undefined, kept.code);
+            return { reply: kept.reply ?? '', actions: kept.actions };
+          });
+        if (controller.signal.aborted) return;
         // The assistant appends [[HUMAN]] when the person asked for one or it
         // cannot do it. Strip the marker and bring a person in.
         const needsHuman = /\[\[HUMAN\]\]/i.test(reply);
         const clean = reply.replace(/\[\[HUMAN\]\]/gi, '').trim();
-        const answered = [...shown, { role: 'assistant' as const, content: clean, actions }];
+        const answered = [...shown, { role: 'assistant' as const, content: clean, actions, fresh: true }];
         setMessages(answered);
         if (needsHuman) onNeedsHuman?.(answered);
       } catch (e) {
+        // A turn left behind (new conversation, page closed) says nothing.
+        if (controller.signal.aborted) return;
         // Map the backend's error codes to a human line instead of showing the
         // raw "assistant-error" string.
         const code = e instanceof ApiError ? e.message : '';
@@ -101,6 +125,11 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
                   : t.error,
         );
         if (cannot) onNeedsHuman?.(shown);
+      } finally {
+        if (running.current === controller) {
+          running.current = null;
+          setWait(null);
+        }
       }
     },
     [onNeedsHuman, t.error, m, mode, viewingDeal],
@@ -125,9 +154,16 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
   );
 
   const reset = useCallback((to: Turn[] = []) => {
+    running.current?.abort();
+    running.current = null;
+    setWait(null);
+    setBusy(false);
     setMessages(to);
     setError(null);
   }, []);
+
+  // A page left mid-turn stops reading it.
+  useEffect(() => () => running.current?.abort(), []);
 
   /// Saves the current conversation, then starts an empty one.
   const startNew = useCallback(async () => {
@@ -228,5 +264,12 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
     }
   }, [persist]);
 
-  return { messages, send, attach, busy, error, setError, reset, conversationId, open, startNew, flush, remove, refreshLive };
+  return { messages, send, attach, busy, wait, error, setError, reset, conversationId, open, startNew, flush, remove, refreshLive };
+}
+
+/// The page's own id for a turn, so a broken stream can fetch it once.
+function newTurnId(): string {
+  const c = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID().replace(/-/g, '');
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
 }
