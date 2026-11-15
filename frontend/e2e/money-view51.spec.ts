@@ -2,8 +2,9 @@ import { expect, test } from '@playwright/test';
 import { ME, RATES, funded, recentActivity, serveMoney } from './moneyFixtures';
 import { noProtocolWords } from './instantTopUpFixtures';
 
-/// View 51: Money is one page with Balance, Agent and Deal guarantee; Add money
-/// and Withdraw are pages; receipts from Recent; amounts in a chosen currency.
+/// View 51: Money is one page with Balance and Agent; Add money and Withdraw are
+/// pages; receipts from Recent; amounts in a chosen currency. The savings pocket
+/// left Money for its own page (view 82).
 
 const agentActivity = [
   ...recentActivity,
@@ -14,11 +15,11 @@ const agentActivity = [
 ];
 const wide = (page: import('@playwright/test').Page) => (page.viewportSize()?.width ?? 0) >= 768;
 
-test('money is one page with Balance, Agent and Deal guarantee, and the tab lives in the address', async ({ page }) => {
+test('money is one page with Balance and Agent, and the tab lives in the address', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
   const tabs = page.getByRole('tablist', { name: 'Money' });
-  await expect(tabs.getByRole('tab')).toHaveText(['Balance', 'Agent', 'Deal guarantee']);
+  await expect(tabs.getByRole('tab')).toHaveText(['Balance', 'Agent']);
   await expect(tabs.getByRole('tab', { name: 'Balance' })).toHaveAttribute('aria-selected', 'true');
   await tabs.getByRole('tab', { name: 'Agent' }).click();
   await expect(page).toHaveURL(/\/account\?tab=agent$/);
@@ -69,24 +70,27 @@ test('topping up the agent opens its own page', async ({ page }) => {
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
-test('the deal guarantee tab shows what is in place, Add and Withdraw, and what it does behind a tip', async ({ page }) => {
+test('the savings pocket page shows what is in it, Add to pocket and Take out, and what it earns', async ({ page }) => {
   await serveMoney(page, { balances: funded, guarantee: { inPlaceUsdc: '500.00', heldUsdc: '0.00', freeUsdc: '500.00' } });
-  await page.goto('/account?tab=guarantee');
-  await expect(page.getByRole('tab', { name: 'Deal guarantee' })).toHaveAttribute('aria-selected', 'true');
-  const tab = page.locator('[data-guarantee-tab]');
-  await expect(tab.getByRole('heading', { level: 1 })).toContainText('500.00');
-  await expect(tab).toContainText('Not counted in your balance');
-  await expect(tab.locator('[data-guarantee-actions]').getByRole('link', { name: 'Add', exact: true })).toHaveAttribute('href', '/account/guarantee?step=put_up');
-  await expect(tab.locator('[data-guarantee-actions]').getByRole('link', { name: 'Withdraw' })).toHaveAttribute('href', '/account/guarantee?step=take_out');
-  await expect(tab).toContainText('The USYC rate');
-  await expect(tab).toContainText('Ready to withdraw');
+  await page.goto('/pocket');
+  const pocket = page.locator('[data-guarantee-tab]');
+  await expect(pocket.getByRole('heading', { level: 1 })).toContainText('500.00');
+  await expect(pocket).toContainText('Not counted in your balance');
+  const actions = pocket.locator('[data-guarantee-actions]');
+  await expect(actions.getByRole('link', { name: 'Add to pocket' })).toHaveAttribute('href', '/account/guarantee?step=put_up');
+  await expect(actions.getByRole('link', { name: 'Take out' })).toHaveAttribute('href', '/account/guarantee?step=take_out');
+  await expect(pocket).toContainText('The US Treasury bill rate');
+  await expect(pocket).toContainText('Free');
+  await expect(page.getByRole('tablist', { name: 'Money' })).toHaveCount(0);
 });
 
-test('the old guarantee page lands on Money', async ({ page }) => {
+test('the old guarantee links land on the savings pocket (view 82)', async ({ page }) => {
   await serveMoney(page, { balances: funded, guarantee: { inPlaceUsdc: '500.00', heldUsdc: '0.00', freeUsdc: '500.00' } });
-  await page.goto('/guarantee');
-  await expect(page).toHaveURL(/\/account\?tab=guarantee$/);
-  await expect(page.locator('[data-guarantee-tab]')).toBeVisible();
+  for (const old of ['/guarantee', '/account?tab=guarantee']) {
+    await page.goto(old);
+    await expect(page).toHaveURL(/\/pocket$/);
+    await expect(page.locator('[data-guarantee-tab]')).toBeVisible();
+  }
 });
 
 test('one balance counts the agent and the Transfer balance, and Where it is lists each part', async ({ page }) => {
