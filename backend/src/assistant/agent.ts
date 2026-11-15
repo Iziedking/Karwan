@@ -74,7 +74,8 @@ import { keepOnCard, saidFigure } from './saidFigure.js';
 import { nowLine } from './nowLine.js';
 import { budgetInCents } from '../agents/budgetCents.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
-import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
+import { readSetupFacts } from '../guide/readSetupFacts.js';
+import { setupSteps } from '../guide/setupSteps.js';
 import { mergeSetupAnswers } from './setupTool.js';
 import { readBrief } from '../agents/agentBrief.js';
 import { briefMoneyFor } from '../agents/briefMoney.js';
@@ -972,7 +973,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           }
 
           // The same first move the web nudge shows, so every channel says one thing.
-          const [nextMove] = await readNextMoves(address, now).catch(() => []);
+          const [nextMove] = await readNextMoves(address, method, now).catch(() => []);
           return {
             ...(nextMove ? { nextMove } : {}),
             actionNeeded: actionNeeded.slice(0, 20),
@@ -1220,21 +1221,23 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       },
     }),
 
-    get_first_trade_steps: tool({
+    get_setup_steps: tool({
       description:
-        "Where this person is on their way to a first finished trade, the same checklist Home shows: agent wallets active, USDC added, Telegram connected, a deal started, a deal finished. Each step is ticked from what is true. Use for 'how do I start', 'what should I do first', 'what next', or when a new person seems unsure.",
+        "Where this person is on the way to fully set up, the same list Aman and Home show: finish setup, add money, give their assistant money to work with, set its limits (prices or budget, and whether it asks before a deal), link Telegram, make the first deal. Each step ticks from what is true. Their assistant finds buyers and sellers and agrees prices for them inside their limits; explain it that way, in plain words, never as an 'agent' alone. Use for 'how do I start', 'what should I do first', 'what next', 'am I set up', or when a new person seems unsure.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const view = firstTradeSteps(await readFirstTradeFacts(address, method), config.ARC_NETWORK);
+          const view = setupSteps(await readSetupFacts(address, method), config.ARC_NETWORK);
           return {
             ...view,
             note: view.complete
-              ? 'They have finished a deal, so the first-trade checklist is done. Help with what they ask next.'
-              : 'Give the next step only, in one or two plain sentences, with what it does for them, and offer to do it here when you can (top up, post a request or an offer, open a deal with someone they know). The money flow in one line if useful: you pay into escrow, they deliver, you release, both rate. Never list all steps unless asked.',
+              ? 'They are fully set up. Help with what they ask next.'
+              : !view.known
+                ? 'Their balance could not be read just now, so do not tell them to add money. Say you will check again shortly.'
+                : 'Give the next step only, in one or two plain sentences, with what it does for them, and offer to do it here when you can. Steps: setup (answer the setup questions), money (add money), agent_money (give your assistant money to work with, on Money > Agent), agent_limits (set its prices or budget and whether it asks before a deal), telegram (link Telegram so the assistant can reach them), first_deal. Never list all steps unless asked.',
           };
         } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant get_first_trade_steps failed');
+          logger.warn({ err: (err as Error).message }, 'assistant get_setup_steps failed');
           return { error: 'Could not read their setup right now. Try again shortly.' };
         }
       },

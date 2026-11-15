@@ -40,3 +40,11 @@ test('an address in the query is ignored: it is always the caller', async () => 
   const res = await (await guideRoutes.request(`/next?address=${BUYER}`, as(SELLER))).json();
   assert.equal(res.moves.some((m: { kind: string }) => m.kind === 'approve_delivery'), false);
 });
+
+test('the setup list is the caller\'s own, behind their session', async () => {
+  assert.equal((await guideRoutes.request('/setup')).status, 401);
+  const view = await (await guideRoutes.request('/setup', as(SELLER))).json();
+  assert.ok(Array.isArray(view.steps));
+  assert.equal(view.steps[0]?.key, 'setup');
+  assert.equal(typeof view.known, 'boolean');
+});

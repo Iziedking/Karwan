@@ -8,14 +8,15 @@ import { useGuideSetting } from '@/features/guide/useGuideSetting';
 import { isAssistantRoute } from '@/shared/utils/routes';
 import { AmanFace } from './AmanFace';
 
-/// With the guide hidden from pages, Aman waits in the top bar as a small face
-/// that never speaks first; a tap opens the assistant page (view 57).
+/// Aman waits in the top bar as a small face that never speaks first; a tap
+/// opens the assistant page (view 57). It is the way in whenever Aman is out of
+/// sight on the page, and the only face when the guide is set to the top bar.
 export function HeaderAman() {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const { locale } = useLocale();
   const { guide } = useGuideSetting();
-  if (guide !== 'face' || isAssistantRoute(pathname)) return null;
+  if (guide === 'off' || isAssistantRoute(pathname)) return null;
   return (
     <button
       type="button"

@@ -1,4 +1,3 @@
-import { getAgentWallets } from '../db/agentWallets.js';
 import { listAllBriefs } from '../db/briefs.js';
 import { listDealsForAddress } from '../db/deals.js';
 import { listListingsForSeller } from '../db/listings.js';
@@ -7,31 +6,35 @@ import { getProfile } from '../db/profiles.js';
 import { stageOf } from '../deals/dealView.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { telegramEnabled } from '../telegram/bot.js';
-import type { FirstTradeFacts } from './firstTradeSteps.js';
+import type { SetupFacts } from './setupSteps.js';
 
-export { firstTradeSteps } from './firstTradeSteps.js';
-
-export async function readFirstTradeFacts(address: string, method: string | undefined): Promise<FirstTradeFacts> {
+/// What is true for the account, for the setup list (view 57, 15 Nov). A
+/// balance that could not be read stays null, so nobody is asked to add money
+/// they already have.
+export async function readSetupFacts(address: string, method: string | undefined): Promise<SetupFacts> {
   const key = address.toLowerCase();
-  const [wallets, owned, link, deals] = await Promise.all([
-    getAgentWallets(key).catch(() => null),
+  const [owned, link, deals, profile] = await Promise.all([
     readOwnedBalance(key, method).catch(() => null),
     getTelegramLink(key).catch(() => null),
     listDealsForAddress(key).catch(() => []),
+    getProfile(key).catch(() => null),
   ]);
+  const goals = profile?.goals ?? [];
+  const sells = goals.some((g) => g === 'work' || g === 'sell');
+  const buys = goals.includes('buy');
+  const prefs = profile?.agentPrefs ?? {};
   const postedRequest = listAllBriefs().some((brief) => brief.postedBy === key);
   const postedOffer = listListingsForSeller(key).length > 0;
-  const profile = await getProfile(key).catch(() => null);
-  const goals = profile?.goals ?? [];
   return {
     setupDone: !!profile?.settings?.setupDoneAt,
-    goals,
-    ownClients: profile?.agentPrefs?.findClients === false && goals.some((g) => g === 'work' || g === 'sell'),
-    connected: !!profile?.xHandle,
-    activated: !!wallets?.buyerAddress && !!wallets?.sellerAddress,
-    balance: owned?.total ?? 0,
+    balance: owned ? owned.total : null,
+    agentsBalance: owned ? owned.agents : null,
+    agentMode: prefs.agentMode !== undefined,
+    priceSet: !(sells && prefs.sellerPriceSet === false) && !(buys && prefs.buyerPriceSet === false),
     telegram: link ? 'linked' : telegramEnabled() ? 'unlinked' : 'unavailable',
+    reach: profile?.settings?.notifyVia ?? null,
     startedTrade: deals.length > 0 || postedRequest || postedOffer,
     settledTrade: deals.some((deal) => stageOf(deal) === 'settled'),
+    ownClients: prefs.findClients === false && sells,
   };
 }

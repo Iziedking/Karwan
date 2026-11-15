@@ -402,6 +402,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/guarantee/put-up" },
   { method: "POST", path: "/api/guarantee/take-out" },
   { method: "GET", path: "/api/guide/next" },
+  { method: "GET", path: "/api/guide/setup" },
   { method: "GET", path: "/api/jobs" },
   { method: "POST", path: "/api/jobs" },
   { method: "GET", path: "/api/jobs/:jobId" },

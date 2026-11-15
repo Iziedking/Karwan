@@ -6210,6 +6210,7 @@ export const api = {
     ),
   /// The signed-in person's next moves (view 57), most urgent first.
   guideNext: () => json<{ moves: import('@/features/guide/pickNudge').NextMove[] }>('/api/guide/next'),
+  guideSetup: () => json<import('@/features/guide/pickNudge').SetupView>('/api/guide/setup'),
   telegramStatus: (address: string) =>
     json<TelegramStatus>(`/api/telegram/status?address=${address}`),
   telegramLinkStart: (address: string) =>

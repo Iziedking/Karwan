@@ -29,7 +29,7 @@ const STATE: Record<CaseState, string> = { new: 'Waiting on us', waiting_us: 'Wa
 export const HELP_TOOL_NAMES: readonly string[] = [
   'whats_pending',
   'get_product_facts',
-  'get_first_trade_steps',
+  'get_setup_steps',
   'get_my_balance',
   'get_my_profile',
   'get_my_market_activity',

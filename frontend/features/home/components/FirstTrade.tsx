@@ -8,10 +8,7 @@ import { api } from '@/core/api';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { stageOf } from '@/features/deals/components/DirectDealList';
 import type { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
-import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
-import { useTelegramLink } from '@/features/telegram/hooks/useTelegramLink';
-import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { SECONDARY } from '@/shared/ui/controls';
@@ -21,7 +18,7 @@ import { buttonClasses } from '@/shared/components/Button';
 const STEP_MOVE = buttonClasses({ variant: 'secondary', size: 'lg' });
 import { cn } from '@/shared/utils/cn';
 import { tradeEntryRoutes } from '../tradeEntry';
-import { firstTrade, type FirstTradeStep } from '../firstTrade';
+import { homeChecklist, type FirstTradeStep } from '../firstTrade';
 import { CARD_PILL, CardGlyph, LitCard, type CardIcon } from './LitCard';
 
 const PILL_ICON = 'shrink-0 text-[var(--lp-text-sub)]';
@@ -29,8 +26,9 @@ const PILL_ICON = 'shrink-0 text-[var(--lp-text-sub)]';
 const HIDDEN_PREFIX = 'karwan:first-trade-hidden:';
 
 /// "Your first trade" on Home: a ring with how many steps are done, the next
-/// step one tap away, and the whole list in a drawer (view 39). Each step ticks itself from what is
-/// true. Gone once a deal has finished, or when hidden.
+/// step one tap away, and the whole list in a drawer (view 39). The steps are
+/// the server's setup list, the one Aman and the assistant read (view 57,
+/// 15 Nov), plus Finish. Gone once a deal has finished, or when hidden.
 export function FirstTrade({ deals, dealsState, className }: {
   deals: ReturnType<typeof useDirectDeals>['deals'];
   dealsState: ReturnType<typeof useDirectDeals>['fetchState'];
@@ -41,12 +39,7 @@ export function FirstTrade({ deals, dealsState, className }: {
   const card = messages.startFlow.home.firstTrade;
   const [open, setOpen] = useState(false);
   const me = useAuth().address?.toLowerCase() ?? '';
-  const owned = useOwnedBalance();
-  const telegram = useTelegramLink(me || undefined);
-  const { profile, fetchState: profileState } = useUserProfile();
-  // The same keys the market's own lists use, so this costs no extra reads.
-  const requests = useQuery({ queryKey: ['search', 'myRequests', me], queryFn: () => api.buyer(me).then((r) => r.jobs), enabled: !!me, staleTime: 15_000 });
-  const listings = useQuery({ queryKey: ['trade-hub', 'listings', me], queryFn: () => api.listingsForSeller(me).then((r) => r.listings), enabled: !!me, staleTime: 15_000 });
+  const setup = useQuery({ queryKey: ['guide-setup', me], queryFn: () => api.guideSetup(), enabled: !!me, staleTime: 30_000 });
   const [hidden, setHidden] = useState(true);
 
   useEffect(() => {
@@ -58,20 +51,7 @@ export function FirstTrade({ deals, dealsState, className }: {
   }, [me]);
 
   const dealsLoaded = dealsState === 'success' || dealsState === 'error';
-  const view = firstTrade({
-    reach: profile?.settings?.notifyVia ?? null,
-    balance: owned.loading ? null : owned.total ?? 0,
-    telegram: !telegram.status ? null : !telegram.status.enabled ? 'unavailable' : telegram.status.linked ? 'linked' : 'unlinked',
-    startedTrade: !dealsLoaded || requests.isPending || listings.isPending
-      ? null
-      : deals.length > 0 || (requests.data?.length ?? 0) > 0 || (listings.data?.length ?? 0) > 0,
-    settledTrade: dealsLoaded ? deals.some((deal) => stageOf(deal) === 'settled') : null,
-    setupDone: profileState === 'success' ? !!profile?.settings?.setupDoneAt : null,
-    goals: profile?.goals ?? [],
-    ownClients: profile?.agentPrefs?.findClients === false && (profile?.goals ?? []).some((g) => g === 'work' || g === 'sell'),
-    // X is connected through sign-in with X, so it is proven.
-    connected: !!profile?.xHandle,
-  });
+  const view = homeChecklist(setup.data ?? null, dealsLoaded ? deals.some((deal) => stageOf(deal) === 'settled') : null);
 
   if (!view.visible || hidden) return null;
 
@@ -88,7 +68,8 @@ export function FirstTrade({ deals, dealsState, className }: {
   const routes = tradeEntryRoutes();
   const action = (key: FirstTradeStep) => {
     if (key === 'setup') return <Link href="/start?step=about" className={STEP_MOVE}>{t.steps.setup.action}</Link>;
-    if (key === 'connect') return <Link href="/profile/sources" className={STEP_MOVE}>{t.steps.connect.action}</Link>;
+    if (key === 'agentMoney') return <Link href={view.steps.find((s) => s.key === 'agentMoney')?.href ?? '/'} className={STEP_MOVE}>{t.steps.agentMoney.action}</Link>;
+    if (key === 'agentLimits') return <Link href={view.steps.find((s) => s.key === 'agentLimits')?.href ?? '/'} className={STEP_MOVE}>{t.steps.agentLimits.action}</Link>;
     if (key === 'money') {
       // On testnet nobody holds USDC yet, so the faucet comes first.
       if (ARC_NETWORK === 'testnet') {
@@ -122,7 +103,7 @@ export function FirstTrade({ deals, dealsState, className }: {
     return null;
   };
   const note = (key: FirstTradeStep) =>
-    key === 'money' ? (ARC_NETWORK === 'testnet' ? t.steps.money.testnetNote : t.steps.money.note) : key === 'telegram' ? t.steps.telegram.note : key === 'connect' ? t.steps.connect.note : null;
+    key === 'money' ? (ARC_NETWORK === 'testnet' ? t.steps.money.testnetNote : t.steps.money.note) : key === 'telegram' ? t.steps.telegram.note : key === 'agentMoney' ? t.steps.agentMoney.note : key === 'agentLimits' ? t.steps.agentLimits.note : null;
 
   const total = view.steps.length;
   const doneText = card.done.replace('{done}', String(view.done)).replace('{total}', String(total));
@@ -131,7 +112,8 @@ export function FirstTrade({ deals, dealsState, className }: {
   const nextMove = ((): { label: string; icon: CardIcon; href?: string } | null => {
     switch (view.next) {
       case 'setup': return { label: t.steps.setup.action, icon: 'user', href: '/start?step=about' };
-      case 'connect': return { label: t.steps.connect.label, icon: 'link', href: '/profile/sources' };
+      case 'agentMoney': return { label: t.steps.agentMoney.action, icon: 'plus', href: view.steps.find((s) => s.key === 'agentMoney')?.href ?? '/' };
+      case 'agentLimits': return { label: t.steps.agentLimits.action, icon: 'user', href: view.steps.find((s) => s.key === 'agentLimits')?.href ?? '/' };
       case 'money': return ARC_NETWORK === 'testnet'
         ? { label: t.steps.money.faucet, icon: 'plus', href: '/profile/wallets' }
         : { label: t.steps.money.action, icon: 'plus', href: '/add' };

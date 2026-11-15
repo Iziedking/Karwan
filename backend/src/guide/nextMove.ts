@@ -1,6 +1,7 @@
 import type { DirectDeal } from '../db/deals.js';
 import type { MatchProposal } from '../db/matchProposals.js';
 import type { LocalAmount } from '../rates/quote.js';
+import type { SetupKey, SetupView } from './setupSteps.js';
 
 /// The one next move for a person, from what Karwan already knows (view 57).
 /// Fixed rules, no model: the web nudge, the assistant and Telegram all read
@@ -15,15 +16,17 @@ export type NextMoveKind =
   | 'fund_deal'
   | 'approve_match'
   | 'agree_terms'
+  | 'setup_step'
   | 'choose_offer'
-  | 'deliver_soon'
-  | 'first_post';
+  | 'deliver_soon';
 
 export interface NextMove {
   kind: NextMoveKind;
-  /// The deal or request the move is about; absent for first_post.
+  /// The deal or request the move is about; absent for setup_step.
   ref?: string;
   href: string;
+  /// The setup step a setup_step move names (view 57, 15 Nov).
+  step?: SetupKey;
   amountUsdc?: string;
   /// The figure the deal was agreed in, when it was agreed in a local currency (view 55).
   agreedLocal?: LocalAmount;
@@ -37,8 +40,8 @@ export interface NextMoveInput {
   proposals: readonly MatchProposal[];
   /// The person's own requests that have offers, with how many.
   requestsWithOffers: readonly { jobId: string; offers: number }[];
-  /// Any request or offer for sale ever posted.
-  postedAnything: boolean;
+  /// The way to fully set up; null when it was not read.
+  setup: SetupView | null;
   /// Whether a dispute's statement window is still open (the dispute rules own this).
   statementOpen: (deal: DirectDeal) => boolean;
   now: number;
@@ -53,9 +56,9 @@ const ORDER: NextMoveKind[] = [
   'fund_deal',
   'approve_match',
   'agree_terms',
+  'setup_step',
   'choose_offer',
   'deliver_soon',
-  'first_post',
 ];
 
 const DAY_MS = 86_400_000;
@@ -108,8 +111,10 @@ export function nextMoves(input: NextMoveInput): NextMove[] {
     if (r.offers < 1 || proposalJobs.has(r.jobId.toLowerCase())) continue;
     moves.push({ kind: 'choose_offer', ref: r.jobId, href: `/jobs/${r.jobId}`, count: r.offers });
   }
-  if (moves.length === 0 && !input.postedAnything && input.deals.length === 0) {
-    moves.push({ kind: 'first_post', href: '/buyer' });
+  const setup = input.setup;
+  if (setup && setup.known && setup.next) {
+    const step = setup.steps.find((s) => s.key === setup.next);
+    if (step) moves.push({ kind: 'setup_step', step: step.key, href: step.href });
   }
   return moves.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
 }

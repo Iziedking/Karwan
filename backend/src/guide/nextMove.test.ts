@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { DirectDeal } from '../db/deals.js';
 import type { MatchProposal } from '../db/matchProposals.js';
 import { nextMoves, type NextMoveInput } from './nextMove.js';
+import type { SetupView } from './setupSteps.js';
 
 const ME = '0x00000000000000000000000000000000000000aa';
 const THEM = '0x00000000000000000000000000000000000000bb';
@@ -20,7 +21,7 @@ const input = (over: Partial<NextMoveInput>): NextMoveInput => ({
   deals: [],
   proposals: [],
   requestsWithOffers: [],
-  postedAnything: true,
+  setup: null,
   statementOpen: () => true,
   now: NOW,
   ...over,
@@ -117,10 +118,34 @@ test('one move per deal, the most urgent', () => {
   assert.deepEqual(kinds(input({ deals: [d] })), ['approve_delivery']);
 });
 
-test('someone with nothing yet is asked to start; anyone with anything is not', () => {
-  assert.deepEqual(kinds(input({ postedAnything: false })), ['first_post']);
-  assert.deepEqual(kinds(input({ postedAnything: false, deals: [deal({ acceptedAt: 1 } as Partial<DirectDeal>)] })), []);
-  assert.deepEqual(kinds(input({ postedAnything: true })), []);
+const setupAt = (next: SetupView['next'], over: Partial<SetupView> = {}): SetupView => ({
+  steps: next ? [{ key: next, done: false, href: next === 'money' ? '/add' : '/setup' }] : [],
+  next,
+  complete: next === null,
+  known: true,
+  ...over,
+});
+
+test('a setup step comes after deal moves and before market moves', () => {
+  const moves = nextMoves(
+    input({
+      deals: [deal({ sellerApprovedAt: NOW - 10 } as Partial<DirectDeal>)],
+      requestsWithOffers: [{ jobId: '0xreq', offers: 2 }],
+      setup: setupAt('money'),
+    }),
+  );
+  assert.deepEqual(moves.map((m) => m.kind), ['fund_deal', 'setup_step', 'choose_offer']);
+  assert.deepEqual(moves[1], { kind: 'setup_step', step: 'money', href: '/add' });
+});
+
+test('no setup move when the list is complete or could not be read', () => {
+  assert.deepEqual(kinds(input({ setup: setupAt(null) })), []);
+  assert.deepEqual(kinds(input({ setup: setupAt('money', { known: false }) })), []);
+  assert.deepEqual(kinds(input({ setup: null })), []);
+});
+
+test('someone with nothing yet is asked for their first setup step, nothing else', () => {
+  assert.deepEqual(kinds(input({ setup: setupAt('setup') })), ['setup_step']);
 });
 
 test('addresses match whatever their casing', () => {

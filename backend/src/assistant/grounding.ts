@@ -11,7 +11,7 @@ const accountTools = new Set([
   'check_top_up_sources', 'get_my_workspaces', 'get_my_deposit_addresses',
   'create_payment_link', 'list_my_payment_links', 'cancel_payment_link',
   'find_karwan_tag', 'propose_send_to_tag', 'search_market', 'start_protected_deal',
-  'get_first_trade_steps', 'list_people_i_traded_with',
+  'get_setup_steps', 'list_people_i_traded_with',
 ]);
 const subjects: Array<[RegExp, string[]]> = [
   [/(?:\b(?:balance|solde|salio)\b|رصيد|शेष)/iu, ['get_my_balance', 'list_bridge_sources', 'check_top_up_sources', 'propose_send_to_tag']],
@@ -32,7 +32,7 @@ const subjects: Array<[RegExp, string[]]> = [
   [/\b(?:(?<!request )money|funds|paid|landed|arrived?|received?)\b/i, ['get_my_balance', 'recall_activity', 'list_my_payment_links', 'propose_send_to_tag']],
   [/\bprofile\b/i, ['get_my_profile']],
   [/\b(?:anything pending|everything|attention)\b/i, ['whats_pending']],
-  [/\b(?:get(?:ting)? started|first (?:trade|deal)|where do i start|how do i start|what (?:should|do) i do (?:first|next|now))\b/i, ['get_first_trade_steps', 'whats_pending']],
+  [/\b(?:get(?:ting)? started|first (?:trade|deal)|where do i start|how do i start|what (?:should|do) i do (?:first|next|now))\b/i, ['get_setup_steps', 'whats_pending']],
   [/\b(?:set ?up my agents?|change my (?:price|agent|offer|budget)|stop making offers|ask me first)\b/i, ['set_up_my_agents', 'get_my_profile']],
   [/\b(?:i (?:also )?(?:sell|rent|ship|deliver)|refundable deposits?|rental deposits?|milestones?|in stages|how i deal|ways? (?:i|to) (?:deal|sell|buy))\b/i, ['set_way_i_deal', 'get_my_profile']],
 ];

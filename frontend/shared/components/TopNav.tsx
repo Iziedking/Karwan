@@ -119,7 +119,7 @@ export function TopNav() {
             </>
           ) : showAppChrome ? (
               <>
-                {/* With the guide hidden from pages, Aman waits here (view 57). */}
+                {/* Aman waits here whenever it is out of sight on the page (view 57). */}
                 {showFullChrome ? <HeaderAman /> : null}
                 <NotificationBell />
                 {/* In the workspace the person is at the foot of the rail on

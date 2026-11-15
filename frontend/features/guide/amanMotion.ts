@@ -38,3 +38,14 @@ export function blinkDelay(seed: number, n: number): number {
   h = (h ^ (h >>> 16)) >>> 0;
   return 4000 + (h % 3001);
 }
+
+/// How long Aman stays pleased after the step it named is done (view 57, 15 Nov).
+export const PLEASED_MS = 1500;
+/// How long Aman takes to come in or go, in seconds.
+export const ENTER_S = 0.24;
+
+/// Where Aman comes in from: the inline edge it docks against, or nowhere
+/// (a fade only) with reduced motion.
+export function enterFrom(rtl: boolean, reduce: boolean): { x: number; opacity: number } {
+  return { x: reduce ? 0 : rtl ? -24 : 24, opacity: 0 };
+}

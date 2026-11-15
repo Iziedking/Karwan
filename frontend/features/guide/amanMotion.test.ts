@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { blinkDelay, isMoneyFlow, mayMove, maySpeak } from './amanMotion';
+import { ENTER_S, PLEASED_MS, blinkDelay, enterFrom, isMoneyFlow, mayMove, maySpeak } from './amanMotion';
 
 const still = { typing: false, fastScroll: false, dialogOpen: false, moneyFlow: false, reducedMotion: false };
 const ready = { typing: false, dialogOpen: false, moneyFlow: false, spokenThisVisit: false, quietHere: false, guide: 'on' as const };
@@ -35,4 +35,12 @@ test('a blink comes every 4 to 7 seconds, the same for the same visit', () => {
     }
   }
   assert.notEqual(blinkDelay(1, 0), blinkDelay(2, 0));
+});
+
+test('Aman slides in from the inline edge, and only fades with reduced motion', () => {
+  assert.deepEqual(enterFrom(false, false), { x: 24, opacity: 0 });
+  assert.deepEqual(enterFrom(true, false), { x: -24, opacity: 0 });
+  assert.deepEqual(enterFrom(false, true), { x: 0, opacity: 0 });
+  assert.equal(ENTER_S, 0.24);
+  assert.equal(PLEASED_MS, 1500);
 });

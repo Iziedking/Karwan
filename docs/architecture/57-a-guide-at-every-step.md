@@ -263,7 +263,7 @@ With nothing to say, Aman is not on the page. The small face in the top bar stay
 | The first-run welcome and any page tour that opens by itself are for someone new: an account with a deal, or one set up more than a day ago, is never shown them on a new device. The Page tour button stays for everyone | Built 12 Nov 2026, not deployed |
 | Figma: placeholder face, gate, tour, sign-up and first open (phone, dark) | Drawn 6 Nov 2026 |
 | Aman beside the page with the one next move, the face opens the assistant page, Ctrl+K, Not now, Not on this page, Hide the guide, Settings switch, Ask Aman in Profile, the corner Help button and the parked switch removed, the assistant page redesigned | Built 15 Nov 2026, not deployed |
-| 15 Nov amendment: Aman out of sight, six steps to fully set up, the assistant in plain words | Proposed 15 Nov 2026 |
+| 15 Nov amendment: Aman out of sight, six steps to fully set up, the assistant in plain words | Approved and built 15 Nov 2026, not deployed |
 | Gate and tours with the face (modes 1 and 2) | Not started |
 
 ## As built (15 Nov 2026)
@@ -274,3 +274,11 @@ With nothing to say, Aman is not on the page. The small face in the top bar stay
 - `frontend/shared/guide/AmanGuide.tsx` replaces `NextMoveNudge` and `AssistantWidget`; `HeaderAman.tsx` is the 28 face in the top bar for `face`; `AmanMenu.tsx` is the press-and-hold menu. `openAssistant`, `isShortcut` and `useAssistantShortcut` in `shared/assistant` are the way in; `openHelp` now opens the assistant page and `callPerson` opens Help and support with the last message ready to send.
 - The assistant page (`features/assistant/AssistantMode.tsx`) has a round Back, Aman at 30, the conversations in a 300 px rail on a laptop or a sheet, the empty page with Aman at 96, "From {page}" and three questions from `suggestedQuestions.ts`, a 640 px column and Talk to a person under the box.
 - Copy is `frontend/shared/i18n/messages/guide.ts` in five languages; the assistant's guide and the canon doc `assistant-mode-and-help` say the same.
+
+### As built, 15 Nov amendment
+
+- The setup list is one pure function, `backend/src/guide/setupSteps.ts`, fed by `readSetupFacts.ts`; a balance that could not be read leaves the list not known, and then nothing is asked. It replaces the two first-trade checklists.
+- `readNextMoves` adds one `setup_step` move, ranked after the deal moves and before offers and due deliveries; `first_post` and the web-only `add_money` are gone. `GET /api/guide/setup` serves the list to Home, and the assistant tool `get_setup_steps` reads the same function.
+- `AmanGuide` renders only while it speaks, while its menu is open, or for 1.5 seconds pleased after the step it named is done (`stepFinished` in `pickNudge.ts`); it slides in from the inline edge in 0.24 seconds (`enterFrom` in `amanMotion.ts`) and only fades with reduced motion. The moves are read again on every page. `HeaderAman` shows unless the guide is off.
+- Home's Your first trade is `homeChecklist` in `features/home/firstTrade.ts`: the server list plus Finish. The six lines are `nextMoveCopy[locale].setup` in five languages.
+

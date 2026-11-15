@@ -1,10 +1,23 @@
-import type { NextMoveCopyKind } from '@/shared/i18n/messages/nextMove';
+import type { NextMoveCopyKind, SetupCopyKey } from '@/shared/i18n/messages/nextMove';
+
+/// The six steps to fully set up (backend guide/setupSteps.ts, view 57, 15 Nov).
+export type SetupKey = SetupCopyKey;
+export interface SetupView {
+  steps: { key: SetupKey; done: boolean; href: string }[];
+  next: SetupKey | null;
+  complete: boolean;
+  known: boolean;
+}
+
+export type NextMoveKind = NextMoveCopyKind | 'setup_step';
 
 /// One move from the server's rules (backend guide/nextMove.ts).
 export interface NextMove {
-  kind: Exclude<NextMoveCopyKind, 'add_money'>;
+  kind: NextMoveKind;
   ref?: string;
   href: string;
+  /// The setup step a setup_step move names.
+  step?: SetupKey;
   amountUsdc?: string;
   agreedLocal?: { currency: string; amount: string; rate: string; at: number };
   days?: number;
@@ -13,38 +26,36 @@ export interface NextMove {
 
 export interface Nudge {
   key: string;
-  kind: NextMoveCopyKind;
+  kind: NextMoveKind;
   href: string;
+  step?: SetupKey;
   amountUsdc?: string;
   agreedLocal?: NextMove['agreedLocal'];
   days?: number;
   count?: number;
 }
 
-export const nudgeKey = (m: { kind: string; ref?: string }) => `${m.kind}:${m.ref ?? ''}`;
+export const nudgeKey = (m: { kind: string; ref?: string; step?: string }) => `${m.kind}:${m.ref ?? m.step ?? ''}`;
 
 const samePage = (pathname: string, href: string) => pathname.replace(/\/$/, '') === href.replace(/[#?].*$/, '').replace(/\/$/, '');
 
-/// What the nudge shows (view 57): the first move not already on screen and
-/// not closed this visit. With nothing above "start", an empty balance asks
-/// for money first.
-export function pickNudge(input: {
-  moves: readonly NextMove[];
-  balanceTotal: number | null;
-  pathname: string;
-  closed: ReadonlySet<string>;
-}): Nudge | null {
-  const open = input.moves.filter((m) => !input.closed.has(nudgeKey(m)) && !samePage(input.pathname, m.href));
-  const top = open[0];
-  if ((!top || top.kind === 'first_post') && input.balanceTotal === 0 && input.moves.every((m) => m.kind === 'first_post')) {
-    const add: Nudge = { key: 'add_money:', kind: 'add_money', href: '/add' };
-    if (!input.closed.has(add.key) && !samePage(input.pathname, add.href)) return add;
-  }
+/// What Aman says (view 57): the first move not already on screen and not
+/// closed this visit. The server ranks deal moves, then the next setup step,
+/// then market moves.
+export function pickNudge(input: { moves: readonly NextMove[]; pathname: string; closed: ReadonlySet<string> }): Nudge | null {
+  const top = input.moves.find((m) => !input.closed.has(nudgeKey(m)) && !samePage(input.pathname, m.href));
   if (!top) return null;
   return { key: nudgeKey(top), ...top };
 }
 
-const DEAL_MOVES: ReadonlySet<NextMoveCopyKind> = new Set([
+/// True once the server stops naming the setup step Aman last spoke about: the
+/// person did it, so Aman can be pleased for a moment (view 57, 15 Nov).
+export function stepFinished(spoken: SetupKey | null, moves: readonly NextMove[]): boolean {
+  if (!spoken) return false;
+  return !moves.some((m) => m.kind === 'setup_step' && m.step === spoken);
+}
+
+const DEAL_MOVES: ReadonlySet<NextMoveKind> = new Set([
   'dispute_statement',
   'approve_delivery',
   'answer_cancel',
@@ -58,7 +69,7 @@ const DEAL_MOVES: ReadonlySet<NextMoveCopyKind> = new Set([
 /// The part of the page a move is about (a `data-guide-anchor` value), so Aman
 /// sits beside it (view 57). A web concern only: the server's moves stay as they are.
 export function anchorFor(n: Nudge): string | null {
-  if (n.kind === 'add_money') return 'balance';
+  if (n.kind === 'setup_step') return n.step === 'money' ? 'balance' : n.step === 'agent_money' || n.step === 'agent_limits' ? 'agent' : null;
   if (n.kind === 'choose_offer' || n.kind === 'approve_match') {
     const ref = n.key.slice(n.key.indexOf(':') + 1);
     return ref ? `request:${ref}` : null;
