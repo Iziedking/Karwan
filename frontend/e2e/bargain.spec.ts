@@ -51,6 +51,7 @@ test('the buyer sees how each price moved and why it ranks there', async ({ page
   });
   await page.goto(`/jobs/${JOB}`);
   const list = page.locator('[data-guide="job-shortlist"]');
+  await list.locator('[data-shortlist-open]').click();
   await expect(list.getByText('Ranked on fit, price, ratings and record')).toBeVisible();
   const rows = list.locator('li > button');
   await expect(rows).toHaveCount(3);
@@ -73,6 +74,8 @@ test('a shortlist without the score keeps today’s lines', async ({ page }) => 
   });
   await page.goto(`/jobs/${JOB}`);
   const list = page.locator('[data-guide="job-shortlist"]');
+  await expect(list).toContainText('1 offer · Agent’s pick: Realnica');
+  await list.locator('[data-shortlist-open]').click();
   await expect(list.getByText('Ranked by your agent. Tap one to see more.')).toBeVisible();
   await expect(list.locator('li > button').first()).toContainText('@realnica');
   await expect(list.locator('[data-opened-at]')).toHaveCount(0);
@@ -122,6 +125,9 @@ test('your call: the buyer agrees at the seller price or lets the agent keep bar
   });
   await page.goto(`/jobs/${JOB}`);
   const list = page.locator('[data-guide="job-shortlist"]');
+  // B-07: an offer waiting on Your call keeps the card open, with no Close list.
+  await expect(list.locator('[data-shortlist-open]')).toHaveCount(0);
+  await expect(list.locator('[data-shortlist-fold]')).toHaveCount(0);
   const row = list.locator('li').first();
   await expect(row.locator('[data-your-call]')).toHaveText('Your call');
   await expect(row).toContainText(/Your agent offered 200(\.00)? USDC/);

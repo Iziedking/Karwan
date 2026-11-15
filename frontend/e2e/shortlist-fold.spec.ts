@@ -46,9 +46,15 @@ test('offers are one line each in the agent order, the pick marked, and a tap sh
   await page.goto(`/jobs/${JOB}`);
   await expect(page.getByText(/^Request REQ-/)).toBeVisible();
   const rows = page.locator('[data-guide="job-shortlist"] li > button');
-  // The best three show at once; Show all only appears when there are more (owner, 7 Nov 2026).
+  // B-07: the card starts as one line, the count and the agent's pick with its price.
+  const folded = page.locator('[data-shortlist-open]');
+  await expect(rows).toHaveCount(0);
+  await expect(folded).toContainText('Your shortlist');
+  await expect(folded).toContainText('3 offers · Agent’s pick: Realnica');
+  await expect(folded).toContainText('96 USDC');
+  await expect(folded).toHaveAttribute('aria-expanded', 'false');
+  await folded.click();
   await expect(rows).toHaveCount(3);
-  await expect(page.locator('[data-guide="job-shortlist"]').getByRole('button', { name: /^Show all/ })).toHaveCount(0);
   await expect(rows.nth(0)).toContainText('Realnica');
   await expect(rows.nth(0)).toContainText('@realnica');
   await expect(rows.nth(0)).toContainText('Agent’s pick');
@@ -84,7 +90,7 @@ test('offers are one line each in the agent order, the pick marked, and a tap sh
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
 
-test('past three offers Show all opens the rest, and the notes open from their (i) (owner, 7 Nov 2026)', async ({ page }) => {
+test('with no pick the folded line names the first offer, opens every offer, and folds again (B-07)', async ({ page }) => {
   const none = (rank: number, name: string, price: number) => ({ ...entry(rank, name, price), recommended: false });
   await serveSearch(page, {
     balances: funded,
@@ -101,12 +107,15 @@ test('past three offers Show all opens the rest, and the notes open from their (
   await page.goto(`/jobs/${JOB}`);
   const card = page.locator('[data-guide="job-shortlist"]');
   const rows = card.locator('li > button');
-  await expect(rows).toHaveCount(3);
-  const all = card.getByRole('button', { name: 'Show all 5 offers' });
-  await expect(all).toHaveAttribute('aria-expanded', 'false');
-  await all.click();
+  await expect(rows).toHaveCount(0);
+  await expect(card).toContainText('5 offers · First: Realnica');
+  await card.locator('[data-shortlist-open]').click();
   await expect(rows).toHaveCount(5);
-  await expect(card.getByRole('button', { name: 'Show fewer' })).toHaveAttribute('aria-expanded', 'true');
+  const fold = card.getByRole('button', { name: 'Close list' });
+  await expect(fold).toHaveAttribute('aria-expanded', 'true');
+  await fold.click();
+  await expect(rows).toHaveCount(0);
+  await card.locator('[data-shortlist-open]').click();
   // None verified is one line; why it matters is in the tooltip, not on the page.
   const notice = card.locator('[data-unverified-notice]');
   await expect(notice).toContainText('None of these sellers is verified yet.');
@@ -226,6 +235,7 @@ for (const [lang, messages] of batch3Locales) test('Batch 3 shortlist funding wa
  await page.addInitScript(() => {localStorage.setItem('karwan:guide:disabled','1');localStorage.setItem('karwan-theme','light');});
  await serveSearch(page,{balances:funded,job:makeJob({budgetUsdc:'100',bids:[{seller:'0x'+'1'.repeat(40),priceUsdc:'96',deadlineUnix:Math.floor(Date.now()/1000)+6*86400,score:70,suggestedCounterPrice:null,suggestedCounterDeadlineDays:null,sellerTier:'new',sellerUserAddress:null,sellerDisplayName:'Realnica',topicalMatch:80}]}),shortlist:{entries:[entry(1,'Realnica',96)],closed:false}});
  await page.goto('/jobs/'+JOB);
+ await page.locator('[data-shortlist-open]').click();
  await page.locator('[data-guide="job-shortlist"] li > button').first().click();
  await page.getByRole('button',{name:messages.requestFlow.reviewOffer+' Realnica',exact:true}).click();
  const sheet=page.getByRole('dialog');

@@ -37,8 +37,13 @@ export interface ShortlistCopy {
   noneVerified: string;
   noneVerifiedTip: string;
   checkedTip: string;
-  showAll: string;
-  showFewer: string;
+  /// B-07: the folded card, the offer count and who leads it.
+  foldedOne: string;
+  foldedMany: string;
+  foldedPick: string;
+  foldedTop: string;
+  open: string;
+  fold: string;
   noneInBudget: string;
   unverifiedWarning: string;
   outsideRequest: string;
@@ -93,8 +98,12 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'None of these sellers is verified yet.',
     noneVerifiedTip: 'None of these sellers has checked their identity or skills yet. Their deals on Karwan still count.',
     checkedTip: 'Your agent paid to read each seller’s record before ranking them.',
-    showAll: 'Show all {n} offers',
-    showFewer: 'Show fewer',
+    foldedOne: '1 offer',
+    foldedMany: '{n} offers',
+    foldedPick: 'Agent’s pick: {name}',
+    foldedTop: 'First: {name}',
+    open: 'Open',
+    fold: 'Close list',
     noneInBudget: 'No verified seller is within your budget yet.',
     unverifiedWarning: "{name} is not verified. Review the available record before accepting. Payment follows the agreed release rules.",
     outsideRequest: 'Above your budget, outside your request',
@@ -153,8 +162,12 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'Aucun de ces vendeurs n’est encore vérifié.',
     noneVerifiedTip: 'Aucun de ces vendeurs n’a encore fait vérifier son identité ou ses compétences. Leurs transactions sur Karwan comptent toujours.',
     checkedTip: 'Votre agent a payé pour lire le dossier de chaque vendeur avant de les classer.',
-    showAll: 'Voir les {n} offres',
-    showFewer: 'Voir moins',
+    foldedOne: '1 offre',
+    foldedMany: '{n} offres',
+    foldedPick: 'Choix de votre agent : {name}',
+    foldedTop: 'En tête : {name}',
+    open: 'Ouvrir',
+    fold: 'Fermer la liste',
     noneInBudget: 'Aucun vendeur vérifié ne tient encore dans votre budget.',
     unverifiedWarning: "{name} n’est pas vérifié. Consultez son historique disponible avant d’accepter. Les règles de versement convenues s’appliquent.",
     outsideRequest: 'Au-dessus de votre budget, hors de votre demande',
@@ -213,8 +226,12 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'لا أحد من هؤلاء البائعين موثّق بعد.',
     noneVerifiedTip: 'لم يتحقق أي من هؤلاء البائعين من هويته أو مهاراته بعد. صفقاتهم على Karwan لا تزال تُحتسب.',
     checkedTip: 'دفع وكيلك لقراءة سجل كل بائع قبل ترتيبهم.',
-    showAll: 'عرض كل العروض ({n})',
-    showFewer: 'عرض أقل',
+    foldedOne: 'عرض واحد',
+    foldedMany: '{n} عروض',
+    foldedPick: 'اختيار وكيلك: {name}',
+    foldedTop: 'في المقدمة: {name}',
+    open: 'فتح',
+    fold: 'إغلاق القائمة',
     noneInBudget: 'لا يوجد بائع موثّق ضمن ميزانيتك بعد.',
     unverifiedWarning: "لم يتم التحقق من {name}. راجع السجل المتاح قبل القبول. تسري قواعد الصرف المتفق عليها.",
     outsideRequest: 'أعلى من ميزانيتك، خارج طلبك',
@@ -273,8 +290,12 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'इनमें से कोई विक्रेता अभी सत्यापित नहीं है।',
     noneVerifiedTip: 'इनमें से किसी विक्रेता ने अभी अपनी पहचान या कौशल की जाँच नहीं कराई है। Karwan पर उनकी डील फिर भी गिनी जाती हैं।',
     checkedTip: 'रैंक करने से पहले आपके एजेंट ने हर विक्रेता का रिकॉर्ड पढ़ने के लिए भुगतान किया।',
-    showAll: 'सभी {n} ऑफ़र देखें',
-    showFewer: 'कम दिखाएँ',
+    foldedOne: '1 ऑफ़र',
+    foldedMany: '{n} ऑफ़र',
+    foldedPick: 'एजेंट की पसंद: {name}',
+    foldedTop: 'सबसे ऊपर: {name}',
+    open: 'खोलें',
+    fold: 'सूची बंद करें',
     noneInBudget: 'अभी कोई सत्यापित विक्रेता आपके बजट में नहीं है।',
     unverifiedWarning: "{name} सत्यापित नहीं हैं। स्वीकार करने से पहले उपलब्ध रिकॉर्ड देखें। भुगतान के सहमत नियम लागू होते हैं।",
     outsideRequest: 'आपके बजट से ऊपर, आपके अनुरोध से बाहर',
@@ -333,8 +354,12 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'Hakuna kati ya wauzaji hawa aliyethibitishwa bado.',
     noneVerifiedTip: 'Hakuna kati ya wauzaji hawa aliyethibitisha utambulisho au ujuzi wake bado. Mikataba yao kwenye Karwan bado inahesabika.',
     checkedTip: 'Wakala wako alilipa kusoma rekodi ya kila muuzaji kabla ya kuwapanga.',
-    showAll: 'Onyesha ofa zote {n}',
-    showFewer: 'Onyesha chache',
+    foldedOne: 'Ofa 1',
+    foldedMany: 'Ofa {n}',
+    foldedPick: 'Chaguo la wakala wako: {name}',
+    foldedTop: 'Wa kwanza: {name}',
+    open: 'Fungua',
+    fold: 'Funga orodha',
     noneInBudget: 'Bado hakuna muuzaji aliyethibitishwa ndani ya bajeti yako.',
     unverifiedWarning: "{name} hajathibitishwa. Kagua historia iliyopo kabla ya kukubali. Malipo yanafuata kanuni zilizokubaliwa.",
     outsideRequest: 'Juu ya bajeti yako, nje ya ombi lako',

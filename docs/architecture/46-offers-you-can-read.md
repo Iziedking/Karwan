@@ -40,7 +40,22 @@ The owner approved a new request page, drawn first in Figma (page "Request page 
 
 - The request photo sits beside the title.
 - One status card leads with how many offers there are, said large, and three counts under a hairline: sellers who fit, who offered, and who are checking the price.
-- The shortlist shows the best three at once, each with photo, name, tag and price, and the agent's pick marked. Show all opens the rest.
+- The shortlist shows the best three at once, each with photo, name, tag and price, and the agent's pick marked. Show all opens the rest. (Replaced on 15 Nov 2026: the card now folds to one line, see below.)
 - None of these sellers is verified yet is one line. What it means, and what the agent spent checking records, open from the (i) beside each.
 - Edit request and Cancel request are two rows in one Manage request card. Each note opens from its (i), and Cancel asks once in a confirm sheet.
 - Every note in the app uses the same tooltip (`shared/components/Hint.tsx`): a raised card with a pointer, opened by hover, focus or tap, and closed by Escape or a tap outside.
+
+## The shortlist folds to one line (B-07, owner, 15 Nov 2026)
+
+Track T1, find and agree. The owner chose to fold the whole card, not only the rows.
+
+- The card starts as one line: the photo of the agent's pick, Your shortlist, how many offers there are, the pick's name and its price, and Open. With no pick, the line names the first offer instead.
+- A tap opens every offer in the agent's order. There is no preview of three any more. Close list at the foot folds it again.
+- The card stays open, and Close list is hidden, while something waits on the buyer: an offer for Your call, a choice waiting on the seller's answer, or a seller's agent check. Folding must never hide a question.
+- What the agent spent checking records, and None of these sellers is verified yet, sit inside the open card.
+
+| Where | What changes |
+| --- | --- |
+| `frontend/features/jobs/components/Shortlist.tsx` | the folded line, `needsYou` keeps it open |
+| `frontend/shared/i18n/messages/shortlist.ts` | the folded line and Close list in five languages |
+| assistant | the guide entry says how the card folds; no new tool, nothing a person can do changed |

@@ -24,8 +24,6 @@ import { AgentWorldCheck } from './AgentWorldCheck';
 import { worldStepFrom } from '../agentWorldStep';
 
 const POLL_MS = 6_000;
-/// Offers shown before Show all.
-const PREVIEW = 3;
 
 /// The shortlist for a request, or null when the backend does not run it, so
 /// the caller falls back to the plain offers list.
@@ -60,7 +58,7 @@ export function useShortlist(jobId: string, caller: string | null) {
 }
 
 /// The offers on a request in the agent's order, one line each: photo, name,
-/// price and place, with the agent's pick marked. A tap shows the rest (view 46).
+/// price and place, with the agent's pick marked. It starts folded to one line (view 46, B-07).
 export function Shortlist({ jobId, caller, entries, closed, worldCheck, choice, recordChecks, onChosen }: {
   jobId: string;
   caller: string;
@@ -78,7 +76,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, choice, 
   const roster = t.offerRoster;
   const rf = t.requestFlow;
   const ranked = rankedOffers(entries);
-  // The best three show at once; the rest are one tap away (owner, 7 Nov 2026, request page design).
+  // B-07: the card folds to one line, the offer count and the agent's pick; a tap opens every offer.
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<RankedOffer | null>(null);
   const [choosing, setChoosing] = useState<ShortlistEntry | null>(null);
@@ -91,7 +89,6 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, choice, 
   const cost = costLine ? money.line(costLine, { compact: false }) : null;
   const { locale } = useLocale();
   // Their record in one line: the rating when they have one, else how far they are verified.
-  const shown = open ? ranked : ranked.slice(0, PREVIEW);
   // View 73: a shortlist ordered by the blended score says so, and why each ranks there.
   const scored = ranked.some((e) => e.why?.length);
   const recordLine = (e: RankedOffer) => (e.rating ? ratingText(e.rating, t.ratings, locale) : shortlistRowView(e, copy).levelLine);
@@ -106,6 +103,10 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, choice, 
     ? buyerChoiceLine(choice, chosenName, answerByText(choice.answerBy, locale), chosenCopy[locale])
     : null;
   const [choiceBusy, setChoiceBusy] = useState<'back' | 'approve' | null>(null);
+  // Anything waiting on the person keeps the card open: an offer for Your call,
+  // a choice waiting on the seller, or a seller's agent check (B-07).
+  const needsYou = ranked.some((e) => !!e.yourCall) || !!choiceLine || !!waitingOn;
+  const expanded = open || needsYou;
   async function onChoice(kind: 'back' | 'approve') {
     if (!choice) return;
     setChoiceBusy(kind);
@@ -160,6 +161,33 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, choice, 
     }
   }
 
+  if (ranked.length && !expanded) {
+    const lead = ranked.find((e) => e.bestFit && e.state !== 'unavailable') ?? ranked[0];
+    const count = ranked.length === 1 ? copy.foldedOne : fill(copy.foldedMany, { n: ranked.length });
+    const who = fill(lead.bestFit && lead.state !== 'unavailable' ? copy.foldedPick : copy.foldedTop, { name: lead.name });
+    return (
+      <section data-guide="job-shortlist" data-folded className={`${CARD_CLASS} px-5 lg:px-6`}>
+        <button
+          type="button"
+          data-shortlist-open
+          aria-expanded={false}
+          onClick={() => setOpen(true)}
+          className="flex min-h-[72px] w-full items-center gap-3.5 py-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
+        >
+          <PersonAvatar address={lead.sellerUser} name={lead.name} size={44} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[16px] font-semibold text-[var(--ink)]">{copy.title}</span>
+            <span dir="auto" className="block truncate text-[13px] font-medium text-[var(--ink-secondary)]">{count} · {who}</span>
+          </span>
+          <span className="shrink-0 text-end">
+            <Price usdc={lead.priceUsdc} compact className="block text-[16px] font-semibold text-[var(--ink)]" />
+            <span className="mt-1 inline-block rounded-full bg-[var(--raised)] px-2.5 py-0.5 text-[13px] font-semibold text-[var(--ink)]">{copy.open}</span>
+          </span>
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section data-guide="job-shortlist" className={`${CARD_CLASS} px-5 lg:px-6`}>
       <div className="pb-3 pt-5 lg:pt-6">
@@ -209,7 +237,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, choice, 
       </div>
       {ranked.length ? (
         <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
-          {shown.map((e, i) => (
+          {ranked.map((e, i) => (
             <li key={e.seller}>
               <button
                 type="button"
@@ -286,17 +314,18 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, choice, 
           <Hint align="end">{copy.noneVerifiedTip}</Hint>
         </p>
       ) : null}
-      {cost || ranked.length > PREVIEW ? (
+      {cost || (ranked.length && !needsYou) ? (
         <div className="flex flex-col gap-3 border-t border-[var(--line)] py-4 sm:flex-row sm:items-center sm:justify-between">
-          {ranked.length > PREVIEW ? (
+          {ranked.length && !needsYou ? (
             <button
               type="button"
-              aria-expanded={open}
+              data-shortlist-fold
+              aria-expanded
               aria-controls={`shortlist-${jobId}`}
-              onClick={() => setOpen((now) => !now)}
+              onClick={() => setOpen(false)}
               className={buttonClasses({ variant: 'secondary', className: 'min-h-11 w-full rounded-full sm:order-2 sm:w-auto' })}
             >
-              {open ? copy.showFewer : fill(copy.showAll, { n: ranked.length })}
+              {copy.fold}
             </button>
           ) : null}
           {cost ? (

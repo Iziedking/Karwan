@@ -393,8 +393,9 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /What buyers need as picture cards like Buy/);
   assert.match(all, /one Money row shows the same one figure as Money/);
   assert.doesNotMatch(all, /sit under Selling/);
-  // The request page shows the best three, and its notes open from an (i) (owner, 7 Nov 2026).
-  assert.match(all, /the best three show at once/);
+  // B-07: the shortlist starts folded to one line and stays open while it waits on the buyer (owner, 15 Nov 2026).
+  assert.match(all, /the shortlist starts folded to one line/);
+  assert.match(all, /It stays open while something waits on the buyer/);
   assert.match(all, /open from the \(i\) beside each/);
   assert.doesNotMatch(all, /starts folded under how many sellers offered/);
   // A dispute reads as Karwan checking, with the support safety line (owner, 3 Nov 2026).

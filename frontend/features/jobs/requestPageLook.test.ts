@@ -18,14 +18,16 @@ test('the page leads with the offer count large, three counts, and the photo bes
   assert.match(reach, /className="sr-only">\{line\}/);
 });
 
-test('the shortlist shows the best three, Show all opens the rest, notes sit behind an (i)', () => {
+test('the shortlist folds to one line, opens on a tap, stays open while it waits on you, notes behind an (i) (B-07)', () => {
   const list = source('./components/Shortlist.tsx');
-  assert.match(list, /const PREVIEW = 3;/);
-  assert.match(list, /fill\(copy\.showAll, \{ n: ranked\.length \}\)/);
+  assert.doesNotMatch(list, /PREVIEW/);
+  assert.match(list, /const expanded = open \|\| needsYou;/);
+  assert.match(list, /if \(ranked\.length && !expanded\)/);
   assert.match(list, /<Hint align="end">\{copy\.noneVerifiedTip\}<\/Hint>/);
   assert.match(list, /<Hint>\{copy\.checkedTip\}<\/Hint>/);
   for (const [locale, copy] of Object.entries(shortlistCopy)) {
-    assert.match(copy.showAll, /\{n\}/, locale);
+    assert.match(copy.foldedMany, /\{n\}/, locale);
+    assert.match(copy.foldedPick + copy.foldedTop, /\{name\}.*\{name\}/, locale);
     assert.doesNotMatch(copy.noneVerifiedTip + copy.checkedTip, /—/, locale);
   }
   for (const [locale, copy] of Object.entries(agentQuestionsCopy)) {
