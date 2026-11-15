@@ -222,7 +222,7 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   assert.match(selling, /cards show Paid in with each part/);
   assert.match(steps, /Finding sellers/);
   assert.doesNotMatch(steps, /in three steps/);
-  // View 48 batch 7: the record's three facts and one ask, and the Theme screen from Profile.
+  // View 48 batch 7: the record's three facts and one ask. View 83: theme lives only in Settings.
   const all = PLATFORM_GUIDE.map((entry) => entry.summary).join(' ');
   // Unsealed (owner, 3 Nov 2026): deals done and on time are public, the score is not.
   assert.match(all, /three facts in one card \(deals done, the average rating and the share on time/);
@@ -230,7 +230,8 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   assert.match(all, /one button to ask them for an offer, never the score, an exact amount or who the deals were with/);
   assert.match(all, /how many deals were done and how many on time; the private 0-100 score stays owner-only/);
   assert.doesNotMatch(all, /deal-summary counts remain owner-only/);
-  assert.match(all, /the Theme screen \(\/profile\/theme\), opened from the Theme row on Profile/);
+  assert.match(all, /language and theme live only in Settings, view 83; the old \/profile\/theme link opens Settings/);
+  assert.doesNotMatch(all, /Theme row on Profile|Preferences \(Language, Theme/);
   assert.ok(market.tools.includes('order_listing'));
   assert.ok(market.pages.includes('/order/[listingId]'));
   assert.ok(market.api.includes('GET /api/listings/:id/quote'));
@@ -393,6 +394,9 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /What buyers need as picture cards like Buy/);
   assert.match(all, /one Money row shows the same one figure as Money/);
   assert.doesNotMatch(all, /sit under Selling/);
+  // B-08: every deal says how it reaches the buyer, and work in person ends in the code (owner, 15 Nov 2026).
+  assert.match(all, /Every deal says how it reaches the buyer, Online, In person or Shipped/);
+  assert.match(all, /work done in person \(tailoring, cleaning, repairs, lessons\) ends with the buyer’s six-digit handover code and never a link/);
   // B-07: the shortlist starts folded to one line and stays open while it waits on the buyer (owner, 15 Nov 2026).
   assert.match(all, /the shortlist starts folded to one line/);
   assert.match(all, /It stays open while something waits on the buyer/);
