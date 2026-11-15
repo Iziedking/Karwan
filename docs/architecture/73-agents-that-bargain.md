@@ -45,6 +45,8 @@ So a request becomes a list of posted prices sorted by fit. Nobody bargains: an 
 9. **Meet in the middle to close.** When the gap is under 5% of the budget after three exchanges, the side that moved last may offer the midpoint, once.
 10. **The person stays in charge.** With Agree for me on, the agent closes any price inside its person's limits. With it off, the agent bargains on its own but asks before agreeing; the question shows the price, the gap and what the other side said.
 
+   *Changed 15 Nov 2026 (owner, "Yes, fix both"), from request REQ-8E4E-9556: two sellers whose usual price was above the 45 USDC budget opened at their lowest, 10 USDC, a fifth of the budget. A posted price over the budget whose lowest is under it now opens in the top part of the band between the lowest and the budget, as decision 5 says, never at the lowest. A lowest over the budget still opens at the lowest, outside the request.*
+
 11. **The budget shows as a range.** Sellers and their agents see a band, such as "₦200k to ₦300k", never the buyer's exact top. The band is enough to tell whether the work is worth it; the agents bargain inside it, and a seller's opening (decision 5) sits in the band, not at its top. The buyer always sees their own exact budget.
 12. **The buyer's agent may say a better offer exists.** One line in a counter, "I have a better offer", only when it is true, never who or how much.
 
@@ -55,7 +57,7 @@ flowchart TD
   F -->|yes| P{Seller's posted price against the budget}
   P -->|under, From or Ask me| O1[Seller opens between posted price and budget]
   P -->|under, Fixed| O1
-  P -->|over, From or Ask me| O2[Seller opens at its lowest, buyer counters down]
+  P -->|over, From or Ask me, lowest under the budget| O2[Seller opens near the budget, buyer counters down]
   P -->|over, Fixed| O3[Stays as posted, outside the request]
   O1 --> N[Rounds: counter, step, terms, last price]
   O2 --> N

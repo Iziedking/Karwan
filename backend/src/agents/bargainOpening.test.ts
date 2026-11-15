@@ -29,9 +29,10 @@ test('with bargain on, a Fixed offer over the budget bids its price, outside, no
   assert.deepEqual(t, { askingPriceUsdc: 255, floorUsdc: 255, outsideRequest: true, counterable: false, openedUsdc: 255 });
 });
 
-test('with bargain on, a From offer over the budget opens at its lowest', () => {
+test('with bargain on, a From offer over the budget opens near the budget, or at its lowest when that is over it', () => {
   const inside = listingBidTerms({ askingPriceUsdc: 260, floorUsdc: 200 }, on, signals);
-  assert.equal(inside.askingPriceUsdc, 200);
+  assert.ok(inside.askingPriceUsdc > 200 && inside.askingPriceUsdc <= Number(on.budgetUsdc), `opened at ${inside.askingPriceUsdc}`);
+  assert.equal(inside.floorUsdc, 200, 'the lowest stays the floor');
   assert.equal(inside.outsideRequest, false);
   const leeway = listingBidTerms({ askingPriceUsdc: 300, floorUsdc: 230 }, { ...on, leewayPct: 10 }, signals);
   assert.equal(leeway.askingPriceUsdc, 230);

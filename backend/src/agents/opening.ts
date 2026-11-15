@@ -59,5 +59,10 @@ export function sellerOpening(i: OpeningInput): Opening {
   if (i.kind === 'fixed') return { priceUsdc: money(posted), outside: true, counterable: false };
 
   if (lowest > target) return { priceUsdc: money(Math.max(lowest, halfMarket)), outside: true, counterable: true };
-  return { priceUsdc: money(Math.min(target, Math.max(lowest, halfMarket))), outside: false, counterable: true };
+  // Usually paid more than this budget, but would go as low as it: open in the
+  // top part of the band toward the budget (decision 5), never at the lowest,
+  // which would give away most of the seller's money (owner, 15 Nov 2026).
+  const from = Math.min(target, Math.max(lowest, halfMarket));
+  const share = 0.65 + 0.3 * clamp01(0.4 * clamp01(i.fit) + 0.3 * clamp01(i.record) + 0.3 * clamp01(i.heat)) + jitterFor(i.seed);
+  return { priceUsdc: money(Math.min(target, from + (target - from) * clamp01(share))), outside: false, counterable: true };
 }
