@@ -1,5 +1,6 @@
 import type { SellerProfile } from '../agents/seller-profile.js';
 import type { BuyerProfile } from '../agents/buyer-profile.js';
+import { quotedWebText } from '../x402/marketReadGuard.js';
 
 export interface JobContext {
   jobId: string;
@@ -204,11 +205,11 @@ export function buildBidRankingPrompt(
     // price overrides budget-relative reasoning ("is this bid fair vs the market",
     // not just "vs what the buyer offered"); a low-confidence price is advisory.
     bid.fairPriceUsdc != null && bid.priceConfidence === 'grounded'
-      ? `- Market read (your agent PAID for this, grounded in live sources): fair price for this work ≈ ${bid.fairPriceUsdc} USDC. Treat this as the ANCHOR: a bid materially above it is overpriced even if it sits under the buyer's budget, and a bid at or below it is a genuinely good deal. ${bid.researchSummary ? `Context: ${bid.researchSummary}` : ''}`.trim()
+      ? `- Market read (your agent PAID for this, grounded in live sources): fair price for this work ≈ ${bid.fairPriceUsdc} USDC. Treat this as the ANCHOR: a bid materially above it is overpriced even if it sits under the buyer's budget, and a bid at or below it is a genuinely good deal. ${bid.researchSummary ? quotedWebText(bid.researchSummary) : ''}`.trim()
       : bid.fairPriceUsdc != null
-        ? `- Market read (advisory, LOW confidence): rough fair price ≈ ${bid.fairPriceUsdc} USDC — weigh lightly, the evidence is thin. ${bid.researchSummary ? `Context: ${bid.researchSummary}` : ''}`.trim()
-        : bid.researchSummary
-          ? `- Market read (no grounded price): ${bid.researchSummary}`
+        ? `- Market read (advisory, LOW confidence): rough fair price ≈ ${bid.fairPriceUsdc} USDC — weigh lightly, the evidence is thin. ${bid.researchSummary ? quotedWebText(bid.researchSummary) : ''}`.trim()
+        : bid.researchSummary && quotedWebText(bid.researchSummary)
+          ? `- Market read (no grounded price): ${quotedWebText(bid.researchSummary)}`
           : '',
     bid.marketHeatContinuous != null
       ? `- Market demand for this skill: ${Math.round(bid.marketHeatContinuous * 100)}/100 (higher = scarcer/hotter). High demand makes an above-budget price more reasonable; low demand argues for holding near budget.`
@@ -354,7 +355,7 @@ export function buildCounterEvaluationPrompt(
           : ctx.fairPriceUsdc != null
             ? `- Rough market fair price: ~${ctx.fairPriceUsdc} USDC (low confidence — weigh lightly).`
             : '',
-        ctx.researchSummary ? `- Market context: ${ctx.researchSummary}` : '',
+        ctx.researchSummary && quotedWebText(ctx.researchSummary) ? `- Market context: ${quotedWebText(ctx.researchSummary)}` : '',
         ctx.marketHeat != null
           ? `- Market demand for this skill: ${
               ctx.marketHeat >= 0.66 ? 'HIGH' : ctx.marketHeat >= 0.4 ? 'MODERATE' : 'LOW'

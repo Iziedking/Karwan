@@ -13,6 +13,7 @@ import { researchModel } from '../llm/client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { fencedEvidence, keptReadText, siteOf, sitesCarrying } from './marketReadGuard.js';
 
 /// Base mainnet USDC (Circle, verified: developers.circle.com/stablecoins/
 /// usdc-contract-addresses). The external x402 payer holds this and nothing
@@ -456,6 +457,8 @@ export interface RawPriceObservation {
 export function verifyPriceObservations(
   raw: RawPriceObservation[],
   sourceTexts: string[],
+  /// The site of each source (view 48, 15 Nov 2026): two pages of one site are one source.
+  sourceSites?: string[],
 ): {
   verified: PriceObservation[];
   priceConfidence: 'grounded' | 'rough' | 'none';
@@ -494,7 +497,7 @@ export function verifyPriceObservations(
   }
   const banded = verified.filter((o) => o.unit.toLowerCase() === dominantUnit);
 
-  const distinctSources = new Set(banded.map((o) => o.sourceIndex)).size;
+  const distinctSources = sitesCarrying(banded.map((o) => o.sourceIndex), sourceSites);
   const priceConfidence: 'grounded' | 'rough' | 'none' =
     distinctSources >= 2 ? 'grounded' : banded.length >= 1 ? 'rough' : 'none';
   const amounts = banded.map((o) => o.amountUsdc);
@@ -716,6 +719,7 @@ async function doResearchMarket(
     ...(r.publishedDate ? { publishedDate: r.publishedDate.slice(0, 10) } : {}),
   }));
   const sourceTexts = merged.map((r) => (r.text ?? '').replace(/\s+/g, ' ').trim());
+  const sourceSites = merged.map((r) => siteOf(r.url!));
   const evidence = merged
     .map((r, i) => `[${i}] ${r.title ?? ''}${r.publishedDate ? ` (${r.publishedDate.slice(0, 10)})` : ''}\n${sourceTexts[i]}`)
     .join('\n\n')
@@ -734,7 +738,7 @@ async function doResearchMarket(
         context ? `Deal context: ${context}` : '',
         '',
         'Web results (each starts with its [index]):',
-        evidence || '(no usable excerpts returned)',
+        fencedEvidence(evidence),
         '',
         'Return: a one-paragraph summary (<=70 words); demand as hot/steady/soft;',
         'a one-line price/leverage note for the side negotiating this deal; up to',
@@ -770,18 +774,19 @@ async function doResearchMarket(
   const { verified, priceConfidence, priceBandUsdc } = verifyPriceObservations(
     synth.object.priceObservations.slice(0, 8),
     sourceTexts,
+    sourceSites,
   );
 
   const read: MarketRead = {
     keywords: cleaned,
-    summary: synth.object.summary,
+    summary: keptReadText(synth.object.summary),
     demand: synth.object.demand,
-    priceNote: synth.object.priceNote,
+    priceNote: keptReadText(synth.object.priceNote),
     fairPriceUsdc: priceConfidence === 'grounded' ? priceBandUsdc?.mid : undefined,
     priceConfidence,
     ...(priceBandUsdc ? { priceBandUsdc } : {}),
     ...(verified.length > 0 ? { priceObservations: verified } : {}),
-    highlights: synth.object.highlights.slice(0, 6),
+    highlights: synth.object.highlights.filter((h) => keptReadText(h)).slice(0, 6),
     sources,
     anglesRun,
     paidUsd,

@@ -127,3 +127,26 @@ flowchart LR
 | 8c | Near matches into the same store; the shadow snapshot and parity code removed | 8a |
 | 8d | A lease per request, before a second server | 8b |
 | 8e | Both modes read the board from a saved position; the selling side's notes in Postgres, its reply keyed like the counter | 8a, 8b |
+
+## Web pages cannot steer the price (found in review, 15 Nov 2026)
+
+Track T1. The paid web research reads pages anyone can publish. Three things let a page steer the buying agent: the pages went into the model's prompt as plain text, "two independent sources" counted two pages on the same site as two, and the read's summary went into the offer-scoring prompt as plain text. A seller could publish two pages with a high price and move the fair price the agent compares offers with. The buyer's limit is enforced in code, so no money could move past it.
+
+```
+web pages ──► model, pages fenced as data ──► price quotes
+                                              │ each quote checked word for word in its page (as before)
+                                              ▼
+                       grounded only when two different sites carry it
+                                              │
+summary, price note, highlights ──► text that gives orders is dropped
+                                              ▼
+                     offer scoring reads them as quoted web data
+```
+
+### The rules
+
+- **Two sites, not two pages.** A web price is grounded only when quotes from two different sites carry it. `shop.example.com` and `blog.example.com` are one site, and so are `a.example.com.ng` and `b.example.com.ng`.
+- **Pages are data.** The pages sit inside their own tags, any copy of those tags inside a page is removed, and the model is told a page that tells it what to write or what price to report is not evidence.
+- **Orders are dropped.** A summary, price note or highlight that gives orders (ignore the rules, accept this offer, you are the agent) is not kept, so it never reaches offer scoring or the person.
+- **Offer scoring quotes the web.** The summary reaches the scoring prompt in quotes, labelled as words from web pages and never as instructions.
+- **Limit.** Two sites run by the same seller can still carry a price together. The web price stays a second signal (decision 3), the sources are shown with it, and the buyer's limit holds in code.
