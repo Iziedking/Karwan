@@ -9,6 +9,11 @@ const SUBJECT = '0x3b3cf9daad222c452245fb07cf20c3cb56042d61';
 async function open(page: Page) {
   await page.setViewportSize({ width: 1280, height: 420 });
   await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
+  // A CI runner has few cores, which reads as a lite device and turns smooth scrolling off (view 86).
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+    Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+  });
   await page.route(`${API}/**`, (route) => {
     const { pathname } = new URL(route.request().url());
     if (pathname === '/api/auth/bootstrap') return route.fulfill({ json: { user: null, profile: null } });

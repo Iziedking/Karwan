@@ -47,7 +47,7 @@ for(const locale of ['en','fr','ar','hi','sw'] as const){
   await page.route(API+'/api/guarantee',r=>r.fulfill({json:{available:true,hasRecord:true,inPlaceUsdc:'125',heldUsdc:'25',freeUsdc:'100',comingBackUsdc:'15',readyAt:Math.floor(Date.now()/1000)+7*86400,ready,previousUsdc:'0',waitDays:7}}));
   await page.route(API+'/api/guarantee/**',r=>{mutations.push(r.request().method());return r.fulfill({status:403,json:{error:'fixture prevents submission'}});});
   const p=m.moneyPages.guarantee;
-  await page.goto('/guarantee');await expect(page).toHaveURL(/\/account\?tab=guarantee$/);await expect(page.getByText(p.ready,{exact:true})).toBeVisible();
+  await page.goto('/guarantee');await expect(page).toHaveURL(/\/pocket$/);await expect(page.getByText(p.ready,{exact:true})).toBeVisible();
   await expect(page.getByText(p.comingBack,{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:p.collect,exact:true})).toHaveCount(0);
   await page.locator('[data-guarantee-actions]').getByRole('link',{name:p.withdraw,exact:true}).click();await expect(page).toHaveURL(/step=take_out/);
   await expect(page.getByRole('heading',{name:p.withdrawTitle})).toBeVisible();await page.locator('[data-money-page]').getByLabel(m.money.sheet.amountLabel,{exact:true}).fill('100');
