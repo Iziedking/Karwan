@@ -200,6 +200,55 @@ One column, the conversation first.
 5. **The movement and decline rules above.** Recommended as written.
 6. **Order:** Figma (the mascot sheet, the mascot on Home, Market, a deal and Money, the decline states, the assistant page on three sizes) for your yes, then spec, plan and a test-first build. The assistant guide, canon, all five languages and this view's Status go in the same batch.
 
+## Amendment, 15 Nov 2026: Aman stays out of sight and takes a new account to fully set up
+
+Aman no longer rests on the page. It comes in when something needs the person, says one thing, and goes again. Its main job for a new account is the way from nothing to fully set up, so the person's assistant can find people and agree prices for them.
+
+### 1. Fully set up, in six steps
+
+| # | Step | Done when | Where Aman sends the person |
+|---|---|---|---|
+| 1 | Finish the setup questions | The setup conversation is finished | Setup |
+| 2 | Add money | The account holds money | Add money |
+| 3 | Give your assistant money to work with | The assistant's wallets hold money | Money > Agent |
+| 4 | Set its limits | Its prices or budget are set and it has a way to work (make offers, ask me first, agree for me) | Your agent |
+| 5 | Link Telegram | Telegram is linked (skipped where Telegram is not offered, or the person chose email) | Profile |
+| 6 | Make your first deal | A deal, request or offer of theirs exists | Market, or a payment request for someone with their own clients |
+
+Each step ticks itself from what is true for the account, never from a click. The list lives once on the shared core. Aman, the Home checklist and the assistant in every chat app read that one list, so they always name the same next step.
+
+```mermaid
+flowchart LR
+  F[What is true for the account] --> L[One setup list on the shared core]
+  L --> A[Aman on the website]
+  L --> H[Home checklist]
+  L --> T[The assistant in Telegram and on the assistant page]
+```
+
+### 2. When Aman comes in
+
+- Only when there is a step to do or a deal that needs the person, and never on the page that step opens.
+- A deal that waits on the person (a delivery to approve, a dispute to answer, money to put in) comes before a setup step. A setup step comes before market suggestions.
+- It comes in from the edge after about a second, says its one line and its one button, and goes after the button, Not now, or the step being done.
+- When a step is done, Aman shows a pleased face for a moment and goes. The next step waits for the next page.
+- The movement rules of the 13 Nov amendment still hold: not while typing or scrolling fast, never over a dialog or a money screen, never over a button or a field.
+
+### 3. The assistant, in plain words
+
+Many traders have never heard the word "agent". Aman calls it **your assistant**: it finds buyers and sellers for you and agrees prices inside the limits you set. Steps 3 and 4 say that in one sentence each, in all five languages. The assistant in chat apps explains it the same way.
+
+### 4. The way in, always
+
+With nothing to say, Aman is not on the page. The small face in the top bar stays, and tapping it, or Ctrl+K, opens the assistant page. **A small face in the top bar** in Settings keeps Aman there and never lets it come in. **Off** removes both; Ctrl+K stays.
+
+### Decisions for the owner (15 Nov)
+
+1. **The six steps above are the finish line.** Agreed 15 Nov.
+2. **One list on the shared core** that Aman, Home and every chat app read. Agreed 15 Nov.
+3. **No resting face on the page**; the top bar face is the way in. Recommended.
+4. **The order:** deals that wait on the person, then the next setup step, then market suggestions. Recommended.
+5. **The chat page made faster and livelier** is its own piece, after this one.
+
 ## Status
 
 | Part | State |
@@ -214,6 +263,7 @@ One column, the conversation first.
 | The first-run welcome and any page tour that opens by itself are for someone new: an account with a deal, or one set up more than a day ago, is never shown them on a new device. The Page tour button stays for everyone | Built 12 Nov 2026, not deployed |
 | Figma: placeholder face, gate, tour, sign-up and first open (phone, dark) | Drawn 6 Nov 2026 |
 | Aman beside the page with the one next move, the face opens the assistant page, Ctrl+K, Not now, Not on this page, Hide the guide, Settings switch, Ask Aman in Profile, the corner Help button and the parked switch removed, the assistant page redesigned | Built 15 Nov 2026, not deployed |
+| 15 Nov amendment: Aman out of sight, six steps to fully set up, the assistant in plain words | Proposed 15 Nov 2026 |
 | Gate and tours with the face (modes 1 and 2) | Not started |
 
 ## As built (15 Nov 2026)
