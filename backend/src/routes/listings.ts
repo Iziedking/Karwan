@@ -61,6 +61,7 @@ import { marketPage } from '../marketplace/marketPage.js';
 import type { MatchingShadowObserver } from '../matching/shadow.js';
 import type { MatchingAuditTelemetry } from '../matching/audit.js';
 import { buildListingMatchingShadowObservation } from '../matching/listingProjection.js';
+import { PARTY_TEXT_RULE, fencedParty } from '../security/partyText.js';
 
 const addrSchema = z
   .string()
@@ -1047,13 +1048,14 @@ export function buildListingMatchPrompt(listing: Listing, job: { jobId?: string;
   return [
     'You are a marketplace matcher. A seller posted the listing below as something they sell. Decide whether it gives the buyer what their brief asks for.',
     '',
+    PARTY_TEXT_RULE,
+    '',
     'Seller listing:',
-    `- Title: ${listing.title}`,
-    `- Description: ${listing.description}`,
+    fencedParty('seller_listing', `Title: ${listing.title}\nDescription: ${listing.description}`),
     `- Asking price: ${listing.askingPriceUsdc} USDC`,
     '',
     'Buyer brief:',
-    `- Text: ${brief}`,
+    fencedParty('buyer_request', brief),
     budgetLine(job),
     '',
     'Steps:',

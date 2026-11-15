@@ -3,6 +3,7 @@ import { generateObjectWithLlmFallback } from './client.js';
 import { singleFlight } from './singleFlight.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
+import { PARTY_TEXT_RULE, fencedParty } from '../security/partyText.js';
 
 const keywordSchema = z.object({
   keywords: z
@@ -59,7 +60,7 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
     const result = await withLlmRetry(label, () =>
       generateObjectWithLlmFallback({
         schema: keywordSchema,
-        prompt: `${PROMPT_PREFIX}\n\nInput:\n${cleaned}`,
+        prompt: `${PROMPT_PREFIX}\n\n${PARTY_TEXT_RULE}\n\nInput:\n${fencedParty('party_text', cleaned)}`,
       }, 'light'),
     );
     const tags = result.object.keywords
@@ -197,12 +198,14 @@ async function judgeRelevanceUncached(
   const prompt = [
     'You decide whether a seller can plausibly fulfill a buyer request.',
     '',
+    PARTY_TEXT_RULE,
+    '',
     'Buyer request:',
-    `  text: ${input.briefText ?? '(opaque, only the tags below)'}`,
+    fencedParty('buyer_request', input.briefText ?? '(opaque, only the tags below)'),
     `  tags: ${input.briefTags.join(', ')}`,
     '',
     'Seller profile:',
-    `  description: ${input.sellerProfile}`,
+    fencedParty('seller_profile', input.sellerProfile),
     `  tags: ${input.sellerTags.join(', ')}`,
     '',
     'Could this seller credibly fulfill this request? Reason in plain English.',

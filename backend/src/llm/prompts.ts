@@ -1,6 +1,7 @@
 import type { SellerProfile } from '../agents/seller-profile.js';
 import type { BuyerProfile } from '../agents/buyer-profile.js';
 import { quotedWebText } from '../x402/marketReadGuard.js';
+import { PARTY_TEXT_RULE, fencedParty } from '../security/partyText.js';
 
 export interface JobContext {
   jobId: string;
@@ -113,11 +114,12 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
   const usual = seller.usualPriceUsdc ?? budgetN;
   const quantity = job.quantity ? ` (quantity: ${job.quantity.count}${job.quantity.unit ? ` ${job.quantity.unit}` : ''})` : '';
   const briefLine = job.briefText
-    ? `- Brief: ${job.briefText}${quantity}`
+    ? `- Brief${quantity}, as the buyer wrote it:\n${fencedParty('buyer_request', job.briefText)}`
     : `- Brief: (not provided; only terms hash ${job.termsHash} is available)`;
   return [
     'You are a freelancer agent deciding whether to bid on a job for your principal.',
     'Your only judgement is whether the job fits what the seller does. Price and timing were already checked in code.',
+    PARTY_TEXT_RULE,
     '',
     'Seller profile:',
     `- Skills: ${seller.skills.join(', ')}`,
