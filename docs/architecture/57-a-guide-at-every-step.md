@@ -153,7 +153,9 @@ The face is the way in. The panel was already the full assistant, with the same 
 
 ### 3. We draw the mascot
 
-An original character in Karwan's colours, flat shapes with fixed colours: no gradients, orbs or glows. Five moods: idle, talking, thinking, pleased, waiting for you. Three sizes: a small face in the header, the guide beside the page, and a larger one on the assistant page. Drawn in Figma first, then one file in the product, so a later redraw is still one file. Nothing is taken from the reference's art, words or theatrics.
+Studied the reference again on 15 Nov 2026, at the owner's ask, for the mascot's form. Its character is made of dots: a round patch of small squares with two large eyes, drawn live so the eyes follow the pointer or what the guide points at, with a blink every few seconds and a little spring when it moves. Each part of the page has a resting spot beside it, a tiny copy sits in the header, and its lines run at about a quarter of a second per word, never a flash. The owner prefers that dot kind of mascot. Ours is our own: a disc of round green dots (not squares), with two solid eyes and a glint cut into the grid, and each mood a new face in the same dots.
+
+Aman's face: an original character in Karwan's colours, flat shapes with fixed colours: no gradients, orbs or glows. Five moods: idle, talking, thinking, pleased, waiting for you. Three sizes: a small face in the header, the guide beside the page, and a larger one on the assistant page. Drawn in Figma first, then one file in the product, so a later redraw is still one file. Nothing is taken from the reference's art, words or theatrics.
 
 ### 4. How it moves, so it never disturbs
 
@@ -194,7 +196,7 @@ One column, the conversation first.
 1. **Tapping the face opens `/assistant` on every screen size**, with Back to where you were, and Ctrl+K does the same. Recommended.
 2. **The corner Help button and its panel go.** Talk to a person stays in Profile > Help and support, linked from the assistant page. Recommended.
 3. **We draw the mascot in Figma**, five moods and three sizes, flat shapes. Recommended.
-4. **The name.** "Kara" stays the placeholder until you give the name. It lives in one setting.
+4. **The name is Aman**, the assistant's name since [view 80](80-aman.md) (13 Nov): the face is Aman, so the name on the page, in Telegram and on the face is one. "Kara" above was the 6 Nov placeholder. It still lives in one setting.
 5. **The movement and decline rules above.** Recommended as written.
 6. **Order:** Figma (the mascot sheet, the mascot on Home, Market, a deal and Money, the decline states, the assistant page on three sizes) for your yes, then spec, plan and a test-first build. The assistant guide, canon, all five languages and this view's Status go in the same batch.
 
@@ -203,7 +205,8 @@ One column, the conversation first.
 | Part | State |
 |---|---|
 | This view | Approved 6 Nov 2026, next move first |
-| 13 Nov amendment: the face opens the assistant page, the corner Help goes, we draw the mascot | Waiting for the owner |
+| 13 Nov amendment: the face opens the assistant page, the corner Help goes, we draw the mascot, its name is Aman | Approved 15 Nov 2026 |
+| Figma: page "Aman · the guide with a face · 15 Nov" (314:570): the Aman component, five moods (314:627); the Aman line (315:681); Aman beside Home, Market, a deal and Money; the decline states; the assistant page on phone, tablet and laptop | Drawn 15 Nov 2026, waiting for the owner's yes |
 | Next-move rules on the shared core, `GET /api/guide/next`, `whats_pending` returns the same move | Built 6 Nov 2026, not deployed |
 | Next-move nudge on every signed-in page, in the rounded type; the fading notes and the sign-up guide share that type | Built 6 Nov 2026, not deployed |
 | The nudge steps aside while a button or a field is under it, sits above the bottom bar wherever the bar shows, and after a close says nothing more on that page | Built 12 Nov 2026, live on the test site |
