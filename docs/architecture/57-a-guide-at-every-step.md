@@ -249,6 +249,68 @@ With nothing to say, Aman is not on the page. The small face in the top bar stay
 4. **The order:** deals that wait on the person, then the next setup step, then market suggestions. Recommended.
 5. **The chat page made faster and livelier** is its own piece, after this one.
 
+## Amendment, 15 Nov 2026 (evening): Aman is alive, feels the moment, and asks less
+
+The owner, 15 Nov, after using the test site: Aman looks like a static drawing. It should blink, not hold one look, react to what happens (happy, sad when something breaks, a deal is missed, a guarantee is taken or a deadline passes), greet people with some excitement, offer to walk a new person through a page, and never nag: a Not now on linking Telegram should hold for days, not until the next page. Studied the reference again the same day: its guide flies to each part of the page with a one-line bubble, runs as a short tour you can skip, pause or step through, and its eyes follow what it points at. Ours keeps our own dots, colours and words.
+
+### 1. Alive wherever it shows
+
+Today only the floating guide blinks and looks around. The face on the assistant page, in the top bar, in Profile and while Aman works is a still picture. Every face becomes the same living one:
+
+- It blinks every 4 to 7 seconds, and sometimes twice.
+- Its eyes follow the pointer on a laptop, and what it points at in a tour.
+- It breathes: a slow rise and fall of the dots, under 2 pixels.
+- It looks up when the person starts typing to it, and thinks while it works.
+
+All of it stops with reduced motion or on a phone held at the still level ([view 86](86-smooth-on-every-phone.md)), and pauses while the tab is hidden.
+
+### 2. A face for the moment
+
+Five moods become eight. Each is a new face in the same dots, drawn in Figma first.
+
+| Mood | When | What it says (one line, then it goes) |
+|---|---|---|
+| Excited | The first visit of the day; a deal completes; money arrives; a new tier | "Morning! Your buyer paid 120 USDC." |
+| Pleased | A setup step is done; a delivery is approved | "Done. One step left." |
+| Sad | A deal lapses or is cancelled; an offer is lost; a deadline passes | "That one lapsed. Want me to find another seller?" |
+| Worried | Something failed on our side (a page error, a payment that did not go through) | "Something broke on our side. Your money is safe. Try again?" |
+| Hurt | Part of a savings pocket backing a deal is paid to the buyer | "Part of your pocket went to the buyer. Here is why." |
+| Waiting | A deal waits on the person | "Your buyer is waiting on delivery." |
+| Thinking | Aman is working | No line |
+| Idle | Nothing to say | No line; not on the page (15 Nov amendment) |
+
+The events come from what already happens on the account (the same activity that drives the bell and Telegram), read on the shared core, so the assistant in Telegram reacts with the same words. Good news and bad news each show once, on the next page the person opens, never twice on another device.
+
+### 3. Walk me through this page
+
+A tour, only when the person wants one:
+
+- A new account, on its first visit to Home, Market, a deal and Money, sees one line: **"Want a quick look around?"** with **Show me** and **Not now**. Not now on any page turns the offer off for every page.
+- Show me: Aman flies to each part of the page in turn, points at it with one line, and its eyes follow. Next, Back and Skip at every step, and the progress shown. Three to six stops a page, a quarter of a second per word.
+- It never runs by itself for an account with a deal or set up more than a day ago (the 12 Nov rule), and it never covers a money screen.
+- Anyone can start it again from Aman's menu, or by asking the assistant "show me around".
+
+This is mode 2 of this view, with the face.
+
+### 4. Asks less, remembered on the account
+
+- **Not now** on a step holds that step for 3 days, on every device. A second Not now on the same step holds it for 14 days. A new sign-in does not bring it back early.
+- At most one setup ask a day across the whole site. The rest wait.
+- A deal that waits on the person is different: money is at stake, so Not now holds it for that visit only, as today.
+- The Telegram ask, which started this, follows the step rule: Not now, then nothing about Telegram for 3 days.
+
+### 5. The right word for the money
+
+Money kept aside is the **savings pocket**. A **deal guarantee** is only the part of the pocket that backs one deal while that deal runs. The assistant, the record and the canon say it that way (fixed 15 Nov).
+
+### Decisions for the owner (15 Nov, evening)
+
+1. **One living face everywhere**: blink, eyes, breathing, with the still rules above. Recommended.
+2. **Eight moods and the events table above.** Recommended. Say if a mood or a line should change.
+3. **The tour is offered once to a new account, never run by itself**, and can be started again any time. Recommended.
+4. **3 days, then 14 days, kept on the account**, and at most one setup ask a day. Recommended.
+5. **Order:** Figma (the eight moods, the living face frames, a tour on Home on phone and laptop, the reaction lines), then spec, plan and a test-first build. The assistant guide, canon, all five languages and this view's Status go in the same batch.
+
 ## Status
 
 | Part | State |
@@ -265,6 +327,8 @@ With nothing to say, Aman is not on the page. The small face in the top bar stay
 | Aman beside the page with the one next move, the face opens the assistant page, Ctrl+K, Not now, Not on this page, Hide the guide, Settings switch, Ask Aman in Profile, the corner Help button and the parked switch removed, the assistant page redesigned | Built 15 Nov 2026, not deployed |
 | 15 Nov amendment: Aman out of sight, six steps to fully set up, the assistant in plain words | Approved and built 15 Nov 2026, not deployed |
 | Gate and tours with the face (modes 1 and 2) | Not started |
+| 15 Nov evening amendment: a living face everywhere, eight moods that react to what happens, a tour on request, Not now held for days on the account | Written 15 Nov 2026, waiting for the owner |
+| The savings pocket named as such in the assistant, the record and the canon; a deal guarantee only for the part backing a deal | Built 15 Nov 2026, not deployed |
 
 ## As built (15 Nov 2026)
 
