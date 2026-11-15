@@ -217,7 +217,7 @@
       "id": "confirming-it-is-you",
       "title": "Confirming it is you, with a passkey or a Karwan PIN",
       "status": "roadmap",
-      "updated": "2026-11-06",
+      "updated": "2026-11-15",
       "tags": [
         "money",
         "agents",
@@ -230,7 +230,7 @@
           "date": "2026-10-27"
         }
       ],
-      "body": "A person's agents run their deals for them: they pay into a deal, accept,\ndeliver and release inside the limits the person set, so a deal keeps moving\nwhile the person is away. Karwan asks the person to be present for three\nthings only, and then they confirm with a passkey, which is their phone's\nface or fingerprint check, or with a 6-digit Karwan PIN.\n\nThe three things: setting up their Karwan record and their buying agent's\nlimits (on Arc Testnet Karwan does this itself for accounts whose wallets\nit holds, and someone with their own wallet signs it along with their next\ntransaction, with no separate step), putting up a deal guarantee, and money leaving Karwan for an address\nthat is not one of their own Karwan wallets. Putting up a deal guarantee is\nthe consent for it to protect their buyers and back advances from\nfinanciers on their deals, so taking an advance later is one tap.\n\nFive wrong PINs lock the PIN for 15 minutes, and a passkey still works in\nthe meantime. A forgotten PIN is reset with a code sent to the person's\nemail. A PIN is never typed into a chat: the agent sends a one-time Karwan\nlink and the person confirms on that page. Someone who signs in with their\nown wallet confirms by signing in that wallet.\n\nEach confirmation fits one action and one amount, and works once.\n\nSigned-in devices, on Profile, lists every browser and phone the account is\nsigned in on, with when each was last used. Sign out any one of them, or all of\nthem at once; it takes effect within a minute. Your assistant can do the same\nfrom Telegram."
+      "body": "A person's agents run their deals for them: they pay into a deal, accept,\ndeliver and release inside the limits the person set, so a deal keeps moving\nwhile the person is away. Karwan asks the person to be present for three\nthings only, and then they confirm with a passkey, which is their phone's\nface or fingerprint check, or with a 6-digit Karwan PIN.\n\nThe three things: setting up their Karwan record and their buying agent's\nlimits (on Arc Testnet Karwan does this itself for accounts whose wallets\nit holds, and someone with their own wallet signs it along with their next\ntransaction, with no separate step), putting up a deal guarantee, and money leaving Karwan for an address\nthat is not one of their own Karwan wallets. Putting up a deal guarantee is\nthe consent for it to protect their buyers and back advances from\nfinanciers on their deals, so taking an advance later is one tap.\n\nFive wrong PINs lock the PIN for 15 minutes, and a passkey still works in\nthe meantime. A forgotten PIN is reset with a code sent to the person's\nemail. A PIN is never typed into a chat: the agent sends a one-time Karwan\nlink and the person confirms on that page. Someone who signs in with their\nown wallet confirms by signing in that wallet.\n\nEach confirmation fits one action and one amount, and works once.\n\nSign-in and security, on Profile, shows how the account signs in, with the\npasskey, and lists every browser and phone the account is signed in on, with\nwhen each was last used. Sign out any one of them, or all of\nthem at once; it takes effect within a minute. Your assistant can do the same\nfrom Telegram."
     },
     {
       "id": "contests",
@@ -1308,7 +1308,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-11-06",
+      "updated": "2026-11-15",
       "path": "public/product/confirming-it-is-you.md"
     },
     {
