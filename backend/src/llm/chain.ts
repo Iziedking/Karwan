@@ -41,22 +41,49 @@ function cleaned(result: Generated): Generated {
   return { ...result, content };
 }
 
-/// Each call tries the links in turn and moves on after any error. A reply has
-/// its model markup removed. When every link fails, `onExhausted` hears which
-/// links failed and why, and the last error is thrown to the caller.
-export function fallbackChain(models: LM[], onExhausted: (failures: LinkFailure[]) => void): LM {
+/// How long a link refused for good sits out before it is asked again.
+export const BENCH_MS = 10 * 60 * 1000;
+
+const REFUSED = /not allowed for this account|credit balance|access ?denied|not authori[sz]ed|unauthori[sz]ed|forbidden|invalid.{0,4}api.?key|security token.*invalid/i;
+
+/// A refusal that will not pass on the next call: no access, no credit, a bad
+/// key. A timeout, a busy model or a network fault is worth asking again.
+export function refusedForGood(e: unknown): boolean {
+  const status = (e as { statusCode?: number })?.statusCode;
+  if (status === 401 || status === 402 || status === 403) return true;
+  return REFUSED.test((e as Error)?.message ?? String(e));
+}
+
+/// Each call tries the links in turn and moves on after any error. A link
+/// refused for good sits out for ten minutes, so a person is not kept waiting
+/// on models that cannot answer; it stays the last resort meanwhile. A reply
+/// has its model markup removed. When every link fails, `onExhausted` hears
+/// which links failed and why, and the last error is thrown to the caller.
+export function fallbackChain(
+  models: LM[],
+  onExhausted: (failures: LinkFailure[]) => void,
+  opts: { now?: () => number } = {},
+): LM {
   if (models.length === 0) throw new Error('a model chain needs at least one model');
   const primary = models[0]!;
+  const now = opts.now ?? Date.now;
+  const benchedUntil = new Map<LM, number>();
   async function run<T>(call: (m: LM) => Promise<T>, label: string): Promise<T> {
     const failures: LinkFailure[] = [];
     let lastErr: unknown;
-    for (const m of models) {
+    const at = now();
+    const benched = (m: LM) => (benchedUntil.get(m) ?? -Infinity) > at;
+    const order = [...models.filter((m) => !benched(m)), ...models.filter(benched)];
+    for (const m of order) {
       try {
-        return await call(m);
+        const out = await call(m);
+        benchedUntil.delete(m);
+        return out;
       } catch (e) {
         lastErr = e;
         const error = ((e as Error).message ?? String(e)).slice(0, 200);
         failures.push({ provider: m.provider, error });
+        if (refusedForGood(e)) benchedUntil.set(m, now() + BENCH_MS);
         logger.warn({ provider: m.provider, model: m.modelId, err: error }, `LLM provider failed${label}, falling back to the next in the chain`);
       }
     }

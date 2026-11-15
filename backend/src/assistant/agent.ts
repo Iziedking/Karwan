@@ -3193,7 +3193,12 @@ export function viewingDealLine(jobId: string): string {
 /// Run the authenticated tool-calling loop and return the assistant's reply plus
 /// confirmation/navigation actions it prepared. Account questions fail closed
 /// on model or evidence failure; generic help may use direct-provider fallback.
-/// Bounded to six steps, 900 output tokens and a 30-second deadline.
+/// Bounded to six steps, 900 output tokens and a 45-second deadline: the
+/// backup model on Bedrock takes about ten seconds a step, and a turn that runs
+/// out of time loses the conversation (owner, 15 Nov 2026). Two tries stay
+/// under the 100 seconds the proxy in front of the API allows.
+export const ASSISTANT_AGENT_MS = 45_000;
+
 export async function runAssistantAgent(input: {
   address: string;
   method: string;
@@ -3241,7 +3246,7 @@ export async function runAssistantAgent(input: {
       ...(input.forceRead ? { prepareStep: ({ stepNumber }: { stepNumber: number }) => (stepNumber === 0 ? { toolChoice: 'required' as const } : undefined) } : {}),
       maxOutputTokens: 900,
     }),
-    30_000,
+    ASSISTANT_AGENT_MS,
   );
 
   // Tool failures, public facts and proposals are not private account evidence.

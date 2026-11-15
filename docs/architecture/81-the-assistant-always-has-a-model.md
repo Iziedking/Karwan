@@ -51,6 +51,18 @@ flowchart LR
 5. **An alert when all links fail.** The first time in an hour that a chain runs out, the team gets a Telegram and email alert naming each link and its error. The person sees "The assistant is not available right now. Try again in a few minutes." No internals.
 6. **A check the owner can run.** `scripts/probe-models.ts` makes one short real call, plain and with a tool, to every model in the chain and prints which answered. It runs after any key or setting change, and on `/admin/diagnostics` the model card lists each link with its last result.
 
+7. **A refused link sits out (added 15 Nov 2026).** Team testing on testnet showed every call asking Claude on Bedrock (no access) and the Anthropic key (no credit) first, and DeepSeek taking about ten seconds a step. Three steps ran past the assistant's 30-second limit, and the reply fell back to the plain answer, which has no conversation or account, so Aman greeted the person again mid-chat. Now a link refused for good (no access, no credit, a bad key) is skipped for ten minutes and stays the last resort meanwhile; a timeout or a busy model is never skipped. The assistant's limit is 45 seconds a try, so two tries stay under the 100 seconds the proxy allows.
+
+```mermaid
+flowchart LR
+  Q[Question] --> C{Link refused for good in the last 10 min?}
+  C -->|yes| N[Skip it, ask the next]
+  C -->|no| A[Ask it]
+  A -->|no access, no credit, bad key| B[Sit out 10 min] --> N
+  A -->|timeout or busy| N
+  A -->|answers| R[Reply with the whole conversation]
+```
+
 ## Settings and permissions (owner)
 
 - `BEDROCK_ENABLED=1` and `BEDROCK_FALLBACK_MODEL=deepseek.v3.2` in `.env` and `.env.mainnet`. Mainnet gets the same model settings as testnet.

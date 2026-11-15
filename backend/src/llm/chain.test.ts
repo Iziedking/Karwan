@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
-import { chainLinks, fallbackChain, shouldAlert } from './chain.js';
+import { BENCH_MS, chainLinks, fallbackChain, refusedForGood, shouldAlert } from './chain.js';
 
 /// Every model chain ends on a model in Karwan's own AWS account (view 81).
 ///
@@ -88,4 +88,56 @@ test('the alert goes out at most once an hour', () => {
   assert.equal(shouldAlert(null, 1_000), true);
   assert.equal(shouldAlert(1_000, 1_000 + hour - 1), false);
   assert.equal(shouldAlert(1_000, 1_000 + hour), true);
+});
+
+test('a link refused for good is skipped for ten minutes, then tried again (owner, 15 Nov 2026)', async () => {
+  let now = 0;
+  const refused = fake('bedrock-claude', new Error('Access to Anthropic models is not allowed for this account.'));
+  const broke = fake('anthropic', new Error('Your credit balance is too low to access the Anthropic API.'));
+  const deepseek = fake('bedrock-deepseek', 'Done.');
+  const model = fallbackChain([refused, broke, deepseek], () => {}, { now: () => now });
+  await model.doGenerate(opts);
+  now = BENCH_MS - 1;
+  await model.doGenerate(opts);
+  assert.deepEqual([refused.calls, broke.calls, deepseek.calls], [1, 1, 2], 'refused links are not asked again inside ten minutes');
+  now = BENCH_MS;
+  await model.doGenerate(opts);
+  assert.deepEqual([refused.calls, broke.calls, deepseek.calls], [2, 2, 3], 'after ten minutes they get another chance');
+});
+
+test('a timeout or a busy model is never benched', async () => {
+  const slow = fake('bedrock-claude', new Error('The operation was aborted due to timeout'));
+  const busy = fake('anthropic', new Error('Overloaded'));
+  const deepseek = fake('bedrock-deepseek', 'Done.');
+  const model = fallbackChain([slow, busy, deepseek], () => {}, { now: () => 0 });
+  await model.doGenerate(opts);
+  await model.doGenerate(opts);
+  assert.deepEqual([slow.calls, busy.calls], [2, 2]);
+});
+
+test('benched links are still the last resort, so a chain never refuses because of the bench', async () => {
+  const refused = fake('bedrock-claude', new Error('Access to Anthropic models is not allowed for this account.'));
+  let fail = true;
+  const flaky = fake('bedrock-deepseek', 'Done.');
+  const real = flaky.doGenerate.bind(flaky);
+  flaky.doGenerate = (async (o: LanguageModelV3CallOptions) => {
+    if (fail) { flaky.calls += 1; throw new Error('Overloaded'); }
+    return real(o);
+  }) as typeof flaky.doGenerate;
+  const model = fallbackChain([refused, flaky], () => {}, { now: () => 0 });
+  await assert.rejects(model.doGenerate(opts));
+  fail = true;
+  await assert.rejects(model.doGenerate(opts));
+  assert.equal(refused.calls, 2, 'tried again after the healthy link failed');
+});
+
+test('a permanent refusal is told apart from a passing fault', () => {
+  for (const msg of ['Access to Anthropic models is not allowed for this account.', 'Your credit balance is too low to access the Anthropic API.', 'invalid x-api-key', 'AccessDeniedException: not authorized']) {
+    assert.equal(refusedForGood(new Error(msg)), true, msg);
+  }
+  for (const msg of ['The operation was aborted due to timeout', 'Overloaded', 'ThrottlingException: Too many requests', 'fetch failed']) {
+    assert.equal(refusedForGood(new Error(msg)), false, msg);
+  }
+  assert.equal(refusedForGood(Object.assign(new Error('x'), { statusCode: 403 })), true);
+  assert.equal(refusedForGood(Object.assign(new Error('x'), { statusCode: 429 })), false);
 });
