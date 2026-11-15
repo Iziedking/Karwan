@@ -346,7 +346,8 @@ test('a finished send offers its receipt beside Done (B-05, owner, 15 Nov 2026)'
   await flow.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Send 25.00 USDC' }).click();
   const receipt = flow.getByRole('link', { name: 'Open receipt' });
-  await expect(receipt).toHaveAttribute('href', '/activity?receipt=KWN-7Q2D-PX4M-ABCD');
+  // A send reaches the sheet with its transaction hash; Activity finds the row by it.
+  await expect(receipt).toHaveAttribute('href', `/activity?receipt=0x${'ab'.repeat(32)}`);
   await expect(flow.getByRole('button', { name: 'Done', exact: true })).toBeVisible();
   await page.screenshot({ path: info.outputPath('send-receipt.png'), fullPage: true });
 });
