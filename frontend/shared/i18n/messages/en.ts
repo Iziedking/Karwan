@@ -3182,7 +3182,7 @@ interface MessagesShape {
     consequence: { accept: string; fundTemplate: string; releaseTemplate: string; claimTemplate: string; reviewManually: string };
     progress: { title: string; agreed: string; funded: string; delivered: string; checked: string; released: string; cancelled: string; refunded: string };
     layers: { delivery: string; handover: string; getPaid: string; needsYou: string };
-    automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; reclaimWaitsSeller: string; acceptanceExpiryTemplate: string; unacceptedRefundTemplate: string };
+    automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; deadlinePassed: string; reclaimWaitsSeller: string; acceptanceExpiryTemplate: string; unacceptedRefundTemplate: string };
     trust: {
       title: string; asSeller: string; asBuyer: string; verifiedBusiness: string; verifiedPerson: string;
       verifiedPersonDetail: string; settledTemplate: string; onTimeTemplate: string; disputesTemplate: string;
@@ -8814,6 +8814,7 @@ export const en: MessagesShape = {
     automatic: {
       autoReleaseTemplate: 'Paid out automatically on {date} unless the buyer raises a problem.',
       deadlineReclaimTemplate: 'If nothing is delivered, the buyer can take the money back from {date}.',
+      deadlinePassed: 'The delivery date and its grace time have passed. What is left goes back to the buyer.',
       reclaimWaitsSeller: 'The money stays in the deal until the buyer answers your request for more time.',
       acceptanceExpiryTemplate: 'This offer expires on {date}.',
       unacceptedRefundTemplate: "The buyer's money is in the deal. If it has not started by {date}, it goes back to the buyer.",

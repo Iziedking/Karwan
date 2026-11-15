@@ -200,6 +200,7 @@ A seller with a funded deal can take an advance from a financier, as view 18 set
 | A dispute | The arbiter does not propose | After 5 days either side escalates to the review Safe |
 | A ruling | The review Safe misses its 5 days | The fallback share in the terms applies |
 | The delivery date | Passes with nothing delivered | Both sides are told; after the grace the buyer is refunded, unless a request for more time waits on the buyer, which holds the refund until they answer |
+| A delivery after the grace | The escrow refuses it (`Late`), on any part of a deal paid in parts | Nobody is offered a delivery, the page says what is left goes back to the buyer, and the route answers `DELIVERY_TOO_LATE` before reaching the chain instead of asking for a retry that cannot land (15 Nov 2026) |
 | A settings change | Queued while deals are open | It reaches new deals only; open deals keep the rules they opened with |
 
 ## Checks before code (rule 14)

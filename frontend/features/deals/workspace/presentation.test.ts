@@ -65,11 +65,14 @@ test('the buyer reads the automatic outcome addressed to them', () => {
     stage: 'awaiting-delivery' as const, money: { line: 'held' as const }, progress: [],
     next: { action: null, actor: 'counterparty' as const, amountUsdc: null }, automatic: { kind, at },
   });
-  assert.equal(automaticLine(view('deadline-reclaim'), copy, 'en', you), 'If nothing is delivered, you can take your money back from 19 Oct 2026.');
+  assert.equal(automaticLine(view('deadline-reclaim'), copy, 'en', you, at - 1), 'If nothing is delivered, you can take your money back from 19 Oct 2026.');
   assert.equal(automaticLine(view('auto-release'), copy, 'en', you), 'Releases automatically on 19 Oct 2026 unless you raise a problem.');
-  assert.equal(automaticLine(view('deadline-reclaim'), copy, 'en'), 'If nothing is delivered, the buyer can take the money back from 19 Oct 2026.');
+  assert.equal(automaticLine(view('deadline-reclaim'), copy, 'en', undefined, at - 1), 'If nothing is delivered, the buyer can take the money back from 19 Oct 2026.');
   assert.equal(automaticLine(view('reclaim-waits'), copy, 'en', you), 'The seller asked for more time. Your money stays in the deal until you answer.');
   assert.equal(automaticLine(view('reclaim-waits'), copy, 'en'), 'The money stays in the deal until the buyer answers your request for more time.');
+  // Past the date and its grace there is no date left to wait for (B-04, 15 Nov 2026).
+  assert.equal(automaticLine(view('deadline-reclaim'), copy, 'en', you, at + 1), 'The delivery date has passed. What is left comes back to you.');
+  assert.equal(automaticLine(view('deadline-reclaim'), copy, 'en', undefined, at + 1), 'The delivery date and its grace time have passed. What is left goes back to the buyer.');
 });
 
 test('a sealed card has no fact parts', () => {

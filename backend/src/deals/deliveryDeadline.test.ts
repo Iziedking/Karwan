@@ -7,6 +7,7 @@ import {
   WAITING_REMIND_EVERY_MS,
   approvedDeadline,
   deadlineReminderDue,
+  deliveryClosed,
   sellerMayAskMoreTime,
   waitingReminderDue,
 } from './deliveryDeadline.js';
@@ -73,4 +74,12 @@ test('the seller asks any time before the date, once after it, and not after the
 test('an approval counts the extra days from the later of the old date and now', () => {
   assert.equal(approvedDeadline(DEADLINE_S, DEADLINE_S - 3_600, 86_400), DEADLINE_S + 86_400);
   assert.equal(approvedDeadline(DEADLINE_S, DEADLINE_S + 5 * 86_400, 86_400), DEADLINE_S + 6 * 86_400);
+});
+
+test('delivery closes once the date and its grace have passed, as the escrow counts it (B-04, 15 Nov 2026)', () => {
+  const due = 1_790_000_000;
+  const grace = 86_400_000;
+  assert.equal(deliveryClosed({ deadlineUnix: due }, due * 1000 + grace, grace), false, 'the last moment of the grace still takes a delivery');
+  assert.equal(deliveryClosed({ deadlineUnix: due }, due * 1000 + grace + 1, grace), true);
+  assert.equal(deliveryClosed({}, Number.MAX_SAFE_INTEGER, grace), false, 'no date, never closed');
 });

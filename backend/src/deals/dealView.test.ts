@@ -253,3 +253,14 @@ test('the view carries one hold line: a held link first, else a held match, noth
   assert.equal(holdOf({ ...match, settledAt: NOW }), null);
   assert.equal(holdOf({ ...match, matchHoldLine: null }), null);
 });
+
+test('past the date and its grace the seller is not offered a delivery the escrow would refuse (B-04, 15 Nov 2026)', () => {
+  const due = Math.floor((NOW - 3 * 86_400_000) / 1000);
+  const paidOne: DealViewInput = { ...delivered, deadlineUnix: due, deadlineReclaimGraceMs: 86_400_000, onChain: { state: 2, milestonesReleased: 1, milestonePcts: [50, 50] }, awaitingNextDelivery: true };
+  const late = dealView(paidOne, 'seller', false, NOW);
+  assert.equal(late.stage, 'awaiting-delivery');
+  assert.deepEqual(late.next, { action: null, actor: 'nobody', amountUsdc: null });
+  assert.equal(late.automatic?.kind, 'deadline-reclaim');
+  const inGrace = { ...paidOne, deadlineReclaimGraceMs: 4 * 86_400_000 };
+  assert.deepEqual(dealView(inGrace, 'seller', false, NOW).next, { action: 'deliver', actor: 'you', amountUsdc: null });
+});

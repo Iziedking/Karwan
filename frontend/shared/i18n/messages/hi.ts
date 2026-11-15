@@ -3469,6 +3469,7 @@ export const hi: Messages = {
     automatic: {
       autoReleaseTemplate: '{date} को अपने आप जारी होगा, जब तक खरीदार कोई समस्या न बताए।',
       deadlineReclaimTemplate: 'अगर कुछ डिलीवर नहीं हुआ, तो खरीदार {date} से पैसा वापस ले सकता है।',
+      deadlinePassed: 'डिलीवरी की तारीख और उसकी मोहलत बीत चुकी है। बाकी पैसा खरीदार को वापस जाता है।',
       reclaimWaitsSeller: 'जब तक खरीदार आपके और समय के अनुरोध का जवाब नहीं देता, पैसा सौदे में रहता है।',
       acceptanceExpiryTemplate: 'यह ऑफ़र {date} को खत्म होगा।',
       unacceptedRefundTemplate: 'खरीदार का पैसा सौदे में है। अगर {date} तक सौदा शुरू नहीं हुआ, तो पैसा खरीदार को वापस जाएगा।',

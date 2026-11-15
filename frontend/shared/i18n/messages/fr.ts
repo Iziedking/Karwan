@@ -3471,6 +3471,7 @@ export const fr: Messages = {
     automatic: {
       autoReleaseTemplate: 'Versé automatiquement le {date}, sauf si l\'acheteur signale un problème.',
       deadlineReclaimTemplate: 'Sans livraison, l\'acheteur peut reprendre les fonds à partir du {date}.',
+      deadlinePassed: 'La date de livraison et son délai de grâce sont passés. Le reste revient à l’acheteur.',
       reclaimWaitsSeller: 'L\'argent reste dans l\'accord jusqu\'à ce que l\'acheteur réponde à votre demande de délai.',
       acceptanceExpiryTemplate: 'Cette offre expire le {date}.',
       unacceptedRefundTemplate: "L'argent de l'acheteur est dans l'accord. S'il n'a pas commencé le {date}, il retourne à l'acheteur.",

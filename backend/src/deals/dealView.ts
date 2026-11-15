@@ -3,6 +3,8 @@
 /// field of the enriched deal plus the viewer's side, whether a money movement
 /// is still in flight, and the clock.
 
+import { deliveryClosed } from './deliveryDeadline.js';
+
 export type DealStage =
   | 'awaiting-acceptance'
   | 'awaiting-funding'
@@ -250,6 +252,8 @@ function next(deal: DealViewInput, stage: DealStage, viewer: 'buyer' | 'seller',
   if (stage === 'awaiting-funding') return viewer === 'buyer' ? you('fund', deal.dealAmountUsdc) : none('counterparty');
   if (stage === 'awaiting-delivery') {
     if (deal.extensionRequest) return viewer === 'buyer' ? you('respond-extension') : none('counterparty');
+    // Past the date and its grace the refund is due: nobody moves.
+    if (deliveryClosed(deal, now, deal.deadlineReclaimGraceMs ?? 0)) return none('nobody');
     return viewer === 'seller' ? you('deliver') : none('counterparty');
   }
   // A held link waits on the seller: another link, or a person checks this one (view 21).

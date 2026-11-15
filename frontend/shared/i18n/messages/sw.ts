@@ -3468,6 +3468,7 @@ export const sw: Messages = {
     automatic: {
       autoReleaseTemplate: 'Inalipwa yenyewe tarehe {date} isipokuwa mnunuzi aripoti tatizo.',
       deadlineReclaimTemplate: 'Kama hakuna kilichowasilishwa, mnunuzi anaweza kurudisha pesa kuanzia {date}.',
+      deadlinePassed: 'Tarehe ya kuwasilisha na muda wake wa ziada vimepita. Kilichobaki kinarudi kwa mnunuzi.',
       reclaimWaitsSeller: 'Pesa zinabaki kwenye mkataba hadi mnunuzi ajibu ombi lako la muda zaidi.',
       acceptanceExpiryTemplate: 'Ofa hii inaisha tarehe {date}.',
       unacceptedRefundTemplate: 'Pesa za mnunuzi ziko kwenye mkataba. Mkataba usipoanza kufikia {date}, zinarudi kwa mnunuzi.',

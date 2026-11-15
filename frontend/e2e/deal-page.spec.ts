@@ -141,6 +141,19 @@ test('a deal paid in stages says what is paid out and what is held', async ({ pa
   await expect(current(page)).toContainText('Stage 2');
 });
 
+test('past the date and its grace the seller is not offered a delivery and reads what happens next (B-04, 15 Nov 2026)', async ({ page }, info) => {
+  await serveDeal(page, base({
+    firstReleasePct: 25, milestonePcts: [25, 25, 25, 25], delivered: false, deliveryCheck: undefined, deliveryMatch: undefined,
+    onChain: { ...base().onChain!, milestonePcts: [25, 25, 25, 25], milestonesReleased: 2 },
+    view: { ...base().view!, stage: 'awaiting-delivery', next: { action: null, actor: 'nobody', amountUsdc: null }, automatic: { kind: 'deadline-reclaim', at: Date.UTC(2026, 10, 12) } },
+  }), SELLER);
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.getByText(en.dealWorkspace.automatic.deadlinePassed).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: t.sendDelivery })).toHaveCount(0);
+  await noSideways(page);
+  await page.screenshot({ path: info.outputPath('deal-delivery-closed.png'), fullPage: true });
+});
+
 test('a cancelled deal shows the refund and no move', async ({ page }) => {
   await serveDeal(page, base({
     cancelledAt: at + 3 * DAY, delivered: false, deliveryCheck: undefined, deliveryMatch: undefined,

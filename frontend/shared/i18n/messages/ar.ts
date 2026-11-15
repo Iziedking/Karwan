@@ -3471,6 +3471,7 @@ export const ar: Messages = {
     automatic: {
       autoReleaseTemplate: 'تُصرف تلقائياً في {date} ما لم يُبلغ المشتري عن مشكلة.',
       deadlineReclaimTemplate: 'إن لم يُسلَّم شيء، يمكن للمشتري استرداد المال اعتباراً من {date}.',
+      deadlinePassed: 'انقضى موعد التسليم ومهلته. يعود المتبقي إلى المشتري.',
       reclaimWaitsSeller: 'يبقى المال في الصفقة حتى يردّ المشتري على طلبك لمزيد من الوقت.',
       acceptanceExpiryTemplate: 'ينتهي هذا العرض في {date}.',
       unacceptedRefundTemplate: 'مال المشتري في الصفقة. إن لم تبدأ بحلول {date}، يعود إلى المشتري.',

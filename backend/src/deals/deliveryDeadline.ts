@@ -49,6 +49,13 @@ export function sellerMayAskMoreTime(deal: DeadlineDeal, nowMs: number, graceMs:
   return (deal.extensionHistory ?? []).some((h) => h.requestedAt > dueMs) ? 'already-asked' : 'ok';
 }
 
+/// Past the date and its grace the escrow refuses a delivery (KarwanDealTypes
+/// mark: Late) and the rest of the money goes back to the buyer, so no surface
+/// offers one and the route turns it away before it reaches the chain.
+export function deliveryClosed(deal: Pick<DirectDeal, 'deadlineUnix'>, nowMs: number, graceMs: number): boolean {
+  return !!deal.deadlineUnix && nowMs > deal.deadlineUnix * 1000 + graceMs;
+}
+
 /// An approval adds the extra time to the later of the old date and now, so a
 /// buyer who answers late still gives the seller the time they asked for.
 export function approvedDeadline(deadlineUnix: number, nowUnix: number, additionalSeconds: number): number {

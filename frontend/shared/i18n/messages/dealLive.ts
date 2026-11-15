@@ -22,6 +22,7 @@ export interface DealLiveCopy {
   again: string;
   autoReleaseYou: string;
   reclaimYou: string;
+  reclaimPassedYou: string;
   reclaimWaitsYou: string;
   unacceptedRefundYou: string;
 }
@@ -45,6 +46,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: 'Start another deal with {name}',
     autoReleaseYou: "Releases automatically on {date} unless you raise a problem.",
     reclaimYou: "If nothing is delivered, you can take your money back from {date}.",
+    reclaimPassedYou: "The delivery date has passed. What is left comes back to you.",
     reclaimWaitsYou: "The seller asked for more time. Your money stays in the deal until you answer.",
     unacceptedRefundYou: "Your money is in the deal. If it has not started by {date}, it comes back to you.",
   },
@@ -66,6 +68,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: 'Nouvel accord avec {name}',
     autoReleaseYou: "Libération automatique le {date}, sauf si vous signalez un problème.",
     reclaimYou: "Sans livraison, vous pouvez reprendre votre argent à partir du {date}.",
+    reclaimPassedYou: "La date de livraison est passée. Le reste vous revient.",
     reclaimWaitsYou: "Le vendeur a demandé plus de temps. Votre argent reste dans l’accord jusqu’à votre réponse.",
     unacceptedRefundYou: "Votre argent est dans l’accord. S’il n’a pas commencé le {date}, il vous revient.",
   },
@@ -87,6 +90,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: 'صفقة جديدة مع {name}',
     autoReleaseYou: "تُصرف تلقائيًا في {date} ما لم تُبلغ عن مشكلة.",
     reclaimYou: "إن لم يُسلَّم شيء، يمكنك استرداد مالك اعتبارًا من {date}.",
+    reclaimPassedYou: "انقضى موعد التسليم. يعود المتبقي إليك.",
     reclaimWaitsYou: "طلب البائع مزيدًا من الوقت. يبقى مالك في الصفقة حتى تردّ.",
     unacceptedRefundYou: "مالك في الصفقة. إن لم تبدأ بحلول {date}، يعود إليك.",
   },
@@ -108,6 +112,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: '{name} के साथ नया सौदा',
     autoReleaseYou: "{date} को अपने आप जारी होगा, जब तक आप कोई समस्या न बताएँ।",
     reclaimYou: "अगर कुछ डिलीवर नहीं हुआ, तो आप {date} से अपना पैसा वापस ले सकते हैं।",
+    reclaimPassedYou: "डिलीवरी की तारीख बीत चुकी है। बाकी पैसा आपको वापस मिलता है।",
     reclaimWaitsYou: "विक्रेता ने और समय माँगा है। जब तक आप जवाब नहीं देते, आपका पैसा सौदे में रहता है।",
     unacceptedRefundYou: "आपका पैसा सौदे में है। अगर {date} तक सौदा शुरू नहीं हुआ, तो पैसा आपको वापस मिल जाएगा।",
   },
@@ -129,6 +134,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: 'Mkataba mpya na {name}',
     autoReleaseYou: "Inatolewa yenyewe tarehe {date} usipoibua tatizo.",
     reclaimYou: "Kama hakuna kilichowasilishwa, unaweza kurudisha pesa zako kuanzia {date}.",
+    reclaimPassedYou: "Tarehe ya kuwasilisha imepita. Kilichobaki kinarudi kwako.",
     reclaimWaitsYou: "Muuzaji ameomba muda zaidi. Pesa zako zinabaki kwenye mkataba hadi ujibu.",
     unacceptedRefundYou: "Pesa zako ziko kwenye mkataba. Mkataba usipoanza kufikia {date}, zinarudi kwako.",
   },
