@@ -70,6 +70,17 @@ test('a seller who was paid hears it once, excited, and the moment is marked for
   await expect(line(page)).toHaveCount(0);
 });
 
+test('a line that grows after it shows is placed again, so its buttons stay on screen', async ({ page }) => {
+  await serve(page, { moment: () => PAID });
+  await openHome(page);
+  await expect(line(page)).toContainText('You were paid 120.00 USDC.', { timeout: 15000 });
+  // A late font or a longer wrap makes the line taller without adding anything to the page.
+  await line(page).locator('p[role="status"]').evaluate((p) => { p.style.paddingBottom = '96px'; });
+  const viewport = page.viewportSize()!;
+  await expect.poll(async () => { const b = (await line(page).boundingBox())!; return b.y + b.height <= viewport.height; }).toBe(true);
+  await expect(line(page).getByRole('button', { name: copy.notNow })).toBeInViewport({ ratio: 1 });
+});
+
 test('Not now on linking Telegram is kept on the account', async ({ page }) => {
   await serve(page, { moves: [{ kind: 'setup_step', step: 'telegram', href: '/profile/contact' }], balances: EMPTY });
   const snoozed = page.waitForRequest((r) => r.url().endsWith('/api/guide/snooze') && (r.postData() ?? '').includes('"telegram"'));
