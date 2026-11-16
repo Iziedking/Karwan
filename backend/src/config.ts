@@ -107,6 +107,9 @@ const envSchema = z.object({
   /// blended score and sellers see the budget as a range. Read once per
   /// request, when it is posted (`Brief.bargainV73`).
   BARGAIN_V73: envBool('BARGAIN_V73'),
+  /// View 87: an agent may lock the money for a deal it agreed, inside its
+  /// person's limits. Off, every lock waits for the person's tap.
+  AUTOPILOT_LOCK_ENABLED: envBool('AUTOPILOT_LOCK_ENABLED'),
   /// Chainlink CRE is the expected source of delivery checks for deals. On
   /// before the workflow is fully wired, checks fall back to Karwan and the
   /// deal records it. The other CRE_* flags keep their meaning.
