@@ -25,6 +25,7 @@ import { deleteBlocksOf } from '../find/blocks.js';
 import { deleteContactsOf } from '../find/contacts.js';
 import { deleteFindsOf } from '../find/finds.js';
 import { deleteNeedsOf } from '../find/needs.js';
+import { deleteOrdersOf } from '../find/orders.js';
 import { deleteListingsBySeller, listListingsForSeller, listingStatus } from '../db/listings.js';
 import { deleteProfile } from '../db/profiles.js';
 import { deleteTelegramAccountByAddress } from '../db/telegramAccounts.js';
@@ -171,6 +172,7 @@ const eraser: Eraser = {
         await deleteFindsOf(address);
         await deleteContactsOf(address);
         await deleteNeedsOf(address);
+        await deleteOrdersOf(address);
         await deleteBlocksOf(address);
       },
     },

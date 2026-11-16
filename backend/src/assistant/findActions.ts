@@ -1,5 +1,6 @@
 import type { Where } from '../location/rules.js';
 import { buildPostRequestConfirm, confirmNonce, type ConfirmActionBase, type PostRequestConfirm } from './actions.js';
+import type { OrderStepConfirm } from './orderTools.js';
 
 /// Confirm cards for being reached and blocking (view 72). Each payload is the
 /// body the page sends. Being found rides the settings card (beFound, meet,
@@ -32,7 +33,7 @@ export interface PitchBuyersConfirm extends ConfirmActionBase {
   payload: { findId: string; picks: number[]; priceUsdc: string; days: number; note: string };
 }
 
-export type FindStepConfirm = SaveStandingNeedConfirm | RemoveStandingNeedConfirm | BlockPersonConfirm | PitchBuyersConfirm;
+export type FindStepConfirm = SaveStandingNeedConfirm | RemoveStandingNeedConfirm | BlockPersonConfirm | PitchBuyersConfirm | OrderStepConfirm;
 
 export const EVERY_WORDS: Record<NeedPayload['every'], string> = { once: 'Once', week: 'Every week', month: 'Every month', season: 'Each season' };
 export const REACHES_WORDS: Record<NeedPayload['kind'], string> = { goods: 'Delivered', in_person: 'At my place', remote: 'Online' };

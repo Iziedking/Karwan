@@ -16,6 +16,7 @@ import { agentQuestionsRoutes } from './routes/agentQuestions.js';
 import { configureJobsReengagementShadow } from './routes/jobsReengagement.js';
 import { agentsRoutes } from './routes/agents.js';
 import { mandateRoutes } from './routes/mandate.js';
+import { orderRoutes } from './routes/orders.js';
 import { eventsRoutes } from './routes/events.js';
 import { milestonesRoutes } from './routes/milestones.js';
 import { balancesRoutes } from './routes/balances.js';
@@ -38,6 +39,7 @@ import { startRecoveryWatcher } from './recovery/watcher.js';
 import { startRecordReadSweep } from './reputation/recordReadSweep.js';
 import { startQuestionSweep } from './agents/questionSweep.js';
 import { startFindContactSweep } from './find/alertsLive.js';
+import { startOrderSweep } from './find/orderLive.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
 import { creDeliveryRequestRoutes } from './routes/creDeliveryRequest.js';
@@ -494,6 +496,7 @@ app.route('/api/jobs', offersRoutes);
 app.route('/api/agent-questions', agentQuestionsRoutes);
 app.route('/api/jobs', jobsRoutes);
 app.route('/api/agents/mandate', mandateRoutes);
+app.route('/api/agents/orders', orderRoutes);
 app.route('/api/agents', agentsRoutes);
 app.route('/api/events', eventsRoutes);
 app.route('/api/milestones', milestonesRoutes);
@@ -747,6 +750,8 @@ stopFns.push(startRatingAsker());
 stopFns.push(startRecordReadSweep());
 stopFns.push(startQuestionSweep());
 stopFns.push(startFindContactSweep());
+// Standing orders (view 87): each is worked once a day, in its person's own time.
+stopFns.push(startOrderSweep());
 
 // Any event that mutates on-chain escrow state has to bust the readEscrow
 // cache so the next read pulls fresh data instead of serving the stale tuple.

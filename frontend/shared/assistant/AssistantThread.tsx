@@ -1,7 +1,9 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
-import { AssistantWait } from './AssistantWait';
+import { AssistantWait, TIP_STAYS_MS, TipCard, type ShownTip } from './AssistantWait';
+import { shortOfMoney } from './shortOfMoney';
+import { AddMoneySheet } from '@/features/money/components/AddMoneySheet';
 import { revealSteps } from './reveal';
 import type { WaitStep } from './waitStatus';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
@@ -80,14 +82,35 @@ export function AssistantThread({ messages, busy, onNavigate, wait = null, from 
   /// The page the person came from, which picks the tips.
   from?: string | null;
 }) {
-  const seed = messages.filter((m) => m.role === 'user').length;
+  const tipLabels = useTranslations().assistantWait.tipLabels;
+  const reduce = useHydratedReducedMotion();
+  // A tip on screen when the answer lands stays until its time is up, so it
+  // is read, not flashed (owner, 16 Nov 2026).
+  const lastTip = useRef<ShownTip | null>(null);
+  const onTip = useCallback((tip: ShownTip) => { lastTip.current = tip; }, []);
+  const [linger, setLinger] = useState<ShownTip | null>(null);
+  const waiting = !!wait;
+  useEffect(() => {
+    if (waiting) {
+      setLinger(null);
+      return;
+    }
+    const tip = lastTip.current;
+    lastTip.current = null;
+    const left = tip ? tip.at + TIP_STAYS_MS - Date.now() : 0;
+    if (!tip || left < 800) return;
+    setLinger(tip);
+    const timer = setTimeout(() => setLinger(null), left);
+    return () => clearTimeout(timer);
+  }, [waiting]);
   return (
     <>
       {messages.map((m, i) => (
         <AssistantTurn key={i} m={m} onNavigate={onNavigate} />
       ))}
+      {!wait && linger ? <TipCard key={linger.text} tip={linger} label={tipLabels[linger.kind]} stays={linger.at + TIP_STAYS_MS - Date.now()} reduce={reduce} /> : null}
       {wait ? (
-        <AssistantWait wait={wait} from={from} seed={seed} />
+        <AssistantWait wait={wait} from={from} onTip={onTip} />
       ) : busy ? (
         <Bubble role="assistant">
           <span className="inline-flex gap-1" aria-label="Thinking">
@@ -1171,6 +1194,8 @@ const ACCOUNT_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: P) => P
   change_settings: (p) => api.saveSettings(str(p.address), p.settings as UserSettings),
   save_standing_need: (p) => api.saveStandingNeed(p as Parameters<typeof api.saveStandingNeed>[0]),
   remove_standing_need: (p) => api.removeStandingNeed(str(p.id)),
+  start_standing_order: (p) => api.startStandingOrder(p as unknown as Parameters<typeof api.startStandingOrder>[0]),
+  change_standing_order: (p) => api.changeStandingOrder(str(p.id), { action: str(p.action) as 'pause' | 'resume' | 'stop' }),
   block_person: (p) => api.blockPerson(str(p.who)),
   pitch_buyers: (p) => api.pitchBuyers(p as Parameters<typeof api.pitchBuyers>[0]),
   unblock_person: (p) => api.unblockPerson(str(p.who)),
@@ -1202,6 +1227,8 @@ const ACCOUNT_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], [strin
   change_settings: ['Settings saved.', '/settings'],
   save_standing_need: ['Need saved.', '/profile'],
   remove_standing_need: ['Removed.', '/profile'],
+  start_standing_order: ['Order started. Your agent works it every day.', '/profile/setup'],
+  change_standing_order: ['Done.', '/profile/setup'],
   block_person: ['Blocked. They are not told.', '/profile'],
   pitch_buyers: ['Sent. Each buyer got one message; you hear when one is interested.', '/assistant'],
   unblock_person: ['Unblocked.', '/profile'],
@@ -1314,6 +1341,8 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   change_settings: 'Saving…',
   save_standing_need: 'Saving…',
   remove_standing_need: 'Removing…',
+  start_standing_order: 'Starting…',
+  change_standing_order: 'Saving…',
   block_person: 'Blocking…',
   pitch_buyers: 'Sending…',
   unblock_person: 'Unblocking…',
@@ -1548,6 +1577,10 @@ function ConfirmCard({
     persisted === 'dismissed' ? 'dismissed' : persisted && persisted !== 'running' ? 'done' : 'idle',
   );
   const [errMsg, setErrMsg] = useState('');
+  // Refused for a short balance: Add money opens here, on this card.
+  const [short, setShort] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const shortCopy = useTranslations().assistantWait.short;
   const [result, setResult] = useState<ConfirmResult | null>(
     persisted && persisted !== 'dismissed' && persisted !== 'running' ? persisted : null,
   );
@@ -1602,6 +1635,7 @@ function ConfirmCard({
     confirmOutcomes.set(action.id, 'running');
     setStatus('running');
     setErrMsg('');
+    setShort(false);
     try {
       const r = await runConfirmIntent(action, {
         startWeb3TopUp,
@@ -1620,6 +1654,7 @@ function ConfirmCard({
       // Clear the sentinel so a genuine failure stays retryable.
       confirmOutcomes.delete(action.id);
       setErrMsg(e instanceof ApiError ? e.message : 'Could not complete that. Try again.');
+      setShort(shortOfMoney(e));
       setStatus('error');
     }
   }
@@ -1687,7 +1722,13 @@ function ConfirmCard({
           <span dir="auto">{action.warning}</span>
         </p>
       )}
-      {status === 'error' && <p role="alert" className="mt-2 text-[13px] text-[var(--color-critical)]">{errMsg}</p>}
+      {status === 'error' && <p role="alert" className="mt-2 text-[13px] text-[var(--color-critical)]">{short ? shortCopy.note : errMsg}</p>}
+      {status === 'error' && short ? (
+        <Button type="button" className="mt-3 w-full" onClick={() => setAdding(true)} data-card-add-money>
+          {shortCopy.add}
+        </Button>
+      ) : null}
+      {adding ? <AddMoneySheet mode="add" onClose={() => setAdding(false)} onLanded={() => setShort(false)} /> : null}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Button type="button" onClick={confirm} loading={status === 'running'} loadingLabel={busyLabel}>
           {status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}

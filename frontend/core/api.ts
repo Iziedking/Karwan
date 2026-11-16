@@ -437,6 +437,37 @@ export interface StandingNeed {
   createdAt: number;
 }
 
+/// Something a person told their agent to work every day (view 87, step 4).
+export interface StandingOrder {
+  id: string;
+  side: 'buy' | 'sell';
+  need: string;
+  /// The most for one, in USDC; none on a selling order.
+  budgetUsdc: string | null;
+  /// The figure as typed in the person's own currency.
+  said?: { currency: string; amount: number };
+  kind: 'goods' | 'in_person' | 'remote';
+  perDay: number;
+  until: number | null;
+  state: 'on' | 'paused' | 'done' | 'ended';
+  jobId: string | null;
+  findId: string | null;
+  createdAt: number;
+  askedToday: number;
+  week: { asked: number; offers: number; locked: number };
+  waitsFor: 'location' | 'money' | null;
+}
+
+export interface StandingOrderInput {
+  side: StandingOrder['side'];
+  need: string;
+  budgetUsdc: number | null;
+  said?: { currency: string; amount: number };
+  kind: StandingOrder['kind'];
+  perDay: number;
+  untilDays?: number;
+}
+
 /// How far someone is, rounded (view 72). Never an area or an address.
 export type DistanceLine =
   | { key: 'nearby' }
@@ -2291,6 +2322,8 @@ export interface AssistantConfirmAction {
     | 'edit_company_card'
     | 'save_standing_need'
     | 'remove_standing_need'
+    | 'start_standing_order'
+    | 'change_standing_order'
     | 'block_person'
     | 'unblock_person'
     | 'pitch_buyers';
@@ -7011,6 +7044,12 @@ export const api = {
       `/api/deals/direct/${jobId}/decline`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
+  /// Standing orders: what the agent works every day (view 87).
+  standingOrders: () => json<{ orders: StandingOrder[]; max: number; working: boolean }>('/api/agents/orders'),
+  startStandingOrder: (order: StandingOrderInput) =>
+    json<{ order: StandingOrder; working: boolean }>('/api/agents/orders', { method: 'POST', body: JSON.stringify(order) }),
+  changeStandingOrder: (id: string, change: { action: 'pause' | 'resume' | 'stop' } | { budgetUsdc?: number; said?: { currency: string; amount: number }; perDay?: number; until?: number | null; untilDays?: number }) =>
+    json<{ order?: StandingOrder; ok?: true; stopped?: true }>(`/api/agents/orders/${encodeURIComponent(id)}`, { method: 'POST', body: JSON.stringify(change) }),
   /// What a buyer regularly needs (view 72).
   standingNeeds: () => json<{ needs: StandingNeed[]; max: number }>('/api/find/needs'),
   saveStandingNeed: (need: { id?: string; what: string; every: StandingNeed['every']; budgetUsdc: number | null; kind: StandingNeed['kind']; paused?: boolean }) =>

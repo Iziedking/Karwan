@@ -506,6 +506,22 @@ export const findContacts = pgTable(
   }),
 );
 
+/// Standing orders: what a person told their agent to work every day (view 87).
+export const standingOrders = pgTable(
+  'standing_orders_v1',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull(),
+    state: text('state').notNull(),
+    nextAt: bigint('next_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').notNull(),
+  },
+  (t) => ({
+    ownerIdx: index('standing_orders_v1_owner_idx').on(t.owner),
+    dueIdx: index('standing_orders_v1_due_idx').on(t.nextAt),
+  }),
+);
+
 /// Paid web research reads, kept so a restart does not lose them (view 48,
 /// step 4). Keyed by the normalised keyword set.
 export const marketReads = pgTable(

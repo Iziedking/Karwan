@@ -1700,6 +1700,23 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    // Standing orders (view 87, step 4): what a person told their agent to
+    // work every day, with when each is next due.
+    version: 70,
+    name: 'standing_orders',
+    sql: `
+      CREATE TABLE standing_orders_v1 (
+        id TEXT PRIMARY KEY,
+        owner TEXT NOT NULL,
+        state TEXT NOT NULL,
+        next_at BIGINT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX standing_orders_v1_owner_idx ON standing_orders_v1 (owner);
+      CREATE INDEX standing_orders_v1_due_idx ON standing_orders_v1 (next_at) WHERE state = 'on';
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

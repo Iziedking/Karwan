@@ -24,6 +24,8 @@ import { customerLeads } from '../find/customersLive.js';
 import { pitchView, type PitchView } from '../find/pitchView.js';
 import { rankBuyersFor, type LeadCandidate, type LeadSeller } from '../find/rankBuyers.js';
 import { budgetWords } from '../market/budgetView.js';
+import { ordersOf } from '../find/orders.js';
+import { orderTools, type OrderToolDeps } from './orderTools.js';
 
 /// Finding people, being reached and blocking, from any channel (view 72).
 /// Being found is a setting (propose_change_settings). Nothing here moves money.
@@ -53,7 +55,15 @@ export interface FindToolDeps {
   pitches: (buyer: string) => Promise<PitchView[]>;
   pitch: (buyer: string, id: string) => Promise<PitchView | null>;
   answerPitch: (buyer: string, id: string, answer: 'not_now' | 'no') => Promise<'answered' | 'already' | 'none'>;
+  /// Standing orders (view 87). The live stores when absent.
+  orders?: Pick<OrderToolDeps, 'orders' | 'working'>;
 }
+
+const liveOrders: Pick<OrderToolDeps, 'orders' | 'working'> = {
+  orders: ordersOf,
+  // Loaded here: the live wiring pulls in the request board.
+  working: async (address) => (await import('../find/orderLive.js')).findIsOnFor(address),
+};
 
 /// How far someone is, in words for the assistant; never more than this.
 export function distanceWords(d: DistanceLine): string | null {
@@ -92,6 +102,8 @@ export function findTools(address: string, actions: AssistantAction[], deps: Fin
     [EVERY_WORDS[n.every], n.budgetUsdc ? `about ${await deps.money(me, Number(n.budgetUsdc))}` : null, REACHES_WORDS[n.kind].toLowerCase()].filter(Boolean).join(' · ');
 
   return {
+    ...orderTools(me, actions, { ...(deps.orders ?? liveOrders), money: deps.money, now: deps.now }),
+
     find_people: tool({
       description:
         'Find people who sell what this person needs, near them or online, ranked by skill, then their record (verified, tier, rating), then distance (view 72). Use when they ask for someone: "I need a tailor near me", "find me a caterer in Abuja". Only people who chose to be found come up, at most five, the best fit recommended. Pass kind in_person for work done face to face, remote for online work, goods for things delivered. It moves no money and contacts nobody yet. A card with the people and a See all button is shown under your reply, so say in one or two sentences who fits best and why; do not list every row. Contacting them comes in a later step; until then offer to post a request or message one by tag. Nobody fits: say so plainly and offer to post it on the open market.',

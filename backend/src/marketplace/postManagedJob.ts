@@ -15,6 +15,7 @@ import {
   rekeyBrief,
 } from '../db/briefs.js';
 import { extractKeywords } from '../llm/keywords.js';
+import type { Quantity } from '../llm/quantity.js';
 import { logger } from '../logger.js';
 
 const USDC_DECIMALS = 6;
@@ -41,6 +42,13 @@ export type ManagedJobPostInput = {
     kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
     label?: string;
   }>;
+  /// A request an agent posts for a standing order (view 87): open only to
+  /// the people named, never on the market.
+  invited?: string[];
+  agreeForMe?: boolean;
+  deliveryKind?: 'goods' | 'in_person' | 'remote';
+  where?: { scope: 'near' | 'country' | 'anywhere'; country?: string };
+  quantity?: Quantity | null;
 };
 
 type ManagedJobPostSuccess = {
@@ -146,6 +154,11 @@ export async function postManagedJob(
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
     documentRefs: body.documentRefs,
+    ...(body.invited ? { visibility: 'invited' as const, invited: body.invited.map((p) => p.toLowerCase()) } : {}),
+    ...(body.agreeForMe ? { agreeForMe: true } : {}),
+    ...(body.deliveryKind ? { deliveryKind: body.deliveryKind } : {}),
+    ...(body.where ? { where: body.where } : {}),
+    ...(body.quantity !== undefined ? { quantity: body.quantity } : {}),
   });
 
   extractKeywords(body.brief, `brief:${jobId}`)

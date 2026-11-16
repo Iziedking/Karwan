@@ -177,7 +177,19 @@ type TgKey =
   | 'lock.ask.failed'
   | 'lock.ask.tail'
   | 'lock.stopped.heading'
-  | 'lock.stopped.tail';
+  | 'lock.stopped.tail'
+  | 'order.heading'
+  | 'order.asked'
+  | 'order.askedOne'
+  | 'order.asked.tail'
+  | 'order.pitched'
+  | 'order.pitchedOne'
+  | 'order.pitched.tail'
+  | 'order.nobody.buy'
+  | 'order.nobody.sell'
+  | 'order.location'
+  | 'order.short'
+  | 'order.ended';
 
 const en: Record<TgKey, string> = {
   'cancelProposedFromOther.mutual':
@@ -361,6 +373,18 @@ const en: Record<TgKey, string> = {
   'lock.ask.tail': "Nothing is locked. Open the request to lock it yourself.",
   'lock.stopped.heading': "Your agent stopped",
   'lock.stopped.tail': "It does nothing alone until you turn it back on under Your agent.",
+  'order.heading': "Your standing order",
+  'order.asked': "I asked {n} people for \"{need}\": {names}.",
+  'order.askedOne': "I asked {names} for \"{need}\".",
+  'order.asked.tail': "Their offers come to you as they answer.",
+  'order.pitched': "I offered your work to {n} buyers who need it regularly.",
+  'order.pitchedOne': "I offered your work to 1 buyer who needs it regularly.",
+  'order.pitched.tail': "You hear when one is interested.",
+  'order.nobody.buy': "Three days and nobody new fits \"{need}\". I keep looking each day. A higher budget or a wider area finds more people.",
+  'order.nobody.sell': "Three days and no new buyer fits \"{need}\". I keep looking each day.",
+  'order.location': "To find people for \"{need}\" I need to know roughly where you are. Tell me your area and city.",
+  'order.short': "Your balance is too low to post \"{need}\". Add money and I try again tomorrow.",
+  'order.ended': "\"{need}\" reached its date, so I stopped working it.",
 };
 
 const ar: Partial<Record<TgKey, string>> = {
@@ -545,6 +569,18 @@ const ar: Partial<Record<TgKey, string>> = {
   'lock.ask.tail': "لم يُحجز شيء. افتح الطلب لتحجز المال بنفسك.",
   'lock.stopped.heading': "وكيلك توقف",
   'lock.stopped.tail': "لن يفعل شيئا وحده حتى تعيد تشغيله من صفحة وكيلك.",
+  'order.heading': "طلبك الدائم",
+  'order.asked': "سألت {n} أشخاص عن \"{need}\": {names}.",
+  'order.askedOne': "سألت {names} عن \"{need}\".",
+  'order.asked.tail': "تصلك عروضهم فور ردّهم.",
+  'order.pitched': "عرضت عملك على {n} مشترين يحتاجونه بانتظام.",
+  'order.pitchedOne': "عرضت عملك على مشترٍ واحد يحتاجه بانتظام.",
+  'order.pitched.tail': "أخبرك حين يهتم أحدهم.",
+  'order.nobody.buy': "مرّت ثلاثة أيام ولا أحد جديد يناسب \"{need}\". أواصل البحث كل يوم. ميزانية أعلى أو منطقة أوسع تجد أشخاصا أكثر.",
+  'order.nobody.sell': "مرّت ثلاثة أيام ولا مشترٍ جديد يناسب \"{need}\". أواصل البحث كل يوم.",
+  'order.location': "لأجد أشخاصا من أجل \"{need}\" أحتاج أن أعرف مكانك تقريبا. أخبرني بحيّك ومدينتك.",
+  'order.short': "رصيدك لا يكفي لنشر \"{need}\". أضف مالا وسأحاول غدا من جديد.",
+  'order.ended': "\"{need}\" بلغ تاريخه، فتوقفت عن العمل عليه.",
 };
 
 const fr: Partial<Record<TgKey, string>> = {
@@ -729,6 +765,18 @@ const fr: Partial<Record<TgKey, string>> = {
   'lock.ask.tail': "Rien n'est bloqué. Ouvrez la demande pour bloquer la somme vous-même.",
   'lock.stopped.heading': "Votre agent s'est arrêté",
   'lock.stopped.tail': "Il ne fait plus rien seul tant que vous ne le relancez pas dans Votre agent.",
+  'order.heading': "Votre ordre permanent",
+  'order.asked': "J'ai demandé à {n} personnes pour « {need} » : {names}.",
+  'order.askedOne': "J'ai demandé à {names} pour « {need} ».",
+  'order.asked.tail': "Leurs offres vous arrivent dès qu'ils répondent.",
+  'order.pitched': "J'ai proposé votre travail à {n} acheteurs qui en ont besoin régulièrement.",
+  'order.pitchedOne': "J'ai proposé votre travail à 1 acheteur qui en a besoin régulièrement.",
+  'order.pitched.tail': "Vous êtes prévenu dès que l'un d'eux est intéressé.",
+  'order.nobody.buy': "Trois jours et personne de nouveau ne convient pour « {need} ». Je continue de chercher chaque jour. Un budget plus élevé ou une zone plus large trouve plus de monde.",
+  'order.nobody.sell': "Trois jours et aucun nouvel acheteur ne convient pour « {need} ». Je continue de chercher chaque jour.",
+  'order.location': "Pour trouver des personnes pour « {need} », j'ai besoin de savoir à peu près où vous êtes. Dites-moi votre quartier et votre ville.",
+  'order.short': "Votre solde est trop bas pour publier « {need} ». Ajoutez de l'argent et je réessaie demain.",
+  'order.ended': "« {need} » a atteint sa date, j'ai donc arrêté d'y travailler.",
 };
 
 const hi: Partial<Record<TgKey, string>> = {
@@ -913,6 +961,18 @@ const hi: Partial<Record<TgKey, string>> = {
   'lock.ask.tail': "कुछ भी लॉक नहीं हुआ। खुद लॉक करने के लिए अनुरोध खोलें।",
   'lock.stopped.heading': "आपका एजेंट रुक गया",
   'lock.stopped.tail': "जब तक आप इसे आपका एजेंट में फिर चालू नहीं करते, यह अकेले कुछ नहीं करेगा।",
+  'order.heading': "आपका स्थायी ऑर्डर",
+  'order.asked': "मैंने \"{need}\" के लिए {n} लोगों से पूछा: {names}।",
+  'order.askedOne': "मैंने \"{need}\" के लिए {names} से पूछा।",
+  'order.asked.tail': "उनके जवाब आते ही उनके ऑफ़र आपके पास पहुँचेंगे।",
+  'order.pitched': "मैंने आपका काम {n} खरीदारों को पेश किया जिन्हें इसकी नियमित ज़रूरत है।",
+  'order.pitchedOne': "मैंने आपका काम 1 खरीदार को पेश किया जिसे इसकी नियमित ज़रूरत है।",
+  'order.pitched.tail': "किसी की रुचि होते ही आपको बताऊँगा।",
+  'order.nobody.buy': "तीन दिन हो गए और \"{need}\" के लिए कोई नया व्यक्ति नहीं मिला। मैं हर दिन खोजता रहूँगा। ज़्यादा बजट या बड़ा इलाका ज़्यादा लोग ढूँढता है।",
+  'order.nobody.sell': "तीन दिन हो गए और \"{need}\" के लिए कोई नया खरीदार नहीं मिला। मैं हर दिन खोजता रहूँगा।",
+  'order.location': "\"{need}\" के लिए लोग ढूँढने को मुझे मोटे तौर पर जानना होगा कि आप कहाँ हैं। अपना इलाका और शहर बताइए।",
+  'order.short': "\"{need}\" पोस्ट करने के लिए आपका बैलेंस कम है। पैसे जोड़ें, मैं कल फिर कोशिश करूँगा।",
+  'order.ended': "\"{need}\" की तारीख आ गई, इसलिए मैंने इस पर काम रोक दिया।",
 };
 
 const sw: Partial<Record<TgKey, string>> = {
@@ -1097,6 +1157,18 @@ const sw: Partial<Record<TgKey, string>> = {
   'lock.ask.tail': "Hakuna kilichofungwa. Fungua ombi ufunge mwenyewe.",
   'lock.stopped.heading': "Wakala wako amesimama",
   'lock.stopped.tail': "Hatafanya lolote peke yake hadi umwashe tena kwenye Wakala wako.",
+  'order.heading': "Agizo lako la kudumu",
+  'order.asked': "Nimewauliza watu {n} kuhusu \"{need}\": {names}.",
+  'order.askedOne': "Nimemuuliza {names} kuhusu \"{need}\".",
+  'order.asked.tail': "Ofa zao zinakufikia wanapojibu.",
+  'order.pitched': "Nimetoa kazi yako kwa wanunuzi {n} wanaoihitaji mara kwa mara.",
+  'order.pitchedOne': "Nimetoa kazi yako kwa mnunuzi 1 anayeihitaji mara kwa mara.",
+  'order.pitched.tail': "Utajulishwa mmoja akipendezwa.",
+  'order.nobody.buy': "Siku tatu na hakuna mtu mpya anayefaa kwa \"{need}\". Naendelea kutafuta kila siku. Bajeti kubwa zaidi au eneo pana zaidi hupata watu wengi zaidi.",
+  'order.nobody.sell': "Siku tatu na hakuna mnunuzi mpya anayefaa kwa \"{need}\". Naendelea kutafuta kila siku.",
+  'order.location': "Ili kupata watu kwa ajili ya \"{need}\" nahitaji kujua takriban ulipo. Niambie mtaa na jiji lako.",
+  'order.short': "Salio lako ni dogo mno kuchapisha \"{need}\". Ongeza pesa nami nitajaribu tena kesho.",
+  'order.ended': "\"{need}\" imefika tarehe yake, kwa hiyo nimeacha kuifanyia kazi.",
 };
 
 const TABLES: Record<UserLocale, Partial<Record<TgKey, string>>> = {

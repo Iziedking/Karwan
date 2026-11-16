@@ -22,6 +22,7 @@ import { ResearchRows } from '@/features/profile/components/ResearchRows';
 import { fill } from '@/features/deals/workspace/presentation';
 import { AgentPanel, type PanelKey } from './agentPanels';
 import { LockSheet } from './LockSheet';
+import { StandingOrders } from './StandingOrders';
 import { MANDATE_KEY, aloneRows } from './switches';
 import { BeFoundPanel, NEEDS_KEY, ReachPanel, type FindPanelKey } from './findPanels';
 import { beFoundOf, meetLine, meetOf, reachableOf } from './findModel';
@@ -210,6 +211,9 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
           </RowGroup>
         </div>
       ) : null}
+
+      {/* Standing orders (view 87, step 4): shown while Find people is on. */}
+      {activated && !activationLoading && mandate?.switches.find ? <StandingOrders city={profile.location?.city ?? null} idle={idle} /> : null}
 
       {activated && !activationLoading ? (
         <div data-its-money className="space-y-7">

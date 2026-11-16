@@ -188,6 +188,8 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/bridge/circle-bridge/:/resume': { by: 'assistant', via: 'recheck_money_move' },
   'POST /api/money/agent-limit': { by: 'assistant', via: 'set_agent_budget' },
   'POST /api/agents/mandate': { by: 'assistant', via: 'change_mandate' },
+  'POST /api/agents/orders': { by: 'assistant', via: 'start_standing_order' },
+  'POST /api/agents/orders/:': { by: 'assistant', via: 'change_standing_order' },
   'POST /api/money/intents': UNUSED,
   'POST /api/money/intents/:/retry': { by: 'assistant', via: 'retry_money_move' },
   'POST /api/money/intents/:/cancel': { by: 'assistant', via: 'cancel_money_move' },

@@ -179,6 +179,15 @@ export async function pitchesTo(buyer: string, limit = 50): Promise<Contact[]> {
   return r.rows.map(rowOf);
 }
 
+/// The needs a seller already pitched, whatever the answer was.
+export async function pitchedNeedsOf(seller: string): Promise<Set<string>> {
+  const s = lower(seller);
+  const rows = !pgEnabled
+    ? [...mem.values()].filter((c) => c.kind === 'pitch' && c.from === s)
+    : (await postgresExecutor().query<{ data: unknown }>(`SELECT data FROM find_contacts_v1 WHERE kind = 'pitch' AND from_addr = $1`, [s])).rows.map(rowOf);
+  return new Set(rows.map((c) => c.needId).filter((id): id is string => !!id));
+}
+
 /// The find matched or ended: nothing more goes out for it.
 export async function closeContactsOfFind(findId: string, now: number): Promise<void> {
   for (const c of await contactsOfFind(findId)) {
