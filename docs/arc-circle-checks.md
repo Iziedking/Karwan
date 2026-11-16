@@ -860,6 +860,7 @@ Agree: yes.
 - Read-only test, 15 Nov 2026: `eth_call` `balanceOf` on `https://rpc.testnet.arc.network` for seller agents `0xf2aca6e1…`, `0xeffcea11…`, `0x479badc4…`, `0x9cc7af1c…`, `0xa1444039…`: 0 USDC each. Unit tests on node-services: `src/x402` (with the new `gatewayDeposit.test.ts`), guide and canon, 94 passed.
 - Agree: yes.
 
+
 ## 2026-11-16 · An agent locks the money for a deal it agreed (T1, view 87 step 3, proposed)
 
 - Scope: with "Lock money for me" on, the buying agent funds a deal it agreed without its person's tap. It adds no chain call and changes no contract: the lock runs `chooseAgentOffer`, then `approveAgentMatch`, then `fundAgentMatchSuite` (`backend/src/agents/fundAgentMatchSuite.ts`), the same path a tap takes today. What is new sits in front of that path: the gate `mayLock` (`agents/autopilotGate.ts`), a written step in the request notes, and a reservation in the agent record.
@@ -868,4 +869,12 @@ Agree: yes.
 - Installed SDK: `@circle-fin/developer-controlled-wallets` 10.8.0 (root `node_modules`), viem as before. No package change.
 - Read-only test, 16 Nov 2026: `eth_chainId` and `eth_blockNumber` on `https://rpc.testnet.arc.network`: chain id 5042002, block 72542993.
 - Not covered here: Circle's spending limits on agent wallets (view 87 step 9, mainnet) and the match fee (step 6) get their own checks. On testnet Karwan's gate is the only wall.
+- Agree: yes.
+
+## 2026-11-16 · A standing order posts a private request (T1, view 87 step 4)
+
+- Scope: a standing order posts its need as a private request and alerts people without a tap each time. It adds no Arc or Circle call. The request is posted through `postManagedJob` (`backend/src/marketplace/postManagedJob.ts`), the service the operator seed already uses, which now also takes who is invited. With the market board on Karwan's own records (the default, view 40) posting writes no transaction; with `MARKET_BOARD=chain` it is the same `postJob` call a request posted by hand makes, signed by the buyer agent wallet.
+- Reads only, both already in use: the buyer agent's USDC balance and the escrow fee (`readUsdcBalance`, `getEscrowFeeBps` in `chain/contracts.ts`), so an order does not post a request its agent could not fund. An order never funds, releases or sends money; locking stays behind the gate checked in the entry above.
+- Docs: nothing new to check, since no call, contract or SDK use changes. Installed SDK unchanged: `@circle-fin/developer-controlled-wallets` 10.8.0. No package change.
+- Read-only test: none run for this entry; the code path was read on 16 Nov 2026 and is covered by unit tests with the posting service injected (`src/find/orderRun.test.ts`).
 - Agree: yes.
