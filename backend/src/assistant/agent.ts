@@ -994,7 +994,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             note:
               actionNeeded.length + waitingOnOthers.length + inFlight.length === 0
                 ? 'No attention items found in the checked deal, proposal, bridge, financing and yield records. This does not cover business setup, support tickets or every platform feature.'
-                : 'Lead with moment when present, once, in plain words (line: paid, released, tier, lapsed, late or pocketPaid; pocketPaid means part of their savings pocket went to the buyer after a ruling), then nextMove (what the website nudge shows: kind, href, amount), then actionNeeded; mention the rest only if relevant. Each item names the screen to act on.',
+                : 'Lead with moment when present, once, in plain words (line: paid, released, tier, lapsed, late, pocketPaid, offer or entry; pocketPaid means part of their savings pocket went to the buyer after a ruling, offer means a new offer on their request, entry means someone entered their contest), then nextMove (what the website nudge shows: kind, href, amount), then actionNeeded; mention the rest only if relevant. Each item names the screen to act on.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant whats_pending failed');

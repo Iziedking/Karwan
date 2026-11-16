@@ -5,7 +5,7 @@ import type { KarwanEvent } from '../events.js';
 /// assistant gives the same one first. Lines are keys; each channel words them.
 
 export type MomentMood = 'excited' | 'sad' | 'hurt';
-export type MomentLine = 'paid' | 'released' | 'tier' | 'lapsed' | 'late' | 'pocketPaid';
+export type MomentLine = 'paid' | 'released' | 'tier' | 'lapsed' | 'late' | 'pocketPaid' | 'offer' | 'entry';
 
 export interface Moment {
   id: string;
@@ -60,6 +60,15 @@ export function momentFor(e: KarwanEvent, ctx: MomentContext): Moment | null {
       return ctx.role ? { ...base, mood: 'sad', line: 'lapsed', href: '/market' } : null;
     case 'job.expired':
       return same(p.buyer, ctx.me) ? { ...base, mood: 'sad', line: 'lapsed', href: e.jobId ? `/jobs/${e.jobId}` : '/market' } : null;
+    // Good news worth a word (owner, 16 Nov 2026: "no smart nudges"): an offer
+    // on their own request, and someone entering their contest.
+    case 'offer.created':
+    case 'bid.submitted':
+      return ctx.ownsRequest ? { ...base, mood: 'excited', line: 'offer', href: e.jobId ? `/jobs/${e.jobId}` : '/market' } : null;
+    case 'contest.entered':
+      return same(p.buyer, ctx.me) && !p.replaced && typeof p.contestId === 'string'
+        ? { ...base, mood: 'excited', line: 'entry', href: `/contests/${encodeURIComponent(p.contestId)}` }
+        : null;
     case 'offer.withdrawn':
       return ctx.ownsRequest ? { ...base, mood: 'sad', line: 'lapsed', href: e.jobId ? `/jobs/${e.jobId}` : '/market' } : null;
     case 'deal.match.declined':

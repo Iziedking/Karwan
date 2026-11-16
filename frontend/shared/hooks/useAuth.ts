@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { resetPace } from '@/features/guide/amanPace';
 import { usePathname } from 'next/navigation';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
@@ -62,6 +63,8 @@ export function emitAuthChanged(opts?: { signedOut?: boolean }) {
   // precedes every instance, so the splash always covers before the Terms gate
   // (a separate instance) can paint. Not on sign-out.
   if (!opts?.signedOut) requestSplash();
+  // A new sign-in always gets Aman again (owner, 16 Nov 2026).
+  resetPace(window.localStorage);
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT, { detail: opts }));
 }
 

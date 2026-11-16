@@ -15,7 +15,7 @@ export async function readMoment(address: string, since: number, now = Date.now(
   const candidates = events.map((event) => {
     const d = event.jobId ? byJob.get(event.jobId.toLowerCase()) : undefined;
     const role: MomentContext['role'] = d ? (d.buyer.toLowerCase() === me ? 'buyer' : d.seller?.toLowerCase() === me ? 'seller' : null) : null;
-    const brief = event.type === 'offer.withdrawn' && event.jobId ? getBrief(event.jobId) : undefined;
+    const brief = (event.type === 'offer.withdrawn' || event.type === 'offer.created' || event.type === 'bid.submitted') && event.jobId ? getBrief(event.jobId) : undefined;
     const ctx: MomentContext = {
       me,
       role,

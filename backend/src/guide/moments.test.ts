@@ -58,3 +58,17 @@ test('the newest moment since the last one shown, and none older than two days',
   const stale = { event: ev('deal.cancelled', {}, { ts: NOW - 49 * 3600_000 }), ctx: buyer };
   assert.equal(pickMoment([stale], 0, NOW), null);
 });
+
+test('an offer on their own request and a new contest entry make Aman glad (owner, 16 Nov 2026)', () => {
+  const own: MomentContext = { me: ME, role: null, ownsRequest: true };
+  assert.deepEqual(
+    [momentFor(ev('bid.submitted', {}, { jobId: '0xjob' }), own)?.line, momentFor(ev('offer.created', {}, { jobId: '0xjob' }), own)?.href],
+    ['offer', '/jobs/0xjob'],
+  );
+  assert.equal(momentFor(ev('bid.submitted', {}, { jobId: '0xjob' }), { me: ME, role: null }), null, 'a request of someone else says nothing');
+  const entry = momentFor(ev('contest.entered', { contestId: 'c_1', buyer: ME, replaced: false }, { jobId: undefined }), { me: ME, role: null });
+  assert.equal(entry?.line, 'entry');
+  assert.equal(entry?.href, '/contests/c_1');
+  assert.equal(momentFor(ev('contest.entered', { contestId: 'c_1', buyer: ME, replaced: true }, { jobId: undefined }), { me: ME, role: null }), null, 'a replaced entry is not news');
+  assert.equal(momentFor(ev('contest.entered', { contestId: 'c_1', buyer: '0xsomeoneelse', replaced: false }, { jobId: undefined }), { me: ME, role: null }), null);
+});

@@ -18,7 +18,7 @@ export const QUESTION_KEYS = [
 
 export type QuestionKey = (typeof QUESTION_KEYS)[number];
 
-export type MomentLineKey = 'paid' | 'released' | 'tier' | 'lapsed' | 'late' | 'pocketPaid' | 'broke';
+export type MomentLineKey = 'paid' | 'released' | 'tier' | 'lapsed' | 'late' | 'pocketPaid' | 'broke' | 'offer' | 'entry';
 
 export interface GuideCopy {
   label: string;
@@ -81,6 +81,8 @@ const en: GuideCopy = {
     late: { line: 'A deadline passed on a deal.', action: 'See the deal' },
     pocketPaid: { line: 'Part of your savings pocket went to the buyer. Here is why.', action: 'See why' },
     broke: { line: 'Something broke on our side. Your money is safe.', action: 'Try again' },
+    offer: { line: 'A new offer came in on your request.', action: 'See the offer' },
+    entry: { line: 'Someone entered your contest.', action: 'See the entry' },
   },
   tour: { offer: 'New here? Want a quick look around?', showMe: 'Show me', showAround: 'Show me around', step: 'Aman · {n} of {m}' },
 };
@@ -126,6 +128,8 @@ const fr: GuideCopy = {
     late: { line: 'Une échéance est passée sur un contrat.', action: 'Voir le contrat' },
     pocketPaid: { line: 'Une partie de votre épargne est allée à l\'acheteur. Voici pourquoi.', action: 'Voir pourquoi' },
     broke: { line: 'Un problème est survenu de notre côté. Votre argent est en sécurité.', action: 'Réessayer' },
+    offer: { line: 'Une nouvelle offre est arrivée sur votre demande.', action: 'Voir l’offre' },
+    entry: { line: 'Quelqu’un a participé à votre concours.', action: 'Voir la participation' },
   },
   tour: { offer: 'Nouveau ici ? Un petit tour de la page ?', showMe: 'Montrez-moi', showAround: 'Faire le tour', step: 'Aman · {n} sur {m}' },
 };
@@ -171,6 +175,8 @@ const ar: GuideCopy = {
     late: { line: 'انتهى موعد في إحدى الصفقات.', action: 'عرض الصفقة' },
     pocketPaid: { line: 'ذهب جزء من جيب ادخارك إلى المشتري. إليك السبب.', action: 'اعرف السبب' },
     broke: { line: 'حدث خطأ من جهتنا. أموالك في أمان.', action: 'حاول مرة أخرى' },
+    offer: { line: 'وصل عرض جديد على طلبك.', action: 'اطّلع على العرض' },
+    entry: { line: 'شارك أحدهم في مسابقتك.', action: 'اطّلع على المشاركة' },
   },
   tour: { offer: 'جديد هنا؟ هل تريد جولة سريعة؟', showMe: 'أرني', showAround: 'جولة في الصفحة', step: 'أمان · {n} من {m}' },
 };
@@ -216,6 +222,8 @@ const hi: GuideCopy = {
     late: { line: 'एक डील की समय सीमा निकल गई।', action: 'डील देखें' },
     pocketPaid: { line: 'आपकी बचत जेब का कुछ हिस्सा खरीदार को गया। कारण यह है।', action: 'कारण देखें' },
     broke: { line: 'हमारी तरफ़ कुछ गड़बड़ हुई। आपका पैसा सुरक्षित है।', action: 'फिर कोशिश करें' },
+    offer: { line: 'आपकी माँग पर एक नया ऑफ़र आया है।', action: 'ऑफ़र देखें' },
+    entry: { line: 'किसी ने आपकी प्रतियोगिता में हिस्सा लिया।', action: 'प्रविष्टि देखें' },
   },
   tour: { offer: 'यहाँ नए हैं? एक छोटा सा दौरा करें?', showMe: 'दिखाइए', showAround: 'पेज का दौरा', step: 'अमान · {m} में से {n}' },
 };
@@ -261,6 +269,8 @@ const sw: GuideCopy = {
     late: { line: 'Muda wa mkataba mmoja umepita.', action: 'Ona mkataba' },
     pocketPaid: { line: 'Sehemu ya akiba yako imeenda kwa mnunuzi. Hii ndiyo sababu.', action: 'Ona sababu' },
     broke: { line: 'Kuna hitilafu upande wetu. Pesa zako ziko salama.', action: 'Jaribu tena' },
+    offer: { line: 'Ofa mpya imefika kwenye ombi lako.', action: 'Angalia ofa' },
+    entry: { line: 'Mtu ameingia kwenye shindano lako.', action: 'Angalia maingizo' },
   },
   tour: { offer: 'Mgeni hapa? Ungependa kuzungushwa haraka?', showMe: 'Nionyeshe', showAround: 'Nizungushe', step: 'Aman · {n} kati ya {m}' },
 };

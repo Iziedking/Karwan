@@ -330,6 +330,7 @@ Money kept aside is the **savings pocket**. A **deal guarantee** is only the par
 | 15 Nov evening amendment: a living face everywhere, nine faces that react to what happens, a tour on request, Not now held for days on the account | Approved 15 Nov 2026; built 15 Nov 2026, not deployed |
 | Figma: section "6 · Aman alive (15 Nov evening)" (343:2961) on the Aman page: the nine faces (the Aman set gained Excited, Sad, Worried, Hurt), blink, eyes and breathing frames, the six reaction lines, the Home tour on a phone (offer and three stops) and a laptop, Not now held for days; component Guide/Tour step (343:5285) | Drawn and approved 15 Nov 2026 |
 | The savings pocket named as such in the assistant, the record and the canon; a deal guarantee only for the part backing a deal | Built 15 Nov 2026, not deployed |
+| 16 Nov amendment (owner): Aman comes in on its own at most once every 20 minutes across the site (5 for money arrived or a deal waiting); Not now keeps it away a day everywhere; every sign-in starts fresh; new moments for an offer on your request and an entry in your contest; tips under Aman stay 6 s, rotate per wait and finish after the answer | Built 16 Nov 2026, not deployed |
 
 ## As built (15 Nov 2026)
 

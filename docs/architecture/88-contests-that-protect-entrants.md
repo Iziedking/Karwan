@@ -1,6 +1,6 @@
 # 88 · Contests that protect the people who enter
 
-Track T2 (protected deals), roadmap item T1.2 (choose the kind of deal), building on [view 40](40-contests-and-agent-jobs.md) (contests on the job escrow) and [view 11](11-contracts.md) (the contract family). Raised by the owner on 16 Nov 2026: "the essence of the smart contract is to help facilitate protection for participants … if no winner is picked, the money returns serves no real protection for participants." Draft. Nothing here is built until the owner approves it.
+Track T2 (protected deals), roadmap item T1.2 (choose the kind of deal), building on [view 40](40-contests-and-agent-jobs.md) (contests on the job escrow) and [view 11](11-contracts.md) (the contract family). Raised by the owner on 16 Nov 2026: "the essence of the smart contract is to help facilitate protection for participants … if no winner is picked, the money returns serves no real protection for participants." Approved by the owner on 16 Nov 2026 with the decisions below.
 
 ## What is true today
 
@@ -61,9 +61,19 @@ These are presets on one rule. The contract only knows the dates and the shares.
 - Contests already open keep the old rule until they end.
 - Before any code: an Arc and Circle check entry in `docs/arc-circle-checks.md` for the deploy and the USDC movements.
 
-## Decisions for the owner
+## Decisions
 
-1. The automatic split goes to the earliest entries. The alternative is an equal split among all valid entries.
-2. A 3-day wait period after judging ends.
-3. The buyer can mark an entry as not valid, with a reason everyone sees.
-4. Hackathon and bug bounty get their own presets, with entries open up to 60 days.
+Answered by the owner on 16 Nov 2026.
+
+1. With nobody picked, the places go to the earliest valid entries, in order of first entry, at the shares set at opening.
+2. The wait after judging ends is 3 days.
+3. The buyer can mark an entry as not valid, with a reason every entrant sees. If every entry is marked not valid, the prize goes back to the buyer and their record shows it.
+4. Design or writing, bug bounty and hackathon each get their own date presets.
+
+## Build order
+
+1. Contract: a new version of the bounty library with the judging date, the 3-day wait, first-entry times, the not-valid mark and the automatic payout. Exploits written first: a buyer who awards nobody, an entrant who resends to move up, a buyer who marks everything not valid, payout triggered early, payout triggered twice.
+2. Arc and Circle check entry, then the owner deploys to Arc Testnet.
+3. Backend: the contest runner reads the new dates, calls the payout after the wait, and keeps old contests on the old rule.
+4. Website and assistant: presets, the judging period, the line on the card, the not-valid mark with its reason.
+5. Guide, canon, terms.

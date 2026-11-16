@@ -31,7 +31,7 @@ export interface Moment {
   id: string;
   at: number;
   mood: 'excited' | 'sad' | 'hurt';
-  line: 'paid' | 'released' | 'tier' | 'lapsed' | 'late' | 'pocketPaid';
+  line: 'paid' | 'released' | 'tier' | 'lapsed' | 'late' | 'pocketPaid' | 'offer' | 'entry';
   href: string;
   amountUsdc?: string;
 }

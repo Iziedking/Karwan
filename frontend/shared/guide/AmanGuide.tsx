@@ -30,6 +30,7 @@ import type { AmanMood } from '@/features/guide/amanDots';
 import { AmanFace } from './AmanFace';
 import { useAmanLife } from './useAmanLife';
 import { AmanMenu } from './AmanMenu';
+import { afterCame, afterNotNow as paceAfterNotNow, mayCome, readPace, writePace } from '@/features/guide/amanPace';
 
 const SHOW_AFTER_MS = 1200;
 const HELLO_MS = 2400;
@@ -192,12 +193,22 @@ export function AmanGuide() {
   const pageTour = tours.currentTour?.pathname === pathname ? tours.currentTour : null;
   const offerFits = tourOffer({ newcomer: who === 'new', offerOff: settings?.guideTourOffer === 'off', pathname, tourSeen: !!pageTour && tours.isSeen(pageTour.id), hasTour: !!pageTour });
   const urgent = !!nudge && (nudge.kind === 'moment' || moodFor(nudge) === 'waiting');
-  const offering = active && ready && offerFits && !offerDone && !urgent && !tours.hasActive && !typing && !dialog && !moneyFlow && !isQuiet(visit, pathname);
+  // One pace for the whole site: may Aman start something new here? Read
+  // once per page, so a line already showing is never cut off.
+  const [paceOpen, setPaceOpen] = useState(false);
+  const [offerStarted, setOfferStarted] = useState(false);
+  useEffect(() => {
+    setOfferStarted(false);
+    if (!ready) return;
+    try { setPaceOpen(mayCome(readPace(window.localStorage), Date.now(), urgent)); } catch { setPaceOpen(true); }
+  }, [pathname, ready, urgent]);
+  const offering = active && ready && offerFits && !offerDone && !urgent && !tours.hasActive && !typing && !dialog && !moneyFlow && !isQuiet(visit, pathname) && (offerStarted || paceOpen);
   const speaking =
     !offering &&
     active &&
     ready &&
     nudge !== null &&
+    (spokenKey === nudge.key || paceOpen) &&
     !hiddenNow(visit, pathname, false) &&
     maySpeak({ typing, dialogOpen: dialog, moneyFlow, spokenThisVisit: spokenKey !== null && spokenKey !== nudge.key, quietHere: isQuiet(visit, pathname), guide });
   const moving = mayMove({ typing, fastScroll, dialogOpen: dialog, moneyFlow, reducedMotion: reduce });
@@ -205,7 +216,18 @@ export function AmanGuide() {
   const hold = typing || fastScroll || dialog;
 
   useEffect(() => {
+    if (!offering || offerStarted) return;
+    setOfferStarted(true);
+    setPaceOpen(false);
+    try { writePace(window.localStorage, afterCame(readPace(window.localStorage), Date.now())); } catch { /* no storage */ }
+  }, [offering, offerStarted]);
+
+  useEffect(() => {
     if (!speaking || !nudge) return;
+    if (spokenKey !== nudge.key) {
+      setPaceOpen(false);
+      try { writePace(window.localStorage, afterCame(readPace(window.localStorage), Date.now())); } catch { /* no storage */ }
+    }
     setSpokenKey(nudge.key);
     spokenStep.current = nudge.kind === 'setup_step' ? nudge.step ?? null : null;
     // Said once: a moment is marked shown for every device, and a setup step counts as today's ask.
@@ -243,10 +265,18 @@ export function AmanGuide() {
   useLayoutEffect(() => {
     if (!active) return;
     let frame = 0;
+    // A line that grows after it shows (a late font, a longer wrap) adds nothing to the page, so watch its size too.
+    const sizes = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => later());
+    let watched: Element | null = null;
     const measure = () => {
       frame = 0;
       const anchor = anchorName ? rectOf(document.querySelector(`[data-guide-anchor="${CSS.escape(anchorName)}"]`)) : null;
       const line = lineRef.current;
+      if (sizes && line !== watched) {
+        if (watched) sizes.unobserve(watched);
+        if (line) sizes.observe(line);
+        watched = line;
+      }
       const lineSize = (speaking || helloing || offering) && line ? { width: Math.max(line.scrollWidth, 280), height: line.offsetHeight } : speaking || offering ? { width: 300, height: 96 } : helloing ? { width: 240, height: 56 } : null;
       const next = placeAman({ viewport: { width: window.innerWidth, height: window.innerHeight }, anchor, bottomBar: bottomBarHeight(), rtl, lineSize });
       // Held still while typing, scrolling fast or reading a dialog; placed again after.
@@ -264,6 +294,7 @@ export function AmanGuide() {
     observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
+      sizes?.disconnect();
       window.removeEventListener('scroll', later, { capture: true });
       window.removeEventListener('resize', later);
       observer.disconnect();
@@ -311,12 +342,17 @@ export function AmanGuide() {
   const mood: AmanMood = pleased && !speaking ? 'pleased' : speaking && nudge ? moodFor(nudge) : helloing || offering ? 'excited' : 'waiting';
   const showTour = () => { if (pageTour) { setOfferDone(true); tours.startTour(pageTour.id, pageTour.steps, { force: true }); } };
   // Not now on the offer turns it off on every page and every device.
-  const declineTour = () => { setOfferDone(true); void saveSettings({ guideTourOffer: 'off' }); };
+  const declineTour = () => {
+    setOfferDone(true);
+    void saveSettings({ guideTourOffer: 'off' });
+    try { writePace(window.localStorage, paceAfterNotNow(readPace(window.localStorage), Date.now())); } catch { /* no storage */ }
+  };
   const name = profile?.handle ? `@${profile.handle}` : (profile?.displayName ?? '').trim().split(/\s+/)[0] ?? '';
   const helloLine = name ? copy.hello.replace('{name}', name) : copy.hello.replace(/,?\s*\{name\}/, '');
   // Not now: a moment stays down for the visit; a setup step is held on the account for days.
   const notNow = (n: Nudge) => {
     remember(afterNotNow(visit, pathname));
+    try { writePace(window.localStorage, paceAfterNotNow(readPace(window.localStorage), Date.now())); } catch { /* no storage */ }
     if (n.kind === 'moment') setClosedMoments((prev) => new Set(prev).add(n.key));
     if (n.kind === 'setup_step' && n.step) void api.guideSnooze(n.step).catch(() => undefined);
   };
