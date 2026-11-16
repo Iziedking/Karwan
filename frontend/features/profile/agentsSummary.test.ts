@@ -13,10 +13,12 @@ test('the Your agent section is the one page, not groups that edit elsewhere', (
   assert.doesNotMatch(panel, /waySummary|editLink|waysLink|ReputationSources|TierCelebration|meChange/);
 });
 
-test('five questions, selling first, then what it does alone, then buying', () => {
-  const order = ['t.rows.sell', 't.rows.price', 't.rows.paid', 't.rows.alone', 't.rows.buy'].map((k) => agent.indexOf(`answer(${k}`));
+test('what you trade, selling first then buying, then what it does alone (view 87)', () => {
+  const order = ['t.rows.sell', 't.rows.price', 't.rows.paid', 't.rows.buy'].map((k) => agent.indexOf(`answer(${k}`));
+  order.push(agent.indexOf('data-does-alone'));
   for (const at of order) assert.ok(at > 0, 'every row is there');
   assert.deepEqual([...order].sort((a, b) => a - b), order);
+  assert.doesNotMatch(agent, /t\.rows\.alone/);
 });
 
 test('the full editor is one link away, and the assistant is offered beside it', () => {

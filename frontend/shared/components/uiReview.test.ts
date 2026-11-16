@@ -459,7 +459,9 @@ test('Back sits on the content column: a page frame draws its own and the shell 
 
 test('settings is a grouped list like Profile: choices open in a sheet, switches on the right, deleting asks in a sheet', () => {
   const band = source('../../features/settings/components/SettingsBand.tsx');
-  assert.match(band, /<RowGroup title=\{t\.settings\.groups\.preferences\}/);
+  // Three groups on one page (view 87): General, Money, Agent.
+  assert.match(band, /group === 'general'[\s\S]*<RowGroup title=\{groupCopy\.groups\.display\}/);
+  assert.match(band, /group === 'money'[\s\S]*group === 'agent' \? <SettingsAgent \/>/);
   assert.doesNotMatch(band, /<Hint/);
   assert.doesNotMatch(band, /settings\.notificationsMute\b|settings\.dangerZone/);
   // Language and theme show the current choice and open the full list in a sheet.

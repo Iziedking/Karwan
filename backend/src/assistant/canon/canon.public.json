@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-11-15",
+  "canonUpdated": "2026-11-16",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -988,7 +988,7 @@
       "id": "your-agents-mandate-and-brief",
       "title": "What your agent may do, and its morning brief",
       "status": "shipping",
-      "updated": "2026-11-11",
+      "updated": "2026-11-16",
       "tags": [
         "agents",
         "mandate",
@@ -1000,9 +1000,13 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/52-an-agent-that-works-for-you.md",
           "date": "2026-11-05"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/87-your-agent-on-autopilot.md",
+          "date": "2026-11-16"
         }
       ],
-      "body": "Each person has one agent, and what it may do reads as one thing. Ask your\nassistant and it tells you: what your agent sells and from what lowest and usual\nprice, the most it spends on a new request, whether it makes offers on its own\nand asks you before any deal, asks you first about every request that fits, or\nagrees to a buyer's price inside your limits, how much it may spend a week on\npaid checks, the markets it watches, your goals, when your brief comes and your\nquiet hours.\n\nYou change one part at a time, and only through a card you confirm. The card\nshows the line before and after, and what the change does next: lowering your\nlowest price says how many requests you passed on this week it opens again.\nOnce you confirm, your agent acts at once. A lower price looks again at those\nrequests; moving away from asking first closes those questions and looks at the\nrequests again. A request's budget is fixed once it is posted, so a new buying\nlimit applies to new requests, and the card says which open ones ask for more.\nChanging limits moves no money; paying still needs you.\n\nYou can give your agent up to five goals in your own words, such as finding a\nlogo designer this week or selling 20 bags of rice this month. On the test\nnetwork goals are matched on their words, with no model.\n\nOnce a day, at 8:00 Lagos time unless you change it, your agent sends a short\nbrief built from your own data, with no model: new offers on your requests,\nquestions waiting on you and when the first decides itself, deals waiting on\nyou, up to three things it sees about how you trade, and a line for each goal.\nThere is no brief on a day with nothing to say. It goes to Telegram when you\nhave linked it, and otherwise to Karwan and by email. From 21:00 to 7:00 your\nagent sends nothing but a question's own reminder; a note it would have sent\nwaits for the brief. You can change the hours or turn them off.\n\nYour agent keeps a record of everything it told you for 30 days, so it never\nsends the same brief twice. Ask your assistant what your agent did today.\n\nSwitching your agent off is built and switched off until it is tested. With it\nopen, one switch on the agent page, or \"turn my agent off\" to your assistant,\nstops your agent altogether. It makes no offers, does not bargain, recommend or\nagree on your requests, finds nobody, rests its market watches and paid\nresearch, and sends no brief. Offers still arrive on your requests and you\nchoose by hand. Offers it already made stand until their date. You are\nasked if a buyer chooses one, and a buyer's counter on one comes to you as a\nquestion: take their price, hold at yours, or walk away. Deals already running, your money, direct deals,\npayment links and your assistant are unchanged. Turning it back on starts from\nnow; it does not act on what it missed."
+      "body": "Each person has one agent, and what it may do reads as one thing. Ask your\nassistant and it tells you: what your agent sells and from what lowest and usual\nprice, the most it spends on a new request, whether it makes offers on its own\nand asks you before any deal, asks you first about every request that fits, or\nagrees to a buyer's price inside your limits, how much it may spend a week on\npaid checks, the markets it watches, your goals, when your brief comes and your\nquiet hours.\n\nYou change one part at a time, and only through a card you confirm. The card\nshows the line before and after, and what the change does next: lowering your\nlowest price says how many requests you passed on this week it opens again.\nOnce you confirm, your agent acts at once. A lower price looks again at those\nrequests; moving away from asking first closes those questions and looks at the\nrequests again. A request's budget is fixed once it is posted, so a new buying\nlimit applies to new requests, and the card says which open ones ask for more.\nChanging limits moves no money; paying still needs you.\n\nWhat your agent does alone is one switch each: make offers, bargain, agree a\nprice, lock money, find people, pay for checks and research, and the morning\nbrief. The switches are in Settings under Agent, and your assistant can turn\nany of them on or off with a card you confirm. The budgets and rules for what\nis on are on the Your agent page. Lock money for me is built and not open\nyet: the switch says so, and today no agent locks money without you. When it\nopens you type your own limits, and turning it on or raising a limit is\nconfirmed with your passkey on Karwan, never in a chat.\n\nYou can give your agent up to five goals in your own words, such as finding a\nlogo designer this week or selling 20 bags of rice this month. On the test\nnetwork goals are matched on their words, with no model.\n\nOnce a day, at 8:00 Lagos time unless you change it, your agent sends a short\nbrief built from your own data, with no model: new offers on your requests,\nquestions waiting on you and when the first decides itself, deals waiting on\nyou, up to three things it sees about how you trade, and a line for each goal.\nThere is no brief on a day with nothing to say. It goes to Telegram when you\nhave linked it, and otherwise to Karwan and by email. From 21:00 to 7:00 your\nagent sends nothing but a question's own reminder; a note it would have sent\nwaits for the brief. You can change the hours or turn them off.\n\nYour agent keeps a record of everything it told you for 30 days, so it never\nsends the same brief twice. Ask your assistant what your agent did today.\n\nSwitching your agent off is built and switched off until it is tested. With it\nopen, one switch on the agent page, or \"turn my agent off\" to your assistant,\nstops your agent altogether. It makes no offers, does not bargain, recommend or\nagree on your requests, finds nobody, rests its market watches and paid\nresearch, and sends no brief. Offers still arrive on your requests and you\nchoose by hand. Offers it already made stand until their date. You are\nasked if a buyer chooses one, and a buyer's counter on one comes to you as a\nquestion: take their price, hold at yours, or walk away. Deals already running, your money, direct deals,\npayment links and your assistant are unchanged. Turning it back on starts from\nnow; it does not act on what it missed."
     },
     {
       "id": "your-karwan-record",
@@ -1398,6 +1402,10 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/33-delivery-proof-for-every-kind-of-deal.md",
           "date": "2026-10-26"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/85-every-deal-says-how-it-arrives.md",
+          "date": "2026-11-15"
         }
       ],
       "check": {
@@ -2323,6 +2331,10 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/52-an-agent-that-works-for-you.md",
           "date": "2026-11-05"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/87-your-agent-on-autopilot.md",
+          "date": "2026-11-16"
         }
       ],
       "check": {
@@ -2330,7 +2342,7 @@
         "note": "Built, not deployed yet. The mandate, the change card, the re-plan, the brief and the progress log read against their tests, which passed on 5 November 2026.",
         "lastVerified": "2026-11-05"
       },
-      "updated": "2026-11-11",
+      "updated": "2026-11-16",
       "path": "public/product/your-agents-mandate-and-brief.md"
     },
     {
