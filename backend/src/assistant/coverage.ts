@@ -199,6 +199,9 @@ export const COVERAGE: Record<string, Coverage> = {
   // Record, passport and verification.
   'POST /api/record/setup': { by: 'assistant', via: 'set_up_record' },
   'POST /api/record/nudge-seen': { by: 'internal', why: 'Notes that the receipt line was shown, so it waits a month. Nothing a person does.' },
+  'POST /api/guide/moment/seen': { by: 'internal', why: 'Notes that Aman reacted to a moment, so no other device reacts again (view 57).' },
+  'POST /api/guide/asked': { by: 'internal', why: "Notes that Aman named a setup step today, so it asks at most once a day (view 57)." },
+  'POST /api/guide/snooze': { by: 'internal', why: "Aman's own Not now on a setup step; in chat the person just says no, and change_settings turns Aman off (view 57)." },
   'POST /api/reputation/shares': { by: 'assistant', via: 'share_my_passport' },
   'DELETE /api/reputation/shares/:': { by: 'assistant', via: 'stop_passport_share' },
   'POST /api/messages/:': { by: 'assistant', via: 'message_person' },

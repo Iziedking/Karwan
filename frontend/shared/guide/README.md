@@ -10,13 +10,13 @@ tours stay consistent and never collide.
 - `PageTour`: registers a page's current steps. The registration is route-scoped and updates when the form changes. Set `autoStart` only on a genuinely introductory surface.
 - `PageTourButton`: the labelled, in-flow button next to page navigation in ChromeFrame. It stays reachable on mobile and after automatic tips are disabled. No floating corner launcher.
 - `routeGuidance.ts`: localized manual guidance for standalone account and sensitive pages that do not register their own spotlight tour. Route fallbacks take precedence where older registered copy no longer fits the page.
-- `GuideWelcome` — first-run "start here" tour. Skips public/marketing routes; fires on the first app page after sign-in, for someone new only.
+- `tourOffer.ts`: Aman offers the page's tour to someone new (Show me / Not now); nothing opens by itself. `?tour=1` and the assistant's tour links open it on purpose.
 - `newcomer.ts` / `useNewcomer`: who a tour is about to open for. "Seen" is kept on the device, so the account decides: one with a deal, or set up more than a day ago, is known and nothing opens by itself for it. Nothing opens until both reads are in.
 - `tours.ts` — all step definitions in one place.
 
 ## Rules (read before adding a tour)
 
-1. **One automatic tour per first-use session.** The global welcome tour owns first orientation. Page tours are on-demand by default; if a page truly needs an automatic tour, set `autoStart` explicitly and nothing else on that page may auto-open.
+1. **One automatic tour per first-use session.** Aman's tour offer owns first orientation. Page tours are on-demand by default; if a page truly needs an automatic tour, set `autoStart` explicitly and nothing else on that page may auto-open.
 
 2. **Shared, tour-bearing components must be opt-out.** Any component that renders its own `<PageTour>` AND can appear on more than one page (today: `StakeCard`, `BridgeCard`) must expose `tour?: boolean` (default `true`). The page where it's a secondary element passes `tour={false}`, and that page's own tour explains the embedded feature instead.
    - `StakeCard`: tour on `/stake`, `tour={false}` inside `/profile`.
@@ -31,7 +31,7 @@ tours stay consistent and never collide.
 
 6. **Feed experience from real actions.** Call `recordAction('<distinct-type>')` from genuine successes (post-job, post-listing, stake-deposit, bridge). Experience is quality-weighted: distinct tools advance mastery; spamming one action plateaus. Don't bump on trivial/UI events.
 
-7. **Never on public routes.** The landing, docs, how-it-works, feedback, and terms pages get no tours (`GuideWelcome` + page tours just aren't mounted there).
+7. **Never on public routes.** The landing, docs, how-it-works, feedback, and terms pages get no tours (Aman and page tours just aren't mounted there).
 
 8. **No actions in a tour.** A step may scroll to and explain a control. It never clicks, fills, submits, transfers or signs. Keyboard focus stays in the tour and returns to its launcher. Changing routes closes the tour rather than showing stale instructions over a different form. Signed-in cash-out and business setup offer manual guidance without an automatic welcome.
 

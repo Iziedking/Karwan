@@ -44,13 +44,15 @@ for (const locale of ['en','fr','ar','hi','sw'] as const) for (const theme of ['
 
 
 const homeCopies={en,fr,ar,hi,sw};
+// Aman's once-a-day hello on Home remembers the day; every other write still fails the test.
+function helloMark(path:string,body:string|null){if(path!=='/api/settings'||!body)return false;try{const patch=JSON.parse(body).settings??JSON.parse(body);return Object.keys(patch).every(k=>k==='guideHelloOn'||k==='address');}catch{return false;}}
 for(const locale of ['en','fr','ar','hi','sw'] as const)for(const theme of ['light','dark'])test('account status recovery '+locale+' '+theme,async({page},info)=>{
  const copy=homeCopies[locale];let unavailable=true;const writes:string[]=[];
  await page.context().addCookies([{name:'karwan-locale',value:locale,domain:'127.0.0.1',path:'/'}]);
  await page.addInitScript(theme=>{localStorage.setItem('karwan-theme',theme);localStorage.setItem('karwan:guide:disabled','1');},theme);
  await serveSearch(page,{balances:funded});
  await page.route('**/*',r=>['127.0.0.1','localhost'].includes(new URL(r.request().url()).hostname)?r.fallback():r.abort());
- await page.route(API+'/**',r=>{const p=new URL(r.request().url()).pathname;if(r.request().method()==='POST')writes.push(p);if(p==='/api/agents/status'&&unavailable)return r.fulfill({status:503,json:{error:'internal service unavailable'}});return r.fallback();});
+ await page.route(API+'/**',r=>{const p=new URL(r.request().url()).pathname;if(r.request().method()==='POST'&&!helloMark(p,r.request().postData()))writes.push(p);if(p==='/api/agents/status'&&unavailable)return r.fulfill({status:503,json:{error:'internal service unavailable'}});return r.fallback();});
  await page.goto('/app');await expect(page.getByRole('heading',{name:copy.appHome.backendOffline.title,exact:true})).toBeVisible({timeout:20000});
  expect(await page.locator('main').innerText()).not.toMatch(/127\.0\.0\.1|localhost|\/api\/|internal service unavailable/);
  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
