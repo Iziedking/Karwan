@@ -232,4 +232,5 @@ Everything through step 8 can be shown on testnet.
 |---|---|
 | This view | Approved by the owner, 15 Nov 2026 |
 | Step 1, the runtime | Built 15 Nov 2026, not deployed: what an agent does alone is read as switches from one place, with older accounts reading as before; the gate for locking money, which nothing calls yet; one server holds a request while it works it; a match can be funded after a restart, and accepted once; an agent can stop itself |
-| Steps 0 and 2 to 9 | Not started |
+| Step 2, settings and switches | Drawn in Figma 16 Nov 2026, page "View 87 · Agent on autopilot · 16 Nov" (347:570), approved by the owner 16 Nov 2026. Plan written, waiting for the owner. Nothing built |
+| Steps 0 and 3 to 9 | Not started |
