@@ -74,6 +74,7 @@ import { choicesWaitingOnSeller } from '../agents/sellerAnswerLive.js';
 import { AGENT_OFF_ANSWER, agentIsOn, agentSwitchOpen } from '../agents/agentPower.js';
 import { repeatingDirection, repeatingWork } from './repeatingWork.js';
 import { keepOnCard, saidFigure } from './saidFigure.js';
+import { localiseActions, localiseAnswer } from './localCards.js';
 import { nowLine } from './nowLine.js';
 import { budgetInCents } from '../agents/budgetCents.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
@@ -3170,7 +3171,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       financierStatus: async (who) => (await getProfile(who))?.financier?.status ?? 'none',
       now: () => Date.now(),
     }),
-    ...contestTools(address, actions, { call: callAsAccount, heldEntryFiles: (who) => entryFiles.heldCount(who, Date.now()) }),
+    ...contestTools(address, actions, { call: callAsAccount, heldEntryFiles: (who) => entryFiles.heldCount(who, Date.now()), base: config.FRONTEND_BASE_URL ?? (ARC.testnet ? 'https://testnet.karwan.site' : 'https://karwan.site') }),
     // Off where the Time escrow is not bound: the tools are left out, the type stays whole.
     ...(liveFeatures.hourlyWork ? workTools(address, actions, { call: callAsAccount }) : ({} as ReturnType<typeof workTools>)),
   };
@@ -3259,9 +3260,10 @@ export async function runAssistantAgent(input: {
 
   // The account's own currency sets how the assistant speaks about money. A
   // failed read answers in USDC, never fails the turn.
-  const voice = await Promise.all([getProfile(input.address), readSharedRates()])
-    .then(([profile, rates]) => moneyVoice(profile?.settings?.displayCurrency, rates))
-    .catch(() => '');
+  const reader = await Promise.all([getProfile(input.address), readSharedRates()])
+    .then(([profile, rates]) => ({ currency: profile?.settings?.displayCurrency, rates }))
+    .catch(() => null);
+  const voice = reader ? moneyVoice(reader.currency, reader.rates) : '';
   // The person's own time zone, from their agent's settings; Lagos until set.
   const timeZone = await getAgentRecord(input.address).then((r) => r.brief?.timeZone).catch(() => undefined) ?? 'Africa/Lagos';
   // The fixed instructions are the same for everyone and stay warm between
@@ -3299,7 +3301,10 @@ export async function runAssistantAgent(input: {
   // Tool failures, public facts and proposals are not private account evidence.
   // Coverage checks are a guard, not a guarantee of semantic model correctness.
   const { grounded, subjects, acted } = assessGrounding(input.messages, result.steps ?? []);
-  return { text: result.text.trim(), actions, grounded, subjects, acted };
+  // Cards and the answer read in the person's own currency (view 77).
+  const shown = reader ? localiseActions(actions, reader.currency, reader.rates) : actions;
+  const text = reader ? localiseAnswer(result.text.trim(), shown, reader.currency, reader.rates) : result.text.trim();
+  return { text, actions: shown, grounded, subjects, acted };
 }
 
 /// A 0x id is a deal only once escrow is funded. Before that the same id is a

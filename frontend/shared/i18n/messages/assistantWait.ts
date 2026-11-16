@@ -13,6 +13,8 @@ export interface AssistantWaitCopy {
   tools: Record<string, string>;
   /// The small label over a tip, by its kind, as drawn (Figma 330:2259).
   tipLabels: Record<TipKind, string>;
+  /// A card refused for a short balance: add money right there, then try again.
+  short: { note: string; add: string };
 }
 
 export const assistantWaitCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AssistantWaitCopy> = {
@@ -21,6 +23,7 @@ export const assistantWaitCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     retrying: 'Checking that against your account',
     groups: { propose: 'Preparing the card', read: 'Looking it up', other: 'Working on it' },
     tipLabels: { deal: 'How deals work', money: 'Your money', safety: 'Stay safe', record: 'Your record' },
+    short: { note: 'Your balance is short for this. Add money here, then try again.', add: 'Add money' },
     tools: {
       get_my_balance: 'Reading your balance',
       get_deal_status: 'Checking your deal',
@@ -57,6 +60,7 @@ export const assistantWaitCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     retrying: 'Je vérifie avec votre compte',
     groups: { propose: 'Je prépare la carte', read: 'Je cherche', other: 'Je m’en occupe' },
     tipLabels: { deal: 'Comment marchent les accords', money: 'Votre argent', safety: 'Restez en sécurité', record: 'Votre dossier' },
+    short: { note: 'Votre solde ne suffit pas. Ajoutez de l’argent ici, puis réessayez.', add: 'Ajouter de l’argent' },
     tools: {
       get_my_balance: 'Je lis votre solde',
       get_deal_status: 'Je vérifie votre accord',
@@ -93,6 +97,7 @@ export const assistantWaitCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     retrying: 'أتحقق من ذلك في حسابك',
     groups: { propose: 'أجهّز البطاقة', read: 'أبحث عن ذلك', other: 'أعمل على ذلك' },
     tipLabels: { deal: 'كيف تعمل الصفقات', money: 'مالك', safety: 'ابقَ آمنًا', record: 'سجلك' },
+    short: { note: 'رصيدك لا يكفي لهذا. أضف المال هنا، ثم حاول مرة أخرى.', add: 'أضف المال' },
     tools: {
       get_my_balance: 'أقرأ رصيدك',
       get_deal_status: 'أتحقق من صفقتك',
@@ -129,6 +134,7 @@ export const assistantWaitCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     retrying: 'आपके खाते से मिला रहा हूँ',
     groups: { propose: 'कार्ड तैयार कर रहा हूँ', read: 'देख रहा हूँ', other: 'काम कर रहा हूँ' },
     tipLabels: { deal: 'डील कैसे काम करती है', money: 'आपका पैसा', safety: 'सुरक्षित रहें', record: 'आपका रिकॉर्ड' },
+    short: { note: 'इसके लिए आपका बैलेंस कम है। यहीं पैसा जोड़ें, फिर दोबारा कोशिश करें।', add: 'पैसा जोड़ें' },
     tools: {
       get_my_balance: 'आपका बैलेंस पढ़ रहा हूँ',
       get_deal_status: 'आपकी डील देख रहा हूँ',
@@ -165,6 +171,7 @@ export const assistantWaitCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     retrying: 'Ninalinganisha na akaunti yako',
     groups: { propose: 'Ninaandaa kadi', read: 'Ninatafuta', other: 'Ninashughulikia' },
     tipLabels: { deal: 'Jinsi mikataba inavyofanya kazi', money: 'Pesa zako', safety: 'Kaa salama', record: 'Rekodi yako' },
+    short: { note: 'Salio lako halitoshi kwa hili. Ongeza pesa hapa, kisha jaribu tena.', add: 'Ongeza pesa' },
     tools: {
       get_my_balance: 'Ninasoma salio lako',
       get_deal_status: 'Ninaangalia mkataba wako',

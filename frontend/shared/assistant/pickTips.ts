@@ -32,3 +32,19 @@ function rotate<T>(list: readonly T[], seed: number): T[] {
   const n = ((Math.trunc(seed) % list.length) + list.length) % list.length;
   return [...list.slice(n), ...list.slice(0, n)];
 }
+
+const CURSOR_KEY = 'karwan:tip-cursor';
+
+/// Where the next wait starts in the tips, so each wait opens on a tip the
+/// person has not just seen (owner, 16 Nov 2026: "not the same thing showing
+/// always"). Kept on the device; without storage it starts at random.
+export function nextTipSeed(storage: Pick<Storage, 'getItem' | 'setItem'> | null, random = Math.random): number {
+  try {
+    const held = Number(storage?.getItem(CURSOR_KEY));
+    const seed = Number.isFinite(held) && held > 0 ? held : Math.floor(random() * 1000) + 1;
+    storage?.setItem(CURSOR_KEY, String(seed + 1));
+    return seed;
+  } catch {
+    return Math.floor(random() * 1000) + 1;
+  }
+}

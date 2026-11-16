@@ -4120,7 +4120,7 @@ export const ar: Messages = {
     modal: {
       eyebrow: 'تنبيهات TELEGRAM',
       title: 'إلى محادثتك مباشرة',
-      subheading: 'الصفقات · المحادثة · حالة الجسر',
+      subheading: 'الصفقات · المحادثة · حركة المال',
       closeAria: 'إغلاق',
       startBody: 'نقرة واحدة لفتح البوت وأخرى للتأكيد. تصلك تحديثات الصفقات ورسائل المحادثة خارج التطبيق.',
       generateCta: 'إنشاء الرابط',
@@ -4609,7 +4609,7 @@ export const ar: Messages = {
   telegramConnectCard: {
     eyebrow: 'تنبيهات تيليجرام',
     title: 'إرسال إلى محادثتك',
-    subtitle: 'الصفقات · المحادثة · حالة الجسر',
+    subtitle: 'الصفقات · المحادثة · حركة المال',
     linkedBadge: 'مرتبط',
     notConfiguredPrefix: "تنبيهات Telegram غير متاحة. يمكنك متابعة التحديثات داخل Karwan.",
     notConfiguredAnd: 'و',

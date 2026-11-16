@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { assistantTipsCopy } from '../i18n/messages/assistantTips';
-import { pickTips, tipKindFor } from './pickTips';
+import { nextTipSeed, pickTips, tipKindFor } from './pickTips';
 
 const en = assistantTipsCopy.en;
 
@@ -45,4 +45,14 @@ test('the backend list matches', () => {
   const file = resolve(process.cwd(), '..', 'backend', 'src', 'channels', 'waitTips.json');
   const backend = JSON.parse(readFileSync(file, 'utf8')) as { deal: string[]; safety: string[] };
   assert.deepEqual(backend, { deal: en.deal, safety: en.safety });
+});
+
+test('each wait starts on the next tip, never the one just shown', () => {
+  const kept = new Map<string, string>();
+  const store = { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => void kept.set(k, v) };
+  const a = nextTipSeed(store, () => 0.5);
+  const b = nextTipSeed(store, () => 0.5);
+  assert.equal(b, a + 1);
+  assert.notEqual(pickTips('/deals', a, en)[0]!.text, pickTips('/deals', b, en)[0]!.text);
+  assert.ok(nextTipSeed(null, () => 0.2) >= 1, 'no storage still gives a seed');
 });

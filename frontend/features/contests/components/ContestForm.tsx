@@ -4,7 +4,6 @@ import { MoneyInput } from '@/features/money/components/MoneyInput';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type ContestCard, type ContestInput } from '@/core/api';
-import { fill } from '@/features/deals/workspace/presentation';
 import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/workspace/Sheet';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT, FIELD, PRIMARY } from '@/shared/ui/controls';
@@ -51,7 +50,7 @@ export function ContestForm({ prefill }: { prefill: Partial<ContestInput> }) {
       router.push(`/contests/${r.contest.id}`);
     } catch (err) {
       const need = err instanceof ApiError ? (err.body as { needMicros?: string } | undefined)?.needMicros : undefined;
-      setError(need ? fill(t.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : t.failed);
+      setError(need ? mt.fill(t.card.short, { amount: microsToUsdc(need) }) : err instanceof ApiError ? err.message : t.failed);
       setBusy(false);
     }
   }
@@ -124,7 +123,7 @@ export function ContestForm({ prefill }: { prefill: Partial<ContestInput> }) {
             {error ? <p role="alert" className={`${ALERT} mt-4`}>{error}</p> : null}
             <div className="mt-6 space-y-3">
               <button type="button" disabled={busy} onClick={() => void confirm()} className={primaryButton}>
-                {fill(t.card.confirm, { amount: microsToUsdc(card.totalMicros) })}
+                {mt.fill(t.card.confirm, { amount: microsToUsdc(card.totalMicros) })}
               </button>
               <button type="button" disabled={busy} onClick={() => setCard(null)} className={quietButton}>{t.notNow}</button>
             </div>

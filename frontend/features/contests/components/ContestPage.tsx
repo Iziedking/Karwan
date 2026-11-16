@@ -92,7 +92,7 @@ export function ContestPage({ id }: { id: string }) {
     <main className="mx-auto w-full max-w-[760px] px-4 pb-16 pt-8 sm:px-6">
       <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.page.status[c.status]}</p>
       <h1 className="mt-1 text-[28px] font-semibold text-[var(--lp-dark)]">{c.title}</h1>
-      <p className="mt-3 text-[34px] font-semibold tabular-nums text-[var(--lp-dark)]">{fill(t.market.prize, { amount: microsToUsdc(c.prizeMicros) })}</p>
+      <p className="mt-3 text-[34px] font-semibold tabular-nums text-[var(--lp-dark)]">{mt.fill(t.market.prize, { amount: microsToUsdc(c.prizeMicros) })}</p>
       <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">
         {c.shares.length === 1 ? t.market.winnersOne : fill(t.market.winnersMany, { n: c.shares.length })} · {fill(t.page.closes, { date: date(c.entriesBy) })} · {fill(t.page.pickBy, { date: date(c.awardBy) })}
       </p>
@@ -108,7 +108,7 @@ export function ContestPage({ id }: { id: string }) {
       {c.winners?.length ? (
         <section className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
           {c.winners.map((w) => (
-            <p key={w.place} className="text-[15px] tabular-nums text-[var(--lp-dark)]">{fill(t.page.winner, { place: t.page.places[w.place - 1]!, amount: microsToUsdc(w.netMicros) })}</p>
+            <p key={w.place} className="text-[15px] tabular-nums text-[var(--lp-dark)]">{mt.fill(t.page.winner, { amount: microsToUsdc(w.netMicros) }, { place: t.page.places[w.place - 1]! })}</p>
           ))}
         </section>
       ) : null}
@@ -161,7 +161,7 @@ export function ContestPage({ id }: { id: string }) {
             <>
               <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.page.yours}</h2>
               <p className="mt-1 text-[15px] text-[var(--lp-dark)]">
-                {fill(t.page.yourStatus[c.myEntry.status], { amount: microsToUsdc(c.myEntry.wonMicros ?? '0') })}
+                {mt.fill(t.page.yourStatus[c.myEntry.status], { amount: microsToUsdc(c.myEntry.wonMicros ?? '0') })}
               </p>
             </>
           ) : null}

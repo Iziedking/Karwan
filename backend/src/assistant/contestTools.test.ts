@@ -67,3 +67,13 @@ test('in chat, posting and paying winners open Karwan to confirm; entering does 
   assert.equal(moneyStepPath({ intent: 'contest_award', payload: { contestId: 'c_abc', entryIds: [] } } as unknown as ConfirmAction), '/contests/c_abc');
   assert.equal(moneyStepPath({ intent: 'contest_award', payload: { contestId: '../x', entryIds: [] } } as unknown as ConfirmAction), null);
 });
+
+test('asked to prepare a post, Aman gets the link and the facts to write it (owner, 16 Nov 2026)', async () => {
+  const s = setup({ 'GET /api/contests/c_1': { status: 200, json: { title: 'Bug bounty', brief: 'Find bugs', prizeMicros: '14860000', shares: [70, 30], entriesBy: Date.UTC(2026, 10, 23) } } });
+  const r = (await s.tools.share_contest.execute!({ contestId: 'c_1' }, call)) as { link: string; prizeUsdc: string; winners: number; entriesClose: string };
+  assert.equal(r.link, 'https://karwan.site/contests/c_1');
+  assert.equal(r.prizeUsdc, '14.86');
+  assert.equal(r.winners, 2);
+  assert.equal(r.entriesClose, '2026-11-23');
+  assert.equal(s.actions.length, 0, 'sharing draws no card and moves nothing');
+});

@@ -4120,7 +4120,7 @@ export const fr: Messages = {
     modal: {
       eyebrow: 'Alertes Telegram',
       title: 'Vers votre chat',
-      subheading: 'Deals · chat · état du pont',
+      subheading: 'Affaires · chat · mouvements d’argent',
       closeAria: 'Fermer',
       startBody: "Un tap pour ouvrir le bot, un autre pour confirmer. Les mises à jour de deals et les messages de chat vous parviennent hors de l'app.",
       generateCta: 'Générer le lien',
@@ -4609,7 +4609,7 @@ export const fr: Messages = {
   telegramConnectCard: {
     eyebrow: 'Alertes Telegram',
     title: 'Envoyer à votre chat',
-    subtitle: 'Affaires · chat · état du pont',
+    subtitle: 'Affaires · chat · mouvements d’argent',
     linkedBadge: 'Lié',
     notConfiguredPrefix: "Les alertes Telegram sont indisponibles. Vous pouvez suivre les mises à jour dans Karwan.",
     notConfiguredAnd: 'et',

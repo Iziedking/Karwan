@@ -45,7 +45,8 @@ const usdc = (micros: string) => `${(Number(micros) / 1_000_000).toFixed(2)} USD
 const PLACE = ['First', 'Second', 'Third'];
 const day = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
-export function buildContestPostConfirm(input: ContestInputPayload, card: DraftCard): ContestPostConfirm {
+export function buildContestPostConfirm(input: ContestInputPayload, card: DraftCard, money?: (usdc: number) => string): ContestPostConfirm {
+  const amount = (micros: string) => (money ? money(Number(micros) / 1_000_000) : usdc(micros));
   return {
     kind: 'confirm',
     id: `contest_post:${confirmNonce()}`,
@@ -54,10 +55,10 @@ export function buildContestPostConfirm(input: ContestInputPayload, card: DraftC
     summary: `Your agent puts up the prize now. Sellers enter until ${day(card.entriesBy)}, then you pick the winners by ${day(card.awardBy)}.`,
     warning: card.ifNobody,
     fields: [
-      { label: 'Prize', value: usdc(card.prizeMicros) },
-      { label: 'Karwan fee', value: usdc(card.feeHalfMicros) },
-      { label: 'You put up', value: usdc(card.totalMicros) },
-      ...card.placeNetMicros.map((m, i) => ({ label: `${PLACE[i]} place gets`, value: usdc(m) })),
+      { label: 'Prize', value: amount(card.prizeMicros) },
+      { label: 'Karwan fee', value: amount(card.feeHalfMicros) },
+      { label: 'You put up', value: amount(card.totalMicros) },
+      ...card.placeNetMicros.map((m, i) => ({ label: `${PLACE[i]} place gets`, value: amount(m) })),
     ],
     payload: input,
     confirmLabel: 'Put up the prize',

@@ -9496,7 +9496,7 @@ export const en: MessagesShape = {
     modal: {
       eyebrow: 'Telegram alerts',
       title: 'Push to your chat',
-      subheading: 'Deals · chat · bridge state',
+      subheading: 'Deals · chat · money moves',
       closeAria: 'Close',
       startBody: 'One tap to open the bot, one more to confirm. Deal updates and chat messages reach you outside the app.',
       generateCta: 'Generate link',
@@ -10006,7 +10006,7 @@ export const en: MessagesShape = {
   telegramConnectCard: {
     eyebrow: 'Telegram alerts',
     title: 'Push to your chat',
-    subtitle: 'Deals · chat · bridge state',
+    subtitle: 'Deals · chat · money moves',
     linkedBadge: 'Linked',
     notConfiguredPrefix: "Telegram alerts are unavailable. You can still follow updates in Karwan.",
     notConfiguredAnd: 'and',

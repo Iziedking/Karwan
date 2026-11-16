@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { AssistantAction } from './actions.js';
+import { saidFigure, saidMoney } from './saidFigure.js';
 import {
   buildContestAwardConfirm,
   buildContestCancelConfirm,
@@ -19,6 +20,8 @@ export interface ContestToolDeps {
   call: Call;
   /// How many files the person sent the assistant for their next entry.
   heldEntryFiles: (address: string) => number;
+  /// The website's address, for the link a post carries.
+  base?: string;
 }
 
 const CONTEST = z.string().min(3).max(64).describe('The contest id, from list_contests.');
@@ -60,7 +63,7 @@ export function contestTools(address: string, actions: AssistantAction[], deps: 
 
     propose_contest: tool({
       description:
-        "Prepare a card for the person to run a contest: 'best logo, three places, 300 USDC, entries by Friday'. Their agent puts up the prize when they confirm. One to three places; entries open 1 to 30 days; they pick winners within 7 days after unless they say otherwise.",
+        "Prepare a card for the person to run a contest: 'best logo, three places, a prize of 300, entries by Friday'. Ask for the prize in the person's own currency, never 'how much USDC'. Draw the card as soon as you have a title, what they want, the prize and the places: never send them to a form to fill it in. Their agent puts up the prize when they confirm. One to three places; entries open 1 to 30 days; they pick winners within 7 days after unless they say otherwise.",
       inputSchema: z.object({
         title: z.string().min(1).max(80),
         brief: z.string().min(1).max(1_500).describe('What they want, in their words.'),
@@ -69,11 +72,35 @@ export function contestTools(address: string, actions: AssistantAction[], deps: 
         entriesDays: z.number().int().min(1).max(30),
         awardDays: z.number().int().min(1).max(60).optional(),
       }),
-      execute: async (i) => {
-        const input = { ...i, prizeUsdc: String(i.prizeUsdc) };
+      execute: async (i, options) => {
+        // A prize said in naira reads as said, and every row on the card at
+        // the said figure's own rate (view 77).
+        const said = await saidFigure(options, 'prizeUsdc');
+        const input = { ...i, prizeUsdc: String(said ? said.usdc : i.prizeUsdc) };
         const r = await deps.call(address, 'POST', '/api/contests/draft', input);
         if (r.status !== 200) return errorOf(r, 'That contest cannot be set up as it is.');
-        return show(buildContestPostConfirm(input, r.json.card as DraftCard));
+        return show(buildContestPostConfirm(input, r.json.card as DraftCard, said ? saidMoney(said) : undefined));
+      },
+    }),
+
+    share_contest: tool({
+      description:
+        "The link to a contest and its facts, so you can write the person a short post they copy to WhatsApp, X or anywhere: 'prepare it for me to post', 'share my contest', 'write the announcement'. Read-only. Write the post yourself from what this returns, in their language and currency, with the link on its own line. Never tell them to go and write it.",
+      inputSchema: z.object({ contestId: CONTEST }),
+      execute: async ({ contestId }) => {
+        const r = await read(contestId);
+        if (r.status !== 200) return errorOf(r, 'No contest with that id.');
+        const c = r.json as { title?: string; brief?: string; prizeMicros?: string; shares?: unknown[]; entriesBy?: number };
+        const base = (deps.base ?? 'https://karwan.site').replace(/\/+$/, '');
+        return {
+          link: `${base}/contests/${encodeURIComponent(contestId)}`,
+          title: c.title,
+          brief: c.brief,
+          prizeUsdc: c.prizeMicros ? (Number(c.prizeMicros) / 1_000_000).toFixed(2) : undefined,
+          winners: Array.isArray(c.shares) ? c.shares.length : undefined,
+          entriesClose: c.entriesBy ? new Date(c.entriesBy).toISOString().slice(0, 10) : undefined,
+          note: 'The prize is already held by Karwan, so entrants know it is real. Anyone can enter from the link; their full work reaches the buyer only if they win.',
+        };
       },
     }),
 

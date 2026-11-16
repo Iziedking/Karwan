@@ -4117,7 +4117,7 @@ export const sw: Messages = {
     modal: {
       eyebrow: 'Arifa za Telegram',
       title: 'Moja kwa moja kwenye mazungumzo yako',
-      subheading: 'Mikataba · mazungumzo · hali ya daraja',
+      subheading: 'Mikataba · mazungumzo · mienendo ya pesa',
       closeAria: 'Funga',
       startBody: 'Gusa mara moja kufungua boti, na mara nyingine kuthibitisha. Masasisho ya mikataba na ujumbe wa mazungumzo yatakufikia nje ya programu.',
       generateCta: 'Tengeneza kiungo',
@@ -4606,7 +4606,7 @@ export const sw: Messages = {
   telegramConnectCard: {
     eyebrow: 'Arifa za Telegram',
     title: 'Tuma kwenye gumzo lako',
-    subtitle: 'Mikataba · gumzo · hali ya daraja',
+    subtitle: 'Mikataba · gumzo · mienendo ya pesa',
     linkedBadge: 'Imeunganishwa',
     notConfiguredPrefix: "Arifa za Telegram hazipatikani. Unaweza kufuatilia taarifa ndani ya Karwan.",
     notConfiguredAnd: 'na',

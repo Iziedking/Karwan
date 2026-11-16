@@ -244,7 +244,7 @@
       "id": "contests",
       "title": "Contests with the prize held from the start",
       "status": "shipping",
-      "updated": "2026-10-29",
+      "updated": "2026-11-16",
       "tags": [
         "market",
         "testnet"
@@ -256,7 +256,7 @@
           "date": "2026-10-29"
         }
       ],
-      "body": "A buyer can run a contest on Karwan instead of choosing one seller: the best\nlogo, three winners, 300 USDC, entries open for a week. The prize is put up\nwhen the contest opens and held on Karwan's escrow on Arc, so everyone who\nenters knows it is there.\n\nThe buyer picks one to three winners; the prize splits 100, or 70 and 30, or\n50, 30 and 20. Entries stay open for 1 to 30 days and the buyer then has 7 days\nto pick. Anyone except the buyer can enter with up to four images or PDF files\nand a note, and enter again to replace their entry.\n\nBefore paying, the buyer sees each entry's first image and note, never the\nfull files. Picking pays each winner their share at once, less half of\nKarwan's 1 percent fee on it, and only then do the winners' full files go to\nthe buyer. A contest nobody entered can be taken back with the prize and fee\nreturned. If the buyer picks nobody by the date, the prize goes back to them,\nand when there were entries their record shows the contest was not awarded.\n\nContests work from the market, the assistant on the website and Telegram.\nRunning a contest and paying the winners are confirmed on Karwan itself.\nContests run on Arc Testnet, up to about 1,000 USDC each for now."
+      "body": "A buyer can run a contest on Karwan instead of choosing one seller: the best\nlogo, three winners, 300 USDC, entries open for a week. The prize is put up\nwhen the contest opens and held on Karwan's escrow on Arc, so everyone who\nenters knows it is there.\n\nThe buyer picks one to three winners; the prize splits 100, or 70 and 30, or\n50, 30 and 20. Entries stay open for 1 to 30 days and the buyer then has 7 days\nto pick. Anyone except the buyer can enter with up to four images or PDF files\nand a note, and enter again to replace their entry.\n\nBefore paying, the buyer sees each entry's first image and note, never the\nfull files. Picking pays each winner their share at once, less half of\nKarwan's 1 percent fee on it, and only then do the winners' full files go to\nthe buyer. A contest nobody entered can be taken back with the prize and fee\nreturned. If the buyer picks nobody by the date, the prize goes back to them,\nand when there were entries their record shows the contest was not awarded.\n\nContests work from the market, the assistant on the website and Telegram.\nRunning a contest and paying the winners are confirmed on Karwan itself.\nThe assistant asks for the prize in the person's own currency, shows every\nfigure on its card in that currency, and draws the card itself rather than\nsending the person to a form. Asked to prepare a post, it writes one ready to\ncopy, with the contest's link.\nContests run on Arc Testnet, up to about 1,000 USDC each for now."
     },
     {
       "id": "credit-passport",

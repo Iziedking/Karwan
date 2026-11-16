@@ -4118,7 +4118,7 @@ export const hi: Messages = {
     modal: {
       eyebrow: 'TELEGRAM अलर्ट',
       title: 'सीधे आपकी चैट में',
-      subheading: 'डील · चैट · ब्रिज स्थिति',
+      subheading: 'डील · चैट · पैसे की आवाजाही',
       closeAria: 'बंद करें',
       startBody: 'एक टैप बॉट खोलने के लिए, एक और पुष्टि के लिए. डील अपडेट और चैट संदेश ऐप के बाहर भी आप तक पहुँचते हैं.',
       generateCta: 'लिंक बनाएँ',
@@ -4607,7 +4607,7 @@ export const hi: Messages = {
   telegramConnectCard: {
     eyebrow: 'टेलीग्राम अलर्ट',
     title: 'अपने चैट पर भेजें',
-    subtitle: 'डील · चैट · ब्रिज स्थिति',
+    subtitle: 'डील · चैट · पैसे की आवाजाही',
     linkedBadge: 'लिंक्ड',
     notConfiguredPrefix: "Telegram अलर्ट उपलब्ध नहीं हैं। अपडेट Karwan में देख सकते हैं।",
     notConfiguredAnd: 'और',

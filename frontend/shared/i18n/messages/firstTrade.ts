@@ -24,7 +24,7 @@ export const firstTradeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', FirstTrade
     hide: 'Hide',
     steps: {
       setup: { label: 'Tell your agent about your work', action: 'Tell your agent' },
-      money: { label: 'Add USDC', note: 'Every deal is paid in USDC.', action: 'Add USDC', testnetNote: 'Free test USDC lets you try a whole deal.', faucet: 'Get free test USDC', fromWallet: 'Add from another wallet' },
+      money: { label: 'Add money', note: 'Every deal is paid from your balance.', action: 'Add money', testnetNote: 'Free test money lets you try a whole deal.', faucet: 'Get free test money', fromWallet: 'Add from another wallet' },
       agentMoney: { label: 'Give your assistant money', note: 'Your assistant finds buyers and sellers and agrees prices for you. Give it money to work with.', action: 'Give it money' },
       agentLimits: { label: 'Set its limits', note: 'Your prices, and whether it asks you before a deal.', action: 'Set limits' },
       telegram: { label: 'Connect Telegram', note: 'Your agent works for you there.' },
@@ -40,7 +40,7 @@ export const firstTradeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', FirstTrade
     hide: 'Masquer',
     steps: {
       setup: { label: 'Parlez de votre travail à votre agent', action: 'Parler à mon agent' },
-      money: { label: 'Ajouter des USDC', note: 'Chaque accord se paie en USDC.', action: 'Ajouter des USDC', testnetNote: 'Des USDC de test gratuits pour essayer un accord complet.', faucet: 'Obtenir des USDC de test', fromWallet: 'Ajouter depuis un autre portefeuille' },
+      money: { label: 'Ajouter de l’argent', note: 'Chaque accord se paie depuis votre solde.', action: 'Ajouter de l’argent', testnetNote: 'De l’argent de test gratuit pour essayer un accord complet.', faucet: 'Obtenir de l’argent de test', fromWallet: 'Ajouter depuis un autre portefeuille' },
       agentMoney: { label: 'Donner de l’argent à votre assistant', note: 'Votre assistant trouve des acheteurs et des vendeurs et négocie les prix pour vous. Donnez-lui de l’argent pour travailler.', action: 'Lui donner de l’argent' },
       agentLimits: { label: 'Fixer ses limites', note: 'Vos prix, et s’il vous demande avant une affaire.', action: 'Fixer les limites' },
       telegram: { label: 'Connecter Telegram', note: 'Votre agent y travaille pour vous.' },
@@ -56,7 +56,7 @@ export const firstTradeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', FirstTrade
     hide: 'إخفاء',
     steps: {
       setup: { label: 'أخبر وكيلك عن عملك', action: 'أخبر وكيلك' },
-      money: { label: 'أضف USDC', note: 'كل صفقة تُدفع بعملة USDC.', action: 'أضف USDC', testnetNote: 'عملات USDC تجريبية مجانية لتجربة صفقة كاملة.', faucet: 'احصل على USDC تجريبية مجانًا', fromWallet: 'أضف من محفظة أخرى' },
+      money: { label: 'أضف المال', note: 'كل صفقة تُدفع من رصيدك.', action: 'أضف المال', testnetNote: 'مال تجريبي مجاني لتجربة صفقة كاملة.', faucet: 'احصل على مال تجريبي مجانًا', fromWallet: 'أضف من محفظة أخرى' },
       agentMoney: { label: 'أعطِ مساعدك مالًا', note: 'يجد مساعدك مشترين وبائعين ويتفق على الأسعار نيابةً عنك. أعطه مالًا ليعمل به.', action: 'أعطه مالًا' },
       agentLimits: { label: 'حدّد حدوده', note: 'أسعارك، وهل يسألك قبل أي صفقة.', action: 'حدّد الحدود' },
       telegram: { label: 'اربط Telegram', note: 'وكيلك يعمل لك هناك.' },
@@ -72,7 +72,7 @@ export const firstTradeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', FirstTrade
     hide: 'छिपाएँ',
     steps: {
       setup: { label: 'अपने एजेंट को अपने काम के बारे में बताएँ', action: 'एजेंट को बताएँ' },
-      money: { label: 'USDC जोड़ें', note: 'हर सौदे का भुगतान USDC में होता है।', action: 'USDC जोड़ें', testnetNote: 'मुफ़्त टेस्ट USDC से पूरा सौदा आज़माएँ।', faucet: 'मुफ़्त टेस्ट USDC लें', fromWallet: 'दूसरे वॉलेट से जोड़ें' },
+      money: { label: 'पैसा जोड़ें', note: 'हर सौदे का भुगतान आपके बैलेंस से होता है।', action: 'पैसा जोड़ें', testnetNote: 'मुफ़्त टेस्ट पैसे से पूरा सौदा आज़माएँ।', faucet: 'मुफ़्त टेस्ट पैसा लें', fromWallet: 'दूसरे वॉलेट से जोड़ें' },
       agentMoney: { label: 'अपने सहायक को पैसे दें', note: 'आपका सहायक आपके लिए खरीदार और विक्रेता ढूँढता है और दाम तय करता है। उसे काम के लिए पैसे दें।', action: 'पैसे दें' },
       agentLimits: { label: 'उसकी सीमा तय करें', note: 'आपके दाम, और क्या वह डील से पहले आपसे पूछे।', action: 'सीमा तय करें' },
       telegram: { label: 'Telegram जोड़ें', note: 'आपका एजेंट वहाँ आपके लिए काम करता है।' },
@@ -88,7 +88,7 @@ export const firstTradeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', FirstTrade
     hide: 'Ficha',
     steps: {
       setup: { label: 'Mwambie wakala wako kuhusu kazi yako', action: 'Mwambie wakala' },
-      money: { label: 'Ongeza USDC', note: 'Kila makubaliano yanalipwa kwa USDC.', action: 'Ongeza USDC', testnetNote: 'USDC za majaribio bure ili ujaribu makubaliano kamili.', faucet: 'Pata USDC za majaribio bure', fromWallet: 'Ongeza kutoka mkoba mwingine' },
+      money: { label: 'Ongeza pesa', note: 'Kila makubaliano yanalipwa kutoka salio lako.', action: 'Ongeza pesa', testnetNote: 'Pesa za majaribio bure ili ujaribu makubaliano kamili.', faucet: 'Pata pesa za majaribio bure', fromWallet: 'Ongeza kutoka mkoba mwingine' },
       agentMoney: { label: 'Mpe msaidizi wako pesa', note: 'Msaidizi wako anakutafutia wanunuzi na wauzaji na kukubaliana bei kwa niaba yako. Mpe pesa za kufanyia kazi.', action: 'Mpe pesa' },
       agentLimits: { label: 'Weka mipaka yake', note: 'Bei zako, na kama akuulize kabla ya mpango.', action: 'Weka mipaka' },
       telegram: { label: 'Unganisha Telegram', note: 'Wakala wako anakufanyia kazi huko.' },
