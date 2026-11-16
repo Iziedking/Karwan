@@ -29,7 +29,9 @@ export interface MarketBoard {
   counter(i: { walletId: string; buyer: Address; jobId: Hex; seller: Address; price: bigint; deadline: bigint; key?: string }): Promise<{ ref: string; replayed?: boolean }>;
   /// A seller's reply to a counter; with a `key` it is made once, like `counter`.
   respond(i: { walletId: string; seller: Address; jobId: Hex; accept: boolean; price: bigint; deadline: bigint; key?: string }): Promise<{ ref: string; replayed?: boolean }>;
-  accept(i: { walletId: string; buyer: Address; jobId: Hex; seller: Address }): Promise<{ ref: string }>;
+  /// With a `key`, an accept already made under that key is not made again, so
+  /// a funding step cut short by a restart can be run to the end (view 87).
+  accept(i: { walletId: string; buyer: Address; jobId: Hex; seller: Address; key?: string }): Promise<{ ref: string; replayed?: boolean }>;
   read(jobId: Hex): Promise<BoardRequest | null>;
   /// Requests posted lately, as `JobPosted` logs, for the agents' catch-up
   /// sweeps: the last `blocks` on the old board, the last `ms` on Karwan's.
@@ -319,7 +321,7 @@ export function createKarwanBoard(deps: {
       const kept = await rowFor(i.jobId);
       const s = lower(i.seller);
       const old = kept?.fromChain && !kept.offers[s] ? await chain.offer(i.jobId, i.seller) : null;
-      const ref = await change(i.jobId, (current) => {
+      return changeOnce(i.jobId, (current) => {
         const row = open(current);
         if (lower(i.buyer) !== lower(row.buyer)) throw new BoardError('NotJobBuyer');
         if (BigInt(row.deadline) <= now()) throw new BoardError('MatchWindowClosed');
@@ -335,8 +337,7 @@ export function createKarwanBoard(deps: {
           row,
           event: { kind: 'BidAccepted', args: { jobId: i.jobId, seller: b.seller, price: BigInt(b.price), deadline: BigInt(b.deadline) } },
         };
-      });
-      return { ref };
+      }, i.key);
     },
 
     async read(jobId) {

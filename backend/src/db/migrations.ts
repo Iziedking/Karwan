@@ -1687,6 +1687,19 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX team_room_v1_case_idx ON team_room_v1 (case_id, at);
     `,
   },
+  {
+    // Which server is working a request (view 48, step 8d; view 87): one
+    // holder at a time, taken over when its time runs out.
+    version: 69,
+    name: 'request_leases',
+    sql: `
+      CREATE TABLE request_leases_v1 (
+        job_id TEXT PRIMARY KEY,
+        owner TEXT NOT NULL,
+        until BIGINT NOT NULL
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

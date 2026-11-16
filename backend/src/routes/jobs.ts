@@ -244,7 +244,7 @@ export const jobsRoutes = new Hono();
 
 /// A refusal whose message the buyer should read as it is: the chat deal limits
 /// and the money-out guard.
-export const saysWhy = (code: string) => code === 'CHAT_DEAL_LIMIT' || code.startsWith('MONEY_OUT_');
+export const saysWhy = (code: string) => code === 'CHAT_DEAL_LIMIT' || code === 'BUSY_ELSEWHERE' || code.startsWith('MONEY_OUT_');
 
 /// The managed-jobs snapshot carries full negotiation state (bids, counter
 /// prices, amounts, buyer agent) and so must never enumerate every buyer's

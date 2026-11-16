@@ -82,6 +82,7 @@ import { type CounterWait, type LiveCounter, armCounterWait } from './counterTim
 import { type NotesFields, type PendingCounter, type PendingProposal, fromNotes, resumeAt, toNotes, withTerminalFacts } from './requestNotes.js';
 import { NotesWriter } from './notesWriter.js';
 import { requestNotesStore } from '../db/requestNotes.js';
+import { RENEW_EVERY_MS, RequestLeaseLostError, buyerLeases } from './requestLease.js';
 
 /// Hard cap on how many seller candidates the buyer agent will attempt
 /// sequentially on a single brief. Without this, a 10-bid auction could
@@ -450,8 +451,24 @@ function notesChanged(state: JobState): void {
   if (jobs.get(state.jobId) === state) notesWriter.changed(state);
 }
 
+/// The agent is about to act outside itself: this server must be the one
+/// working the request (view 87), and its notes must be saved.
 async function notesConfirmed(state: JobState): Promise<void> {
-  if (jobs.get(state.jobId) === state) await notesWriter.confirmed(state);
+  if (jobs.get(state.jobId) !== state) return;
+  await buyerLeases.ensureHeld(state.jobId);
+  await notesWriter.confirmed(state);
+}
+
+/// Keeps this server's hold on every live request it tracks and lets go of the
+/// ones that ended, so another server can never work a request alongside it.
+async function renewRequestLeases(): Promise<void> {
+  for (const jobId of buyerLeases.held()) {
+    const state = jobs.get(jobId as `0x${string}`);
+    if (!state || state.expired || state.escrowFunded) await buyerLeases.release(jobId);
+  }
+  for (const jobId of await buyerLeases.renew()) {
+    logger.warn({ jobId }, 'another server took over this request; this one stops acting on it');
+  }
 }
 
 /// The cheapest live offer on a request at or under the buyer's ceiling, from a
@@ -1122,11 +1139,15 @@ export function startBuyerAgents() {
     }
   });
 
+  const leaseTimer = setInterval(() => safe('renewRequestLeases', renewRequestLeases), RENEW_EVERY_MS);
+  leaseTimer.unref();
+
   return () => {
     unwatchPosted();
     unwatchBid();
     unwatchCounter();
     unsubBus();
+    clearInterval(leaseTimer);
     for (const state of jobs.values()) {
       clearCollectionClose(state, false);
       clearCounterWatchdog(state, false);
@@ -1269,6 +1290,11 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   };
   const resumed = await loadNotes(state);
   jobs.set(args.jobId, state);
+  if (!state.expired && !state.escrowFunded) {
+    await buyerLeases.claim(args.jobId).catch((err) =>
+      logger.warn({ jobId: args.jobId, err: (err as Error).message }, 'could not take the request lease'),
+    );
+  }
   logger.info(
     { jobId: args.jobId, budget: state.context.budgetUsdc, buyer: buyer.displayName, silent: opts?.silent ?? false, resumed },
     'tracking job',
@@ -4325,8 +4351,17 @@ export async function approveAgentMatch(
   if (proposal.declinedAt) {
     return { ok: false, code: 'DECLINED', message: 'match was declined' };
   }
+  // After a restart the request may not be in memory yet: bring it back from
+  // the market board before saying it is gone (view 87).
+  if (!jobs.has(jobId as `0x${string}`)) await reseedJobFromChain(jobId).catch(() => false);
   const state = jobs.get(jobId as `0x${string}`);
   if (!state) return { ok: false, code: 'NO_JOB_STATE', message: 'job state not in memory' };
+  try {
+    await buyerLeases.ensureHeld(state.jobId);
+  } catch (err) {
+    if (!(err instanceof RequestLeaseLostError)) throw err;
+    return { ok: false, code: 'BUSY_ELSEWHERE', message: 'This request is being worked on. Try again in a minute.' };
+  }
 
   // The buyer's agent funds here whoever approved, so a chat buyer's limits
   // hold even when the seller is the one who says yes.
@@ -4428,13 +4463,14 @@ export async function approveAgentMatch(
   await notesConfirmed(state);
   let acceptResult;
   try {
-    const { ref } = await marketBoard().accept({
+    const { ref, replayed } = await marketBoard().accept({
       walletId: state.buyer.walletId,
       buyer: state.buyer.address as `0x${string}`,
       jobId: state.jobId,
       seller,
+      key: `accept:${state.jobId.toLowerCase()}:${seller.toLowerCase()}`,
     });
-    acceptResult = { txHash: ref };
+    acceptResult = { txHash: ref, replayed: replayed === true };
   } catch (err) {
     logger.error({ jobId, err: (err as Error).message }, 'acceptBid (post-approval) failed');
     emitAgentChainError(state, seller, 'acceptBid', err);
@@ -4442,18 +4478,21 @@ export async function approveAgentMatch(
     return { ok: false, code: info.code, message: info.message };
   }
   logger.info({ jobId, seller, ...acceptResult }, 'bid accepted on chain (human-approved)');
-  publishLegacyContractAcceptanceShadow(
-    state,
-    proposal,
-    acceptResult.txHash,
-    Math.floor(Date.now() / 1_000),
-  );
-  bus.emitEvent({
-    type: 'bid.accepted',
-    jobId,
-    actor: 'buyer',
-    payload: { seller, agreedPriceUsdc: proposal.agreedPriceUsdc, txHash: acceptResult.txHash },
-  });
+  // An accept made before a restart was already told; only the funding is left.
+  if (!acceptResult.replayed) {
+    publishLegacyContractAcceptanceShadow(
+      state,
+      proposal,
+      acceptResult.txHash,
+      Math.floor(Date.now() / 1_000),
+    );
+    bus.emitEvent({
+      type: 'bid.accepted',
+      jobId,
+      actor: 'buyer',
+      payload: { seller, agreedPriceUsdc: proposal.agreedPriceUsdc, txHash: acceptResult.txHash },
+    });
+  }
 
   const priceWei = parseUnits(proposal.agreedPriceUsdc, USDC_DECIMALS);
   await notesConfirmed(state);

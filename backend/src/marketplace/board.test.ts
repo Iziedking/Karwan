@@ -106,6 +106,22 @@ test('a second offer from the same seller replaces the first', async () => {
   assert.equal(((await board.read(jobId)) as BoardRequest).acceptedPrice, 85_000_000n);
 });
 
+test('an accept with a key is made once, so a funding step cut short can be run again', async () => {
+  const { board, store } = setup();
+  const { jobId } = await post(board);
+  await board.placeOffer({ walletId: 's', seller: SELLER, jobId, price: 85_000_000n, deadline: BigInt(NOW) + DAY });
+  const key = `accept:${jobId}:${SELLER.toLowerCase()}`;
+  const first = await board.accept({ walletId: 'b', buyer: BUYER, jobId, seller: SELLER, key });
+  assert.equal(first.replayed, false);
+  const again = await board.accept({ walletId: 'b', buyer: BUYER, jobId, seller: SELLER, key });
+  assert.deepEqual(again, { ref: first.ref, replayed: true });
+  const accepted = (await store.eventsAfter(0, 50)).filter((e) => e.kind === 'BidAccepted');
+  assert.equal(accepted.length, 1, 'the accept is on the board once');
+  assert.equal(((await board.read(jobId)) as BoardRequest).acceptedPrice, 85_000_000n);
+  await refused(board.accept({ walletId: 'b', buyer: BUYER, jobId, seller: SELLER }), 'JobNotOpen');
+  await refused(board.accept({ walletId: 'b', buyer: BUYER, jobId, seller: OTHER, key: `accept:${jobId}:${OTHER.toLowerCase()}` }), 'JobNotOpen');
+});
+
 test('accepting refuses after the request deadline and on an expired offer', async () => {
   const { board, advance } = setup();
   const { jobId } = await post(board, BigInt(NOW) + 2n * DAY);
