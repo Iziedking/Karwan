@@ -93,3 +93,4 @@ Assistant replies, emails and bookmarks that use the old links keep working.
 |---|---|
 | This view | Approved by the owner, 15 Nov 2026 |
 | Profile, Your agent, Sign-in and security, Where we reach you, Settings, old links | Built 15 Nov 2026 |
+| Settings in three groups and the rows on Your agent for what it does alone | Changed by view 87, step 2, built 16 Nov 2026. Settings is General (display, notifications and privacy, assistant, delete account), Money (show amounts in, start a trade with) and Agent (the switches). On Your agent, "Agent permissions" is replaced by "What it does alone" |

@@ -240,7 +240,7 @@ flowchart TB
 | Part | State |
 |---|---|
 | View approved | Done, 5 Nov 2026 |
-| Step 0: true counts, one notice per question, research failures told | Built 5 Nov 2026, not deployed |
+| Step 0: true counts, one notice per question, research failures told | Built 5 Nov 2026, not deployed. View 87, step 2 (16 Nov 2026) adds three parts: `switch`, `lock-rules` and `resume` |
 | Step 1: five insights in the weekly message and on request (`whats_my_agent_seeing`) | Built 5 Nov 2026, not deployed |
 | Step 2: every question states its default and deadline, one channel, one reminder, the default runs once | Built 5 Nov 2026, not deployed |
 | Step 3: the mandate read as one thing (`show_my_mandate`), changed one part at a time through a confirm card (`propose_change_mandate`), and a re-plan at once | Built 5 Nov 2026, not deployed |
