@@ -859,3 +859,13 @@ Agree: yes.
 - Installed SDK: `viem` (backend `^2.21.0`, resolved 2.55.11) and `@circle-fin/x402-batching` `^3.0.4`. No package change.
 - Read-only test, 15 Nov 2026: `eth_call` `balanceOf` on `https://rpc.testnet.arc.network` for seller agents `0xf2aca6e1…`, `0xeffcea11…`, `0x479badc4…`, `0x9cc7af1c…`, `0xa1444039…`: 0 USDC each. Unit tests on node-services: `src/x402` (with the new `gatewayDeposit.test.ts`), guide and canon, 94 passed.
 - Agree: yes.
+
+## 2026-11-16 · An agent locks the money for a deal it agreed (T1, view 87 step 3, proposed)
+
+- Scope: with "Lock money for me" on, the buying agent funds a deal it agreed without its person's tap. It adds no chain call and changes no contract: the lock runs `chooseAgentOffer`, then `approveAgentMatch`, then `fundAgentMatchSuite` (`backend/src/agents/fundAgentMatchSuite.ts`), the same path a tap takes today. What is new sits in front of that path: the gate `mayLock` (`agents/autopilotGate.ts`), a written step in the request notes, and a reservation in the agent record.
+- Docs, read 16 Nov 2026: Circle "Idempotent Requests" (https://developers.circle.com/w3s/idempotent-requests): the idempotency key must be a UUID version 4, and a later request with the same key gives the same result as the first, so a call may be retried after a failure. Arc "Deterministic finality" and "Transaction states" (https://docs.arc.io/arc/concepts/deterministic-finality, https://docs.arc.io/integrate/wallets/transaction-lifecycle): a transaction is pending or final, with no reorg, so a funded escrow read after a restart is authoritative.
+- Read from the code, 16 Nov 2026: the escrow salt is fixed per request (`fundingSaltV3(jobId)`), the funding core reads the escrow deal by that id before paying and treats a Funded or Accepted deal as done, and contract calls carry `deterministicIdempotencyKey(seed)` (`chain/txs.ts`). A lock step repeated after a restart therefore finds the funded deal and pays nothing.
+- Installed SDK: `@circle-fin/developer-controlled-wallets` 10.8.0 (root `node_modules`), viem as before. No package change.
+- Read-only test, 16 Nov 2026: `eth_chainId` and `eth_blockNumber` on `https://rpc.testnet.arc.network`: chain id 5042002, block 72542993.
+- Not covered here: Circle's spending limits on agent wallets (view 87 step 9, mainnet) and the match fee (step 6) get their own checks. On testnet Karwan's gate is the only wall.
+- Agree: yes.
