@@ -43,6 +43,8 @@ function FeatureMark({ f, blink }: { f: Feature; blink: boolean }) {
           <rect x={f.x} y={f.y} width={f.w} height={f.h} rx={f.h / 2} fill={ink} />
         </g>
       );
+    case 'grin':
+      return <path d={f.d} fill={ink} stroke={dot} strokeWidth={1} strokeLinejoin="round" />;
     case 'arc':
       return (
         <g fill="none" strokeLinecap="round">
@@ -70,9 +72,12 @@ export const AmanFace = memo(function AmanFace({ size, mood, gaze, blink = false
       data-aman-mood={mood}
       className="shrink-0"
     >
-      {dots.map((d) => (
-        <circle key={`${d.cx}-${d.cy}`} cx={d.cx} cy={d.cy} r={d.r} fill={d.rim ? AMAN_COLOURS.rim : AMAN_COLOURS.dot} />
-      ))}
+      {/* Breathing lifts the dots by --aman-breath, set by useAmanLife on a parent. */}
+      <g style={{ transform: 'translateY(calc(var(--aman-breath, 0) * -1.5px))' }}>
+        {dots.map((d) => (
+          <circle key={`${d.cx}-${d.cy}`} cx={d.cx} cy={d.cy} r={d.r} fill={d.rim ? AMAN_COLOURS.rim : AMAN_COLOURS.dot} />
+        ))}
+      </g>
       {features.map((f, i) => <FeatureMark key={i} f={f} blink={blink} />)}
     </svg>
   );

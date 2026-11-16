@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { MESSAGES } from './messages/all';
 import { landingCopy } from './messages/landing';
@@ -61,8 +60,3 @@ for (const locale of Object.keys(MESSAGES) as Array<keyof typeof MESSAGES>) {
   });
 }
 
-test('the welcome tour reads its own words, not the docs or the balance guide', () => {
-  const source = readFileSync('shared/guide/GuideWelcome.tsx', 'utf8');
-  assert.match(source, /GUIDE_COPY\[locale\]\.welcome/);
-  assert.doesNotMatch(source, /docsProduct|guides\.balance/);
-});

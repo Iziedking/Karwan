@@ -1,4 +1,7 @@
 'use client';
+import { aimAt } from '@/features/guide/amanLife';
+import { guideCopy } from '@/shared/i18n/messages/guide';
+import { LiveAman } from './LiveAman';
 import {
   createContext,
   useCallback,
@@ -477,6 +480,11 @@ function GuideStepOverlay() {
   const isFirst = active.index === 0;
   const reduced = prefersReducedMotion();
   const placement = viewport.width ? guidePlacement(rect, viewport, panelSize, locale === 'ar') : null;
+  // Aman rides with the tour and looks at the part it explains (view 57, 15 Nov evening).
+  const look = rect && placement
+    ? aimAt({ x: placement.left + 28, y: placement.top + 28 }, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
+    : null;
+  const stepLine = guideCopy[locale].tour.step.replace('{n}', String(active.index + 1)).replace('{m}', String(total));
 
   return createPortal(
     <div>
@@ -545,8 +553,9 @@ function GuideStepOverlay() {
           className="p-5"
         >
           <div className="flex items-center justify-between gap-3">
-            <span className="font-sans text-[14px] text-[var(--lp-text-sub)] font-medium">
-              {copy.step} {active.index + 1}/{total}
+            <span data-tour-aman className="flex items-center gap-2.5 font-sans text-[14px] text-[var(--lp-text-sub)] font-medium">
+              <LiveAman size={56} mood={isLast ? 'pleased' : 'talking'} look={look} seed={`tour-${active.id}`} />
+              {stepLine}
             </span>
             <button
               type="button"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AmanFace } from '@/shared/guide/AmanFace';
+import { LiveAman } from '@/shared/guide/LiveAman';
 import { Icon } from '@/shared/components/Icon';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
@@ -52,7 +52,7 @@ export function AssistantWait({ wait, from, seed }: { wait: { status: WaitStep |
   return (
     <div data-wait className="space-y-3">
       <div className="flex items-center gap-2.5">
-        <AmanFace size={30} mood="thinking" label={null} />
+        <LiveAman size={30} mood="thinking" look={null} seed="wait" />
         <p aria-live="polite" className="text-[15px] font-medium text-[var(--ink-secondary)]">
           <span key={line} className={reduce ? undefined : 'wait-line-in'}>
             {line}

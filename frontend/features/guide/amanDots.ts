@@ -1,8 +1,8 @@
 /// Aman's face (view 57): a disc of dots on a 9 by 9 grid with the mood's eyes
-/// and mouth laid over it, in a 96 box. The Figma component (314:627) is drawn
-/// from these numbers; change them here and redraw it.
+/// and mouth laid over it, in a 96 box. The Figma component (314:627, nine
+/// moods since 15 Nov evening) is drawn from these numbers; change them here and redraw it.
 
-export type AmanMood = 'idle' | 'talking' | 'thinking' | 'pleased' | 'waiting';
+export type AmanMood = 'idle' | 'talking' | 'thinking' | 'pleased' | 'waiting' | 'excited' | 'sad' | 'worried' | 'hurt';
 
 export interface Dot { cx: number; cy: number; r: number; rim: boolean }
 
@@ -10,7 +10,9 @@ export type Feature =
   | { kind: 'eye'; cx: number; cy: number; rx: number; ry: number; glint: { cx: number; cy: number; r: number } }
   | { kind: 'mouth'; cx: number; cy: number; rx: number; ry: number }
   | { kind: 'bar'; x: number; y: number; w: number; h: number }
-  | { kind: 'arc'; d: string };
+  | { kind: 'arc'; d: string }
+  /// A filled mouth with a thin dot-coloured edge (excited).
+  | { kind: 'grin'; d: string };
 
 export const AMAN_COLOURS = { dot: '#AFC95B', rim: '#97B04B', ink: '#16202A', glint: '#F4F4F1' } as const;
 export const PATCH = 0.5;
@@ -28,6 +30,8 @@ const GAZE = 3;
 const eye = (cx: number, cy: number, rx: number, ry: number): Feature =>
   ({ kind: 'eye', cx, cy, rx, ry, glint: { cx: cx - 2.4, cy: cy - 3, r: 2.2 } });
 
+const arc = (d: string): Feature => ({ kind: 'arc', d });
+
 const FEATURES: Record<AmanMood, Feature[]> = {
   idle: [eye(41, 42, 7.5, 8.5), eye(65, 42, 7.5, 8.5)],
   talking: [eye(36, 40, 7.5, 8.5), eye(60, 40, 7.5, 8.5), { kind: 'mouth', cx: 48, cy: 64, rx: 6.5, ry: 5.5 }],
@@ -38,6 +42,11 @@ const FEATURES: Record<AmanMood, Feature[]> = {
     { kind: 'arc', d: 'M37 60 C44.33 67.33 51.67 67.33 59 60' },
   ],
   waiting: [eye(36, 42, 8.5, 10), eye(60, 42, 8.5, 10)],
+  // 15 Nov evening (Figma 343:2961): a face for the moment.
+  excited: [eye(35, 37, 8.5, 10), eye(61, 37, 8.5, 10), { kind: 'grin', d: 'M33 57 C37 72 59 72 63 57 Z' }],
+  sad: [arc('M29 33 L41 29'), arc('M67 33 L55 29'), eye(37, 46, 6.5, 7), eye(59, 46, 6.5, 7), arc('M39 68 C45 62 51 62 57 68')],
+  worried: [arc('M30 33 L41 30'), arc('M66 33 L55 30'), eye(36, 44, 7, 8), eye(60, 44, 7, 8), arc('M36 67 C40 62 44 70 48 66 C52 62 56 70 60 65')],
+  hurt: [arc('M30 37 L42 43 L30 49'), arc('M66 37 L54 43 L66 49'), arc('M40 65 C45.33 61 50.67 61 56 65')],
 };
 
 interface Box { x0: number; y0: number; x1: number; y1: number }
@@ -49,7 +58,8 @@ function boxOf(f: Feature): Box {
       return { x0: f.cx - f.rx - PATCH, y0: f.cy - f.ry - PATCH, x1: f.cx + f.rx + PATCH, y1: f.cy + f.ry + PATCH };
     case 'bar':
       return { x0: f.x - PATCH, y0: f.y - PATCH, x1: f.x + f.w + PATCH, y1: f.y + f.h + PATCH };
-    case 'arc': {
+    case 'arc':
+    case 'grin': {
       const n = (f.d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
       const xs = n.filter((_, i) => i % 2 === 0);
       const ys = n.filter((_, i) => i % 2 === 1);

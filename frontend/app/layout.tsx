@@ -10,7 +10,6 @@ import { SiteFooter } from '@/shared/components/SiteFooter';
 import { AppProviders } from '@/shared/components/AppProviders';
 import { ChromeFrame } from '@/shared/components/ChromeFrame';
 import { NotificationToasts } from '@/features/notifications/components/NotificationToasts';
-import { GuideWelcome } from '@/shared/guide/GuideWelcome';
 import { TermsModal } from '@/shared/components/TermsModal';
 import { TagPrompt } from '@/features/signup/components/TagPrompt';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
@@ -216,7 +215,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               feedback={<PageFeedbackPrompt />}
               bottomNav={<WorkspaceBottomNav />}
               notifications={<NotificationToasts />}
-              guide={<GuideWelcome />}
+              guide={null}
               terms={<><TermsModal /><TagPrompt /></>}
             >
               {children}

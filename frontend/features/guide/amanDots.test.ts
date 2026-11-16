@@ -70,3 +70,31 @@ test('gaze moves the eyes up to 3 and leaves the dots alone', () => {
 test('a mirrored gaze mirrors the move', () => {
   assert.equal(eyeAt(amanDots('idle', { x: -1, y: 0 }), 0).cx, eyeAt(amanDots('idle'), 0).cx - 3);
 });
+
+/// The four faces drawn on 15 Nov evening (Figma 343:2961), from the spec's numbers.
+const NEW: AmanMood[] = ['excited', 'sad', 'worried', 'hurt'];
+
+test('the four new faces carry the Figma features and keep every dot clear of them', () => {
+  assert.deepEqual(kinds('excited'), ['eye', 'eye', 'grin']);
+  assert.deepEqual(kinds('sad'), ['arc', 'arc', 'eye', 'eye', 'arc']);
+  assert.deepEqual(kinds('worried'), ['arc', 'arc', 'eye', 'eye', 'arc']);
+  assert.deepEqual(kinds('hurt'), ['arc', 'arc', 'arc']);
+  const grin = amanDots('excited').features[2];
+  assert.equal(grin.kind === 'grin' && grin.d, 'M33 57 C37 72 59 72 63 57 Z');
+  assert.equal(eyeAt(amanDots('sad'), 0).cy, 46);
+  for (const mood of NEW) {
+    const { dots, features } = amanDots(mood);
+    assert.ok(dots.length > 30, `${mood} keeps most of its dots`);
+    for (const d of dots) for (const f of features) assert.ok(clearance(d, f) >= 1.2, `${mood} ${d.cx},${d.cy}`);
+  }
+});
+
+test('a new face looks around with its eyes only, 3 at most, and its dots hold still', () => {
+  for (const mood of ['excited', 'sad', 'worried'] as AmanMood[]) {
+    const rest = amanDots(mood);
+    const look = amanDots(mood, { x: 1, y: -1 });
+    assert.deepEqual(look.dots, rest.dots);
+    assert.equal(eyeAt(look, 0).cx - eyeAt(rest, 0).cx, 3);
+    assert.equal(eyeAt(look, 0).cy - eyeAt(rest, 0).cy, -3);
+  }
+});

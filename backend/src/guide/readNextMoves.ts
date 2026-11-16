@@ -1,3 +1,5 @@
+import { getProfile } from '../db/profiles.js';
+import { setupAllowed } from './askLess.js';
 import { config } from '../config.js';
 import { getBuyerSnapshot } from '../agents/buyer.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
@@ -13,11 +15,13 @@ import { setupSteps } from './setupSteps.js';
 /// (GET /api/guide/next) and the assistant's whats_pending. `method` is how the
 /// account signs in, which decides what its balance counts.
 export async function readNextMoves(address: string, method: string | undefined, now = Date.now()): Promise<NextMove[]> {
-  const [deals, proposals, facts] = await Promise.all([
+  const [deals, proposals, facts, profile] = await Promise.all([
     listDealsForAddress(address),
     listMatchProposalsForUser(address),
     readSetupFacts(address, method).catch(() => null),
+    getProfile(address).catch(() => null),
   ]);
+  const settings = profile?.settings ?? {};
   const requestsWithOffers: { jobId: string; offers: number }[] = [];
   for (const job of getBuyerSnapshot().jobs) {
     if (!job.bids.length || job.finalized || job.cancelledAt || job.expiredAt) continue;
@@ -33,5 +37,6 @@ export async function readNextMoves(address: string, method: string | undefined,
     setup: facts ? setupSteps(facts, config.ARC_NETWORK) : null,
     statementOpen: (d) => statementWindowOpen(d, now, config.DISPUTE_STATEMENT_WINDOW_MS),
     now,
+    allowStep: (key) => setupAllowed(settings, key, now),
   });
 }

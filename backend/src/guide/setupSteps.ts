@@ -3,7 +3,8 @@
 /// read it, so they always name the same next step. Each step ticks itself
 /// from what is true for the account, never from a click.
 
-export type SetupKey = 'setup' | 'money' | 'agent_money' | 'agent_limits' | 'telegram' | 'first_deal';
+export const SETUP_KEYS = ['setup', 'money', 'agent_money', 'agent_limits', 'telegram', 'first_deal'] as const;
+export type SetupKey = (typeof SETUP_KEYS)[number];
 
 export interface SetupFacts {
   setupDone: boolean;

@@ -187,44 +187,7 @@ activityRoutes.get('/', async (c) => {
     return c.json({ events: publicEvents.slice(0, limit).map(pulseEvent) });
   }
 
-  // Party membership: the durable stores (briefs posted, deals, proposals)
-  // plus a payload scan of this window. Auction-phase events carry only agent
-  // addresses, so without the durable seed a buyer's own live auction would
-  // filter to nothing here.
-  const [callerJobs, buyerJobs, financedJobs] = await Promise.all([
-    callerJobIds(caller),
-    buyerJobIds(caller),
-    financedJobIds(caller).catch(() => new Set<string>()),
-  ]);
-  for (const e of base) {
-    if (isParty(e, caller) && e.jobId) callerJobs.add(e.jobId.toLowerCase());
-  }
-  const events = base.flatMap((e): KarwanEvent[] => (inCallerFeed(e) ? [e] : financierView(e)));
-  function financierView(e: KarwanEvent): KarwanEvent[] {
-    // The deal under a position they financed: which deal and what happened,
-    // never its parties, amounts or text (same view as the live stream).
-    const jobKey = e.jobId?.toLowerCase();
-    if (!jobKey || !financedJobs.has(jobKey) || !FINANCIER_FOLLOWS.has(e.type)) return [];
-    return [{ type: e.type, actor: e.actor, ts: e.ts, jobId: e.jobId, payload: {} }];
-  }
-  function inCallerFeed(e: KarwanEvent): boolean {
-    if (e.type === 'chat.message' && e.payload?.channel === 'financing') {
-      return matchesKey(e, caller!, ['sender', 'recipient']);
-    }
-    const inScope =
-      isParty(e, caller!) ||
-      isOwnMoney(e, caller!) ||
-      (!!e.jobId && callerJobs.has(e.jobId.toLowerCase()));
-    if (!inScope) return false;
-    // Seller-side privacy: the caller is a party to this job but not its buyer,
-    // so the competitive auction internals (rival bids, scores, counters, the
-    // buyer's market strategy) never reach their notifications feed. Their own
-    // match + settlement events are not in the internal set and stay.
-    const jobKey = e.jobId?.toLowerCase();
-    const isBuyerOfJob = !!jobKey && buyerJobs.has(jobKey);
-    if (!isBuyerOfJob && AUCTION_INTERNAL_TYPES.has(e.type)) return false;
-    return true;
-  }
+  const events = await personalFeed(caller, base);
 
   return c.json({ events: events.slice(0, limit) });
 });
@@ -422,3 +385,48 @@ activityRoutes.get('/me', async (c) => {
 
   return c.json({ items: items.slice(0, limit) });
 });
+
+/// The events in one person's own feed: their deals, money and requests, with
+/// auction internals kept from sellers and financed deals reduced to bare events.
+/// The notifications feed and Aman's moments (view 57) read the same list.
+export async function personalFeed(caller: string, base: readonly KarwanEvent[]): Promise<KarwanEvent[]> {
+  // Party membership: the durable stores (briefs posted, deals, proposals)
+  // plus a payload scan of this window. Auction-phase events carry only agent
+  // addresses, so without the durable seed a buyer's own live auction would
+  // filter to nothing here.
+  const [callerJobs, buyerJobs, financedJobs] = await Promise.all([
+    callerJobIds(caller),
+    buyerJobIds(caller),
+    financedJobIds(caller).catch(() => new Set<string>()),
+  ]);
+  for (const e of base) {
+    if (isParty(e, caller) && e.jobId) callerJobs.add(e.jobId.toLowerCase());
+  }
+  const events = base.flatMap((e): KarwanEvent[] => (inCallerFeed(e) ? [e] : financierView(e)));
+  function financierView(e: KarwanEvent): KarwanEvent[] {
+    // The deal under a position they financed: which deal and what happened,
+    // never its parties, amounts or text (same view as the live stream).
+    const jobKey = e.jobId?.toLowerCase();
+    if (!jobKey || !financedJobs.has(jobKey) || !FINANCIER_FOLLOWS.has(e.type)) return [];
+    return [{ type: e.type, actor: e.actor, ts: e.ts, jobId: e.jobId, payload: {} }];
+  }
+  function inCallerFeed(e: KarwanEvent): boolean {
+    if (e.type === 'chat.message' && e.payload?.channel === 'financing') {
+      return matchesKey(e, caller!, ['sender', 'recipient']);
+    }
+    const inScope =
+      isParty(e, caller!) ||
+      isOwnMoney(e, caller!) ||
+      (!!e.jobId && callerJobs.has(e.jobId.toLowerCase()));
+    if (!inScope) return false;
+    // Seller-side privacy: the caller is a party to this job but not its buyer,
+    // so the competitive auction internals (rival bids, scores, counters, the
+    // buyer's market strategy) never reach their notifications feed. Their own
+    // match + settlement events are not in the internal set and stay.
+    const jobKey = e.jobId?.toLowerCase();
+    const isBuyerOfJob = !!jobKey && buyerJobs.has(jobKey);
+    if (!isBuyerOfJob && AUCTION_INTERNAL_TYPES.has(e.type)) return false;
+    return true;
+  }
+  return events;
+}

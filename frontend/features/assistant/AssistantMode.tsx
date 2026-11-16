@@ -21,7 +21,7 @@ import { ConversationList } from './ConversationList';
 import { PickUpLine } from './PickUpLine';
 import { peekReturn, takeReturn } from './assistantReturn';
 import { suggestedQuestions } from './suggestedQuestions';
-import { AmanFace } from '@/shared/guide/AmanFace';
+import { LiveAman } from '@/shared/guide/LiveAman';
 import { guideCopy } from '@/shared/i18n/messages/guide';
 import { routeTitlesCopy } from '@/shared/i18n/messages/routeTitles';
 import { routeTitleKey } from '@/shared/seo/routeTitle';
@@ -193,6 +193,8 @@ function AssistantPage() {
   // Without a name the greeting drops it with its stop.
   const greeting = name ? aman.greeting.replace('{name}', name) : aman.greeting.replace(/^[^{]*\{name\}[.。।،]?\s*/, '');
   const mood = chat.busy ? 'thinking' : empty ? 'waiting' : 'idle';
+  // Aman looks down at the box while something is typed to it (view 57, 15 Nov evening).
+  const look = input.trim() ? { x: 0, y: 1 } : 'pointer';
   const back = () => router.push(takeReturn());
 
   async function send(text: string) {
@@ -269,7 +271,7 @@ function AssistantPage() {
             <Icon name="arrow-left" size={20} directional />
           </button>
           <span className="flex min-w-0 items-center gap-2 ps-1">
-            <AmanFace size={30} mood={mood} label={null} />
+            <LiveAman size={30} mood={mood} look={look} seed="assistant-top" />
             <span className="guide-voice text-[18px] font-bold">{aman.label}</span>
           </span>
           <span className="ms-auto flex items-center gap-1">
@@ -290,7 +292,7 @@ function AssistantPage() {
         <div className="mx-auto flex w-full max-w-[640px] flex-1 flex-col gap-3 px-4 pb-4 pt-6 sm:px-0 sm:pt-8">
           {empty ? (
             <m.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="flex flex-col items-center pt-6 text-center sm:pt-12">
-              <AmanFace size={96} mood={mood} label={null} />
+              <LiveAman size={96} mood={mood} look={look} seed="assistant-empty" />
               <h1 className="guide-voice mt-5 text-[26px] font-bold tracking-[-0.01em] sm:text-[30px]">{greeting}</h1>
               <p className="mt-2 max-w-[44ch] text-[15px] font-medium text-[var(--ink-secondary)]">{t.greetingBody}</p>
               {fromPage ? (

@@ -326,9 +326,9 @@ Money kept aside is the **savings pocket**. A **deal guarantee** is only the par
 | Figma: placeholder face, gate, tour, sign-up and first open (phone, dark) | Drawn 6 Nov 2026 |
 | Aman beside the page with the one next move, the face opens the assistant page, Ctrl+K, Not now, Not on this page, Hide the guide, Settings switch, Ask Aman in Profile, the corner Help button and the parked switch removed, the assistant page redesigned | Built 15 Nov 2026, not deployed |
 | 15 Nov amendment: Aman out of sight, six steps to fully set up, the assistant in plain words | Approved and built 15 Nov 2026, not deployed |
-| Gate and tours with the face (modes 1 and 2) | Not started |
-| 15 Nov evening amendment: a living face everywhere, nine faces that react to what happens, a tour on request, Not now held for days on the account | Approved 15 Nov 2026 |
-| Figma: section "6 · Aman alive (15 Nov evening)" (343:2961) on the Aman page: the nine faces (the Aman set gained Excited, Sad, Worried, Hurt), blink, eyes and breathing frames, the six reaction lines, the Home tour on a phone (offer and three stops) and a laptop, Not now held for days; component Guide/Tour step (343:5285) | Drawn 15 Nov 2026, waiting for the owner |
+| Gate and tours with the face (modes 1 and 2) | Tours with the face built 15 Nov 2026 (offered, never automatic), not deployed |
+| 15 Nov evening amendment: a living face everywhere, nine faces that react to what happens, a tour on request, Not now held for days on the account | Approved 15 Nov 2026; built 15 Nov 2026, not deployed |
+| Figma: section "6 · Aman alive (15 Nov evening)" (343:2961) on the Aman page: the nine faces (the Aman set gained Excited, Sad, Worried, Hurt), blink, eyes and breathing frames, the six reaction lines, the Home tour on a phone (offer and three stops) and a laptop, Not now held for days; component Guide/Tour step (343:5285) | Drawn and approved 15 Nov 2026 |
 | The savings pocket named as such in the assistant, the record and the canon; a deal guarantee only for the part backing a deal | Built 15 Nov 2026, not deployed |
 
 ## As built (15 Nov 2026)
@@ -347,3 +347,32 @@ Money kept aside is the **savings pocket**. A **deal guarantee** is only the par
 - `AmanGuide` renders only while it speaks, while its menu is open, or for 1.5 seconds pleased after the step it named is done (`stepFinished` in `pickNudge.ts`); it slides in from the inline edge in 0.24 seconds (`enterFrom` in `amanMotion.ts`) and only fades with reduced motion. The moves are read again on every page. `HeaderAman` shows unless the guide is off.
 - Home's Your first trade is `homeChecklist` in `features/home/firstTrade.ts`: the server list plus Finish. The six lines are `nextMoveCopy[locale].setup` in five languages.
 
+### As built, 15 Nov evening amendment
+
+- **The faces.** `amanDots.ts` has the nine moods. Excited has a new feature kind, `grin`, a filled mouth. The numbers are the Figma section's (343:2961).
+- **The living face.** `features/guide/amanLife.ts` decides blink, breath, gaze, aim and when life is allowed. `shared/guide/useAmanLife.ts` runs one animation clock for every face on a page:
+  - It stops when no face needs it or the tab is hidden.
+  - It writes the breath as `--aman-breath` on a wrapper, so a face does not redraw for it.
+  - It follows the pointer within 400 px.
+  - Every face uses it through `LiveAman`: the top bar, Profile, the assistant page (which looks at the box while text is typed), the wait row and the error screens. The floating guide uses it directly.
+- **Asks less.** `backend/src/guide/askLess.ts`:
+  - `afterSnooze` holds a step for 3 days, then 14.
+  - `setupAllowed` allows one setup step a day.
+  - `readNextMoves` reads the account's settings, and `nextMoves` takes the first undone step it allows.
+  - `POST /api/guide/snooze` and `POST /api/guide/asked` keep both on the account, by the server clock.
+  - The settings gained `guideSnooze`, `guideMomentAt`, `guideHelloOn`, `guideAskedOn`, `guideAskedStep` and `guideTourOffer`.
+- **Moments.** `backend/src/guide/moments.ts` maps an event on the person's own feed to a mood and a line. `readMoment.ts` reads that feed through `personalFeed()`, now exported from `routes/activity.ts` with no change to the feed. The hurt moment needs no new event: it is `escrow.resolved` with the deal's `guaranteeBackedAt` set and `resolvedSellerBps` under 10,000, for the seller. Then:
+  - `GET /api/guide/moment` gives the newest one since `guideMomentAt`, no older than 48 hours.
+  - `POST /api/guide/moment/seen` moves the mark forward only.
+  - `whats_pending` gives the moment first.
+- **On the website.**
+  - `pickNudge` ranks, in order: a deal that waits on the person, the moment, the tour offer, then setup and market moves.
+  - `moodFor` picks the face, and `helloDue` says the day's hello once, on Home.
+  - Not now on a setup step calls the snooze.
+- **The tour.**
+  - `shared/guide/tourOffer.ts` offers it to someone new on Home, the market, a deal or Money when that page has a tour.
+  - `PageTour` no longer opens a tour by itself. A page opened with `?tour=1` starts its tour once.
+  - The first-run welcome component is gone; the offer replaces it.
+  - The tour bubble shows Aman at 56 beside "Aman · n of m", looking at the part (`aimAt`).
+  - The assistant reaches it with `propose_navigation` to `tour_home`, `tour_market` or `tour_money`, on the website and from chat apps.
+- **Copy.** The hello, the seven moment lines and the tour words are in `shared/i18n/messages/guide.ts` in five languages.

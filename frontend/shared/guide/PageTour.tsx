@@ -1,47 +1,13 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { useGuide, GUIDE_MASTERY_XP, type TourStep } from './GuideProvider';
-import { WELCOME_ID } from './tours';
-import { useNewcomer } from './useNewcomer';
+import { useGuide, type TourStep } from './GuideProvider';
 
-/// Registers a page's guided tour with the global guide. Page tours stay
-/// available from the quiet Tour launcher; the first-run welcome tour is the
-/// single automatic orientation layer. Opening another tour on every route
-/// made navigation feel interrupted and stacked guidance on top of the real
-/// task.
-///
-/// Optional auto-open rules (kept deliberately gentle when explicitly opted in):
-///   - Only when tips are enabled (the global "skip all" / five-skips cutoff
-///     turns this off), the user has not mastered the app, and has not already
-///     seen this page's tour.
-///   - Only after the first-run welcome has been seen, so the very first app
-///     page belongs to the welcome and two tours never fight for the screen.
-///   - Never while another tour is open.
-/// The floating Tour pill (bottom-left) remains the on-demand trigger on every
-/// page, and the same responsive overlay serves desktop and mobile.
-export function PageTour({
-  id,
-  steps,
-  replayLabel = 'Tour',
-  autoStartDelayMs = 700,
-  autoStart = false,
-}: {
-  id: string;
-  steps: TourStep[];
-  /// Delay before the auto-open fires, giving the spotlight targets time to
-  /// mount so the first step lands on a real element.
-  autoStartDelayMs?: number;
-  replayLabel?: string;
-  /// Only the one or two genuinely introductory surfaces should opt in. Most
-  /// page tours are orientation-on-demand so they never interrupt a workflow.
-  autoStart?: boolean;
-}) {
-  const { registerTour, unregisterTour, startTour, hasActive, disabled, experience, isSeen } =
-    useGuide();
-  const who = useNewcomer();
-  // One auto-open attempt per mount; the pill stays available regardless.
-  const autoTried = useRef(false);
+/// Registers a page's guided tour with the global guide. A tour never opens by
+/// itself: someone new is offered it by Aman on Home, Market, a deal and Money,
+/// and anyone opens it from Page tour or Aman's menu (view 57, 15 Nov evening).
+export function PageTour({ id, steps, replayLabel = 'Tour' }: { id: string; steps: TourStep[]; replayLabel?: string }) {
+  const { registerTour, unregisterTour, startTour } = useGuide();
   const pathname = usePathname();
   const serializedSteps = JSON.stringify(steps);
 
@@ -52,23 +18,18 @@ export function PageTour({
     return () => unregisterTour(id);
   }, [id, serializedSteps, replayLabel, pathname, registerTour, unregisterTour]);
 
+  // The assistant's "show me around" link opens the page with ?tour=1: start
+  // its tour once, then drop the parameter so a reload does not start it again.
   useEffect(() => {
-    if (!autoStart) return;
-    if (autoTried.current) return;
-    if (disabled || hasActive) return;
-    if (experience >= GUIDE_MASTERY_XP) return;
-    if (who !== 'new') return; // an account with deals behind it asks for a tour itself
-    if (!isSeen(WELCOME_ID)) return; // let the first-run welcome go first
-    if (isSeen(id)) return; // newcomer already saw this page's tour
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('tour') !== '1') return;
     const t = window.setTimeout(() => {
-      autoTried.current = true;
-      startTour(id, steps);
-    }, autoStartDelayMs);
+      url.searchParams.delete('tour');
+      window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+      startTour(id, JSON.parse(serializedSteps) as TourStep[], { force: true });
+    }, 600);
     return () => window.clearTimeout(t);
-    // Re-evaluates when an open tour closes (hasActive) or the seen/welcome
-    // state changes, so the page tour opens right after the welcome finishes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, hasActive, disabled, experience, isSeen, autoStart, who]);
+  }, [id, serializedSteps, startTour]);
 
   return null;
 }

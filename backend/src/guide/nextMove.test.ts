@@ -158,3 +158,19 @@ test('an agreed local amount travels with the move', () => {
   const [m] = nextMoves(input({ deals: [deal({ acceptedAt: 1, delivered: true, agreedLocal: local } as unknown as Partial<DirectDeal>)] }));
   assert.deepEqual(m?.agreedLocal, local);
 });
+
+test('a setup step the account put off is skipped for the next one it allows', () => {
+  const setup: SetupView = {
+    steps: [
+      { key: 'telegram', done: false, href: '/profile/contact' },
+      { key: 'first_deal', done: false, href: '/market' },
+    ],
+    next: 'telegram',
+    complete: false,
+    known: true,
+  };
+  const skipTelegram = nextMoves(input({ setup, allowStep: (k) => k !== 'telegram' }));
+  assert.deepEqual(skipTelegram, [{ kind: 'setup_step', step: 'first_deal', href: '/market' }]);
+  assert.deepEqual(kinds(input({ setup, allowStep: () => false })), []);
+  assert.deepEqual(nextMoves(input({ setup }))[0], { kind: 'setup_step', step: 'telegram', href: '/profile/contact' });
+});

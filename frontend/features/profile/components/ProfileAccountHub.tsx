@@ -17,7 +17,7 @@ import { liveOffers, openRequests } from '@/features/home/tradeHub';
 import { marketViewHref } from '@/features/market/marketQuery';
 import { useRouter } from 'next/navigation';
 import { openAssistant } from '@/shared/assistant/openAssistant';
-import { AmanFace } from '@/shared/guide/AmanFace';
+import { LiveAman } from '@/shared/guide/LiveAman';
 import { guideCopy } from '@/shared/i18n/messages/guide';
 import { ProfileSignOut } from './ProfileSignOut';
 import { PhotoMenu } from './PhotoMenu';
@@ -227,7 +227,7 @@ export function ProfileAccountHub({
         <Row
           label={
             <span className="inline-flex items-center gap-2.5">
-              <AmanFace size={28} mood="idle" label={null} />
+              <LiveAman size={28} mood="idle" seed="profile" />
               {guideCopy[locale].menu.ask}
             </span>
           }

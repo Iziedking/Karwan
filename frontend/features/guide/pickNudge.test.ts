@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { anchorFor, pickNudge, stepFinished, type NextMove, type Nudge } from './pickNudge';
+import { anchorFor, helloDue, moodFor, pickNudge, stepFinished, type Moment, type NextMove, type Nudge } from './pickNudge';
 import { nextMoveCopy } from '@/shared/i18n/messages/nextMove';
 
 const deliver: NextMove = { kind: 'approve_delivery', ref: '0xd1', href: '/deals/0xd1', amountUsdc: '120' };
@@ -68,4 +68,31 @@ test('each move names the part of the page Aman sits beside (view 57)', () => {
     assert.equal(anchorFor(n(kind)), 'deal-move', kind);
   }
   assert.equal(anchorFor(n('choose_offer', 'choose_offer:')), null);
+});
+
+/// Aman alive (view 57, 15 Nov evening): a moment, once, between deal moves and setup.
+const paid: Moment = { id: 'escrow.seller.paid:0xd9:5', at: 5, mood: 'excited', line: 'paid', href: '/deals/0xd9', amountUsdc: '120' };
+
+test('a deal waiting on the person comes first, then a moment, then a setup step', () => {
+  assert.equal(pickNudge({ moves: [deliver, money], pathname: '/', closed: none, moment: paid })?.kind, 'approve_delivery');
+  const m = pickNudge({ moves: [money, offers], pathname: '/', closed: none, moment: paid });
+  assert.deepEqual(m, { key: 'moment:escrow.seller.paid:0xd9:5', kind: 'moment', href: '/deals/0xd9', moment: paid, amountUsdc: '120' });
+  assert.equal(pickNudge({ moves: [money], pathname: '/', closed: none, moment: null })?.kind, 'setup_step');
+  assert.equal(pickNudge({ moves: [money], pathname: '/', closed: new Set(['moment:escrow.seller.paid:0xd9:5']), moment: paid })?.kind, 'setup_step');
+});
+
+test('the face fits what Aman says', () => {
+  const moment = pickNudge({ moves: [], pathname: '/', closed: none, moment: { ...paid, mood: 'sad', line: 'lapsed' } })!;
+  assert.equal(moodFor(moment), 'sad');
+  assert.equal(moodFor(pickNudge({ moves: [deliver], pathname: '/', closed: none })!), 'waiting');
+  assert.equal(moodFor(pickNudge({ moves: [money], pathname: '/', closed: none })!), 'talking');
+  assert.equal(moodFor(pickNudge({ moves: [offers], pathname: '/', closed: none })!), 'talking');
+});
+
+test('a hello once a day, on Home only, never on a money screen', () => {
+  assert.equal(helloDue(undefined, '2026-11-15', '/app'), true);
+  assert.equal(helloDue('2026-11-14', '2026-11-15', '/app'), true);
+  assert.equal(helloDue('2026-11-15', '2026-11-15', '/app'), false);
+  assert.equal(helloDue(undefined, '2026-11-15', '/market'), false);
+  assert.equal(helloDue(undefined, '2026-11-15', '/send'), false);
 });

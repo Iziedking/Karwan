@@ -12,9 +12,13 @@ import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { DISPLAY_CURRENCIES } from '../rates/usdcRates.js';
 import { COME_TO_YOU_MAX_KM, validMeet } from '../find/settings.js';
+import { SETUP_KEYS } from '../guide/setupSteps.js';
 
 const localeSchema = z.enum(['en', 'ar', 'fr', 'hi', 'sw']);
 const themeSchema = z.enum(['light', 'dark', 'system']);
+const setupKeySchema = z.enum(SETUP_KEYS);
+const daySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const snoozeSchema = z.object({ until: z.number().int().nonnegative(), count: z.number().int().min(1).max(1000) });
 
 export const settingsSchema = z.object({
   // Deprecated: the profile keyed is the signed session, not this field. Kept
@@ -45,6 +49,13 @@ export const settingsSchema = z.object({
     reachable: z.boolean().optional(),
     /// How the guide shows (view 57).
     guide: z.enum(['on', 'face', 'off']).optional(),
+    /// What Aman remembers (view 57, 15 Nov evening).
+    guideSnooze: z.record(setupKeySchema, snoozeSchema).optional(),
+    guideMomentAt: z.number().int().nonnegative().optional(),
+    guideHelloOn: daySchema.optional(),
+    guideAskedOn: daySchema.optional(),
+    guideAskedStep: setupKeySchema.optional(),
+    guideTourOffer: z.literal('off').optional(),
   }),
 });
 

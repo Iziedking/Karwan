@@ -489,6 +489,10 @@ export const NAVIGATE_DESTINATIONS = [
   'settings',
   'feedback',
   'find',
+  // Opens the page with its tour running (view 57, 15 Nov evening).
+  'tour_home',
+  'tour_market',
+  'tour_money',
 ] as const;
 export type NavigateDestination = (typeof NAVIGATE_DESTINATIONS)[number];
 
@@ -517,6 +521,9 @@ function safeAddress(v?: string): string | null {
 
 const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   home: { label: 'Go to home', build: () => '/app' },
+  tour_home: { label: 'Show me around Home', build: () => '/app?tour=1' },
+  tour_market: { label: 'Show me around the market', build: () => '/market?tour=1' },
+  tour_money: { label: 'Show me around Money', build: () => '/account?tour=1' },
   wallet: { label: 'Open your wallet', build: () => '/account' },
   // Email and passkey accounts get watched addresses on other chains here.
   deposit_address: { label: 'Show my deposit addresses', build: () => '/bridge?direction=in&rail=direct' },

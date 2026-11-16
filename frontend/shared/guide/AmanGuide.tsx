@@ -14,21 +14,26 @@ import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotio
 import { isAssistantRoute, isPublicEditorialRoute } from '@/shared/utils/routes';
 import { dur, ease } from '@/shared/motion/tokens';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
-import { anchorFor, pickNudge, stepFinished, type Nudge, type SetupKey } from '@/features/guide/pickNudge';
+import { anchorFor, helloDue, moodFor, pickNudge, stepFinished, type Nudge, type SetupKey } from '@/features/guide/pickNudge';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useGuide } from './GuideProvider';
+import { useNewcomer } from './useNewcomer';
+import { tourOffer } from './tourOffer';
 import { coversControl } from '@/features/guide/coversControl';
 import { FACE, placeAman, type Placement, type Rect } from '@/features/guide/placeAman';
-import { ENTER_S, FAST_SCROLL, PLEASED_MS, blinkDelay, enterFrom, isMoneyFlow, mayMove, maySpeak } from '@/features/guide/amanMotion';
+import { ENTER_S, FAST_SCROLL, PLEASED_MS, enterFrom, isMoneyFlow, mayMove, maySpeak } from '@/features/guide/amanMotion';
 import { afterNotNow, afterQuietHere, emptyVisit, hiddenNow, isQuiet, readVisit, writeVisit, type Visit } from '@/features/guide/guideChoices';
 import { useGuideSetting } from '@/features/guide/useGuideSetting';
 import { openAssistant } from '@/shared/assistant/openAssistant';
 import { useAssistantShortcut } from '@/shared/assistant/useAssistantShortcut';
 import type { AmanMood } from '@/features/guide/amanDots';
 import { AmanFace } from './AmanFace';
+import { useAmanLife } from './useAmanLife';
 import { AmanMenu } from './AmanMenu';
 
 const SHOW_AFTER_MS = 1200;
+const HELLO_MS = 2400;
 const HOLD_MS = 500;
-const BLINK_MS = 140;
 const MOVE_S = 0.26;
 
 const quietRoute = (p: string) =>
@@ -72,7 +77,11 @@ export function AmanGuide() {
   const moveCopy = nextMoveCopy[locale];
   const money = useMoneyText();
   const reduce = useHydratedReducedMotion();
-  const { guide, loaded, set: setGuide } = useGuideSetting();
+  const { guide, loaded, set: setGuide, settings, save: saveSettings } = useGuideSetting();
+  const { profile } = useUserProfile();
+  const tours = useGuide();
+  const who = useNewcomer();
+  const [offerDone, setOfferDone] = useState(false);
 
   const signedIn = !auth.isLoading && auth.isAuthenticated;
   const quiet = quietRoute(pathname);
@@ -88,10 +97,12 @@ export function AmanGuide() {
   const [lineCovering, setLineCovering] = useState(false);
   const [faceCovering, setFaceCovering] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [blink, setBlink] = useState(false);
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const [rtl, setRtl] = useState(false);
   const [pleased, setPleased] = useState(false);
+  const [hello, setHello] = useState(false);
+  const [closedMoments, setClosedMoments] = useState<ReadonlySet<string>>(() => new Set());
+  const marked = useRef(new Set<string>());
   const spokenStep = useRef<SetupKey | null>(null);
   const lineRef = useRef<HTMLDivElement | null>(null);
   const faceRef = useRef<HTMLButtonElement | null>(null);
@@ -108,6 +119,14 @@ export function AmanGuide() {
     refetchOnWindowFocus: true,
   });
 
+  // The one moment to react to (view 57, 15 Nov evening), read with the moves.
+  const { data: momentData, refetch: refetchMoment } = useQuery({
+    queryKey: ['guide-moment'],
+    queryFn: () => api.guideMoment(),
+    enabled: active,
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
     try { setVisit(readVisit(sessionStorage)); } catch { /* no storage */ }
     setRtl(document.documentElement.dir === 'rtl');
@@ -115,8 +134,8 @@ export function AmanGuide() {
 
   // A new page reads the moves again, so a step done on the last page is seen.
   useEffect(() => {
-    if (active) void refetch();
-  }, [pathname, active, refetch]);
+    if (active) { void refetch(); void refetchMoment(); }
+  }, [pathname, active, refetch, refetchMoment]);
 
   useEffect(() => {
     setReady(false);
@@ -161,29 +180,21 @@ export function AmanGuide() {
     };
   }, [active]);
 
-  // A blink every 4 to 7 seconds, the same rhythm for the same page visit.
-  useEffect(() => {
-    if (!active || reduce) return;
-    const seed = [...pathname].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7);
-    let n = 0;
-    let t = 0;
-    const next = () => {
-      t = window.setTimeout(() => {
-        setBlink(true);
-        t = window.setTimeout(() => { setBlink(false); n += 1; next(); }, BLINK_MS);
-      }, blinkDelay(seed, n));
-    };
-    next();
-    return () => window.clearTimeout(t);
-  }, [active, reduce, pathname]);
+  // Blink and breath come from the one clock every face shares (view 57, 15 Nov evening).
+  const { blink } = useAmanLife(faceRef, { look: null, seed: pathname });
 
   const nudge = useMemo<Nudge | null>(
-    () => (data && Array.isArray(data.moves) ? pickNudge({ moves: data.moves, pathname, closed: new Set() }) : null),
-    [data, pathname],
+    () => (data && Array.isArray(data.moves) ? pickNudge({ moves: data.moves, pathname, closed: closedMoments, moment: momentData?.moment ?? null }) : null),
+    [data, pathname, closedMoments, momentData],
   );
 
   const moneyFlow = isMoneyFlow(pathname);
+  const pageTour = tours.currentTour?.pathname === pathname ? tours.currentTour : null;
+  const offerFits = tourOffer({ newcomer: who === 'new', offerOff: settings?.guideTourOffer === 'off', pathname, tourSeen: !!pageTour && tours.isSeen(pageTour.id), hasTour: !!pageTour });
+  const urgent = !!nudge && (nudge.kind === 'moment' || moodFor(nudge) === 'waiting');
+  const offering = active && ready && offerFits && !offerDone && !urgent && !tours.hasActive && !typing && !dialog && !moneyFlow && !isQuiet(visit, pathname);
   const speaking =
+    !offering &&
     active &&
     ready &&
     nudge !== null &&
@@ -197,7 +208,23 @@ export function AmanGuide() {
     if (!speaking || !nudge) return;
     setSpokenKey(nudge.key);
     spokenStep.current = nudge.kind === 'setup_step' ? nudge.step ?? null : null;
+    // Said once: a moment is marked shown for every device, and a setup step counts as today's ask.
+    if (marked.current.has(nudge.key)) return;
+    marked.current.add(nudge.key);
+    if (nudge.kind === 'moment' && nudge.moment) void api.guideMomentSeen(nudge.moment.id).catch(() => undefined);
+    if (nudge.kind === 'setup_step' && nudge.step) void api.guideAsked(nudge.step).catch(() => undefined);
   }, [speaking, nudge]);
+
+  // The day's hello on Home, when there is nothing else to say (view 57, 15 Nov evening).
+  const today = useMemo(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }, []);
+  useEffect(() => {
+    if (!active || !ready || nudge || offerFits || !settings || reduce === undefined) return;
+    if (!helloDue(settings.guideHelloOn, today, pathname)) return;
+    setHello(true);
+    void saveSettings({ guideHelloOn: today });
+    const t = window.setTimeout(() => setHello(false), HELLO_MS);
+    return () => window.clearTimeout(t);
+  }, [active, ready, nudge, offerFits, settings, today, pathname, saveSettings, reduce]);
 
   // The step Aman named is done: pleased for a moment, then gone (view 57, 15 Nov).
   useEffect(() => {
@@ -209,7 +236,8 @@ export function AmanGuide() {
     return () => window.clearTimeout(t);
   }, [active, data, moneyFlow]);
 
-  const present = speaking || pleased || menu;
+  const helloing = hello && !speaking && !offering;
+  const present = speaking || pleased || menu || helloing || offering;
 
   // Where Aman sits, and whether it or its line would cover a button there.
   useLayoutEffect(() => {
@@ -219,7 +247,7 @@ export function AmanGuide() {
       frame = 0;
       const anchor = anchorName ? rectOf(document.querySelector(`[data-guide-anchor="${CSS.escape(anchorName)}"]`)) : null;
       const line = lineRef.current;
-      const lineSize = speaking && line ? { width: Math.max(line.scrollWidth, 280), height: line.offsetHeight } : speaking ? { width: 300, height: 96 } : null;
+      const lineSize = (speaking || helloing || offering) && line ? { width: Math.max(line.scrollWidth, 280), height: line.offsetHeight } : speaking || offering ? { width: 300, height: 96 } : helloing ? { width: 240, height: 56 } : null;
       const next = placeAman({ viewport: { width: window.innerWidth, height: window.innerHeight }, anchor, bottomBar: bottomBarHeight(), rtl, lineSize });
       // Held still while typing, scrolling fast or reading a dialog; placed again after.
       setPlace((prev) => (prev && hold && Boolean(prev.line) === Boolean(next.line) ? prev : next));
@@ -240,7 +268,7 @@ export function AmanGuide() {
       window.removeEventListener('resize', later);
       observer.disconnect();
     };
-  }, [active, speaking, anchorName, rtl, hold, pathname]);
+  }, [active, speaking, helloing, offering, anchorName, rtl, hold, pathname]);
 
   const remember = useCallback((next: Visit) => {
     setVisit(next);
@@ -254,6 +282,7 @@ export function AmanGuide() {
 
   const lineFor = (n: Nudge): string => {
     const amount = n.amountUsdc ? money.price(n.amountUsdc, n.agreedLocal ?? null) : '';
+    if (n.kind === 'moment') return n.moment ? copy.moments[n.moment.line].line.replace('{amount}', amount) : '';
     if (n.kind === 'setup_step') return n.step ? moveCopy.setup[n.step].line : '';
     let template = moveCopy.moves[n.kind].line;
     if (n.kind === 'deliver_soon' && n.days === 1) template = moveCopy.deliverSoonOne;
@@ -272,12 +301,25 @@ export function AmanGuide() {
         ? gazeAt(centre, pointer)
         : undefined;
   const actionFor = (n: Nudge): string =>
-    n.kind === 'setup_step'
+    n.kind === 'moment'
+      ? n.moment ? copy.moments[n.moment.line].action : ''
+      : n.kind === 'setup_step'
       ? n.step === 'first_deal' && n.href.startsWith('/request')
         ? moveCopy.firstDealOwnAction
         : n.step ? moveCopy.setup[n.step].action : ''
       : moveCopy.moves[n.kind].action;
-  const mood: AmanMood = pleased && !speaking ? 'pleased' : speaking ? 'talking' : 'waiting';
+  const mood: AmanMood = pleased && !speaking ? 'pleased' : speaking && nudge ? moodFor(nudge) : helloing || offering ? 'excited' : 'waiting';
+  const showTour = () => { if (pageTour) { setOfferDone(true); tours.startTour(pageTour.id, pageTour.steps, { force: true }); } };
+  // Not now on the offer turns it off on every page and every device.
+  const declineTour = () => { setOfferDone(true); void saveSettings({ guideTourOffer: 'off' }); };
+  const name = profile?.handle ? `@${profile.handle}` : (profile?.displayName ?? '').trim().split(/\s+/)[0] ?? '';
+  const helloLine = name ? copy.hello.replace('{name}', name) : copy.hello.replace(/,?\s*\{name\}/, '');
+  // Not now: a moment stays down for the visit; a setup step is held on the account for days.
+  const notNow = (n: Nudge) => {
+    remember(afterNotNow(visit, pathname));
+    if (n.kind === 'moment') setClosedMoments((prev) => new Set(prev).add(n.key));
+    if (n.kind === 'setup_step' && n.step) void api.guideSnooze(n.step).catch(() => undefined);
+  };
   const transition = { duration: reduce || !moving ? 0 : MOVE_S, ease: ease.out };
 
   const startHold = () => {
@@ -310,19 +352,55 @@ export function AmanGuide() {
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Link
                 href={nudge.href}
-                onClick={() => remember(afterNotNow(visit, pathname))}
+                onClick={() => { remember(afterNotNow(visit, pathname)); if (nudge.kind === 'moment') setClosedMoments((prev) => new Set(prev).add(nudge.key)); }}
                 className="inline-flex min-h-10 items-center rounded-full bg-[var(--action)] px-4 text-[15px] font-bold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--soft-green)]"
               >
                 {actionFor(nudge)}
               </Link>
               <button
                 type="button"
-                onClick={() => remember(afterNotNow(visit, pathname))}
+                onClick={() => notNow(nudge)}
                 className="inline-flex min-h-10 items-center rounded-full px-3 text-[15px] font-semibold opacity-80 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
               >
                 {copy.notNow}
               </button>
             </div>
+          </m.div>
+        ) : offering && place.line ? (
+          <m.div
+            key="tour-offer"
+            ref={lineRef}
+            role="complementary"
+            aria-label={copy.label}
+            data-aman-line="tour-offer"
+            initial={{ opacity: 0, x: from.x }}
+            animate={{ opacity: 1, x: 0, left: place.line.x, top: place.line.y }}
+            exit={{ opacity: 0, x: from.x }}
+            transition={{ opacity: { duration: reduce ? dur.micro : ENTER_S, ease: ease.out }, x: { duration: ENTER_S, ease: ease.out } }}
+            style={{ maxWidth: place.line.maxWidth }}
+            className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)]"
+          >
+            <p className="guide-voice text-[13px] font-bold leading-none opacity-70">{copy.label}</p>
+            <p role="status" className="guide-voice mt-1.5 text-[16px] font-semibold leading-[1.3]">{copy.tour.offer}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button type="button" onClick={showTour} className="inline-flex min-h-10 items-center rounded-full bg-[var(--action)] px-4 text-[15px] font-bold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--soft-green)]">{copy.tour.showMe}</button>
+              <button type="button" onClick={declineTour} className="inline-flex min-h-10 items-center rounded-full px-3 text-[15px] font-semibold opacity-80 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">{copy.notNow}</button>
+            </div>
+          </m.div>
+        ) : helloing && place.line ? (
+          <m.div
+            key="hello"
+            ref={lineRef}
+            role="status"
+            data-aman-line="hello"
+            initial={{ opacity: 0, x: from.x }}
+            animate={{ opacity: 1, x: 0, left: place.line.x, top: place.line.y }}
+            exit={{ opacity: 0, x: from.x }}
+            transition={{ opacity: { duration: reduce ? dur.micro : ENTER_S, ease: ease.out }, x: { duration: ENTER_S, ease: ease.out } }}
+            style={{ maxWidth: place.line.maxWidth }}
+            className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 py-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)]"
+          >
+            <p className="guide-voice text-[16px] font-semibold leading-[1.3]">{helloLine}</p>
           </m.div>
         ) : null}
       </AnimatePresence>
@@ -370,6 +448,7 @@ export function AmanGuide() {
             onAsk={open}
             onQuiet={() => remember(afterQuietHere(visit, pathname))}
             onHide={() => void setGuide('face')}
+            onTour={pageTour ? () => { setMenu(false); showTour(); } : undefined}
             onClose={() => { setMenu(false); faceRef.current?.focus(); }}
           />
         ) : null}

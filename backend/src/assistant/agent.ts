@@ -37,6 +37,7 @@ import { CARRIERS } from '../deals/carriers.js';
 import { extractUrls } from '../security/extractUrls.js';
 import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { dealPendingLines, proposalPendingLines } from './pendingLines.js';
+import { readMoment } from '../guide/readMoment.js';
 import { readNextMoves } from '../guide/readNextMoves.js';
 import { arcChain, publicClient } from '../chain/client.js';
 import { config } from '../config.js';
@@ -978,7 +979,12 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
           // The same first move the web nudge shows, so every channel says one thing.
           const [nextMove] = await readNextMoves(address, method, now).catch(() => []);
+          // The moment Aman reacts to on the website (view 57, 15 Nov evening): the same one, first.
+          const moment = await getProfile(address)
+            .then((p) => readMoment(address, p?.settings?.guideMomentAt ?? 0, now))
+            .catch(() => null);
           return {
+            ...(moment ? { moment } : {}),
             ...(nextMove ? { nextMove } : {}),
             actionNeeded: actionNeeded.slice(0, 20),
             waitingOnOthers: waitingOnOthers.slice(0, 20),
@@ -987,7 +993,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             note:
               actionNeeded.length + waitingOnOthers.length + inFlight.length === 0
                 ? 'No attention items found in the checked deal, proposal, bridge, financing and yield records. This does not cover business setup, support tickets or every platform feature.'
-                : 'Lead with nextMove when present (it is what the website nudge shows: kind, href, amount), then actionNeeded; mention the rest only if relevant. Each item names the screen to act on.',
+                : 'Lead with moment when present, once, in plain words (line: paid, released, tier, lapsed, late or pocketPaid; pocketPaid means part of their savings pocket went to the buyer after a ruling), then nextMove (what the website nudge shows: kind, href, amount), then actionNeeded; mention the rest only if relevant. Each item names the screen to act on.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant whats_pending failed');

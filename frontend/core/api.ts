@@ -413,6 +413,10 @@ export interface UserSettings {
   reachable?: boolean;
   /// How Aman, the guide, shows (view 57). Absent means beside the page.
   guide?: 'on' | 'face' | 'off';
+  /// What Aman remembers on the account (view 57, 15 Nov evening).
+  guideHelloOn?: string;
+  guideTourOffer?: 'off';
+  guideMomentAt?: number;
 }
 
 /// How a seller meets people, for in-person work (view 72).
@@ -6275,6 +6279,14 @@ export const api = {
   /// The signed-in person's next moves (view 57), most urgent first.
   guideNext: () => json<{ moves: import('@/features/guide/pickNudge').NextMove[] }>('/api/guide/next'),
   guideSetup: () => json<import('@/features/guide/pickNudge').SetupView>('/api/guide/setup'),
+  /// The one moment to react to now, or null (view 57, 15 Nov evening).
+  guideMoment: () => json<{ moment: import('@/features/guide/pickNudge').Moment | null }>('/api/guide/moment'),
+  /// Marks a moment shown, so no other device shows it again.
+  guideMomentSeen: (id: string) => json<{ seenAt: number }>('/api/guide/moment/seen', { method: 'POST', body: JSON.stringify({ id }) }),
+  /// Not now on a setup step: held 3 days, then 14, on the account.
+  guideSnooze: (step: string) => json<{ snooze: { until: number; count: number } | null }>('/api/guide/snooze', { method: 'POST', body: JSON.stringify({ step }) }),
+  /// A setup step was asked today: no other is asked until tomorrow.
+  guideAsked: (step: string) => json<{ askedOn: string; step: string }>('/api/guide/asked', { method: 'POST', body: JSON.stringify({ step }) }),
   telegramStatus: (address: string) =>
     json<TelegramStatus>(`/api/telegram/status?address=${address}`),
   telegramLinkStart: (address: string) =>

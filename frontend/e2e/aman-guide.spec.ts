@@ -19,7 +19,10 @@ const back = (page: Page) => page.getByRole('button', { name: 'Go back', exact: 
 
 /// `moves` is what /api/guide/next answers; a function answers per call.
 async function serveHome(page: Page, opts: { moves?: unknown[] | (() => unknown[]); balances?: Record<string, number>; settings?: Record<string, unknown> } = {}) {
-  await serveMoney(page, { balances: opts.balances ?? funded, settings: { setupDoneAt: 1, ...(opts.settings ?? {}) } });
+  // Today's hello is already said, so these tests see only what they set up (view 57, 15 Nov evening).
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  await serveMoney(page, { balances: opts.balances ?? funded, settings: { setupDoneAt: 1, guideHelloOn: today, ...(opts.settings ?? {}) } });
   await page.route(`${API}/api/profile**`, (route) =>
     route.fulfill({ json: { profile: { address: ME, displayName: 'Bola Ade', handle: 'bola', settings: { setupDoneAt: 1 } } } }));
   await page.route(`${API}/api/agents/status`, (route) =>

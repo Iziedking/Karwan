@@ -45,6 +45,9 @@ export interface NextMoveInput {
   /// Whether a dispute's statement window is still open (the dispute rules own this).
   statementOpen: (deal: DirectDeal) => boolean;
   now: number;
+  /// Whether a setup step may be asked now: not put off, and not a second step
+  /// on the same day (view 57, 15 Nov evening). Every step when absent.
+  allowStep?: (key: SetupKey) => boolean;
 }
 
 const ORDER: NextMoveKind[] = [
@@ -113,7 +116,8 @@ export function nextMoves(input: NextMoveInput): NextMove[] {
   }
   const setup = input.setup;
   if (setup && setup.known && setup.next) {
-    const step = setup.steps.find((s) => s.key === setup.next);
+    const allow = input.allowStep ?? (() => true);
+    const step = setup.steps.find((s) => !s.done && allow(s.key));
     if (step) moves.push({ kind: 'setup_step', step: step.key, href: step.href });
   }
   return moves.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));

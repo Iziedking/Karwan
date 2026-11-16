@@ -48,3 +48,20 @@ test('how the guide shows saves as on, face or off, and nothing else (view 57)',
   }
   assert.equal(settingsSchema.safeParse({ settings: { guide: 'loud' } }).success, false);
 });
+
+test('what Aman remembers on the account saves, and nothing outside its shape (view 57, 15 Nov evening)', () => {
+  const ok = settingsSchema.parse({ settings: {
+    guideSnooze: { telegram: { until: 1, count: 1 } },
+    guideMomentAt: 1_763_200_000_000,
+    guideHelloOn: '2026-11-15',
+    guideAskedOn: '2026-11-15',
+    guideAskedStep: 'telegram',
+    guideTourOffer: 'off',
+  } }).settings;
+  assert.equal(ok.guideTourOffer, 'off');
+  assert.equal(ok.guideSnooze?.telegram?.count, 1);
+  assert.equal(settingsSchema.safeParse({ settings: { guideSnooze: { lunch: { until: 1, count: 1 } } } }).success, false);
+  assert.equal(settingsSchema.safeParse({ settings: { guideHelloOn: '15/11/2026' } }).success, false);
+  assert.equal(settingsSchema.safeParse({ settings: { guideTourOffer: 'on' } }).success, false);
+  assert.equal(settingsSchema.safeParse({ settings: { guideAskedStep: 'lunch' } }).success, false);
+});

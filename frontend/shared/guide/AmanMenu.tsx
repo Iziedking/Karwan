@@ -14,6 +14,8 @@ interface Props {
   onAsk: () => void;
   onQuiet: () => void;
   onHide: () => void;
+  /// Opens this page's tour, when it has one (view 57, 15 Nov evening).
+  onTour?: () => void;
   onClose: () => void;
 }
 
@@ -21,7 +23,7 @@ const WIDTH = 248;
 
 /// Aman's menu (view 57, Figma board 3): press and hold the face, right-click
 /// it, or Shift+F10. Three choices, each with one plain line under it.
-export function AmanMenu({ copy, face, rtl, reduce, onAsk, onQuiet, onHide, onClose }: Props) {
+export function AmanMenu({ copy, face, rtl, reduce, onAsk, onQuiet, onHide, onTour, onClose }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export function AmanMenu({ copy, face, rtl, reduce, onAsk, onQuiet, onHide, onCl
   const inlineEnd = rtl ? face.x : vw - face.x - 56;
   const items = [
     { label: copy.menu.ask, sub: copy.menu.askSub, run: onAsk },
+    ...(onTour ? [{ label: copy.tour.showAround, sub: copy.tour.offer, run: onTour }] : []),
     { label: copy.menu.quiet, sub: copy.menu.quietSub, run: onQuiet },
     { label: copy.menu.hide, sub: copy.menu.hideSub, run: onHide },
   ];
