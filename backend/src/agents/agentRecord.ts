@@ -35,7 +35,24 @@ export interface AgentRecord {
   stopped?: { at: number; reason: StopReason };
   /// Lock steps that failed one after another; a lock that works clears it.
   lockFailures?: number;
+  /// The limits for locking money alone (view 87), set with the passkey.
+  lock?: LockRules;
 }
+
+export type LockWho = 'verified' | 'record' | 'anyone';
+/// An amount with the figure the person typed, when they typed it in their
+/// own currency (view 77).
+export interface SaidUsdc { usdc: number; said?: { currency: LocalCurrency; amount: string } }
+export interface LockRules {
+  perDeal: SaidUsdc;
+  perWeek: SaidUsdc;
+  perDay: number;
+  who: LockWho;
+  locks: Array<{ at: number; usdc: number; jobId: string }>;
+}
+export const DEFAULT_LOCKS_PER_DAY = 3;
+export const MAX_LOCKS_PER_DAY = 10;
+export const DEFAULT_LOCK_WHO: LockWho = 'record';
 
 export type StopReason = 'locks-today' | 'lock-failures' | 'not-family';
 export const LOCK_FAILURES_BEFORE_STOP = 3;

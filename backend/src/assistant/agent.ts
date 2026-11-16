@@ -2266,7 +2266,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     show_my_mandate: tool({
       description:
-        "Everything the user's agent may do, as one answer (view 52): what it sells and from what price, the most it spends when buying, whether it makes offers on its own, asks first or agrees for them, its weekly limit for paid checks, the markets it watches, their goals, when the daily brief comes and the quiet hours. Use for 'what can my agent do', 'what are my agent's rules', 'what did I tell my agent'.",
+        "Everything the user's agent may do, as one answer (view 52): what it sells and from what price, the most it spends when buying, whether it makes offers on its own, asks first or agrees for them, each thing it may do alone as its own switch (make offers, bargain, agree a price, lock money, find people, pay for checks and research, the morning brief), the limits for locking money when set, whether it stopped itself and why, its weekly limit for paid checks, the markets it watches, their goals, when the daily brief comes and the quiet hours. Use for 'what can my agent do', 'what are my agent's rules', 'what did I tell my agent'.",
       inputSchema: z.object({}),
       execute: async () => {
         const { liveMandateToolDeps } = await import('../agents/mandateLive.js');
@@ -2276,9 +2276,17 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_change_mandate: tool({
       description:
-        "Show a card that changes one part of what the user's agent may do (view 52). Nothing changes until the user confirms the card; then the agent acts on it at once (a lower selling price looks again at requests it passed on). One part per call: sell-price (shape and lowestUsdc, optional usualUsdc), alone (mode offers, ask or agree), weekly-limit (usdc, 0 to 5, for paid checks), buy-most (usdc, the most per new request), goal-add (kind buy, sell or watch, text in their words, optional untilDays), goal-remove (id from show_my_mandate), brief (on, hour 0 to 23, timeZone like Africa/Lagos), quiet (from and to hours), quiet-off, power (on true or false: turn my agent off, turn it back on; off stops offers, bargaining, finding people, watches and briefs, while running deals, money and this assistant go on). Only when the user asks for the change.",
+        "Show a card that changes one part of what the user's agent may do (view 52). Nothing changes until the user confirms the card; then the agent acts on it at once (a lower selling price looks again at requests it passed on). One part per call: sell-price (shape and lowestUsdc, optional usualUsdc), alone (mode offers, ask or agree), weekly-limit (usdc, 0 to 5, for paid checks), buy-most (usdc, the most per new request), goal-add (kind buy, sell or watch, text in their words, optional untilDays), goal-remove (id from show_my_mandate), brief (on, hour 0 to 23, timeZone like Africa/Lagos), quiet (from and to hours), quiet-off, power (on true or false: turn my agent off, turn it back on; off stops offers, bargaining, finding people, watches and briefs, while running deals, money and this assistant go on), switch (name offers, bargain, agree, lock, find, data or brief, and on true or false: one thing the agent does alone; lock needs agree on and its limits set), lock-rules (the limits for locking money alone: perDealUsdc, perWeekUsdc, perDay 1 to 10, who verified, record or anyone; add on true to turn Lock money on with them; when the user says a figure in their own currency also pass saidCurrency and the figures as said in saidPerDeal and saidPerWeek), resume (turn the agent back on after it stopped itself; Lock money stays off). Turning Lock money on or raising a limit is confirmed with the passkey on Karwan, never in a chat: say so. Only when the user asks for the change.",
       inputSchema: z.object({
-        part: z.enum(['sell-price', 'alone', 'weekly-limit', 'buy-most', 'goal-add', 'goal-remove', 'brief', 'quiet', 'quiet-off', 'power']),
+        part: z.enum(['sell-price', 'alone', 'weekly-limit', 'buy-most', 'goal-add', 'goal-remove', 'brief', 'quiet', 'quiet-off', 'power', 'switch', 'lock-rules', 'resume']),
+        name: z.enum(['offers', 'bargain', 'agree', 'lock', 'find', 'data', 'brief']).optional(),
+        perDealUsdc: z.number().optional(),
+        perWeekUsdc: z.number().optional(),
+        perDay: z.number().int().optional(),
+        who: z.enum(['verified', 'record', 'anyone']).optional(),
+        saidCurrency: z.string().max(4).optional(),
+        saidPerDeal: z.number().optional(),
+        saidPerWeek: z.number().optional(),
         shape: z.enum(['one_time', 'milestones', 'goods', 'deposit', 'hourly', 'monthly']).optional(),
         lowestUsdc: z.number().optional(),
         usualUsdc: z.number().optional(),
@@ -2298,10 +2306,19 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         try {
           if (input.part === 'power' && !agentSwitchOpen({ sellerAsked: config.SELLER_ASKED, shortlist: config.SHORTLIST_MODE })) return { error: 'Turning the agent off is not open here yet. They can set it to Ask me first, or turn the morning brief off.' };
           const { liveMandateToolDeps } = await import('../agents/mandateLive.js');
-          const r = await proposeChangeMandate(liveMandateToolDeps, address, input, Date.now());
+          const { saidCurrency, saidPerDeal, saidPerWeek, ...change } = input;
+          const said = saidCurrency && (saidPerDeal || saidPerWeek) ? { currency: saidCurrency, amounts: { ...(saidPerDeal ? { perDealUsdc: saidPerDeal } : {}), ...(saidPerWeek ? { perWeekUsdc: saidPerWeek } : {}) } } : undefined;
+          const r = await proposeChangeMandate(liveMandateToolDeps, address, said ? { ...change, said } : change, Date.now());
           if ('error' in r) return r;
           if (!hasEquivalentConfirm(actions, r.card)) actions.push(r.card);
-          return { ok: true, shown: r.card.title, whatItDoesNext: r.effect, next: 'Say the change and what it does next in one or two lines; the card asks them to confirm.' };
+          return {
+            ok: true,
+            shown: r.card.title,
+            whatItDoesNext: r.effect,
+            next: r.needsPresence
+              ? 'Say the change and what it does next in one or two lines. This one lets the agent lock more, so it is confirmed with their passkey on Karwan (Settings, then Agent); in a chat app the card cannot finish it.'
+              : 'Say the change and what it does next in one or two lines; the card asks them to confirm.',
+          };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_change_mandate failed');
           return { error: 'Could not prepare that just now. Try again shortly.' };

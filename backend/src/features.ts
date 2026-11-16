@@ -6,12 +6,14 @@ export interface LiveFeatures {
   sellerAsked: boolean;
   /// View 75: the agent can be switched off (needs the shortlist too).
   agentSwitch: boolean;
+  /// View 87: a person may let their agent lock money alone.
+  autopilotLock: boolean;
 }
 
 /// Hourly work needs both the engagements and the market requests bound to
 /// the Time escrow (work/workLive.ts, work/workRequestsLive.ts).
-export function liveFeaturesFrom(input: { work: unknown; workRequests: unknown; sellerAsked?: boolean; agentSwitch?: boolean }): LiveFeatures {
-  return { hourlyWork: input.work != null && input.workRequests != null, sellerAsked: input.sellerAsked === true, agentSwitch: input.agentSwitch === true };
+export function liveFeaturesFrom(input: { work: unknown; workRequests: unknown; sellerAsked?: boolean; agentSwitch?: boolean; autopilotLock?: boolean }): LiveFeatures {
+  return { hourlyWork: input.work != null && input.workRequests != null, sellerAsked: input.sellerAsked === true, agentSwitch: input.agentSwitch === true, autopilotLock: input.autopilotLock === true };
 }
 
 /// Guide entries the assistant must not offer while their feature is off.

@@ -78,5 +78,11 @@ export function effectOf(m: Mandate, p: MandatePatch, facts: EffectFacts, locale
       return { line: tg('effect.quietOff', locale), numbers: {} };
     case 'power':
       return { line: tg(p.on ? 'effect.powerOn' : 'effect.powerOff', locale), numbers: {} };
+    case 'switch':
+      return { line: tg(p.on ? 'effect.switchOn' : 'effect.switchOff', locale), numbers: {} };
+    case 'lock-rules':
+      return { line: tg('effect.lockRules', locale), numbers: {} };
+    case 'resume':
+      return { line: tg('effect.resume', locale), numbers: {} };
   }
 }

@@ -24,7 +24,7 @@ export async function agentIsOn(owner: string): Promise<boolean> {
 /// agent does while it is off. The assistant itself still does what it is told.
 export const AGENT_OFF_ANSWER = {
   agentOff: true,
-  next: 'Their agent is switched off, so it does not find people, watch the market or pay for research. Say so in one line and offer to turn it back on (propose_change_mandate, part power, on true). Posting a request, offering by hand, deals and money still work.',
+  next: 'Their agent is switched off, so it does not find people, watch the market or pay for research. Say so in one line and offer to turn it back on (propose_change_mandate, part power, on true; when show_my_mandate says it stopped itself, part resume). Posting a request, offering by hand, deals and money still work.',
 } as const;
 
 /// The switch is open only where a chosen seller is asked and the buyer picks

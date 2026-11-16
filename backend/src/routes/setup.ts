@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { BriefResult, ProfilePatch } from '../agents/agentBrief.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import { firstPost } from '../agents/firstPost.js';
+import { prefsWithMode } from '../agents/alone.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
 import { legacyFromWays, upgradeWays, waysSchema, wayLines, type AgentWays } from '../agents/ways.js';
 import { waysAtRate } from '../agents/waysSaid.js';
@@ -165,7 +166,7 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     if (!parsed.success) return c.json({ error: 'invalid agent mode' }, 400);
     const current = await deps.current(address);
     if (!current) return c.json({ error: 'profile not found' }, 404);
-    const profile = await deps.save(address, { agentPrefs: { ...(current.agentPrefs ?? {}), agentMode: parsed.data.agentMode } });
+    const profile = await deps.save(address, { agentPrefs: prefsWithMode(current.agentPrefs, parsed.data.agentMode) });
     if (!profile) return c.json({ error: 'profile not found' }, 404);
     return c.json({ profile });
   });

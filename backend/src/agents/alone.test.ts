@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { aloneOf, modeOf, switchesOf, type AgentMode } from './alone.js';
+import { aloneOf, modeOf, prefsWithMode, prefsWithSwitch, switchesOf, type AgentMode } from './alone.js';
 
 const profile = (agentPrefs: Record<string, unknown>) => ({ agentPrefs }) as never;
 const NONE = { offers: false, bargain: false, agree: false, lock: false, find: false, data: false, brief: false };
@@ -58,4 +58,35 @@ test('the mode read back from the switches is the mode that was saved', () => {
     assert.equal(modeOf(switchesOf(profile({ agentMode }))), agentMode);
   }
   assert.equal(modeOf({ offers: false, agree: true }), 'agree');
+});
+
+test('setting the older mode moves the switches once they are saved', () => {
+  const saved = { agentMode: 'offers' as const, alone: { offers: true, bargain: true, find: false } };
+  const after = switchesOf({ agentPrefs: prefsWithMode(saved, 'ask') });
+  assert.equal(after.offers, false);
+  assert.equal(after.bargain, false);
+  assert.equal(after.agree, false);
+  assert.equal(after.data, false);
+  assert.equal(after.find, false, 'a switch the mode never covered stays as saved');
+  assert.equal(switchesOf({ agentPrefs: prefsWithMode(saved, 'agree') }).agree, true);
+});
+
+test('setting the older mode on a profile with no saved switches writes only the mode', () => {
+  assert.deepEqual(prefsWithMode({ agentMode: 'offers', findClients: true }, 'ask'), { agentMode: 'ask', findClients: true });
+  assert.deepEqual(prefsWithMode(undefined, 'agree'), { agentMode: 'agree' });
+});
+
+test('setting one switch keeps the older mode in step and touches no other switch', () => {
+  assert.equal(prefsWithSwitch({ agentMode: 'offers' }, 'agree', true).agentMode, 'agree');
+  const off = prefsWithSwitch({ agentMode: 'offers' }, 'offers', false);
+  assert.equal(off.agentMode, 'ask');
+  const after = switchesOf({ agentPrefs: off });
+  assert.deepEqual(after, { offers: false, bargain: true, agree: false, lock: false, find: true, data: true, brief: true });
+});
+
+test('turning Agree a price off turns Lock money off', () => {
+  const on = { agentMode: 'agree' as const, alone: { agree: true, lock: true } };
+  assert.equal(switchesOf({ agentPrefs: prefsWithSwitch(on, 'agree', false) }).lock, false);
+  assert.equal(switchesOf({ agentPrefs: prefsWithSwitch(on, 'bargain', false) }).lock, true);
+  assert.equal(switchesOf({ agentPrefs: prefsWithMode(on, 'offers') }).lock, false);
 });

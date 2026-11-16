@@ -113,7 +113,7 @@ test('sayMandateLinesInFiveLanguages', () => {
     'Your agent sells work from 40 USDC (usually 60), in 3 to 5 days.',
     'Your agent sells rice from 30 USDC (usually 35).',
     'When you buy, it spends up to 150 USDC a request.',
-    'It asks you about every fitting request first.',
+    'Alone it may: find people, send the morning brief. Switched off: make offers, bargain, agree a price, lock money, pay for checks and research.',
     'It may spend up to 1 USDC a week on record checks and research.',
     'It watches 1 market for you.',
     'Your goals: a logo designer.',
@@ -152,4 +152,97 @@ test('the agent is on unless the person switched it off, and off is said first',
     assert.notEqual(first, en[0], locale);
     assert.doesNotMatch(first, /\{\w+\}|—|undefined/, locale);
   }
+});
+
+/// View 87, step 2: each switch, the lock limits and turning back on.
+
+const agreeing = (): Mandate => mandateOf({ ...profile, agentPrefs: { agentMode: 'agree' as const } }, newAgentRecord('0xA'), []);
+const RULES = { perDeal: { usdc: 30 }, perWeek: { usdc: 90 }, perDay: 3, who: 'record' as const };
+
+test('a switch changes only itself in the preview', () => {
+  const m = base();
+  for (const name of ['offers', 'bargain', 'agree', 'find', 'data', 'brief'] as const) {
+    for (const on of [true, false]) {
+      const after = previewPatch(m, { part: 'switch', name, on }, NOW);
+      const expected = { ...m.switches, [name]: on };
+      if (!expected.agree) expected.lock = false;
+      assert.deepEqual(after.switches, expected, `${name} ${on}`);
+      assert.equal(validatePatch(m, { part: 'switch', name, on }), null);
+    }
+  }
+  assert.equal(previewPatch(m, { part: 'switch', name: 'brief', on: false }, NOW).brief.on, false);
+  assert.equal(previewPatch(m, { part: 'switch', name: 'offers', on: true }, NOW).alone, 'offers');
+  assert.equal(mandatePatchSchema.safeParse({ part: 'switch', name: 'everything', on: true }).success, false);
+});
+
+test('turning Agree a price off turns Lock money off in the preview', () => {
+  const m = { ...agreeing(), lock: RULES };
+  m.switches = { ...m.switches, lock: true };
+  assert.equal(previewPatch(m, { part: 'switch', name: 'agree', on: false }, NOW).switches.lock, false);
+});
+
+test('Lock money needs Agree a price on', () => {
+  const m = { ...base(), lock: RULES };
+  assert.match(validatePatch(m, { part: 'switch', name: 'lock', on: true })!, /Agree a price first/);
+  assert.match(validatePatch(m, { part: 'lock-rules', on: true, perDealUsdc: 30, perWeekUsdc: 90 })!, /Agree a price first/);
+  assert.equal(validatePatch(m, { part: 'switch', name: 'lock', on: false }), null);
+});
+
+test('Lock money needs its limits before it is turned on', () => {
+  const m = agreeing();
+  assert.match(validatePatch(m, { part: 'switch', name: 'lock', on: true })!, /one deal and in a week first/);
+  const patch = { part: 'lock-rules' as const, on: true as const, perDealUsdc: 30, perWeekUsdc: 90 };
+  assert.equal(validatePatch(m, patch), null);
+  const after = previewPatch(m, patch, NOW);
+  assert.deepEqual(after.lock, RULES);
+  assert.equal(after.switches.lock, true);
+  assert.equal(validatePatch({ ...m, lock: RULES }, { part: 'switch', name: 'lock', on: true }), null);
+});
+
+test('lock limits outside their bounds are refused', () => {
+  const m = agreeing();
+  const refused = (p: Record<string, unknown>) => assert.ok(validatePatch(m, { part: 'lock-rules', ...p } as never), JSON.stringify(p));
+  refused({ perDealUsdc: 100, perWeekUsdc: 90 });
+  refused({ perDealUsdc: 0, perWeekUsdc: 90 });
+  refused({ perDealUsdc: 30, perWeekUsdc: 1_000_001 });
+  refused({ perDealUsdc: 30 });
+  refused({ perDealUsdc: 30, perWeekUsdc: 90, perDay: 0 });
+  refused({ perDealUsdc: 30, perWeekUsdc: 90, perDay: 11 });
+  assert.equal(mandatePatchSchema.safeParse({ part: 'lock-rules', who: 'friends' }).success, false);
+  assert.equal(validatePatch({ ...m, lock: RULES }, { part: 'lock-rules', perDay: 5 }), null, 'one figure at a time once the limits exist');
+  assert.equal(validatePatch({ ...m, lock: RULES }, { part: 'lock-rules', perDealUsdc: 91 }) === null, false);
+});
+
+test('a limit typed in the person\'s own currency is kept as typed', () => {
+  const after = previewPatch(agreeing(), { part: 'lock-rules', perDealUsdc: 31.25, perWeekUsdc: 93.75, said: { currency: 'NGN', amounts: { perDealUsdc: 50000, perWeekUsdc: 150000 } } }, NOW);
+  assert.deepEqual(after.lock!.perDeal, { usdc: 31.25, said: { currency: 'NGN', amount: '50000' } });
+  assert.deepEqual(after.lock!.perWeek, { usdc: 93.75, said: { currency: 'NGN', amount: '150000' } });
+});
+
+test('turning back on is only for an agent that stopped itself', () => {
+  assert.match(validatePatch(base(), { part: 'resume' })!, /has not stopped/);
+  const record = { ...newAgentRecord('0xA'), stopped: { at: NOW, reason: 'locks-today' as const }, lock: { ...RULES, locks: [] } };
+  const stopped = mandateOf({ ...profile, agentPrefs: { agentMode: 'agree' as const, alone: { lock: true } } }, record, []);
+  assert.deepEqual(stopped.stopped, { at: NOW, reason: 'locks-today' });
+  assert.equal(validatePatch(stopped, { part: 'resume' }), null);
+  const after = previewPatch(stopped, { part: 'resume' }, NOW);
+  assert.equal(after.stopped, null);
+  assert.equal(after.switches.lock, false);
+});
+
+test('the mandate says the switches, the lock limits and why it stopped', () => {
+  const record = { ...newAgentRecord('0xA'), lock: { perDeal: { usdc: 31.25, said: { currency: 'NGN' as const, amount: '50000' } }, perWeek: { usdc: 90 }, perDay: 3, who: 'record' as const, locks: [] } };
+  const m = mandateOf({ ...profile, agentPrefs: { agentMode: 'agree' as const, alone: { lock: true } } }, record, []);
+  const en = sayMandate(m, 'en');
+  assert.ok(en.includes('Alone it may: make offers, bargain, agree a price, lock money, find people, pay for checks and research, send the morning brief.'));
+  assert.ok(en.includes('Lock money: at most 50,000 NGN a deal and 90 USDC a week, only with people who have a record, 3 a day.'));
+  assert.equal(sayMandate({ ...m, switches: { ...m.switches, lock: false } }, 'en').some((l) => l.startsWith('Lock money:')), false);
+  for (const reason of ['locks-today', 'lock-failures', 'not-family'] as const) {
+    for (const locale of ['en', 'fr', 'ar', 'hi', 'sw'] as const) {
+      const lines = sayMandate({ ...m, stopped: { at: NOW, reason } }, locale);
+      assert.doesNotMatch(lines.join(' '), /\{\w+\}|—|undefined|NaN/, `${locale} ${reason}`);
+      if (locale !== 'en') assert.notEqual(lines[0], sayMandate({ ...m, stopped: { at: NOW, reason } }, 'en')[0], `${locale} ${reason}`);
+    }
+  }
+  assert.equal(sayMandate({ ...m, stopped: { at: NOW, reason: 'locks-today' } }, 'en')[0], 'Your agent stopped. It locked money 3 times today, the most you allow in a day.');
 });

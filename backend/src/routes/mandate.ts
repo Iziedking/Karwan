@@ -2,8 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import type { ProfilePatch } from '../agents/agentBrief.js';
-import type { AgentRecord } from '../agents/agentRecord.js';
-import { DEFAULT_BRIEF, mandateOf, mandatePatchSchema, sayMandate, validatePatch, type Mandate, type MandatePatch } from '../agents/mandate.js';
+import { resumeAgent, type AgentRecord } from '../agents/agentRecord.js';
+import { prefsWithMode, prefsWithSwitch } from '../agents/alone.js';
+import { DEFAULT_BRIEF, lockAfter, mandateOf, mandatePatchSchema, sayMandate, validatePatch, type Mandate, type MandatePatch } from '../agents/mandate.js';
+import { widens } from '../agents/widening.js';
+import { presenceAction, type PresenceAction } from '../presence/action.js';
 import type { Replan } from '../agents/replan.js';
 import { waysOf, waysSchema, type AgentWays, type SellWay } from '../agents/ways.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
@@ -29,6 +32,11 @@ export interface MandateRouteDeps {
   newId: () => string;
   /// Whether the agent switch is open on this network (view 75). Open when absent.
   powerOpen?: () => boolean;
+  /// Whether Lock money is open on this network (view 87). Closed when absent.
+  lockOpen?: () => boolean;
+  /// Asks the person to be present for a change that lets the agent lock more.
+  /// Null lets the change go ahead; otherwise the response to send.
+  requirePresence?: (c: Context, action: PresenceAction) => Promise<Response | null>;
 }
 
 const bodySchema = z.object({ patch: mandatePatchSchema, cardId: z.string().trim().min(8).max(120) });
@@ -66,7 +74,13 @@ function profilePatchFor(current: UserProfile, p: MandatePatch): ProfilePatch | 
     case 'sell-price':
       return patchForWays(withSellPrice(ways, p), current);
     case 'alone':
-      return { agentPrefs: { ...(current.agentPrefs ?? {}), agentMode: p.mode } };
+      return { agentPrefs: prefsWithMode(current.agentPrefs, p.mode) };
+    case 'switch':
+      return p.name === 'brief' ? null : { agentPrefs: prefsWithSwitch(current.agentPrefs, p.name, p.on) };
+    case 'lock-rules':
+      return p.on ? { agentPrefs: prefsWithSwitch(current.agentPrefs, 'lock', true) } : null;
+    case 'resume':
+      return { agentPrefs: prefsWithSwitch(current.agentPrefs, 'lock', false) };
     case 'power':
       return { agentPrefs: { ...(current.agentPrefs ?? {}), agentOn: p.on } };
     case 'buy-most':
@@ -81,8 +95,16 @@ function profilePatchFor(current: UserProfile, p: MandatePatch): ProfilePatch | 
   }
 }
 
-function recordChangeFor(p: MandatePatch, now: number, newId: () => string): ((r: AgentRecord) => AgentRecord) | null {
+function recordChangeFor(p: MandatePatch, before: Mandate, now: number, newId: () => string): ((r: AgentRecord) => AgentRecord) | null {
   switch (p.part) {
+    case 'switch':
+      return p.name === 'brief' ? (r) => ({ ...r, brief: { ...DEFAULT_BRIEF, ...(r.brief ?? {}), on: p.on } }) : null;
+    case 'lock-rules': {
+      const lock = lockAfter(before, p);
+      return lock ? (r) => ({ ...r, lock: { ...lock, locks: r.lock?.locks ?? [] } }) : null;
+    }
+    case 'resume':
+      return resumeAgent;
     case 'weekly-limit':
       return (r) => ({ ...r, weeklyBudgetUsdc: round6(p.usdc), lastBudgetNoticeAt: undefined });
     case 'goal-add':
@@ -105,6 +127,23 @@ function recordChangeFor(p: MandatePatch, now: number, newId: () => string): ((r
     default:
       return null;
   }
+}
+
+/// What the person confirms: the lock limits as they will stand after the
+/// change. A proof for one set of figures confirms no other.
+export function agentRuleAction(owner: string, before: Mandate, patch: MandatePatch): PresenceAction {
+  const lock = patch.part === 'lock-rules' ? lockAfter(before, patch) : before.lock;
+  const micros = (usdc: number) => String(Math.round(usdc * 1e6));
+  return presenceAction({
+    kind: 'agent_rule',
+    wallet: owner,
+    amountMicros: null,
+    recipient: null,
+    detail: {
+      lock: 'on',
+      ...(lock ? { perDeal: micros(lock.perDeal.usdc), perWeek: micros(lock.perWeek.usdc), perDay: String(lock.perDay), who: lock.who } : {}),
+    },
+  });
 }
 
 export function createMandateRoutes(deps: MandateRouteDeps): Hono {
@@ -131,7 +170,7 @@ export function createMandateRoutes(deps: MandateRouteDeps): Hono {
     if (!owner) return c.json({ error: 'not authenticated' }, 401);
     const r = await read(owner, deps.now());
     if (!r) return c.json({ error: 'profile not found' }, 404);
-    return c.json({ mandate: r.mandate, lines: sayMandate(r.mandate, r.locale) });
+    return c.json({ mandate: r.mandate, lines: sayMandate(r.mandate, r.locale), lockOpen: deps.lockOpen?.() === true });
   });
 
   app.post('/', async (c) => {
@@ -144,17 +183,25 @@ export function createMandateRoutes(deps: MandateRouteDeps): Hono {
     if (!before) return c.json({ error: 'profile not found' }, 404);
     const { patch, cardId } = parsed.data;
     if (patch.part === 'power' && deps.powerOpen && !deps.powerOpen()) return c.json({ error: 'Turning your agent off is not open here yet.', code: 'POWER_CLOSED' }, 400);
+    const locks = (patch.part === 'switch' && patch.name === 'lock' && patch.on) || patch.part === 'lock-rules';
+    if (locks && deps.lockOpen?.() !== true) return c.json({ error: 'Lock money is not open here yet.', code: 'LOCK_CLOSED' }, 400);
     const refusal = validatePatch(before.mandate, patch, before.locale);
     if (refusal) return c.json({ error: refusal }, 400);
     const profileChange = profilePatchFor(before.profile, patch);
     if (profileChange?.agentWays && !waysSchema.safeParse(profileChange.agentWays).success) {
       return c.json({ error: 'That price does not fit your selling way.' }, 400);
     }
+    if (widens(before.mandate, patch)) {
+      // Asked before the card is spent, so the same card confirms once the person is present.
+      if (!deps.requirePresence) return c.json({ error: 'This change is confirmed on Karwan.', code: 'CONFIRM_UNAVAILABLE' }, 400);
+      const stop = await deps.requirePresence(c, agentRuleAction(owner, before.mandate, patch));
+      if (stop) return stop;
+    }
     if (!cardFresh(owner, cardId, now)) return c.json({ error: 'That is already done.', code: 'reused' }, 409);
 
     const profile = profileChange ? await deps.save(owner, profileChange) : before.profile;
     if (!profile) return c.json({ error: 'profile not found' }, 404);
-    const change = recordChangeFor(patch, now, deps.newId);
+    const change = recordChangeFor(patch, before.mandate, now, deps.newId);
     const record = change ? await deps.updateRecord(owner, change) : before.record;
 
     const mandate = mandateOf(profile, record, before.watches);
@@ -179,4 +226,6 @@ export const mandateRoutes = createMandateRoutes({
   now: Date.now,
   newId: () => `g_${randomUUID().slice(0, 12)}`,
   powerOpen: () => agentSwitchOpen({ sellerAsked: config.SELLER_ASKED, shortlist: config.SHORTLIST_MODE }),
+  lockOpen: () => config.AUTOPILOT_LOCK_ENABLED,
+  requirePresence: async (c, action) => (await import('../presence/live.js')).requirePresence(c, action),
 });

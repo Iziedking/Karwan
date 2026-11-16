@@ -4,7 +4,8 @@ import type { ProfilePatch } from '../agents/agentBrief.js';
 import { newAgentRecord, type AgentRecord } from '../agents/agentRecord.js';
 import type { Mandate, MandatePatch } from '../agents/mandate.js';
 import type { UserProfile } from '../db/profiles.js';
-import { createMandateRoutes, type MandateRouteDeps } from './mandate.js';
+import { actionDigest, type PresenceAction } from '../presence/action.js';
+import { agentRuleAction, createMandateRoutes, type MandateRouteDeps } from './mandate.js';
 
 ///   npx tsx --test src/routes/mandate.test.ts
 
@@ -165,4 +166,146 @@ test('the agent switch is saved on the profile, and refused where it is not open
   assert.equal(closed.saved.length, 0);
   // Every other part still works there.
   assert.equal((await closed.post({ patch: { part: 'quiet-off' }, cardId: fresh() })).status, 200);
+});
+
+/// View 87, step 2: switches, lock limits, presence for a widening, turning back on.
+
+const NEEDS = { code: 'CONFIRM_REQUIRED' };
+function lockHarness(over: Partial<MandateRouteDeps> = {}) {
+  const asked: PresenceAction[] = [];
+  let present = false;
+  const h = harness({
+    lockOpen: () => true,
+    requirePresence: async (c, action) => {
+      asked.push(action);
+      return present ? null : c.json(NEEDS, 428);
+    },
+    ...over,
+  });
+  return { ...h, asked, arrive: () => { present = true; } };
+}
+const LIMITS = { part: 'lock-rules', on: true, perDealUsdc: 31.25, perWeekUsdc: 93.75, said: { currency: 'NGN', amounts: { perDealUsdc: 50000, perWeekUsdc: 150000 } } };
+
+test('a switch is saved on the profile and keeps the older mode in step', async () => {
+  const h = lockHarness();
+  assert.equal((await h.post({ patch: { part: 'switch', name: 'offers', on: true }, cardId: fresh() })).status, 200);
+  assert.equal(h.profile().agentPrefs?.alone?.offers, true);
+  assert.equal(h.profile().agentPrefs?.agentMode, 'offers');
+  assert.equal(h.profile().agentPrefs?.alone?.bargain, false, 'a switch nobody touched stays as it read');
+  assert.equal((await h.post({ patch: { part: 'switch', name: 'offers', on: false }, cardId: fresh() })).status, 200);
+  assert.equal(h.profile().agentPrefs?.agentMode, 'ask');
+  assert.equal(h.asked.length, 0);
+});
+
+test('the brief switch is saved on the agent record', async () => {
+  const h = lockHarness();
+  const saves = h.saved.length;
+  assert.equal((await h.post({ patch: { part: 'switch', name: 'brief', on: false }, cardId: fresh() })).status, 200);
+  assert.equal(h.record().brief?.on, false);
+  assert.equal(h.saved.length, saves);
+});
+
+test('Lock money turned on without the passkey stays off, and the same card confirms it', async () => {
+  const h = lockHarness();
+  await h.post({ patch: { part: 'switch', name: 'agree', on: true }, cardId: fresh() });
+  const id = fresh();
+  const first = await h.post({ patch: LIMITS, cardId: id });
+  assert.equal(first.status, 428);
+  assert.deepEqual(await first.json(), NEEDS);
+  assert.equal(h.record().lock, undefined);
+  assert.notEqual(h.profile().agentPrefs?.alone?.lock, true);
+  assert.equal(h.asked[0]!.kind, 'agent_rule');
+  assert.deepEqual(h.asked[0]!.detail, { lock: 'on', perDeal: '31250000', perWeek: '93750000', perDay: '3', who: 'record' });
+
+  h.arrive();
+  const second = await h.post({ patch: LIMITS, cardId: id });
+  assert.equal(second.status, 200);
+  assert.deepEqual(h.record().lock, {
+    perDeal: { usdc: 31.25, said: { currency: 'NGN', amount: '50000' } },
+    perWeek: { usdc: 93.75, said: { currency: 'NGN', amount: '150000' } },
+    perDay: 3,
+    who: 'record',
+    locks: [],
+  });
+  assert.equal(h.profile().agentPrefs?.alone?.lock, true);
+  const body = (await second.json()) as { mandate: Mandate };
+  assert.equal(body.mandate.switches.lock, true);
+});
+
+test('lowering a limit or turning Lock money off never asks for the passkey', async () => {
+  const h = lockHarness();
+  h.arrive();
+  await h.post({ patch: { part: 'switch', name: 'agree', on: true }, cardId: fresh() });
+  await h.post({ patch: LIMITS, cardId: fresh() });
+  const asked = h.asked.length;
+  assert.equal((await h.post({ patch: { part: 'lock-rules', perDealUsdc: 10 }, cardId: fresh() })).status, 200);
+  assert.deepEqual(h.record().lock!.perDeal, { usdc: 10 });
+  assert.equal((await h.post({ patch: { part: 'lock-rules', perDay: 1, who: 'verified' }, cardId: fresh() })).status, 200);
+  assert.equal((await h.post({ patch: { part: 'switch', name: 'lock', on: false }, cardId: fresh() })).status, 200);
+  assert.equal(h.asked.length, asked);
+  assert.equal(h.profile().agentPrefs?.alone?.lock, false);
+  // Raising one again asks.
+  assert.equal((await h.post({ patch: { part: 'lock-rules', perDay: 2 }, cardId: fresh() })).status, 200);
+  assert.equal(h.asked.length, asked + 1);
+});
+
+test('a network with Lock money closed refuses it before anything else', async () => {
+  for (const lockOpen of [() => false, undefined]) {
+    const h = lockHarness({ lockOpen });
+    await h.post({ patch: { part: 'switch', name: 'agree', on: true }, cardId: fresh() });
+    for (const patch of [LIMITS, { part: 'switch', name: 'lock', on: true }, { part: 'lock-rules', perDay: 2 }]) {
+      const res = await h.post({ patch, cardId: fresh() });
+      assert.equal(res.status, 400);
+      assert.equal(((await res.json()) as { code: string }).code, 'LOCK_CLOSED');
+    }
+    assert.equal(h.asked.length, 0);
+    assert.equal(h.record().lock, undefined);
+    assert.equal((await h.post({ patch: { part: 'switch', name: 'lock', on: false }, cardId: fresh() })).status, 200, 'turning it off is always allowed');
+    const read = (await (await h.app.request('/')).json()) as { lockOpen: boolean };
+    assert.equal(read.lockOpen, false);
+  }
+});
+
+test('with no way to confirm, a widening is refused and nothing is saved', async () => {
+  const h = harness({ lockOpen: () => true });
+  await h.post({ patch: { part: 'switch', name: 'agree', on: true }, cardId: fresh() });
+  const res = await h.post({ patch: LIMITS, cardId: fresh() });
+  assert.equal(res.status, 400);
+  assert.equal(h.record().lock, undefined);
+});
+
+test('turning back on clears the stop and leaves Lock money off', async () => {
+  const h = lockHarness();
+  h.arrive();
+  await h.post({ patch: { part: 'switch', name: 'agree', on: true }, cardId: fresh() });
+  await h.post({ patch: LIMITS, cardId: fresh() });
+  assert.equal((await h.post({ patch: { part: 'resume' }, cardId: fresh() })).status, 400, 'nothing to turn back on');
+  const asked = h.asked.length;
+  let after: AgentRecord | null = null;
+  const s = lockHarness({
+    record: async () => ({ ...h.record(), stopped: { at: NOW, reason: 'locks-today' as const }, lockFailures: 2 }),
+    current: async () => h.profile(),
+    updateRecord: async (_a, change) => (after = change({ ...h.record(), stopped: { at: NOW, reason: 'locks-today' as const }, lockFailures: 2 })),
+  });
+  const res = await s.post({ patch: { part: 'resume' }, cardId: fresh() });
+  assert.equal(res.status, 200);
+  assert.equal(after!.stopped, undefined);
+  assert.equal(after!.lockFailures, undefined);
+  assert.ok(after!.lock, 'the limits are kept for when Lock money is turned on again');
+  assert.equal(s.saved.at(-1)!.agentPrefs!.alone!.lock, false);
+  assert.equal(s.asked.length, 0);
+  assert.equal(h.asked.length, asked);
+});
+
+test('what is confirmed is the limits after the change, so one proof fits one set of figures', () => {
+  const before = { lock: { perDeal: { usdc: 30 }, perWeek: { usdc: 90 }, perDay: 3, who: 'record' as const } } as Mandate;
+  const a = agentRuleAction('0xADA', before, { part: 'lock-rules', perDealUsdc: 50 });
+  const b = agentRuleAction('0xADA', before, { part: 'lock-rules', perDealUsdc: 500 });
+  assert.equal(a.wallet, '0xada');
+  assert.equal(a.detail.perDeal, '50000000');
+  assert.equal(a.detail.perWeek, '90000000');
+  assert.notEqual(actionDigest(a, 5042002), actionDigest(b, 5042002));
+  assert.equal(actionDigest(a, 5042002), actionDigest(agentRuleAction('0xada', before, { part: 'lock-rules', perDealUsdc: 50 }), 5042002));
+  const on = agentRuleAction('0xada', before, { part: 'switch', name: 'lock', on: true });
+  assert.deepEqual(on.detail, { lock: 'on', perDeal: '30000000', perWeek: '90000000', perDay: '3', who: 'record' });
 });

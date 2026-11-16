@@ -9,4 +9,5 @@ export const liveFeatures: LiveFeatures = liveFeaturesFrom({
   workRequests,
   sellerAsked: config.SELLER_ASKED,
   agentSwitch: agentSwitchOpen({ sellerAsked: config.SELLER_ASKED, shortlist: config.SHORTLIST_MODE }),
+  autopilotLock: config.AUTOPILOT_LOCK_ENABLED,
 });

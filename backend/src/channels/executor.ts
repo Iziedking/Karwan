@@ -400,6 +400,8 @@ const OWN_WALLET_SIGNS = new Set<ConfirmAction['intent']>(['guarantee_put_up', '
 const MOVEMENTS = new Set<ConfirmAction['intent']>(['withdraw_proceeds', 'cash_out', 'fund_agent']);
 
 const ON_KARWAN = 'This step is confirmed on Karwan. Ask me again and I will send you the link.';
+// Letting an agent lock more is confirmed with the passkey, never in a chat (view 87).
+const RULE_ON_KARWAN = 'This one is confirmed with your passkey on Karwan. Open Settings, then Agent, and turn on Lock money there.';
 
 function stableBridgeId(actionId: string): string {
   // Stable per card, so a retried request is absorbed by the route's
@@ -484,7 +486,9 @@ function finish(action: ConfirmAction, res: { status: number; json: Record<strin
 
   if (res.json.code === 'CHAT_DEAL_LIMIT' && error) return { ok: false, reason: 'refused', message: error };
   // A PIN or passkey is never asked in a chat: the person confirms on Karwan.
-  if (res.status === 428 && res.json.code === 'CONFIRM_REQUIRED') return { ok: false, reason: 'refused', message: ON_KARWAN };
+  if (res.status === 428 && res.json.code === 'CONFIRM_REQUIRED') {
+    return { ok: false, reason: 'refused', message: action.intent === 'change_mandate' ? RULE_ON_KARWAN : ON_KARWAN };
+  }
   if (res.status >= 400 && res.status < 500) {
     return { ok: false, reason: 'stale', message: error ?? 'Things changed since I prepared this. Ask me again for the current step.' };
   }

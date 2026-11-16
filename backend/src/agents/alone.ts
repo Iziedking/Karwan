@@ -44,6 +44,35 @@ export function aloneOf(profile: Profile, record?: Record_): Alone {
   return { offers: false, bargain: false, agree: false, lock: false, find: false, data: false, brief: false };
 }
 
+type Prefs = NonNullable<UserProfile['agentPrefs']>;
+
+/// Lock money stands on Agree a price: with that off there is no price to lock.
+function settled(switches: Alone): Alone {
+  return switches.agree ? switches : { ...switches, lock: false };
+}
+
+function savedOf(switches: Alone): Record<SavedSwitch, boolean> {
+  return Object.fromEntries(SAVED.map((name) => [name, switches[name]])) as Record<SavedSwitch, boolean>;
+}
+
+/// The prefs after one switch is set. Every switch is saved as it stood, so the
+/// older mode kept beside them can never change one the person did not touch.
+export function prefsWithSwitch(prefs: Prefs | undefined, name: SavedSwitch, on: boolean): Prefs {
+  const base = prefs ?? {};
+  const next = settled({ ...switchesOf({ agentPrefs: base }), [name]: on });
+  return { ...base, alone: savedOf(next), agentMode: modeOf(next) };
+}
+
+/// The prefs after the older three-way mode is set. Once switches are saved the
+/// mode moves the four it always covered, or the saved ones would win over it.
+export function prefsWithMode(prefs: Prefs | undefined, mode: AgentMode): Prefs {
+  const base = prefs ?? {};
+  if (!base.alone || Object.keys(base.alone).length === 0) return { ...base, agentMode: mode };
+  const { offers, bargain, agree, data } = switchesOfMode(mode);
+  const next = settled({ ...switchesOf({ agentPrefs: base }), offers, bargain, agree, data });
+  return { ...base, alone: savedOf(next), agentMode: mode };
+}
+
 /// A seller built without switches, as older callers and fixtures do, is on Make offers.
 export function sellerSwitches(seller: { alone?: Alone }): Alone {
   return seller.alone ?? switchesOfMode('offers');

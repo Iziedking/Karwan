@@ -4,6 +4,7 @@ import { parseBriefPrice, type BriefMoney } from './agentBriefParse.js';
 import { briefLines, type BriefAnswers, type BriefRead } from './agentBriefLines.js';
 import { legacyFromWays, usualOf, waysOf, withWay, type SellWay } from './ways.js';
 import { saidOnWay } from './waysSaid.js';
+import { prefsWithMode } from './alone.js';
 
 /// The setup conversation's answers, read into the account's settings (view
 /// 19). Shared by the website, the Telegram interview and the assistant, so
@@ -105,7 +106,7 @@ export async function readBrief(
       patch.seller = legacyFromWays(ways, { seller: patch.seller }).seller;
     }
     if (a.clients) prefs.findClients = a.clients !== 'own';
-    prefs.agentMode = !price ? 'ask' : a.own ?? prefs.agentMode ?? 'offers';
+    Object.assign(prefs, prefsWithMode(prefs, !price ? 'ask' : a.own ?? prefs.agentMode ?? 'offers'));
   } else if (current?.seller) {
     // Kept for a later return, but off the market.
     patch.seller = current.seller;

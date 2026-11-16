@@ -2,8 +2,9 @@ import { z } from 'zod';
 import { agentPrefsOf, type UserLocale, type UserProfile } from '../db/profiles.js';
 import { tg } from '../i18n/telegram.js';
 import type { MarketWatch } from '../intelligence/watches.js';
-import { DEFAULT_WEEKLY_BUDGET_USDC, MAX_WEEKLY_BUDGET_USDC, type AgentRecord } from './agentRecord.js';
-import { switchesOf, switchesOfMode, type Alone } from './alone.js';
+import type { LocalCurrency } from '../rates/usdcRates.js';
+import { DEFAULT_LOCKS_PER_DAY, DEFAULT_LOCK_WHO, DEFAULT_WEEKLY_BUDGET_USDC, MAX_LOCKS_PER_DAY, MAX_WEEKLY_BUDGET_USDC, type AgentRecord, type LockRules, type LockWho, type SaidUsdc, type StopReason } from './agentRecord.js';
+import { AGENT_SWITCHES, modeOf, switchesOf, switchesOfMode, type AgentSwitch, type Alone } from './alone.js';
 import { waysOf, type SellWay } from './ways.js';
 
 /// What a person's agent may do, read as one thing (view 52, step 3). Each part
@@ -30,7 +31,14 @@ export interface Mandate {
   goals: Goal[];
   brief: BriefPrefs;
   quiet: QuietHours | null;
+  /// Why the agent stopped itself, until the person turns it back on (view 87).
+  stopped: { at: number; reason: StopReason } | null;
+  /// The limits for locking money alone, once set.
+  lock: MandateLock | null;
 }
+
+export type MandateLock = Omit<LockRules, 'locks'>;
+export type SaidAmounts = { currency: LocalCurrency; amounts: { perDealUsdc?: number; perWeekUsdc?: number } };
 
 export type MandatePatch =
   | { part: 'sell-price'; shape: string; lowestUsdc: number; usualUsdc?: number }
@@ -42,7 +50,11 @@ export type MandatePatch =
   | { part: 'brief'; on?: boolean; hour?: number; timeZone?: string }
   | { part: 'quiet'; from: number; to: number }
   | { part: 'quiet-off' }
-  | { part: 'power'; on: boolean };
+  | { part: 'power'; on: boolean }
+  | { part: 'switch'; name: AgentSwitch; on: boolean }
+  /// `on` also turns Lock money on, so the limits and the switch are one confirmed step.
+  | { part: 'lock-rules'; perDealUsdc?: number; perWeekUsdc?: number; perDay?: number; who?: LockWho; on?: true; said?: SaidAmounts }
+  | { part: 'resume' };
 
 const hourSchema = z.number().int().min(0).max(23);
 const usdcSchema = z.number().finite();
@@ -59,6 +71,17 @@ export const mandatePatchSchema = z.discriminatedUnion('part', [
   z.object({ part: z.literal('quiet'), from: hourSchema, to: hourSchema }),
   z.object({ part: z.literal('quiet-off') }),
   z.object({ part: z.literal('power'), on: z.boolean() }),
+  z.object({ part: z.literal('switch'), name: z.enum(AGENT_SWITCHES), on: z.boolean() }),
+  z.object({
+    part: z.literal('lock-rules'),
+    perDealUsdc: usdcSchema.optional(),
+    perWeekUsdc: usdcSchema.optional(),
+    perDay: z.number().int().optional(),
+    who: z.enum(['verified', 'record', 'anyone']).optional(),
+    on: z.literal(true).optional(),
+    said: z.object({ currency: z.string().min(3).max(4), amounts: z.object({ perDealUsdc: z.number().positive().optional(), perWeekUsdc: z.number().positive().optional() }) }).optional(),
+  }),
+  z.object({ part: z.literal('resume') }),
 ]) as unknown as z.ZodType<MandatePatch>;
 
 export const DEFAULT_BRIEF: BriefPrefs = { on: true, hour: 8, timeZone: 'Africa/Lagos' };
@@ -66,7 +89,7 @@ export const DEFAULT_QUIET: QuietHours = { from: 21, to: 7 };
 export const MAX_GOALS = 5;
 const MAX_USDC = 1_000_000;
 
-export type MandateRecord = Pick<AgentRecord, 'weeklyBudgetUsdc' | 'stopped'> & { goals?: Goal[]; brief?: BriefPrefs; quiet?: QuietHours | null };
+export type MandateRecord = Pick<AgentRecord, 'weeklyBudgetUsdc' | 'stopped' | 'lock'> & { goals?: Goal[]; brief?: BriefPrefs; quiet?: QuietHours | null };
 
 function sellOf(w: SellWay): MandateSellWay {
   switch (w.shape) {
@@ -107,7 +130,26 @@ export function mandateOf(
     goals: record?.goals ?? [],
     brief: { ...DEFAULT_BRIEF, ...(record?.brief ?? {}) },
     quiet: record?.quiet === undefined ? { ...DEFAULT_QUIET } : record.quiet,
+    stopped: record?.stopped ?? null,
+    lock: record?.lock ? { perDeal: record.lock.perDeal, perWeek: record.lock.perWeek, perDay: record.lock.perDay, who: record.lock.who } : null,
   };
+}
+
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+
+function saidUsdc(usdc: number, said: SaidAmounts | undefined, key: 'perDealUsdc' | 'perWeekUsdc'): SaidUsdc {
+  const amount = said?.amounts[key];
+  if (!said || typeof amount !== 'number' || !(amount > 0)) return { usdc: round6(usdc) };
+  return { usdc: round6(usdc), said: { currency: said.currency, amount: String(Math.round(amount * 100) / 100) } };
+}
+
+/// The lock limits as they will stand after this change, or null when the two
+/// amounts are not both known yet. A figure the change does not name is kept.
+export function lockAfter(m: Pick<Mandate, 'lock'>, p: Extract<MandatePatch, { part: 'lock-rules' }>): MandateLock | null {
+  const perDeal = p.perDealUsdc === undefined ? m.lock?.perDeal : saidUsdc(p.perDealUsdc, p.said, 'perDealUsdc');
+  const perWeek = p.perWeekUsdc === undefined ? m.lock?.perWeek : saidUsdc(p.perWeekUsdc, p.said, 'perWeekUsdc');
+  if (!perDeal || !perWeek) return null;
+  return { perDeal, perWeek, perDay: p.perDay ?? m.lock?.perDay ?? DEFAULT_LOCKS_PER_DAY, who: p.who ?? m.lock?.who ?? DEFAULT_LOCK_WHO };
 }
 
 export function knownTimeZone(timeZone: string): boolean {
@@ -159,6 +201,20 @@ export function validatePatch(m: Mandate, p: MandatePatch, locale: UserLocale = 
       return null;
     case 'power':
       return typeof p.on === 'boolean' ? null : no('mandate.refuse.mode');
+    case 'switch':
+      if (p.name !== 'lock' || !p.on) return null;
+      if (!m.switches.agree) return no('mandate.refuse.lockNeedsAgree');
+      return m.lock ? null : no('mandate.refuse.lockNeedsRules');
+    case 'lock-rules': {
+      const lock = lockAfter(m, p);
+      if (!lock) return no('mandate.refuse.lockRules');
+      const amounts = isPrice(lock.perDeal.usdc) && isPrice(lock.perWeek.usdc) && lock.perDeal.usdc <= lock.perWeek.usdc;
+      const day = Number.isInteger(lock.perDay) && lock.perDay >= 1 && lock.perDay <= MAX_LOCKS_PER_DAY;
+      if (!amounts || !day || !['verified', 'record', 'anyone'].includes(lock.who)) return no('mandate.refuse.lockRules');
+      return p.on && !m.switches.agree ? no('mandate.refuse.lockNeedsAgree') : null;
+    }
+    case 'resume':
+      return m.stopped ? null : no('mandate.refuse.notStopped');
   }
 }
 
@@ -188,6 +244,17 @@ export function previewPatch(m: Mandate, p: MandatePatch, now: number): Mandate 
       return { ...m, quiet: null };
     case 'power':
       return { ...m, on: p.on };
+    case 'switch': {
+      const switches = { ...m.switches, [p.name]: p.on };
+      if (!switches.agree) switches.lock = false;
+      return { ...m, switches, alone: modeOf(switches), brief: p.name === 'brief' ? { ...m.brief, on: p.on } : m.brief };
+    }
+    case 'lock-rules': {
+      const lock = lockAfter(m, p);
+      return { ...m, lock: lock ?? m.lock, switches: p.on ? { ...m.switches, lock: true } : m.switches };
+    }
+    case 'resume':
+      return { ...m, stopped: null, switches: { ...m.switches, lock: false } };
   }
 }
 
@@ -210,12 +277,28 @@ function sellLine(w: MandateSellWay, locale: UserLocale): string {
   }
 }
 
+export function saidText(a: SaidUsdc): string {
+  return a.said ? `${Number(a.said.amount).toLocaleString('en-US')} ${a.said.currency}` : `${num(a.usdc)} USDC`;
+}
+
+/// What it does alone and what is switched off, as one line.
+function aloneLine(switches: Alone, locale: UserLocale): string {
+  const names = (on: boolean) => AGENT_SWITCHES.filter((name) => switches[name] === on).map((name) => tg(`mandate.switch.${name}`, locale)).join(', ');
+  const does = names(true);
+  const not = names(false);
+  return [does ? tg('mandate.does', locale, { list: does }) : '', not ? tg('mandate.doesNot', locale, { list: not }) : ''].filter(Boolean).join(' ');
+}
+
 /// The mandate in the person's words, one line per part. Templates only.
 export function sayMandate(m: Mandate, locale: UserLocale = 'en'): string[] {
   const lines: string[] = m.on === false ? [tg('mandate.off', locale)] : [];
+  if (m.stopped) lines.push(tg(`mandate.stopped.${m.stopped.reason}`, locale, { n: String(m.lock?.perDay ?? DEFAULT_LOCKS_PER_DAY) }));
   lines.push(...(m.sell.length ? m.sell.map((w) => sellLine(w, locale)) : [tg('mandate.sellNone', locale)]));
   if (m.buy.mostUsdc !== null) lines.push(tg('mandate.buy', locale, { most: num(m.buy.mostUsdc) }));
-  lines.push(tg(m.alone === 'ask' ? 'mandate.alone.ask' : m.alone === 'agree' ? 'mandate.alone.agree' : 'mandate.alone.offers', locale));
+  lines.push(aloneLine(m.switches, locale));
+  if (m.lock && m.switches.lock) {
+    lines.push(tg('mandate.lockRules', locale, { deal: saidText(m.lock.perDeal), week: saidText(m.lock.perWeek), who: tg(`mandate.who.${m.lock.who}`, locale), day: String(m.lock.perDay) }));
+  }
   lines.push(tg('mandate.weeklyLimit', locale, { usdc: num(m.weeklyLimitUsdc) }));
   if (m.watches.length) lines.push(tg(m.watches.length === 1 ? 'mandate.watchesOne' : 'mandate.watches', locale, { count: String(m.watches.length) }));
   if (m.goals.length) lines.push(tg('mandate.goals', locale, { list: m.goals.map((g) => g.text).join('; ') }));

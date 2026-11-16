@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 /// The actions a person must be present for (spec decision 13). Paying,
 /// releasing and every other deal step are signed by the agents unasked.
-export type PresenceKind = 'record_setup' | 'deal_guarantee' | 'deal_insurance' | 'move_out' | 'factor_change';
+export type PresenceKind = 'record_setup' | 'deal_guarantee' | 'deal_insurance' | 'move_out' | 'factor_change' | 'agent_rule';
 
 export interface PresenceAction {
   kind: PresenceKind;
@@ -18,7 +18,20 @@ const KIND_WORDS: Record<PresenceKind, string> = {
   deal_insurance: 'Deposit to your deal guarantee',
   move_out: 'Send money out of Karwan',
   factor_change: 'Change how you confirm',
+  agent_rule: 'Let your agent lock money',
 };
+
+const WHO_WORDS: Record<string, string> = { verified: 'verified people', record: 'people with a record', anyone: 'anyone' };
+
+/// The limits a person confirms for their agent (view 87), in a fixed order.
+function ruleLines(detail: Record<string, string>): string[] {
+  const lines: string[] = [];
+  if (detail.perDeal) lines.push(`Most for one deal: ${formatUsdc(detail.perDeal)} USDC`);
+  if (detail.perWeek) lines.push(`Most in a week: ${formatUsdc(detail.perWeek)} USDC`);
+  if (detail.who) lines.push(`Who: ${WHO_WORDS[detail.who] ?? detail.who}`);
+  if (detail.perDay) lines.push(`Locks in a day: ${detail.perDay}`);
+  return lines;
+}
 
 export function presenceAction(input: Omit<PresenceAction, 'detail'> & { detail?: Record<string, string> }): PresenceAction {
   if (input.amountMicros !== null && !/^(0|[1-9]\d*)$/.test(input.amountMicros)) {
@@ -53,6 +66,7 @@ export function actionText(action: PresenceAction, chainId: number): string {
   const lines = ['Karwan confirmation', KIND_WORDS[a.kind]];
   if (a.amountMicros !== null) lines.push(`Amount: ${formatUsdc(a.amountMicros)} USDC`);
   if (a.recipient) lines.push(`To: ${a.recipient}`);
+  if (a.kind === 'agent_rule') lines.push(...ruleLines(a.detail));
   lines.push(`Network: ${chainId === 5042 ? 'Arc' : 'Arc testnet'}`);
   lines.push(`Code: ${actionDigest(a, chainId)}`);
   return lines.join('\n');

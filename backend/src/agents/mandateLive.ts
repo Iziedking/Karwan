@@ -1,4 +1,5 @@
 import { sessionAddress } from '../auth/session.js';
+import { config } from '../config.js';
 import { answerQuestion, openQuestionsFor, questionsSince } from '../db/agentQuestions.js';
 import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
 import { liveWatchesFor } from '../db/marketWatches.js';
@@ -38,6 +39,7 @@ export const liveMandateToolDeps: MandateToolDeps = {
     return (await gatherFacts(address, [], now)).openRequests.map((r) => ({ jobId: r.jobId, budgetUsdc: r.budgetUsdc }));
   },
   toldSince: (address, since) => progressStore().toldSince(address, since),
+  lockOpen: () => config.AUTOPILOT_LOCK_ENABLED,
 };
 
 export const liveMandateDeps: Omit<MandateRouteDeps, 'now' | 'newId'> = {

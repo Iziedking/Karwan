@@ -106,3 +106,50 @@ test('executorRoutesTheCard', async () => {
   assert.equal(again.ok, false);
   assert.equal(calls.length, 1);
 });
+
+/// View 87, step 2: the same switches from the assistant.
+
+const agreeing = mandateOf({ agentPrefs: { agentMode: 'agree' as const } }, newAgentRecord('0xa'), []);
+const open = (over: Partial<MandateToolDeps> = {}) => toolDeps({ read: async () => ({ mandate: agreeing, locale: 'en' }), lockOpen: () => true, ...over });
+
+test('a switch is one card whose lines differ only in what the agent does alone', async () => {
+  const r = await proposeChangeMandate(open(), '0xa', { part: 'switch', name: 'bargain', on: false }, NOW);
+  assert.ok('card' in r);
+  assert.deepEqual(r.card.payload, { patch: { part: 'switch', name: 'bargain', on: false } });
+  assert.equal(r.needsPresence, false);
+  assert.deepEqual(r.card.fields.map((f) => f.label), ['Now', 'After', 'What it does next']);
+  assert.match(r.card.fields[0]!.value, /^Alone it may: make offers, bargain, agree a price/);
+  assert.match(r.card.fields[1]!.value, /Switched off: bargain, lock money\.$/);
+  assert.equal(r.effect, 'It stops at once. Deals already running go on.');
+});
+
+test('a change that lets the agent lock more says it is confirmed with the passkey', async () => {
+  const r = await proposeChangeMandate(open(), '0xa', { part: 'lock-rules', on: true, perDealUsdc: 30, perWeekUsdc: 90 }, NOW);
+  assert.ok('card' in r);
+  assert.equal(r.needsPresence, true);
+  assert.deepEqual(r.card.fields.at(-1), { label: 'To confirm', value: 'Your passkey, on Karwan' });
+  assert.ok(r.card.fields.some((f) => f.value.includes('Lock money: at most 30 USDC a deal and 90 USDC a week, only with people who have a record, 3 a day.')));
+  const off = await proposeChangeMandate(open(), '0xa', { part: 'switch', name: 'lock', on: false }, NOW);
+  assert.ok('card' in off);
+  assert.equal(off.needsPresence, false);
+});
+
+test('where Lock money is closed the tool says so and builds no card', async () => {
+  for (const deps of [open({ lockOpen: () => false }), toolDeps({ read: async () => ({ mandate: agreeing, locale: 'en' }) })]) {
+    assert.deepEqual(await proposeChangeMandate(deps, '0xa', { part: 'lock-rules', on: true, perDealUsdc: 30, perWeekUsdc: 90 }, NOW), { error: 'Lock money is not open here yet.' });
+    assert.deepEqual(await proposeChangeMandate(deps, '0xa', { part: 'switch', name: 'lock', on: true }, NOW), { error: 'Lock money is not open here yet.' });
+    assert.ok('card' in (await proposeChangeMandate(deps, '0xa', { part: 'switch', name: 'find', on: false }, NOW)));
+  }
+});
+
+test('turning back on is a card only for an agent that stopped itself', async () => {
+  assert.deepEqual(await proposeChangeMandate(open(), '0xa', { part: 'resume' }, NOW), { error: 'Your agent has not stopped.' });
+  const stopped = mandateOf({ agentPrefs: { agentMode: 'agree' as const } }, { ...newAgentRecord('0xa'), stopped: { at: NOW, reason: 'lock-failures' as const } }, []);
+  const deps = open({ read: async () => ({ mandate: stopped, locale: 'en' }) });
+  const r = await proposeChangeMandate(deps, '0xa', { part: 'resume' }, NOW);
+  assert.ok('card' in r);
+  assert.equal(r.needsPresence, false);
+  assert.equal(r.card.fields[0]!.value, 'Your agent stopped. Locking money failed 3 times in a row.');
+  const shown = await showMyMandate(deps, '0xa', NOW);
+  assert.equal(shown.lines![0], 'Your agent stopped. Locking money failed 3 times in a row.');
+});

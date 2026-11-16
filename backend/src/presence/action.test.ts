@@ -57,3 +57,14 @@ test('action_text_names_amount_network_and_digest', () => {
   assert.match(actionText(cashOut({ amountMicros: '1250000' }), MAINNET), /1\.25 USDC/);
   assert.match(actionText(cashOut(), MAINNET), /Network: Arc\n/);
 });
+
+test('an agent rule names the limits the person confirms, and each figure changes the code', () => {
+  const rule = (perDeal: string) => presenceAction({ kind: 'agent_rule', wallet: '0xAbC', amountMicros: null, recipient: null, detail: { lock: 'on', perDeal, perWeek: '90000000', perDay: '3', who: 'record' } });
+  const text = actionText(rule('30000000'), 5042002);
+  for (const line of ['Let your agent lock money', 'Most for one deal: 30 USDC', 'Most in a week: 90 USDC', 'Who: people with a record', 'Locks in a day: 3']) {
+    assert.ok(text.split('\n').includes(line), line);
+  }
+  assert.notEqual(actionDigest(rule('30000000'), 5042002), actionDigest(rule('3000000000'), 5042002));
+  const bare = actionText(presenceAction({ kind: 'agent_rule', wallet: '0xabc', amountMicros: null, recipient: null, detail: { lock: 'on' } }), 5042002);
+  assert.doesNotMatch(bare, /Most for|Who:|Locks in/);
+});
