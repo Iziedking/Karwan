@@ -6,6 +6,7 @@ import {
 } from '../db/agentWallets.js';
 import { agentPrefsOf, getProfile, type UserProfile } from '../db/profiles.js';
 import type { BuyerProfile } from './buyer-profile.js';
+import { switchesOf } from './alone.js';
 import type { SellerProfile } from './seller-profile.js';
 import { upgradeWays } from './ways.js';
 
@@ -70,7 +71,7 @@ export function toSellerProfile(agents: AgentWallets, profile: UserProfile): Sel
     maxDeadlineDays: s.maxDeadlineDays,
     confidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,
     keywords: s.keywords ?? [],
-    agentMode: agentPrefsOf(profile).agentMode,
+    alone: switchesOf(profile),
     ...(profile.agentWays ? { ways: upgradeWays(profile.agentWays).sell } : {}),
     skillVerifications: profile.skillVerifications?.map(({ skillId, status, issuer, expiresAt }) => ({
       skillId,

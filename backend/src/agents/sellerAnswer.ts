@@ -29,8 +29,8 @@ export const ANSWER_WINDOW_MS = 24 * 60 * 60_000;
 
 /// Whether the seller has to be asked. Only "Agree for me", with the agent on
 /// and the price at or above their lowest, lets the agent say yes alone.
-export function sellerMustAnswer(seller: { mode: AgentMode; agentOn: boolean; lowestUsdc: number | null }, priceUsdc: number): boolean {
-  if (!seller.agentOn || seller.mode !== 'agree') return true;
+export function sellerMustAnswer(seller: { agree: boolean; agentOn: boolean; lowestUsdc: number | null }, priceUsdc: number): boolean {
+  if (!seller.agentOn || !seller.agree) return true;
   if (!(priceUsdc > 0)) return true;
   return seller.lowestUsdc !== null && priceUsdc < seller.lowestUsdc;
 }

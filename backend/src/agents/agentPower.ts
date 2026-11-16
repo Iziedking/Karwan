@@ -1,3 +1,4 @@
+import { getAgentRecord } from '../db/agentRecords.js';
 import { agentPrefsOf, getProfile, type UserProfile } from '../db/profiles.js';
 
 /// The agent switch (view 75). Off stops what the agent does on its own:
@@ -8,10 +9,15 @@ export function agentOnOf(profile: Pick<UserProfile, 'agentPrefs'> | null | unde
   return agentPrefsOf(profile).agentOn !== false;
 }
 
-/// A profile that cannot be read counts as on: nothing stops by accident.
+/// A profile or record that cannot be read counts as on: nothing stops by
+/// accident. An agent that stopped itself (view 87) is off until its person
+/// turns it back on.
 export async function agentIsOn(owner: string): Promise<boolean> {
-  const profile = await getProfile(owner.toLowerCase()).catch(() => null);
-  return agentOnOf(profile);
+  const [profile, record] = await Promise.all([
+    getProfile(owner.toLowerCase()).catch(() => null),
+    getAgentRecord(owner).catch(() => null),
+  ]);
+  return agentOnOf(profile) && !record?.stopped;
 }
 
 /// What an assistant tool answers when the person asks for something only the

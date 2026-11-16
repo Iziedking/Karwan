@@ -3,6 +3,7 @@ import { agentPrefsOf, type UserLocale, type UserProfile } from '../db/profiles.
 import { tg } from '../i18n/telegram.js';
 import type { MarketWatch } from '../intelligence/watches.js';
 import { DEFAULT_WEEKLY_BUDGET_USDC, MAX_WEEKLY_BUDGET_USDC, type AgentRecord } from './agentRecord.js';
+import { switchesOf, switchesOfMode, type Alone } from './alone.js';
 import { waysOf, type SellWay } from './ways.js';
 
 /// What a person's agent may do, read as one thing (view 52, step 3). Each part
@@ -22,6 +23,8 @@ export interface Mandate {
   sell: MandateSellWay[];
   buy: { mostUsdc: number | null; days: [number, number] | null; split: number[] | null };
   alone: 'offers' | 'ask' | 'agree';
+  /// The same choice as one switch each, with the ones a mode never covered (view 87).
+  switches: Alone;
   weeklyLimitUsdc: number;
   watches: Array<{ id: string; kind: string; category: string }>;
   goals: Goal[];
@@ -63,7 +66,7 @@ export const DEFAULT_QUIET: QuietHours = { from: 21, to: 7 };
 export const MAX_GOALS = 5;
 const MAX_USDC = 1_000_000;
 
-export type MandateRecord = Pick<AgentRecord, 'weeklyBudgetUsdc'> & { goals?: Goal[]; brief?: BriefPrefs; quiet?: QuietHours | null };
+export type MandateRecord = Pick<AgentRecord, 'weeklyBudgetUsdc' | 'stopped'> & { goals?: Goal[]; brief?: BriefPrefs; quiet?: QuietHours | null };
 
 function sellOf(w: SellWay): MandateSellWay {
   switch (w.shape) {
@@ -98,6 +101,7 @@ export function mandateOf(
       split: b ? [...b.milestonePcts] : null,
     },
     alone: agentPrefsOf(profile).agentMode,
+    switches: switchesOf(profile, record),
     weeklyLimitUsdc: record?.weeklyBudgetUsdc ?? DEFAULT_WEEKLY_BUDGET_USDC,
     watches: watches.map((w) => ({ id: w.id, kind: w.kind, category: w.category })),
     goals: record?.goals ?? [],
@@ -164,8 +168,10 @@ export function previewPatch(m: Mandate, p: MandatePatch, now: number): Mandate 
   switch (p.part) {
     case 'sell-price':
       return { ...m, sell: m.sell.map((w) => (w.shape === p.shape ? { ...w, lowestUsdc: p.lowestUsdc, ...(p.usualUsdc !== undefined ? { usualUsdc: p.usualUsdc } : {}) } : w)) };
-    case 'alone':
-      return { ...m, alone: p.mode };
+    case 'alone': {
+      const { offers, bargain, agree, data } = switchesOfMode(p.mode);
+      return { ...m, alone: p.mode, switches: { ...m.switches, offers, bargain, agree, data } };
+    }
     case 'weekly-limit':
       return { ...m, weeklyLimitUsdc: p.usdc };
     case 'buy-most':

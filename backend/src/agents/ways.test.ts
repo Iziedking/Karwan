@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { UserProfile } from '../db/profiles.js';
+import { switchesOfMode } from './alone.js';
 import { usualGivenOnSave, fittingWay, legacyFromWays, LIVE_SHAPES, reconcileWays, sellerForRequest, sellWaySchema, timeOffer, upgradeWays, usualOf, waysOf, withWay, waysSchema, wayLines, withWayLimits, type AgentWays } from './ways.js';
 
 /// The ways a person deals (view 26): one per escrow shape, in plain answers,
@@ -158,12 +159,15 @@ test('the older settings say whether the usual price was given', () => {
 });
 
 test('a request of a shape the seller does not offer goes to the owner', () => {
-  const seller = { minBudgetUsdc: 20, maxBudgetUsdc: 300, minDeadlineDays: 1, maxDeadlineDays: 5, agentMode: 'offers' as const };
+  const seller = { minBudgetUsdc: 20, maxBudgetUsdc: 300, minDeadlineDays: 1, maxDeadlineDays: 5, alone: switchesOfMode('offers') };
   assert.deepEqual(sellerForRequest(seller, 'goods'), seller);
   const withWays = { ...seller, ways: [ways.sell[1]!] };
   assert.equal(sellerForRequest(withWays, 'goods').minBudgetUsdc, 80);
-  assert.equal(sellerForRequest(withWays, 'goods').agentMode, 'offers');
-  assert.equal(sellerForRequest(withWays, 'service').agentMode, 'ask');
+  assert.deepEqual(sellerForRequest(withWays, 'goods').alone, switchesOfMode('offers'));
+  const noWay = sellerForRequest(withWays, 'service').alone;
+  assert.equal(noWay?.offers, false);
+  assert.equal(noWay?.data, false);
+  assert.equal(noWay?.agree, false);
 });
 
 test('one way changes at a time, in place', () => {

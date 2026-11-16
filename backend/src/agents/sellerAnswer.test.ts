@@ -1,25 +1,27 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { switchesOfMode, type AgentMode } from './alone.js';
 import { ANSWER_WINDOW_MS, answerBy, choiceState, choiceView, decline, newHold, raise, roleOn, sameChoice, sellerMustAnswer } from './sellerAnswer.js';
 
 const NOW = 1_800_000_000_000;
 const hold = () => newHold({ jobId: '0xJOB', sellerAgent: '0xAGENT', sellerUser: '0xSELLER', buyerUser: '0xBUYER', priceUsdc: '120.00', now: NOW });
 
 test('a seller is asked unless they chose Agree for me', () => {
-  assert.equal(sellerMustAnswer({ mode: 'offers', agentOn: true, lowestUsdc: 50 }, 120), true);
-  assert.equal(sellerMustAnswer({ mode: 'ask', agentOn: true, lowestUsdc: 50 }, 120), true);
-  assert.equal(sellerMustAnswer({ mode: 'agree', agentOn: true, lowestUsdc: 50 }, 120), false);
+  const asked = (agentMode: AgentMode) => sellerMustAnswer({ agree: switchesOfMode(agentMode).agree, agentOn: true, lowestUsdc: 50 }, 120);
+  assert.equal(asked('offers'), true);
+  assert.equal(asked('ask'), true);
+  assert.equal(asked('agree'), false);
 });
 
 test('Agree for me only covers a price inside the seller\'s limits', () => {
-  assert.equal(sellerMustAnswer({ mode: 'agree', agentOn: true, lowestUsdc: 150 }, 120), true);
-  assert.equal(sellerMustAnswer({ mode: 'agree', agentOn: true, lowestUsdc: 120 }, 120), false);
-  assert.equal(sellerMustAnswer({ mode: 'agree', agentOn: true, lowestUsdc: null }, 120), false);
-  assert.equal(sellerMustAnswer({ mode: 'agree', agentOn: true, lowestUsdc: 50 }, 0), true);
+  assert.equal(sellerMustAnswer({ agree: true, agentOn: true, lowestUsdc: 150 }, 120), true);
+  assert.equal(sellerMustAnswer({ agree: true, agentOn: true, lowestUsdc: 120 }, 120), false);
+  assert.equal(sellerMustAnswer({ agree: true, agentOn: true, lowestUsdc: null }, 120), false);
+  assert.equal(sellerMustAnswer({ agree: true, agentOn: true, lowestUsdc: 50 }, 0), true);
 });
 
 test('with the agent off the seller is always asked', () => {
-  assert.equal(sellerMustAnswer({ mode: 'agree', agentOn: false, lowestUsdc: 50 }, 120), true);
+  assert.equal(sellerMustAnswer({ agree: true, agentOn: false, lowestUsdc: 50 }, 120), true);
 });
 
 test('the seller has a day, or until the request\'s own date if sooner', () => {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { UserProfile } from '../db/profiles.js';
+import { sellerSwitches, type Alone } from './alone.js';
 import { DISPLAY_CURRENCIES, type LocalCurrency } from '../rates/usdcRates.js';
 
 /// The ways a person deals (view 26). Each way is one escrow shape with the
@@ -308,13 +309,14 @@ export function reconcileWays(ways: AgentWays, seller: UserProfile['seller'], bu
 /// inside the way of the request's shape. A request of a shape the person does
 /// not offer is not bid on: the owner is told and decides (view 26, a buyer
 /// may propose a shape). Without saved ways nothing changes.
-export function sellerForRequest<T extends Limits & { ways?: SellWay[]; agentMode?: 'offers' | 'ask' | 'agree' }>(
+export function sellerForRequest<T extends Limits & { ways?: SellWay[]; alone?: Alone }>(
   seller: T,
   requestKind: 'service' | 'goods' | 'mixed' | null | undefined,
 ): T {
   if (!seller.ways) return seller;
   const way = fittingWay(seller.ways, requestKind);
-  return way ? withWayLimits(seller, way) : { ...seller, agentMode: 'ask' };
+  // No way for this shape: no offer and no paid research, as Ask me first.
+  return way ? withWayLimits(seller, way) : { ...seller, alone: { ...sellerSwitches(seller), offers: false, data: false } };
 }
 
 /// One way added, changed or removed, the rest kept as they are.

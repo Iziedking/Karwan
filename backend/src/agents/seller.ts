@@ -31,7 +31,6 @@ import { quantityWords } from '../llm/quantity.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
-import { paysForResearch } from './suggestion.js';
 import { agentIsOn } from './agentPower.js';
 import { getRecord, putRecord } from '../db/evidence.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
@@ -55,6 +54,7 @@ import { budgetRange, type BudgetRange } from './budgetRange.js';
 import { refereeTarget } from './opening.js';
 import { sellerAgentMaySee } from '../market/visibility.js';
 import { fittingWay, sellerForRequest } from './ways.js';
+import { sellerSwitches } from './alone.js';
 import { oneAtATime, queuedPerKey } from './oneAtATime.js';
 import { deliveryQuestions, reachGate } from '../location/deliveryQuestions.js';
 import { locationOf } from '../location/live.js';
@@ -1454,7 +1454,7 @@ async function judgeAndOffer(profile: SellerProfile, job: JobContext) {
   // opening-bid half of review #3 (opening prices before research arrives).
   let researchAwaited = false;
   // "Ask me first" pays for no research; the owner sets the real price.
-  const research = paysForResearch(seller.agentMode ?? 'offers');
+  const research = sellerSwitches(seller).data;
   if (research && config.RESEARCH_AWAIT_ENABLED && dealKeywords.length > 0) {
     researchAwaited = await settledWithin(
       maybeSellerResearch(seller, dealKeywords, job.jobId),
@@ -1514,7 +1514,7 @@ async function judgeAndOffer(profile: SellerProfile, job: JobContext) {
 
   // "Ask me first": tell the owner about the request at this price, once, and
   // let them make the offer themselves.
-  if ((seller.agentMode ?? 'offers') === 'ask') {
+  if (!sellerSwitches(seller).offers) {
     const days = Math.max(seller.minDeadlineDays, Math.min(seller.maxDeadlineDays, Math.ceil((job.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400)));
     await askSellerOwner(seller, job, 'ask-first', { priceUsdc: opening.toFixed(2), days }, null);
     return;
@@ -1794,7 +1794,7 @@ async function runCounterEvaluation(
   active.lastBuyerPrice = buyerCounterPrice;
   const buyerDays = Math.max(1, Math.ceil((buyerCounterDeadlineUnix - nowSec) / 86_400));
   const tradeDays = seller.maxDeadlineDays > buyerDays ? Math.min(seller.maxDeadlineDays, buyerDays + Math.max(2, Math.ceil(buyerDays / 2))) : null;
-  const agreeInsideLimits = (seller.agentMode ?? 'offers') === 'agree';
+  const agreeInsideLimits = sellerSwitches(seller).agree;
   const scheduleInput = {
     opening: originalBid,
     current: Number(active.lastBidPrice),

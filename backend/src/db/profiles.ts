@@ -15,6 +15,7 @@ export type UserLocale = 'en' | 'ar' | 'fr' | 'hi' | 'sw';
 export type ThemePreference = 'light' | 'dark' | 'system';
 
 import type { DisplayCurrency } from '../rates/usdcRates.js';
+import type { SetupKey } from '../guide/setupSteps.js';
 
 export interface UserSettings {
   locale?: UserLocale;
@@ -50,6 +51,15 @@ export interface UserSettings {
   /// How Aman, the guide, shows (view 57): beside the page, only a small face
   /// in the top bar, or not at all. Absent means beside the page.
   guide?: 'on' | 'face' | 'off';
+  /// What Aman remembers on the account (view 57, 15 Nov evening): setup steps put
+  /// off and until when, the last moment shown, the day's hello, the setup step
+  /// asked today, and the tour offer turned off.
+  guideSnooze?: Partial<Record<SetupKey, { until: number; count: number }>>;
+  guideMomentAt?: number;
+  guideHelloOn?: string;
+  guideAskedOn?: string;
+  guideAskedStep?: SetupKey;
+  guideTourOffer?: 'off';
 }
 
 /// At my place, I come to you (how far), online (view 72).
@@ -72,6 +82,9 @@ export interface AgentPrefs {
   /// about every fitting request first; agree: may also take a buyer's price
   /// inside the limits on its own (Agree for me for sellers, view 41).
   agentMode?: 'offers' | 'ask' | 'agree';
+  /// What the agent may do alone, one switch each (view 87). A switch not
+  /// saved here is read from agentMode; agents/alone.ts is the only reader.
+  alone?: Partial<Record<'offers' | 'bargain' | 'agree' | 'lock' | 'find' | 'data', boolean>>;
   /// False when the person switched their agent off (view 75). Absent means on.
   agentOn?: boolean;
   /// False when the person's price or budget could not be read.
@@ -81,7 +94,7 @@ export interface AgentPrefs {
   dismissedSuggestions?: string[];
 }
 
-export function agentPrefsOf(profile: Pick<UserProfile, 'agentPrefs'> | null | undefined): Required<AgentPrefs> {
+export function agentPrefsOf(profile: Pick<UserProfile, 'agentPrefs'> | null | undefined): Required<Omit<AgentPrefs, 'alone'>> & Pick<AgentPrefs, 'alone'> {
   return { findClients: true, agentMode: 'offers', agentOn: true, sellerPriceSet: true, buyerPriceSet: true, dismissedSuggestions: [], ...(profile?.agentPrefs ?? {}) };
 }
 

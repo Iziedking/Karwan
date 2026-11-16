@@ -53,6 +53,7 @@ test('defaultsBriefAndQuiet', () => {
   assert.deepEqual(m.quiet, DEFAULT_QUIET);
   assert.deepEqual(m.goals, []);
   assert.equal(m.alone, 'offers');
+  assert.deepEqual(m.switches, { offers: true, bargain: true, agree: false, lock: false, find: true, data: true, brief: true });
   assert.equal(m.weeklyLimitUsdc, 0.25);
   assert.deepEqual(m.sell, []);
   assert.deepEqual(m.buy, { mostUsdc: null, days: null, split: null });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DEFAULT_WEEKLY_BUDGET_USDC, addSpend, budgetNoticeDue, canSpend, newAgentRecord, spentThisWeek, weeklyLineDue } from './agentRecord.js';
+import { DEFAULT_WEEKLY_BUDGET_USDC, LOCK_FAILURES_BEFORE_STOP, addSpend, budgetNoticeDue, canSpend, lockFailed, lockWorked, newAgentRecord, resumeAgent, spentThisWeek, stopAgent, weeklyLineDue } from './agentRecord.js';
 
 /// The person's agent record (view 48, step 6): a weekly data budget of 0.25
 /// USDC by default, what the agents spent, and the weekly line.
@@ -49,4 +49,30 @@ test('the budget notice goes out at most once in 7 days', () => {
   assert.equal(budgetNoticeDue(r, NOW), true);
   assert.equal(budgetNoticeDue({ ...r, lastBudgetNoticeAt: NOW - 3 * DAY }, NOW), false);
   assert.equal(budgetNoticeDue({ ...r, lastBudgetNoticeAt: NOW - 8 * DAY }, NOW), true);
+});
+
+test('an agent stops itself once, and the first reason is kept', () => {
+  const stopped = stopAgent(newAgentRecord('0xa'), 'locks-today', NOW);
+  assert.deepEqual(stopped.stopped, { at: NOW, reason: 'locks-today' });
+  assert.deepEqual(stopAgent(stopped, 'lock-failures', NOW + DAY).stopped, { at: NOW, reason: 'locks-today' });
+});
+
+test('turning it back on clears the stop and the failures behind it', () => {
+  const r = resumeAgent({ ...stopAgent(newAgentRecord('0xa'), 'lock-failures', NOW), lockFailures: 3 });
+  assert.equal(r.stopped, undefined);
+  assert.equal(r.lockFailures, undefined);
+  assert.equal(r.weeklyBudgetUsdc, DEFAULT_WEEKLY_BUDGET_USDC);
+});
+
+test('the third lock that fails in a row stops the agent, and one that works starts the count again', () => {
+  assert.equal(LOCK_FAILURES_BEFORE_STOP, 3);
+  let r = lockFailed(lockFailed(newAgentRecord('0xa'), NOW), NOW);
+  assert.equal(r.lockFailures, 2);
+  assert.equal(r.stopped, undefined);
+  r = lockWorked(r);
+  assert.equal(r.lockFailures, undefined);
+  r = lockFailed(lockFailed(r, NOW), NOW);
+  assert.equal(r.stopped, undefined);
+  r = lockFailed(r, NOW);
+  assert.deepEqual(r.stopped, { at: NOW, reason: 'lock-failures' });
 });

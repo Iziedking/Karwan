@@ -4,6 +4,7 @@ import { agentPrefsOf, getProfile } from '../db/profiles.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { resolveSellerProfile } from './agent-registry.js';
+import { switchesOf } from './alone.js';
 import { choiceState, newHold, sameChoice, sellerMustAnswer, type ChoiceHold } from './sellerAnswer.js';
 
 /// The buyer's choice while it waits on the seller (view 75): one per request.
@@ -54,7 +55,7 @@ export async function sellerAnswerStep(input: {
   const profile = await getProfile(seller.userAddress).catch(() => null);
   const prefs = agentPrefsOf(profile);
   const asked = sellerMustAnswer(
-    { mode: prefs.agentMode, agentOn: prefs.agentOn !== false, lowestUsdc: Number.isFinite(seller.minBudgetUsdc) ? seller.minBudgetUsdc : null },
+    { agree: switchesOf(profile).agree, agentOn: prefs.agentOn !== false, lowestUsdc: Number.isFinite(seller.minBudgetUsdc) ? seller.minBudgetUsdc : null },
     Number(input.priceUsdc),
   );
   const prev = await getChoice(input.jobId);

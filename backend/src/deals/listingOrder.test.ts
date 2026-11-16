@@ -75,14 +75,14 @@ test("the seller's agent accepts only inside the seller's limits", () => {
 });
 
 test('a seller on Ask me first, or with the agent off, is asked about every order', () => {
-  assert.equal(sellerAsksOnOrders({ agentMode: 'ask', agentOn: true }, true), true);
-  assert.equal(sellerAsksOnOrders({ agentMode: 'offers', agentOn: false }, true), true);
-  assert.equal(sellerAsksOnOrders({ agentMode: 'agree', agentOn: false }, true), true);
-  assert.equal(sellerAsksOnOrders({ agentMode: 'offers', agentOn: true }, true), false);
-  assert.equal(sellerAsksOnOrders({ agentMode: 'agree', agentOn: true }, true), false);
-  assert.equal(sellerAsksOnOrders({ agentMode: 'offers' }, true), false);
+  assert.equal(sellerAsksOnOrders({ offers: false, agentOn: true }, true), true);
+  assert.equal(sellerAsksOnOrders({ offers: true, agentOn: false }, true), true);
+  assert.equal(sellerAsksOnOrders({ offers: true, agentOn: false }, true), true);
+  assert.equal(sellerAsksOnOrders({ offers: true, agentOn: true }, true), false);
+  assert.equal(sellerAsksOnOrders({ offers: true, agentOn: true }, true), false);
+  assert.equal(sellerAsksOnOrders({ offers: true }, true), false);
   // Switched off, nobody is asked anything new.
-  assert.equal(sellerAsksOnOrders({ agentMode: 'ask', agentOn: false }, false), false);
+  assert.equal(sellerAsksOnOrders({ offers: false, agentOn: false }, false), false);
 });
 
 test('an order waits because the seller asks, or because the item is held', () => {

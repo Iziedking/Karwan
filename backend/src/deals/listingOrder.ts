@@ -60,8 +60,8 @@ export function agentMayAccept(input: { matches: boolean; tradeLane?: string; se
 /// View 75, decision 2: a seller on Ask me first, or with their agent off, is
 /// asked about every order, even one that is their offer as listed. Sellers on
 /// Make offers or Agree for me posted the price, so their agent still accepts.
-export function sellerAsksOnOrders(prefs: { agentMode: 'offers' | 'ask' | 'agree'; agentOn?: boolean }, switchedOn: boolean): boolean {
-  return switchedOn && (prefs.agentOn === false || prefs.agentMode === 'ask');
+export function sellerAsksOnOrders(prefs: { offers: boolean; agentOn?: boolean }, switchedOn: boolean): boolean {
+  return switchedOn && (prefs.agentOn === false || !prefs.offers);
 }
 
 /// Why an order waits for the seller: they look at each order themselves, or

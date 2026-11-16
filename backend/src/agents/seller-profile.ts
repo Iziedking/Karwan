@@ -23,8 +23,8 @@ export interface SellerProfile {
   /** Canonical match tags extracted from skills+bio at profile-save time.
    *  Used to gate bidding when the brief is in an unrelated topic. */
   keywords: string[];
-  /** 'ask' suggests a fitting request to the owner instead of bidding (view 19). */
-  agentMode?: 'offers' | 'ask' | 'agree';
+  /** What the agent may do alone (view 87). With offers off it tells the owner about a fitting request instead of bidding (view 19). */
+  alone?: import('./alone.js').Alone;
   /** Saved ways to sell (view 26). Absent when the person never saved any. */
   ways?: import('./ways.js').SellWay[];
   /** Existing issuer records carried into read-only matching snapshots. */

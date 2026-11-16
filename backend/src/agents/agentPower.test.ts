@@ -12,6 +12,8 @@ process.chdir(mkdtempSync(join(tmpdir(), 'karwan-agent-power-')));
 delete process.env.DATABASE_URL;
 
 const { upsertProfile } = await import('../db/profiles.js');
+const { updateAgentRecord } = await import('../db/agentRecords.js');
+const { resumeAgent, stopAgent } = await import('./agentRecord.js');
 const { AGENT_OFF_ANSWER, agentIsOn, agentOnOf, agentSwitchOpen } = await import('./agentPower.js');
 
 test('an agent is on until its person switches it off', () => {
@@ -31,6 +33,16 @@ test('the saved switch is read by address, and an unknown person counts as on', 
   assert.equal(await agentIsOn(OFF.toUpperCase().replace('0X', '0x')), false);
   assert.equal(await agentIsOn(ON), true);
   assert.equal(await agentIsOn('0x00000000000000000000000000000000000000e3'), true);
+});
+
+test('an agent that stopped itself is off until it is turned back on', async () => {
+  const WHO = '0x00000000000000000000000000000000000000e4';
+  await upsertProfile({ address: WHO, role: 'buyer', displayName: 'Uche' } as never);
+  assert.equal(await agentIsOn(WHO), true);
+  await updateAgentRecord(WHO, (r) => stopAgent(r, 'locks-today', 1_800_000_000_000));
+  assert.equal(await agentIsOn(WHO), false);
+  await updateAgentRecord(WHO, resumeAgent);
+  assert.equal(await agentIsOn(WHO), true);
 });
 
 test('a tool the agent does says it is off and how to turn it on', () => {

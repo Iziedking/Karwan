@@ -1,6 +1,7 @@
 import { config } from '../config.js';
 import { getDeal } from '../db/deals.js';
 import type { Listing } from '../db/listings.js';
+import { switchesOf } from '../agents/alone.js';
 import { agentPrefsOf, getProfile } from '../db/profiles.js';
 import { listingHeldByOrder, orderWait, sellerAsksOnOrders, type OrderWait } from './listingOrder.js';
 
@@ -9,7 +10,7 @@ import { listingHeldByOrder, orderWait, sellerAsksOnOrders, type OrderWait } fro
 export async function sellerAsksFirst(sellerUser: string): Promise<boolean> {
   if (!config.SELLER_ASKED) return false;
   const profile = await getProfile(sellerUser.toLowerCase()).catch(() => null);
-  return sellerAsksOnOrders(agentPrefsOf(profile), true);
+  return sellerAsksOnOrders({ offers: switchesOf(profile).offers, agentOn: agentPrefsOf(profile).agentOn }, true);
 }
 
 /// Why an order on this listing would wait for the seller, or null when their

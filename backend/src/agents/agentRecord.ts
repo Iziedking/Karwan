@@ -30,6 +30,36 @@ export interface AgentRecord {
   goals?: Goal[];
   brief?: BriefPrefs;
   quiet?: QuietHours | null;
+  /// Set when the agent stopped itself (view 87). Until the person turns it
+  /// back on, it does nothing alone.
+  stopped?: { at: number; reason: StopReason };
+  /// Lock steps that failed one after another; a lock that works clears it.
+  lockFailures?: number;
+}
+
+export type StopReason = 'locks-today' | 'lock-failures' | 'not-family';
+export const LOCK_FAILURES_BEFORE_STOP = 3;
+
+export function stopAgent(r: AgentRecord, reason: StopReason, now: number): AgentRecord {
+  return r.stopped ? r : { ...r, stopped: { at: now, reason } };
+}
+
+export function resumeAgent(r: AgentRecord): AgentRecord {
+  const { stopped: _stopped, lockFailures: _failures, ...rest } = r;
+  return rest;
+}
+
+/// A lock step that failed. The third in a row stops the agent.
+export function lockFailed(r: AgentRecord, now: number): AgentRecord {
+  const lockFailures = (r.lockFailures ?? 0) + 1;
+  const next = { ...r, lockFailures };
+  return lockFailures >= LOCK_FAILURES_BEFORE_STOP ? stopAgent(next, 'lock-failures', now) : next;
+}
+
+export function lockWorked(r: AgentRecord): AgentRecord {
+  if (!r.lockFailures) return r;
+  const { lockFailures: _failures, ...rest } = r;
+  return rest;
 }
 
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;

@@ -3,7 +3,7 @@ import test from 'node:test';
 import type { AgentWallets } from '../db/agentWallets.js';
 import type { UserProfile } from '../db/profiles.js';
 import { joinsMarket, toSellerProfile } from './agent-registry.js';
-import { alreadySuggested, paysForResearch, shouldSuggest, suggestionEvent, suggestionKey } from './suggestion.js';
+import { alreadySuggested, shouldSuggest, suggestionEvent, suggestionKey } from './suggestion.js';
 import type { KarwanEvent } from '../events.js';
 
 /// What the setup answers change in the selling agent (view 19): "Find clients
@@ -35,8 +35,8 @@ test('a person whose agent is switched off makes no offers, and still resolves w
 });
 
 test('the seller profile carries how much the agent may do on its own', () => {
-  assert.equal(toSellerProfile(agents, profile())?.agentMode, 'offers');
-  assert.equal(toSellerProfile(agents, profile({ agentMode: 'ask' }))?.agentMode, 'ask');
+  assert.equal(toSellerProfile(agents, profile())?.alone?.offers, true);
+  assert.equal(toSellerProfile(agents, profile({ agentMode: 'ask' }))?.alone?.offers, false);
   // A seller off the market still resolves, so its live deals keep working.
   assert.ok(toSellerProfile(agents, profile({ findClients: false })));
 });
@@ -74,8 +74,8 @@ test('a suggestion already in the history is not sent again after a restart', ()
 });
 
 test('ask me first pays for no market research: the suggestion prices on what is cached', () => {
-  assert.equal(paysForResearch('offers'), true);
-  assert.equal(paysForResearch('ask'), false);
+  assert.equal(toSellerProfile(agents, profile())?.alone?.data, true);
+  assert.equal(toSellerProfile(agents, profile({ agentMode: 'ask' }))?.alone?.data, false);
 });
 
 test('the durable suggestion record is keyed by owner and request, whatever the case', () => {
