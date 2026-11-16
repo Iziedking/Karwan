@@ -151,7 +151,7 @@ Decided by the owner, 15 Nov 2026: no subscription and no charge for trying. The
 | What is bought | A read that helps the agent decide: a person's record, a passport, market research | A deal the agent found and matched |
 | Who pays | The agent that reads | The person whose agent went looking |
 | When | Each read, paid by the agent alone inside its weekly limit | Once, when the matched deal's money is locked in escrow |
-| Price | 0.005 USDC for a record check (view 48) | To be set by the owner |
+| Price | 0.005 USDC for a record check (view 48) | 1% of the agreed price |
 | Never charged for | The same read twice on one request | A search, a pitch, a deal alert, an answer of "interested", a bargain that ends without a deal |
 | Shown as | "3 record checks" on the weekly line | One line on the deal's receipt |
 
@@ -206,7 +206,7 @@ Everything through step 8 can be shown on testnet.
 | 3 | Lock money for me | steps 1 and 2 |
 | 4 | Standing orders | steps 1 and 2 |
 | 5 | The bargain receipt | view 73 on |
-| 6 | The match fee | the owner's price; Arc and Circle checks |
+| 6 | The match fee | Arc and Circle checks |
 | 7 | Outside agents sell | view 15 on |
 | 8 | Invitations the person sends | step 4 |
 | 9 | Circle spending limits, selling Karwan's finds and checks to other agents, publishing records | Mainnet; Arc and Circle checks |
@@ -222,16 +222,14 @@ Everything through step 8 can be shown on testnet.
 7. **A person types their own limits** when they turn Lock money on. Nothing is filled in.
 8. **Three locks in a day,** then the agent stops itself and asks.
 9. **Whatever can be shown on testnet is built there first.**
-
-## Still to decide
-
-| # | Question | Recommended |
-|---|---|---|
-| 1 | The size of the match fee | 1% of the agreed price, so it grows with the deal and a small deal pays little |
+10. **The match fee is 1% of the agreed price,** on deals agents matched, never on a deal link or an offer made by hand. The buyer's is returned on a full refund; a seller's is taken only when they are paid.
+11. **A lock is told at once,** in quiet hours too.
+12. **An outside agent sells only for a person with a Karwan account,** linked once.
 
 ## Status
 
 | Part | State |
 |---|---|
 | This view | Approved by the owner, 15 Nov 2026 |
-| Steps 0 to 9 | Not started |
+| Step 1, the runtime | Built 15 Nov 2026, not deployed: what an agent does alone is read as switches from one place, with older accounts reading as before; the gate for locking money, which nothing calls yet; one server holds a request while it works it; a match can be funded after a restart, and accepted once; an agent can stop itself |
+| Steps 0 and 2 to 9 | Not started |

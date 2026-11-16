@@ -125,7 +125,7 @@ flowchart LR
 | 8a | Request notes in Postgres: written before the agent goes on, loaded when it picks a request up | step 7, decision 8 |
 | 8b | Counter, propose and pass are written down first and checked against the board after a restart | 8a |
 | 8c | Near matches into the same store; the shadow snapshot and parity code removed | 8a |
-| 8d | A lease per request, before a second server | 8b |
+| 8d | A lease per request, before a second server. Built 15 Nov 2026 with [view 87](87-your-agent-on-autopilot.md): the buying mode takes it before it counters, proposes, accepts or funds | 8b |
 | 8e | Both modes read the board from a saved position; the selling side's notes in Postgres, its reply keyed like the counter | 8a, 8b |
 
 ## Web pages cannot steer the price (found in review, 15 Nov 2026)
