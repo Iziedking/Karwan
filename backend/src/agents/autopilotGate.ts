@@ -76,6 +76,10 @@ export function mayLock(f: LockFacts): LockDecision {
 }
 
 /// What the agent does with a refusal: it stops itself, or asks its person.
-export function afterRefusal(reason: LockRefusal): 'stop' | 'ask' {
-  return reason === 'not-family' || reason === 'over-day' ? 'stop' : 'ask';
+/// A deal off the escrow family stops the agent only where the family is open;
+/// where it is switched off on this network nothing was aimed elsewhere, and
+/// the person is asked.
+export function afterRefusal(reason: LockRefusal, familyOpen = true): 'stop' | 'ask' {
+  if (reason === 'over-day') return 'stop';
+  return reason === 'not-family' && familyOpen ? 'stop' : 'ask';
 }

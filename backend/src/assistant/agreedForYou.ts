@@ -23,6 +23,9 @@ async function onShortlist(e: KarwanEvent): Promise<void> {
   const pick = agreedPick(getShortlist(e.jobId) ?? [], budget);
   if (!pick || brief.agreedFor?.toLowerCase() === pick.seller.toLowerCase()) return;
   patchBrief(e.jobId, { agreedFor: pick.seller.toLowerCase() });
+  // With Lock money on, the agent's own step says what it did (view 87).
+  const { lockIsOnFor } = await import('../agents/lockAloneLive.js');
+  if (await lockIsOnFor(brief.postedBy)) return;
   if (!telegramEnabled()) return;
   const [link, profile] = await Promise.all([getTelegramLink(brief.postedBy), getProfile(brief.postedBy)]);
   if (!link || profile?.settings?.notificationsMuted || !channelsFor(profile?.settings, true).telegram) return;

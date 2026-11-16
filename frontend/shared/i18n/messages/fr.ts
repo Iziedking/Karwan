@@ -1167,7 +1167,7 @@ export const fr: Messages = {
       title: 'Trois étapes vers votre premier deal',
       dismissAria: 'Masquer le démarrage rapide',
       steps: {
-        activate: { title: 'Activez vos agents', body: 'Donnez à vos agents acheteur et vendeur une petite autorisation de dépense. Ils ne financent aucun deal et ne libèrent aucun fonds sans votre accord.', cta: 'Activer' },
+        activate: { title: 'Activez vos agents', body: 'Donnez à vos agents acheteur et vendeur une petite autorisation de dépense. Ils ne libèrent rien sans vous, et ne financent un deal seuls que dans les limites que vous fixez vous-même.', cta: 'Activer' },
         post: { title: 'Publiez une demande ou une offre', body: 'Dites ce dont vous avez besoin ou ce que vous fournissez. Votre agent négocie et rapporte un match.', cta: 'Ouvrir les bureaux' },
         settle: { title: 'Approuvez, puis réglez', body: 'Approuvez le match trouvé par votre agent. L’argent est libéré par jalons après votre validation du travail.' },
       },
@@ -5182,7 +5182,7 @@ export const fr: Messages = {
         invite: { label: 'Invitation par e-mail.', body: 'Vous pouvez ouvrir une transaction avec quelqu\'un qui n\'a pas de compte. Cette personne la réclame depuis un lien envoyé par e-mail avec un code à usage unique, et se fait payer sans jamais installer de wallet.' },
         moving: { label: 'Entrées et sorties de fonds.', body: 'Utilisez les voies de dépôt et de retrait affichées dans le produit. Les réseaux disponibles et les parcours de transfert dépendent de la configuration Circle en vigueur. Les transferts sur Arc sont directs.' },
         reputation: { label: 'Réputation et passeport de crédit.', body: 'Votre compte porte un tier et un score construits à partir de l\'historique des transactions réglées. Toute personne ayant votre adresse peut lire la partie on-chain.' },
-        agents: { label: 'Agents.', body: 'Des agents acheteur et vendeur optionnels trouvent des contreparties, évaluent les offres et négocient dans les limites que vous définissez. Ils négocient. Ils ne déplacent pas d\'argent seuls. Chaque mouvement est soit approuvé par vous, soit l\'un des résultats automatiques de la section 4.' },
+        agents: { label: 'Agents.', body: 'Des agents acheteur et vendeur optionnels trouvent des contreparties, évaluent les offres et négocient dans les limites que vous définissez. Ils négocient. Ils ne déplacent pas d\'argent seuls, à une exception que vous choisissez : si vous activez Bloquer de l\'argent pour moi et fixez ses limites avec votre clé d\'accès, votre agent acheteur peut bloquer l\'argent d\'un accord qu\'il a conclu, uniquement dans un séquestre Karwan et dans ces limites. Il ne libère, n\'envoie et ne retire jamais d\'argent. Tout autre mouvement est soit approuvé par vous, soit l\'un des résultats automatiques de la section 4.' },
         assistant: { label: 'L\'assistant.', body: 'Un assistant IA intégré au produit répond aux questions et peut préparer des actions pour vous. Tout ce qui déplace de l\'argent vous est montré et demande votre confirmation avant de s\'exécuter. Vous pouvez demander une personne à tout moment, ce qui ouvre un ticket de support.' },
         staking: { label: 'Garantie de transaction.', body: 'Vous pouvez mettre des USDC de côté comme garantie de transaction. Elle élève votre niveau, et le séquestre peut la verser à l’acheteur si vous perdez un litige.' },
       },

@@ -78,6 +78,7 @@ type TgKey =
   | 'mandate.stopped.lock-failures'
   | 'mandate.stopped.not-family'
   | 'mandate.lockRules'
+  | 'mandate.lockedWeek'
   | 'mandate.who.verified'
   | 'mandate.who.record'
   | 'mandate.who.anyone'
@@ -159,7 +160,24 @@ type TgKey =
   | 'pitch.verified'
   | 'pitch.rated'
   | 'pitch.open'
-  | 'pitch.interested';
+  | 'pitch.interested'
+  | 'lock.heading'
+  | 'lock.locked'
+  | 'lock.lockedMoved'
+  | 'lock.ask.heading'
+  | 'lock.ask.lead'
+  | 'lock.ask.over-deal'
+  | 'lock.ask.over-week'
+  | 'lock.ask.who'
+  | 'lock.ask.price-outlier'
+  | 'lock.ask.not-family'
+  | 'lock.ask.world-id'
+  | 'lock.ask.unverified'
+  | 'lock.ask.short'
+  | 'lock.ask.failed'
+  | 'lock.ask.tail'
+  | 'lock.stopped.heading'
+  | 'lock.stopped.tail';
 
 const en: Record<TgKey, string> = {
   'cancelProposedFromOther.mutual':
@@ -243,6 +261,7 @@ const en: Record<TgKey, string> = {
   'mandate.stopped.lock-failures': "Your agent stopped. Locking money failed 3 times in a row.",
   'mandate.stopped.not-family': "Your agent stopped. It was asked to lock money outside a Karwan escrow.",
   'mandate.lockRules': "Lock money: at most {deal} a deal and {week} a week, {who}, {day} a day.",
+  'mandate.lockedWeek': "It locked {usdc} USDC alone in the last seven days.",
   'mandate.who.verified': "only with verified people",
   'mandate.who.record': "only with people who have a record",
   'mandate.who.anyone': "with anyone",
@@ -325,6 +344,23 @@ const en: Record<TgKey, string> = {
   'pitch.rated': 'Rated {stars}',
   'pitch.open': 'Open it to answer: interested, not now, or not interested.',
   'pitch.interested': 'They are interested. Your offer is on their private request now.',
+  'lock.heading': "Your agent locked money",
+  'lock.locked': "I agreed {price} USDC with {who} and locked it in escrow. With the fee, {total} USDC left your balance. You release it when the work is delivered.",
+  'lock.lockedMoved': "The price opened at {opened} USDC.",
+  'lock.ask.heading': "Your agent did not lock this one",
+  'lock.ask.lead': "I agreed {price} USDC with {who}.",
+  'lock.ask.over-deal': "With the fee it comes to {total} USDC, above what I may lock for one deal.",
+  'lock.ask.over-week': "Locking {total} USDC would pass what I may lock in a week.",
+  'lock.ask.who': "This seller has no record yet, and you asked me to lock only with people who have one.",
+  'lock.ask.price-outlier': "The price is well above what this usually costs on Karwan.",
+  'lock.ask.not-family': "This deal cannot use the protected escrow here yet.",
+  'lock.ask.world-id': "This deal needs a World ID check first.",
+  'lock.ask.unverified': "This seller is not verified, so you have to confirm them yourself.",
+  'lock.ask.short': "I hold too little. Add {add} USDC to your buying agent.",
+  'lock.ask.failed': "Locking the money did not go through.",
+  'lock.ask.tail': "Nothing is locked. Open the request to lock it yourself.",
+  'lock.stopped.heading': "Your agent stopped",
+  'lock.stopped.tail': "It does nothing alone until you turn it back on under Your agent.",
 };
 
 const ar: Partial<Record<TgKey, string>> = {
@@ -409,6 +445,7 @@ const ar: Partial<Record<TgKey, string>> = {
   'mandate.stopped.lock-failures': "توقف وكيلك. فشل حجز المال 3 مرات متتالية.",
   'mandate.stopped.not-family': "توقف وكيلك. طُلب منه حجز مال خارج ضمان Karwan.",
   'mandate.lockRules': "حجز المال: بحد أقصى {deal} للصفقة و{week} في الأسبوع، {who}، {day} في اليوم.",
+  'mandate.lockedWeek': "حجز {usdc} USDC وحده في آخر سبعة أيام.",
   'mandate.who.verified': "مع الأشخاص الموثَّقين فقط",
   'mandate.who.record': "مع من لديهم سجل فقط",
   'mandate.who.anyone': "مع أي شخص",
@@ -491,6 +528,23 @@ const ar: Partial<Record<TgKey, string>> = {
   'pitch.rated': 'التقييم {stars}',
   'pitch.open': 'افتحه لتقول مهتم، أو ليس الآن، أو غير مهتم.',
   'pitch.interested': 'الشخص مهتم. عرضك الآن على طلبه الخاص.',
+  'lock.heading': "وكيلك حجز المال",
+  'lock.locked': "اتفقت على {price} USDC مع {who} وحجزت المبلغ في الضمان. مع الرسوم خرج {total} USDC من رصيدك. أنت من يفرج عنه عند تسليم العمل.",
+  'lock.lockedMoved': "بدأ السعر عند {opened} USDC.",
+  'lock.ask.heading': "وكيلك لم يحجز المال هذه المرة",
+  'lock.ask.lead': "اتفقت على {price} USDC مع {who}.",
+  'lock.ask.over-deal': "مع الرسوم يصل المبلغ إلى {total} USDC، وهذا فوق ما يحق لي حجزه لصفقة واحدة.",
+  'lock.ask.over-week': "حجز {total} USDC يتجاوز ما يحق لي حجزه في أسبوع.",
+  'lock.ask.who': "هذا البائع بلا سجل بعد، وقد طلبت مني الحجز فقط مع من لهم سجل.",
+  'lock.ask.price-outlier': "السعر أعلى بكثير من المعتاد لهذا العمل على Karwan.",
+  'lock.ask.not-family': "هذه الصفقة لا يمكنها استخدام الضمان المحمي هنا بعد.",
+  'lock.ask.world-id': "هذه الصفقة تحتاج أولا إلى تحقق World ID.",
+  'lock.ask.unverified': "هذا البائع غير موثق، لذا عليك تأكيده بنفسك.",
+  'lock.ask.short': "رصيدي لا يكفي. أضف {add} USDC إلى وكيل الشراء.",
+  'lock.ask.failed': "لم يتم حجز المال.",
+  'lock.ask.tail': "لم يُحجز شيء. افتح الطلب لتحجز المال بنفسك.",
+  'lock.stopped.heading': "وكيلك توقف",
+  'lock.stopped.tail': "لن يفعل شيئا وحده حتى تعيد تشغيله من صفحة وكيلك.",
 };
 
 const fr: Partial<Record<TgKey, string>> = {
@@ -575,6 +629,7 @@ const fr: Partial<Record<TgKey, string>> = {
   'mandate.stopped.lock-failures': "Votre agent s'est arrêté. Le blocage de l'argent a échoué 3 fois de suite.",
   'mandate.stopped.not-family': "Votre agent s'est arrêté. On lui a demandé de bloquer de l'argent hors d'un séquestre Karwan.",
   'mandate.lockRules': "Bloquer de l'argent : au plus {deal} par transaction et {week} par semaine, {who}, {day} par jour.",
+  'mandate.lockedWeek': "Il a bloqué {usdc} USDC seul ces sept derniers jours.",
   'mandate.who.verified': "seulement avec des personnes vérifiées",
   'mandate.who.record': "seulement avec des personnes qui ont un dossier",
   'mandate.who.anyone': "avec n'importe qui",
@@ -657,6 +712,23 @@ const fr: Partial<Record<TgKey, string>> = {
   'pitch.rated': 'Noté {stars}',
   'pitch.open': 'Ouvrez-la pour dire intéressé, pas maintenant, ou pas intéressé.',
   'pitch.interested': 'Cette personne est intéressée. Votre offre est maintenant sur sa demande privée.',
+  'lock.heading': "Votre agent a bloqué de l'argent",
+  'lock.locked': "J'ai convenu de {price} USDC avec {who} et bloqué la somme en séquestre. Avec les frais, {total} USDC ont quitté votre solde. Vous la libérez quand le travail est livré.",
+  'lock.lockedMoved': "Le prix de départ était de {opened} USDC.",
+  'lock.ask.heading': "Votre agent n'a pas bloqué cette somme",
+  'lock.ask.lead': "J'ai convenu de {price} USDC avec {who}.",
+  'lock.ask.over-deal': "Avec les frais, cela fait {total} USDC, plus que ce que je peux bloquer pour une affaire.",
+  'lock.ask.over-week': "Bloquer {total} USDC dépasserait ce que je peux bloquer en une semaine.",
+  'lock.ask.who': "Ce vendeur n'a pas encore d'historique, et vous m'avez demandé de bloquer seulement avec ceux qui en ont un.",
+  'lock.ask.price-outlier': "Le prix est bien au-dessus de ce que cela coûte d'habitude sur Karwan.",
+  'lock.ask.not-family': "Cette affaire ne peut pas encore utiliser le séquestre protégé ici.",
+  'lock.ask.world-id': "Cette affaire demande d'abord une vérification World ID.",
+  'lock.ask.unverified': "Ce vendeur n'est pas vérifié, vous devez donc le confirmer vous-même.",
+  'lock.ask.short': "Je n'ai pas assez. Ajoutez {add} USDC à votre agent acheteur.",
+  'lock.ask.failed': "Le blocage de l'argent n'a pas abouti.",
+  'lock.ask.tail': "Rien n'est bloqué. Ouvrez la demande pour bloquer la somme vous-même.",
+  'lock.stopped.heading': "Votre agent s'est arrêté",
+  'lock.stopped.tail': "Il ne fait plus rien seul tant que vous ne le relancez pas dans Votre agent.",
 };
 
 const hi: Partial<Record<TgKey, string>> = {
@@ -741,6 +813,7 @@ const hi: Partial<Record<TgKey, string>> = {
   'mandate.stopped.lock-failures': "आपका एजेंट रुक गया। पैसा लॉक करना लगातार 3 बार विफल हुआ।",
   'mandate.stopped.not-family': "आपका एजेंट रुक गया। इससे Karwan एस्क्रो के बाहर पैसा लॉक करने को कहा गया।",
   'mandate.lockRules': "पैसा लॉक करना: एक सौदे में अधिकतम {deal} और हफ़्ते में {week}, {who}, दिन में {day} बार।",
+  'mandate.lockedWeek': "इसने पिछले सात दिनों में अकेले {usdc} USDC लॉक किए।",
   'mandate.who.verified': "केवल सत्यापित लोगों के साथ",
   'mandate.who.record': "केवल रिकॉर्ड वाले लोगों के साथ",
   'mandate.who.anyone': "किसी के भी साथ",
@@ -823,6 +896,23 @@ const hi: Partial<Record<TgKey, string>> = {
   'pitch.rated': 'रेटिंग {stars}',
   'pitch.open': 'खोलें और बताएँ: रुचि है, अभी नहीं, या रुचि नहीं।',
   'pitch.interested': 'उन्हें रुचि है। आपका ऑफ़र अब उनके निजी अनुरोध पर है।',
+  'lock.heading': "आपके एजेंट ने पैसा लॉक किया",
+  'lock.locked': "मैंने {who} के साथ {price} USDC पर सहमति की और रकम एस्क्रो में लॉक कर दी। फ़ीस के साथ {total} USDC आपके बैलेंस से गए। काम मिलने पर आप ही इसे जारी करते हैं।",
+  'lock.lockedMoved': "कीमत {opened} USDC से शुरू हुई थी।",
+  'lock.ask.heading': "आपके एजेंट ने इस बार पैसा लॉक नहीं किया",
+  'lock.ask.lead': "मैंने {who} के साथ {price} USDC पर सहमति की।",
+  'lock.ask.over-deal': "फ़ीस के साथ यह {total} USDC होता है, जो एक सौदे के लिए मेरी सीमा से ऊपर है।",
+  'lock.ask.over-week': "{total} USDC लॉक करने से मेरी हफ़्ते की सीमा पार हो जाएगी।",
+  'lock.ask.who': "इस विक्रेता का अभी कोई रिकॉर्ड नहीं है, और आपने कहा था कि मैं केवल रिकॉर्ड वालों के साथ लॉक करूँ।",
+  'lock.ask.price-outlier': "कीमत Karwan पर इस काम की आम कीमत से काफ़ी ऊपर है।",
+  'lock.ask.not-family': "यह सौदा अभी यहाँ सुरक्षित एस्क्रो का उपयोग नहीं कर सकता।",
+  'lock.ask.world-id': "इस सौदे के लिए पहले World ID जाँच ज़रूरी है।",
+  'lock.ask.unverified': "यह विक्रेता सत्यापित नहीं है, इसलिए आपको खुद पुष्टि करनी होगी।",
+  'lock.ask.short': "मेरे पास कम पैसा है। अपने ख़रीद एजेंट में {add} USDC जोड़ें।",
+  'lock.ask.failed': "पैसा लॉक नहीं हो पाया।",
+  'lock.ask.tail': "कुछ भी लॉक नहीं हुआ। खुद लॉक करने के लिए अनुरोध खोलें।",
+  'lock.stopped.heading': "आपका एजेंट रुक गया",
+  'lock.stopped.tail': "जब तक आप इसे आपका एजेंट में फिर चालू नहीं करते, यह अकेले कुछ नहीं करेगा।",
 };
 
 const sw: Partial<Record<TgKey, string>> = {
@@ -907,6 +997,7 @@ const sw: Partial<Record<TgKey, string>> = {
   'mandate.stopped.lock-failures': "Wakala wako amesimama. Kufunga pesa kumeshindwa mara 3 mfululizo.",
   'mandate.stopped.not-family': "Wakala wako amesimama. Aliombwa kufunga pesa nje ya escrow ya Karwan.",
   'mandate.lockRules': "Kufunga pesa: isiyozidi {deal} kwa mkataba na {week} kwa wiki, {who}, mara {day} kwa siku.",
+  'mandate.lockedWeek': "Amefunga {usdc} USDC peke yake katika siku saba zilizopita.",
   'mandate.who.verified': "na watu waliothibitishwa tu",
   'mandate.who.record': "na watu wenye rekodi tu",
   'mandate.who.anyone': "na mtu yeyote",
@@ -989,6 +1080,23 @@ const sw: Partial<Record<TgKey, string>> = {
   'pitch.rated': 'Ukadiriaji {stars}',
   'pitch.open': 'Fungua useme unavutiwa, si sasa, au huvutiwi.',
   'pitch.interested': 'Wanavutiwa. Ofa yako sasa iko kwenye ombi lao la faragha.',
+  'lock.heading': "Wakala wako amefunga pesa",
+  'lock.locked': "Nimekubaliana {price} USDC na {who} na kufunga pesa kwenye escrow. Pamoja na ada, {total} USDC zimetoka kwenye salio lako. Wewe ndiye unayeziachilia kazi ikifika.",
+  'lock.lockedMoved': "Bei ilianza {opened} USDC.",
+  'lock.ask.heading': "Wakala wako hakufunga pesa safari hii",
+  'lock.ask.lead': "Nimekubaliana {price} USDC na {who}.",
+  'lock.ask.over-deal': "Pamoja na ada inafika {total} USDC, zaidi ya ninachoruhusiwa kufunga kwa dili moja.",
+  'lock.ask.over-week': "Kufunga {total} USDC kungepita ninachoruhusiwa kufunga kwa wiki.",
+  'lock.ask.who': "Muuzaji huyu bado hana rekodi, na uliniambia nifunge tu na wenye rekodi.",
+  'lock.ask.price-outlier': "Bei iko juu sana kuliko kawaida ya kazi hii kwenye Karwan.",
+  'lock.ask.not-family': "Dili hili bado haliwezi kutumia escrow iliyolindwa hapa.",
+  'lock.ask.world-id': "Dili hili linahitaji ukaguzi wa World ID kwanza.",
+  'lock.ask.unverified': "Muuzaji huyu hajathibitishwa, kwa hiyo lazima umthibitishe mwenyewe.",
+  'lock.ask.short': "Nina pesa kidogo. Ongeza {add} USDC kwa wakala wako wa kununua.",
+  'lock.ask.failed': "Kufunga pesa hakukufanikiwa.",
+  'lock.ask.tail': "Hakuna kilichofungwa. Fungua ombi ufunge mwenyewe.",
+  'lock.stopped.heading': "Wakala wako amesimama",
+  'lock.stopped.tail': "Hatafanya lolote peke yake hadi umwashe tena kwenye Wakala wako.",
 };
 
 const TABLES: Record<UserLocale, Partial<Record<TgKey, string>>> = {

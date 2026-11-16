@@ -238,6 +238,7 @@ import { startTelegramAgent } from './telegram/agent/live.js';
 import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
 import { startAgreedForYou } from './assistant/agreedForYou.js';
+import { startLockAlone } from './agents/lockAloneLive.js';
 import { startShortlistChoices } from './channels/shortlistChoices.js';
 import { startChatRetentionSweep } from './chat/retention.js';
 import { startDeliveryQuestionSweep } from './location/deliveryQuestions.js';
@@ -1517,6 +1518,7 @@ async function boot() {
   }
   // "Agree for me" (view 30): one Telegram line when the agent agrees for the buyer.
   stopFns.push(startAgreedForYou());
+  stopFns.push(startLockAlone());
   // A number replied to a shortlist in chat chooses from that shortlist.
   stopFns.push(startShortlistChoices());
   // Live-support housekeeping: prune closed conversations, archive abandoned

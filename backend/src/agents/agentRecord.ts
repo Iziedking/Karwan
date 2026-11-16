@@ -48,8 +48,12 @@ export interface LockRules {
   perWeek: SaidUsdc;
   perDay: number;
   who: LockWho;
-  locks: Array<{ at: number; usdc: number; jobId: string }>;
+  locks: LockEntry[];
 }
+/// One lock the agent made alone, or is about to make. `held` is money set
+/// aside against the limits before the deal is funded; an entry with no state
+/// is a finished lock.
+export interface LockEntry { at: number; usdc: number; jobId: string; state?: 'held' | 'done' }
 export const DEFAULT_LOCKS_PER_DAY = 3;
 export const MAX_LOCKS_PER_DAY = 10;
 export const DEFAULT_LOCK_WHO: LockWho = 'record';

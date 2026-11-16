@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAX_WEEKLY_BUDGET_USDC, spentThisWeek, type AgentRecord } from './agentRecord.js';
+import { MAX_WEEKLY_BUDGET_USDC, spentThisWeek, type AgentRecord, type SaidUsdc } from './agentRecord.js';
 import type { LocalCurrency, UsdcRates } from '../rates/usdcRates.js';
 
 /// The agent's weekly limit as Money shows it (view 51, third round). It is
@@ -23,7 +23,8 @@ export function saidLimit(weeklyUsdc: number, said: { currency: LocalCurrency; a
 /// changed some other way (a choice tapped on Money) no longer matches, and its
 /// figure is dropped. The ceiling still holds, so a falling currency never
 /// lifts the limit past it. With no rate the limit keeps its last USDC.
-export function limitAtRate(r: AgentRecord, rates: UsdcRates): AgentRecord {
+export function limitAtRate(record: AgentRecord, rates: UsdcRates): AgentRecord {
+  const r = lockAtRate(record, rates);
   const said = r.weeklySaid;
   if (!said) return r;
   if (said.usdc !== r.weeklyBudgetUsdc) return { ...r, weeklySaid: undefined };
@@ -32,6 +33,23 @@ export function limitAtRate(r: AgentRecord, rates: UsdcRates): AgentRecord {
   const usdc = Math.min(MAX_WEEKLY_BUDGET_USDC, round6(Number(said.amount) / rate));
   if (!(usdc > 0) || usdc === r.weeklyBudgetUsdc) return r;
   return { ...r, weeklyBudgetUsdc: usdc, weeklySaid: { ...said, usdc } };
+}
+
+/// The lock limits said in the person's own currency, at the rate given (view
+/// 87): the figure said is the rule and its USDC follows the day's rate. With
+/// no rate a limit keeps its last USDC.
+export function lockAtRate(r: AgentRecord, rates: UsdcRates): AgentRecord {
+  const lock = r.lock;
+  if (!lock || rates.updatedAt === null) return r;
+  const at = (limit: SaidUsdc): SaidUsdc => {
+    const rate = limit.said ? rates.rates[limit.said.currency] : undefined;
+    if (!limit.said || !rate) return limit;
+    const usdc = round6(Number(limit.said.amount) / rate);
+    return usdc > 0 && usdc !== limit.usdc ? { ...limit, usdc } : limit;
+  };
+  const perDeal = at(lock.perDeal);
+  const perWeek = at(lock.perWeek);
+  return perDeal === lock.perDeal && perWeek === lock.perWeek ? r : { ...r, lock: { ...lock, perDeal, perWeek } };
 }
 
 /// Brings every said weekly limit to the rate in force. Returns how many changed.
@@ -44,7 +62,7 @@ export async function refreshSaidLimits(deps: {
   if (rates.updatedAt === null) return 0;
   let n = 0;
   for (const r of await deps.list()) {
-    if (!r.weeklySaid || limitAtRate(r, rates) === r) continue;
+    if (limitAtRate(r, rates) === r) continue;
     await deps.save(r.owner, (cur) => limitAtRate(cur, rates));
     n += 1;
   }

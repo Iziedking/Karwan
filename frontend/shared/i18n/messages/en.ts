@@ -6472,7 +6472,7 @@ export const en: MessagesShape = {
       steps: {
         activate: {
           title: 'Activate your agents',
-          body: 'Give your buyer and seller agents a small spend allowance. They never fund a deal or release money without your approval.',
+          body: 'Give your buyer and seller agents a small spend allowance. They release nothing without you, and fund a deal alone only inside limits you set yourself.',
           cta: 'Activate',
         },
         post: {
@@ -10629,7 +10629,7 @@ export const en: MessagesShape = {
         invite: { label: 'Invite by email.', body: 'You can open a deal with someone who has no account. They claim it from an emailed link with a one-time code, and get paid without ever installing a wallet.' },
         moving: { label: 'Moving money in and out.', body: 'Use the deposit and withdrawal routes shown in the product. Available networks and transfer paths depend on the current Circle configuration. Transfers within Arc are direct.' },
         reputation: { label: 'Reputation and the credit passport.', body: 'Your account carries a tier and a score built from settled deal history. Anyone with your address can read the on-chain part.' },
-        agents: { label: 'Agents.', body: 'Optional buyer and seller agents find counterparties, score offers, and negotiate inside the limits you set. They negotiate. They do not move money on their own. Every movement is either approved by you or is one of the automatic outcomes in section 4.' },
+        agents: { label: 'Agents.', body: 'Optional buyer and seller agents find counterparties, score offers, and negotiate inside the limits you set. They negotiate. They do not move money on their own, with one exception you choose: if you turn on Lock money for me and set its limits with your passkey, your buying agent may lock the money for a deal it agreed, in a Karwan escrow only and inside those limits. It never releases, sends or withdraws money. Every other movement is either approved by you or is one of the automatic outcomes in section 4.' },
         assistant: { label: 'The assistant.', body: 'An in-product AI assistant answers questions and can prepare actions for you. Anything that moves money is shown to you and needs your confirmation before it runs. You can ask it for a person at any point, which opens a support ticket.' },
         staking: { label: 'Deal guarantee.', body: 'You can set USDC aside as a deal guarantee. It raises your tier, and the escrow can pay it to the buyer if you lose a dispute.' },
       },

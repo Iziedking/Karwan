@@ -979,6 +979,20 @@ jobsRoutes.post('/:jobId/choice/answer', async (c) => {
   if (inFlight.has(jobId)) return c.json({ error: 'an action is already in progress for this job' }, 409);
   inFlight.add(jobId);
   try {
+    // A choice the buyer's agent made alone is locked by the agent's own step,
+    // which checks the buyer's limits again as they stand now (view 87).
+    if (hold.byAgent) {
+      const { lockAfterSellerYes } = await import('../agents/lockAloneLive.js');
+      const outcome = await lockAfterSellerYes(jobId, hold.sellerAgent, hold.priceUsdc);
+      if (outcome.kind !== 'locked') {
+        logger.warn({ jobId, outcome }, 'accepted choice was not locked by the agent');
+        return c.json({ error: 'The buyer has to confirm this one. They have been told.', code: 'BUYER_CONFIRMS' }, 409);
+      }
+      await deleteChoice(jobId);
+      await deleteHold(jobId).catch(() => undefined);
+      publishChoice(hold, 'accepted');
+      return c.json({ ok: true, answer: 'accept', txHash: outcome.txHash }, 200);
+    }
     const result = await chooseAgentOffer(jobId, hold.sellerAgent, hold.priceUsdc);
     if (!result.ok) {
       logger.warn({ jobId, code: result.code }, 'accepted choice could not fund');

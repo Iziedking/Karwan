@@ -1164,7 +1164,7 @@ export const sw: Messages = {
       title: 'Hatua tatu hadi biashara yako ya kwanza',
       dismissAria: 'Ondoa mwongozo wa haraka',
       steps: {
-        activate: { title: 'Washa mawakala wako', body: 'Wape mawakala wako wa mnunuzi na muuzaji kikomo kidogo cha matumizi. Hawafadhili biashara wala kutoa pesa bila idhini yako.', cta: 'Washa' },
+        activate: { title: 'Washa mawakala wako', body: 'Wape mawakala wako wa mnunuzi na muuzaji kikomo kidogo cha matumizi. Hawatoi pesa bila wewe, na hufadhili biashara peke yao tu ndani ya mipaka unayoweka mwenyewe.', cta: 'Washa' },
         post: { title: 'Tuma ombi au ofa', body: 'Sema unachohitaji au unachosambaza. Wakala wako hujadiliana na kuleta mechi.', cta: 'Fungua madawati' },
         settle: { title: 'Idhinisha, kisha malizia', body: 'Idhinisha mechi aliyoipata wakala wako. Pesa hutolewa kwa hatua baada ya wewe kuidhinisha kazi.' },
       },
@@ -5179,7 +5179,7 @@ export const sw: Messages = {
         invite: { label: 'Mwaliko kwa barua pepe.', body: 'Unaweza kufungua deal na mtu asiye na akaunti. Anaidai kutoka kiungo kilichotumwa kwa barua pepe pamoja na msimbo wa mara moja, na hulipwa bila kusakinisha wallet yoyote.' },
         moving: { label: 'Kuingiza na kutoa fedha.', body: 'Tumia njia za kuweka na kutoa fedha zinazoonyeshwa kwenye bidhaa. Mitandao na njia za uhamisho zinazopatikana hutegemea usanidi wa sasa wa Circle. Uhamisho ndani ya Arc ni wa moja kwa moja.' },
         reputation: { label: 'Sifa na pasipoti ya mkopo.', body: 'Akaunti yako hubeba kiwango na alama zilizojengwa kutoka historia ya deal zilizolipwa. Yeyote mwenye anwani yako anaweza kusoma sehemu iliyo on-chain.' },
-        agents: { label: 'Wakala.', body: 'Wakala wa hiari wa mnunuzi na muuzaji hutafuta wenzio, hupima ofa, na hufanya mazungumzo ndani ya mipaka uliyoweka. Wanafanya mazungumzo. Hawahamishi fedha peke yao. Kila mwenendo ama unaidhinishwa na wewe, au ni mojawapo ya matokeo ya kiotomatiki katika sehemu ya 4.' },
+        agents: { label: 'Wakala.', body: 'Wakala wa hiari wa mnunuzi na muuzaji hutafuta wenzio, hupima ofa, na hufanya mazungumzo ndani ya mipaka uliyoweka. Wanafanya mazungumzo. Hawahamishi fedha peke yao, isipokuwa jambo moja unalochagua: ukiwasha Nifungie pesa na kuweka mipaka yake kwa passkey yako, wakala wako wa kununua anaweza kufunga pesa za dili alilokubaliana, kwenye escrow ya Karwan tu na ndani ya mipaka hiyo. Haachilii, hatumi wala hatoi pesa kamwe. Kila mwenendo mwingine ama unaidhinishwa na wewe, au ni mojawapo ya matokeo ya kiotomatiki katika sehemu ya 4.' },
         assistant: { label: 'Msaidizi.', body: 'Msaidizi wa AI ndani ya bidhaa hujibu maswali na anaweza kuandaa hatua kwa ajili yako. Chochote kinachohamisha fedha huonyeshwa kwako na kinahitaji uthibitisho wako kabla ya kutekelezwa. Unaweza kuomba mtu halisi wakati wowote, na hilo hufungua tiketi ya msaada.' },
         staking: { label: 'Dhamana ya mpango.', body: 'Unaweza kuweka USDC kando kama dhamana ya mpango. Inapandisha ngazi yako, na escrow inaweza kuilipa kwa mnunuzi ukishindwa mzozo.' },
       },

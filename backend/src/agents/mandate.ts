@@ -5,6 +5,7 @@ import type { MarketWatch } from '../intelligence/watches.js';
 import type { LocalCurrency } from '../rates/usdcRates.js';
 import { DEFAULT_LOCKS_PER_DAY, DEFAULT_LOCK_WHO, DEFAULT_WEEKLY_BUDGET_USDC, MAX_LOCKS_PER_DAY, MAX_WEEKLY_BUDGET_USDC, type AgentRecord, type LockRules, type LockWho, type SaidUsdc, type StopReason } from './agentRecord.js';
 import { AGENT_SWITCHES, modeOf, switchesOf, switchesOfMode, type AgentSwitch, type Alone } from './alone.js';
+import { lockedThisWeekMicros } from './lockLedger.js';
 import { waysOf, type SellWay } from './ways.js';
 
 /// What a person's agent may do, read as one thing (view 52, step 3). Each part
@@ -35,6 +36,8 @@ export interface Mandate {
   stopped: { at: number; reason: StopReason } | null;
   /// The limits for locking money alone, once set.
   lock: MandateLock | null;
+  /// What the agent locked alone in the last seven days, when it locked anything (view 87).
+  lockedThisWeekUsdc?: number;
 }
 
 export type MandateLock = Omit<LockRules, 'locks'>;
@@ -111,7 +114,9 @@ export function mandateOf(
   profile: Pick<UserProfile, 'agentWays' | 'seller' | 'buyer' | 'agentPrefs'>,
   record: MandateRecord | null | undefined,
   watches: readonly MarketWatch[],
+  now: number = Date.now(),
 ): Mandate {
+  const lockedMicros = record?.lock ? lockedThisWeekMicros(record.lock.locks, now) : 0n;
   const ways = waysOf(profile);
   const b = profile.buyer;
   const wayMost = ways.buy.map((w) => ('maxPrice' in w ? w.maxPrice : w.maxDeposit));
@@ -132,6 +137,7 @@ export function mandateOf(
     quiet: record?.quiet === undefined ? { ...DEFAULT_QUIET } : record.quiet,
     stopped: record?.stopped ?? null,
     lock: record?.lock ? { perDeal: record.lock.perDeal, perWeek: record.lock.perWeek, perDay: record.lock.perDay, who: record.lock.who } : null,
+    ...(lockedMicros > 0n ? { lockedThisWeekUsdc: Number(lockedMicros) / 1e6 } : {}),
   };
 }
 
@@ -299,6 +305,7 @@ export function sayMandate(m: Mandate, locale: UserLocale = 'en'): string[] {
   if (m.lock && m.switches.lock) {
     lines.push(tg('mandate.lockRules', locale, { deal: saidText(m.lock.perDeal), week: saidText(m.lock.perWeek), who: tg(`mandate.who.${m.lock.who}`, locale), day: String(m.lock.perDay) }));
   }
+  if (m.lockedThisWeekUsdc) lines.push(tg('mandate.lockedWeek', locale, { usdc: num(m.lockedThisWeekUsdc) }));
   lines.push(tg('mandate.weeklyLimit', locale, { usdc: num(m.weeklyLimitUsdc) }));
   if (m.watches.length) lines.push(tg(m.watches.length === 1 ? 'mandate.watchesOne' : 'mandate.watches', locale, { count: String(m.watches.length) }));
   if (m.goals.length) lines.push(tg('mandate.goals', locale, { list: m.goals.map((g) => g.text).join('; ') }));

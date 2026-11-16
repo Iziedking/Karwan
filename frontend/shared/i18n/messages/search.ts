@@ -152,7 +152,7 @@ const en: SearchCopy = {
   sheet: {
     requestTitle: 'Start the search',
     offerTitle: 'Post an offer',
-    requestLead: 'Your agent looks for a seller for up to {amount} USDC, within {days} days. It never pays without you.',
+    requestLead: 'Your agent looks for a seller for up to {amount} USDC, within {days} days. It pays only when you say so, or inside limits you set yourself.',
     offerLead: 'Your agent sells {title} from {amount} USDC and answers requests that fit.',
     setupLine: 'Sets up your agents. Once.',
     moveLine: 'Moves {amount} USDC to your buyer agent. You can move it back from Account if you cancel the request.',
@@ -287,7 +287,7 @@ const fr: SearchCopy = {
   sheet: {
     requestTitle: 'Lancer la recherche',
     offerTitle: 'Publier une offre',
-    requestLead: 'Votre agent cherche un vendeur pour {amount} USDC au plus, sous {days} jours. Il ne paie jamais sans vous.',
+    requestLead: 'Votre agent cherche un vendeur pour {amount} USDC au plus, sous {days} jours. Il ne paie que si vous le dites, ou dans les limites que vous fixez vous-même.',
     offerLead: 'Votre agent vend {title} à partir de {amount} USDC et répond aux demandes qui correspondent.',
     setupLine: 'Configure vos agents. Une seule fois.',
     moveLine: 'Transfère {amount} USDC vers votre agent acheteur. Vous pouvez le récupérer depuis Compte si vous annulez la demande.',
@@ -422,7 +422,7 @@ const ar: SearchCopy = {
   sheet: {
     requestTitle: 'ابدأ البحث',
     offerTitle: 'انشر عرضًا',
-    requestLead: 'يبحث وكيلك عن بائع بحد أقصى {amount} USDC خلال {days} أيام. لا يدفع أبدًا دون موافقتك.',
+    requestLead: 'يبحث وكيلك عن بائع بحد أقصى {amount} USDC خلال {days} أيام. لا يدفع إلا بموافقتك، أو ضمن حدود تضعها بنفسك.',
     offerLead: 'يبيع وكيلك {title} بدءًا من {amount} USDC ويرد على الطلبات المناسبة.',
     setupLine: 'يُعد وكلاءك. مرة واحدة.',
     moveLine: 'ينقل {amount} USDC إلى وكيل الشراء. يمكنك استرجاعها من الحساب إذا ألغيت الطلب.',
@@ -557,7 +557,7 @@ const hi: SearchCopy = {
   sheet: {
     requestTitle: 'खोज शुरू करें',
     offerTitle: 'ऑफ़र पोस्ट करें',
-    requestLead: 'आपका एजेंट {days} दिनों में अधिकतम {amount} USDC के लिए विक्रेता खोजता है। यह आपके बिना कभी भुगतान नहीं करता।',
+    requestLead: 'आपका एजेंट {days} दिनों में अधिकतम {amount} USDC के लिए विक्रेता खोजता है। यह तभी भुगतान करता है जब आप कहें, या उन सीमाओं के भीतर जो आप खुद तय करते हैं।',
     offerLead: 'आपका एजेंट {title} को {amount} USDC से बेचता है और उपयुक्त अनुरोधों का जवाब देता है।',
     setupLine: 'आपके एजेंट सेट करता है। केवल एक बार।',
     moveLine: '{amount} USDC आपके खरीदार एजेंट में भेजता है। अनुरोध रद्द करने पर आप इसे खाते से वापस ले सकते हैं।',
@@ -692,7 +692,7 @@ const sw: SearchCopy = {
   sheet: {
     requestTitle: 'Anza kutafuta',
     offerTitle: 'Chapisha ofa',
-    requestLead: 'Wakala wako anatafuta muuzaji kwa hadi {amount} USDC, ndani ya siku {days}. Halipi kamwe bila wewe.',
+    requestLead: 'Wakala wako anatafuta muuzaji kwa hadi {amount} USDC, ndani ya siku {days}. Hulipa tu ukisema, au ndani ya mipaka unayoweka mwenyewe.',
     offerLead: 'Wakala wako anauza {title} kuanzia {amount} USDC na anajibu maombi yanayofaa.',
     setupLine: 'Inaweka mawakala wako. Mara moja tu.',
     moveLine: 'Inahamisha {amount} USDC kwa wakala wako wa kununua. Unaweza kuirudisha kutoka Akaunti ukighairi ombi.',

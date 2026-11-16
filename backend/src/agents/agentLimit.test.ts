@@ -80,3 +80,22 @@ test('a weekly limit said in naira is the rule: it stays the figure said as the 
   assert.equal(n, 1);
   assert.deepEqual(saved, ['0xabc']);
 });
+
+test('lock limits said in naira follow the rate of the day; a limit said in USDC stays (view 87)', async () => {
+  const { limitAtRate, refreshSaidLimits } = await import('./agentLimit.js');
+  const at = (rate: number | null) => ({ rates: rate ? { NGN: rate } : {}, updatedAt: rate ? 1 : null, source: 'coingecko' as const });
+  const locked: AgentRecord = {
+    ...record,
+    lock: { perDeal: { usdc: 30, said: { currency: 'NGN', amount: '50000' } }, perWeek: { usdc: 150 }, perDay: 3, who: 'record', locks: [] },
+  };
+  const moved = limitAtRate(locked, at(1600));
+  assert.equal(moved.lock?.perDeal.usdc, 31.25);
+  assert.deepEqual(moved.lock?.perDeal.said, { currency: 'NGN', amount: '50000' });
+  assert.equal(moved.lock?.perWeek.usdc, 150);
+  assert.equal(limitAtRate(locked, at(null)), locked, 'no rate keeps the stored USDC');
+  assert.equal(limitAtRate(moved, at(1600)), moved, 'the same rate changes nothing');
+  const saved: AgentRecord[] = [];
+  const n = await refreshSaidLimits({ list: async () => [locked, record], rates: async () => at(1600), save: async (_o, change) => { saved.push(change(locked)); } });
+  assert.equal(n, 1);
+  assert.equal(saved[0]?.lock?.perDeal.usdc, 31.25);
+});

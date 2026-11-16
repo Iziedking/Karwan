@@ -73,7 +73,7 @@ type Locale = 'en' | 'fr' | 'ar' | 'hi' | 'sw';
 export const waysCopy: Record<Locale, WaysCopy> = {
   en: {
     title: 'How you deal',
-    hint: 'Your agents offer and ask only in these ways. Money never moves without your confirmation.',
+    hint: 'Your agents offer and ask only in these ways. Money moves only when you confirm, or inside limits you set yourself.',
     selling: 'Selling',
     buying: 'Buying',
     shapes: { one_time: 'One-time', milestones: 'Milestones', goods: 'Goods with delivery', deposit: 'Refundable deposit', hourly: 'By the hour', monthly: 'Monthly retainer' },
@@ -129,7 +129,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
   },
   fr: {
     title: 'Comment vous traitez',
-    hint: 'Vos agents proposent et demandent seulement de ces façons. L’argent ne bouge jamais sans votre confirmation.',
+    hint: 'Vos agents proposent et demandent seulement de ces façons. L’argent ne bouge que si vous confirmez, ou dans les limites que vous fixez vous-même.',
     selling: 'Vente',
     buying: 'Achat',
     shapes: { one_time: 'En une fois', milestones: 'Par étapes', goods: 'Marchandises livrées', deposit: 'Caution remboursable', hourly: 'À l’heure', monthly: 'Forfait mensuel' },
@@ -185,7 +185,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
   },
   ar: {
     title: 'طريقة تعاملك',
-    hint: 'وكلاؤك يعرضون ويطلبون بهذه الطرق فقط. المال لا يتحرك أبدًا دون تأكيدك.',
+    hint: 'وكلاؤك يعرضون ويطلبون بهذه الطرق فقط. المال لا يتحرك إلا بتأكيدك، أو ضمن حدود تضعها بنفسك.',
     selling: 'البيع',
     buying: 'الشراء',
     shapes: { one_time: 'دفعة واحدة', milestones: 'على مراحل', goods: 'بضائع مع التوصيل', deposit: 'تأمين مسترد', hourly: 'بالساعة', monthly: 'اشتراك شهري' },
@@ -241,7 +241,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
   },
   hi: {
     title: 'आप कैसे सौदा करते हैं',
-    hint: 'आपके एजेंट केवल इन्हीं तरीकों से ऑफ़र और अनुरोध करते हैं। आपकी पुष्टि के बिना पैसा कभी नहीं हिलता।',
+    hint: 'आपके एजेंट केवल इन्हीं तरीकों से ऑफ़र और अनुरोध करते हैं। पैसा तभी हिलता है जब आप पुष्टि करें, या उन सीमाओं के भीतर जो आप खुद तय करते हैं।',
     selling: 'बेचना',
     buying: 'खरीदना',
     shapes: { one_time: 'एक बार में', milestones: 'चरणों में', goods: 'डिलीवरी वाला सामान', deposit: 'वापसी योग्य जमा', hourly: 'घंटे के हिसाब से', monthly: 'मासिक रिटेनर' },
@@ -297,7 +297,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
   },
   sw: {
     title: 'Jinsi unavyofanya biashara',
-    hint: 'Mawakala wako hutoa na kuomba kwa njia hizi tu. Pesa haisogei kamwe bila uthibitisho wako.',
+    hint: 'Mawakala wako hutoa na kuomba kwa njia hizi tu. Pesa husogea tu ukithibitisha, au ndani ya mipaka unayoweka mwenyewe.',
     selling: 'Kuuza',
     buying: 'Kununua',
     shapes: { one_time: 'Mara moja', milestones: 'Kwa hatua', goods: 'Bidhaa zinazowasilishwa', deposit: 'Amana inayorudishwa', hourly: 'Kwa saa', monthly: 'Malipo ya kila mwezi' },

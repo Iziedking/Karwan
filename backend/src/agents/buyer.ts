@@ -5382,6 +5382,33 @@ export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {
   return getBuyerSnapshot().jobs.find((j) => j.jobId === jobId) ?? null;
 }
 
+/// What a lock made alone has to know about a request's money (view 87): the
+/// escrow it would fund on, the price with the buyer's fee, what the buying
+/// agent still has to be given, and Karwan's market price. Reads only; the
+/// figures are the ones the approval banner shows a person.
+export async function lockMoneyView(
+  jobId: string,
+  priceUsdc: string,
+): Promise<{ family: boolean; totalUsdc: string; shortByUsdc: string | null; marketUsdc: number | null } | null> {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) return null;
+  const wallets = await findAgentWalletByAgentAddress(state.buyer.address);
+  const [onEscrow, feeBps, balance] = await Promise.all([
+    fundingEscrowForJob(state),
+    getEscrowFeeBps(),
+    readUsdcBalance((wallets?.buyerAddress ?? state.buyer.address) as `0x${string}`),
+  ]);
+  const { fundedAmount } = computeFunding(parseUnits(priceUsdc, USDC_DECIMALS), feeBps);
+  const needed = matchNeed(fundedAmount);
+  const fair = Number(state.marketRead?.fairPriceUsdc);
+  return {
+    family: onEscrow === 'suite',
+    totalUsdc: formatUnits(fundedAmount, USDC_DECIMALS),
+    shortByUsdc: balance >= needed ? null : formatUnits(needed - balance, USDC_DECIMALS),
+    marketUsdc: Number.isFinite(fair) && fair > 0 ? fair : null,
+  };
+}
+
 /// Re-open a finalized auction so it keeps collecting NEW bids until the
 /// deadline instead of dead-ending. Used when a near-miss is passed: the request
 /// stays live, and the next fresh seller's bid re-arms the collection window and

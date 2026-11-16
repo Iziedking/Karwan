@@ -20,6 +20,9 @@ export interface ChoiceHold {
   /// The seller said no. Kept until the time is up so the same choice is not
   /// put to them twice.
   declinedAt?: number;
+  /// The buyer's agent made this choice alone (view 87): the seller's yes is
+  /// checked against the buyer's limits again before anything is funded.
+  byAgent?: true;
 }
 
 export type ChoiceState = 'waiting' | 'raised' | 'declined' | 'expired';
@@ -41,7 +44,7 @@ export function answerBy(now: number, requestDeadlineUnix: number | null | undef
   return due !== null && due > now && due < day ? due : day;
 }
 
-export function newHold(input: { jobId: string; sellerAgent: string; sellerUser: string; buyerUser: string; priceUsdc: string; now: number; requestDeadlineUnix?: number | null }): ChoiceHold {
+export function newHold(input: { jobId: string; sellerAgent: string; sellerUser: string; buyerUser: string; priceUsdc: string; now: number; requestDeadlineUnix?: number | null; byAgent?: boolean }): ChoiceHold {
   return {
     jobId: input.jobId.toLowerCase(),
     sellerAgent: input.sellerAgent.toLowerCase(),
@@ -50,6 +53,7 @@ export function newHold(input: { jobId: string; sellerAgent: string; sellerUser:
     priceUsdc: input.priceUsdc,
     chosenAt: input.now,
     answerBy: answerBy(input.now, input.requestDeadlineUnix),
+    ...(input.byAgent ? { byAgent: true as const } : {}),
   };
 }
 

@@ -45,6 +45,8 @@ export async function sellerAnswerStep(input: {
   priceUsdc: string;
   buyerUser: string;
   requestDeadlineUnix?: number | null;
+  /// The buyer's agent is choosing alone (view 87).
+  byAgent?: boolean;
   now?: number;
 }): Promise<{ wait: false } | { wait: true; hold: ChoiceHold; declined: boolean }> {
   if (!config.SELLER_ASKED) return { wait: false };
@@ -79,6 +81,7 @@ export async function sellerAnswerStep(input: {
     priceUsdc: input.priceUsdc,
     now,
     requestDeadlineUnix: input.requestDeadlineUnix,
+    byAgent: input.byAgent,
   });
   await putChoice(hold);
   publishChoice(hold, 'waiting');

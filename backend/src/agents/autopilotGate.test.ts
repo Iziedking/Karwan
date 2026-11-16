@@ -103,21 +103,23 @@ test('the first failing fact is the reason', () => {
 test('a deal off the family or a day\'s locks used stops the agent; the rest is asked', () => {
   assert.equal(afterRefusal('not-family'), 'stop');
   assert.equal(afterRefusal('over-day'), 'stop');
+  assert.equal(afterRefusal('over-day', false), 'stop');
+  assert.equal(afterRefusal('not-family', false), 'ask', 'the family switched off here is a question');
   for (const r of ['server-off', 'agent-off', 'switch-off', 'stopped', 'over-deal', 'over-week', 'who', 'price-outlier'] as LockRefusal[]) {
     assert.equal(afterRefusal(r), 'ask');
   }
 });
 
-test('nothing calls the gate yet: locking alone is not wired in this step', () => {
+test('only the lock step and its facts read the gate: nothing else may decide a lock', () => {
   const src = join(dirname(fileURLToPath(import.meta.url)), '..');
   const hits: string[] = [];
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const path = join(dir, entry.name);
       if (entry.isDirectory()) walk(path);
-      else if (entry.name.endsWith('.ts') && !entry.name.startsWith('autopilotGate.') && readFileSync(path, 'utf8').includes('autopilotGate')) hits.push(path);
+      else if (entry.name.endsWith('.ts') && !entry.name.includes('.test.') && !entry.name.startsWith('autopilotGate.') && readFileSync(path, 'utf8').includes("autopilotGate.js'")) hits.push(entry.name);
     }
   };
   walk(src);
-  assert.deepEqual(hits, []);
+  assert.deepEqual(hits.sort(), ['lockAlone.ts', 'lockFacts.ts']);
 });
