@@ -29,7 +29,7 @@ test('the page says the agent is on and asks for a usual price the seller never 
   await expect(page.getByRole('heading', { name: 'Your agent' })).toBeVisible();
   await expect(page.locator('[data-agent-state="on"]')).toContainText('2 offers waiting on buyers');
   await expect(page.locator('[data-price-notice]')).toBeVisible();
-  for (const row of ['What you sell', 'Your price', 'How you get paid', 'Agent permissions', 'When you buy']) {
+  for (const row of ['What you sell', 'Your price', 'How you get paid', 'When you buy']) {
     await expect(page.locator('[data-your-agent]').getByText(row, { exact: true })).toBeVisible();
   }
   await expect(page.getByText('Not given yet')).toBeVisible();
@@ -45,19 +45,6 @@ test('the page says the agent is on and asks for a usual price the seller never 
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const price = saves.find((s) => s.path === '/api/setup/ways')!.body as { ways: { sell: Record<string, unknown>[] } };
   expect(price.ways.sell[0]).toEqual({ shape: 'one_time', priceMin: 30, priceUsual: 50, daysMin: 1, daysMax: 3 });
-});
-
-test('what the agent does alone is changed in place', async ({ page }) => {
-  const saves: { path: string; body: unknown }[] = [];
-  await serveAgent(page, saves);
-  await page.goto('/profile/setup');
-  const row = page.locator('[data-your-agent]').getByRole('button', { name: 'Change' });
-  await row.nth(3).click();
-  const panel = page.getByRole('dialog');
-  await panel.getByRole('radio', { name: /Ask me first/ }).click();
-  await panel.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  expect(saves.find((s) => s.path === '/api/setup/agent-mode')?.body).toEqual({ agentMode: 'ask' });
 });
 
 test('how you get paid keeps a carried-over price marked as not given', async ({ page }) => {
@@ -81,6 +68,7 @@ test('the agent switch turns the agent off and on, only where it is open', async
   let agentOn = true;
   await page.route(`${API}/api/profile**`, (route) => route.fulfill({ json: { profile: { ...profile, agentPrefs: { agentOn } } } }));
   await page.route(`${API}/api/agents/mandate`, (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ status: 404, json: { error: 'profile not found' } });
     const body = route.request().postDataJSON() as { patch: { on: boolean } };
     changes.push(body);
     agentOn = body.patch.on;

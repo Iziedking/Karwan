@@ -2,16 +2,18 @@
 
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { api, type UserProfile } from '@/core/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, type SaidUsdc, type UserProfile } from '@/core/api';
 import { rememberReturn } from '@/features/assistant/assistantReturn';
 import { waysOf } from '@/features/profile/ways';
 import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { useLiveFeatures } from '@/shared/hooks/useLiveFeatures';
 import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { setupCopy } from '@/shared/i18n/messages/setup';
 import { yourAgentCopy } from '@/shared/i18n/messages/yourAgent';
+import { agentSwitchesCopy } from '@/shared/i18n/messages/agentSwitches';
+import { currencySign } from '@/features/money/localAmount';
+import type { DisplayCurrency } from '@/features/money/displayCurrency';
 import { profilePagesFor } from '@/shared/i18n/messages/profilePages';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
@@ -19,6 +21,8 @@ import { moneyHref } from '@/features/money/moneyRoutes';
 import { ResearchRows } from '@/features/profile/components/ResearchRows';
 import { fill } from '@/features/deals/workspace/presentation';
 import { AgentPanel, type PanelKey } from './agentPanels';
+import { LockSheet } from './LockSheet';
+import { MANDATE_KEY, aloneRows } from './switches';
 import { BeFoundPanel, NEEDS_KEY, ReachPanel, type FindPanelKey } from './findPanels';
 import { beFoundOf, meetLine, meetOf, reachableOf } from './findModel';
 import { daysOf, mainWay, paidKindOf, sellerUsualGiven } from './yourAgentModel';
@@ -37,7 +41,7 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
 }) {
   const { locale } = useLocale();
   const t = yourAgentCopy[locale as keyof typeof yourAgentCopy] ?? yourAgentCopy.en;
-  const own = (setupCopy[locale as keyof typeof setupCopy] ?? setupCopy.en).choices.own;
+  const sw = agentSwitchesCopy[locale] ?? agentSwitchesCopy.en;
   const parts = profilePagesFor(locale).agent;
   // Its money (view 83): the total at both agents, kept and moved on Money > Agent.
   const agentMoney = useMoneyBalances();
@@ -58,7 +62,6 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
   const kind = paidKindOf(ways);
   const days = daysOf(main);
   const given = sellerUsualGiven(profile);
-  const mode = profile.agentPrefs?.agentMode ?? 'offers';
   const waiting = offers.data?.length ?? 0;
   // The agent switch (view 75). One change at a time; a failure leaves it as it was.
   const features = useLiveFeatures();
@@ -72,6 +75,7 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
     try {
       await api.changeMandate({ part: 'power', on }, `page:${crypto.randomUUID()}`);
       saved({ ...profile, agentPrefs: { ...(profile.agentPrefs ?? {}), agentOn: on } });
+      void client.invalidateQueries({ queryKey: MANDATE_KEY });
     } catch {
       setSwitchFailed(true);
     } finally {
@@ -100,6 +104,33 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
   );
   const daysLine = days ? (days.min === days.max ? fill(t.daysOne, { n: days.min }) : fill(t.daysRange, { min: days.min, max: days.max })) : '';
 
+  // What it does alone (view 87): the switches and their limits, as the server holds them.
+  const client = useQueryClient();
+  const read = useQuery({ queryKey: MANDATE_KEY, queryFn: api.mandate, retry: false, enabled: activated });
+  const mandate = read.data?.mandate ?? null;
+  const lockIsOpen = read.data?.lockOpen === true && features.autopilotLock === true;
+  const [lockOpen, setLockOpen] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const rereadMandate = () => void client.invalidateQueries({ queryKey: MANDATE_KEY });
+  const amount = (a: SaidUsdc) => (a.said ? `${currencySign(a.said.currency as DisplayCurrency, locale)}${Number(a.said.amount).toLocaleString(locale)}` : mt.text(a.usdc));
+  const alone = mandate ? aloneRows(mandate, lockIsOpen, sw.agent, { amount, weeklyLimit: mt.text(mandate.weeklyLimitUsdc), sells: !!profile.seller && !!main }) : null;
+  const idle = !agentOn || !!mandate?.stopped;
+  async function turnBackOn() {
+    if (resuming) return;
+    setResuming(true);
+    setSwitchFailed(false);
+    try {
+      await api.changeMandate({ part: 'resume' }, `page:${crypto.randomUUID()}`);
+      rereadMandate();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(PROFILE_SAVED_EVENT));
+    } catch {
+      setSwitchFailed(true);
+    } finally {
+      setResuming(false);
+    }
+  }
+  const opened = (opens: 'price' | 'lock' | 'reach') => (opens === 'price' ? setOpen('price') : opens === 'lock' ? setLockOpen(true) : setFindOpen('reach'));
+
   function saved(next: UserProfile) {
     onSaved(next);
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(PROFILE_SAVED_EVENT));
@@ -107,6 +138,15 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
 
   return (
     <div data-your-agent className="space-y-7">
+      {mandate?.stopped ? (
+        <section data-agent-stopped role="status" className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+          <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{fill(sw.agent.stopped[mandate.stopped.reason], { n: mandate.lock?.perDay ?? 3 })}</p>
+          <button type="button" disabled={resuming} onClick={() => void turnBackOn()} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-5 text-[14px] font-semibold text-[var(--accent-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:opacity-40">
+            {sw.agent.turnBackOn}
+          </button>
+        </section>
+      ) : null}
+
       {activationLoading ? null : activated ? (
         <p data-agent-state={agentOn ? 'on' : 'switched-off'} className="flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
           <span aria-hidden className={`size-2.5 rounded-full ${agentOn ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-text-sub)]'}`} />
@@ -126,7 +166,7 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
       {activated && !activationLoading && features.agentSwitch ? (
         <div data-agent-power>
           <RowGroup>
-            <ToggleRow label={t.power.label} note={agentOn ? t.power.onNote : t.power.offNote} checked={agentOn} onChange={(next) => void setPower(next)} />
+            <ToggleRow label={t.power.label} note={agentOn ? t.power.onNote : t.power.offNote} checked={agentOn && !mandate?.stopped} onChange={(next) => (mandate?.stopped ? void turnBackOn() : void setPower(next))} />
           </RowGroup>
           {switchFailed ? <p role="alert" className="mt-2 text-[14px] font-medium text-[var(--lp-dark)]">{t.failed}</p> : null}
         </div>
@@ -141,7 +181,7 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
         </section>
       ) : null}
 
-      <RowGroup title={parts.doesForYou}>
+      <RowGroup title={sw.agent.trade}>
         {profile.seller ? (
           <>
             {answer(t.rows.sell, profile.seller.skills.length ? profile.seller.skills.join(', ') : t.notSet, 'sell')}
@@ -149,9 +189,27 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
             {answer(t.rows.paid, kind ? fill(t.paidLine, { kind: t.kinds[kind], days: daysLine }) : t.otherKind, 'paid')}
           </>
         ) : null}
-        {answer(t.rows.alone, own.options[mode].label, 'alone')}
         {profile.buyer ? answer(t.rows.buy, fill(t.buyLine, { max: money(profile.buyer.maxBudgetUsdc), days: profile.buyer.maxDeadlineDays }), 'buy') : null}
       </RowGroup>
+
+      {alone ? (
+        <div data-does-alone className={idle ? 'opacity-50' : undefined}>
+          <RowGroup title={sw.title}>
+            {alone.on.map((row) =>
+              row.opens === 'money' ? (
+                <Row key={row.name} label={row.label} value={row.value} href={moneyHref('agent')} />
+              ) : row.opens && !idle ? (
+                <Row key={row.name} label={row.label} value={row.value} onClick={() => opened(row.opens as 'price' | 'lock' | 'reach')} />
+              ) : (
+                <Row key={row.name} label={row.label} value={row.value} />
+              ),
+            )}
+            {alone.off.map((row) => (
+              <Row key={row.name} label={<span className="text-[var(--ink-secondary)]">{fill(sw.agent.offLine, { label: row.label })}</span>} value={sw.agent.settings} href="/settings?group=agent" />
+            ))}
+          </RowGroup>
+        </div>
+      ) : null}
 
       {activated && !activationLoading ? (
         <div data-its-money className="space-y-7">
@@ -178,7 +236,8 @@ export function YourAgent({ profile, address, activated, activationLoading, onTu
         <Row label={<span className="block"><span className="block">{t.askAssistant}</span><span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{t.assistant}</span></span>} onClick={() => { rememberReturn(pathname); router.push('/assistant'); }} />
       </RowGroup>
 
-      {open ? <AgentPanel key={open} open={open} profile={profile} t={t} own={own} onClose={() => setOpen(null)} onSaved={saved} /> : null}
+      {open ? <AgentPanel key={open} open={open} profile={profile} t={t} onClose={() => setOpen(null)} onSaved={saved} /> : null}
+      {lockOpen && mandate ? <LockSheet mandate={mandate} copy={sw} onClose={() => setLockOpen(false)} onSaved={rereadMandate} /> : null}
       {findOpen === 'beFound' ? <BeFoundPanel profile={profile} t={t} place={place} onClose={() => setFindOpen(null)} onSaved={saved} /> : null}
       {findOpen === 'reach' ? <ReachPanel profile={profile} t={t} onClose={() => setFindOpen(null)} onSaved={saved} /> : null}
     </div>

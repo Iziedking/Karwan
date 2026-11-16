@@ -8,6 +8,11 @@ export interface ConfirmPresenceCopy {
   setup: string;
   setupLine: string;
   factor: string;
+  /// Letting the agent lock money alone, with the limits being confirmed (view 87).
+  agentRule: string;
+  rulePerDeal: string;
+  rulePerWeek: string;
+  rulePerDay: string;
   fee: string;
   usePasskey: string;
   /// Shows the PIN field under a passkey (owner, 9 Nov 2026).
@@ -47,6 +52,10 @@ const en: ConfirmPresenceCopy = {
   setup: 'Set up your Karwan record',
   setupLine: 'Your agents run your deals for you. Your buying agent can pay up to {perPayment} USDC at a time and {total} USDC in total for one year.',
   factor: 'Change how you confirm',
+  agentRule: "Let your agent lock money",
+  rulePerDeal: "At most {amount} USDC for one deal.",
+  rulePerWeek: "At most {amount} USDC in a week.",
+  rulePerDay: "At most {n} locks in a day.",
   fee: 'Network fee about {fee} USDC',
   usePasskey: 'Confirm with passkey',
   usePinInstead: 'Use PIN instead',
@@ -84,6 +93,10 @@ const ar: ConfirmPresenceCopy = {
   setup: 'أنشئ سجلك في Karwan',
   setupLine: 'وكلاؤك يديرون صفقاتك نيابة عنك. يمكن لوكيل الشراء أن يدفع حتى {perPayment} USDC في المرة و{total} USDC إجمالًا لمدة سنة.',
   factor: 'غيّر طريقة التأكيد',
+  agentRule: "اسمح لوكيلك بحجز المال",
+  rulePerDeal: "بحد أقصى {amount} USDC للصفقة الواحدة.",
+  rulePerWeek: "بحد أقصى {amount} USDC في الأسبوع.",
+  rulePerDay: "بحد أقصى {n} مرات حجز في اليوم.",
   fee: 'رسوم الشبكة نحو {fee} USDC',
   usePasskey: 'استخدم مفتاح المرور',
   usePinInstead: 'استخدم الرمز السري بدلاً من ذلك',
@@ -121,6 +134,10 @@ const fr: ConfirmPresenceCopy = {
   setup: 'Créez votre dossier Karwan',
   setupLine: 'Vos agents mènent vos transactions pour vous. Votre agent d’achat peut payer jusqu’à {perPayment} USDC à la fois et {total} USDC au total pendant un an.',
   factor: 'Changer votre façon de confirmer',
+  agentRule: "Laisser votre agent bloquer de l’argent",
+  rulePerDeal: "Au plus {amount} USDC pour une transaction.",
+  rulePerWeek: "Au plus {amount} USDC par semaine.",
+  rulePerDay: "Au plus {n} blocages par jour.",
   fee: 'Frais de réseau environ {fee} USDC',
   usePasskey: 'Utiliser la clé d’accès',
   usePinInstead: 'Utiliser le code PIN',
@@ -158,6 +175,10 @@ const hi: ConfirmPresenceCopy = {
   setup: 'अपना Karwan रिकॉर्ड बनाएँ',
   setupLine: 'आपके एजेंट आपकी डील आपके लिए चलाते हैं। आपका खरीद एजेंट एक बार में {perPayment} USDC तक और एक साल में कुल {total} USDC तक भुगतान कर सकता है।',
   factor: 'पुष्टि का तरीका बदलें',
+  agentRule: "अपने एजेंट को पैसा लॉक करने दें",
+  rulePerDeal: "एक सौदे के लिए अधिकतम {amount} USDC।",
+  rulePerWeek: "एक हफ़्ते में अधिकतम {amount} USDC।",
+  rulePerDay: "एक दिन में अधिकतम {n} लॉक।",
   fee: 'नेटवर्क शुल्क लगभग {fee} USDC',
   usePasskey: 'पासकी का उपयोग करें',
   usePinInstead: 'इसके बजाय PIN का उपयोग करें',
@@ -195,6 +216,10 @@ const sw: ConfirmPresenceCopy = {
   setup: 'Fungua rekodi yako ya Karwan',
   setupLine: 'Mawakala wako wanaendesha mikataba yako kwa niaba yako. Wakala wako wa kununua anaweza kulipa hadi USDC {perPayment} kwa mara moja na USDC {total} kwa jumla kwa mwaka mmoja.',
   factor: 'Badilisha jinsi unavyothibitisha',
+  agentRule: "Ruhusu wakala wako afunge pesa",
+  rulePerDeal: "Isiyozidi {amount} USDC kwa mkataba mmoja.",
+  rulePerWeek: "Isiyozidi {amount} USDC kwa wiki.",
+  rulePerDay: "Isiyozidi mara {n} za kufunga kwa siku.",
   fee: 'Ada ya mtandao karibu USDC {fee}',
   usePasskey: 'Tumia passkey',
   usePinInstead: 'Tumia PIN badala yake',

@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { Suspense, useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   startRegistration,
@@ -17,6 +17,9 @@ import { PublishDealsRows } from './PublishDealsRows';
 import { AssistantMemoryRows } from './AssistantMemoryRows';
 import { DisplayCurrencySection } from './DisplayCurrencySection';
 import { GuideSwitchRow } from './GuideSwitchRow';
+import { SettingsAgent } from './SettingsAgent';
+import { SettingsGroups, useSettingsGroup } from './SettingsGroups';
+import { agentSwitchesCopy } from '@/shared/i18n/messages/agentSwitches';
 import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { sfx } from '@/shared/utils/sfx';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
@@ -30,11 +33,22 @@ const DEFAULT_SETTINGS: UserSettings = {
   publicPassport: true,
 };
 
+/// Settings in three groups (view 87): General, Money and Agent.
 export function SettingsBand() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsBody />
+    </Suspense>
+  );
+}
+
+function SettingsBody() {
+  const group = useSettingsGroup();
   const { address, isAuthenticated, signOut } = useAuth();
   const { locale, t } = useLocale();
+  const groupCopy = agentSwitchesCopy[locale] ?? agentSwitchesCopy.en;
   const { preference, mounted } = useTheme();
-  const [sheet, setSheet] = useState<null | 'language' | 'theme' | 'reach' | 'delete'>(null);
+  const [sheet, setSheet] = useState<null | 'language' | 'theme' | 'reach' | 'trade' | 'delete'>(null);
   const titleId = useId();
   const deleteInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -167,54 +181,71 @@ export function SettingsBand() {
 
   return (
     <div className="space-y-7">
-      <RowGroup title={t.settings.groups.preferences}>
-        <Row label={t.settings.language} value={LOCALE_NAMES[locale]} onClick={() => setSheet('language')} />
-        <Row label={t.settings.theme} value={themeLabel} onClick={() => setSheet('theme')} />
-        <DisplayCurrencySection />
-        <ToggleRow
-          label={t.settings.sound}
-          note={t.money.settings.soundsSwitch}
-          checked={soundsOn}
-          onChange={(on) => {
-            sfx.setMuted(!on);
-            if (on) sfx.tap();
-          }}
-        />
-        <ToggleRow
-          label={TRADE_ENTRY_COPY[locale].entry.settingsLabel}
-          checked={settings.tradesAs === 'business'}
-          onChange={(on) => save({ tradesAs: on ? 'business' : 'self' })}
-        />
-        <GuideSwitchRow />
-      </RowGroup>
+      <SettingsGroups active={group} />
 
-      <RowGroup title={t.settings.groups.notificationsPrivacy}>
-        <ToggleRow
-          label={t.settings.notifications}
-          note={t.settings.notificationsNote}
-          checked={!settings.notificationsMuted}
-          onChange={(on) => save({ notificationsMuted: !on })}
-        />
-        <Row label={t.setup.reachSetting} value={reach.options[reachNow].label} onClick={() => setSheet('reach')} />
-        <ToggleRow
-          label={t.settings.privacyPublicPassport}
-          checked={settings.publicPassport !== false}
-          onChange={(v) => save({ publicPassport: v })}
-        />
-        <PublishDealsRows settings={settings} save={save} />
-        <ToggleRow
-          label={t.agentJobs.setting.label}
-          note={t.agentJobs.setting.hint}
-          checked={settings.acceptsOutsideAgents !== false}
-          onChange={(v) => save({ acceptsOutsideAgents: v })}
-        />
-      </RowGroup>
+      <div id="settings-group-panel" role="tabpanel" aria-labelledby={`settings-tab-${group}`} className="space-y-7">
+        {group === 'general' ? (
+          <>
+            <RowGroup title={groupCopy.groups.display}>
+              <Row label={t.settings.language} value={LOCALE_NAMES[locale]} onClick={() => setSheet('language')} />
+              <Row label={t.settings.theme} value={themeLabel} onClick={() => setSheet('theme')} />
+              <ToggleRow
+                label={t.settings.sound}
+                note={t.money.settings.soundsSwitch}
+                checked={soundsOn}
+                onChange={(on) => {
+                  sfx.setMuted(!on);
+                  if (on) sfx.tap();
+                }}
+              />
+            </RowGroup>
 
-      <AssistantMemoryRows />
+            <RowGroup title={t.settings.groups.notificationsPrivacy}>
+              <ToggleRow
+                label={t.settings.notifications}
+                note={t.settings.notificationsNote}
+                checked={!settings.notificationsMuted}
+                onChange={(on) => save({ notificationsMuted: !on })}
+              />
+              <Row label={t.setup.reachSetting} value={reach.options[reachNow].label} onClick={() => setSheet('reach')} />
+              <ToggleRow
+                label={t.settings.privacyPublicPassport}
+                checked={settings.publicPassport !== false}
+                onChange={(v) => save({ publicPassport: v })}
+              />
+              <PublishDealsRows settings={settings} save={save} />
+              <ToggleRow
+                label={t.agentJobs.setting.label}
+                note={t.agentJobs.setting.hint}
+                checked={settings.acceptsOutsideAgents !== false}
+                onChange={(v) => save({ acceptsOutsideAgents: v })}
+              />
+            </RowGroup>
 
-      <RowGroup>
-        <Row label={<span className="text-[var(--color-critical)]">{t.settings.accountDelete}</span>} onClick={() => setSheet('delete')} />
-      </RowGroup>
+            <AssistantMemoryRows />
+            <RowGroup>
+              <GuideSwitchRow />
+            </RowGroup>
+
+            <RowGroup>
+              <Row label={<span className="text-[var(--color-critical)]">{t.settings.accountDelete}</span>} onClick={() => setSheet('delete')} />
+            </RowGroup>
+          </>
+        ) : null}
+
+        {group === 'money' ? (
+          <RowGroup>
+            <DisplayCurrencySection />
+            <Row
+              label={groupCopy.startTradeWith}
+              value={settings.tradesAs === 'business' ? TRADE_ENTRY_COPY[locale].entry.business : TRADE_ENTRY_COPY[locale].entry.self}
+              onClick={() => setSheet('trade')}
+            />
+          </RowGroup>
+        ) : null}
+
+        {group === 'agent' ? <SettingsAgent /> : null}
+      </div>
 
       {error && (
         <p role="alert" className="px-1 text-[14px] font-medium text-[var(--color-critical)]">
@@ -278,6 +309,33 @@ export function SettingsBand() {
               ) : null}
             </button>
           ))}
+        </div>
+      </ConfirmSheetShell>
+
+      <ConfirmSheetShell open={sheet === 'trade'} labelledBy={`${titleId}-trade`} busy={false} onClose={() => setSheet(null)}>
+        <h2 id={`${titleId}-trade`} className="mb-4 text-[20px] font-semibold text-[var(--ink)]">{groupCopy.startTradeWith}</h2>
+        <div role="radiogroup" aria-labelledby={`${titleId}-trade`} className="divide-y divide-[var(--line)] overflow-hidden rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)]">
+          {(['self', 'business'] as const).map((as) => {
+            const chosen = (settings.tradesAs === 'business' ? 'business' : 'self') === as;
+            return (
+              <button
+                key={as}
+                type="button"
+                role="radio"
+                aria-checked={chosen}
+                onClick={() => {
+                  save({ tradesAs: as });
+                  setSheet(null);
+                }}
+                className="flex min-h-[52px] w-full items-center gap-3 px-5 text-start text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-press)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
+              >
+                <span className="flex-1">{TRADE_ENTRY_COPY[locale].entry[as]}</span>
+                <span aria-hidden className={`grid size-5 shrink-0 place-items-center rounded-full border-[1.5px] ${chosen ? 'border-[var(--ink)]' : 'border-[var(--line-strong)]'}`}>
+                  {chosen ? <span className="size-2.5 rounded-full bg-[var(--ink)]" /> : null}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </ConfirmSheetShell>
 

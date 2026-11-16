@@ -123,6 +123,41 @@ export function Row({ label, value, href, onClick, soon, full = false, inline = 
   return <div className={rowBase}>{content}</div>;
 }
 
+/// A switch whose explanation sits behind an (i) (view 87). The row itself is
+/// not the control, so opening the note never flips the switch. `pill` names a
+/// switch that is not open yet.
+export function SwitchRow({ label, info, checked, disabled = false, pill, onChange }: {
+  label: string;
+  info?: string;
+  checked: boolean;
+  disabled?: boolean;
+  pill?: string;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className={rowBase} data-switch-row>
+      <span className={`flex min-w-0 flex-1 items-center gap-2 font-medium ${disabled ? 'text-[var(--ink-secondary)]' : 'text-[var(--ink)]'}`}>
+        <span className="min-w-0 break-words">{label}</span>
+        {info ? <Hint>{info}</Hint> : null}
+      </span>
+      {pill ? <span className="shrink-0 rounded-full bg-[var(--raised)] px-2.5 py-1 text-[14px] font-semibold text-[var(--ink-secondary)]">{pill}</span> : null}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className="grid min-h-11 shrink-0 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span aria-hidden className="relative inline-block h-6 w-11 rounded-full transition-colors duration-200" style={{ background: checked ? 'var(--karwan-green)' : 'var(--color-line-strong)' }}>
+          <span className="absolute top-0.5 size-5 rounded-full bg-[var(--canvas)] shadow-sm transition-[inset-inline-start] duration-200 motion-reduce:transition-none" style={{ insetInlineStart: checked ? 22 : 2 }} />
+        </span>
+      </button>
+    </div>
+  );
+}
+
 /// A setting that is on or off: the label and one plain line under it on the
 /// left, the switch at the end. The whole row toggles it.
 export function ToggleRow({ label, note, checked, onChange }: {

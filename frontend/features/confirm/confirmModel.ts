@@ -67,5 +67,14 @@ export function actionLines(action: PresenceAction, copy: ConfirmPresenceCopy, t
       };
     case 'factor_change':
       return { headline: copy.factor, lines: [] };
+    case 'agent_rule':
+      return {
+        headline: copy.agentRule,
+        lines: [
+          ...(action.detail.perDeal ? [fillIn(copy.rulePerDeal, { amount: formatMicros(action.detail.perDeal) })] : []),
+          ...(action.detail.perWeek ? [fillIn(copy.rulePerWeek, { amount: formatMicros(action.detail.perWeek) })] : []),
+          ...(action.detail.perDay ? [fillIn(copy.rulePerDay, { n: action.detail.perDay })] : []),
+        ],
+      };
   }
 }

@@ -97,3 +97,19 @@ test('the_copy_has_no_em_dashes_and_no_wallet_words', () => {
     }
   }
 });
+
+test('letting the agent lock money names the limits being confirmed', () => {
+  const copy = confirmPresenceCopy.en;
+  const rule = actionLines({ kind: 'agent_rule', wallet: '0xaa', amountMicros: null, recipient: null, detail: { lock: 'on', perDeal: '30000000', perWeek: '90500000', perDay: '3', who: 'record' } }, copy);
+  assert.deepEqual(rule, {
+    headline: 'Let your agent lock money',
+    lines: ['At most 30 USDC for one deal.', 'At most 90.5 USDC in a week.', 'At most 3 locks in a day.'],
+  });
+  assert.deepEqual(actionLines({ kind: 'agent_rule', wallet: '0xaa', amountMicros: null, recipient: null, detail: { lock: 'on' } }, copy).lines, []);
+  for (const [locale, c] of Object.entries(confirmPresenceCopy)) {
+    assert.match(c.rulePerDeal, /\{amount\}/, locale);
+    assert.match(c.rulePerWeek, /\{amount\}/, locale);
+    assert.match(c.rulePerDay, /\{n\}/, locale);
+    if (locale !== 'en') assert.notEqual(c.agentRule, copy.agentRule, locale);
+  }
+});

@@ -6,12 +6,10 @@ import { api, type UserProfile } from '@/core/api';
 import { waysOf, type TypedPrice } from '@/features/profile/ways';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import type { YourAgentCopy } from '@/shared/i18n/messages/yourAgent';
-import type { SetupCopy } from '@/shared/i18n/messages/setup';
 import { cn } from '@/shared/utils/cn';
 import { daysOf, daysProblem, mainWay, paidKindOf, priceProblem, withPaid, withPrice, type PaidKind } from './yourAgentModel';
 
-export type PanelKey = 'sell' | 'price' | 'paid' | 'alone' | 'buy';
-type AgentMode = 'offers' | 'ask' | 'agree';
+export type PanelKey = 'sell' | 'price' | 'paid' | 'buy';
 
 const input = 'form-input mt-1.5 w-full';
 const label = 'block text-[14px] font-semibold text-[var(--lp-dark)]';
@@ -147,11 +145,10 @@ function profileBody(profile: UserProfile, change: Pick<UserProfile, 'seller' | 
   } as Parameters<typeof api.saveProfile>[0];
 }
 
-export function AgentPanel({ open, profile, t, own, onClose, onSaved }: {
+export function AgentPanel({ open, profile, t, onClose, onSaved }: {
   open: PanelKey;
   profile: UserProfile;
   t: YourAgentCopy;
-  own: SetupCopy['choices']['own'];
   onClose: () => void;
   onSaved: (p: UserProfile) => void;
 }) {
@@ -171,7 +168,6 @@ export function AgentPanel({ open, profile, t, own, onClose, onSaved }: {
   const [daysMax, setDaysMax] = useState(text(days?.max));
   const [what, setWhat] = useState(main?.shape === 'goods' ? main.what : seller?.skills[0] ?? '');
   const [shipsTo, setShipsTo] = useState(main?.shape === 'goods' ? main.shipsTo : '');
-  const [mode, setMode] = useState<AgentMode>(profile.agentPrefs?.agentMode ?? 'offers');
   const [maxPrice, setMaxPrice] = useState(text(profile.buyer?.maxBudgetUsdc));
   const [wait, setWait] = useState(text(profile.buyer?.maxDeadlineDays));
 
@@ -222,16 +218,6 @@ export function AgentPanel({ open, profile, t, own, onClose, onSaved }: {
           <NumberField name={t.fields.daysMin} value={daysMin} onChange={setDaysMin} />
           <NumberField name={t.fields.daysMax} value={daysMax} onChange={setDaysMax} />
         </div>
-      </Panel>
-    );
-  }
-
-  if (open === 'alone') {
-    const modes: AgentMode[] = ['offers', 'ask', 'agree'];
-    return (
-      <Panel title={t.rows.alone} busy={busy} error={error} onClose={onClose} t={t} onSave={() => void run(() => api.saveAgentMode(mode))}>
-        <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{own.help}</p>
-        <Choice legend={t.rows.alone} value={mode} onChange={setMode} options={modes.map((m) => ({ value: m, label: own.options[m].label, note: own.options[m].note }))} />
       </Panel>
     );
   }

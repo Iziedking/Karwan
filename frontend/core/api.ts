@@ -563,10 +563,24 @@ export interface Workspace {
   };
 }
 
+/// What a person's agent may do, as the mandate route reads it (views 52 and 87).
+export type AgentSwitchName = 'offers' | 'bargain' | 'agree' | 'lock' | 'find' | 'data' | 'brief';
+export interface SaidUsdc { usdc: number; said?: { currency: string; amount: string } }
+export interface AgentLockRules { perDeal: SaidUsdc; perWeek: SaidUsdc; perDay: number; who: 'verified' | 'record' | 'anyone' }
+export interface AgentMandate {
+  on: boolean;
+  alone: 'offers' | 'ask' | 'agree';
+  switches: Record<AgentSwitchName, boolean>;
+  weeklyLimitUsdc: number;
+  brief: { on: boolean; hour: number; timeZone: string };
+  stopped: { at: number; reason: 'locks-today' | 'lock-failures' | 'not-family' } | null;
+  lock: AgentLockRules | null;
+}
+
 export interface UserProfile {
   /// The setup conversation's answers (view 19).
   goals?: Goal[];
-  agentPrefs?: { findClients?: boolean; agentMode?: 'offers' | 'ask' | 'agree'; agentOn?: boolean; sellerPriceSet?: boolean; buyerPriceSet?: boolean };
+  agentPrefs?: { findClients?: boolean; agentMode?: 'offers' | 'ask' | 'agree'; agentOn?: boolean; sellerPriceSet?: boolean; buyerPriceSet?: boolean; alone?: Partial<Record<AgentSwitchName, boolean>> };
   /// The ways this person deals, one per kind of deal (view 26). Absent until saved.
   agentWays?: import('@/features/profile/ways').AgentWays;
   ownWords?: { what?: string; price?: string; buy?: string; business?: string };
@@ -2480,7 +2494,7 @@ export type PresenceMethod = 'pin' | 'passkey' | 'wallet';
 /// record, putting up deal insurance, sending money out of Karwan, or changing
 /// how they confirm.
 export interface PresenceAction {
-  kind: 'record_setup' | 'deal_guarantee' | 'deal_insurance' | 'move_out' | 'factor_change';
+  kind: 'record_setup' | 'deal_guarantee' | 'deal_insurance' | 'move_out' | 'factor_change' | 'agent_rule';
   wallet: string;
   amountMicros: string | null;
   recipient: string | null;
@@ -6695,6 +6709,8 @@ export const api = {
     json<{ profile: UserProfile }>('/api/setup/agent-mode', { method: 'POST', body: JSON.stringify({ agentMode }) }),
   saveWays: (ways: import('@/features/profile/ways').AgentWays) =>
     json<{ profile: UserProfile; lines: string[] }>('/api/setup/ways', { method: 'POST', body: JSON.stringify({ ways }) }),
+  /// What the person's agent may do, and whether Lock money is open here (view 87).
+  mandate: () => json<{ mandate: AgentMandate; lines: string[]; lockOpen: boolean }>('/api/agents/mandate'),
   /// One confirmed change to what the person's agent may do (view 52). The
   /// card's id goes with it, so one card makes one change.
   changeMandate: (patch: Record<string, unknown>, cardId: string) =>

@@ -7,7 +7,7 @@ import { RATES, funded, serveMoney, type MoneyWorld } from './moneyFixtures';
 test('show amounts in lists ten currencies with a rate and saves the choice', async ({ page }) => {
   const world: MoneyWorld = { balances: funded, rates: RATES };
   await serveMoney(page, world);
-  await page.goto('/settings');
+  await page.goto('/settings?group=money');
   await page.getByRole('button', { name: /Show amounts in/ }).click();
   const sheet = page.getByRole('dialog');
   const list = sheet.getByRole('radiogroup', { name: 'Show amounts in' });
@@ -29,7 +29,7 @@ test('show amounts in lists ten currencies with a rate and saves the choice', as
 
 test('no fresh rate shows the list without rates and keeps USDC', async ({ page }) => {
   await serveMoney(page, { balances: funded });
-  await page.goto('/settings');
+  await page.goto('/settings?group=money');
   await page.getByRole('button', { name: /Show amounts in/ }).click();
   const list = page.getByRole('dialog').getByRole('radiogroup', { name: 'Show amounts in' });
   await expect(list.getByRole('radio', { name: /Nigerian naira/ })).toContainText('Rate not available right now');

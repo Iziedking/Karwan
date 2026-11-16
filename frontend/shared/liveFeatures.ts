@@ -6,6 +6,8 @@ export interface LiveFeatures {
   sellerAsked?: boolean;
   /// The agent can be switched off here (view 75).
   agentSwitch?: boolean;
+  /// A person may let their agent lock money alone (view 87).
+  autopilotLock?: boolean;
 }
 
 export const LIVE_FEATURES_OFF: LiveFeatures = { hourlyWork: false };
