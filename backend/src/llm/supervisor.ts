@@ -6,9 +6,9 @@
 ///
 /// PRIVACY: the prompt carries error context and recent events, which include
 /// deal data (parties, amounts, jobIds). It runs ONLY on `supervisorModel`
-/// (direct Anthropic, no third-party proxy). When the model is absent
-/// (no ANTHROPIC_API_KEY) the supervisor is disabled and callers get null — they
-/// must NOT fall back to a proxy for this input.
+/// (direct links, no third-party proxy). When no direct link is configured the
+/// supervisor is disabled and callers get null; they must NOT fall back to a
+/// proxy for this input.
 
 import { generateObject } from 'ai';
 import { z } from 'zod';

@@ -32,7 +32,7 @@ async function probe(name: string, run: () => Promise<string>): Promise<boolean>
 async function main() {
   const links = modelLinks();
   if (links.length === 0) {
-    console.log('No model is configured. Set BEDROCK_ENABLED, ANTHROPIC_API_KEY or OPENROUTER_API_KEY.');
+    console.log('No model is configured. Set the Anthropic pass settings or ANTHROPIC_API_KEY, BEDROCK_ENABLED, or OPENROUTER_API_KEY.');
     process.exit(1);
   }
   const answered: string[] = [];

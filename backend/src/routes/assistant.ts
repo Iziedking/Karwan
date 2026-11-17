@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { generateText } from 'ai';
 import { config } from '../config.js';
-import { bedrockFallbackModel, bedrockModel } from '../llm/client.js';
+import { anthropicHow, anthropicKeeper, bedrockFallbackModel, bedrockModel } from '../llm/client.js';
+import type { PassKeeper } from '../llm/anthropicPass.js';
 import { cleanModelText } from '../llm/cleanText.js';
 import { reportModelsDown } from '../llm/modelsDown.js';
 import { logger } from '../logger.js';
@@ -23,10 +24,13 @@ export const assistantRoutes = new Hono();
 const MAX_OUTPUT_TOKENS = 600;
 const MAX_HISTORY = 12;
 
-interface Provider {
+export interface Provider {
   name: string;
   url: string;
   headers: Record<string, string>;
+  /// Headers asked for at request time, such as the pass for Claude at
+  /// Anthropic (view 89), which renews itself.
+  auth?: () => Promise<Record<string, string>>;
   model: string;
   /// Wire format. 'anthropic' = /v1/messages; 'openai' =
   /// chat-completions (OpenRouter). Drives request shape + reply parsing.
@@ -35,51 +39,57 @@ interface Provider {
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
-/// The ordered provider chain (view 81): Claude on Bedrock, the Anthropic key,
-/// the fallback model on Bedrock, then OpenRouter. Signed-in chats drop
-/// OpenRouter. Empty when nothing is configured.
+/// Claude at Anthropic by raw request, with the pass or the key.
+export function anthropicProvider(model: string, how: { kind: 'pass'; keeper: PassKeeper } | { kind: 'key'; apiKey: string }): Provider {
+  const base = { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' };
+  return {
+    name: 'anthropic',
+    url: 'https://api.anthropic.com/v1/messages',
+    headers: how.kind === 'key' ? { ...base, 'x-api-key': how.apiKey } : base,
+    ...(how.kind === 'pass' ? { auth: async () => ({ authorization: `Bearer ${await how.keeper.get()}` }) } : {}),
+    model,
+    kind: 'anthropic',
+  };
+}
+
+export async function requestHeaders(p: Provider): Promise<Record<string, string>> {
+  return { ...p.headers, ...(p.auth ? await p.auth() : {}) };
+}
+
+/// The ordered provider chain (views 81 and 89): Claude at Anthropic, Claude
+/// on Bedrock, the fallback model on Bedrock, then OpenRouter. Signed-in chats
+/// drop OpenRouter.
+export function assistantProvidersFrom(links: { anthropic: Provider | null; bedrock: Provider | null; fallback: Provider | null; openrouter: Provider | null }): Provider[] {
+  return [links.anthropic, links.bedrock, links.fallback, links.openrouter].filter((p): p is Provider => p !== null);
+}
+
+/// Empty when nothing is configured.
 export function assistantProviders(): Provider[] {
-  const list: Provider[] = [];
-  // Bedrock first when enabled: Claude in Karwan's own AWS account, called
-  // through the AI SDK rather than raw HTTP, so url and headers stay empty.
-  if (bedrockModel) {
-    list.push({ name: 'bedrock', url: '', headers: {}, model: config.BEDROCK_MODEL, kind: 'bedrock' });
-  }
-  if (config.ANTHROPIC_API_KEY) {
-    list.push({
-      name: 'anthropic',
-      url: 'https://api.anthropic.com/v1/messages',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': config.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      model: config.ASSISTANT_MODEL,
-      kind: 'anthropic',
-    });
-  }
-  // A model that is not Claude, on Bedrock (view 81): answers when the Bedrock
-  // account refuses Claude and the Anthropic key is out of credit.
-  if (bedrockFallbackModel) {
-    list.push({ name: 'bedrock-fallback', url: '', headers: {}, model: config.BEDROCK_FALLBACK_MODEL, kind: 'bedrock' });
-  }
-  // OpenRouter last: keeps the assistant answering if Anthropic is unavailable
-  // or out of credit. OpenAI-compatible endpoint, so the system prompt
-  // rides as the first message (no separate `system` field) and the reply is
-  // read from choices[].message.content.
-  if (config.OPENROUTER_API_KEY) {
-    list.push({
-      name: 'openrouter',
-      url: 'https://openrouter.ai/api/v1/chat/completions',
-      headers: {
-        'content-type': 'application/json',
-        Authorization: `Bearer ${config.OPENROUTER_API_KEY}`,
-      },
-      model: config.LLM_MODEL,
-      kind: 'openai',
-    });
-  }
-  return list;
+  return assistantProvidersFrom({
+    anthropic:
+      anthropicHow === 'pass' && anthropicKeeper
+        ? anthropicProvider(config.ASSISTANT_MODEL, { kind: 'pass', keeper: anthropicKeeper })
+        : config.ANTHROPIC_API_KEY
+          ? anthropicProvider(config.ASSISTANT_MODEL, { kind: 'key', apiKey: config.ANTHROPIC_API_KEY })
+          : null,
+    // Bedrock runs through the AI SDK rather than raw HTTP, so url and
+    // headers stay empty.
+    bedrock: bedrockModel ? { name: 'bedrock', url: '', headers: {}, model: config.BEDROCK_MODEL, kind: 'bedrock' } : null,
+    // A model that is not Claude, on Bedrock (view 81): answers when both
+    // Claude links refuse.
+    fallback: bedrockFallbackModel ? { name: 'bedrock-fallback', url: '', headers: {}, model: config.BEDROCK_FALLBACK_MODEL, kind: 'bedrock' } : null,
+    // OpenRouter last. OpenAI-compatible, so the system prompt rides as the
+    // first message and the reply is read from choices[].message.content.
+    openrouter: config.OPENROUTER_API_KEY
+      ? {
+          name: 'openrouter',
+          url: 'https://openrouter.ai/api/v1/chat/completions',
+          headers: { 'content-type': 'application/json', Authorization: `Bearer ${config.OPENROUTER_API_KEY}` },
+          model: config.LLM_MODEL,
+          kind: 'openai',
+        }
+      : null,
+  });
 }
 
 interface ProviderResult {
@@ -183,7 +193,7 @@ async function callProvider(
         };
   const res = await fetch(p.url, {
     method: 'POST',
-    headers: p.headers,
+    headers: await requestHeaders(p),
     body: JSON.stringify(requestBody),
     signal,
   });

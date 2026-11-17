@@ -8,13 +8,13 @@
 /// cards it never confirms, so nothing moves. Costs about ten assistant turns
 /// of model tokens per run.
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { wrapLanguageModel, type LanguageModel } from 'ai';
 import type { LanguageModelV3, LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { config } from '../config.js';
 import { runAssistantAgent } from '../assistant/agent.js';
 import { fitCachePoints, withoutCachePoints } from '../llm/cachePoints.js';
+import { anthropicModel } from '../llm/client.js';
 
 const TURNS = [
   'What is my balance?',
@@ -40,13 +40,14 @@ async function main() {
   if (!account) throw new Error('--account 0x... is required');
   const provider = arg('--provider') ?? 'bedrock';
   if (provider !== 'bedrock' && provider !== 'anthropic') throw new Error('--provider is bedrock or anthropic');
-  if (provider === 'anthropic' && !config.ANTHROPIC_API_KEY) throw new Error('no Anthropic key set');
   const modelId = arg('--model') ?? (provider === 'bedrock' ? config.BEDROCK_MODEL : config.ASSISTANT_MODEL);
+  const direct = provider === 'anthropic' ? anthropicModel(modelId) : null;
+  if (provider === 'anthropic' && !direct) throw new Error('no pass or key for Claude at Anthropic');
   const cache = !process.argv.includes('--no-cache');
   const base =
     provider === 'bedrock'
       ? fitCachePoints(createAmazonBedrock({ region: config.BEDROCK_REGION, credentialProvider: fromNodeProviderChain() })(modelId))
-      : createAnthropic({ apiKey: config.ANTHROPIC_API_KEY })(modelId);
+      : direct!;
 
   // Keeps the cache usage of every call this turn makes.
   let usage = { read: 0, write: 0 };

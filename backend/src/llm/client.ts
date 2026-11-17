@@ -34,6 +34,8 @@ const anthropic = link?.provider ?? null;
 export const anthropicKeeper = link?.keeper ?? null;
 /// How Claude at Anthropic is reached: 'pass', 'key', or null when it is not.
 export const anthropicHow = link?.how ?? null;
+/// One Claude model at Anthropic on the same pass or key, for the scripts.
+export const anthropicModel = (id: string): LanguageModelV3 | null => (anthropic ? (anthropic(id) as LanguageModelV3) : null);
 
 type LM = LanguageModelV3;
 

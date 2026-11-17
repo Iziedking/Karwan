@@ -56,6 +56,7 @@ import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { olderContractsReport } from '../chain/legacyLive.js';
 import { payOutsideFlags } from '../security/payOutsideFlags.js';
 import { pingAssistantProviders } from './assistant.js';
+import { anthropicHow } from '../llm/client.js';
 import { readMoneyHealth } from '../ops/moneyHealthLive.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
 import { deskDealRow } from '../ops/deskDeals.js';
@@ -159,9 +160,11 @@ adminRoutes.get('/assistant-health', async (c) => {
 adminRoutes.get('/health', async (c) => {
   const checkedAt = Date.now();
 
-  // Model gateway. Direct Anthropic leads every chain; OpenRouter is the fallback.
+  // Model gateway. Claude at Anthropic leads every chain, with the pass or the
+  // key (view 89); the first configured link is the primary.
   const providers = await pingAssistantProviders();
-  const primary = config.ANTHROPIC_API_KEY ? 'anthropic' : config.OPENROUTER_API_KEY ? 'openrouter' : 'none';
+  const first = providers[0]?.name;
+  const primary = !first ? 'none' : first === 'anthropic' && anthropicHow ? `anthropic (${anthropicHow})` : first;
 
   // Operator funds: the Arc wallets behind seeding + USYC ops. Only the ones
   // with a key configured are shown. Native + ERC-20 USDC share one balance.
@@ -991,12 +994,12 @@ adminRoutes.get('/errors', (c) => {
 /// Phase-C supervisor: a read-first Claude diagnosis of a captured error, using
 /// the error cluster + recent event trail as context. `index` selects which
 /// captured error (0 = newest, the default). Read-only: it explains and proposes
-/// a fix, it does not act. Runs on the direct Anthropic key only (deal data never
-/// leaves to a proxy); 503 when no ANTHROPIC_API_KEY is set.
+/// a fix, it does not act. Runs on direct links only (deal data never leaves to
+/// a proxy); 503 when none is configured.
 const diagnoseSchema = z.object({ index: z.number().int().min(0).max(99).optional() });
 adminRoutes.post('/diagnose', async (c) => {
   if (!supervisorEnabled()) {
-    return c.json({ error: 'supervisor disabled', detail: 'set ANTHROPIC_API_KEY to enable it' }, 503);
+    return c.json({ error: 'supervisor disabled', detail: 'no direct model link is configured' }, 503);
   }
   let index = 0;
   try {
