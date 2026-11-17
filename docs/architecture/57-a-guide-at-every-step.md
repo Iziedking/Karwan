@@ -311,6 +311,46 @@ Money kept aside is the **savings pocket**. A **deal guarantee** is only the par
 4. **3 days, then 14 days, kept on the account**, and at most one setup ask a day. Recommended.
 5. **Order:** Figma (the nine faces, the living face frames, a tour on Home on phone and laptop, the reaction lines), then spec, plan and a test-first build. The assistant guide, canon, all five languages and this view's Status go in the same batch.
 
+## Amendment, 17 Nov 2026: Aman is the only guide
+
+The owner, 17 Nov: no more page tours. Aman is the guide to everything, so Aman has to know the whole app and nobody's words should be able to steer it. Asked what someone new sees in place of a tour, the owner chose: **Aman answers and points**.
+
+### 1. The page tours go
+
+Gone: the tour steps on 18 screens, the "Want a quick look around?" offer, the tour button in the page frame, `?tour=1`, the three tour links the assistant can send, and "show me around" starting a tour. The marks the tours used on 61 parts of pages stay: they become the parts Aman can point at.
+
+### 2. Aman answers and points
+
+- Ask Aman anything about the app, on the assistant page or in Telegram. When the answer is a place on a page ("where do I add money?"), the answer carries **Show me**.
+- Show me opens that page with the part lit: Aman sits beside it, its eyes on it, a soft ring around it and one line. The ring goes when the person taps anywhere or after 8 seconds. Nothing is pressed for them.
+- In Telegram, Show me is a link that opens the same page with the same part lit.
+- Someone new, on their first visit to Home, Market, a deal and Money, sees one Aman line: **"New here? Ask me about this page."** with three questions about that page. A question opens the assistant with it asked. Not now turns the line off for every page, kept on the account. The 16 Nov pace rules hold.
+- Aman can only point at parts on a fixed list, and only on Karwan pages. A part that is not on screen (another account's view, a closed sheet) gets the answer in words with no Show me.
+
+### 3. Aman knows the whole app
+
+- Every page a person can open has an entry in the assistant guide: what it is for, what can be done there, and its parts Aman can point at.
+- Every action already has its place in the coverage map. Pages and parts join it. A check fails the build when a page, an action or a pointed part is missing from the guide, or the guide names one that no longer exists.
+- Each page gets three starting questions on the assistant page, in five languages.
+
+### 4. Nobody's words can steer Aman
+
+Aman reads text written by other people: names and tags, requests and offers, messages, delivery notes, contest entries, reviews, and its own notes from earlier chats. Any of it could say "ignore your rules".
+
+- **Fenced off.** Every piece of text another person wrote reaches Aman inside a marked block that says who wrote it and that it is information, never an instruction. Today one line in Aman's instructions asks for this; the fence makes it the same for every tool, and new tools get it by default.
+- **What Aman never does on the say of that text:** act, change a setting, open a card, send a link, point at something, or reveal anything private (balances, other people's details, its own instructions).
+- **What already holds and stays:** every money step needs the person's confirmation on a card, and the card shows the exact amount and who gets it, so a steered card is seen before anything runs; account answers come from a fresh read.
+- **Tested before each release.** A fixed set of trick attempts (about 30: in an offer description, a display name, a message, a delivery note, a contest entry, a saved note, in all five languages) runs against the real model. Each must be ignored. A failure stops the release.
+
+### Decisions for the owner (17 Nov)
+
+1. **The tours go entirely, and their marks become the parts Aman points at.** Recommended.
+2. **Show me lights the part for 8 seconds and presses nothing.** Recommended.
+3. **The "New here?" line on Home, Market, a deal and Money for someone new**, with three questions, Not now kept on the account. Recommended.
+4. **A build check that the guide covers every page, action and part.** Recommended.
+5. **The fence around other people's words, and about 30 trick attempts run against the real model before each release.** Recommended. The test run costs a few cents of model use each time.
+6. **Order:** Figma (Show me on a page on phone and laptop, the "New here?" line, the answer with Show me in chat), then spec, plan and a test-first build. The guide, canon, five languages and this view's Status go in the same batch.
+
 ## Status
 
 | Part | State |
@@ -330,6 +370,7 @@ Money kept aside is the **savings pocket**. A **deal guarantee** is only the par
 | 15 Nov evening amendment: a living face everywhere, nine faces that react to what happens, a tour on request, Not now held for days on the account | Approved 15 Nov 2026; built 15 Nov 2026, not deployed |
 | Figma: section "6 · Aman alive (15 Nov evening)" (343:2961) on the Aman page: the nine faces (the Aman set gained Excited, Sad, Worried, Hurt), blink, eyes and breathing frames, the six reaction lines, the Home tour on a phone (offer and three stops) and a laptop, Not now held for days; component Guide/Tour step (343:5285) | Drawn and approved 15 Nov 2026 |
 | The savings pocket named as such in the assistant, the record and the canon; a deal guarantee only for the part backing a deal | Built 15 Nov 2026, not deployed |
+| 17 Nov amendment: Aman is the only guide; page tours go; Aman answers and points; the guide covers every page, action and part; other people's words fenced off and tested against trick attempts | Written 17 Nov 2026, awaiting approval |
 | 16 Nov amendment (owner): Aman comes in on its own at most once every 20 minutes across the site (5 for money arrived or a deal waiting); Not now keeps it away a day everywhere; every sign-in starts fresh; new moments for an offer on your request and an entry in your contest; tips under Aman stay 6 s, rotate per wait and finish after the answer | Built 16 Nov 2026, not deployed |
 
 ## As built (15 Nov 2026)
