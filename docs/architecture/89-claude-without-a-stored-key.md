@@ -1,6 +1,6 @@
 # 89 · Claude without a stored key
 
-Track: foundation (security and reliability), roadmap F.3. Approved 17 Nov 2026 as drafted. Not built.
+Track: foundation (security and reliability), roadmap F.3. Approved 17 Nov 2026 as drafted. Built 17 Nov 2026, not deployed.
 
 ## What is wrong today
 
@@ -65,6 +65,19 @@ Read on 17 Nov 2026:
 
 - Anthropic: Authentication, Workload Identity Federation, the reference for it, and the AWS guide (`platform.claude.com/docs/en/manage-claude/`).
 - AWS: the `GetWebIdentityToken` call in the STS reference. A note lasts 60 seconds to one hour, the account must switch the feature on, and the call is not offered on the global endpoint.
+
+## As built
+
+- **The trust.** The AWS account issues notes, the server's role `karwan-mainnet-backup` may ask for one (policy in `scripts/ops/iam/anthropic-pass.json`), and Anthropic accepts that exact role for the service account `karwan-api`. The pass lasts 10 minutes. The Console offers no scope narrower than the developer scope, so the pass carries that. `scripts/ops/prove-anthropic-pass.sh` proved it from the server on 17 Nov: a pass, then one answer from Claude.
+- **The pass.** `backend/src/llm/anthropicPass.ts` asks AWS for a note on the regional endpoint, trades it, keeps one pass in memory and renews it two minutes before it ends. Calls that arrive together share one trade. If a renewal fails while the old pass still has more than 30 seconds, the old pass is used.
+- **Settings.** `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID` turn the pass on, with `ANTHROPIC_WORKSPACE_ID`, `ANTHROPIC_SERVICE_ACCOUNT_ID` and `ANTHROPIC_STS_REGION` optional. The server refuses to start when only one of the first two is set. With neither set, the key is used as before.
+- **The chain.** Every chain in `backend/src/llm/client.ts` and the assistant's own provider list in `routes/assistant.ts` now start with Claude at Anthropic. A refused pass (401, 402, 403) rests that link for ten minutes like any refused link.
+- **Checks.** The health check behind `/admin/diagnostics` names the first link as `anthropic (pass)` or `anthropic (key)`. `scripts/probe-anthropic-pass.ts` prints when the pass ends and one answer, never the pass. `scripts/probe-models.ts` lists the link as `Claude at Anthropic, pass`.
+
+## Not done
+
+- The settings are not on testnet or mainnet yet, so both still use the key.
+- The key is removed only after a week on the pass with no key use.
 
 ## Not in this view
 
