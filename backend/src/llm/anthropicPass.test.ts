@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { LAST_SAFE_MS, PassError, REFRESH_EARLY_MS, passFetch, passKeeper, type PassKeeper } from './anthropicPass.js';
+import { LAST_SAFE_MS, PassError, REFRESH_EARLY_MS, passFetch, passKeeper, stsNote, type PassKeeper } from './anthropicPass.js';
 
 /// The pass that lets the server ask Claude at Anthropic with no stored key
 /// (view 89).
@@ -175,4 +175,23 @@ test('passFetch sets the bearer header and removes x-api-key', async () => {
   assert.equal(sent[0]!['anthropic-version'], '2023-06-01');
   assert.equal(sent[1]!['content-type'], 'application/json');
   assert.equal(sent[2]!['anthropic-beta'], 'x');
+});
+
+test('the note asks AWS for Anthropic as the audience, RS256, 900 seconds', async () => {
+  const asked: unknown[] = [];
+  const note = stsNote('ca-central-1', async (input) => {
+    asked.push(input);
+    return { WebIdentityToken: 'eyJ.note.sig' };
+  });
+  assert.equal(await note(), 'eyJ.note.sig');
+  assert.deepEqual(asked, [{ Audience: ['https://api.anthropic.com'], SigningAlgorithm: 'RS256', DurationSeconds: 900 }]);
+});
+
+test('an empty answer from AWS is an error', async () => {
+  const note = stsNote('ca-central-1', async () => ({}));
+  await assert.rejects(note(), /no note/);
+});
+
+test('making the note source asks AWS for nothing until a note is needed', () => {
+  assert.doesNotThrow(() => stsNote('ca-central-1'));
 });

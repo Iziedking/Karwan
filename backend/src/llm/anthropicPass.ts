@@ -1,3 +1,5 @@
+import { GetWebIdentityTokenCommand, STSClient } from '@aws-sdk/client-sts';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { logger } from '../logger.js';
 import { singleFlight } from './singleFlight.js';
 
@@ -89,6 +91,29 @@ export function passKeeper(settings: PassSettings, deps: PassDeps): PassKeeper {
       }
     },
     expiresAt: () => held?.expiresAt ?? null,
+  };
+}
+
+export interface NoteRequest {
+  Audience: string[];
+  SigningAlgorithm: 'RS256';
+  DurationSeconds: number;
+}
+
+/// Asks AWS, as the server's own role, for a fresh signed note each time.
+/// The call exists only on regional STS endpoints, so a region is required.
+export function stsNote(region: string, send?: (input: NoteRequest) => Promise<{ WebIdentityToken?: string }>): NoteSource {
+  let client: STSClient | null = null;
+  const ask =
+    send ??
+    ((input: NoteRequest) => {
+      client ??= new STSClient({ region, credentials: fromNodeProviderChain() });
+      return client.send(new GetWebIdentityTokenCommand(input));
+    });
+  return async () => {
+    const out = await ask({ Audience: ['https://api.anthropic.com'], SigningAlgorithm: 'RS256', DurationSeconds: 900 });
+    if (!out.WebIdentityToken) throw new Error('AWS answered with no note');
+    return out.WebIdentityToken;
   };
 }
 
