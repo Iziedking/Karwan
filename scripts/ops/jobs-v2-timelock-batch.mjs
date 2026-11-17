@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // Safe Transaction Builder batches that register the second job escrow
-// (view 88) on the hub through the timelock: the family at the suite fee, and
-// its USDC caps, the same as the first job escrow's.
+// (view 88) on the hub through the timelock: the family at the suite fee, its
+// USDC caps, the same as the first job escrow's, and its yield share, so a
+// contest's prize can earn in USYC while it waits for judging.
+// A contest takes the share only if the hub already has a yield pool for USDC
+// when it opens (setYieldPool, once Circle entitles the pool). A contest opened
+// before that keeps its prize in the escrow for its whole life.
 //   node scripts/ops/jobs-v2-timelock-batch.mjs <jobs-v2-address> [YYYY-MM-DD]
 // Writes contracts/deployments/jobs-v2-5042002-<date>.{schedule,execute}.json.
 // Hub, timelock, Safe, fee, caps and delay come from the endgame deployment
@@ -17,6 +21,10 @@ const DEPLOY = join(ROOT, 'contracts', 'deployments');
 const suite = JSON.parse(readFileSync(join(DEPLOY, 'endgame-5042002.json'), 'utf8'));
 const settings = JSON.parse(readFileSync(join(DEPLOY, 'endgame-5042002.config.json'), 'utf8'));
 
+// 80% of eligible prize money may sit in the pool; the pool keeps its own cash
+// buffer on top. The hub allows at most 90%.
+const YIELD_SHARE_BPS = 8_000;
+
 const [jobs, date = new Date().toISOString().slice(0, 10)] = process.argv.slice(2);
 if (!/^0x[0-9a-fA-F]{40}$/.test(jobs ?? '') || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
   console.error('usage: jobs-v2-timelock-batch.mjs <jobs-v2-address> [YYYY-MM-DD]');
@@ -30,6 +38,7 @@ if (jobs.toLowerCase() === String(suite.jobs).toLowerCase()) {
 const hubAbi = parseAbi([
   'function registerFamily(address family, uint16 feeBps)',
   'function setCaps(address family, address asset, uint128 perDeal, uint128 total)',
+  'function setYieldShare(address family, uint16 bps)',
 ]);
 const timelockAbi = parseAbi([
   'function scheduleBatch(address[] targets, uint256[] values, bytes[] payloads, bytes32 predecessor, bytes32 salt, uint256 delay)',
@@ -39,6 +48,7 @@ const timelockAbi = parseAbi([
 const payloads = [
   encodeFunctionData({ abi: hubAbi, functionName: 'registerFamily', args: [jobs, settings.feeBps] }),
   encodeFunctionData({ abi: hubAbi, functionName: 'setCaps', args: [jobs, settings.usdc, BigInt(settings.perDealCap), BigInt(settings.totalCap)] }),
+  encodeFunctionData({ abi: hubAbi, functionName: 'setYieldShare', args: [jobs, YIELD_SHARE_BPS] }),
 ];
 const targets = payloads.map(() => suite.hub);
 const values = payloads.map(() => 0n);
@@ -57,7 +67,7 @@ writeFileSync(
   `${base}.schedule.json`,
   `${JSON.stringify(batch(
     'Job escrow v2: schedule',
-    `Queues registerFamily and setCaps on the hub for the second job escrow ${jobs} (view 88).`,
+    `Queues registerFamily, setCaps and setYieldShare (${YIELD_SHARE_BPS / 100}%) on the hub for the second job escrow ${jobs} (view 88).`,
     encodeFunctionData({ abi: timelockAbi, functionName: 'scheduleBatch', args: [targets, values, payloads, zeroHash, salt, BigInt(settings.minDelay)] }),
   ), null, 2)}\n`,
 );

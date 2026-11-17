@@ -887,3 +887,11 @@ Agree: yes.
 - Read-only test, 16 Nov 2026: `eth_getCode` on the live job escrow `0xEA06b70c0808c2ad9b6316758407284fdAD9D550` (Arc testnet) returns code; `eth_blockNumber` 0x45362d7.
 - Not covered yet: the deploy and the timelock registration, which the owner runs; a rehearsal on Arc testnet before contests move to the new escrow.
 - Agree: yes.
+
+## 2026-11-17 · Contest prizes take a yield share (T2, view 88)
+
+- Scope: the second job escrow's registration batch (`scripts/ops/jobs-v2-timelock-batch.mjs`) also calls `setYieldShare(jobs, 8000)` on the hub through the timelock. No contract changes. A contest takes the share only if the hub already has a yield pool for USDC when it opens (`KarwanHub.sol` opening config), so the call does nothing until a pool is set.
+- Read-only test, 17 Nov 2026, `eth_call` on `https://rpc.testnet.arc.network` against the hub `0xB874C290B82c0689De75Eaf9434774f83da138a6`: `yieldPoolOf(USDC)` is the zero address, `yieldShareOf(0xEA06b70c…)` is 0, `owner()` is the timelock `0xB434527F…7Eff`. No family earns yield on Arc testnet today.
+- Tests on node-services: `contracts/test/suite/jobs/BountyYield.t.sol` with the mock Teller: a contest parks 80% of what it holds, a contest opened before the pool never parks, nobody judged and a picked winner are paid in full from the pool, and a payout the Teller cannot meet yet is owed and then paid.
+- Not covered here: deploying `KarwanYieldPool`, Circle entitling the pool for USYC, `setYieldPool`, the treasury seed and the Teller address on Arc. Those need their own check against Circle's USYC docs before any deploy.
+- Agree: yes.

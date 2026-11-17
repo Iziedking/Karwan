@@ -69,6 +69,7 @@ Answered by the owner on 16 Nov 2026.
 2. The wait after judging ends is 3 days.
 3. The buyer can mark an entry as not valid, with a reason every entrant sees. If every entry is marked not valid, the prize goes back to the buyer and their record shows it.
 4. Design or writing, bug bounty and hackathon each get their own date presets.
+5. A prize can wait months for judging, so the new contest contract takes a yield share of 80% (answered 17 Nov 2026). A contest takes the share only if the hub already has a yield pool for USDC when it opens, and the pool waits for Circle to entitle it. A contest opened before the pool exists keeps its whole prize in the escrow for its life, as today. Payouts take money back from the pool, and a payout the pool cannot cover yet is owed and paid when it can.
 
 ## Build order
 
@@ -83,5 +84,6 @@ Answered by the owner on 16 Nov 2026.
 | Step | State |
 |---|---|
 | 1. Contract: `BountyLib` with first-entry order (`slots`, at most 1,000), `rejectEntry`, the 3-day `WAIT`, and `expire` paying the earliest valid entries; `KarwanJobEscrow` domain version 2. Exploit tests in `contracts/test/suite/jobs/BountyProtection.t.sol`; the older job tests moved to the new timing | Built 17 Nov 2026, not deployed |
-| 2. Arc and Circle check (16 Nov 2026), `script/DeployJobsV2.s.sol`, `scripts/ops/jobs-v2-timelock-batch.mjs` | Written; the owner deploys and queues the registration |
+| 2. Arc and Circle check (16 Nov 2026), `script/DeployJobsV2.s.sol`, `scripts/ops/jobs-v2-timelock-batch.mjs` (registration, caps and the 80% yield share) | Written; the owner deploys and queues the registration |
+| Yield pool for USDC (`KarwanYieldPool`, `setYieldPool`, Circle entitlement, treasury seed) | Built, not deployed; the hub has no pool on Arc Testnet (read 17 Nov 2026) |
 | 3 to 5. Backend, website and assistant, docs | Next, after the deploy |
