@@ -87,4 +87,12 @@ struct JobStore {
     mapping(uint256 => uint16[]) shares;
     mapping(uint256 => mapping(address => bytes32)) entries;
     DisputeStore disputes;
+    /// A bounty's entrants in order of entry (view 88). An entrant marked not
+    /// valid who enters again is added at the back; their earlier slot no
+    /// longer counts.
+    mapping(uint256 => address[]) slots;
+    /// Each entrant's current slot, plus one; 0 means none.
+    mapping(uint256 => mapping(address => uint32)) slotOf;
+    /// Entries the evaluator marked not valid; never paid.
+    mapping(uint256 => mapping(address => bool)) rejected;
 }

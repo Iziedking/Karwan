@@ -147,7 +147,7 @@ contract JobEventsTest is JobFixture {
 
     function test_an_expired_bounty_announces_the_refund() public {
         uint256 id = _contest();
-        vm.warp(vm.getBlockTimestamp() + 10 days);
+        vm.warp(vm.getBlockTimestamp() + 13 days);
         vm.expectEmit(address(jobs));
         emit IAgenticCommerce.JobExpired(id);
         vm.expectEmit(address(jobs));

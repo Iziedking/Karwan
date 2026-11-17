@@ -878,3 +878,12 @@ Agree: yes.
 - Docs: nothing new to check, since no call, contract or SDK use changes. Installed SDK unchanged: `@circle-fin/developer-controlled-wallets` 10.8.0. No package change.
 - Read-only test: none run for this entry; the code path was read on 16 Nov 2026 and is covered by unit tests with the posting service injected (`src/find/orderRun.test.ts`).
 - Agree: yes.
+
+## 2026-11-16 · Contests pay entrants when nobody is picked (T2, view 88)
+
+- Scope: a new version of the job escrow's bounty rules (`contracts/src/suite/jobs/BountyLib.sol`, `KarwanJobEscrow.sol`): first-entry order, a not-valid mark from the evaluator, a 3-day wait after the award date, then anyone triggers a payout of the prize to the earliest valid entries. A new `KarwanJobEscrow` is deployed and registered through the timelock; the live one keeps its open contests on the old rule. Money moves only through the shared settlement base, as today.
+- Docs, read 16 Nov 2026: Arc "Gas and fees" (https://docs.arc.io/arc/references/gas-and-fees): 30M gas per block, so the payout loop is capped (at most 1,000 entry slots scanned). Arc "Porting contracts to Arc" (https://docs.arc.io/arc/tutorials/porting-contracts-to-arc): a USDC transfer to a blocklisted address reverts. The settlement base's `_deliver` already uses `trySafeTransfer` and credits `owed` on failure (`SettlementLib.sol`), so one blocked winner cannot stop the others being paid. `PREVRANDAO` is 0 on Arc: the payout uses entry order only, no randomness. USDC ERC-20 at `0x3600…0000`, 6 decimals, unchanged.
+- Installed tools: Foundry as pinned in `contracts/foundry.toml`; no library change.
+- Read-only test, 16 Nov 2026: `eth_getCode` on the live job escrow `0xEA06b70c0808c2ad9b6316758407284fdAD9D550` (Arc testnet) returns code; `eth_blockNumber` 0x45362d7.
+- Not covered yet: the deploy and the timelock registration, which the owner runs; a rehearsal on Arc testnet before contests move to the new escrow.
+- Agree: yes.

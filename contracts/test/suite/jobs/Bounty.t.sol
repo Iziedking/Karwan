@@ -127,10 +127,12 @@ contract BountyTest is JobFixture {
         assertEq(jobs.jobOf(id).entries, 0);
     }
 
-    function test_an_unawarded_bounty_goes_back_and_is_recorded() public {
+    /// View 88: after the award deadline and its 3-day wait the evaluator can
+    /// no longer pick, and the entry is paid instead of the prize going back.
+    function test_an_unawarded_bounty_pays_its_entry_and_is_recorded() public {
         uint256 id = _contest();
         _enter(id, ann);
-        vm.warp(block.timestamp + 10 days);
+        vm.warp(block.timestamp + 13 days);
         address[] memory w = new address[](1);
         w[0] = ann;
         vm.prank(evaluator);
@@ -141,15 +143,16 @@ contract BountyTest is JobFixture {
         emit KarwanRecord.OutcomeRecorded(address(jobs), bytes32(id), clientId, 0, Outcome.FAILED, 0, 0);
         vm.prank(stranger);
         jobs.claimRefund(id);
-        assertEq(usdc.balanceOf(client), before + CONTEST_FUNDED);
-        assertEq(uint8(jobs.getJob(id).status), uint8(JobStatus.Expired));
+        assertEq(usdc.balanceOf(ann), _net(300e6));
+        assertEq(usdc.balanceOf(client), before);
+        assertEq(uint8(jobs.getJob(id).status), uint8(JobStatus.Completed));
     }
 
-    function test_a_bounty_goes_back_only_once_its_award_deadline_passes() public {
+    function test_a_bounty_pays_out_only_once_its_award_wait_passes() public {
         uint256 t0 = vm.getBlockTimestamp();
         uint256 id = _contest();
         _enter(id, ann);
-        vm.warp(t0 + 10 days - 1);
+        vm.warp(t0 + 13 days - 1);
         vm.expectRevert(JobLib.Early.selector);
         jobs.claimRefund(id);
         assertEq(usdc.balanceOf(address(jobs)), CONTEST_FUNDED);

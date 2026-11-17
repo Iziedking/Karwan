@@ -25,7 +25,7 @@ contract KarwanJobEscrow is KarwanSettlementBase, IAgenticCommerce {
 
     error NoAsset();
 
-    constructor(address hub_, address asset_) KarwanSettlementBase(hub_, "KarwanJobs", "1") {
+    constructor(address hub_, address asset_) KarwanSettlementBase(hub_, "KarwanJobs", "2") {
         if (asset_ == address(0)) revert NoAsset();
         asset = asset_;
     }
@@ -136,6 +136,11 @@ contract KarwanJobEscrow is KarwanSettlementBase, IAgenticCommerce {
 
     function award(uint256 id, address[] calldata winners) external nonReentrant {
         BountyLib.award(_s, _g, hub, id, winners);
+    }
+
+    /// @notice The evaluator marks a bounty entry not valid (view 88).
+    function rejectEntry(uint256 id, address entrant, bytes32 reason) external {
+        BountyLib.rejectEntry(_g, id, entrant, reason);
     }
 
     // ------------------------------ Disputes ------------------------------

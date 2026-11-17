@@ -77,3 +77,11 @@ Answered by the owner on 16 Nov 2026.
 3. Backend: the contest runner reads the new dates, calls the payout after the wait, and keeps old contests on the old rule.
 4. Website and assistant: presets, the judging period, the line on the card, the not-valid mark with its reason.
 5. Guide, canon, terms.
+
+## Status
+
+| Step | State |
+|---|---|
+| 1. Contract: `BountyLib` with first-entry order (`slots`, at most 1,000), `rejectEntry`, the 3-day `WAIT`, and `expire` paying the earliest valid entries; `KarwanJobEscrow` domain version 2. Exploit tests in `contracts/test/suite/jobs/BountyProtection.t.sol`; the older job tests moved to the new timing | Built 17 Nov 2026, not deployed |
+| 2. Arc and Circle check (16 Nov 2026), `script/DeployJobsV2.s.sol`, `scripts/ops/jobs-v2-timelock-batch.mjs` | Written; the owner deploys and queues the registration |
+| 3 to 5. Backend, website and assistant, docs | Next, after the deploy |

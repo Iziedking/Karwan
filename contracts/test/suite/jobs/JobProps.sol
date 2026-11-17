@@ -165,7 +165,7 @@ contract JobProps is JobFixture {
         JobCore memory j = jobs.jobOf(id);
         if (jobs.accountOf(bytes32(id)).holdUntil > block.timestamp) return;
         bool ok = true;
-        if (j.status == JobStatus.Funded && block.timestamp >= (j.bounty ? j.awardBy : j.expiredAt)) {
+        if (j.status == JobStatus.Funded && block.timestamp >= (j.bounty ? uint256(j.awardBy) + 3 days : j.expiredAt)) {
             vm.prank(stranger);
             try jobs.claimRefund(id) {} catch {
                 ok = false;

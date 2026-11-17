@@ -492,7 +492,7 @@ contract JobEscrowTest is JobFixture {
         jobs.reject(rejected, bytes32("off brief"), "");
         vm.prank(guardian);
         hub.pauseFamily(address(jobs));
-        vm.warp(t0 + 10 days);
+        vm.warp(t0 + 13 days);
         jobs.release(silent);
         jobs.confirmRejection(rejected);
         jobs.claimRefund(bounty);

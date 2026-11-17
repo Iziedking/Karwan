@@ -381,7 +381,7 @@ contract JobEdgesTest is JobFixture {
         t.entriesBy = uint64(NOW + 1 hours);
         t.awardBy = uint64(NOW + 2 hours);
         uint256 id = _openContest(t);
-        assertEq(jobs.accountOf(bytes32(id)).horizon, NOW + 2 hours + 30 days);
+        assertEq(jobs.accountOf(bytes32(id)).horizon, NOW + 2 hours + 3 days + 30 days);
         t.entriesBy = uint64(NOW + 1 hours - 1);
         _refusedContest(t);
         t = _contestTerms();
@@ -432,7 +432,7 @@ contract JobEdgesTest is JobFixture {
         jobs.enter(id, keccak256("late"));
         uint256 other = _contest();
         _enter(other, a);
-        vm.warp(jobs.jobOf(other).awardBy + 1 days);
+        vm.warp(jobs.jobOf(other).awardBy + 3 days);
         address[] memory w = new address[](1);
         w[0] = a;
         vm.prank(evaluator);
@@ -521,7 +521,7 @@ contract JobEdgesTest is JobFixture {
 
     function test_an_unawarded_contest_waits_out_a_hold_before_going_back() public {
         uint256 id = _contest();
-        vm.warp(jobs.jobOf(id).awardBy);
+        vm.warp(jobs.jobOf(id).awardBy + 3 days);
         vm.prank(guardian);
         jobs.hold(bytes32(id), bytes32("scan"));
         vm.expectRevert(JobLib.OnHold.selector);
@@ -560,7 +560,7 @@ contract JobEdgesTest is JobFixture {
         t.entriesBy = uint64(now_ + 7 days);
         t.awardBy = uint64(now_ + 10 days);
         uint256 id = _openContest(t);
-        assertEq(jobs.accountOf(bytes32(id)).horizon, now_ + 10 days + 30 days);
+        assertEq(jobs.accountOf(bytes32(id)).horizon, now_ + 10 days + 3 days + 30 days);
     }
 
     /// A prize whose shares pass 128 bits before dividing is split whole.

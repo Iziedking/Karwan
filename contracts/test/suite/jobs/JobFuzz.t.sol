@@ -301,12 +301,17 @@ contract JobFuzzTest is JobFixture {
         jobs.enter(id, keccak256("mine"));
         assertEq(jobs.jobOf(id).entries, 0);
         assertEq(jobs.entryOf(id, alt), bytes32(0));
-        if (othersEnter) _enter(id, ws[0]);
+        // View 88: an entry the evaluator marked not valid keeps the prize whole.
+        if (othersEnter) {
+            _enter(id, ws[0]);
+            vm.prank(evaluator);
+            jobs.rejectEntry(id, ws[0], keccak256("not valid"));
+        }
 
-        vm.warp(t0 + 10 days - 1);
+        vm.warp(t0 + 13 days - 1);
         vm.expectRevert(JobLib.Early.selector);
         jobs.claimRefund(id);
-        vm.warp(t0 + 10 days + bound(waitSeed, 0, 30 days));
+        vm.warp(t0 + 13 days + bound(waitSeed, 0, 30 days));
         _expectRecord(id, clientId, 0, othersEnter ? Outcome.FAILED : Outcome.CANCELLED, 0, 0);
         vm.prank(stranger);
         jobs.claimRefund(id);
