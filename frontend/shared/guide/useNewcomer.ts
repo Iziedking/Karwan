@@ -6,7 +6,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { whoIsThis, type Who } from './newcomer';
 
 /// The same two reads, under the same keys, that every signed-in page already
-/// makes (useUserProfile, useDirectDeals), so a tour costs no read of its own.
+/// makes (useUserProfile, useDirectDeals), so New here costs no read of its own.
 export function useNewcomer(): Who {
   const auth = useAuth();
   const address = auth.address;

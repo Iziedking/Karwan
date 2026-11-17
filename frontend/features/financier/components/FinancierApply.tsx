@@ -7,8 +7,6 @@ import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { financeDeskCopy } from '@/shared/i18n/messages/financeDesk';
-import { PageTour } from '@/shared/guide/PageTour';
-import { FINANCIER_APPLY_TOUR_ID, FINANCIER_APPLY_STEPS } from '@/shared/guide/tours';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
 export interface FinancierEligibility {
@@ -85,7 +83,6 @@ export function FinancierApply({
 
   return (
     <div className="mx-auto max-w-[640px] px-5 py-12">
-      <PageTour id={FINANCIER_APPLY_TOUR_ID} steps={FINANCIER_APPLY_STEPS} />
       <h1 className="flex items-center gap-2 text-[26px] font-semibold leading-tight text-[var(--ink)]">
         {copy.title}
         <Hint side="bottom">{copy.intro}</Hint>

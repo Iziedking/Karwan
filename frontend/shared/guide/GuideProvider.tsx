@@ -1,92 +1,24 @@
 'use client';
-import { aimAt } from '@/features/guide/amanLife';
-import { guideCopy } from '@/shared/i18n/messages/guide';
-import { LiveAman } from './LiveAman';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
-import { createPortal } from 'react-dom';
-import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { Icon } from '@/shared/components/Icon';
-import { usePathname } from 'next/navigation';
-import { isNoTourRoute } from './routes';
-import { GUIDE_COPY } from './routeGuidance';
-import { guidePlacement } from './placement';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-/// In-app guided tours for newcomers. Each page can declare a short tour that
-/// spotlights its tools one at a time with a plain-language line. Tours open
-/// once on first visit and are remembered per-tour; a single "skip all tips"
-/// turns them off everywhere for people who already know their way around.
-/// Manual guidance stays available beside page navigation, even when automatic
-/// tips are disabled. Tours explain controls without activating them.
-
-export interface TourStep {
-  /// `data-guide` value of the element to spotlight. Omit for a centered card
-  /// (intro / outro steps that frame the page rather than point at one tool).
-  target?: string;
-  title: string;
-  body: string;
-}
-
-interface ActiveTour {
-  id: string;
-  steps: TourStep[];
-  index: number;
-  pathname: string;
-}
+/// What is left of the old page guide once Aman became the only guide (view 57,
+/// 17 Nov): whether the person turned first-visit tips off on this device, and
+/// how much of Karwan they have used, so tips can fade. Page tours are gone.
 
 interface GuideContextValue {
+  /// First-visit tips (coach notes) were turned off on this device.
   disabled: boolean;
-  dismissAll: () => void;
-  enableTips: () => void;
-  isSeen: (id: string) => boolean;
+  /// Kept for coach notes, which wait while something else speaks. Nothing does now.
   hasActive: boolean;
-  startTour: (id: string, steps: TourStep[], opts?: { force?: boolean }) => void;
-  next: () => void;
-  prev: () => void;
-  close: (markSeen?: boolean) => void;
-  active: ActiveTour | null;
   /// Quality-weighted experience. Using DIFFERENT tools advances it; repeating
-  /// the same action plateaus. Tips fade as it climbs and stop past
-  /// GUIDE_MASTERY_XP. Record real actions via `recordAction(type)`.
+  /// the same action plateaus. Record real actions via `recordAction(type)`.
   experience: number;
   recordAction: (type: string) => void;
   mastered: boolean;
-  /// A page registers its tour here on mount so the global floating Tour pill
-  /// knows what to launch. PageTour also auto-opens the tour once for a
-  /// newcomer (after the first-run welcome); the pill is the on-demand trigger
-  /// thereafter and on every page.
-  registerTour: (id: string, steps: TourStep[], label: string, pathname: string) => void;
-  unregisterTour: (id: string) => void;
-  currentTour: { id: string; steps: TourStep[]; label: string; pathname: string } | null;
 }
 
-/// Transactions after which a user is treated as having "mastered" the app:
-/// auto-tips stop (the replay pill stays for on-demand). Picked in the 10-20
-/// band the product owner asked for.
+/// Actions after which a person is treated as knowing their way around.
 export const GUIDE_MASTERY_XP = 15;
-
-/// Decides whether a page tour should auto-open on mount. New users see unseen
-/// tours every time and seen ones at random; the re-show chance decays with
-/// experience and hits zero at mastery. After mastery nothing auto-opens.
-export function shouldAutoOpenTour(args: {
-  disabled: boolean;
-  experience: number;
-  seen: boolean;
-}): boolean {
-  if (args.disabled) return false;
-  if (args.experience >= GUIDE_MASTERY_XP) return false;
-  if (!args.seen) return true;
-  const reshowChance = (1 - args.experience / GUIDE_MASTERY_XP) * 0.5;
-  return Math.random() < reshowChance;
-}
 
 const GuideContext = createContext<GuideContextValue | null>(null);
 
@@ -97,20 +29,9 @@ export function useGuide(): GuideContextValue {
 }
 
 const DISABLED_KEY = 'karwan:guide:disabled';
-const SEEN_KEY = 'karwan:guide:seen';
-
-function loadSeen(): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(SEEN_KEY);
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-  } catch {
-    return new Set();
-  }
-}
+const ACTIONS_KEY = 'karwan:guide:actions';
 
 function loadDisabled(): boolean {
-  if (typeof window === 'undefined') return false;
   try {
     return localStorage.getItem(DISABLED_KEY) === '1';
   } catch {
@@ -118,15 +39,7 @@ function loadDisabled(): boolean {
   }
 }
 
-const ACTIONS_KEY = 'karwan:guide:actions';
-const SKIPS_KEY = 'karwan:guide:skips';
-
-/// Skip a tour (bail out before finishing) this many times in a row and we
-/// take the hint: tours stop auto-opening for this account.
-const MAX_CONSECUTIVE_SKIPS = 5;
-
 function loadActions(): Record<string, number> {
-  if (typeof window === 'undefined') return {};
   try {
     const raw = localStorage.getItem(ACTIONS_KEY);
     return raw ? (JSON.parse(raw) as Record<string, number>) : {};
@@ -135,23 +48,12 @@ function loadActions(): Record<string, number> {
   }
 }
 
-function loadSkips(): number {
-  if (typeof window === 'undefined') return 0;
-  try {
-    return Number(localStorage.getItem(SKIPS_KEY) ?? '0') || 0;
-  } catch {
-    return 0;
-  }
-}
-
-/// Experience is quality-weighted, not a raw transaction count: spamming the
-/// same action plateaus fast, while using DIFFERENT tools keeps advancing it.
 /// Each distinct action type is worth PER_DISTINCT; repeats add a little, hard
-/// capped, so a user can't grind one button to mute the tips early.
+/// capped, so a person can't grind one button to mute the tips early.
 function computeExperience(actions: Record<string, number>): number {
   const PER_DISTINCT = 3;
   const PER_REPEAT = 0.5;
-  const REPEAT_CAP = 10; // repeats beyond this add nothing
+  const REPEAT_CAP = 10;
   let distinct = 0;
   let repeats = 0;
   for (const count of Object.values(actions)) {
@@ -163,28 +65,13 @@ function computeExperience(actions: Record<string, number>): number {
 }
 
 export function GuideProvider({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const [disabled, setDisabled] = useState(false);
-  const [seen, setSeen] = useState<Set<string>>(() => new Set());
-  const [active, setActive] = useState<ActiveTour | null>(null);
   const [actions, setActions] = useState<Record<string, number>>({});
-  const [currentTour, setCurrentTour] = useState<
-    { id: string; steps: TourStep[]; label: string; pathname: string } | null
-  >(null);
-  // Consecutive bail-outs. A ref because no UI depends on the live value; it is
-  // persisted so the "5 skips and stop" rule survives reloads.
-  const skipsRef = useRef(0);
 
-  useEffect(() => {
-    setActive((current) => current?.pathname !== pathname ? null : current);
-  }, [pathname]);
-
-  // Hydrate persisted state on the client (avoids SSR localStorage access).
+  // Read on the client only, so server and first paint agree.
   useEffect(() => {
     setDisabled(loadDisabled());
-    setSeen(loadSeen());
     setActions(loadActions());
-    skipsRef.current = loadSkips();
   }, []);
 
   const recordAction = useCallback((type: string) => {
@@ -193,7 +80,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(ACTIONS_KEY, JSON.stringify(nextMap));
       } catch {
-        /* ignore */
+        /* without storage it counts for this visit only */
       }
       return nextMap;
     });
@@ -201,423 +88,10 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 
   const experience = useMemo(() => computeExperience(actions), [actions]);
 
-  const persistSeen = useCallback((s: Set<string>) => {
-    try {
-      localStorage.setItem(SEEN_KEY, JSON.stringify([...s]));
-    } catch {
-      /* quota / unavailable; in-memory still works for the session */
-    }
-  }, []);
-
-  const markSeen = useCallback(
-    (id: string) => {
-      setSeen((prev) => {
-        if (prev.has(id)) return prev;
-        const nextSet = new Set(prev);
-        nextSet.add(id);
-        persistSeen(nextSet);
-        return nextSet;
-      });
-    },
-    [persistSeen],
-  );
-
-  const isSeen = useCallback((id: string) => seen.has(id), [seen]);
-
-  const close = useCallback(
-    (doMarkSeen = true) => {
-      setActive((cur) => {
-        if (cur) {
-          if (doMarkSeen) markSeen(cur.id);
-          // Closing a tour before finishing it counts as a skip. Five in a row
-          // and we stop auto-opening tours for this account.
-          skipsRef.current += 1;
-          try {
-            localStorage.setItem(SKIPS_KEY, String(skipsRef.current));
-          } catch {
-            /* ignore */
-          }
-          if (skipsRef.current >= MAX_CONSECUTIVE_SKIPS) {
-            try {
-              localStorage.setItem(DISABLED_KEY, '1');
-            } catch {
-              /* ignore */
-            }
-            setDisabled(true);
-          }
-        }
-        return null;
-      });
-    },
-    [markSeen],
-  );
-
-  const startTour = useCallback(
-    (id: string, steps: TourStep[], opts?: { force?: boolean }) => {
-      if (steps.length === 0) return;
-      if (!opts?.force && (disabled || seen.has(id))) return;
-      setActive({ id, steps, index: 0, pathname });
-    },
-    [disabled, seen, pathname],
-  );
-
-  const next = useCallback(() => {
-    setActive((cur) => {
-      if (!cur) return cur;
-      if (cur.index >= cur.steps.length - 1) {
-        markSeen(cur.id);
-        // Finishing a tour is engagement: reset the consecutive-skip counter so
-        // a later bail-out starts the "5 in a row" count fresh.
-        skipsRef.current = 0;
-        try {
-          localStorage.setItem(SKIPS_KEY, '0');
-        } catch {
-          /* ignore */
-        }
-        return null;
-      }
-      return { ...cur, index: cur.index + 1 };
-    });
-  }, [markSeen]);
-
-  const prev = useCallback(() => {
-    setActive((cur) => (cur && cur.index > 0 ? { ...cur, index: cur.index - 1 } : cur));
-  }, []);
-
-  const dismissAll = useCallback(() => {
-    try {
-      localStorage.setItem(DISABLED_KEY, '1');
-    } catch {
-      /* ignore */
-    }
-    setDisabled(true);
-    setActive(null);
-  }, []);
-
-  const registerTour = useCallback((id: string, steps: TourStep[], label: string, pathname: string) => {
-    setCurrentTour({ id, steps, label, pathname });
-  }, []);
-
-  const unregisterTour = useCallback((id: string) => {
-    setCurrentTour((cur) => (cur?.id === id ? null : cur));
-  }, []);
-
-  const enableTips = useCallback(() => {
-    // Re-enabling gives a clean slate so the skip counter doesn't immediately
-    // re-trip the "5 in a row" rule.
-    try {
-      localStorage.removeItem(DISABLED_KEY);
-      localStorage.setItem(SKIPS_KEY, '0');
-    } catch {
-      /* ignore */
-    }
-    skipsRef.current = 0;
-    setDisabled(false);
-  }, []);
-
   const value = useMemo<GuideContextValue>(
-    () => ({
-      disabled,
-      dismissAll,
-      enableTips,
-      isSeen,
-      hasActive: active != null,
-      startTour,
-      next,
-      prev,
-      close,
-      active,
-      experience,
-      recordAction,
-      mastered: experience >= GUIDE_MASTERY_XP,
-      registerTour,
-      unregisterTour,
-      currentTour,
-    }),
-    [
-      disabled,
-      dismissAll,
-      enableTips,
-      isSeen,
-      active,
-      startTour,
-      next,
-      prev,
-      close,
-      experience,
-      recordAction,
-      registerTour,
-      unregisterTour,
-      currentTour,
-    ],
+    () => ({ disabled, hasActive: false, experience, recordAction, mastered: experience >= GUIDE_MASTERY_XP }),
+    [disabled, experience, recordAction],
   );
 
-  return (
-    <GuideContext.Provider value={value}>
-      {children}
-      <GuideOverlay />
-    </GuideContext.Provider>
-  );
-}
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
-  );
-}
-
-function GuideOverlay() {
-  const { active } = useGuide();
-  return active ? <GuideStepOverlay key={`${active.id}:${active.index}`} /> : null;
-}
-
-function GuideStepOverlay() {
-  const { locale } = useLocale();
-  const copy = GUIDE_COPY[locale];
-  const { active, next, prev, close, dismissAll } = useGuide();
-  const pathname = usePathname();
-  const step = active ? active.steps[active.index] : undefined;
-  const [rect, setRect] = useState<DOMRect | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const nextRef = useRef<HTMLButtonElement>(null);
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
-  const [panelSize, setPanelSize] = useState({ width: 420, height: 320 });
-  const open = !!active && active.pathname === pathname && !isNoTourRoute(pathname);
-
-  useEffect(() => {
-    if (!open) return;
-    const measure = () => {
-      setViewport({ width: window.innerWidth, height: window.innerHeight });
-      const panel = panelRef.current?.getBoundingClientRect();
-      if (panel) setPanelSize({ width: panel.width, height: panel.height });
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    if (panelRef.current) observer.observe(panelRef.current);
-    window.addEventListener('resize', measure);
-    return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
-  }, [open]);
-
-  // WAI-ARIA modal dialog pattern, read 2026-09-08. Keep keyboard users inside
-  // the guidance and return to its launcher, never a financial form control.
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const panel = panelRef.current;
-    panel?.focus();
-    const containFocus = (event: FocusEvent) => {
-      if (event.target instanceof Node && !panel?.contains(event.target)) panel?.focus();
-    };
-    const trap = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab' || !panel) return;
-      const buttons = Array.from(panel.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
-      const first = buttons[0];
-      const last = buttons.at(-1);
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
-        event.preventDefault(); last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault(); first?.focus();
-      }
-    };
-    document.addEventListener('focusin', containFocus);
-    document.addEventListener('keydown', trap);
-    return () => {
-      document.removeEventListener('focusin', containFocus);
-      document.removeEventListener('keydown', trap);
-      if (previous?.isConnected) previous.focus({ preventScroll: true });
-    };
-  }, [open]);
-
-  // Track the spotlight target's position. Scroll it into view on step change,
-  // then keep the highlight glued to it through scroll / resize.
-  useEffect(() => {
-    if (!active || !step?.target) {
-      setRect(null);
-      return;
-    }
-    const reduced = prefersReducedMotion();
-    const find = () =>
-      document.querySelector(`[data-guide="${CSS.escape(step.target!)}"]`) as HTMLElement | null;
-    const update = () => {
-      const el = find();
-      setRect(el ? el.getBoundingClientRect() : null);
-    };
-    const el = find();
-    const observer = new ResizeObserver(update);
-    if (el) observer.observe(el);
-    if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
-    update();
-    const settle = window.setTimeout(update, reduced ? 0 : 340);
-    window.addEventListener('scroll', update, true);
-    window.addEventListener('resize', update);
-    return () => {
-      window.clearTimeout(settle);
-      observer.disconnect();
-      window.removeEventListener('scroll', update, true);
-      window.removeEventListener('resize', update);
-    };
-  }, [active, step?.target]);
-
-  // Keyboard: Esc closes, arrows step.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); close(true); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); locale === 'ar' ? prev() : next(); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); locale === 'ar' ? next() : prev(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, next, prev, close, locale]);
-
-  // A tour belongs to the page that opened it. It never resumes over another
-  // page or an initial onboarding/invitation flow.
-  if (!open || !active || !step || typeof document === 'undefined') return null;
-
-  const total = active.steps.length;
-  const isLast = active.index === total - 1;
-  const isFirst = active.index === 0;
-  const reduced = prefersReducedMotion();
-  const placement = viewport.width ? guidePlacement(rect, viewport, panelSize, locale === 'ar') : null;
-  // Aman rides with the tour and looks at the part it explains (view 57, 15 Nov evening).
-  const look = rect && placement
-    ? aimAt({ x: placement.left + 28, y: placement.top + 28 }, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
-    : null;
-  const stepLine = guideCopy[locale].tour.step.replace('{n}', String(active.index + 1)).replace('{m}', String(total));
-
-  return createPortal(
-    <div>
-      {/* Click blocker so the page underneath isn't interactive mid-tour. */}
-      <div
-        onClick={() => close(true)}
-        style={{ position: 'fixed', inset: 0, zIndex: 1000, cursor: 'default' }}
-      />
-
-      {/* Spotlight: a hole punched in the dim via a big box-shadow when a target
-          exists, otherwise a flat dim for centered intro/outro steps. */}
-      {rect ? (
-        <div
-          aria-hidden
-          style={{
-            position: 'fixed',
-            top: rect.top - 8,
-            left: rect.left - 8,
-            width: rect.width + 16,
-            height: rect.height + 16,
-            borderRadius: 12,
-            boxShadow: '0 0 0 9999px rgba(10,10,11,0.66)',
-            border: '2px solid var(--lp-accent)',
-            pointerEvents: 'none',
-            zIndex: 1001,
-            transition: reduced ? 'none' : 'all 240ms cubic-bezier(0.16,1,0.3,1)',
-          }}
-        />
-      ) : (
-        <div
-          aria-hidden
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(10,10,11,0.66)',
-            zIndex: 1001,
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-
-      {/* Anchor to the target when there is room; keep a safe sheet on phones. */}
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="page-tour-title"
-        aria-describedby="page-tour-body"
-        tabIndex={-1}
-        style={{
-          position: 'fixed',
-          left: placement?.left ?? 16,
-          top: placement?.top ?? 16,
-          width: 'min(420px, calc(100vw - 32px))',
-          zIndex: 1002,
-        }}
-        className={`max-h-[calc(100dvh-32px)] overflow-y-auto outline-none ${reduced ? '' : 'fade-up'}`}
-      >
-        <div
-          style={{
-            background: 'var(--lp-card)',
-            border: '1px solid var(--lp-border-light)',
-            borderRadius: 16,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 20px 56px -18px rgba(0,0,0,0.34)',
-          }}
-          className="p-5"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <span data-tour-aman className="flex items-center gap-2.5 font-sans text-[14px] text-[var(--lp-text-sub)] font-medium">
-              <LiveAman size={56} mood={isLast ? 'pleased' : 'talking'} look={look} seed={`tour-${active.id}`} />
-              {stepLine}
-            </span>
-            <button
-              type="button"
-              onClick={() => close(true)}
-              className="min-h-11 rounded-full px-3 font-sans text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
-            >
-              {copy.close}
-            </button>
-          </div>
-
-          <h3 id="page-tour-title" aria-live="polite" className="mt-2 font-sans text-[20px] font-semibold tracking-[-0.02em] leading-tight text-[var(--lp-dark)]">
-            {step.title}
-          </h3>
-          <p id="page-tour-body" aria-live="polite" className="body-copy mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-            {step.body}
-          </p>
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            {/* progress dots */}
-            <div className="flex items-center gap-1.5" aria-hidden>
-              {active.steps.map((_, i) => (
-                <span
-                  key={i}
-                  className="inline-block rounded-full transition-colors"
-                  style={{
-                    width: i === active.index ? 16 : 6,
-                    height: 6,
-                    background:
-                      i === active.index ? 'var(--lp-accent)' : 'var(--lp-border-light)',
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {!isFirst && (
-                <button
-                  type="button"
-                  onClick={prev}
-                  className="min-h-11 rounded-full font-sans text-[14px] font-semibold px-4 py-2 text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
-                >
-                  {copy.back}
-                </button>
-              )}
-              <button
-                type="button"
-                ref={nextRef}
-                onClick={next}
-                className="inline-flex min-h-11 items-center gap-2 font-sans text-[14px] font-bold px-5 py-2 bg-[var(--lp-accent)] text-[var(--accent-ink)] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-2 focus-visible:outline-[var(--lp-dark)]"
-                style={{
-                  borderRadius: 10,
-                }}
-              >
-                {isLast ? copy.done : copy.next}
-                {!isLast && <Icon name="chevron-right" size={16} directional />}
-              </button>
-            </div>
-          </div>
-          <button type="button" onClick={dismissAll} className="mt-3 min-h-11 rounded-full px-2 text-start font-sans text-[14px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)] font-medium">{copy.stopTips}</button>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
+  return <GuideContext.Provider value={value}>{children}</GuideContext.Provider>;
 }

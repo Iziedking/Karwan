@@ -65,6 +65,16 @@ test('the English copy reads as the spec says', () => {
   });
 });
 
+test('New here and Show me in every language, and no page tour copy left (view 57, 17 Nov)', () => {
+  assert.equal(guideCopy.en.newHere, 'New here? Ask me about this page.');
+  assert.equal(guideCopy.en.showMe, 'Show me');
+  for (const [locale, copy] of Object.entries(guideCopy)) {
+    assert.ok(copy.newHere.trim().length > 0, locale);
+    assert.ok(copy.showMe.trim().length > 0, locale);
+    assert.ok(!('tour' in copy), `${locale} still has tour copy`);
+  }
+});
+
 test('placeholders survive translation', () => {
   for (const [locale, copy] of Object.entries(guideCopy)) {
     assert.ok(copy.greeting.includes('{name}'), `${locale} greeting`);

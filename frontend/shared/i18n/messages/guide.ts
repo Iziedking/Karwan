@@ -36,8 +36,10 @@ export interface GuideCopy {
   hello: string;
   /// One line and one button per moment; {amount} is money in the person's currency.
   moments: Record<MomentLineKey, { line: string; action: string }>;
-  /// The page tour with Aman: the offer, its buttons, the menu item and the step header.
-  tour: { offer: string; showMe: string; showAround: string; step: string };
+  /// The New here line for someone new (view 57, 17 Nov). Its questions are `questions`.
+  newHere: string;
+  /// The button on an answer that lights a part of the page.
+  showMe: string;
 }
 
 const en: GuideCopy = {
@@ -84,7 +86,8 @@ const en: GuideCopy = {
     offer: { line: 'A new offer came in on your request.', action: 'See the offer' },
     entry: { line: 'Someone entered your contest.', action: 'See the entry' },
   },
-  tour: { offer: 'New here? Want a quick look around?', showMe: 'Show me', showAround: 'Show me around', step: 'Aman · {n} of {m}' },
+  newHere: 'New here? Ask me about this page.',
+  showMe: 'Show me',
 };
 
 const fr: GuideCopy = {
@@ -131,7 +134,8 @@ const fr: GuideCopy = {
     offer: { line: 'Une nouvelle offre est arrivée sur votre demande.', action: 'Voir l’offre' },
     entry: { line: 'Quelqu’un a participé à votre concours.', action: 'Voir la participation' },
   },
-  tour: { offer: 'Nouveau ici ? Un petit tour de la page ?', showMe: 'Montrez-moi', showAround: 'Faire le tour', step: 'Aman · {n} sur {m}' },
+  newHere: 'Nouveau ici ? Posez-moi une question sur cette page.',
+  showMe: 'Montrez-moi',
 };
 
 const ar: GuideCopy = {
@@ -178,7 +182,8 @@ const ar: GuideCopy = {
     offer: { line: 'وصل عرض جديد على طلبك.', action: 'اطّلع على العرض' },
     entry: { line: 'شارك أحدهم في مسابقتك.', action: 'اطّلع على المشاركة' },
   },
-  tour: { offer: 'جديد هنا؟ هل تريد جولة سريعة؟', showMe: 'أرني', showAround: 'جولة في الصفحة', step: 'أمان · {n} من {m}' },
+  newHere: 'جديد هنا؟ اسألني عن هذه الصفحة.',
+  showMe: 'أرني',
 };
 
 const hi: GuideCopy = {
@@ -225,7 +230,8 @@ const hi: GuideCopy = {
     offer: { line: 'आपकी माँग पर एक नया ऑफ़र आया है।', action: 'ऑफ़र देखें' },
     entry: { line: 'किसी ने आपकी प्रतियोगिता में हिस्सा लिया।', action: 'प्रविष्टि देखें' },
   },
-  tour: { offer: 'यहाँ नए हैं? एक छोटा सा दौरा करें?', showMe: 'दिखाइए', showAround: 'पेज का दौरा', step: 'अमान · {m} में से {n}' },
+  newHere: 'यहाँ नए हैं? इस पेज के बारे में मुझसे पूछें।',
+  showMe: 'दिखाइए',
 };
 
 const sw: GuideCopy = {
@@ -272,7 +278,8 @@ const sw: GuideCopy = {
     offer: { line: 'Ofa mpya imefika kwenye ombi lako.', action: 'Angalia ofa' },
     entry: { line: 'Mtu ameingia kwenye shindano lako.', action: 'Angalia maingizo' },
   },
-  tour: { offer: 'Mgeni hapa? Ungependa kuzungushwa haraka?', showMe: 'Nionyeshe', showAround: 'Nizungushe', step: 'Aman · {n} kati ya {m}' },
+  newHere: 'Mgeni hapa? Niulize kuhusu ukurasa huu.',
+  showMe: 'Nionyeshe',
 };
 
 export const guideCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', GuideCopy> = { en, ar, fr, hi, sw };

@@ -13,8 +13,6 @@ import { HomeDeals } from './HomeDeals';
 import { OnChainProofBand } from '@/features/network/components/OnChainProofBand';
 import { LiveNetworkBand, type LiveNetworkStats } from '@/features/home/components/LiveNetworkBand';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
-import { PageTour } from '@/shared/guide/PageTour';
-import { BIZ_HOME_TOUR_ID, BIZ_HOME_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortAddress } from '@/shared/utils/format';
 import {
@@ -83,7 +81,6 @@ export function BusinessHome({
 
   return (
     <FullBleed>
-      <PageTour id={BIZ_HOME_TOUR_ID} steps={BIZ_HOME_STEPS} />
       {/* HERO. trade desk, no post-request / post-offer */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-center">

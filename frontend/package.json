@@ -9,7 +9,6 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test:ci": "node ../scripts/run-tests.mjs core features shared scripts",
     "check:i18n": "tsx scripts/check-i18n.ts",
-    "check:tours": "tsx scripts/check-tours.ts",
     "check:shell": "tsx scripts/check-shell.ts",
     "check:hooks": "eslint --no-inline-config --max-warnings=0 app features shared core",
     "generate:admin-routes": "tsx scripts/generate-admin-route-catalog.ts",

@@ -15,8 +15,6 @@ import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { UpdatesCarousel } from './UpdatesCarousel';
 import { ARC_NETWORK } from '@/core/arcNetwork';
-import { PageTour } from '@/shared/guide/PageTour';
-import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 import { useGreeting } from '@/features/home/greeting';
 
 type AccountKind = 'person' | 'business';
@@ -41,7 +39,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
 
   return (
     <div className="product-surface home-workbench mx-auto w-full max-w-[1180px] pb-12 sm:pb-16">
-      <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
       <section aria-labelledby="home-heading" className="pb-2">
         <div className="flex items-start justify-between gap-4 pt-3 sm:pt-4">
           <h1 id="home-heading" className="min-w-0 pt-2.5 text-[15px] font-medium text-[var(--ink-secondary)]">

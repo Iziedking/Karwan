@@ -43,7 +43,6 @@ import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { LpHint } from '@/shared/components/LpHint';
 import { Button } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
-import { PageTour } from '@/shared/guide/PageTour';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { completedBridgeLabel } from './bridgeHistoryPresentation';
 import type { Messages } from '@/shared/i18n/messages/en';

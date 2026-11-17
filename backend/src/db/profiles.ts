@@ -60,6 +60,8 @@ export interface UserSettings {
   guideAskedOn?: string;
   guideAskedStep?: SetupKey;
   guideTourOffer?: 'off';
+  /// Not now on New here (view 57, 17 Nov); an old guideTourOffer 'off' counts too.
+  guideNewHere?: 'off';
 }
 
 /// At my place, I come to you (how far), online (view 72).

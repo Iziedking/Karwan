@@ -11,8 +11,6 @@ import { api, ApiError, type DirectDeal, type FactoringOffer, type POFinancingLi
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { Band } from '@/shared/components/Bands';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
-import { PageTour } from '@/shared/guide/PageTour';
-import { FINANCIER_DESK_TOUR_ID, FINANCIER_DESK_STEPS } from '@/shared/guide/tours';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { cn } from '@/shared/utils/cn';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -217,7 +215,6 @@ export function FinancierDashboard() {
 
   return (
     <div className="product-surface min-h-[70vh]">
-      <PageTour id={FINANCIER_DESK_TOUR_ID} steps={FINANCIER_DESK_STEPS} />
       <Band tone="light" compact>
         <div className="mx-auto max-w-[940px]">
           <header>

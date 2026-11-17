@@ -24,6 +24,7 @@
     "solana:wallet": "tsx --env-file=../.env src/scripts/solana-provision-wallet.ts",
     "arc-solana-smoke": "tsx --env-file=../.env src/scripts/arc-to-solana-smoke.ts",
     "eval:agentic": "tsx --env-file=../.env src/scripts/eval-agentic.ts",
+    "eval:injection": "tsx --env-file=../.env src/scripts/eval-injection.ts",
     "abis:sync": "tsx --env-file=../.env src/scripts/sync-abis.ts",
     "entity-secret:register": "tsx --env-file=../.env src/scripts/register-entity-secret.ts",
     "backfill:deposit-wallets": "tsx --env-file=../.env src/scripts/backfill-deposit-wallets.ts",

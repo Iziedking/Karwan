@@ -1,5 +1,5 @@
-/// Who a tour is about to open for. Whether a tour has been seen is kept on the
-/// device, so on a new phone a long-standing account looks like a first visit.
+/// Who New here is for (view 57, 17 Nov). What was seen is kept on the device,
+/// so on a new phone a long-standing account looks like a first visit.
 /// The account itself says otherwise: a deal, or a setup finished before today.
 export const SETTLED_IN_MS = 24 * 60 * 60 * 1000;
 

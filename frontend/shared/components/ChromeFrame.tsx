@@ -8,7 +8,6 @@ import { useScrollQuiet } from '@/shared/hooks/useScrollQuiet';
 import { useFloatGuard } from '@/shared/hooks/useFloatGuard';
 import { RouteStage } from '@/shared/components/RouteStage';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
-import { PageTourButton } from '@/shared/guide/PageTourButton';
 
 interface ChromeFrameProps {
   topNav: React.ReactNode;
@@ -129,7 +128,6 @@ function CustomerChromeFrame({
       >
         {pathname !== '/' && pathname !== '/start' && pathname !== '/waitlist' && !assistantMode && <div className={`relative z-10 mb-2 flex flex-wrap items-center gap-2 empty:hidden${workspaceWithRail ? ' mx-auto w-full max-w-[var(--workspace-measure)]' : ''}`}>
           <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} shell />
-          <PageTourButton pathname={pathname} enabled={auth.isAuthenticated && (workspace || focused)} />
         </div>}
         {pathname === '/' ? children : <RouteStage pathname={pathname}>{children}</RouteStage>}
       </main>

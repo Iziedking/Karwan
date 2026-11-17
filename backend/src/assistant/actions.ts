@@ -14,6 +14,7 @@ import type { GuaranteeCancelConfirm, GuaranteeCollectConfirm, GuaranteePutUpCon
 import type { ContestAwardConfirm, ContestCancelConfirm, ContestEnterConfirm, ContestMarkConfirm, ContestPostConfirm } from './contests.js';
 import type { WorkConfirm } from './work.js';
 import type { FinanceAcceptConfirm, FinanceApplyConfirm, FinanceAskConfirm, FinanceOfferConfirm, FinancePaySellerConfirm, FinanceRejectConfirm, FinanceStopAskingConfirm } from './finance.js';
+import { pageOfPoint, pathMatches } from './guidePages.js';
 
 /// Stage 2 of the chat-native transaction surface: the ACTION ENVELOPE. An
 /// assistant reply can carry structured actions the chat UI renders as prominent
@@ -490,10 +491,6 @@ export const NAVIGATE_DESTINATIONS = [
   'settings',
   'feedback',
   'find',
-  // Opens the page with its tour running (view 57, 15 Nov evening).
-  'tour_home',
-  'tour_market',
-  'tour_money',
 ] as const;
 export type NavigateDestination = (typeof NAVIGATE_DESTINATIONS)[number];
 
@@ -522,9 +519,6 @@ function safeAddress(v?: string): string | null {
 
 const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   home: { label: 'Go to home', build: () => '/app' },
-  tour_home: { label: 'Show me around Home', build: () => '/app?tour=1' },
-  tour_market: { label: 'Show me around the market', build: () => '/market?tour=1' },
-  tour_money: { label: 'Show me around Money', build: () => '/account?tour=1' },
   wallet: { label: 'Open your wallet', build: () => '/account' },
   // Email and passkey accounts get watched addresses on other chains here.
   deposit_address: { label: 'Show my deposit addresses', build: () => '/bridge?direction=in&rail=direct' },
@@ -654,8 +648,20 @@ export interface BuildNavigateInput {
   listingId?: string;
   /// What the deal is for, prefilled on the direct deal form.
   terms?: string;
+  /// A part of the page to light, by its point id (view 57, 17 Nov: Show me).
+  point?: string;
   label?: string;
   description?: string;
+}
+
+/// A point lights one part of the page the link opens. It must be on the guide's
+/// list and live on that page, so a link never points at nothing.
+function withPoint(href: string, point: string): { href: string } | { error: string } {
+  if (!/^[a-z0-9-]{2,40}$/.test(point)) return { error: `"${point}" is not a point id.` };
+  const page = pageOfPoint(point);
+  if (!page) return { error: `"${point}" is not a point on any page. Use one listed under the page in the guide.` };
+  if (!pathMatches(page, href)) return { error: `"${point}" is on ${page}, not on the page this destination opens. Pick the destination for ${page}, or leave point out.` };
+  return { href: `${href}${href.includes('?') ? '&' : '?'}point=${point}` };
 }
 
 /// Build a validated NavigateAction, or an `{ error }` the tool hands back to the
@@ -668,9 +674,15 @@ export function buildNavigateAction(input: BuildNavigateInput): NavigateAction |
     const need = input.destination === 'open_deal' || input.destination === 'request' ? 'deal or request id' : input.destination === 'payment_link' ? 'payment link id' : input.destination === 'offer' ? 'offer id' : 'address';
     return { error: `That destination needs a valid ${need}.` };
   }
-  const label = (input.label?.trim() || spec.label).slice(0, 60);
+  let link = href;
+  if (input.point !== undefined) {
+    const pointed = withPoint(href, input.point);
+    if ('error' in pointed) return pointed;
+    link = pointed.href;
+  }
+  const label = (input.label?.trim() || (input.point !== undefined ? 'Show me' : spec.label)).slice(0, 60);
   const description = input.description?.trim().slice(0, 120) || undefined;
-  return { kind: 'navigate', id: href, label, href, description };
+  return { kind: 'navigate', id: link, label, href: link, description };
 }
 
 export interface BuildPostOfferInput {

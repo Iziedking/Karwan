@@ -56,6 +56,8 @@ export const settingsSchema = z.object({
     guideAskedOn: daySchema.optional(),
     guideAskedStep: setupKeySchema.optional(),
     guideTourOffer: z.literal('off').optional(),
+    /// Not now on New here (view 57, 17 Nov). guideTourOffer is read for old rows only.
+    guideNewHere: z.literal('off').optional(),
   }),
 });
 

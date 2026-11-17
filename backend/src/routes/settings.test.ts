@@ -64,4 +64,7 @@ test('what Aman remembers on the account saves, and nothing outside its shape (v
   assert.equal(settingsSchema.safeParse({ settings: { guideHelloOn: '15/11/2026' } }).success, false);
   assert.equal(settingsSchema.safeParse({ settings: { guideTourOffer: 'on' } }).success, false);
   assert.equal(settingsSchema.safeParse({ settings: { guideAskedStep: 'lunch' } }).success, false);
+  // New here (view 57, 17 Nov): Not now is kept on the account; old rows keep their tour answer.
+  assert.equal(settingsSchema.parse({ settings: { guideNewHere: 'off' } }).settings.guideNewHere, 'off');
+  assert.equal(settingsSchema.safeParse({ settings: { guideNewHere: 'on' } }).success, false);
 });

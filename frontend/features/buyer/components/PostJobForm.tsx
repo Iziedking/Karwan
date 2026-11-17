@@ -23,9 +23,7 @@ import { sfx } from '@/shared/utils/sfx';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { cn } from '@/shared/utils/cn';
 import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
-import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
-import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { Icon } from '@/shared/components/Icon';
@@ -522,7 +520,6 @@ export function PostJobForm() {
 
   return (
     <>
-    <PageTour id={BUYER_TOUR_ID} steps={BUYER_STEPS} />
     <form ref={formRef} onSubmit={submit} className="space-y-7">
       <fieldset hidden={reviewing} disabled={submitting || reviewing} className="min-w-0 space-y-6">
 

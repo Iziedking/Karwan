@@ -90,11 +90,3 @@ test('Not now on linking Telegram is kept on the account', async ({ page }) => {
   await snoozed;
   await expect(line(page)).toHaveCount(0);
 });
-
-test('a link from the assistant opens Market with its tour running', async ({ page }) => {
-  await serve(page);
-  await page.goto('/market?tour=1');
-  await expect(page.locator('#page-tour-title')).toBeVisible({ timeout: 15000 });
-  await expect(page.locator('[data-tour-aman]')).toContainText('Aman · 1 of');
-  await expect.poll(() => new URL(page.url()).search).toBe('');
-});

@@ -14,8 +14,6 @@ import { ADDRESS_CHANGED } from '@/shared/components/TaskEntryLink';
 import { Hint } from '@/shared/components/Hint';
 import { Icon } from '@/shared/components/Icon';
 import { Skeleton } from '@/shared/components/Skeleton';
-import { PageTour } from '@/shared/guide/PageTour';
-import { MARKET_BIZ_TOUR_ID, MARKET_TOUR_ID, buildMarketSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
@@ -90,7 +88,6 @@ function Shop() {
   return (
     <div className="product-surface" data-testid="market">
       <FullBleed>
-        {isAuthenticated ? <PageTour id={isBusinessWorkspace ? MARKET_BIZ_TOUR_ID : MARKET_TOUR_ID} steps={buildMarketSteps(isBusinessWorkspace ? 'business' : 'person')} /> : null}
         <Band tone="light" compact>
           <header className="pt-2 sm:pt-3">
             <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.heroTitle}</h1>

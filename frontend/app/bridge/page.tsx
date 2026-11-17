@@ -16,8 +16,6 @@ import { CARD_CLASS } from '@/shared/components/Card';
 import { NetworkHint } from '@/shared/components/NetworkContext';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
-import { PageTour } from '@/shared/guide/PageTour';
-import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { ExchangePanel, PlainChooser } from '@/features/deposit/components/PlainChooser';
 import { addOptions, withdrawOptions, type AddOptionId, type PlainOption, type WithdrawOptionId } from '@/features/deposit/plainSteps';
@@ -185,7 +183,6 @@ function BridgePageInner() {
           is one of four rails, so the Tour pill appeared and disappeared as the
           user switched rails and was absent entirely for an email account, which
           lands on Direct. */}
-      <PageTour id={BRIDGE_TOUR_ID} steps={buildBridgeSteps({ direction, rail })} />
       <Band tone="light" compact>
         {/* One Back, on the content column: inside an opened option it returns
             to the question, otherwise it leaves the page. */}

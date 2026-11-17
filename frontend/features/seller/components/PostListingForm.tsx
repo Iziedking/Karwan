@@ -11,9 +11,7 @@ import { Hint } from '@/shared/components/Hint';
 import { cn } from '@/shared/utils/cn';
 import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
 import { useDismissed } from '@/shared/hooks/useDismissed';
-import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
-import { SELLER_TOUR_ID, SELLER_STEPS } from '@/shared/guide/tours';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
 import Link from 'next/link';
@@ -251,7 +249,6 @@ export function PostListingForm({ bids = [], onWithdrawn }: { bids?: SellerActiv
 
   return (
     <div className="space-y-7">
-      <PageTour id={SELLER_TOUR_ID} steps={SELLER_STEPS} />
       {published ? (
         <section aria-live="polite" className={`${CARD_CLASS} p-5`}>
           <h2 className="text-[20px] font-semibold text-[var(--ink)]">{offer.liveTitle}</h2>

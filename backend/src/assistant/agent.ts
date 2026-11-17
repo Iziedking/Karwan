@@ -66,6 +66,7 @@ import { readOwnedBalance } from '../money/ownedBalance.js';
 import { ownedInLocal } from '../money/ownedBalanceModel.js';
 import { readSharedRates } from '../rates/sharedRate.js';
 import { withLocalAmounts } from './localAmountTools.js';
+import { unfence, withTheirWordsFenced } from './theirWords.js';
 import { WAY_MONEY_FIELDS, saidOnWay } from '../agents/waysSaid.js';
 import { saidLimit } from '../agents/agentLimit.js';
 import type { LocalCurrency } from '../rates/usdcRates.js';
@@ -2525,7 +2526,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     propose_navigation: tool({
       description:
-        'Show the user a prominent button that takes them straight to the in-app screen for something they want to DO but that you cannot execute yet: their wallet, add money / top up, their deposit addresses, send USDC, create a payment link, open a payment link, open a direct deal, post a request or an offer, withdraw proceeds, get test USDC, open one of their own deals, browse the market, find partners, view a credit passport, or stake. Prefer this over only describing where to go. You may call it more than once. Keep the label short and specific.',
+        'Show the user a prominent button that takes them straight to the in-app screen for something they want to DO but that you cannot execute yet: their wallet, add money / top up, their deposit addresses, send USDC, create a payment link, open a payment link, open a direct deal, post a request or an offer, withdraw proceeds, get test USDC, open one of their own deals, browse the market, find partners, view a credit passport, or stake. Prefer this over only describing where to go. You may call it more than once. Keep the label short and specific. When they ask where something is, set point so the button reads Show me.',
       inputSchema: z.object({
         destination: z.enum(NAVIGATE_DESTINATIONS).describe('Which screen to send them to.'),
         jobId: z.string().max(120).optional().describe('Required for open_deal: the deal id.'),
@@ -2542,6 +2543,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         amountUsdc: z.number().positive().max(1_000_000).optional().describe('Optional for send: the amount.'),
         token: z.string().max(40).optional().describe('Required for payment_link: the link id from list_my_payment_links.'),
         listingId: z.string().max(80).optional().describe('Required for offer: the offer id from search_market.'),
+        point: z.string().max(40).optional().describe('Optional: light up one part of that page, by its point id from the guide. Use it when they ask where something is. The page shows our own line beside it.'),
         label: z.string().max(60).optional().describe('Short, specific button text. Defaults to a sensible label.'),
         description: z.string().max(120).optional().describe('Optional one-line hint under the button.'),
       }),
@@ -3254,6 +3256,9 @@ export async function runAssistantAgent(input: {
   onStep?: OnStep;
   /// Another model for this turn: the timing script compares models with it.
   model?: LanguageModel;
+  /// Swaps the tools for a test run (scripts/eval-injection.ts stubs every read
+  /// and write). Never set by the app; fencing still wraps what it returns.
+  swapTools?: <T extends Record<string, unknown>>(tools: T) => T;
 }): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number; acted: string[] }> {
   const model = input.model ?? assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
@@ -3287,7 +3292,7 @@ export async function runAssistantAgent(input: {
       model,
       system,
       messages: input.messages,
-      tools: withLocalAmounts(toolsForMode(buildTools(input.address, input.method, actions, input.conversationId), input.mode), () => readSharedRates(), { set_way_i_deal: WAY_MONEY_FIELDS }),
+      tools: withTheirWordsFenced(withLocalAmounts(swapped(toolsForMode(buildTools(input.address, input.method, actions, input.conversationId), input.mode), input.swapTools), () => readSharedRates(), { set_way_i_deal: WAY_MONEY_FIELDS })),
       // Allow a few reasoning+tool rounds (e.g. whats_pending, then read one
       // deal, then propose a button), then force a final text answer.
       stopWhen: stepCountIs(6),
@@ -3303,8 +3308,13 @@ export async function runAssistantAgent(input: {
   const { grounded, subjects, acted } = assessGrounding(input.messages, result.steps ?? []);
   // Cards and the answer read in the person's own currency (view 77).
   const shown = reader ? localiseActions(actions, reader.currency, reader.rates) : actions;
-  const text = reader ? localiseAnswer(result.text.trim(), shown, reader.currency, reader.rates) : result.text.trim();
+  const said = unfence(result.text).trim();
+  const text = reader ? localiseAnswer(said, shown, reader.currency, reader.rates) : said;
   return { text, actions: shown, grounded, subjects, acted };
+}
+
+function swapped<T extends Record<string, unknown>>(tools: T, swap?: <U extends Record<string, unknown>>(tools: U) => U): T {
+  return swap ? swap(tools) : tools;
 }
 
 /// A 0x id is a deal only once escrow is funded. Before that the same id is a

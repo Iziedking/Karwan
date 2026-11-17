@@ -4,9 +4,7 @@ import { api } from '@/core/api';
 import { settlementChain } from '@/core/arcNetwork';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivityView } from '@/features/activity/components/ActivityView';
-import { PageTour } from '@/shared/guide/PageTour';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { ACTIVITY_TOUR_ID, ACTIVITY_STEPS } from '@/shared/guide/tours';
 import {
   FullBleed,
   Band,
@@ -44,7 +42,6 @@ function ActivityPageInner({
   return (
     <div className="product-surface">
     <FullBleed>
-      <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />
       <Band tone="light" compact>
         <header className="pt-2 pb-5 sm:pt-3">
           <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.pageTitle}</h1>

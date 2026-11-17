@@ -1,8 +1,6 @@
 'use client';
 import { Price } from '@/features/money/components/Price';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
-import { PageTour } from '@/shared/guide/PageTour';
-import { STAKE_STEPS, STAKE_TOUR_ID } from '@/shared/guide/tours';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
@@ -59,7 +57,6 @@ export function GuaranteeTab() {
 
   return (
     <div data-guarantee-tab data-guide="guarantee" className="space-y-5">
-      <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
       <h1 id="money-guarantee" className="space-y-1.5">
         <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink-secondary)]">{t.moneyPages.tabs.guarantee}<Hint>{tips.guarantee}</Hint></span>
         <span data-guaranteed className="block"><Price usdc={Number(view.guaranteed)} size="block" /></span>
