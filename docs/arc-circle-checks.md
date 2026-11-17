@@ -885,7 +885,8 @@ Agree: yes.
 - Docs, read 16 Nov 2026: Arc "Gas and fees" (https://docs.arc.io/arc/references/gas-and-fees): 30M gas per block, so the payout loop is capped (at most 1,000 entry slots scanned). Arc "Porting contracts to Arc" (https://docs.arc.io/arc/tutorials/porting-contracts-to-arc): a USDC transfer to a blocklisted address reverts. The settlement base's `_deliver` already uses `trySafeTransfer` and credits `owed` on failure (`SettlementLib.sol`), so one blocked winner cannot stop the others being paid. `PREVRANDAO` is 0 on Arc: the payout uses entry order only, no randomness. USDC ERC-20 at `0x3600…0000`, 6 decimals, unchanged.
 - Installed tools: Foundry as pinned in `contracts/foundry.toml`; no library change.
 - Read-only test, 16 Nov 2026: `eth_getCode` on the live job escrow `0xEA06b70c0808c2ad9b6316758407284fdAD9D550` (Arc testnet) returns code; `eth_blockNumber` 0x45362d7.
-- Not covered yet: the deploy and the timelock registration, which the owner runs; a rehearsal on Arc testnet before contests move to the new escrow.
+- Deployed 17 Nov 2026: `KarwanJobEscrow` `0x0F68EfB7BD911899E4736F2A7f3ecDbC73A0050E`, tx `0x2d2179f232e7083690470a1cf50296e1a065f9bbb5f618056f3b8cc3d6d112f1`, block 72657634, with `BountyLib` `0xce2e4f09…df82`, `JobLib` `0x364a42bf…16aa` and `JobDisputeLib` `0x22f932c7…1655` in the same block. Read back on chain: `hub()` is the hub, `asset()` is USDC, signing domain "KarwanJobs" version "2", `hub.isFamily` false until the batch runs. Batch files `contracts/deployments/jobs-v2-5042002-2026-11-17.{schedule,execute}.json`, decoded: `registerFamily(…, 100)`, `setCaps(…, USDC, 1005e6, 10000e6)`, `setYieldShare(…, 8000)`.
+- Not covered yet: a rehearsal on Arc testnet before contests move to the new escrow.
 - Agree: yes.
 
 ## 2026-11-17 · Contest prizes take a yield share (T2, view 88)
