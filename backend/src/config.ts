@@ -620,8 +620,9 @@ const envSchema = z.object({
   // Defaults to AWS_REGION, then us-east-1.
   ANTHROPIC_STS_REGION: optionalString,
   // Amazon Bedrock in Karwan's own AWS account. When on, Claude Haiku on
-  // Bedrock leads every model chain, assistant and supervisor included: it is
-  // first-party infrastructure, not a proxy. Credentials come from the standard
+  // Bedrock comes right after Claude at Anthropic in every model chain,
+  // assistant and supervisor included (view 89): it is first-party
+  // infrastructure, not a proxy. Credentials come from the standard
   // AWS chain (instance role on the server, env keys or SSO locally).
   BEDROCK_ENABLED: envBool('BEDROCK_ENABLED'),
   BEDROCK_REGION: z.string().default('us-east-1'),

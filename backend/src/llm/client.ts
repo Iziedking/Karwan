@@ -1,11 +1,12 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { generateObject, type FlexibleSchema } from 'ai';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { anthropicAuthFrom } from './anthropicAuth.js';
+import { anthropicLink } from './anthropicLink.js';
 import { chainLinks, fallbackChain } from './chain.js';
 import { fitCachePoints, withoutCachePoints } from './cachePoints.js';
 import { reportModelsDown } from './modelsDown.js';
@@ -15,8 +16,24 @@ const openrouter = createOpenRouter({
 });
 const openrouterModel = openrouter(config.LLM_MODEL);
 
-// Direct Anthropic. Null when no key is set (local dev) so the chain skips it.
-const anthropic = config.ANTHROPIC_API_KEY ? createAnthropic({ apiKey: config.ANTHROPIC_API_KEY }) : null;
+// Claude at Anthropic, with a pass from the server's AWS role when that is set
+// up, else with the key (view 89). Null when neither is set, so the chain skips it.
+const link = anthropicLink(
+  anthropicAuthFrom({
+    ruleId: config.ANTHROPIC_FEDERATION_RULE_ID,
+    organizationId: config.ANTHROPIC_ORGANIZATION_ID,
+    workspaceId: config.ANTHROPIC_WORKSPACE_ID,
+    serviceAccountId: config.ANTHROPIC_SERVICE_ACCOUNT_ID,
+    stsRegion: config.ANTHROPIC_STS_REGION,
+    awsRegion: config.AWS_REGION,
+    apiKey: config.ANTHROPIC_API_KEY,
+  }),
+);
+const anthropic = link?.provider ?? null;
+/// The pass keeper the assistant's own request shares, null without a pass.
+export const anthropicKeeper = link?.keeper ?? null;
+/// How Claude at Anthropic is reached: 'pass', 'key', or null when it is not.
+export const anthropicHow = link?.how ?? null;
 
 type LM = LanguageModelV3;
 
@@ -39,8 +56,8 @@ export const bedrockFallbackModel: LM | null = config.BEDROCK_FALLBACK_MODEL && 
   ? (withoutCachePoints(bedrock(config.BEDROCK_FALLBACK_MODEL)) as LM)
   : null;
 
-/// One chain per job: Claude on Bedrock, the Anthropic key with the job's
-/// model, the fallback on Bedrock, then OpenRouter unless the chain is private.
+/// One chain per job: Claude at Anthropic with the job's model, Claude on
+/// Bedrock, the fallback on Bedrock, then OpenRouter unless the chain is private.
 function chainFor(anthropicModel: string, scope: 'open' | 'private'): LM[] {
   return chainLinks(
     {
@@ -146,8 +163,8 @@ export const assistantAgentModel: LM | null = directChain(config.ASSISTANT_AGENT
 /// diagnostics page. Raw models: no fallback, no cleaning.
 export function modelLinks(): { name: string; model: LM }[] {
   const links: { name: string; model: LM | null }[] = [
+    { name: `Claude at Anthropic, ${anthropicHow ?? 'off'} (${config.FAST_LLM_MODEL})`, model: anthropic?.(config.FAST_LLM_MODEL) ?? null },
     { name: `Claude on Bedrock (${config.BEDROCK_MODEL})`, model: bedrockModel },
-    { name: `Anthropic key (${config.FAST_LLM_MODEL})`, model: anthropic?.(config.FAST_LLM_MODEL) ?? null },
     { name: `Fallback on Bedrock (${config.BEDROCK_FALLBACK_MODEL})`, model: bedrockFallbackModel },
     { name: `Light model on Bedrock (${config.BEDROCK_LIGHT_MODEL ?? 'none'})`, model: bedrockLightModel },
     { name: `OpenRouter (${config.LLM_MODEL})`, model: config.OPENROUTER_API_KEY ? openrouterModel : null },

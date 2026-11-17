@@ -3,7 +3,8 @@ import test from 'node:test';
 import type { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { BENCH_MS, chainLinks, fallbackChain, refusedForGood, shouldAlert } from './chain.js';
 
-/// Every model chain ends on a model in Karwan's own AWS account (view 81).
+/// Every model chain ends on a model in Karwan's own AWS account (view 81),
+/// and starts at Claude at Anthropic (view 89).
 ///
 ///   npx tsx --test src/llm/chain.test.ts
 
@@ -38,9 +39,9 @@ function fake(provider: string, behaviour: Error | string): LanguageModelV3 & { 
 
 const opts = {} as LanguageModelV3CallOptions;
 
-test('the order is Claude on Bedrock, the Anthropic key, DeepSeek on Bedrock, then OpenRouter', () => {
+test('the order is Claude at Anthropic, Claude on Bedrock, DeepSeek on Bedrock, then OpenRouter (view 89)', () => {
   const links = { bedrock: fake('bedrock-claude', 'x'), anthropic: fake('anthropic', 'x'), fallback: fake('bedrock-deepseek', 'x'), openrouter: fake('openrouter', 'x') };
-  assert.deepEqual(chainLinks(links, 'open').map((m) => m.provider), ['bedrock-claude', 'anthropic', 'bedrock-deepseek', 'openrouter']);
+  assert.deepEqual(chainLinks(links, 'open').map((m) => m.provider), ['anthropic', 'bedrock-claude', 'bedrock-deepseek', 'openrouter']);
 });
 
 test('private chains never include OpenRouter, but do include DeepSeek on Bedrock', () => {
@@ -140,4 +141,15 @@ test('a permanent refusal is told apart from a passing fault', () => {
   }
   assert.equal(refusedForGood(Object.assign(new Error('x'), { statusCode: 403 })), true);
   assert.equal(refusedForGood(Object.assign(new Error('x'), { statusCode: 429 })), false);
+});
+
+test('a private chain with the pass link refused moves to Bedrock and never reaches OpenRouter (view 89)', async () => {
+  const pass = fake('anthropic', Object.assign(new Error('Anthropic refused the pass exchange (401): Authentication failed'), { statusCode: 401 }));
+  const bedrock = fake('bedrock-claude', 'From Bedrock.');
+  const openrouter = fake('openrouter', 'never');
+  const chain = chainLinks({ bedrock, anthropic: pass, fallback: null, openrouter }, 'private');
+  const out = await fallbackChain(chain, () => {}).doGenerate(opts);
+  const text = out.content.find((p) => p.type === 'text');
+  assert.equal(text && 'text' in text ? text.text : null, 'From Bedrock.');
+  assert.deepEqual([pass.calls, bedrock.calls, openrouter.calls], [1, 1, 0]);
 });

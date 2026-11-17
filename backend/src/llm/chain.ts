@@ -2,8 +2,9 @@ import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { logger } from '../logger.js';
 import { cleanModelText } from './cleanText.js';
 
-/// How every model chain is built (view 81). The order is Claude on Bedrock,
-/// the Anthropic key, a model that is not Claude on Bedrock, then OpenRouter.
+/// How every model chain is built (view 81). The order is Claude at Anthropic
+/// (view 89), Claude on Bedrock, a model that is not Claude on Bedrock, then
+/// OpenRouter.
 /// A private chain carries a person's own data and never goes to OpenRouter;
 /// Bedrock runs in Karwan's own AWS account, so both Bedrock links stay in it.
 
@@ -17,7 +18,7 @@ export interface Links {
 }
 
 export function chainLinks(links: Links, scope: 'open' | 'private'): LM[] {
-  const order = [links.bedrock, links.anthropic, links.fallback, scope === 'open' ? links.openrouter : null];
+  const order = [links.anthropic, links.bedrock, links.fallback, scope === 'open' ? links.openrouter : null];
   return order.filter((m): m is LM => m !== null);
 }
 
