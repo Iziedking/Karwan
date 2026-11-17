@@ -388,7 +388,7 @@ The suite launches on mainnet after step 8 with beta limits written into it: dea
 | Escrow for today's deals (v2b) | Live on testnet |
 | Terms-driven escrow (v3): terms hash, clocks, checks, disputes with appeal, splits, owed balances, caps | Built, not deployed. Its rules carry into the Agreement family |
 | Stake vault | On Arc Testnet since 23 October, not on mainnet: stake per person, reservations only by the staker's own signature, slashes only to the named beneficiary |
-| Yield pool | Built, not deployed: one pool per asset, deal money parked by each family's share, payouts taken from it or owed, yield above a cushion to the fee recipient. Tested against Circle's USYC Teller on an Arc testnet fork |
+| Yield pool | Built, not deployed; deploy script and timelock batch written 17 Nov 2026 (`script/DeployYieldPool.s.sol`, `scripts/ops/yield-pool-timelock-batch.mjs`): one pool per asset, deal money parked by each family's share, payouts taken from it or owed, yield above a cushion to the fee recipient. Tested against Circle's USYC Teller on an Arc testnet fork |
 | Shared settlement base and hub | On Arc Testnet since 23 October, not on mainnet. The hub is owned by the timelock |
 | Agreement family | On Arc Testnet since 23 October, not on mainnet: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback, and an optional seller stake for the buyer, slashed only by a ruling or the dispute fallback and kept reserved for as long as the deal can run |
 | Trade finance family | On Arc Testnet since 23 October, not on mainnet: purchase-order financing and factoring against Agreement deals |
