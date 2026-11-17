@@ -9,6 +9,8 @@ export interface ContestInputPayload {
   brief: string;
   prizeUsdc: string;
   places: number;
+  /// Each place's part in basis points, first place first; the suggested split when left out.
+  shares?: number[];
   entriesDays: number;
   awardDays?: number;
   kind?: 'design' | 'bugs' | 'hackathon';
@@ -49,7 +51,18 @@ export interface DraftCard {
 }
 
 const usdc = (micros: string) => `${(Number(micros) / 1_000_000).toFixed(2)} USDC`;
-const PLACE = ['First', 'Second', 'Third'];
+const PLACE = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth'];
+
+/// Amounts said for each place, as basis points of the prize. They must add up
+/// to the prize within a cent; what rounding leaves goes to the first place.
+export function sharesFromAmounts(amounts: number[], prize: number): number[] | null {
+  const sum = amounts.reduce((a, b) => a + b, 0);
+  if (amounts.some((a) => !(a > 0)) || Math.abs(sum - prize) > 0.01) return null;
+  const bps = amounts.map((a) => Math.floor((a / sum) * 10_000));
+  if (bps.some((b) => b <= 0)) return null;
+  bps[0]! += 10_000 - bps.reduce((a, b) => a + b, 0);
+  return bps;
+}
 const day = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
 export function buildContestPostConfirm(input: ContestInputPayload, card: DraftCard, money?: (usdc: number) => string): ContestPostConfirm {

@@ -57,9 +57,14 @@ export function moneyStepPath(action: ConfirmAction): string | null {
     case 'finance_pay_seller':
       return '/financier';
     case 'contest_post': {
-      const p = action.payload as { title?: string; brief?: string; prizeUsdc?: string; places?: number; entriesDays?: number; awardDays?: number };
+      const p = action.payload as { title?: string; brief?: string; prizeUsdc?: string; places?: number; shares?: number[]; entriesDays?: number; awardDays?: number; kind?: string };
       if (!p.title || !p.brief || !p.prizeUsdc || !p.places || !p.entriesDays) return null;
-      const q = new URLSearchParams({ title: p.title, brief: p.brief, prize: p.prizeUsdc, places: String(p.places), days: String(p.entriesDays), ...(p.awardDays ? { pick: String(p.awardDays) } : {}) });
+      const q = new URLSearchParams({
+        title: p.title, brief: p.brief, prize: p.prizeUsdc, places: String(p.places), days: String(p.entriesDays),
+        ...(p.awardDays ? { pick: String(p.awardDays) } : {}),
+        ...(p.kind ? { kind: p.kind } : {}),
+        ...(p.shares?.length ? { shares: p.shares.join(',') } : {}),
+      });
       return `/contests/new?${q.toString()}`;
     }
     case 'contest_award':

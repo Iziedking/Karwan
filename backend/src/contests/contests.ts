@@ -12,8 +12,27 @@ import { entryFingerprint, type EntryFile } from './entryFiles.js';
 
 const DAY = 86_400_000;
 const USDC = 6;
-export const DEFAULT_SHARES: Record<number, number[]> = { 1: [10_000], 2: [7_000, 3_000], 3: [5_000, 3_000, 2_000] };
-const MAX_PLACES = 3;
+/// The suggested split for each number of winners (view 88 decision 6). The
+/// person running the contest can keep it, share equally, or set their own.
+export const DEFAULT_SHARES: Record<number, number[]> = {
+  1: [10_000],
+  2: [7_000, 3_000],
+  3: [5_000, 3_000, 2_000],
+  4: [4_000, 3_000, 2_000, 1_000],
+  5: [3_500, 2_500, 2_000, 1_200, 800],
+  6: [3_000, 2_200, 1_700, 1_300, 1_000, 800],
+  7: [2_800, 2_000, 1_500, 1_200, 1_000, 800, 700],
+  8: [2_500, 1_800, 1_400, 1_200, 1_000, 800, 700, 600],
+};
+/// Both job escrows take up to 8 places (BountyLib MAX_PLACES).
+export const MAX_PLACES = 8;
+
+/// Equal shares in basis points; what cannot split evenly goes to the first places.
+export function equalShares(places: number): number[] {
+  const base = Math.floor(10_000 / places);
+  const extra = 10_000 - base * places;
+  return Array.from({ length: places }, (_, i) => base + (i < extra ? 1 : 0));
+}
 const MAX_DESCRIPTION_BYTES = 2_048;
 /// After judging ends with nobody picked, the buyer has this long before the
 /// contract pays the earliest entries (view 88, BountyLib WAIT).
@@ -121,7 +140,7 @@ export function createContests(p: ContestPorts) {
       return refuse('BAD_TERMS', 'The prize must be an amount in USDC.');
     }
     if (prize <= 0n) return refuse('BAD_TERMS', 'The prize must be more than 0.');
-    if (!Number.isInteger(input.places) || input.places < 1 || input.places > MAX_PLACES) return refuse('BAD_TERMS', 'A contest has one to three winners.');
+    if (!Number.isInteger(input.places) || input.places < 1 || input.places > MAX_PLACES) return refuse('BAD_TERMS', 'A contest has one to eight winners.');
     const shares = input.shares ?? DEFAULT_SHARES[input.places]!;
     if (shares.length !== input.places || shares.some((s) => !Number.isInteger(s) || s <= 0) || shares.reduce((a, b) => a + b, 0) !== 10_000) {
       return refuse('BAD_TERMS', 'The winners share the whole prize, each a part of it.');

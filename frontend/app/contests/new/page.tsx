@@ -6,7 +6,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ContestForm } from '@/features/contests/components/ContestForm';
 
 /// Run a contest (view 40). A card from the assistant or a chat channel opens
-/// here with its answers filled in: ?title, brief, prize, places, days, pick.
+/// here with its answers filled in: ?title, brief, prize, places, days, pick, kind, shares.
 export default function NewContestPage() {
   return (
     <Suspense fallback={null}>
@@ -29,6 +29,8 @@ function NewContest() {
     places: num('places'),
     entriesDays: num('days'),
     awardDays: num('pick'),
+    kind: (['design', 'bugs', 'hackathon'] as const).find((k) => k === q.get('kind')),
+    shares: q.get('shares')?.split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0),
   };
   return (
     <AuthGuard gateTag={t.form.title} gateBody={t.start.body}>

@@ -5,7 +5,8 @@ import { ar } from '../shared/i18n/messages/ar';
 import { BUYER, SELLER } from './fixtures';
 
 /// Contests (view 40): the buyer runs one and picks winners from previews, a
-/// seller enters, and no screen says bounty, escrow, evaluator or stake.
+/// seller enters, and no screen says escrow, evaluator or stake (view 88: one
+/// to eight winners, the three dates, and entries marked not valid).
 
 const API = 'http://127.0.0.1:3199';
 const t = en.contests;
@@ -94,7 +95,8 @@ test('running a contest shows the total before the prize is put up, and the copy
   const sheet = page.getByRole('dialog');
   await expect(sheet).toContainText('301.5 USDC');
   await expect(sheet.getByRole('button', { name: t.card.confirm.replace('{amount}', '301.5') })).toBeVisible();
-  await expect(page.getByText(/\b(bounty|escrow|evaluator|stake|vault|hash)\b/i)).toHaveCount(0);
+  // "Bug bounty" names a kind of contest people know (view 88); nothing else says bounty.
+  await expect(page.getByText(/\b(escrow|evaluator|stake|vault|hash)\b|(?<!bug )bounty/i)).toHaveCount(0);
 });
 
 test('a contest reads right to left in Arabic and fits a phone', async ({ page, context }) => {
@@ -106,4 +108,76 @@ test('a contest reads right to left in Arabic and fits a phone', async ({ page, 
   await expect(page.getByRole('button', { name: ar.contests.page.pay })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+const protectedView = (over: Partial<ContestView> = {}) =>
+  contest({ protects: true, kind: 'design', entries: 2, entriesBy: Date.now() - DAY, awardBy: Date.now() + 6 * DAY - 60_000, payoutFrom: Date.now() + 9 * DAY, ...over });
+
+test('up to eight winners, shared the way the buyer says, adding up to the prize', async ({ page }) => {
+  const posted = { body: null as unknown };
+  await serve(page, BUYER, contest(), posted);
+  await page.goto('/contests/new?title=Best%20logo&brief=A%20bakery%20logo&prize=450&places=3&days=7');
+  await expect(page.locator('[data-split-line]')).toHaveText('225 USDC · 135 USDC · 90 USDC');
+  for (let i = 0; i < 5; i += 1) await page.getByRole('button', { name: t.form.more }).click();
+  await expect(page.getByRole('button', { name: t.form.more })).toBeDisabled();
+  for (let i = 0; i < 3; i += 1) await page.getByRole('button', { name: t.form.fewer }).click();
+  await page.getByRole('radio', { name: t.form.splits.own }).click();
+  const place = (i: number) => page.getByRole('textbox', { name: t.form.placeAmount.replace('{place}', t.page.places[i]!) });
+  for (const [i, v] of ['150', '100', '80', '50', '50'].entries()) await place(i).fill(v);
+  await expect(page.locator('[data-split-sum]')).toHaveText(t.form.left.replace('{amount} USDC', '20 USDC'));
+  await expect(page.getByRole('button', { name: t.form.review })).toBeDisabled();
+  await place(3).fill('70');
+  await expect(page.locator('[data-split-sum]')).toHaveText(t.form.addsUp.replace('{amount} USDC', '450 USDC'));
+  await page.getByRole('button', { name: t.form.review }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: /301.5/ }).click();
+  await expect.poll(() => (posted.body as { shares?: number[] } | null)?.shares).toEqual([3335, 2222, 1777, 1555, 1111]);
+  expect(posted.body).toMatchObject({ places: 5, kind: 'design', awardDays: 7 });
+});
+
+test('the buyer marks an entry not valid with a reason, and a marked entry cannot be picked', async ({ page }) => {
+  const posted = { body: null as unknown, path: '' as string | undefined };
+  const view = protectedView({
+    mine: true,
+    entryList: [
+      { id: 'e_1', seller: '@ada', note: 'Gold and brown', status: 'in', previewUrl: '/api/contests/c_demo/entries/e_1/preview', files: 2 },
+      { id: 'e_2', seller: '@tunde', note: 'Bread mark', status: 'in', previewUrl: '/api/contests/c_demo/entries/e_2/preview', files: 1, notValid: 'Copied from a stock image site.' },
+    ],
+  });
+  await serve(page, BUYER, view, posted);
+  await page.goto('/contests/c_demo');
+  await expect(page.getByText(t.judging.phase.judging.replace('{left}', t.judging.left.many.replace('{n}', '6')))).toBeVisible();
+  await expect(page.locator('[data-contest-dates]')).toContainText(t.judging.dates.ifYouPickNobody);
+  await expect(page.locator('[data-entry="e_2"]').getByRole('button', { name: /@tunde/ })).toBeDisabled();
+  await expect(page.locator('[data-entry="e_2"]')).toContainText('Copied from a stock image site.');
+  await page.locator('[data-entry="e_1"]').getByRole('button', { name: t.judging.notValid }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText(t.mark.title.replace('{name}', '@ada'));
+  await expect(sheet.getByRole('button', { name: t.mark.confirm })).toBeDisabled();
+  await sheet.getByRole('textbox').fill('A photo of a cake, not a logo.');
+  await expect(sheet).toContainText(t.mark.count.replace('{n}', '30'));
+  await sheet.getByRole('button', { name: t.mark.confirm }).click();
+  await expect.poll(() => posted.path).toBe('/api/contests/c_demo/entries/e_1/not-valid');
+  expect(posted.body).toEqual({ reason: 'A photo of a cake, not a logo.' });
+});
+
+test('an entrant whose entry was marked reads the reason and can send a new one; anyone sees the marked list', async ({ page }) => {
+  const reason = 'Copied from a stock image site.';
+  await serve(page, SELLER, protectedView({
+    entriesBy: Date.now() + 3 * DAY,
+    myEntry: { id: 'e_2', note: '', status: 'in', previewUrl: '', files: 1, notValid: reason },
+    marked: [{ seller: '@tunde', reason }],
+  }));
+  await page.goto('/contests/c_demo');
+  await expect(page.locator('[data-my-entry-marked]')).toContainText(reason);
+  await expect(page.getByRole('button', { name: t.judging.newEntry })).toBeVisible();
+  await expect(page.locator('[data-contest-marked]')).toContainText('@tunde');
+});
+
+test('a contest nobody judged shows it was paid to the earliest entries', async ({ page }) => {
+  await serve(page, null, protectedView({ status: 'awarded', auto: true, winners: [{ place: 1, netMicros: '149250000' }, { place: 2, netMicros: '89550000' }] }));
+  await page.goto('/contests/c_demo');
+  await expect(page.getByText(t.judging.phase.paidEarliest)).toBeVisible();
+  await expect(page.locator('[data-contest-winners]')).toContainText(t.judging.earliest);
+  await expect(page.locator('[data-contest-winners]')).toContainText('149.25 USDC');
 });

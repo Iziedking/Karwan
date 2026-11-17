@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Address, Hex } from 'viem';
 import { memoryContestsStore } from '../db/contests.js';
-import { createContests, type ContestPorts } from './contests.js';
+import { DEFAULT_SHARES, createContests, equalShares, type ContestPorts } from './contests.js';
 
 /// Contests on the job escrow (view 40): the prize held from the start, entries
 /// from sellers, the buyer picks the winners, an unpicked prize goes back.
@@ -69,7 +69,7 @@ test('a draft says what the buyer puts up, what each place gets, and what happen
 test('a draft refuses what the contract or the app would not take', () => {
   const { core } = setup();
   for (const bad of [
-    { ...input, places: 0 }, { ...input, places: 4 }, { ...input, prizeUsdc: '0' }, { ...input, entriesDays: 0 },
+    { ...input, places: 0 }, { ...input, places: 9 }, { ...input, prizeUsdc: '0' }, { ...input, entriesDays: 0 },
     { ...input, entriesDays: 31 }, { ...input, awardDays: 61 }, { ...input, shares: [6000, 3000] }, { ...input, shares: [10000, 0, 0] },
   ]) {
     assert.equal(core.draft(bad, 100).ok, false, JSON.stringify(bad));
@@ -194,4 +194,19 @@ test('a failed return leaves the contest open for the next pass', async () => {
   failing.advance(15 * DAY);
   assert.equal(await failing.core.returnDue(), 0);
   assert.equal((await s.store.get(id))?.status, 'open');
+});
+
+test('one to eight winners, shared the suggested way, equally, or as the buyer sets (view 88 decision 6)', () => {
+  const { core } = setup();
+  for (let n = 1; n <= 8; n += 1) {
+    assert.equal(DEFAULT_SHARES[n]!.reduce((a, b) => a + b, 0), 10_000, `suggested split for ${n}`);
+    assert.equal(equalShares(n).reduce((a, b) => a + b, 0), 10_000, `equal split for ${n}`);
+  }
+  assert.deepEqual(equalShares(3), [3334, 3333, 3333]);
+  const eight = core.draft({ ...input, places: 8 }, 100);
+  assert.equal(eight.ok, true);
+  if (eight.ok) assert.equal(eight.card.placeNetMicros.length, 8);
+  const own = core.draft({ ...input, places: 5, shares: [3334, 2222, 1778, 1555, 1111] }, 100);
+  assert.equal(own.ok, true);
+  if (own.ok) assert.deepEqual(own.card.shares, [3334, 2222, 1778, 1555, 1111]);
 });

@@ -416,6 +416,7 @@ export interface UserSettings {
   /// What Aman remembers on the account (view 57, 15 Nov evening).
   guideHelloOn?: string;
   guideTourOffer?: 'off';
+  guideNewHere?: 'off';
   guideMomentAt?: number;
 }
 
@@ -3520,12 +3521,14 @@ export interface TrendingCategory {
 }
 
 /// A contest on the job escrow (view 40): the prize is held from the start and
-/// the buyer picks up to three winners from the entries.
+/// the buyer picks one to eight winners from the entries (view 88).
 export interface ContestInput {
   title: string;
   brief: string;
   prizeUsdc: string;
   places: number;
+  /// Each place's part in basis points, first place first; the suggested split when left out.
+  shares?: number[];
   entriesDays: number;
   /// Days of judging after entries close.
   awardDays?: number;

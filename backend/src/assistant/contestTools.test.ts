@@ -100,3 +100,15 @@ test('on the new rule the contest card says when the earliest entries are paid',
   assert.match(c.summary ?? '', /from 15 Nov the earliest entries are paid/);
   assert.match(c.warning ?? '', /earliest entries/);
 });
+
+test('up to eight winners, shared equally or as the person says (view 88 decision 6)', async () => {
+  const s = setup({ 'POST /api/contests/draft': { status: 200, json: { card } } });
+  await s.tools.propose_contest.execute!({ title: 'Best logo', brief: 'A bakery logo', prizeUsdc: 300, places: 3, split: 'equal', entriesDays: 7 }, call);
+  assert.deepEqual(((s.actions[0] as ConfirmAction).payload as { shares?: number[] }).shares, [3334, 3333, 3333]);
+  await s.tools.propose_contest.execute!({ title: 'Best logo', brief: 'A bakery logo', prizeUsdc: 300, places: 3, shares: [150, 100, 50], entriesDays: 7 }, call);
+  assert.deepEqual(((s.actions[1] as ConfirmAction).payload as { shares?: number[] }).shares, [5001, 3333, 1666]);
+  const off = (await s.tools.propose_contest.execute!({ title: 'Best logo', brief: 'A bakery logo', prizeUsdc: 300, places: 3, shares: [150, 100, 30], entriesDays: 7 }, call)) as { error?: string };
+  assert.match(off.error ?? '', /add up to the prize/);
+  const path = moneyStepPath({ intent: 'contest_post', payload: { title: 'Best logo', brief: 'A bakery logo', prizeUsdc: '300', places: 8, shares: [2500, 1800, 1400, 1200, 1000, 800, 700, 600], entriesDays: 7, kind: 'bugs' } } as unknown as ConfirmAction);
+  assert.match(path ?? '', /places=8&days=7&kind=bugs&shares=2500%2C1800/);
+});

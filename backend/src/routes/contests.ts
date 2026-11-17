@@ -27,7 +27,7 @@ const inputSchema = z.object({
   brief: z.string().max(4_000),
   prizeUsdc: z.string().max(32),
   places: z.number().int(),
-  shares: z.array(z.number().int()).max(3).optional(),
+  shares: z.array(z.number().int()).max(8).optional(),
   entriesDays: z.number().int(),
   awardDays: z.number().int().optional(),
   kind: z.enum(['design', 'bugs', 'hackathon']).optional(),
@@ -39,7 +39,7 @@ const entrySchema = z.object({
   note: z.string().max(500).default(''),
   heldFiles: z.boolean().optional(),
 });
-const awardSchema = z.object({ entryIds: z.array(z.string().max(64)).min(1).max(3) });
+const awardSchema = z.object({ entryIds: z.array(z.string().max(64)).min(1).max(8) });
 const markSchema = z.object({ reason: z.string().max(600) });
 
 const DATA_URL = /^data:[a-z]+\/[a-z0-9.+-]+;base64,([A-Za-z0-9+/=]+)$/;

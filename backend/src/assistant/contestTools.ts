@@ -8,8 +8,10 @@ import {
   buildContestEnterConfirm,
   buildContestMarkConfirm,
   buildContestPostConfirm,
+  sharesFromAmounts,
   type DraftCard,
 } from './contests.js';
+import { equalShares } from '../contests/contests.js';
 
 /// Contests from any channel (view 40). Reads and drafts go through the app's
 /// own routes as the person, so every rule and every party check is the
@@ -65,12 +67,14 @@ export function contestTools(address: string, actions: AssistantAction[], deps: 
 
     propose_contest: tool({
       description:
-        "Prepare a card for the person to run a contest: 'best logo, three places, a prize of 300, entries by Friday'. Ask for the prize in the person's own currency, never 'how much USDC'. Draw the card as soon as you have a title, what they want, the prize and the places: never send them to a form to fill it in. Their agent puts up the prize when they confirm. One to three places. Pick the kind from what they say: design (a design or writing contest: entries 1 to 30 days, judging 3 to 14, 7 by default), bugs (a bug bounty: entries 1 to 60 days, judging 3 to 30, 14 by default) or hackathon (1 to 60 days of building, 3 to 30 of review, 14 by default). The card says what happens if they pick nobody; read it to them in your words.",
+        "Prepare a card for the person to run a contest: 'best logo, three places, a prize of 300, entries by Friday'. Ask for the prize in the person's own currency, never 'how much USDC'. Draw the card as soon as you have a title, what they want, the prize and the places: never send them to a form to fill it in. Their agent puts up the prize when they confirm. One to eight places, as many as the person wants. The prize is shared the suggested way unless they ask for equal shares (split equal) or say what each place gets (shares, first place first). Pick the kind from what they say: design (a design or writing contest: entries 1 to 30 days, judging 3 to 14, 7 by default), bugs (a bug bounty: entries 1 to 60 days, judging 3 to 30, 14 by default) or hackathon (1 to 60 days of building, 3 to 30 of review, 14 by default). The card says what happens if they pick nobody; read it to them in your words.",
       inputSchema: z.object({
         title: z.string().min(1).max(80),
         brief: z.string().min(1).max(1_500).describe('What they want, in their words.'),
         prizeUsdc: z.number().positive().max(1_000_000),
-        places: z.number().int().min(1).max(3),
+        places: z.number().int().min(1).max(8),
+        split: z.enum(['suggested', 'equal']).optional(),
+        shares: z.array(z.number().positive()).min(1).max(8).optional().describe('What each place gets when the person says it, first place first, in the same money as the prize; they must add up to the prize.'),
         entriesDays: z.number().int().min(1).max(60),
         awardDays: z.number().int().min(1).max(60).optional().describe('Days of judging after entries close.'),
         kind: z.enum(['design', 'bugs', 'hackathon']).optional(),
@@ -79,7 +83,14 @@ export function contestTools(address: string, actions: AssistantAction[], deps: 
         // A prize said in naira reads as said, and every row on the card at
         // the said figure's own rate (view 77).
         const said = await saidFigure(options, 'prizeUsdc');
-        const input = { ...i, prizeUsdc: String(said ? said.usdc : i.prizeUsdc) };
+        const { split, shares: amounts, ...rest } = i;
+        let shares: number[] | undefined;
+        if (amounts) {
+          if (amounts.length !== i.places) return { error: `Say what each of the ${i.places} places gets.` };
+          shares = sharesFromAmounts(amounts, i.prizeUsdc) ?? undefined;
+          if (!shares) return { error: 'What each place gets must add up to the prize.' };
+        } else if (split === 'equal') shares = equalShares(i.places);
+        const input = { ...rest, prizeUsdc: String(said ? said.usdc : i.prizeUsdc), ...(shares ? { shares } : {}) };
         const r = await deps.call(address, 'POST', '/api/contests/draft', input);
         if (r.status !== 200) return errorOf(r, 'That contest cannot be set up as it is.');
         return show(buildContestPostConfirm(input, r.json.card as DraftCard, said ? saidMoney(said) : undefined));
@@ -120,7 +131,7 @@ export function contestTools(address: string, actions: AssistantAction[], deps: 
 
     propose_contest_award: tool({
       description: 'Prepare a card for the buyer to pay the winners, entry ids in place order (first place first), from read_contest.',
-      inputSchema: z.object({ contestId: CONTEST, entryIds: z.array(z.string().max(64)).min(1).max(3) }),
+      inputSchema: z.object({ contestId: CONTEST, entryIds: z.array(z.string().max(64)).min(1).max(8) }),
       execute: async ({ contestId, entryIds }) => {
         const r = await read(contestId);
         if (r.status !== 200) return errorOf(r, 'No contest with that id.');
