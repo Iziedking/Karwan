@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-11-16",
+  "canonUpdated": "2026-11-17",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -244,7 +244,7 @@
       "id": "contests",
       "title": "Contests with the prize held from the start",
       "status": "shipping",
-      "updated": "2026-10-29",
+      "updated": "2026-11-17",
       "tags": [
         "market",
         "testnet"
@@ -254,9 +254,13 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/40-contests-and-agent-jobs.md",
           "date": "2026-10-29"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/88-contests-that-protect-entrants.md",
+          "date": "2026-11-17"
         }
       ],
-      "body": "A buyer can run a contest on Karwan instead of choosing one seller: the best\nlogo, three winners, 300 USDC, entries open for a week. The prize is put up\nwhen the contest opens and held on Karwan's escrow on Arc, so everyone who\nenters knows it is there.\n\nThe buyer picks one to three winners; the prize splits 100, or 70 and 30, or\n50, 30 and 20. Entries stay open for 1 to 30 days and the buyer then has 7 days\nto pick. Anyone except the buyer can enter with up to four images or PDF files\nand a note, and enter again to replace their entry.\n\nBefore paying, the buyer sees each entry's first image and note, never the\nfull files. Picking pays each winner their share at once, less half of\nKarwan's 1 percent fee on it, and only then do the winners' full files go to\nthe buyer. A contest nobody entered can be taken back with the prize and fee\nreturned. If the buyer picks nobody by the date, the prize goes back to them,\nand when there were entries their record shows the contest was not awarded.\n\nContests work from the market, the assistant on the website and Telegram.\nRunning a contest and paying the winners are confirmed on Karwan itself.\nContests run on Arc Testnet, up to about 1,000 USDC each for now."
+      "body": "A buyer can run a contest on Karwan instead of choosing one seller: the best\nlogo, three winners, 300 USDC, entries open for a week. The prize is put up\nwhen the contest opens and held on Karwan's escrow on Arc, so everyone who\nenters knows it is there.\n\nThe buyer picks one to three winners; the prize splits 100, or 70 and 30, or\n50, 30 and 20. There are three kinds: a design or writing contest (entries for\n1 to 30 days, then 3 to 14 days of judging), a bug bounty (entries for 1 to 60\ndays, then 3 to 30 days of judging) and a hackathon (1 to 60 days of building,\nthen 3 to 30 days of review). Anyone except the buyer can enter with up to four\nimages or PDF files and a note, and enter again to replace their entry without\nlosing their place.\n\nBefore paying, the buyer sees each entry's first image and note, never the\nfull files. Picking pays each winner their share at once, less half of\nKarwan's 1 percent fee on it, and only then do the winners' full files go to\nthe buyer. A contest nobody entered can be taken back with the prize and fee\nreturned.\n\nOnce someone has entered, the prize goes to entrants. If the buyer picks nobody\nby the end of judging, they have 3 more days; after that the contract pays the\nearliest valid entries, in the order they were first sent, and the buyer's\nrecord shows the contest was not judged. The buyer can mark an entry not valid,\nwith a reason every entrant can read; a marked entry is never paid. If every\nentry is marked, the prize goes back to the buyer. Contests opened before this\nrule keep the earlier one: with nobody picked, the prize goes back to the\nbuyer.\n\nContests work from the market, the assistant on the website and Telegram.\nRunning a contest and paying the winners are confirmed on Karwan itself.\nThe assistant asks for the prize in the person's own currency, shows every\nfigure on its card in that currency, and draws the card itself rather than\nsending the person to a form. Asked to prepare a post, it writes one ready to\ncopy, with the contest's link.\nContests run on Arc Testnet, up to about 1,000 USDC each for now."
     },
     {
       "id": "credit-passport",
@@ -672,6 +676,28 @@
         }
       ],
       "body": "Karwan has a privacy notice at /privacy. It is in English, and that text is\nthe one that applies.\n\nTo open an account Karwan needs only an email address or a wallet. What you\ntell your agent about your work sets up your agent and your public profile,\nand only your country is shown to others. Karwan keeps your deals and your\nrecord, your conversations with the assistant and your agent, and a sign-in\ncookie and a language cookie. A third cookie keeps the country you are\nbrowsing from for a day, so prices read in local money before you sign in; it\nholds the country only and is not tied to your account. It uses no advertising trackers, and it never\nkeeps wallet keys or card and bank details.\n\nDeals settle on Arc, a public blockchain. What is written there cannot be\nchanged or removed, even after you delete your account.\n\nOn mainnet, a licensed partner runs identity checks when a feature needs one,\nand Karwan keeps the result. You can ask for a copy of what Karwan holds,\nask for a correction, or delete your account. A deletion runs 7 days after\nyou confirm, and it waits while you have an open deal, a live offer or\nrequest, or money in your balance.\n\nThe notice is published with this build and is not live yet."
+    },
+    {
+      "id": "proof-milestones",
+      "title": "Awards and milestones",
+      "status": "live",
+      "updated": "2026-11-17",
+      "tags": [
+        "proof",
+        "company"
+      ],
+      "path": "public/proof/milestones.md",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-11-14"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan",
+          "date": "2026-11-14"
+        }
+      ],
+      "body": "Karwan is built by Karwan Technologies Limited, a company registered in\nNigeria. The team started building in May 2026.\n\nKarwan won first place in Track 2, Best SME Workflow and Trade Finance, of the\nIgnyte and Circle Stablecoin Commerce Stack Challenge 2026. The prize was 5,000\nUSDC. Karwan presented on the demo day at the Dubai FinTech Summit on\n3 November 2026.\n\nKarwan also won Best Chainlink-Powered Upgrade from Chainlink Labs at ETHOnline\n2026, a 500 USDC award, for checking deal evidence with the Chainlink Runtime\nEnvironment.\n\nKarwan runs on Arc Testnet today. On Arc mainnet, the reputation and business\nregistry contracts are live, and the wallet app is open by invitation. Trading\nand escrow on mainnet open after a closed beta and after the security and\noperational checks pass.\n\nThese are awards and milestones, not revenue or customer numbers. When someone\nasks about traction, give the awards and where Karwan runs today. Testnet deals\nare tests, not income, and Karwan does not quote waitlist or sign-up numbers."
     },
     {
       "id": "proof-network",
@@ -1352,10 +1378,14 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/40-contests-and-agent-jobs.md",
           "date": "2026-10-29"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/88-contests-that-protect-entrants.md",
+          "date": "2026-11-17"
         }
       ],
       "check": null,
-      "updated": "2026-10-29",
+      "updated": "2026-11-17",
       "path": "public/product/contests.md"
     },
     {
@@ -1909,6 +1939,37 @@
       "check": null,
       "updated": "2026-11-10",
       "path": "public/product/privacy-notice.md"
+    },
+    {
+      "id": "proof-milestones",
+      "title": "Awards and milestones",
+      "status": "live",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "proof",
+        "company"
+      ],
+      "summary": "Karwan is built by Karwan Technologies Limited, a company registered in Nigeria. The team started building in May 2026.",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-11-14"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan",
+          "date": "2026-11-14"
+        }
+      ],
+      "check": {
+        "kind": "manual",
+        "note": "Award emails and the prize payment were confirmed by the founder on 14 November 2026.",
+        "lastVerified": "2026-11-14"
+      },
+      "updated": "2026-11-17",
+      "path": "public/proof/milestones.md"
     },
     {
       "id": "proof-network",

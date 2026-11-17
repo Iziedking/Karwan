@@ -33,7 +33,7 @@ test('roadmap entries are discoverable but cannot be stated as live', () => {
 
 test('canon version records the Canteen window features', () => {
   assert.equal(canonVersion, '0.4.0');
-  assert.equal(canonUpdated, '2026-11-16');
+  assert.equal(canonUpdated, '2026-11-17');
 });
 
 test('the record page says nothing waits for it (view 27, decision 10)', () => {
@@ -93,4 +93,17 @@ test('money kept aside is the savings pocket; a deal guarantee is only the part 
   const raw = readFileSync(new URL('./canon/canon.public.json', import.meta.url), 'utf8');
   assert.doesNotMatch(raw, /The deal guarantee, tenure and activity all raise/);
   assert.doesNotMatch(raw, /three parts: Balance, Agent and Deal guarantee/);
+});
+
+test('the awards are statable and keep traction honest', () => {
+  const milestones = findFacts({ q: 'awards' }).find((fact) => fact.id === 'proof-milestones');
+  assert.ok(milestones);
+  assert.equal(isStatable(milestones), true);
+
+  const [doc] = findDocs([milestones.id]);
+  assert.ok(doc);
+  assert.match(doc.body, /first place in Track 2/);
+  assert.match(doc.body, /Best Chainlink-Powered Upgrade/);
+  assert.match(doc.body, /does not quote waitlist or sign-up numbers/);
+  assert.doesNotMatch(doc.body, /Alchemy|0x96c5/);
 });
