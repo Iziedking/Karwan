@@ -72,3 +72,15 @@ export function walletStillResolving(status: string, waitedMs: number): boolean 
   if (status !== 'connecting' && status !== 'reconnecting') return false;
   return waitedMs < WALLET_RESOLVE_CAP_MS;
 }
+
+/**
+ * A page is waiting on the person's wallet: it was asked to sign in (or to
+ * move to Arc first) and has not answered. The page says so, with a way to
+ * ask again or sign in another way, instead of holding a silent skeleton
+ * (17 Nov). Only for the wallet that is connected now.
+ */
+export function waitingOnWallet(siwe: SiweSnapshot, walletAddress: string | undefined): boolean {
+  if (!walletAddress) return false;
+  if (siwe.phase !== 'awaiting-signature' && siwe.phase !== 'switching-network') return false;
+  return sameAddress(siwe.address, walletAddress);
+}

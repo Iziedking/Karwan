@@ -7,6 +7,7 @@ import { qk } from '@/core/queryKeys';
 import { AccountHome } from '@/features/home/components/AccountHome';
 import { Button } from '@/shared/components/Button';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { WalletSignInWait } from '@/shared/components/WalletSignInWait';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -30,7 +31,7 @@ export default function AppHome() {
     }
   }, [fetchState, isConnected, profile, router]);
 
-  if (authLoading) return <HomeSkeleton />;
+  if (authLoading) return <WalletSignInWait fallback={<HomeSkeleton />} />;
   if (!isConnected) return <SignInGate variant="hero" />;
 
   if (!statusQuery.isPending && !statusQuery.data) {

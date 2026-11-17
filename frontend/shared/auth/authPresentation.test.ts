@@ -4,6 +4,7 @@ import {
   sessionMatchesWallet,
   shouldWaitForWalletSession,
   walletStillResolving,
+  waitingOnWallet,
   walletWasDisconnected,
   WALLET_RESOLVE_CAP_MS,
 } from './authPresentation';
@@ -99,4 +100,22 @@ test('only a wallet that was connected in this tab and then disconnected signs t
 test('a returning wallet holds the page for two seconds at most', () => {
   assert.equal(WALLET_RESOLVE_CAP_MS <= 2_000, true);
   assert.equal(walletStillResolving('reconnecting', 2_100), false);
+});
+
+test('a page waiting on the wallet to sign says so, and only for the connected wallet', () => {
+  const asking = (phase: 'awaiting-signature' | 'switching-network' | 'checking-session' | 'verifying' | 'idle' | 'error', address: string | null = wallet.address) => ({ phase, address, error: null });
+  assert.equal(waitingOnWallet(asking('awaiting-signature'), wallet.address), true);
+  assert.equal(waitingOnWallet(asking('switching-network'), wallet.address), true);
+  assert.equal(waitingOnWallet(asking('awaiting-signature', '0x2222222222222222222222222222222222222222'), wallet.address), false);
+  assert.equal(waitingOnWallet(asking('checking-session'), wallet.address), false);
+  assert.equal(waitingOnWallet(asking('verifying'), wallet.address), false);
+  assert.equal(waitingOnWallet(asking('awaiting-signature'), undefined), false);
+});
+
+test('Home and every signed-in page show the wallet note instead of a silent wait', async () => {
+  const { readFileSync } = await import('node:fs');
+  const home = readFileSync(new URL('../../app/app/page.tsx', import.meta.url), 'utf8');
+  const guard = readFileSync(new URL('../components/AuthGuard.tsx', import.meta.url), 'utf8');
+  assert.match(home, /if \(authLoading\) return <WalletSignInWait fallback=\{<HomeSkeleton \/>\} \/>;/);
+  assert.match(guard, /if \(isLoading\) return <WalletSignInWait fallback=\{<div aria-hidden className="min-h-\[44vh\]" \/>\} \/>;/);
 });

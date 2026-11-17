@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { WalletSignInWait } from '@/shared/components/WalletSignInWait';
 
 /// Wraps a gated page so the auth-resolving moment doesn't cost the route
 /// 0.9–1.3 CLS. Three branches:
@@ -33,7 +34,7 @@ export function AuthGuard({
 }) {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) return <div aria-hidden className="min-h-[44vh]" />;
+  if (isLoading) return <WalletSignInWait fallback={<div aria-hidden className="min-h-[44vh]" />} />;
 
   if (!isAuthenticated) {
     return (
