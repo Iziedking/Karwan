@@ -150,31 +150,45 @@ export function SwitchRow({ label, info, checked, disabled = false, pill, onChan
         onClick={() => onChange(!checked)}
         className="grid min-h-11 shrink-0 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <span aria-hidden className="relative inline-block h-6 w-11 rounded-full transition-colors duration-200" style={{ background: checked ? 'var(--karwan-green)' : 'var(--color-line-strong)' }}>
-          <span className="absolute top-0.5 size-5 rounded-full bg-[var(--canvas)] shadow-sm transition-[inset-inline-start] duration-200 motion-reduce:transition-none" style={{ insetInlineStart: checked ? 22 : 2 }} />
-        </span>
+        <SwitchTrack checked={checked} />
       </button>
     </div>
   );
 }
 
+/// The switch's track and knob. `pending` is the still state while the
+/// account's choice is on its way: no knob and no colour, so it never shows a
+/// value that is not yours and then flips (17 Nov).
+export function SwitchTrack({ checked, pending = false }: { checked: boolean; pending?: boolean }) {
+  if (pending) return <span aria-hidden data-switch-pending className="inline-block h-6 w-11 shrink-0 rounded-full bg-[var(--raised)]" />;
+  return (
+    <span aria-hidden className="relative inline-block h-6 w-11 shrink-0 rounded-full transition-colors duration-200" style={{ background: checked ? 'var(--karwan-green)' : 'var(--color-line-strong)' }}>
+      <span className="absolute top-0.5 size-5 rounded-full bg-[var(--canvas)] shadow-sm transition-[inset-inline-start] duration-200 motion-reduce:transition-none" style={{ insetInlineStart: checked ? 22 : 2 }} />
+    </span>
+  );
+}
+
 /// A setting that is on or off: the label and one plain line under it on the
-/// left, the switch at the end. The whole row toggles it.
-export function ToggleRow({ label, note, checked, onChange }: {
+/// left, the switch at the end. The whole row toggles it. While `pending` it
+/// is not a switch yet, only a quiet row that waits.
+export function ToggleRow({ label, note, checked, pending = false, onChange }: {
   label: string;
   note?: string;
   checked: boolean;
+  pending?: boolean;
   onChange: (next: boolean) => void;
 }) {
+  const text = (
+    <span className="min-w-0 flex-1">
+      <span className="block font-medium text-[var(--ink)]">{label}</span>
+      {note ? <span className="block text-[14px] font-medium text-[var(--ink-secondary)]">{note}</span> : null}
+    </span>
+  );
+  if (pending) return <div aria-busy="true" className={rowBase}>{text}<SwitchTrack checked={false} pending /></div>;
   return (
     <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`${rowBase} ${interactive}`}>
-      <span className="min-w-0 flex-1">
-        <span className="block font-medium text-[var(--ink)]">{label}</span>
-        {note ? <span className="block text-[14px] font-medium text-[var(--ink-secondary)]">{note}</span> : null}
-      </span>
-      <span aria-hidden className="relative inline-block h-6 w-11 shrink-0 rounded-full transition-colors duration-200" style={{ background: checked ? 'var(--karwan-green)' : 'var(--color-line-strong)' }}>
-        <span className="absolute top-0.5 size-5 rounded-full bg-[var(--canvas)] shadow-sm transition-[inset-inline-start] duration-200 motion-reduce:transition-none" style={{ insetInlineStart: checked ? 22 : 2 }} />
-      </span>
+      {text}
+      <SwitchTrack checked={checked} />
     </button>
   );
 }

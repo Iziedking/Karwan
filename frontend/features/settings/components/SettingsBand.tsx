@@ -5,7 +5,9 @@ import {
   startRegistration,
   browserSupportsWebAuthn,
 } from '@simplewebauthn/browser';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, type UserSettings } from '@/core/api';
+import { settingsKey } from '@/features/guide/useGuideSetting';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -52,7 +54,26 @@ function SettingsBody() {
   const titleId = useId();
   const deleteInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  // The account's settings, from the copy the whole site shares, so a second
+  // visit shows them at once and the first never shows defaults as yours.
+  const queryClient = useQueryClient();
+  const settingsQuery = useQuery({
+    queryKey: settingsKey(address ?? null),
+    queryFn: () => api.getSettings(address as string),
+    enabled: isAuthenticated && !!address,
+    staleTime: 5 * 60_000,
+  });
+  const loaded = settingsQuery.isSuccess || settingsQuery.isError;
+  const settings: UserSettings = { ...DEFAULT_SETTINGS, ...(settingsQuery.data?.settings ?? {}) };
+  const setSettings = useCallback(
+    (next: (cur: UserSettings) => UserSettings) => {
+      queryClient.setQueryData<{ settings: UserSettings }>(settingsKey(address ?? null), (old) => ({ settings: next({ ...DEFAULT_SETTINGS, ...(old?.settings ?? {}) }) }));
+    },
+    [queryClient, address],
+  );
+  // Sounds live on this device: known only once the page runs here.
+  const [here, setHere] = useState(false);
+  useEffect(() => setHere(true), []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -107,28 +128,14 @@ function SettingsBody() {
     [address, signOut, router],
   );
 
+  // Pick up the account preference on a device that has never expressed one,
+  // so signing in on a new machine honours the theme you saved. Never
+  // overrides an existing local choice: see adoptPreferenceIfUnset. A failed
+  // read shows the defaults; the first save creates the row.
+  const savedTheme = settingsQuery.data?.settings?.theme;
   useEffect(() => {
-    if (!isAuthenticated || !address) return;
-    let cancelled = false;
-    api
-      .getSettings(address)
-      .then((r) => {
-        if (!cancelled) {
-          setSettings({ ...DEFAULT_SETTINGS, ...r.settings });
-          // Pick up the account preference on a device that has never expressed
-          // one, so signing in on a new machine honours the theme you saved
-          // instead of showing the OS default while this panel reads "Dark".
-          // Never overrides an existing local choice: see adoptPreferenceIfUnset.
-          if (r.settings?.theme) adoptPreferenceIfUnset(r.settings.theme);
-        }
-      })
-      .catch(() => {
-        // Non-fatal. User sees defaults; first save will create the row.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [address, isAuthenticated]);
+    if (savedTheme) adoptPreferenceIfUnset(savedTheme);
+  }, [savedTheme]);
 
   const save: Saver = useCallback(
     async (patch) => {
@@ -146,7 +153,7 @@ function SettingsBody() {
         setSaving(false);
       }
     },
-    [address],
+    [address, setSettings],
   );
 
   function onLocaleChange(next: Locale) {
@@ -193,6 +200,7 @@ function SettingsBody() {
                 label={t.settings.sound}
                 note={t.money.settings.soundsSwitch}
                 checked={soundsOn}
+                pending={!here}
                 onChange={(on) => {
                   sfx.setMuted(!on);
                   if (on) sfx.tap();
@@ -205,19 +213,22 @@ function SettingsBody() {
                 label={t.settings.notifications}
                 note={t.settings.notificationsNote}
                 checked={!settings.notificationsMuted}
+                pending={!loaded}
                 onChange={(on) => save({ notificationsMuted: !on })}
               />
-              <Row label={t.setup.reachSetting} value={reach.options[reachNow].label} onClick={() => setSheet('reach')} />
+              <Row label={t.setup.reachSetting} value={loaded ? reach.options[reachNow].label : ''} onClick={() => setSheet('reach')} />
               <ToggleRow
                 label={t.settings.privacyPublicPassport}
                 checked={settings.publicPassport !== false}
+                pending={!loaded}
                 onChange={(v) => save({ publicPassport: v })}
               />
-              <PublishDealsRows settings={settings} save={save} />
+              <PublishDealsRows settings={settings} save={save} pending={!loaded} />
               <ToggleRow
                 label={t.agentJobs.setting.label}
                 note={t.agentJobs.setting.hint}
                 checked={settings.acceptsOutsideAgents !== false}
+                pending={!loaded}
                 onChange={(v) => save({ acceptsOutsideAgents: v })}
               />
             </RowGroup>

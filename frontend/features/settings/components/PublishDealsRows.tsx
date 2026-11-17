@@ -17,7 +17,7 @@ export function removedLine(n: number, copy: AttestationSettingsCopy): string {
 
 /// Public deal statements: publish from now on (on by default), earlier deals
 /// (off by default), and removing every statement already published.
-export function PublishDealsRows({ settings, save }: { settings: UserSettings; save: (patch: Partial<UserSettings>) => void }) {
+export function PublishDealsRows({ settings, save, pending = false }: { settings: UserSettings; save: (patch: Partial<UserSettings>) => void; pending?: boolean }) {
   const { locale } = useLocale();
   const copy = attestationSettingsCopy[locale];
   const queryClient = useQueryClient();
@@ -48,12 +48,14 @@ export function PublishDealsRows({ settings, save }: { settings: UserSettings; s
         label={copy.publishDeals}
         note={copy.publishDealsNote}
         checked={settings.publishDeals !== false}
+        pending={pending}
         onChange={(v) => save({ publishDeals: v })}
       />
       <ToggleRow
         label={copy.publishHistory}
         note={copy.publishHistoryNote}
         checked={settings.publishHistory === true}
+        pending={pending}
         onChange={(v) => save({ publishHistory: v })}
       />
       <Row label={result ?? copy.removeDeals} onClick={result ? undefined : () => setOpen(true)} />

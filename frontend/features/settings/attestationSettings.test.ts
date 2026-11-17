@@ -15,7 +15,7 @@ test('settings carry publish on by default, earlier deals off by default, and a 
   assert.match(rows, /confirmLabel=\{copy\.removeConfirm\}/);
   assert.match(read('../deals/workspace/ConfirmSheet.tsx'), /confirmLabel \?\? copy\.confirm/);
   assert.match(rows, /api\.removeMyAttestations\(\)/);
-  assert.match(read('./components/SettingsBand.tsx'), /<PublishDealsRows settings=\{settings\} save=\{save\} \/>/);
+  assert.match(read('./components/SettingsBand.tsx'), /<PublishDealsRows settings=\{settings\} save=\{save\} pending=\{!loaded\} \/>/);
 });
 
 test('every language has every key, without em dashes', () => {

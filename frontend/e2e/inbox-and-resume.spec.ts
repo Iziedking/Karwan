@@ -84,6 +84,34 @@ test('coming back to the assistant reopens the conversation you were in', async 
   await expect(page.getByText('That is Matie (@matiephol) on Karwan.')).toBeVisible();
 });
 
+test('a resumed conversation never shows the empty welcome first, and a new chat still does', async ({ page }) => {
+  await serveMoney(page, { balances: funded });
+  let release!: () => void;
+  const held = new Promise<void>((r) => { release = r; });
+  await page.route(`${API}/api/assistant/**`, async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/assistant/conversations' && route.request().method() === 'GET') {
+      await held;
+      return route.fulfill({ json: { conversations: [{ id: 'c-last', title: 'Matie', createdAt: 2, updatedAt: 2 }] } });
+    }
+    if (path === '/api/assistant/conversations/c-last') {
+      return route.fulfill({ json: { conversation: { id: 'c-last', title: 'Matie', createdAt: 2, updatedAt: 2, messages: [{ role: 'user', content: 'lookup @matiephol for me' }, { role: 'assistant', content: 'That is Matie (@matiephol) on Karwan.' }] } } });
+    }
+    return route.fulfill({ json: { conversation: { id: 'c-new', title: 'New', createdAt: 3, updatedAt: 3, messages: [] } } });
+  });
+  await page.goto('/assistant');
+  await page.waitForTimeout(1200);
+  await expect(page.locator('[data-assistant-questions]')).toHaveCount(0);
+  release();
+  await expect(page.getByText('That is Matie (@matiephol) on Karwan.')).toBeVisible();
+  await expect(page.locator('[data-assistant-questions]')).toHaveCount(0);
+
+  // Someone who last chose a new chat lands on the welcome straight away.
+  await page.evaluate((me) => localStorage.setItem(`karwan:assistant:open:${me.toLowerCase()}`, 'new'), ME);
+  await page.reload();
+  await expect(page.locator('[data-assistant-questions]')).toBeVisible();
+});
+
 test('a question from a market ad says what it is about, and the first message carries it (view 32)', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   const sent: unknown[] = [];

@@ -46,6 +46,7 @@ export function AssistantMemoryRows() {
           label={t.toggle}
           note={t.toggleNote}
           checked={memory?.enabled ?? true}
+          pending={!memory && !failed}
           onChange={(on) => { if (memory && !busy) void run(() => api.setAssistantMemory(on)); }}
         />
         <Row label={t.notes} value={memory ? (count ? t.notesCount.replace('{n}', String(count)) : t.none) : ''} onClick={() => setOpen(true)} />

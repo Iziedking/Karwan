@@ -13,6 +13,7 @@ import { useAssistantChat } from '@/shared/assistant/useAssistantChat';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Icon } from '@/shared/components/Icon';
+import { Skeleton } from '@/shared/components/Skeleton';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -107,23 +108,39 @@ function AssistantPage() {
   // A question asked on Home starts its own conversation instead.
   const { address } = useAuth();
   const resumed = useRef(false);
+  // Until we know whether a saved chat comes back, the page waits quietly
+  // instead of showing the welcome and then swapping it out (17 Nov).
+  const [restoring, setRestoring] = useState(true);
   const chatSend = chat.send;
   useEffect(() => {
     if (resumed.current) return;
     const asked = takeAsk();
-    if (!asked) return;
-    resumed.current = true;
-    void chatSend(asked);
-  }, [chatSend]);
+    if (asked) {
+      resumed.current = true;
+      setRestoring(false);
+      void chatSend(asked);
+      return;
+    }
+    // A new chat was the last thing chosen here: the welcome is right at once.
+    if (readOpenConversation(address) === NEW_CHAT) {
+      resumed.current = true;
+      setRestoring(false);
+    }
+  }, [chatSend, address]);
 
   // Coming back reopens the conversation you were in; a new chat is your call.
   const chatOpen = chat.open;
   useEffect(() => {
-    if (resumed.current || !list.data || chat.conversationId || chat.messages.length > 0) return;
+    if (list.isError) setRestoring(false);
+    if (resumed.current || !list.data || chat.conversationId || chat.messages.length > 0) {
+      if (chat.conversationId || chat.messages.length > 0) setRestoring(false);
+      return;
+    }
     resumed.current = true;
     const id = conversationToResume(list.data, readOpenConversation(address));
-    if (id) void chatOpen(id).catch(() => setOpenError(true));
-  }, [list.data, address, chat.conversationId, chat.messages.length, chatOpen]);
+    if (!id) { setRestoring(false); return; }
+    void chatOpen(id).catch(() => setOpenError(true)).finally(() => setRestoring(false));
+  }, [list.data, list.isError, address, chat.conversationId, chat.messages.length, chatOpen]);
   useEffect(() => {
     if (chat.conversationId) rememberOpenConversation(address, chat.conversationId);
   }, [address, chat.conversationId]);
@@ -290,7 +307,12 @@ function AssistantPage() {
         </div>
 
         <div className="mx-auto flex w-full max-w-[640px] flex-1 flex-col gap-3 px-4 pb-4 pt-6 sm:px-0 sm:pt-8">
-          {empty ? (
+          {empty && restoring ? (
+            <div data-assistant-restoring aria-busy="true" className="flex flex-col gap-3 pt-6">
+              <Skeleton className="ms-auto h-10 w-2/5 rounded-[18px]" />
+              <Skeleton className="h-16 w-3/4 rounded-[18px]" />
+            </div>
+          ) : empty ? (
             <m.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="flex flex-col items-center pt-6 text-center sm:pt-12">
               <LiveAman size={96} mood={mood} look={look} seed="assistant-empty" />
               <h1 className="guide-voice mt-5 text-[26px] font-bold tracking-[-0.01em] sm:text-[30px]">{greeting}</h1>
