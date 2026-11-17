@@ -1,6 +1,6 @@
 # 89 · Claude without a stored key
 
-Track: foundation (security and reliability), roadmap F.3. Proposed 17 Nov 2026. Not approved, nothing built.
+Track: foundation (security and reliability), roadmap F.3. Approved 17 Nov 2026 as drafted. Not built.
 
 ## What is wrong today
 
