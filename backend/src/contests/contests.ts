@@ -1,6 +1,6 @@
-import { formatUnits, parseUnits, type Address, type Hex } from 'viem';
+import { formatUnits, keccak256, parseUnits, toBytes, type Address, type Hex } from 'viem';
 import { contestPayouts, withHalfFee } from '../chain/jobEscrow.js';
-import type { Contest, ContestEntry, ContestsStore } from '../db/contests.js';
+import type { Contest, ContestEntry, ContestKind, ContestsStore } from '../db/contests.js';
 import type { Photo } from '../listings/photos.js';
 import { entryFingerprint, type EntryFile } from './entryFiles.js';
 
@@ -15,6 +15,18 @@ const USDC = 6;
 export const DEFAULT_SHARES: Record<number, number[]> = { 1: [10_000], 2: [7_000, 3_000], 3: [5_000, 3_000, 2_000] };
 const MAX_PLACES = 3;
 const MAX_DESCRIPTION_BYTES = 2_048;
+/// After judging ends with nobody picked, the buyer has this long before the
+/// contract pays the earliest entries (view 88, BountyLib WAIT).
+export const PAYOUT_WAIT_MS = 3 * DAY;
+
+/// Entry and judging periods per kind, in days (view 88).
+export const KINDS: Record<ContestKind, { entries: [number, number]; judging: [number, number]; judgingDefault: number }> = {
+  design: { entries: [1, 30], judging: [3, 14], judgingDefault: 7 },
+  bugs: { entries: [1, 60], judging: [3, 30], judgingDefault: 14 },
+  hackathon: { entries: [1, 60], judging: [3, 30], judgingDefault: 14 },
+};
+const IF_NOBODY_PROTECTS =
+  'If you pick nobody by the end of judging, you have 3 more days to pick. After that the prize goes to the earliest entries, and your record shows the contest was not judged. If nobody enters, you can take the prize back.';
 
 export interface ContestInput {
   title: string;
@@ -23,7 +35,9 @@ export interface ContestInput {
   places: number;
   shares?: number[];
   entriesDays: number;
+  /// Days of judging after entries close.
   awardDays?: number;
+  kind?: ContestKind;
   tags?: string[];
 }
 
@@ -37,6 +51,10 @@ export interface ContestCard {
   placeNetMicros: string[];
   entriesBy: number;
   awardBy: number;
+  /// When the contract pays the earliest entries if nobody is picked; only on
+  /// the second escrow.
+  payoutFrom?: number;
+  kind?: ContestKind;
   ifNobody: string;
 }
 
@@ -48,6 +66,11 @@ export interface ContestChain {
   award(walletId: string, jobId: bigint, winners: Address[], net: bigint[]): Promise<Hex>;
   cancel(walletId: string, jobId: bigint, client: Address): Promise<{ txHash: Hex; back: bigint }>;
   giveBack(jobId: bigint, client: Address): Promise<{ txHash: Hex; back: bigint }>;
+  /// Second escrow: the buyer's agent marks an entrant's entry not valid.
+  markNotValid(walletId: string, jobId: bigint, entrant: Address, reasonHash: Hex): Promise<Hex>;
+  /// Second escrow, after the wait: pays the earliest valid entries, or gives
+  /// the prize back when there are none. Proved from the receipt.
+  payOut(jobId: bigint, client: Address): Promise<{ txHash: Hex; paid: { agent: Address; netMicros: bigint }[]; back: bigint }>;
 }
 
 export interface ContestPorts {
@@ -62,7 +85,11 @@ export interface ContestPorts {
   balanceOf(wallet: Address): Promise<bigint>;
   /// The money-out guard and the chat limits, as on funding a deal.
   guard(buyer: Address, amountMicros: bigint, reference: string): Promise<{ ok: true } | { ok: false; code: string; message: string }>;
+  /// New contests open on the second job escrow (view 88), `chain`; the ones
+  /// already open on the first stay on `legacyChain`.
+  protects?: boolean;
   chain: ContestChain;
+  legacyChain?: ContestChain;
   tell(kind: string, payload: Record<string, unknown>): void;
   now(): number;
   newId(prefix: string): string;
@@ -75,6 +102,11 @@ const refuse = (code: string, message: string, extra: { needMicros?: string } = 
 export function createContests(p: ContestPorts) {
   const posting = new Set<string>();
   const entering = new Set<string>();
+  const marking = new Set<string>();
+  /// The escrow a contest lives on.
+  const chainOf = (c: Contest): ContestChain => (p.protects && !c.protects && p.legacyChain ? p.legacyChain : p.chain);
+  /// The last moment the buyer can pick, or mark an entry.
+  const pickUntil = (c: Contest) => (c.protects ? c.awardBy + PAYOUT_WAIT_MS : c.awardBy);
 
   function draft(input: ContestInput, feeBps: number): { ok: true; card: ContestCard; prize: bigint } | Refusal {
     const title = input.title.trim();
@@ -94,10 +126,20 @@ export function createContests(p: ContestPorts) {
     if (shares.length !== input.places || shares.some((s) => !Number.isInteger(s) || s <= 0) || shares.reduce((a, b) => a + b, 0) !== 10_000) {
       return refuse('BAD_TERMS', 'The winners share the whole prize, each a part of it.');
     }
-    if (!Number.isInteger(input.entriesDays) || input.entriesDays < 1 || input.entriesDays > 30) return refuse('BAD_TERMS', 'Entries stay open 1 to 30 days.');
-    const awardDays = input.awardDays ?? 7;
-    if (!Number.isInteger(awardDays) || awardDays < 1 || awardDays > 60) return refuse('BAD_TERMS', 'You pick the winners within 1 to 60 days of entries closing.');
+    const kind: ContestKind = input.kind ?? 'design';
+    if (!(kind in KINDS)) return refuse('BAD_TERMS', 'A contest is a design or writing contest, a bug bounty or a hackathon.');
+    const k = KINDS[kind];
+    const [eMin, eMax] = p.protects ? k.entries : [1, 30];
+    const [jMin, jMax] = p.protects ? k.judging : [1, 60];
+    if (!Number.isInteger(input.entriesDays) || input.entriesDays < eMin || input.entriesDays > eMax) {
+      return refuse('BAD_TERMS', `Entries stay open ${eMin} to ${eMax} days.`);
+    }
+    const awardDays = input.awardDays ?? (p.protects ? k.judgingDefault : 7);
+    if (!Number.isInteger(awardDays) || awardDays < jMin || awardDays > jMax) {
+      return refuse('BAD_TERMS', `Judging lasts ${jMin} to ${jMax} days after entries close.`);
+    }
     const entriesBy = p.now() + input.entriesDays * DAY;
+    const awardBy = entriesBy + awardDays * DAY;
     const pay = contestPayouts(prize, feeBps, shares, shares.length);
     return {
       ok: true,
@@ -111,8 +153,10 @@ export function createContests(p: ContestPorts) {
         shares,
         placeNetMicros: pay.net.map(String),
         entriesBy,
-        awardBy: entriesBy + awardDays * DAY,
-        ifNobody: 'If you pick nobody by then, the prize comes back to you, and your record shows the contest was not awarded.',
+        awardBy,
+        ...(p.protects
+          ? { kind, payoutFrom: awardBy + PAYOUT_WAIT_MS, ifNobody: IF_NOBODY_PROTECTS }
+          : { ifNobody: 'If you pick nobody by then, the prize comes back to you, and your record shows the contest was not awarded.' }),
       },
     };
   }
@@ -139,7 +183,7 @@ export function createContests(p: ContestPorts) {
       if (!pass.ok) return refuse(pass.code, pass.message);
       const at = p.now();
       const contest: Contest = {
-        id, buyer, buyerAgent: agent.address, title: d.card.title, brief: d.card.brief, tags: input.tags ?? [],
+        id, ...(p.protects ? { protects: true, kind: d.card.kind } : {}), buyer, buyerAgent: agent.address, title: d.card.title, brief: d.card.brief, tags: input.tags ?? [],
         prizeMicros: d.card.prizeMicros, feeBps: cfg.feeBps, shares: d.card.shares,
         entriesBy: d.card.entriesBy, awardBy: d.card.awardBy, status: 'opening',
         ...(opts.conversationId ? { conversationId: opts.conversationId } : {}), createdAt: at, updatedAt: at,
@@ -201,7 +245,7 @@ export function createContests(p: ContestPorts) {
       const before = await p.store.liveEntryBy(contestId, seller);
       await p.store.createEntry(entry);
       try {
-        const tx = await p.chain.enter(agent.walletId, BigInt(c.chainId!), fingerprint, agent.address);
+        const tx = await chainOf(c).enter(agent.walletId, BigInt(c.chainId!), fingerprint, agent.address);
         const live = (await p.store.patchEntry(id, { status: 'in', enterTx: tx }))!;
         if (before) await p.store.patchEntry(before.id, { status: 'replaced' });
         p.tell('contest.entered', { contestId, entryId: id, buyer: c.buyer, seller, replaced: !!before });
@@ -220,7 +264,11 @@ export function createContests(p: ContestPorts) {
     if (!c) return refuse('NOT_FOUND', 'That contest is not on Karwan.');
     if (lower(buyer) !== lower(c.buyer)) return refuse('NOT_BUYER', 'Only the buyer picks the winners.');
     if (c.status !== 'open') return refuse('NOT_OPEN', 'This contest is not waiting for winners.');
-    if (p.now() >= c.awardBy) return refuse('AWARD_CLOSED', 'The date to pick winners has passed; the prize goes back to you.');
+    if (p.now() >= pickUntil(c)) {
+      return refuse('AWARD_CLOSED', c.protects
+        ? 'The date to pick winners has passed; the prize goes to the earliest entries.'
+        : 'The date to pick winners has passed; the prize goes back to you.');
+    }
     const n = entryIds.length;
     if (n === 0 || n > c.shares.length || new Set(entryIds).size !== n) return refuse('BAD_WINNERS', `Pick one to ${c.shares.length} different entries.`);
     if (p.now() < c.entriesBy && n !== c.shares.length) return refuse('BAD_WINNERS', `Before entries close, pick all ${c.shares.length} places.`);
@@ -228,6 +276,7 @@ export function createContests(p: ContestPorts) {
     for (const id of entryIds) {
       const e = await p.store.entry(id);
       if (!e || e.contestId !== contestId || e.status !== 'in') return refuse('BAD_WINNERS', 'Only entries in this contest can win.');
+      if (e.notValid) return refuse('BAD_WINNERS', 'An entry you marked not valid cannot win.');
       picked.push(e);
     }
     const agent = await p.buyerAgentFor(c.buyer);
@@ -235,7 +284,7 @@ export function createContests(p: ContestPorts) {
     if (!(await p.store.patchIfStatus(contestId, ['open'], { status: 'awarding' }))) return refuse('BUSY', 'The winners are already being paid.');
     const pay = contestPayouts(BigInt(c.prizeMicros), c.feeBps, c.shares, n);
     try {
-      const tx = await p.chain.award(agent.walletId, BigInt(c.chainId!), picked.map((e) => e.sellerAgent), pay.net);
+      const tx = await chainOf(c).award(agent.walletId, BigInt(c.chainId!), picked.map((e) => e.sellerAgent), pay.net);
       const winners = picked.map((e, i) => ({ entryId: e.id, place: i + 1, netMicros: pay.net[i]!.toString() }));
       const done = (await p.store.patch(contestId, { status: 'awarded', awardTx: tx, winners, backMicros: pay.back.toString() }))!;
       for (const e of await p.store.entries(contestId)) {
@@ -261,7 +310,7 @@ export function createContests(p: ContestPorts) {
     if (!agent) return refuse('NO_BUYER_AGENT', 'Your agent is not set up.');
     if (!(await p.store.patchIfStatus(contestId, ['open'], { status: 'awarding' }))) return refuse('NOT_OPEN', 'This contest can no longer be taken back.');
     try {
-      const r = await p.chain.cancel(agent.walletId, BigInt(c.chainId!), c.buyerAgent);
+      const r = await chainOf(c).cancel(agent.walletId, BigInt(c.chainId!), c.buyerAgent);
       const done = (await p.store.patch(contestId, { status: 'cancelled', refundTx: r.txHash, backMicros: r.back.toString() }))!;
       p.tell('contest.cancelled', { contestId, buyer: c.buyer });
       return { ok: true, contest: done };
@@ -271,14 +320,83 @@ export function createContests(p: ContestPorts) {
     }
   }
 
-  /// Returns every prize past its award date; the count returned this pass.
+  /// The buyer marks an entry not valid, with a reason every entrant reads
+  /// (view 88). Only on the second escrow, until the payout opens.
+  async function markNotValid(buyer: Address, contestId: string, entryId: string, reason: string): Promise<{ ok: true; entry: ContestEntry } | Refusal> {
+    const c = await p.store.get(contestId);
+    if (!c) return refuse('NOT_FOUND', 'That contest is not on Karwan.');
+    if (lower(buyer) !== lower(c.buyer)) return refuse('NOT_BUYER', 'Only the buyer marks entries.');
+    if (!c.protects) return refuse('OLD_RULE', 'This contest opened before entries could be marked not valid.');
+    const why = reason.trim();
+    if (why.length < 5 || why.length > 280) return refuse('BAD_REASON', 'Say why in 5 to 280 characters. Every entrant reads it.');
+    const e = await p.store.entry(entryId);
+    if (!e || e.contestId !== contestId || e.status !== 'in') return refuse('NOT_FOUND', 'That entry is not in this contest.');
+    if (e.notValid) return refuse('ALREADY_MARKED', 'That entry is already marked not valid.');
+    if (c.status !== 'open') return refuse('NOT_OPEN', 'This contest is not waiting for winners.');
+    if (p.now() >= pickUntil(c)) return refuse('MARK_CLOSED', 'The payout has opened, so entries can no longer be marked.');
+    if (marking.has(entryId)) return refuse('BUSY', 'That entry is already being marked.');
+    const agent = await p.buyerAgentFor(c.buyer);
+    if (!agent) return refuse('NO_BUYER_AGENT', 'Your agent is not set up.');
+    marking.add(entryId);
+    try {
+      const tx = await chainOf(c).markNotValid(agent.walletId, BigInt(c.chainId!), e.sellerAgent, keccak256(toBytes(why)));
+      const live = (await p.store.patchEntry(entryId, { notValid: { reason: why, at: p.now(), tx } }))!;
+      p.tell('contest.entry_marked', { contestId, entryId, buyer: c.buyer, seller: e.seller });
+      return { ok: true, entry: live };
+    } catch (err) {
+      return refuse('MARK_FAILED', `The entry was not marked: ${(err as Error).message}`);
+    } finally {
+      marking.delete(entryId);
+    }
+  }
+
+  /// After the wait, the contract pays the earliest valid entries, or gives
+  /// the prize back when there are none (view 88).
+  async function payOut(c: Contest): Promise<void> {
+    const r = await chainOf(c).payOut(BigInt(c.chainId!), c.buyerAgent);
+    const entries = await p.store.entries(c.id);
+    if (r.paid.length === 0) {
+      await p.store.patch(c.id, { status: 'returned', refundTx: r.txHash, backMicros: r.back.toString() });
+      for (const e of entries) if (e.status === 'in') await p.store.patchEntry(e.id, { status: 'lost' });
+      p.tell('contest.returned', { contestId: c.id, buyer: c.buyer });
+      return;
+    }
+    const winners: NonNullable<Contest['winners']> = [];
+    const won = new Set<string>();
+    for (const [i, w] of r.paid.entries()) {
+      const e = entries.find((x) => x.status === 'in' && !x.notValid && lower(x.sellerAgent) === lower(w.agent));
+      if (!e) continue;
+      won.add(e.id);
+      winners.push({ entryId: e.id, place: i + 1, netMicros: w.netMicros.toString() });
+    }
+    await p.store.patch(c.id, { status: 'awarded', auto: true, awardTx: r.txHash, winners, backMicros: r.back.toString() });
+    for (const e of entries) {
+      if (won.has(e.id)) await p.store.patchEntry(e.id, { status: 'won' });
+      else if (e.status === 'in') await p.store.patchEntry(e.id, { status: 'lost' });
+    }
+    const sellerOf = new Map(entries.map((e) => [e.id, e.seller]));
+    p.tell('contest.awarded', { contestId: c.id, buyer: c.buyer, auto: true, winners: winners.map((w) => ({ seller: sellerOf.get(w.entryId), netMicros: w.netMicros })) });
+  }
+
+  /// Settles every contest past its date: on the first escrow the prize goes
+  /// back at the award date; on the second, after the wait, the earliest
+  /// entries are paid. The count settled this pass.
   async function returnDue(): Promise<number> {
     let returned = 0;
     for (const c of await p.store.list({ status: ['open'] })) {
-      if (p.now() < c.awardBy || !c.chainId) continue;
+      if (p.now() < pickUntil(c) || !c.chainId) continue;
       if (!(await p.store.patchIfStatus(c.id, ['open'], { status: 'awarding' }))) continue;
+      if (c.protects) {
+        try {
+          await payOut(c);
+          returned += 1;
+        } catch {
+          await p.store.patch(c.id, { status: 'open' });
+        }
+        continue;
+      }
       try {
-        const r = await p.chain.giveBack(BigInt(c.chainId), c.buyerAgent);
+        const r = await chainOf(c).giveBack(BigInt(c.chainId), c.buyerAgent);
         await p.store.patch(c.id, { status: 'returned', refundTx: r.txHash, backMicros: r.back.toString() });
         for (const e of await p.store.entries(c.id)) if (e.status === 'in') await p.store.patchEntry(e.id, { status: 'lost' });
         p.tell('contest.returned', { contestId: c.id, buyer: c.buyer });
@@ -315,7 +433,7 @@ export function createContests(p: ContestPorts) {
     return { netMicros: pay.net.map(String), backMicros: pay.back.toString(), totalMicros: withHalfFee(BigInt(c.prizeMicros), c.feeBps).toString() };
   }
 
-  return { draft, post, enter, award, cancel, returnDue, mayReadFiles, mayReadPreview, awardCard };
+  return { draft, post, enter, award, cancel, markNotValid, returnDue, mayReadFiles, mayReadPreview, awardCard };
 }
 
 export type Contests = ReturnType<typeof createContests>;

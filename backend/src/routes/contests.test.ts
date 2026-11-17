@@ -16,7 +16,7 @@ const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7]);
 const dataUrl = `data:image/png;base64,${Buffer.from(PNG).toString('base64')}`;
 const DAY = 86_400_000;
 
-function setup() {
+function setup(o: { protects?: boolean } = {}) {
   let now = 1_800_000_000_000;
   let n = 0;
   let who: string | null = null;
@@ -32,12 +32,15 @@ function setup() {
     identityOf: async () => 0n,
     balanceOf: async () => 1_000_000_000n,
     guard: async () => ({ ok: true }),
+    ...(o.protects ? { protects: true } : {}),
     chain: {
       open: async () => ({ jobId: 1n, txHash: '0x01' as Hex }),
       enter: async () => '0x02' as Hex,
       award: async () => '0x03' as Hex,
       cancel: async () => ({ txHash: '0x04' as Hex, back: 0n }),
       giveBack: async () => ({ txHash: '0x05' as Hex, back: 0n }),
+      markNotValid: async () => '0x06' as Hex,
+      payOut: async () => ({ txHash: '0x07' as Hex, paid: [], back: 0n }),
     },
     tell: () => {},
     now: () => now,
@@ -61,8 +64,8 @@ function setup() {
 
 const post = { title: 'Best logo', brief: 'A logo for a bakery', prizeUsdc: '300', places: 2, entriesDays: 7 };
 
-async function contestWithEntry() {
-  const s = setup();
+async function contestWithEntry(o: { protects?: boolean } = {}) {
+  const s = setup(o);
   s.as(BUYER);
   const c = (await (await s.call('POST', '', post)).json()) as { contest: { id: string } };
   s.as(S1);
@@ -125,4 +128,32 @@ test('only the buyer picks winners', async () => {
   advance(8 * DAY);
   as(S1);
   assert.equal((await call('POST', `/${id}/award`, { entryIds: [entryId] })).status, 409);
+});
+
+test('on the second escrow the page shows the payout date, and a marked entry with its reason to everyone', async () => {
+  const { call, as, id, entryId } = await contestWithEntry({ protects: true });
+  as(S2);
+  assert.equal((await call('POST', `/${id}/entries/${entryId}/not-valid`, { reason: 'Not what was asked for.' })).status, 409, 'only the buyer marks');
+  as(BUYER);
+  assert.equal((await call('POST', `/${id}/entries/${entryId}/not-valid`, { reason: 'no' })).status, 400);
+  const ok = await call('POST', `/${id}/entries/${entryId}/not-valid`, { reason: 'Not what was asked for.' });
+  assert.equal(ok.status, 200);
+  const buyerView = (await (await call('GET', `/${id}`)).json()) as { protects: boolean; payoutFrom: number; awardBy: number; entryList: Array<{ notValid?: string }> };
+  assert.equal(buyerView.protects, true);
+  assert.equal(buyerView.payoutFrom - buyerView.awardBy, 3 * DAY);
+  assert.equal(buyerView.entryList[0]!.notValid, 'Not what was asked for.');
+  as(S1);
+  const own = (await (await call('GET', `/${id}`)).json()) as { myEntry: { notValid?: string } };
+  assert.equal(own.myEntry.notValid, 'Not what was asked for.');
+  as(null);
+  const anyone = (await (await call('GET', `/${id}`)).json()) as { marked: Array<{ seller: string; reason: string }> };
+  assert.deepEqual(anyone.marked, [{ seller: 'Ada', reason: 'Not what was asked for.' }]);
+});
+
+test('a contest on the first escrow cannot have entries marked', async () => {
+  const { call, as, id, entryId } = await contestWithEntry();
+  as(BUYER);
+  const r = await call('POST', `/${id}/entries/${entryId}/not-valid`, { reason: 'Not what was asked for.' });
+  assert.equal(r.status, 409);
+  assert.equal(((await r.json()) as { code: string }).code, 'OLD_RULE');
 });

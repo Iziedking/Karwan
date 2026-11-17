@@ -886,6 +886,7 @@ Agree: yes.
 - Installed tools: Foundry as pinned in `contracts/foundry.toml`; no library change.
 - Read-only test, 16 Nov 2026: `eth_getCode` on the live job escrow `0xEA06b70c0808c2ad9b6316758407284fdAD9D550` (Arc testnet) returns code; `eth_blockNumber` 0x45362d7.
 - Deployed 17 Nov 2026: `KarwanJobEscrow` `0x0F68EfB7BD911899E4736F2A7f3ecDbC73A0050E`, tx `0x2d2179f232e7083690470a1cf50296e1a065f9bbb5f618056f3b8cc3d6d112f1`, block 72657634, with `BountyLib` `0xce2e4f09…df82`, `JobLib` `0x364a42bf…16aa` and `JobDisputeLib` `0x22f932c7…1655` in the same block. Read back on chain: `hub()` is the hub, `asset()` is USDC, signing domain "KarwanJobs" version "2", `hub.isFamily` false until the batch runs. Batch files `contracts/deployments/jobs-v2-5042002-2026-11-17.{schedule,execute}.json`, decoded: `registerFamily(…, 100)`, `setCaps(…, USDC, 1005e6, 10000e6)`, `setYieldShare(…, 8000)`.
+- Backend wiring, 17 Nov 2026: marking an entry is `rejectEntry(uint256,address,bytes32)` sent from the buyer's agent wallet through the same Circle contract-execution call as `award` (`executeContractCall`, `@circle-fin/developer-controlled-wallets` 10.8.0, no package change); the payout after the wait is `claimRefund(uint256)` from Karwan's operator key, as the first escrow's return already is. Both are proved from the receipt (`EntryRejected`; `PaymentReleased` and `Refunded`).
 - Not covered yet: a rehearsal on Arc testnet before contests move to the new escrow.
 - Agree: yes.
 

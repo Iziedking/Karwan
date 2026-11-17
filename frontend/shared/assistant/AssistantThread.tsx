@@ -794,6 +794,11 @@ async function runConfirmIntent(
     await api.awardContest(p.contestId, p.entryIds);
     return { successText: 'Paid. The winners have their prize and their files are yours.', viewHref: `/contests/${p.contestId}`, viewLabel: 'Open the contest' };
   }
+  if (action.intent === 'contest_mark') {
+    const p = action.payload as { contestId: string; entryId: string; reason: string };
+    await api.markContestEntry(p.contestId, p.entryId, p.reason);
+    return { successText: 'Marked not valid. Every entrant can read your reason, and this entry will not be paid.', viewHref: `/contests/${p.contestId}`, viewLabel: 'Open the contest' };
+  }
   if (action.intent === 'contest_cancel') {
     const p = action.payload as { contestId: string };
     await api.cancelContest(p.contestId);

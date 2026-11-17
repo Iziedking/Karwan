@@ -6,6 +6,7 @@ import {
   buildContestAwardConfirm,
   buildContestCancelConfirm,
   buildContestEnterConfirm,
+  buildContestMarkConfirm,
   buildContestPostConfirm,
   type DraftCard,
 } from './contests.js';
@@ -28,7 +29,7 @@ const CONTEST = z.string().min(3).max(64).describe('The contest id, from list_co
 const errorOf = (r: { json: Record<string, unknown> }, fallback: string) => ({ error: typeof r.json.error === 'string' ? r.json.error : fallback });
 
 type ContestRow = { id: string; title: string; prizeMicros: string; entries: number; entriesBy: number; awardBy: number; status: string };
-type EntryRow = { id: string; seller: string; note: string; status: string };
+type EntryRow = { id: string; seller: string; note: string; status: string; notValid?: string };
 
 export function contestTools(address: string, actions: AssistantAction[], deps: ContestToolDeps) {
   const show = (card: AssistantAction | { error: string }) => {
@@ -53,7 +54,8 @@ export function contestTools(address: string, actions: AssistantAction[], deps: 
     }),
 
     read_contest: tool({
-      description: "One contest: its prize, dates and status. For the buyer it lists the entries (who, their note, status); for an entrant, their own entry. Use before picking winners.",
+      description:
+        "One contest: its prize, dates and status. For the buyer it lists the entries (who, their note, status, and the reason if marked not valid); for an entrant, their own entry. A contest with protects set pays the earliest valid entries from payoutFrom if the buyer picks nobody; marked lists every entry marked not valid with its reason, which anyone may read. Use before picking winners.",
       inputSchema: z.object({ contestId: CONTEST }),
       execute: async ({ contestId }) => {
         const r = await read(contestId);
@@ -63,14 +65,15 @@ export function contestTools(address: string, actions: AssistantAction[], deps: 
 
     propose_contest: tool({
       description:
-        "Prepare a card for the person to run a contest: 'best logo, three places, a prize of 300, entries by Friday'. Ask for the prize in the person's own currency, never 'how much USDC'. Draw the card as soon as you have a title, what they want, the prize and the places: never send them to a form to fill it in. Their agent puts up the prize when they confirm. One to three places; entries open 1 to 30 days; they pick winners within 7 days after unless they say otherwise.",
+        "Prepare a card for the person to run a contest: 'best logo, three places, a prize of 300, entries by Friday'. Ask for the prize in the person's own currency, never 'how much USDC'. Draw the card as soon as you have a title, what they want, the prize and the places: never send them to a form to fill it in. Their agent puts up the prize when they confirm. One to three places. Pick the kind from what they say: design (a design or writing contest: entries 1 to 30 days, judging 3 to 14, 7 by default), bugs (a bug bounty: entries 1 to 60 days, judging 3 to 30, 14 by default) or hackathon (1 to 60 days of building, 3 to 30 of review, 14 by default). The card says what happens if they pick nobody; read it to them in your words.",
       inputSchema: z.object({
         title: z.string().min(1).max(80),
         brief: z.string().min(1).max(1_500).describe('What they want, in their words.'),
         prizeUsdc: z.number().positive().max(1_000_000),
         places: z.number().int().min(1).max(3),
-        entriesDays: z.number().int().min(1).max(30),
-        awardDays: z.number().int().min(1).max(60).optional(),
+        entriesDays: z.number().int().min(1).max(60),
+        awardDays: z.number().int().min(1).max(60).optional().describe('Days of judging after entries close.'),
+        kind: z.enum(['design', 'bugs', 'hackathon']).optional(),
       }),
       execute: async (i, options) => {
         // A prize said in naira reads as said, and every row on the card at
@@ -133,6 +136,27 @@ export function contestTools(address: string, actions: AssistantAction[], deps: 
         if (card.status !== 200) return errorOf(card, 'Could not work out the payouts just now.');
         const c = card.json.card as { netMicros: string[]; backMicros: string };
         return show(buildContestAwardConfirm({ contestId, title: String(r.json.title), winners, netMicros: c.netMicros, backMicros: c.backMicros }));
+      },
+    }),
+
+    propose_contest_mark_not_valid: tool({
+      description:
+        "Prepare a card for the buyer to mark an entry not valid, with the reason in their words: 'that logo is copied', 'this one is spam'. Every entrant reads the reason, and a marked entry is never paid. Only on contests where protects is set, until the payout opens. Entry ids from read_contest.",
+      inputSchema: z.object({
+        contestId: CONTEST,
+        entryId: z.string().max(64),
+        reason: z.string().min(5).max(280).describe('Why, in the buyer\'s words. Every entrant reads it.'),
+      }),
+      execute: async ({ contestId, entryId, reason }) => {
+        const r = await read(contestId);
+        if (r.status !== 200) return errorOf(r, 'No contest with that id.');
+        const list = (r.json.entryList as EntryRow[] | undefined) ?? null;
+        if (!list) return { error: 'Only the buyer marks entries.' };
+        if (r.json.protects !== true) return { error: 'This contest opened before entries could be marked not valid.' };
+        const e = list.find((x) => x.id === entryId && x.status === 'in');
+        if (!e) return { error: 'That entry is not in this contest.' };
+        if (e.notValid) return { error: 'That entry is already marked not valid.' };
+        return show(buildContestMarkConfirm({ contestId, title: String(r.json.title), entryId, seller: e.seller, reason: reason.trim() }));
       },
     }),
 

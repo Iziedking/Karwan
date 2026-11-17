@@ -138,6 +138,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/contests/:/award/card': { by: 'assistant', via: 'contest_award' },
   'POST /api/contests/:/award': { by: 'assistant', via: 'contest_award' },
   'POST /api/contests/:/cancel': { by: 'assistant', via: 'contest_cancel' },
+  'POST /api/contests/:/entries/:/not-valid': { by: 'assistant', via: 'contest_mark' },
   // Hourly work and monthly retainers on the time escrow (view 32).
   'POST /api/work/draft': { by: 'assistant', via: 'work_offer' },
   'POST /api/work': { by: 'assistant', via: 'work_offer' },

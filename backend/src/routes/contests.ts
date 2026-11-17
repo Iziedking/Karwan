@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Address } from 'viem';
-import type { Contests } from '../contests/contests.js';
+import { PAYOUT_WAIT_MS, type Contests } from '../contests/contests.js';
 import { checkEntryFile, MAX_ENTRY_FILES, type EntryFile } from '../contests/entryFiles.js';
 import type { Contest, ContestEntry, ContestsStore } from '../db/contests.js';
 import { checkPhoto, type Photo } from '../listings/photos.js';
@@ -30,6 +30,7 @@ const inputSchema = z.object({
   shares: z.array(z.number().int()).max(3).optional(),
   entriesDays: z.number().int(),
   awardDays: z.number().int().optional(),
+  kind: z.enum(['design', 'bugs', 'hackathon']).optional(),
   tags: z.array(z.string().max(40)).max(10).optional(),
 });
 const entrySchema = z.object({
@@ -39,6 +40,7 @@ const entrySchema = z.object({
   heldFiles: z.boolean().optional(),
 });
 const awardSchema = z.object({ entryIds: z.array(z.string().max(64)).min(1).max(3) });
+const markSchema = z.object({ reason: z.string().max(600) });
 
 const DATA_URL = /^data:[a-z]+\/[a-z0-9.+-]+;base64,([A-Za-z0-9+/=]+)$/;
 const bytesOf = (dataUrl: string) => {
@@ -46,7 +48,7 @@ const bytesOf = (dataUrl: string) => {
   return m ? new Uint8Array(Buffer.from(m[1]!, 'base64')) : null;
 };
 
-const INPUT_CODES = new Set(['BAD_TERMS', 'BAD_WINNERS', 'NO_FILES', 'NEED_PREVIEW']);
+const INPUT_CODES = new Set(['BAD_TERMS', 'BAD_WINNERS', 'NO_FILES', 'NEED_PREVIEW', 'BAD_REASON']);
 function refused(r: { code: string; message: string; needMicros?: string }) {
   const status = r.code === 'NOT_FOUND' ? 404 : INPUT_CODES.has(r.code) ? 400 : 409;
   return { status: status as 400 | 404 | 409, body: { error: r.message, code: r.code, ...(r.needMicros ? { needMicros: r.needMicros } : {}) } };
@@ -59,6 +61,10 @@ function publicView(c: Contest, entries: ContestEntry[]) {
   return {
     id: c.id, title: c.title, brief: c.brief, tags: c.tags, prizeMicros: c.prizeMicros, feeBps: c.feeBps, shares: c.shares,
     entriesBy: c.entriesBy, awardBy: c.awardBy, status: c.status,
+    // View 88: on the second escrow, the date the earliest entries are paid
+    // if nobody is picked, and whether that is how it ended.
+    ...(c.protects ? { protects: true, kind: c.kind ?? 'design', payoutFrom: c.awardBy + PAYOUT_WAIT_MS } : {}),
+    ...(c.auto ? { auto: true } : {}),
     entries: entries.filter((e) => SHOWN.includes(e.status)).length,
     ...(c.winners ? { winners: c.winners.map((w) => ({ place: w.place, netMicros: w.netMicros })) } : {}),
   };
@@ -113,18 +119,26 @@ export function createContestRoutes(deps: ContestRouteDeps) {
     const entries = await deps.store.entries(contest.id);
     const s = deps.session(c);
     const view: Record<string, unknown> = publicView(contest, entries);
+    // Every entry marked not valid, with its reason, is shown to anyone who
+    // opens the contest (view 88), so entrants see how the buyer judges.
+    const marked = entries.filter((e) => e.notValid && SHOWN.includes(e.status));
+    if (marked.length) view.marked = await Promise.all(marked.map(async (e) => ({ seller: await deps.nameOf(e.seller), reason: e.notValid!.reason })));
     if (s && lower(s.address) === lower(contest.buyer)) {
       view.mine = true;
       view.entryList = await Promise.all(
         entries.filter((e) => SHOWN.includes(e.status)).map(async (e) => ({
           id: e.id, seller: await deps.nameOf(e.seller), note: e.note, status: e.status, previewUrl: preview(contest, e), files: e.files,
+          ...(e.notValid ? { notValid: e.notValid.reason } : {}),
         })),
       );
     } else if (s) {
       const own = entries.find((e) => lower(e.seller) === lower(s.address) && e.status !== 'replaced');
       if (own) {
         const won = contest.winners?.find((w) => w.entryId === own.id);
-        view.myEntry = { id: own.id, note: own.note, status: own.status, previewUrl: preview(contest, own), files: own.files, ...(won ? { wonMicros: won.netMicros } : {}) };
+        view.myEntry = {
+          id: own.id, note: own.note, status: own.status, previewUrl: preview(contest, own), files: own.files,
+          ...(won ? { wonMicros: won.netMicros } : {}), ...(own.notValid ? { notValid: own.notValid.reason } : {}),
+        };
       }
     }
     return c.json(view);
@@ -178,6 +192,20 @@ export function createContestRoutes(deps: ContestRouteDeps) {
       return c.json(r.body, r.status);
     }
     return c.json({ contest: publicView(out.contest, await deps.store.entries(out.contest.id)) });
+  });
+
+  // The buyer marks an entry not valid, with a reason every entrant reads.
+  app.post('/:id/entries/:entryId/not-valid', async (c) => {
+    const s = deps.session(c);
+    if (!s) return c.json({ error: 'not authenticated' }, 401);
+    const body = markSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json({ error: 'invalid body' }, 400);
+    const out = await deps.core.markNotValid(s.address as Address, c.req.param('id'), c.req.param('entryId'), body.data.reason);
+    if (!out.ok) {
+      const r = refused(out);
+      return c.json(r.body, r.status);
+    }
+    return c.json({ entry: { id: out.entry.id, notValid: out.entry.notValid!.reason } });
   });
 
   app.post('/:id/cancel', async (c) => {

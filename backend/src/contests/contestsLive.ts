@@ -3,8 +3,8 @@ import { createWalletClient, erc20Abi, keccak256, parseAbi, toBytes, type Addres
 import { privateKeyToAccount } from 'viem/accounts';
 import { arcChain, arcTransport, publicClient } from '../chain/client.js';
 import { usdc } from '../chain/contracts.js';
-import { jobEscrowAbi, proveAwarded, proveEntered, proveOpened, proveRefunded, withHalfFee } from '../chain/jobEscrow.js';
-import { suiteJobsAddress } from '../chain/suiteConfig.js';
+import { jobEscrowAbi, proveAwarded, proveEntered, proveMarked, proveOpened, provePaidOut, proveRefunded, withHalfFee } from '../chain/jobEscrow.js';
+import { suiteContestsAddress, suiteJobsAddress } from '../chain/suiteConfig.js';
 import { deterministicIdempotencyKey, executeContractCall } from '../chain/txs.js';
 import { config } from '../config.js';
 import { getAgentWallets } from '../db/agentWallets.js';
@@ -67,18 +67,37 @@ function chainFor(jobs: Hex, asset: Hex): ContestChain {
       return { txHash, back: proveRefunded(await receiptOf(txHash), { jobs, jobId, client }) };
     },
     async giveBack(jobId, client) {
-      // Anyone may return a prize past its award date; Karwan's operator pays the gas.
-      const key = settleKey(config);
-      if (!key) throw new Error('no operator key to return the prize');
-      const wallet = createWalletClient({ account: privateKeyToAccount(key), chain: arcChain, transport: arcTransport });
-      const txHash = await wallet.writeContract({ address: jobs, abi: jobEscrowAbi, functionName: 'claimRefund', args: [jobId] });
+      const txHash = await settle(jobId);
       return { txHash, back: proveRefunded(await receiptOf(txHash), { jobs, jobId, client }) };
     },
+    async markNotValid(walletId, jobId, entrant, reason) {
+      const txHash = await send(walletId, { sig: 'rejectEntry(uint256,address,bytes32)', params: [jobId.toString(), entrant, reason], key: `contest:${jobId}:mark:${entrant}` });
+      proveMarked(await receiptOf(txHash), { jobs, jobId, entrant, reason });
+      return txHash;
+    },
+    async payOut(jobId, client) {
+      const txHash = await settle(jobId);
+      return { txHash, ...provePaidOut(await receiptOf(txHash), { jobs, jobId, client }) };
+    },
   };
+
+  // Anyone may settle a contest past its date (the prize back on the first
+  // escrow, the earliest entries paid on the second); Karwan's operator pays
+  // the gas.
+  async function settle(jobId: bigint): Promise<Hex> {
+    const key = settleKey(config);
+    if (!key) throw new Error('no operator key to settle the contest');
+    const wallet = createWalletClient({ account: privateKeyToAccount(key), chain: arcChain, transport: arcTransport });
+    return wallet.writeContract({ address: jobs, abi: jobEscrowAbi, functionName: 'claimRefund', args: [jobId] });
+  }
 }
 
 function bind(): ContestPorts | null {
-  const jobs = suiteJobsAddress();
+  // New contests open on the second job escrow once it is set (view 88);
+  // contests already open stay on the first.
+  const legacy = suiteJobsAddress();
+  const second = suiteContestsAddress();
+  const jobs = second ?? legacy;
   const identityAddr = config.KARWAN_SUITE_IDENTITY_ADDR as Hex | undefined;
   const hub = config.KARWAN_SUITE_HUB_ADDR as Hex | undefined;
   if (!jobs || !identityAddr || !hub) return null;
@@ -114,7 +133,9 @@ function bind(): ContestPorts | null {
       const body = refusalBody(pass.refusal);
       return { ok: false, code: body.code, message: body.error };
     },
+    protects: !!second,
     chain: chainFor(jobs, asset),
+    ...(second && legacy ? { legacyChain: chainFor(legacy, asset) } : {}),
     tell: (kind, payload) => bus.emitEvent({ type: kind as KarwanEventType, actor: 'platform', payload }),
     now: () => Date.now(),
     newId: (prefix) => `${prefix}_${randomBytes(9).toString('base64url')}`,

@@ -115,6 +115,11 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   contest_enter: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/entries`, body: { note: p.note, heldFiles: true } }),
   contest_award: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/award`, body: { entryIds: p.entryIds } }),
   contest_cancel: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/cancel`, body: {} }),
+  contest_mark: (p) => ({
+    method: 'POST',
+    path: `/api/contests/${encodeURIComponent(String(p.contestId))}/entries/${encodeURIComponent(String(p.entryId))}/not-valid`,
+    body: { reason: p.reason },
+  }),
   // Hourly work (view 32): the work page's calls.
   work_offer: (p) => ({ method: 'POST', path: '/api/work', body: p }),
   work_accept: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/accept`, body: {} }),
@@ -381,6 +386,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   contest_enter: 'You are in. The buyer sees your preview; your files go to them only if you win.',
   contest_award: 'Paid. The winners have their prize and their files are yours.',
   contest_cancel: 'Taken back. The prize is back with your agent.',
+  contest_mark: 'Marked not valid. Every entrant can read your reason, and this entry will not be paid.',
   work_offer: 'Offered, and the first one is paid in. I will tell you when they accept.',
   work_accept: 'Accepted. Log your hours as you work; I will remind you before logging closes.',
   work_decline: 'Done. The hirer has been told.',

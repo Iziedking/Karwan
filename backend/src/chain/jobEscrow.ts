@@ -11,6 +11,7 @@ export const jobEscrowAbi = parseAbi([
   'function openBounty(BountyTerms t) returns (uint256)',
   'function enter(uint256 id, bytes32 deliverable)',
   'function award(uint256 id, address[] winners)',
+  'function rejectEntry(uint256 id, address entrant, bytes32 reason)',
   'function createJobWithTerms(address provider, address evaluator, uint256 expiredAt, string description, JobTerms t) returns (uint256)',
   'function setBudget(uint256 id, uint256 amount, bytes optParams)',
   'function fund(uint256 id, uint256 expectedBudget, bytes optParams)',
@@ -27,6 +28,8 @@ export const jobEscrowAbi = parseAbi([
   'event BountyOpened(uint256 indexed jobId, address indexed client, address indexed evaluator, uint256 prize, uint64 entriesBy, uint64 awardBy)',
   'event Entered(uint256 indexed jobId, address indexed entrant, bytes32 deliverable)',
   'event BountyAwarded(uint256 indexed jobId, address[] winners, uint256 paid)',
+  'event EntryRejected(uint256 indexed jobId, address indexed entrant, bytes32 reason)',
+  'event JobExpired(uint256 indexed jobId)',
   'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 expiredAt, address hook)',
   'event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount)',
   'event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable)',
@@ -144,6 +147,30 @@ export function proveAwarded(receipt: TransactionReceipt, i: { jobs: Hex; jobId:
     const hit = paid.some((e) => e.eventName === 'Paid' && same(e.args.to ?? '', w) && e.args.amount === i.net[n]);
     if (!hit) throw new Error(`the receipt does not pay place ${n + 1} its share`);
   });
+}
+
+/// The second escrow marked exactly this entry not valid, for this reason.
+export function proveMarked(receipt: TransactionReceipt, i: { jobs: Hex; jobId: bigint; entrant: Hex; reason: Hex }): void {
+  ok(receipt, 'the entry was not marked');
+  const found = events(receipt, i.jobs).some(
+    (e) => e.eventName === 'EntryRejected' && e.args.jobId === i.jobId && same(e.args.entrant ?? '', i.entrant) && e.args.reason === i.reason,
+  );
+  if (!found) throw new Error('the receipt has no matching EntryRejected');
+}
+
+/// The payout after the wait on the second escrow (view 88): the entrants paid,
+/// first place first, and what went back to the client. Nobody paid means the
+/// prize went back whole.
+export function provePaidOut(receipt: TransactionReceipt, i: { jobs: Hex; jobId: bigint; client: Hex }): { paid: { agent: Hex; netMicros: bigint }[]; back: bigint } {
+  ok(receipt, 'the payout did not go through');
+  const own = events(receipt, i.jobs).filter((e) => 'jobId' in e.args && e.args.jobId === i.jobId);
+  const paid = own
+    .filter((e) => e.eventName === 'PaymentReleased')
+    .map((e) => ({ agent: (e.args as { provider: Hex }).provider, netMicros: (e.args as { amount: bigint }).amount }));
+  const refund = own.find((e) => e.eventName === 'Refunded' && same((e.args as { client?: string }).client ?? '', i.client));
+  const back = refund ? (refund.args as { amount: bigint }).amount : 0n;
+  if (paid.length === 0 && !refund) throw new Error('the receipt neither pays entrants nor gives the prize back');
+  return { paid, back };
 }
 
 export function proveRefunded(receipt: TransactionReceipt, i: { jobs: Hex; jobId: bigint; client: Hex }): bigint {

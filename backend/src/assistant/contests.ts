@@ -11,6 +11,7 @@ export interface ContestInputPayload {
   places: number;
   entriesDays: number;
   awardDays?: number;
+  kind?: 'design' | 'bugs' | 'hackathon';
 }
 
 export interface ContestPostConfirm extends ConfirmActionBase {
@@ -29,6 +30,10 @@ export interface ContestCancelConfirm extends ConfirmActionBase {
   intent: 'contest_cancel';
   payload: { contestId: string };
 }
+export interface ContestMarkConfirm extends ConfirmActionBase {
+  intent: 'contest_mark';
+  payload: { contestId: string; entryId: string; reason: string };
+}
 
 export interface DraftCard {
   title: string;
@@ -38,6 +43,8 @@ export interface DraftCard {
   placeNetMicros: string[];
   entriesBy: number;
   awardBy: number;
+  /// On the second escrow: when the earliest entries are paid if nobody is picked.
+  payoutFrom?: number;
   ifNobody: string;
 }
 
@@ -52,7 +59,9 @@ export function buildContestPostConfirm(input: ContestInputPayload, card: DraftC
     id: `contest_post:${confirmNonce()}`,
     intent: 'contest_post',
     title: `Run a contest: ${card.title}`,
-    summary: `Your agent puts up the prize now. Sellers enter until ${day(card.entriesBy)}, then you pick the winners by ${day(card.awardBy)}.`,
+    summary: card.payoutFrom
+      ? `Your agent puts up the prize now. Sellers enter until ${day(card.entriesBy)}, you judge until ${day(card.awardBy)}, and from ${day(card.payoutFrom)} the earliest entries are paid if you have picked nobody.`
+      : `Your agent puts up the prize now. Sellers enter until ${day(card.entriesBy)}, then you pick the winners by ${day(card.awardBy)}.`,
     warning: card.ifNobody,
     fields: [
       { label: 'Prize', value: amount(card.prizeMicros) },
@@ -116,5 +125,24 @@ export function buildContestCancelConfirm(i: { contestId: string; title: string;
     payload: { contestId: i.contestId },
     confirmLabel: 'Take it back',
     cancelLabel: 'Keep it open',
+  };
+}
+
+/// The buyer marks an entry not valid (view 88). Every entrant reads the
+/// reason, and a marked entry is never paid.
+export function buildContestMarkConfirm(i: { contestId: string; title: string; entryId: string; seller: string; reason: string }): ContestMarkConfirm {
+  return {
+    kind: 'confirm',
+    id: `contest_mark:${i.contestId}:${i.entryId}:${confirmNonce()}`,
+    intent: 'contest_mark',
+    title: `Mark ${i.seller}'s entry not valid`,
+    summary: `In ${i.title}. Every entrant sees your reason, and this entry is never paid. ${i.seller} can send a new entry while entries are open; it goes to the back of the line.`,
+    fields: [
+      { label: 'Entry', value: i.seller },
+      { label: 'Reason', value: i.reason },
+    ],
+    payload: { contestId: i.contestId, entryId: i.entryId, reason: i.reason },
+    confirmLabel: 'Mark not valid',
+    cancelLabel: 'Keep it',
   };
 }

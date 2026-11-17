@@ -8,8 +8,18 @@ import { pgEnabled, postgresExecutor } from './client.js';
 export type ContestStatus = 'opening' | 'open' | 'awarding' | 'awarded' | 'cancelled' | 'returned' | 'failed';
 export type EntryStatus = 'entering' | 'in' | 'replaced' | 'won' | 'lost' | 'failed';
 
+/// The kinds of contest (view 88): presets on one rule, the dates differ.
+export type ContestKind = 'design' | 'bugs' | 'hackathon';
+
 export interface Contest {
   id: string;
+  /// Opened on the second job escrow (view 88): entrants are paid if the buyer
+  /// picks nobody. Unset for contests on the first escrow, which keep the old
+  /// rule (the prize goes back).
+  protects?: boolean;
+  kind?: ContestKind;
+  /// Paid out by the contract after the wait, nobody having been picked.
+  auto?: boolean;
   /// The contest's number on the job escrow, once opened.
   chainId?: string;
   /// The buyer's identity wallet, and the buying agent that holds the prize.
@@ -47,6 +57,9 @@ export interface ContestEntry {
   files: number;
   fingerprint: Hex;
   status: EntryStatus;
+  /// Marked not valid by the buyer (view 88), with the reason every entrant
+  /// reads. A marked entry is never paid.
+  notValid?: { reason: string; at: number; tx: string };
   enterTx?: string;
   createdAt: number;
   updatedAt: number;

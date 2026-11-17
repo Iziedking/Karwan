@@ -724,6 +724,7 @@ const envSchema = z.object({
   KARWAN_SUITE_VAULT_ADDR: optionalAddr,
   /// The family's job escrow: contests and outside-agent jobs (view 40).
   KARWAN_SUITE_JOBS_ADDR: optionalAddr,
+  KARWAN_SUITE_CONTESTS_ADDR: optionalAddr,
   /// The family's time escrow: hourly work and monthly retainers (view 32).
   KARWAN_SUITE_TIME_ADDR: optionalAddr,
   /// Karwan's reviewer on outside-agent jobs: completes or rejects only after

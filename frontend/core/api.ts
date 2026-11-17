@@ -2240,6 +2240,7 @@ export interface AssistantConfirmAction {
     | 'contest_enter'
     | 'contest_award'
     | 'contest_cancel'
+    | 'contest_mark'
     | 'work_offer'
     | 'work_accept'
     | 'work_decline'
@@ -3526,7 +3527,10 @@ export interface ContestInput {
   prizeUsdc: string;
   places: number;
   entriesDays: number;
+  /// Days of judging after entries close.
   awardDays?: number;
+  /// View 88: the kind sets the allowed entry and judging periods.
+  kind?: 'design' | 'bugs' | 'hackathon';
   tags?: string[];
 }
 export interface ContestCard {
@@ -3539,6 +3543,10 @@ export interface ContestCard {
   placeNetMicros: string[];
   entriesBy: number;
   awardBy: number;
+  /// On the second escrow (view 88): when the earliest entries are paid if
+  /// nobody is picked.
+  payoutFrom?: number;
+  kind?: 'design' | 'bugs' | 'hackathon';
   ifNobody: string;
 }
 export type ContestStatus = 'opening' | 'open' | 'awarding' | 'awarded' | 'cancelled' | 'returned' | 'failed';
@@ -3552,6 +3560,8 @@ export interface ContestEntryView {
   seller?: string;
   /// What this entry won, on the entrant's own view.
   wonMicros?: string;
+  /// The buyer's reason, when marked not valid (view 88).
+  notValid?: string;
 }
 export interface ContestView {
   id: string;
@@ -3566,6 +3576,14 @@ export interface ContestView {
   status: ContestStatus;
   entries: number;
   winners?: { place: number; netMicros: string }[];
+  /// View 88: on the second escrow the earliest valid entries are paid from
+  /// payoutFrom if nobody is picked; auto when that is how it ended.
+  protects?: boolean;
+  kind?: 'design' | 'bugs' | 'hackathon';
+  payoutFrom?: number;
+  auto?: boolean;
+  /// Every entry marked not valid, with its reason, for anyone to read.
+  marked?: { seller: string; reason: string }[];
   mine?: boolean;
   entryList?: ContestEntryView[];
   myEntry?: ContestEntryView;
@@ -6477,6 +6495,11 @@ export const api = {
     json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/award`, { method: 'POST', body: JSON.stringify({ entryIds }) }),
   cancelContest: (id: string) =>
     json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify({}) }),
+  markContestEntry: (id: string, entryId: string, reason: string) =>
+    json<{ entry: { id: string; notValid: string } }>(
+      `/api/contests/${encodeURIComponent(id)}/entries/${encodeURIComponent(entryId)}/not-valid`,
+      { method: 'POST', body: JSON.stringify({ reason }) },
+    ),
   features: () => json<LiveFeatures>('/api/features'),
   listWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests'),
   myWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests/mine'),

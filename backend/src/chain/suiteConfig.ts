@@ -38,6 +38,7 @@ type SuiteEnv = {
   KARWAN_SUITE_TRADE_FINANCE_ADDR?: string;
   KARWAN_SUITE_VAULT_ADDR?: string;
   KARWAN_SUITE_JOBS_ADDR?: string;
+  KARWAN_SUITE_CONTESTS_ADDR?: string;
   KARWAN_SUITE_TIME_ADDR?: string;
 };
 
@@ -69,6 +70,14 @@ export function suiteVaultAddress(cfg: SuiteEnv = config): Hex | null {
 export function suiteJobsAddress(cfg: SuiteEnv = config): Hex | null {
   if (!cfg.SUITE_ENABLED || !cfg.KARWAN_SUITE_JOBS_ADDR) return null;
   return cfg.KARWAN_SUITE_JOBS_ADDR as Hex;
+}
+
+/// The second job escrow (view 88), where new contests open: entrants are
+/// paid if the buyer picks nobody. Unset, contests open on the first job
+/// escrow with the old rule. Set it only once the hub has registered it.
+export function suiteContestsAddress(cfg: SuiteEnv = config): Hex | null {
+  if (!cfg.SUITE_ENABLED || !cfg.KARWAN_SUITE_CONTESTS_ADDR) return null;
+  return cfg.KARWAN_SUITE_CONTESTS_ADDR as Hex;
 }
 
 /// The family's time escrow, which holds hourly work and monthly retainers

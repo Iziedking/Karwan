@@ -39,6 +39,8 @@ function setup(over: Partial<ContestPorts> = {}) {
       award: async (_w, _id, winners) => { sent.push(`award:${winners.length}`); return '0x03' as Hex; },
       cancel: async () => { sent.push('cancel'); return { txHash: '0x04' as Hex, back: 301_500_000n }; },
       giveBack: async () => { sent.push('return'); return { txHash: '0x05' as Hex, back: 301_500_000n }; },
+      markNotValid: async () => { sent.push('mark'); return '0x06' as Hex; },
+      payOut: async () => { sent.push('payout'); return { txHash: '0x07' as Hex, paid: [], back: 0n }; },
     },
     tell: (kind) => { told.push(kind); },
     now: () => now,

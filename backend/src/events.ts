@@ -249,6 +249,7 @@ export type KarwanEventType =
   // they are told, the sellers.
   | 'contest.opened'
   | 'contest.entered'
+  | 'contest.entry_marked'
   | 'contest.awarded'
   | 'contest.cancelled'
   | 'contest.returned'

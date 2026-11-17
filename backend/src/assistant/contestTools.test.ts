@@ -77,3 +77,26 @@ test('asked to prepare a post, Aman gets the link and the facts to write it (own
   assert.equal(r.entriesClose, '2026-11-23');
   assert.equal(s.actions.length, 0, 'sharing draws no card and moves nothing');
 });
+
+test('the buyer gets a card to mark an entry not valid, only on the new rule and only once', async () => {
+  const entryList = [{ id: 'e_1', seller: '@ada', note: '', status: 'in' }, { id: 'e_2', seller: '@tunde', note: '', status: 'in', notValid: 'Copied.' }];
+  const older = setup({ 'GET /api/contests/c_1': { status: 200, json: { title: 'Best logo', mine: true, entryList } } });
+  const old = (await older.tools.propose_contest_mark_not_valid.execute!({ contestId: 'c_1', entryId: 'e_1', reason: 'Copied from a stock site.' }, call)) as { error?: string };
+  assert.match(old.error ?? '', /opened before/);
+  const s = setup({ 'GET /api/contests/c_1': { status: 200, json: { title: 'Best logo', mine: true, protects: true, entryList } } });
+  const twice = (await s.tools.propose_contest_mark_not_valid.execute!({ contestId: 'c_1', entryId: 'e_2', reason: 'Copied from a stock site.' }, call)) as { error?: string };
+  assert.match(twice.error ?? '', /already marked/);
+  await s.tools.propose_contest_mark_not_valid.execute!({ contestId: 'c_1', entryId: 'e_1', reason: ' Copied from a stock site. ' }, call);
+  const c = s.actions[0] as ConfirmAction;
+  assert.equal(c.intent, 'contest_mark');
+  assert.deepEqual(c.payload, { contestId: 'c_1', entryId: 'e_1', reason: 'Copied from a stock site.' });
+  assert.ok(!MONEY_INTENTS.has('contest_mark'), 'marking moves no money, so it runs in chat');
+});
+
+test('on the new rule the contest card says when the earliest entries are paid', async () => {
+  const s = setup({ 'POST /api/contests/draft': { status: 200, json: { card: { ...card, payoutFrom: Date.UTC(2026, 10, 15), ifNobody: 'After that the prize goes to the earliest entries.' } } } });
+  await s.tools.propose_contest.execute!({ title: 'Best logo', brief: 'A bakery logo', prizeUsdc: 300, places: 3, entriesDays: 7, kind: 'design' }, call);
+  const c = s.actions[0] as ConfirmAction;
+  assert.match(c.summary ?? '', /from 15 Nov the earliest entries are paid/);
+  assert.match(c.warning ?? '', /earliest entries/);
+});
