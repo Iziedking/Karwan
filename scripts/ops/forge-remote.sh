@@ -136,6 +136,9 @@ fi
 # stopped, or whose connection drops, leaves nothing running that a later run
 # could collide with.
 DR="docker run --rm --label izie.ws=$W"
+# The box sets how many cores a run may take; at most 12.
+CPU_CAP=$($SSH nproc < /dev/null 2>/dev/null || echo 4)
+[ "$CPU_CAP" -gt 12 ] 2>/dev/null && CPU_CAP=12
 
 # One run at a time per workspace: a second run, even from another session in
 # the same checkout, stops here instead of replacing the first one's files. A
@@ -168,7 +171,7 @@ pinned_forge() {
 
 case "${1:-}" in
   --slither)
-    $SSH "$DR --cpus=12 --memory=12g -v $W/c:/c -w /c $TOOLBOX_IMAGE \
+    $SSH "$DR --cpus=$CPU_CAP --memory=12g -v $W/c:/c -w /c $TOOLBOX_IMAGE \
       sh -c 'slither . --filter-paths \"lib/|test/|script/|src/Karwan|src/Guardable|src/interfaces\" 2>&1; R=\$?; rm -rf out cache; exit \$R'" < /dev/null
     ;;
   --echidna|--medusa)
@@ -183,7 +186,7 @@ case "${1:-}" in
     else
       RUN="medusa fuzz --config medusa.json --target-contracts $T --timeout $SECS"
     fi
-    $SSH "mkdir -p $W/corpus && $DR --cpus=12 --memory=24g -e FOUNDRY_PROFILE=fuzz -v $W/c:/c -v $W/corpus:/keep -w /c $TOOLBOX_IMAGE \
+    $SSH "mkdir -p $W/corpus && $DR --cpus=$CPU_CAP --memory=24g -e FOUNDRY_PROFILE=fuzz -v $W/c:/c -v $W/corpus:/keep -w /c $TOOLBOX_IMAGE \
       sh -c 'rm -rf out cache crytic-export corpus; $RUN 2>&1; R=\$?
         rm -rf /keep/$TOOL-$T; if [ -d corpus ]; then mv corpus /keep/$TOOL-$T; fi
         rm -rf out cache crytic-export; exit \$R'" < /dev/null
@@ -227,7 +230,7 @@ EOF
     # file:line (block.branch). The size tests are left out: coverage builds
     # without the optimiser. It fails when a test fails or when a branch no test
     # takes is not explained in COVERAGE_TRIAGE.md.
-    $SSH "$DR --cpus=12 --memory=12g -v $W/c:/c -w /c --entrypoint sh $FOUNDRY_IMAGE -c \
+    $SSH "$DR --cpus=$CPU_CAP --memory=12g -v $W/c:/c -w /c --entrypoint sh $FOUNDRY_IMAGE -c \
       'forge coverage --ir-minimum --match-path \"test/suite/*\" --no-match-path \"*Size*.t.sol\" --report summary --report lcov > coverage.log 2>&1; R=\$?
        grep -E \"^\| (File|src/suite)|Ran [0-9]+ test suites|FAIL\" coverage.log
        awk -F, '\''/^SF:/ { f = substr(\$0, 4) } /^BRDA:/ { split(\$1, a, \":\"); if (\$4 == \"-\" || \$4 == \"0\") print f \":\" a[2] \" (\" \$2 \".\" \$3 \")\" }'\'' lcov.info 2>/dev/null | grep \"^src/suite\" | grep -v Cre > untaken.txt
@@ -270,7 +273,7 @@ echo \$\$ > launcher.pid
 if [ -f given.jsonl ]; then
   mv given.jsonl all.jsonl
 else
-  $DR --cpus=12 --memory=24g -e FOUNDRY_PROFILE=mutate -v $W/c:/c -v $W/tools:/tools -v $W/m:/m -w /c $TOOLBOX_IMAGE \
+  $DR --cpus=$CPU_CAP --memory=24g -e FOUNDRY_PROFILE=mutate -v $W/c:/c -v $W/tools:/tools -v $W/m:/m -w /c $TOOLBOX_IMAGE \
     sh -c 'export PATH=/tools:\$PATH; /root/.crytic/bin/python /m/mutants.py $NAMES > /m/all.jsonl 2> /m/generator.err' || { tail -20 generator.err; exit 1; }
 fi
 awk -v k=$EVERY 'k == 1 || NR % k == 0 || /"CONTROL"/' all.jsonl > picked.jsonl
@@ -312,7 +315,7 @@ EOF
     V=venv-$(cksum < "$REQ" | cut -d' ' -f1)
     pinned_forge
     $SSH "cat > $W/tools/halmos-requirements.txt" < "$REQ"
-    $SSH "$DR --cpus=12 --memory=24g -v $W/c:/c -v $W/tools:/tools -w /c -e PATH=/tools/$V/bin:/tools:/usr/local/bin:/usr/bin:/bin $PYTHON_IMAGE \
+    $SSH "$DR --cpus=$CPU_CAP --memory=24g -v $W/c:/c -v $W/tools:/tools -w /c -e PATH=/tools/$V/bin:/tools:/usr/local/bin:/usr/bin:/bin $PYTHON_IMAGE \
       sh -c '[ -x /tools/$V/bin/halmos ] || (python -m venv /tools/$V &&
           /tools/$V/bin/pip install -q --disable-pip-version-check --require-hashes --no-deps -r /tools/halmos-requirements.txt)
         rm -rf out cache; halmos --contract $T $EXTRA 2>&1; R=\$?; rm -rf out cache; exit \$R'" < /dev/null
@@ -337,6 +340,6 @@ EOF
     ;;
   *)
     ARGS=$(printf '%q ' "$@")
-    $SSH "$DR --cpus=12 --memory=12g -e FOUNDRY_PROFILE=${FOUNDRY_PROFILE:-default} -v $W/c:/c -w /c --entrypoint forge $FOUNDRY_IMAGE $ARGS" < /dev/null
+    $SSH "$DR --cpus=$CPU_CAP --memory=12g -e FOUNDRY_PROFILE=${FOUNDRY_PROFILE:-default} -v $W/c:/c -w /c --entrypoint forge $FOUNDRY_IMAGE $ARGS" < /dev/null
     ;;
 esac
