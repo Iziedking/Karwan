@@ -7,6 +7,8 @@ export interface RuntimeSafetyInput {
   recoveryKmsKeyId?: string;
   worldIdEnabled?: boolean;
   worldIdEnvironment?: 'staging' | 'production';
+  anthropicRuleId?: string;
+  anthropicOrganizationId?: string;
 }
 
 export const EXAMPLE_SESSION_SECRET = 'dev-secret-change-me-please-32-chars-min';
@@ -34,6 +36,10 @@ export function runtimeSafetyErrors(input: RuntimeSafetyInput): string[] {
   // people scanning with World App were sent to an Orb prompt they could not use.
   if (input.nodeEnv === 'production' && input.worldIdEnabled && input.worldIdEnvironment !== 'production') {
     errors.push('WORLD_ID_ENVIRONMENT must be production when WORLD_ID_ENABLED is on in production; staging only works with the World ID Simulator');
+  }
+  // Half of the pair would quietly fall back to the key (view 89).
+  if (Boolean(input.anthropicRuleId) !== Boolean(input.anthropicOrganizationId)) {
+    errors.push('ANTHROPIC_FEDERATION_RULE_ID and ANTHROPIC_ORGANIZATION_ID must be set together');
   }
   return errors;
 }

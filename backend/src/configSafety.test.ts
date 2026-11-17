@@ -64,3 +64,14 @@ test('mainnet never runs on the demo review clock', () => {
   assert.equal(effectiveReviewWindowMs('testnet', 300_000), 300_000);
   assert.equal(effectiveReviewWindowMs(undefined, 300_000), 300_000);
 });
+
+test('the pass settings for Claude at Anthropic come as a pair, in every environment', () => {
+  const message = 'ANTHROPIC_FEDERATION_RULE_ID and ANTHROPIC_ORGANIZATION_ID must be set together';
+  for (const nodeEnv of ['production', 'development', 'test'] as const) {
+    const base = { nodeEnv, databaseUrl: 'postgresql://db/karwan', sessionSecret: 'a-unique-production-session-secret-with-32-characters' };
+    assert.deepEqual(runtimeSafetyErrors({ ...base, anthropicRuleId: 'fdrl_x' }), [message]);
+    assert.deepEqual(runtimeSafetyErrors({ ...base, anthropicOrganizationId: 'org-1' }), [message]);
+    assert.deepEqual(runtimeSafetyErrors({ ...base, anthropicRuleId: 'fdrl_x', anthropicOrganizationId: 'org-1' }), []);
+    assert.deepEqual(runtimeSafetyErrors(base), []);
+  }
+});

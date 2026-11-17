@@ -608,6 +608,17 @@ const envSchema = z.object({
   // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
   // low-cost model. Assistant is disabled gracefully if the key is absent.
   ANTHROPIC_API_KEY: optionalString,
+  // Claude at Anthropic with no stored key (view 89): the server's AWS role
+  // gets a signed note and trades it for a pass that lasts minutes. Rule and
+  // organization together turn it on, and then ANTHROPIC_API_KEY is not read.
+  // The workspace is needed when the rule covers more than one.
+  ANTHROPIC_FEDERATION_RULE_ID: optionalString,
+  ANTHROPIC_ORGANIZATION_ID: optionalString,
+  ANTHROPIC_WORKSPACE_ID: optionalString,
+  ANTHROPIC_SERVICE_ACCOUNT_ID: optionalString,
+  // Region for the AWS call; it is not offered on the global endpoint.
+  // Defaults to AWS_REGION, then us-east-1.
+  ANTHROPIC_STS_REGION: optionalString,
   // Amazon Bedrock in Karwan's own AWS account. When on, Claude Haiku on
   // Bedrock leads every model chain, assistant and supervisor included: it is
   // first-party infrastructure, not a proxy. Credentials come from the standard
@@ -1063,6 +1074,8 @@ const safetyErrors = runtimeSafetyErrors({
   recoveryKmsKeyId: parsed.data.RECOVERY_KMS_KEY_ID,
   worldIdEnabled: parsed.data.WORLD_ID_ENABLED,
   worldIdEnvironment: parsed.data.WORLD_ID_ENVIRONMENT,
+  anthropicRuleId: parsed.data.ANTHROPIC_FEDERATION_RULE_ID,
+  anthropicOrganizationId: parsed.data.ANTHROPIC_ORGANIZATION_ID,
 });
 if (safetyErrors.length > 0) {
   console.error('Unsafe production configuration:', safetyErrors);
