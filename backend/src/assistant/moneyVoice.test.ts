@@ -22,6 +22,6 @@ test('a USDC reader gets no extra line, and a missing rate falls back to USDC ou
 test('the assistant reads the account currency on every turn', async () => {
   const { readFileSync } = await import('node:fs');
   const agent = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
-  assert.match(agent, /moneyVoice\(profile\?\.settings\?\.displayCurrency, rates\)/);
+  assert.match(agent, /moneyVoice\(reader\.currency, reader\.rates\)/);
   assert.doesNotMatch(agent, /Give the balance in USDC first/);
 });
