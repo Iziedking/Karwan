@@ -1,6 +1,6 @@
 # 90 · Disputes settled reliably
 
-Track T2 (protected deals), roadmap items T2.3 (mainnet escrow) and T2.4 (your case, written for you), building on [view 27](27-deals-on-the-escrow-family.md) (deals on the escrow family), [view 33](33-delivery-proof-for-every-kind-of-deal.md) (delivery proof) and [view 21](21-flagged-delivery-review.md) (held deliveries). Raised by the owner on 18 Nov 2026: "If we can settle dispute reliably, then I guess we opened Pandora's box." Proposed, waiting for the owner's decisions below.
+Track T2 (protected deals), roadmap items T2.3 (mainnet escrow) and T2.4 (your case, written for you), building on [view 27](27-deals-on-the-escrow-family.md) (deals on the escrow family), [view 33](33-delivery-proof-for-every-kind-of-deal.md) (delivery proof) and [view 21](21-flagged-delivery-review.md) (held deliveries). Raised by the owner on 18 Nov 2026: "If we can settle dispute reliably, then I guess we opened Pandora's box." Approved by the owner on 18 Nov 2026 with the decisions below.
 
 ## What is true today
 
@@ -62,7 +62,7 @@ Starts when both sides have answered, or when the 3 days end.
 
 - Either side objects with one tap and one sentence. Each may add one more piece of evidence in the first 48 hours.
 - The panel is the review Safe fixed when the deal opened: two signers must agree, and for a large deal the senior Safe. It rules any share within 5 days and writes its reasons.
-- **A deal Karwan has money in is not judged by Karwan alone.** An outside reviewer is one of the panel's signers, and where Karwan's own financier paid the seller early, theirs must be one of the two signatures. The panel is fixed when a deal opens, before anyone knows who will fund it, so this is a rule Karwan follows and publishes; the contract cannot enforce it today.
+- **A deal Karwan has money in is not judged by Karwan alone.** A reviewer from the reviewers' body, described below, is one of the panel's signers, and where Karwan's own financier paid the seller early, theirs must be one of the two signatures. The panel is fixed when a deal opens, before anyone knows who will fund it, so this is a rule Karwan follows and publishes; the contract cannot enforce it today.
 - The ruling is final on Karwan. The terms say so before any money moves, and say what each side may still do outside Karwan.
 
 ## Who does what
@@ -136,13 +136,25 @@ Karwan publishes, for each month: problems opened, the share settled by agreemen
 
 Each row that touches Arc or the Safes gets its entry in the checks log before any code.
 
-## Decisions for the owner
+## Decisions
 
-1. May an agent accept a small settlement alone, inside a limit its person set? Proposed: yes, off by default.
-2. An outside reviewer for deals Karwan has money in: yes or no, and who?
-3. A cost to open a problem, returned to the winner, in the next contract: yes or no?
-4. When Karwan is late and the fallback applies, does Karwan make the wronged side whole? Proposed: yes, with a monthly cap.
-5. A reviewer confirms every finding in the first version, moving later to only the unclear ones. Proposed: yes.
+The owner decided all five on 18 Nov 2026.
+
+1. **An agent may accept a small settlement alone,** inside a limit its person set. Off by default.
+2. **Outside reviewers: yes, as a body of expert reviewers by field.** People who know the trade under dispute (design, software, textiles, logistics and so on) are admitted as reviewers for that field, and a case is given to reviewers from its field. It runs like a DAO: its members and its rules are public. See below.
+3. **A cost to open a problem, returned to the winner:** yes, in the next contract version.
+4. **When Karwan is late and the fallback applies, Karwan makes the wronged side whole,** up to a monthly cap.
+5. **A person confirms every finding in the first version,** moving later to only the unclear ones.
+
+## The reviewers' body
+
+The owner's direction, to be designed in its own view before anything is built.
+
+- **Who.** Reviewers are admitted per field on proof of experience and a clean record on Karwan. A reviewer never sits on a case where they have traded with either side or have money in the deal.
+- **What they do.** A case that reaches step 3 is given to reviewers from its field. Their ruling is signed on the panel like any other.
+- **Why they are careful.** A reviewer is paid per case and puts up a guarantee. Rulings that are overturned or found careless cost them their place and part of the guarantee.
+- **How it starts.** The first version is small and named: a handful of invited reviewers per field, sitting beside Karwan's own signers, on the cases Karwan has money in first.
+- **Open questions for that view.** How reviewers are admitted and removed; how a case is given out so neither side can pick its judge; what a reviewer may see of each side's private details; how they are paid; whether the body later holds the panel's keys itself. Until the contract can route a case to it, the body's signature is a rule Karwan follows and publishes.
 
 ## What this design draws on
 
@@ -155,4 +167,5 @@ Each row that touches Arc or the Safes gets its entry in the checks log before a
 
 | Step | Status |
 |---|---|
-| This view | Proposed 18 Nov 2026, waiting for the owner's decisions |
+| This view | Approved by the owner, 18 Nov 2026, with the five decisions above |
+| The reviewers' body | To be designed in its own view |
