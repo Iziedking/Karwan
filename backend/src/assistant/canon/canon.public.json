@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-11-17",
+  "canonUpdated": "2026-11-18",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -347,7 +347,7 @@
       "id": "faq-money-safe",
       "title": "What stops the other side taking my money",
       "status": "live",
-      "updated": "2026-07-27",
+      "updated": "2026-11-18",
       "tags": [
         "faq"
       ],
@@ -358,13 +358,13 @@
           "date": "2026-07-27"
         }
       ],
-      "body": "The money sits in an escrow contract, not with Karwan and not with your\ncounterparty. A buyer funds it before work starts, so a supplier can see the\nmoney exists before shipping. A supplier cannot take it early, and a buyer cannot\nwithdraw it once the deal is accepted.\n\nThe final tranche always needs an explicit buyer click. Nothing settles the last\nportion on a timer.\n\nIf the two sides disagree, either can raise a dispute, which freezes the escrow.\nA dispute is resolved by an arbiter that splits the unreleased funds by\nproportion rather than picking a winner, and that arbiter is a 2-of-3 Safe, so no\nsingle person can move a disputed deal."
+      "body": "The money sits in an escrow contract, not with Karwan and not with your\ncounterparty. A buyer funds it before work starts, so a supplier can see the\nmoney exists before shipping. A supplier cannot take it early, and a buyer cannot\nwithdraw it once the deal is accepted.\n\nThe final tranche always needs an explicit buyer click. Nothing settles the last\nportion on a timer.\n\nIf the two sides disagree, either can raise a dispute, which freezes the escrow.\nOn deals made on Karwan's newer escrow, a fixed set of rules first proposes an\noutcome from the deal's record. Either side has 72 hours to ask for a person to\ndecide instead. A case sent to people is ruled by a Safe that needs two of its\nsigners, so no single person rules it; if they do not rule in 5 days, the share\nwritten into the deal's terms applies. On the older escrow every dispute is\nruled by a 2-of-3 Safe."
     },
     {
       "id": "glossary-core",
       "title": "Core terms",
       "status": "live",
-      "updated": "2026-07-27",
+      "updated": "2026-11-18",
       "tags": [
         "glossary"
       ],
@@ -375,7 +375,7 @@
           "date": "2026-07-27"
         }
       ],
-      "body": "**Escrow.** A contract that holds the buyer's money while the work happens. It\nreleases against delivery, in milestones, and nobody can pull funds out of turn.\n\n**Milestone.** One slice of a deal. A deal splits into two to five. The last one\nalways needs the buyer to click.\n\n**Credit passport.** A public page built from a business's settled deals and\nrepayment behaviour. It belongs to the wallet, so it moves with the business\nrather than living on the platform.\n\n**Factoring.** Selling an invoice for less than face to be paid now instead of on\nsettlement. The discount is the cost of the wait.\n\n**Purchase-order financing.** Working capital advanced before delivery, against a\npurchase order whose escrow is already funded.\n\n**Receivable assignment.** Recording, on the escrow, that a financier is paid\nahead of the supplier at settlement. It is what makes financing non-recourse: the\nfinancier is repaid by the contract rather than by chasing the supplier.\n\n**x402.** A payment standard for machine-to-machine calls, used here so an agent\ncan pay a fraction of a cent for a single piece of data.\n\n**USYC.** A tokenised T-bill fund. Idle balance is parked in it so capital earns\nwhile it waits."
+      "body": "**Escrow.** A contract that holds the buyer's money while the work happens. It\nreleases against delivery, in milestones, and nobody can pull funds out of turn.\n\n**Milestone.** One slice of a deal. A deal splits into two to five. The last one\nalways needs the buyer to click.\n\n**Credit passport.** A public page built from a business's settled deals and\nrepayment behaviour. It belongs to the wallet, so it moves with the business\nrather than living on the platform.\n\n**Factoring.** Selling an invoice for less than face to be paid now instead of on\nsettlement. The discount is the cost of the wait.\n\n**Purchase-order financing.** Working capital advanced before delivery, against a\npurchase order whose escrow is already funded.\n\n**Receivable assignment.** Recording, on the escrow, that a financier is paid\nahead of the supplier at settlement. When the deal pays the supplier, the contract\nrepays the financier first, with no chasing. If the deal is refunded or settles\nshort, the financier is paid from the part of the supplier's deal guarantee held\nfor them, at least a tenth of the advance, and anything beyond that is theirs to\nrecover from the supplier.\n\n**x402.** A payment standard for machine-to-machine calls, used here so an agent\ncan pay a fraction of a cent for a single piece of data.\n\n**USYC.** A tokenised T-bill fund. Idle balance is parked in it so capital earns\nwhile it waits."
     },
     {
       "id": "hourly-work",
@@ -645,7 +645,7 @@
       "id": "po-financing",
       "title": "Getting paid early on a business order",
       "status": "shipping",
-      "updated": "2026-10-29",
+      "updated": "2026-11-18",
       "tags": [
         "financing",
         "testnet"
@@ -657,7 +657,7 @@
           "date": "2026-10-29"
         }
       ],
-      "body": "A seller on a business order made on Karwan's newer escrow can be paid before\nthe buyer releases. Purchase-order financing and invoice factoring are the\nsame action, Get paid now, from the moment the order is accepted and paid in:\nbefore delivery, or after it while the buyer reviews or Net terms run.\n\nA financier offers an advance and what they are paid back. When the seller\ntakes the offer, one transaction pays the advance straight to them, assigns\nthe deal's payout to the financier up to the payback, and holds part of the\nseller's deal guarantee, at least a tenth of the advance, until the financier\nis repaid. When the buyer releases, the escrow pays the financier back first\nand the seller the rest. If the deal settles short, the shortfall is paid to\nthe financier from the held guarantee.\n\nA financier whose wallet Karwan holds is charged at the seller's tap. One who\npays from their own wallet has 24 hours to do it; until then nothing is held\nand nothing moves. On Arc Testnet a financier run by Karwan offers on every\norder that asks, alongside invited partners. Orders on the older escrows\nfinish as they are and take no new advances. This is built and not yet on\ntestnet or mainnet."
+      "body": "A seller on a business order made on Karwan's newer escrow can be paid before\nthe buyer releases. Purchase-order financing and invoice factoring are the\nsame action, Get paid now, from the moment the order is accepted and paid in:\nbefore delivery, or after it while the buyer reviews. The order must already be\npaid into escrow in full, so an invoice the buyer has not yet paid, such as one\non Net 30 terms, cannot be financed today.\n\nA financier offers an advance and what they are paid back. When the seller\ntakes the offer, one transaction pays the advance straight to them, assigns\nthe deal's payout to the financier up to the payback, and holds part of the\nseller's deal guarantee, at least a tenth of the advance, until the financier\nis repaid. When the buyer releases, the escrow pays the financier back first\nand the seller the rest. If the deal settles short, the shortfall is paid to\nthe financier from the held guarantee.\n\nA financier whose wallet Karwan holds is charged at the seller's tap. One who\npays from their own wallet has 24 hours to do it; until then nothing is held\nand nothing moves. On Arc Testnet a financier run by Karwan offers on every\norder that asks, alongside invited partners. Orders on the older escrows\nfinish as they are and take no new advances. This is built and not yet on\ntestnet or mainnet."
     },
     {
       "id": "privacy-notice",
@@ -703,7 +703,7 @@
       "id": "proof-network",
       "title": "Network and contracts",
       "status": "live",
-      "updated": "2026-10-16",
+      "updated": "2026-11-18",
       "tags": [
         "proof"
       ],
@@ -722,7 +722,7 @@
           "date": "2026-10-16"
         }
       ],
-      "body": "Karwan runs on Arc Testnet, chain 5042002, where USDC is the gas token.\n\nEvery contract in the live bundle is verified on the explorer. The escrow's\narbiter is a 2-of-3 Safe, so a disputed escrow cannot be resolved by one key.\n\nContract addresses are published and readable by anyone. Treat the explorer as\nthe source of truth on any disagreement with a document: the chain is the record,\nand a page describing it is a copy.\n\nOn Arc mainnet, chain 5042, two Karwan contracts are live and verified on\nSourcify, both owned by a 2-of-3 Safe: KarwanReputation at\n0xa8E41F941b44CA091E3Ab7b600fe1484838aE27D, which records completed deal\noutcomes, and KarwanBusinessRegistry at\n0x69eA60B6EFd13A126Eb00d25aB0f21A4AfC636eF, which records that a business's\ndocuments were checked, storing only a document hash. Neither holds customer\nmoney. Mainnet escrow is not enabled until the contracts and backend pass an\nexternal audit."
+      "body": "Karwan runs on Arc Testnet, chain 5042002, where USDC is the gas token.\n\nEvery contract in the live bundle is verified on the explorer. On the older\nescrow the arbiter is a 2-of-3 Safe, so a disputed escrow cannot be resolved by\none key. On the newer escrow one key may propose an outcome from a fixed set of\nrules, which takes effect only if neither side objects within 72 hours; a case\neither side objects to is ruled by a Safe that needs two of its signers.\n\nContract addresses are published and readable by anyone. Treat the explorer as\nthe source of truth on any disagreement with a document: the chain is the record,\nand a page describing it is a copy.\n\nOn Arc mainnet, chain 5042, two Karwan contracts are live and verified on\nSourcify, both owned by a 2-of-3 Safe: KarwanReputation at\n0xa8E41F941b44CA091E3Ab7b600fe1484838aE27D, which records completed deal\noutcomes, and KarwanBusinessRegistry at\n0x69eA60B6EFd13A126Eb00d25aB0f21A4AfC636eF, which records that a business's\ndocuments were checked, storing only a document hash. Neither holds customer\nmoney. Mainnet escrow is not enabled until the contracts and backend pass an\nexternal audit."
     },
     {
       "id": "ratings-after-deals",
@@ -1520,7 +1520,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-07-27",
+      "updated": "2026-11-18",
       "path": "public/faq/is-my-money-safe.md"
     },
     {
@@ -1542,7 +1542,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-07-27",
+      "updated": "2026-11-18",
       "path": "public/glossary/terms.md"
     },
     {
@@ -1906,7 +1906,7 @@
         "financing",
         "testnet"
       ],
-      "summary": "A seller on a business order made on Karwan's newer escrow can be paid before the buyer releases. Purchase-order financing and invoice factoring are the same action, Get paid now, from the moment the order is accepted and paid in: before delivery, or after it while the buyer reviews or Net terms run.",
+      "summary": "A seller on a business order made on Karwan's newer escrow can be paid before the buyer releases. Purchase-order financing and invoice factoring are the same action, Get paid now, from the moment the order is accepted and paid in: before delivery, or after it while the buyer reviews. The order must already be paid into escrow in full, so an invoice the buyer has not yet paid, such as one on Net 30 terms, cannot be financed today.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/18-trade-finance.md",
@@ -1914,7 +1914,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-29",
+      "updated": "2026-11-18",
       "path": "public/product/po-financing.md"
     },
     {
@@ -2002,7 +2002,7 @@
         "note": "Reads the deployed escrow, so a stale address cannot pass.",
         "lastVerified": ""
       },
-      "updated": "2026-10-16",
+      "updated": "2026-11-18",
       "path": "public/proof/network.md"
     },
     {
