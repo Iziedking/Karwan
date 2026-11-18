@@ -35,13 +35,9 @@ Fixed on 12 November 2026: `toml` 3.0.0 to 5.0.1, through `overrides` in the roo
 - **Fixed in.** `@walletconnect/utils` 2.26.0 no longer uses `query-string`. It reaches us with the wagmi 3 and Reown upgrade, a separate stage after mainnet signs. The fixed `decode-uri-component` releases are ES modules only and cannot be forced under `query-string` 7.
 - **Owner.** Founder. **Review by** 8 December 2026.
 
-### picomatch (GHSA-fc5q-39xc-vjpf)
+### picomatch (GHSA-fc5q-39xc-vjpf), closed
 
-- **How it gets in.** wagmi 2, `@walletconnect/ethereum-provider`, `@walletconnect/keyvaluestorage`, `unstorage` 1.17.5, `anymatch` 3.1.3, `picomatch` 2.3.2, in the browser.
-- **Reach.** None found. Inside `unstorage`, only the filesystem driver (`drivers/fs.mjs`) calls `anymatch`. WalletConnect builds its own IndexedDB driver and never loads that one, so `picomatch` does not run in our app. The advisory needs an attacker to choose the glob pattern.
-- **What stops it.** No pattern in our code or in the wallet storage comes from user input.
-- **Fixed in.** Nothing yet. The advisory (published 19 October 2026) covers every release up to 4.0.7, the newest on npm on 18 November 2026. Move as soon as a fixed release ships.
-- **Owner.** Founder. **Review by** 18 December 2026.
+GitHub withdrew this advisory on 18 November 2026, so `npm audit` no longer reports it and it is off the accepted list. `picomatch` 2.3.2 is unchanged in the lockfile.
 
 ## Not taken in this review
 

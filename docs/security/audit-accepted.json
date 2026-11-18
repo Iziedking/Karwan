@@ -2,7 +2,6 @@
   "reviewed": "2026-11-18",
   "accepted": [
     { "id": "GHSA-mrhx-c7xc-m3w5", "package": "zod", "expires": "2026-12-08" },
-    { "id": "GHSA-qr28-fpjm-wq7f", "package": "decode-uri-component", "expires": "2026-12-08" },
-    { "id": "GHSA-fc5q-39xc-vjpf", "package": "picomatch", "expires": "2026-12-18" }
+    { "id": "GHSA-qr28-fpjm-wq7f", "package": "decode-uri-component", "expires": "2026-12-08" }
   ]
 }
