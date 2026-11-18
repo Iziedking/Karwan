@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { API, RATES, funded, serveMoney } from './moneyFixtures';
+import { API, ME, RATES, funded, serveMoney } from './moneyFixtures';
 
 /// Ways to deal in Updates (view 39, 18 Nov): a real photo with the deal drawn
 /// over it, its amounts in the currency chosen in Settings.
@@ -11,7 +11,9 @@ const DIRECT = {
 };
 
 async function openHome(page: Page, settings: Record<string, unknown>) {
-  await serveMoney(page, { balances: funded, rates: RATES, settings: { setupDoneAt: Date.now() - 86_400_000 * 3, ...settings } });
+  await serveMoney(page, { balances: funded, rates: RATES, settings });
+  await page.route(`${API}/api/profile**`, (route) =>
+    route.fulfill({ json: { profile: { address: ME, displayName: 'Bola Ade', handle: 'bola', settings: { setupDoneAt: 1 } } } }));
   await page.route(`${API}/api/updates`, (route) => route.fulfill({ json: { cards: [DIRECT], trending: [] } }));
   await page.goto('/app');
   const card = page.locator('a.update-card', { hasText: DIRECT.title });
