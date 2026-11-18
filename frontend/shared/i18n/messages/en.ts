@@ -2596,7 +2596,6 @@ interface MessagesShape {
       categoryEyebrow: string;
       titleEyebrow: string;
       messageEyebrow: string;
-      screenshotsEyebrowTemplate: string;
       whereEyebrow: string;
       contactEyebrow: string;
     };
@@ -2607,10 +2606,8 @@ interface MessagesShape {
       contact: string;
     };
     dropZone: {
-      bodyBefore: string;
-      chooseFiles: string;
-      bodyAfter: string;
-      formatLine: string;
+      attach: string;
+      countTemplate: string;
       removeAria: string;
     };
     errors: {
@@ -8151,19 +8148,18 @@ export const en: MessagesShape = {
     hero: {
       tag: 'Feedback',
       headline: 'Tell us what you hit',
-      body: "Report a problem, suggest an improvement, or ask a question. Include what you were doing and a screenshot if it helps. Your report goes directly to the Karwan team.",
+      body: "A problem, an idea or a question. It goes straight to the people who build Karwan.",
     },
     categories: {
       bug: { label: 'Bug', blurb: 'Something broke or behaved wrong' },
-      improvement: { label: 'Improvement', blurb: 'An idea to make it better' },
-      other: { label: 'Other', blurb: 'A question or general note' },
+      improvement: { label: "Idea", blurb: 'An idea to make it better' },
+      other: { label: "Question", blurb: 'A question or general note' },
       praise: { label: 'Praise', blurb: 'Something you liked' },
     },
     fields: {
-      categoryEyebrow: 'What kind of feedback',
+      categoryEyebrow: "What is it about",
       titleEyebrow: 'Title',
       messageEyebrow: 'What happened',
-      screenshotsEyebrowTemplate: 'SCREENSHOTS ({n}/{max})',
       whereEyebrow: 'Where (optional)',
       contactEyebrow: 'Contact (optional)',
     },
@@ -8174,10 +8170,8 @@ export const en: MessagesShape = {
       contact: 'Email or @handle to follow up',
     },
     dropZone: {
-      bodyBefore: 'Paste, drop, or ',
-      chooseFiles: 'choose files',
-      bodyAfter: '.',
-      formatLine: 'PNG or JPG, up to {n}',
+      attach: "Add screenshot",
+      countTemplate: "Paste or drop · {n} of {max}",
       removeAria: 'Remove screenshot',
     },
     errors: {
@@ -8190,7 +8184,7 @@ export const en: MessagesShape = {
     submit: {
       sending: 'Sending…',
       cta: 'Send feedback',
-      noAccountNeeded: 'No account needed.',
+      noAccountNeeded: "No account needed. A person reads every one.",
       sendingAsTemplate: 'Sending as {address}',
     },
     success: {

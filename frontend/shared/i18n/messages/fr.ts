@@ -2818,19 +2818,18 @@ export const fr: Messages = {
     hero: {
       tag: 'Retours',
       headline: 'Dites-nous ce que vous avez rencontré',
-      body: "Signalez un problème, proposez une amélioration ou posez une question. Précisez ce que vous faisiez et joignez une capture d’écran si elle est utile. Votre message est envoyé directement à l’équipe Karwan.",
+      body: "Un problème, une idée ou une question. Votre message va directement aux personnes qui construisent Karwan.",
     },
     categories: {
       bug: { label: 'Bug', blurb: "Quelque chose s'est cassé ou a mal réagi" },
-      improvement: { label: 'Amélioration', blurb: 'Une idée pour faire mieux' },
-      other: { label: 'Autre', blurb: 'Une question ou une note générale' },
+      improvement: { label: "Idée", blurb: 'Une idée pour faire mieux' },
+      other: { label: "Question", blurb: 'Une question ou une note générale' },
       praise: { label: 'Compliment', blurb: 'Quelque chose que vous avez aimé' },
     },
     fields: {
-      categoryEyebrow: 'Type de retour',
+      categoryEyebrow: "De quoi s’agit-il",
       titleEyebrow: 'Titre',
       messageEyebrow: 'Ce qui s\'est passé',
-      screenshotsEyebrowTemplate: 'CAPTURES ({n}/{max})',
       whereEyebrow: 'Où (optionnel)',
       contactEyebrow: 'Contact (optionnel)',
     },
@@ -2841,10 +2840,8 @@ export const fr: Messages = {
       contact: 'Email ou @handle pour le suivi',
     },
     dropZone: {
-      bodyBefore: 'Collez, déposez, ou ',
-      chooseFiles: 'choisissez des fichiers',
-      bodyAfter: '.',
-      formatLine: 'PNG ou JPG, jusqu\'à {n}',
+      attach: "Ajouter une capture",
+      countTemplate: "Collez ou déposez · {n} sur {max}",
       removeAria: 'Retirer la capture',
     },
     errors: {
@@ -2857,7 +2854,7 @@ export const fr: Messages = {
     submit: {
       sending: 'Envoi…',
       cta: 'Envoyer',
-      noAccountNeeded: 'Aucun compte requis.',
+      noAccountNeeded: "Aucun compte requis. Une personne lit chaque message.",
       sendingAsTemplate: 'Envoi en tant que {address}',
     },
     success: {

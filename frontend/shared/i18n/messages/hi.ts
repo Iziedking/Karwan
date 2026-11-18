@@ -2816,19 +2816,18 @@ export const hi: Messages = {
     hero: {
       tag: 'फीडबैक',
       headline: 'बताएँ क्या मिला',
-      body: "समस्या बताएँ, सुधार सुझाएँ या प्रश्न पूछें। बताएँ कि आप क्या कर रहे थे और उपयोगी हो तो स्क्रीनशॉट जोड़ें। आपकी रिपोर्ट सीधे Karwan टीम तक पहुँचती है।",
+      body: "कोई समस्या, विचार या सवाल। यह सीधे Karwan बनाने वालों तक पहुँचता है।",
     },
     categories: {
       bug: { label: 'बग', blurb: 'कुछ टूटा या गलत व्यवहार किया' },
-      improvement: { label: 'सुधार', blurb: 'इसे बेहतर बनाने का विचार' },
-      other: { label: 'अन्य', blurb: 'सवाल या सामान्य नोट' },
+      improvement: { label: "विचार", blurb: 'इसे बेहतर बनाने का विचार' },
+      other: { label: "सवाल", blurb: 'सवाल या सामान्य नोट' },
       praise: { label: 'प्रशंसा', blurb: 'जो आपको पसंद आया' },
     },
     fields: {
-      categoryEyebrow: 'किस तरह की फीडबैक',
+      categoryEyebrow: "यह किस बारे में है",
       titleEyebrow: 'शीर्षक',
       messageEyebrow: 'क्या हुआ',
-      screenshotsEyebrowTemplate: 'स्क्रीनशॉट ({n}/{max})',
       whereEyebrow: 'कहाँ (वैकल्पिक)',
       contactEyebrow: 'संपर्क (वैकल्पिक)',
     },
@@ -2839,10 +2838,8 @@ export const hi: Messages = {
       contact: 'ईमेल या @handle फॉलो-अप के लिए',
     },
     dropZone: {
-      bodyBefore: 'पेस्ट करें, ड्रॉप करें, या ',
-      chooseFiles: 'फ़ाइलें चुनें',
-      bodyAfter: '।',
-      formatLine: 'PNG या JPG, {n} तक',
+      attach: "स्क्रीनशॉट जोड़ें",
+      countTemplate: "पेस्ट या ड्रॉप करें · {max} में से {n}",
       removeAria: 'स्क्रीनशॉट हटाएँ',
     },
     errors: {
@@ -2855,7 +2852,7 @@ export const hi: Messages = {
     submit: {
       sending: 'भेज रहा है…',
       cta: 'फीडबैक भेजें',
-      noAccountNeeded: 'खाते की आवश्यकता नहीं।',
+      noAccountNeeded: "खाते की ज़रूरत नहीं। हर संदेश एक व्यक्ति पढ़ता है।",
       sendingAsTemplate: '{address} के रूप में भेज रहा है',
     },
     success: {

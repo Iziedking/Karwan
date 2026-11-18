@@ -2815,19 +2815,18 @@ export const sw: Messages = {
     hero: {
       tag: 'Maoni',
       headline: 'Tueleze ulichokutana nacho',
-      body: "Ripoti tatizo, pendekeza maboresho au uliza swali. Eleza ulichokuwa ukifanya na ongeza picha ya skrini ikiwa itasaidia. Ripoti yako inafika moja kwa moja kwa timu ya Karwan.",
+      body: "Tatizo, wazo au swali. Linafika moja kwa moja kwa wanaojenga Karwan.",
     },
     categories: {
       bug: { label: 'Hitilafu', blurb: 'Kitu kimevunjika au kimefanya kazi vibaya' },
-      improvement: { label: 'Uboreshaji', blurb: 'Wazo la kufanya iwe bora' },
-      other: { label: 'Nyingine', blurb: 'Swali au maelezo ya jumla' },
+      improvement: { label: "Wazo", blurb: 'Wazo la kufanya iwe bora' },
+      other: { label: "Swali", blurb: 'Swali au maelezo ya jumla' },
       praise: { label: 'Sifa', blurb: 'Kitu ulichopenda' },
     },
     fields: {
-      categoryEyebrow: 'Aina ya maoni',
+      categoryEyebrow: "Inahusu nini",
       titleEyebrow: 'Kichwa',
       messageEyebrow: 'Nini kilichotokea',
-      screenshotsEyebrowTemplate: 'PICHA ({n}/{max})',
       whereEyebrow: 'Wapi (si lazima)',
       contactEyebrow: 'Mawasiliano (si lazima)',
     },
@@ -2838,10 +2837,8 @@ export const sw: Messages = {
       contact: 'Barua pepe au @handle kwa kufuatilia',
     },
     dropZone: {
-      bodyBefore: 'Bandika, dondosha, au ',
-      chooseFiles: 'chagua faili',
-      bodyAfter: '.',
-      formatLine: 'PNG au JPG, hadi {n}',
+      attach: "Ongeza picha ya skrini",
+      countTemplate: "Bandika au dondosha · {n} kati ya {max}",
       removeAria: 'Ondoa picha',
     },
     errors: {
@@ -2854,7 +2851,7 @@ export const sw: Messages = {
     submit: {
       sending: 'Inatuma…',
       cta: 'Tuma maoni',
-      noAccountNeeded: 'Hakuna akaunti inayohitajika.',
+      noAccountNeeded: "Hakuna akaunti inayohitajika. Mtu husoma kila ujumbe.",
       sendingAsTemplate: 'Inatuma kama {address}',
     },
     success: {

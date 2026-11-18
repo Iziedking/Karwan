@@ -2818,19 +2818,18 @@ export const ar: Messages = {
     hero: {
       tag: 'ملاحظات',
       headline: 'أخبرنا بما واجهته',
-      body: "أبلغ عن مشكلة أو اقترح تحسيناً أو اطرح سؤالاً. وضّح ما كنت تفعله وأرفق لقطة شاشة إن كانت مفيدة. يصل بلاغك مباشرة إلى فريق Karwan.",
+      body: "مشكلة أو فكرة أو سؤال. يصل مباشرة إلى من يبنون Karwan.",
     },
     categories: {
       bug: { label: 'عطل', blurb: 'شيء تعطّل أو تصرّف بشكل خاطئ' },
-      improvement: { label: 'تحسين', blurb: 'فكرة لجعله أفضل' },
-      other: { label: 'أخرى', blurb: 'سؤال أو ملاحظة عامة' },
+      improvement: { label: "فكرة", blurb: 'فكرة لجعله أفضل' },
+      other: { label: "سؤال", blurb: 'سؤال أو ملاحظة عامة' },
       praise: { label: 'إشادة', blurb: 'شيء أعجبك' },
     },
     fields: {
-      categoryEyebrow: 'نوع الملاحظة',
+      categoryEyebrow: "عمّ يتعلق الأمر",
       titleEyebrow: 'العنوان',
       messageEyebrow: 'ماذا حدث',
-      screenshotsEyebrowTemplate: 'لقطات الشاشة ({n}/{max})',
       whereEyebrow: 'أين (اختياري)',
       contactEyebrow: 'التواصل (اختياري)',
     },
@@ -2841,10 +2840,8 @@ export const ar: Messages = {
       contact: 'بريد إلكتروني أو @handle للمتابعة',
     },
     dropZone: {
-      bodyBefore: 'الصق، أسقط، أو ',
-      chooseFiles: 'اختر ملفات',
-      bodyAfter: '.',
-      formatLine: 'PNG أو JPG، حتى {n}',
+      attach: "أضف لقطة شاشة",
+      countTemplate: "الصق أو أسقط · {n} من {max}",
       removeAria: 'إزالة لقطة الشاشة',
     },
     errors: {
@@ -2857,7 +2854,7 @@ export const ar: Messages = {
     submit: {
       sending: 'جاري الإرسال…',
       cta: 'إرسال الملاحظة',
-      noAccountNeeded: 'لا حاجة لحساب.',
+      noAccountNeeded: "لا حاجة لحساب. يقرأ شخص كل رسالة.",
       sendingAsTemplate: 'يُرسَل باسم {address}',
     },
     success: {
