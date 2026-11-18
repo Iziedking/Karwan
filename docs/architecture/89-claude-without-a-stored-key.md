@@ -76,7 +76,8 @@ Read on 17 Nov 2026:
 
 ## Not done
 
-- The settings are not on testnet or mainnet yet, so both still use the key.
+- Testnet runs on the pass since 18 Nov 2026. The probe on the server: pass in 495 ms, then Claude at Anthropic answered plain and with the right tool. Claude on Bedrock is still refused for the account, DeepSeek answered plain but replied with a question instead of the tool call, and OpenRouter has no credit.
+- Mainnet still uses the key.
 - The key is removed only after a week on the pass with no key use.
 
 ## Not in this view
