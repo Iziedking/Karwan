@@ -345,7 +345,7 @@ export function AmanGuide() {
         watched = line;
       }
       const talking = speaking || helloing || offering || !!pointEl.current;
-      const lineSize = talking && line ? { width: Math.max(line.scrollWidth, 280), height: line.offsetHeight } : speaking || offering || pointEl.current ? { width: 300, height: 96 } : helloing ? { width: 240, height: 56 } : null;
+      const lineSize = talking && line ? { width: Math.max(line.scrollWidth, 280), height: line.scrollHeight } : speaking || offering || pointEl.current ? { width: 300, height: 96 } : helloing ? { width: 240, height: 56 } : null;
       const next = placeAman({ viewport: { width: window.innerWidth, height: window.innerHeight }, anchor, bottomBar: bottomBarHeight(), rtl, lineSize });
       // Held still while typing, scrolling fast or reading a dialog; placed again after.
       setPlace((prev) => (prev && hold && Boolean(prev.line) === Boolean(next.line) ? prev : next));
@@ -452,7 +452,7 @@ export function AmanGuide() {
             animate={{ opacity: 1, x: 0, left: place.line.x, top: place.line.y }}
             exit={{ opacity: 0, x: from.x }}
             transition={{ opacity: { duration: reduce ? dur.micro : ENTER_S, ease: ease.out }, x: { duration: ENTER_S, ease: ease.out }, left: transition, top: transition }}
-            style={{ maxWidth: place.line.maxWidth }}
+            style={{ maxWidth: place.line.maxWidth, maxHeight: place.line.maxHeight, overflowY: 'auto' }}
             className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 py-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)]"
           >
             <p className="guide-voice text-[13px] font-bold leading-none opacity-70">{copy.label}</p>
@@ -471,7 +471,7 @@ export function AmanGuide() {
             animate={{ opacity: 1, x: 0, left: place.line.x, top: place.line.y }}
             exit={{ opacity: 0, x: from.x }}
             transition={{ opacity: { duration: reduce ? dur.micro : ENTER_S, ease: ease.out }, x: { duration: ENTER_S, ease: ease.out }, left: transition, top: transition }}
-            style={{ maxWidth: place.line.maxWidth }}
+            style={{ maxWidth: place.line.maxWidth, maxHeight: place.line.maxHeight, overflowY: 'auto' }}
             className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)] data-[aside]:invisible"
           >
             <p className="guide-voice text-[13px] font-bold leading-none opacity-70">{copy.label}</p>
@@ -504,7 +504,7 @@ export function AmanGuide() {
             animate={{ opacity: 1, x: 0, left: place.line.x, top: place.line.y }}
             exit={{ opacity: 0, x: from.x }}
             transition={{ opacity: { duration: reduce ? dur.micro : ENTER_S, ease: ease.out }, x: { duration: ENTER_S, ease: ease.out } }}
-            style={{ maxWidth: place.line.maxWidth }}
+            style={{ maxWidth: place.line.maxWidth, maxHeight: place.line.maxHeight, overflowY: 'auto' }}
             className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)]"
           >
             <p className="guide-voice text-[13px] font-bold leading-none opacity-70">{copy.label}</p>
@@ -526,7 +526,7 @@ export function AmanGuide() {
             animate={{ opacity: 1, x: 0, left: place.line.x, top: place.line.y }}
             exit={{ opacity: 0, x: from.x }}
             transition={{ opacity: { duration: reduce ? dur.micro : ENTER_S, ease: ease.out }, x: { duration: ENTER_S, ease: ease.out } }}
-            style={{ maxWidth: place.line.maxWidth }}
+            style={{ maxWidth: place.line.maxWidth, maxHeight: place.line.maxHeight, overflowY: 'auto' }}
             className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 py-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)]"
           >
             <p className="guide-voice text-[16px] font-semibold leading-[1.3]">{helloLine}</p>

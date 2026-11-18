@@ -31,6 +31,23 @@ test('treats an off-screen anchor as none', () => {
   assert.deepEqual(p, docked);
 });
 
+test('a tall line on a short screen ends above the floor and scrolls inside', () => {
+  const short = { width: 1280, height: 260 };
+  const p = placeAman({ viewport: short, anchor: { left: 100, top: 20, width: 600, height: 60 }, bottomBar: 0, rtl: false, lineSize: { width: 420, height: 230 } });
+  assert.ok(p.line);
+  const floor = 260 - 24;
+  assert.ok(p.line.y >= 24);
+  assert.equal(p.line.maxHeight, floor - 24);
+  assert.ok(p.line.y + p.line.maxHeight <= floor);
+});
+
+test('a line that fits keeps its whole height and its bottom on the face bottom', () => {
+  const p = placeAman({ viewport: phone, anchor: null, bottomBar: 80, rtl: false, lineSize: { width: 240, height: 180 } });
+  assert.ok(p.line);
+  assert.equal(p.line.y + 180, p.face.y + FACE);
+  assert.ok(p.line.maxHeight >= 180);
+});
+
 test('mirrors in RTL', () => {
   const p = placeAman({ viewport: phone, anchor: null, bottomBar: 80, rtl: true, lineSize: line });
   assert.equal(p.face.x, 16);

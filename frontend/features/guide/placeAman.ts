@@ -14,7 +14,7 @@ export interface PlaceInput {
 
 export interface Placement {
   face: { x: number; y: number };
-  line: { x: number; y: number; maxWidth: number } | null;
+  line: { x: number; y: number; maxWidth: number; maxHeight: number } | null;
 }
 
 export const FACE = 56;
@@ -49,6 +49,10 @@ export function placeAman({ viewport, anchor, bottomBar, rtl, lineSize }: PlaceI
 
   const maxWidth = Math.max(0, Math.min(lineMax(width), lineSize.width));
   const lineX = rtl ? x + FACE + GAP : x - GAP - maxWidth;
-  const lineY = clamp(y + FACE - Math.max(lineSize.height, FACE), edge, y);
-  return { face: { x, y }, line: { x: lineX, y: lineY, maxWidth } };
+  // The line never runs past the floor: on a short screen it takes the room
+  // there is and scrolls inside, so its button is never cut off.
+  const maxHeight = Math.max(FACE, floor - edge);
+  const shown = Math.min(Math.max(lineSize.height, FACE), maxHeight);
+  const lineY = clamp(y + FACE - shown, edge, floor - shown);
+  return { face: { x, y }, line: { x: lineX, y: lineY, maxWidth, maxHeight } };
 }
