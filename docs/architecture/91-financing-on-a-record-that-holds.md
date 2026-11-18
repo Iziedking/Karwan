@@ -1,6 +1,6 @@
 # 91 · Financing on a record that holds
 
-Tracks T4 (trade finance) and T3 (reputation), building on [view 18](18-trade-finance.md) (trade finance), [view 08](08-reputation.md) (reputation), [view 13](13-portable-reputation.md) (portable reputation) and [view 90](90-disputes-settled-reliably.md) (disputes). Raised by the owner on 18 Nov 2026: what protects financiers from bad actors, who qualifies and for how much, and a person's identity, reputation and trade history surviving a compromised wallet. Proposed, waiting for the owner's decisions below.
+Tracks T4 (trade finance) and T3 (reputation), building on [view 18](18-trade-finance.md) (trade finance), [view 08](08-reputation.md) (reputation), [view 13](13-portable-reputation.md) (portable reputation) and [view 90](90-disputes-settled-reliably.md) (disputes). Raised by the owner on 18 Nov 2026: what protects financiers from bad actors, who qualifies and for how much, and a person's identity, reputation and trade history surviving a compromised wallet. Approved by the owner on 18 Nov 2026 with the decisions below.
 
 The three parts belong together. An advance is only as safe as the record it was given on, and a record is only worth something if it belongs to a real person who cannot lose it or have it stolen.
 
@@ -187,13 +187,22 @@ A person's email is never written on chain. A keyed fingerprint of it is recorde
 
 Each row that touches Arc or Circle gets its entry in the checks log before any code.
 
-## Decisions for the owner
+## Decisions
 
-1. Rule 1, the buyer covering an advance before delivery by consent: yes or no? Proposed: yes. It is the rule that closes the largest loophole, and no buyer is bound without agreeing.
-2. Advances before delivery for a seller with no history: not offered, or offered when covered in full? Proposed: offered when covered in full.
-3. Advances on terms: in the first mainnet version, or after? Proposed: after.
-4. Karwan as a guardian of identities, limited as written: yes or no? Proposed: yes.
-5. Who verifies people and businesses on mainnet? Proposed: a registered-business check per country, starting with Nigeria, and a verified-person check for individuals; the providers to be chosen in their own check.
+The owner decided all five on 18 Nov 2026.
+
+1. **A buyer may cover an advance before delivery, by consent.** If the seller fails to deliver, the financier is repaid from the refund before the buyer is. No buyer is bound without agreeing.
+2. **A seller with no history** is offered an advance before delivery only when it is covered in full.
+3. **Advances on terms** come after the first mainnet version.
+4. **Karwan is a guardian of identities,** limited as written: the identity only, on the person's own proofs, after the wait, in public.
+5. **Verification on mainnet:** a registered-business check per country, starting with Nigeria, and a verified-person check for individuals. The providers are chosen in their own check.
+
+## Build order
+
+1. Without a new contract: the financing limit per seller, the hold that follows the risk, the different-people check, Karwan's financier limited to covered advances, and the financier's screen.
+2. Mainnet reputation values and the smallest deal that counts, set from testnet data.
+3. The next contract version, with view 90's contract items: the buyer's consent, the limit on chain, the identity freeze, the wait on control changes, guardians, and payouts that follow the identity.
+4. Advances on terms, in their own view.
 
 ## What this design draws on
 
@@ -206,4 +215,4 @@ Each row that touches Arc or Circle gets its entry in the checks log before any 
 
 | Step | Status |
 |---|---|
-| This view | Proposed 18 Nov 2026, waiting for the owner's decisions |
+| This view | Approved by the owner, 18 Nov 2026, with the five decisions above |
