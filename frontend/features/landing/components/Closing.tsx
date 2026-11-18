@@ -6,6 +6,7 @@ import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TEAM_EMAIL, landingCopy } from '@/shared/i18n/messages/landing';
 import { landingEntryRoutes } from '@/features/home/landingEntry';
+import { Orbit } from './Orbit';
 import s from '../landing.module.css';
 
 /// The Telegram link shows only once the bot's public handle is set.
@@ -38,6 +39,7 @@ export function Closing() {
           </a>
         )}
       </div>
+      <Orbit t={t} />
       <dl className={s.facts}>
         {facts.map(([label, value, href]) => (
           <div key={label}>

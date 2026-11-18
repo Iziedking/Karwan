@@ -123,6 +123,13 @@ export interface LandingCopy {
     networkLabel: string;
     network: string;
     emailLabel: string;
+    /** The orbit of partners and channels above the facts. */
+    orbitLabel: string;
+    orbitTitle: string;
+    /** {name} is the channel, such as X or Telegram. */
+    onChannel: string;
+    /** {name} is a channel the agent is not on yet. */
+    comingSoon: string;
   };
 }
 
@@ -283,6 +290,10 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       networkLabel: 'Network',
       network: 'On Arc testnet today',
       emailLabel: 'Email the team',
+      orbitLabel: 'Our partners and channels',
+      orbitTitle: 'Trade with us wherever you already chat.',
+      onChannel: 'Karwan on {name}',
+      comingSoon: '{name}, coming soon',
     },
   },
   fr: {
@@ -438,6 +449,10 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       networkLabel: 'Réseau',
       network: 'Sur le testnet Arc aujourd’hui',
       emailLabel: 'Écrire à l’équipe',
+      orbitLabel: 'Nos partenaires et nos canaux',
+      orbitTitle: 'Commercez avec nous là où vous discutez déjà.',
+      onChannel: 'Karwan sur {name}',
+      comingSoon: '{name}, bientôt',
     },
   },
   ar: {
@@ -593,6 +608,10 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       networkLabel: 'الشبكة',
       network: 'على شبكة Arc التجريبية اليوم',
       emailLabel: 'راسل الفريق',
+      orbitLabel: 'شركاؤنا وقنواتنا',
+      orbitTitle: 'تاجر معنا حيث تتحدث بالفعل.',
+      onChannel: 'Karwan على {name}',
+      comingSoon: '{name}، قريبا',
     },
   },
   hi: {
@@ -748,6 +767,10 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       networkLabel: 'नेटवर्क',
       network: 'आज Arc टेस्टनेट पर',
       emailLabel: 'टीम को ईमेल करें',
+      orbitLabel: 'हमारे साझेदार और चैनल',
+      orbitTitle: 'जहाँ आप पहले से बात करते हैं, वहीं हमारे साथ व्यापार करें।',
+      onChannel: '{name} पर Karwan',
+      comingSoon: '{name}, जल्द आ रहा है',
     },
   },
   sw: {
@@ -903,6 +926,10 @@ export const landingCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', LandingCopy> 
       networkLabel: 'Mtandao',
       network: 'Kwenye testnet ya Arc leo',
       emailLabel: 'Tuma barua pepe kwa timu',
+      orbitLabel: 'Washirika na njia zetu',
+      orbitTitle: 'Fanya biashara nasi popote unapozungumza tayari.',
+      onChannel: 'Karwan kwenye {name}',
+      comingSoon: '{name}, inakuja hivi karibuni',
     },
   },
 };

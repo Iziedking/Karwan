@@ -70,6 +70,31 @@ test('Talk to our team writes to the team, and the main action names the right p
   await expect(closing.getByRole('link', { name: 'admin@karwan.site' })).toHaveAttribute('href', 'mailto:admin@karwan.site');
 });
 
+test('the orbit links each partner and channel once, and a channel not open yet has no link', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await open(page);
+  const closing = page.locator('section[aria-labelledby="landing-closing"]');
+  await closing.getByText(t.closing.orbitTitle).scrollIntoViewIfNeeded();
+  await expect(closing.getByText(t.closing.orbitLabel)).toBeVisible();
+  for (const [name, href] of [
+    ['Arc', 'https://www.arc.network'],
+    ['Circle', 'https://www.circle.com'],
+    ['Ignyte by DIFC', 'https://www.ignyte.ae/'],
+    ['Paytag', 'https://www.usepaytag.xyz/'],
+    [t.closing.onChannel.replace('{name}', 'X'), 'https://x.com/karwanBuild'],
+    [t.closing.onChannel.replace('{name}', 'LinkedIn'), 'https://www.linkedin.com/company/karwanbuild'],
+  ] as const) {
+    const link = closing.getByRole('link', { name, exact: true });
+    await expect(link, name).toHaveCount(1);
+    await expect(link, name).toHaveAttribute('href', href);
+    await expect(link, name).toHaveAttribute('rel', /noopener/);
+  }
+  for (const channel of ['WhatsApp', 'TikTok']) {
+    await expect(closing.getByRole('link', { name: new RegExp(channel) })).toHaveCount(0);
+    await expect(closing.getByRole('img', { name: t.closing.comingSoon.replace('{name}', channel) })).toHaveCount(1);
+  }
+});
+
 test('clips play only on screen, and reduced motion plays none', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.setViewportSize({ width: 1440, height: 900 });
