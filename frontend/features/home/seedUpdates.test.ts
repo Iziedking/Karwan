@@ -37,6 +37,6 @@ test('the ways-to-deal cards read in every language, with English the same as th
 
 /// tag, title, body and button from a DEALS line of the server's store.
 function englishFrom(line: string) {
-  const [, tag, title, body, ctaLabel] = [...line.matchAll(/'((?:[^'\]|\.)*)'/g)].map((m) => m[1]!);
+  const [, tag, title, body, ctaLabel] = [...line.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]!);
   return { tag, title, body, ctaLabel };
 }
