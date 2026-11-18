@@ -22,6 +22,9 @@ const KINDS: Array<{ value: UpdateKind; label: string }> = [
   { value: 'trending', label: 'Trending on Karwan (live)' },
 ];
 
+/// A ways-to-deal card is seeded with its scene; it can be edited, not created here.
+const DEAL_KIND: { value: UpdateKind; label: string } = { value: 'deal', label: 'Way to deal (drawn by the app)' };
+
 const EMPTY: UpdateInput = { kind: 'post', tag: '', title: '', body: '', ctaLabel: 'Read more', href: '', ground: 'mist', art: 0, active: true };
 
 const inputClass = 'mt-1.5 w-full bg-[var(--d-bg)] border border-[var(--d-line)] rounded-lg px-3 py-2.5 text-[14px] focus:border-[var(--d-line-2)] outline-none';
@@ -154,7 +157,7 @@ export default function AdminUpdatesPage() {
           <p className="text-[14px] font-semibold">{editing ? 'Edit card' : 'New card'}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <fieldset><legend className={labelClass}>Kind</legend>
-              <Segmented options={KINDS} value={form.kind} onChange={(v) => set('kind', v)} />
+              <Segmented options={form.kind === 'deal' ? [...KINDS, DEAL_KIND] : KINDS} value={form.kind} onChange={(v) => set('kind', v)} />
             </fieldset>
             <label className="block"><span className={labelClass}>Tag</span>
               <input value={form.tag} onChange={(e) => set('tag', e.target.value)} maxLength={40} placeholder="Arc House · Tech" className={inputClass} />

@@ -32,6 +32,26 @@ The three cards share one look: a soft accent light from the top, a mark beside 
 
 "Trade now" is gone: the first card already leads to the market. Updates move on by themselves every 6 seconds and stop while the pointer or keyboard focus is on them, or when the person has asked for reduced motion. There is no pause button.
 
+### Ways to deal in Updates (18 Nov 2026)
+
+After the three cards Updates already had (Built on Arc, Paid in USDC, Most requested this week), eight more show the ways to deal on Karwan: every offer in the open, trading with someone you know, contests, hiring by the hour or monthly, an agent finding the match, standing orders, payment links, and payment when it arrives.
+
+```mermaid
+flowchart LR
+  S[First-run cards on the server] -->|added once to an existing list| L[Updates list]
+  A[Admin] -->|edits, hides, reorders or deletes| L
+  L --> H[Home Updates]
+  H --> P[A real photograph]
+  H --> D[The deal drawn over it]
+  D -->|amounts| C[The currency chosen in Settings]
+```
+
+- **A real photograph each.** Licensed photographs Karwan already holds, from markets and workplaces in Nigeria and elsewhere, never generated pictures. The credits sit beside the files.
+- **The deal is the app's own.** Over each photo a small Karwan card shows that kind of deal at one moment, such as an offer marked Chosen or money held, then released. It never names or quotes the person in the photo.
+- **Amounts in your currency.** Every amount on those cards follows "Show amounts in" from Settings, the same as every other price on Karwan.
+- **Gentle motion.** The photo drifts slowly and the deal settles in line by line. With reduced motion both rest still.
+- **Added once.** A list that already exists gets the eight cards once, after its own. One an admin deletes stays deleted.
+
 ## Smaller fixes in the same batch
 
 - Putting up a deal guarantee shows the balance it comes from, a "Use all" button and what is left after. The title reads "Put up a deal guarantee" until an amount is typed.

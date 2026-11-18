@@ -6,7 +6,10 @@ import { weeklyDemand, type DemandRequest } from '../intelligence/marketStore.js
 import type { CategoryId } from '../listings/categories.js';
 
 export const GROUNDS = ['mist', 'sage', 'blush', 'lilac', 'paper'] as const;
-export const KINDS = ['post', 'video', 'trending'] as const;
+export const KINDS = ['post', 'video', 'trending', 'deal'] as const;
+/// What a deal card shows over its photo: one way to deal on Karwan, drawn by
+/// the app with amounts in the reader's own currency (view 39, 18 Nov).
+export const DEAL_SCENES = ['open-market', 'direct', 'contest', 'hourly', 'agent-match', 'standing-order', 'pay-link', 'release'] as const;
 
 /// A link is either a page inside Karwan or an https address. Nothing else, so a
 /// card can never carry a javascript: or protocol-relative url.
@@ -28,6 +31,7 @@ export const updateInputSchema = z.object({
   /// its own frame.
   image: z.union([href, z.literal('')]).optional(),
   ground: z.enum(GROUNDS).default('mist'),
+  scene: z.enum(DEAL_SCENES).optional(),
   art: z.number().int().min(0).max(2).default(0),
   active: z.boolean().default(true),
   /// Optional window; outside it the card is hidden.
@@ -36,12 +40,30 @@ export const updateInputSchema = z.object({
 });
 
 export type UpdateInput = z.infer<typeof updateInputSchema>;
+export type DealScene = (typeof DEAL_SCENES)[number];
 
 export interface UpdateCard extends UpdateInput {
   id: string;
   order: number;
   createdAt: number;
   updatedAt: number;
+}
+
+/// Cards added to the first-run set after a list already exists join it once,
+/// after what is there. `seeded` remembers every first-run card ever given, so
+/// one an admin deleted is never brought back. A list from before this was
+/// tracked counts `given` as already seeded.
+export function withNewSeeds(
+  doc: { cards: UpdateCard[]; seeded?: string[] },
+  seeds: UpdateCard[],
+  given: string[],
+): { doc: { cards: UpdateCard[]; seeded: string[] }; changed: boolean } {
+  const seeded = doc.seeded ?? [...given];
+  const fresh = seeds.filter((s) => !seeded.includes(s.id) && !doc.cards.some((c) => c.id === s.id));
+  if (fresh.length === 0 && doc.seeded) return { doc: { cards: doc.cards, seeded }, changed: false };
+  const cards = [...doc.cards].sort((a, b) => a.order - b.order);
+  const next = [...cards, ...fresh].map((c, order) => ({ ...c, order }));
+  return { doc: { cards: next, seeded: [...seeded, ...fresh.map((s) => s.id)] }, changed: true };
 }
 
 export function liveUpdates(cards: UpdateCard[], now: number): UpdateCard[] {

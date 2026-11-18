@@ -3485,7 +3485,9 @@ export interface AgentKitResearchStatus {
 
 /// Home Updates cards, published from /admin/updates.
 export type UpdateGround = 'mist' | 'sage' | 'blush' | 'lilac' | 'paper';
-export type UpdateKind = 'post' | 'video' | 'trending';
+export type UpdateKind = 'post' | 'video' | 'trending' | 'deal';
+/// What a deal card draws over its photo (view 39, 18 Nov).
+export type UpdateScene = 'open-market' | 'direct' | 'contest' | 'hourly' | 'agent-match' | 'standing-order' | 'pay-link' | 'release';
 export interface UpdateInput {
   kind: UpdateKind;
   tag: string;
@@ -3496,6 +3498,7 @@ export interface UpdateInput {
   image?: string;
   ground: UpdateGround;
   art: 0 | 1 | 2;
+  scene?: UpdateScene;
   active?: boolean;
   startsAt?: number;
   endsAt?: number;

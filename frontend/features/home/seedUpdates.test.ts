@@ -21,3 +21,22 @@ test('a card an admin rewrote shows as written', () => {
   const other = { ...seed, id: 'upd_custom' };
   assert.equal(localizeSeedCard(other, 'fr'), other);
 });
+
+test('the ways-to-deal cards read in every language, with English the same as the server gives', async () => {
+  const { readFileSync } = await import('node:fs');
+  const store = readFileSync(new URL('../../../backend/src/updates/store.ts', import.meta.url), 'utf8');
+  for (const scene of ['open-market', 'direct', 'contest', 'hourly', 'agent-match', 'standing-order', 'pay-link', 'release']) {
+    const server = store.slice(store.indexOf(`['${scene}',`));
+    const line = server.slice(0, server.indexOf('\n'));
+    for (const lang of ['fr', 'ar', 'hi', 'sw'] as const) {
+      const card = localizeSeedCard({ ...seed, id: `upd_deal_${scene}`, ...englishFrom(line) } as UpdateCard, lang);
+      assert.notEqual(card.title, englishFrom(line).title, `${scene} ${lang} reads in that language`);
+    }
+  }
+});
+
+/// tag, title, body and button from a DEALS line of the server's store.
+function englishFrom(line: string) {
+  const [, tag, title, body, ctaLabel] = [...line.matchAll(/'((?:[^'\]|\.)*)'/g)].map((m) => m[1]!);
+  return { tag, title, body, ctaLabel };
+}

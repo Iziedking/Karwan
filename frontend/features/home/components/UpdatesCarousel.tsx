@@ -8,6 +8,8 @@ import { localizeSeedCard } from '../seedUpdates';
 import { cn } from '@/shared/utils/cn';
 import { photoSrc } from '@/features/listings/photos';
 import { UPDATES_EVERY_MS, nextUpdateMove, updatesMayMove } from '../updatesAutoplay';
+import { DealScene } from './DealScene';
+import sceneStyles from './dealScene.module.css';
 
 /// Home Updates: published media tiles about the tech Karwan runs on, market
 /// news, videos and what people are asking for. Three fit the column on a wide
@@ -158,6 +160,8 @@ export function UpdateTile({ card: raw, trending, index, total }: { card: Update
   const external = card.href.startsWith('https://');
   const ground = { '--g': `var(--update-${card.ground})`, '--g-deep': `var(--update-${card.ground}-deep)` } as CSSProperties;
   const video = card.kind === 'video';
+  // A ways-to-deal card: a real photo with the deal drawn over it (view 39, 18 Nov).
+  const deal = card.kind === 'deal' && Boolean(card.scene) && Boolean(card.image);
   // A post without a picture sets its short text large in the media slot, so
   // it is said once, up there, and not again under the title.
   const bodyInMedia = card.kind === 'post' && !card.image && Boolean(card.body);
@@ -166,7 +170,8 @@ export function UpdateTile({ card: raw, trending, index, total }: { card: Update
   if (card.image) {
     media = (
       <>
-        <img src={card.image.startsWith('/api/') ? photoSrc(card.image) : card.image} alt="" loading="lazy" decoding="async" draggable={false} className="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+        <img src={card.image.startsWith('/api/') ? photoSrc(card.image) : card.image} alt="" loading="lazy" decoding="async" draggable={false} className={cn(deal && sceneStyles.photo, "size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100")} />
+        {deal ? <DealScene scene={card.scene!} /> : null}
         {video ? (
           <span className="absolute bottom-3 start-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--lp-dark)] px-3 text-[14px] font-semibold tabular-nums text-[var(--lp-card)]">
             <PlayIcon />

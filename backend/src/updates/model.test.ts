@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { liveUpdates, trendingCategories, updateInputSchema, type UpdateCard } from './model.js';
+import { DEAL_SCENES, liveUpdates, trendingCategories, updateInputSchema, withNewSeeds, type UpdateCard } from './model.js';
 
 const card = (over: Partial<UpdateCard>): UpdateCard => ({
   id: 'u', order: 0, createdAt: 0, updatedAt: 0, kind: 'post', tag: 'Tech', title: 'Built on Arc', body: '',
@@ -54,4 +54,26 @@ test('an image is a Karwan path or an https address, and optional', () => {
   for (const bad of ['javascript:alert(1)', '//evil.test/x.jpg', 'http://plain.test/x.jpg', 'data:image/png;base64,AA']) {
     assert.equal(updateInputSchema.safeParse({ ...base, image: bad }).success, false, bad);
   }
+});
+
+test('a deal card names which scene it shows, and only a known one', () => {
+  const base = { kind: 'deal', tag: 'Ways to deal', title: 'Run a contest', ctaLabel: 'Start a contest', href: '/contests/new', image: '/updates/deals/contest.jpg' };
+  assert.equal(updateInputSchema.safeParse({ ...base, scene: 'contest' }).success, true);
+  assert.equal(updateInputSchema.safeParse({ ...base, scene: 'lottery' }).success, false);
+  assert.deepEqual([...DEAL_SCENES], ['open-market', 'direct', 'contest', 'hourly', 'agent-match', 'standing-order', 'pay-link', 'release']);
+});
+
+test('new first-run cards join a list once, after what is there, and a deleted one stays deleted', () => {
+  const seeds = [card({ id: 'upd_built_on_arc' }), card({ id: 'upd_new_a' }), card({ id: 'upd_new_b' })];
+  // A list from before seeds were tracked: the first three count as given.
+  const old = { cards: [card({ id: 'upd_built_on_arc', order: 0 }), card({ id: 'upd_mine', order: 1 })] };
+  const first = withNewSeeds(old, seeds, ['upd_built_on_arc', 'upd_paid_in_usdc', 'upd_trending']);
+  assert.equal(first.changed, true);
+  assert.deepEqual(first.doc.cards.map((c) => [c.id, c.order]), [['upd_built_on_arc', 0], ['upd_mine', 1], ['upd_new_a', 2], ['upd_new_b', 3]]);
+  assert.deepEqual(first.doc.seeded, ['upd_built_on_arc', 'upd_paid_in_usdc', 'upd_trending', 'upd_new_a', 'upd_new_b']);
+
+  const deleted = { ...first.doc, cards: first.doc.cards.filter((c) => c.id !== 'upd_new_a') };
+  const again = withNewSeeds(deleted, seeds, []);
+  assert.equal(again.changed, false);
+  assert.equal(again.doc.cards.some((c) => c.id === 'upd_new_a'), false);
 });
