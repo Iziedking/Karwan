@@ -48,6 +48,7 @@ async function serve(page: Page, world: World) {
   await page.route(`${API}/api/profile**`, (route) => route.fulfill({ json: { profile } }));
   await page.route(`${API}/api/features`, (route) => route.fulfill({ json: { hourlyWork: false, sellerAsked: true, agentSwitch: true, autopilotLock: world.lockOpen } }));
   await page.route(`${API}/api/agents/seller**`, (route) => route.fulfill({ json: { profile: null, activeBids: [] } }));
+  await page.route(`${API}/api/agents/orders`, (route) => route.fulfill({ json: { orders: [], max: 5, working: false } }));
   await page.route(`${API}/api/agents/mandate`, (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { mandate: world.mandate, lines: [], lockOpen: world.lockOpen } });
     const body = route.request().postDataJSON() as { patch: Record<string, unknown>; cardId: string };

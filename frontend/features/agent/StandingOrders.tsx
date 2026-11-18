@@ -23,7 +23,11 @@ export function StandingOrders({ city, idle }: { city: string | null; idle: bool
   const [open, setOpen] = useState<string | 'new' | null>(null);
   if (!read.data) return null;
 
-  const { orders, max, working } = read.data;
+  // A partial answer, such as a server one release behind, shows no orders
+  // instead of stopping the whole page.
+  const orders = Array.isArray(read.data.orders) ? read.data.orders : [];
+  const max = typeof read.data.max === 'number' ? read.data.max : 0;
+  const working = read.data.working === true;
   const date = (at: number) => dayText(at, locale);
   const amount = (o: Pick<StandingOrder, 'budgetUsdc' | 'said'>) =>
     o.said ? `${currencySign(o.said.currency as DisplayCurrency, locale)}${o.said.amount.toLocaleString(locale)}` : mt.text(Number(o.budgetUsdc ?? 0));
