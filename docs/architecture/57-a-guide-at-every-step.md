@@ -351,6 +351,63 @@ Aman reads text written by other people: names and tags, requests and offers, me
 5. **The fence around other people's words, and about 30 trick attempts run against the real model before each release.** Recommended. The test run costs a few cents of model use each time.
 6. **Order:** Figma (Show me on a page on phone and laptop, the "New here?" line, the answer with Show me in chat), then spec, plan and a test-first build. The guide, canon, five languages and this view's Status go in the same batch.
 
+## Amendment, 19 Nov 2026: Aman guides you
+
+The owner, 19 Nov: Aman was never meant to pop up and stay on a page. It comes up on each page and guides the person through it, a part at a time, in plain words. It learns how often someone visits and comes less as they learn, until it only drops in now and then. A line never stays more than 5 to 10 seconds. Anyone can switch its help off, and Aman tells them so. It must make the app feel smart, never get in the way, above all on a phone. Still no tours: no Next, no Back, no "step 2 of 5", nothing to follow along.
+
+### 1. One part at a time
+
+- Aman explains one part of the page in plain words: what it is for and what changes if you use it. On Settings it explains each setting, in place of more tooltips.
+- On a phone and a tablet the line opens inside the page, right under the part, and pushes the content down. Nothing is covered.
+- On a laptop the line sits in the margin beside the part, with the face.
+- The part gets a soft green ring while Aman talks about it.
+- A thin bar shows the time left. The line goes after 8 seconds (10 when it has buttons), or at a tap anywhere. Nothing is pressed for the person.
+
+### 2. It follows the person
+
+- The part someone stops on (in the middle of the screen for about 2 seconds) is the part Aman explains.
+- If they stop nowhere, Aman picks the most useful part they have not heard about yet.
+- Each part is explained once per person. At most one or two lines a visit.
+- Money screens, dialogs, typing and fast scrolling stay quiet, as today.
+
+### 3. It learns and comes less
+
+- Aman counts each person's visits to each page, kept on the account so every device agrees.
+- On each visit to a page it comes about half as often as on the visit before, and after a handful of visits it stops coming on its own there.
+- When someone knows most pages, Aman only checks in now and then, in its own words, for example: "You know your way around Karwan now, so I'll come by less. Anything I can help with?" with **Ask Aman** and **Not now**.
+- The 16 Nov site-wide pace stays on top: never more than one line starting on its own every 20 minutes (5 for money arrived or a deal waiting), and Not now keeps it away a day.
+
+### 4. The first hello, and switching it off
+
+- The first time Aman comes, once: "Hi, I'm Aman. I'll show you around Karwan a little at a time, as you use it. Ask me anything. If I get in your way, you can switch me off." with **Ask me something** and **Switch me off**.
+- Settings gains **Aman's help on pages**. Off means no lines on any page, on every device. The face stays in the header, and a tap on it still opens the assistant. One tap turns help back on.
+- The person can also ask Aman in chat, on the website or in Telegram, to switch its help on or off.
+
+### 5. Settings by asking
+
+- Aman already changes most settings through the confirm card in chat: language, theme, sound, alerts, the public passport, publishing deals, how Karwan reaches you, the display currency, being found and reached, its own help, and the agent's switches.
+- Three settings join the card: what Aman remembers (on or off), the agent jobs setting, and what a trade starts with on the Money tab.
+- Deleting the account stays on the Settings page only. Aman never does it from chat.
+
+### 6. What it replaces
+
+- The 17 Nov **"New here? Ask me about this page."** line with three questions, which stayed until closed. The first hello and the part-by-part lines take its place.
+- Kept from 17 Nov: no page tours, Aman answers and points, Show me lights a part for 8 seconds, the guide covers every page and part with a build check, other people's words fenced off.
+
+### 7. Aman knows what to say
+
+- Every part Aman can point at gets a plain-words line in the assistant guide, in five languages, so the website, the assistant and Telegram say the same thing. The build check from 17 Nov fails when a part has no line.
+
+### Decisions for the owner (19 Nov)
+
+Approved 19 Nov 2026 as drawn in Figma section "8 · Aman guides you (19 Nov)" (364:4502):
+
+1. One part at a time, inline under the part on a phone and a tablet, beside it on a laptop, gone after 8 to 10 seconds or a tap.
+2. It follows where the person stops, each part once, one or two lines a visit.
+3. It comes about half as often on each visit to a page, then only checks in now and then.
+4. The first hello says it can be switched off, and Settings has Aman's help on pages.
+5. Order: spec, plan and a test-first build. The guide, canon, five languages and this view's Status go in the same batch.
+
 ## Status
 
 | Part | State |
@@ -373,6 +430,8 @@ Aman reads text written by other people: names and tags, requests and offers, me
 | 17 Nov amendment: Aman is the only guide; page tours go; Aman answers and points; the guide covers every page, action and part; other people's words fenced off and tested against trick attempts | Approved 17 Nov 2026 as written |
 | Figma: section "7 · Aman is the only guide (17 Nov)" (355:4393) on the Aman page: New here with three questions, an answer with Show me, Add money lit on a phone and a laptop | Drawn and approved 17 Nov 2026 |
 | Page tours removed; Show me lights a part for 8 s from the website and from Telegram links; New here with three questions; the guide lists every page and part with a build check; other people's words fenced; 30 trick attempts in a script the owner runs before a deploy | Built 17 Nov 2026, not deployed |
+| 19 Nov amendment: Aman guides you a part at a time, follows where you stop, comes less as you learn, a first hello that says it can be switched off, Aman's help on pages in Settings, three more settings by asking; replaces the 17 Nov New here line | Approved 19 Nov 2026 |
+| Figma: section "8 · Aman guides you (19 Nov)" (364:4502) on the Aman page: Settings with Aman explaining Notifications on a phone, a tablet and a laptop, dark and light; the first hello, the check-in and help switched off on a phone, dark and light | Drawn and approved 19 Nov 2026 |
 | 16 Nov amendment (owner): Aman comes in on its own at most once every 20 minutes across the site (5 for money arrived or a deal waiting); Not now keeps it away a day everywhere; every sign-in starts fresh; new moments for an offer on your request and an entry in your contest; tips under Aman stay 6 s, rotate per wait and finish after the answer | Built 16 Nov 2026, not deployed |
 
 ## As built (15 Nov 2026)
