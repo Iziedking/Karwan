@@ -29,6 +29,21 @@ export interface DealPageCopy {
   split: string;
   yourMove: string;
   waitingOn: string;
+  /// View 92: the mark beside the money line, and the lines under each kind's picture.
+  seal: { held: string; yourTurn: string };
+  picture: {
+    carrier: string;
+    waitShip: string;
+    addTracking: string;
+    tapArrived: string;
+    waitDelivery: string;
+    deliverBy: string;
+    check: string;
+    waitCheck: string;
+    paidOn: string;
+    deliveredOn: string;
+    photos: string;
+  };
   moment: {
     fund: string;
     deliver: string;
@@ -109,6 +124,20 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     split: '{paid} USDC paid to {name} · {held} USDC held by Karwan',
     yourMove: 'Your move',
     waitingOn: 'Waiting on {name}',
+    seal: { held: 'Held', yourTurn: 'Your turn' },
+    picture: {
+      carrier: 'Carrier',
+      waitShip: 'Waiting for {name} to send it',
+      addTracking: 'Add the tracking number by {date}',
+      tapArrived: "When it's in your hands, tap It arrived",
+      waitDelivery: 'Due {date}',
+      deliverBy: 'Deliver by {date}',
+      check: 'Check it, then pay {name}',
+      waitCheck: '{name} is checking your delivery',
+      paidOn: 'Paid on {date} if {name} says nothing',
+      deliveredOn: 'Delivered {date}',
+      photos: '{count} photos',
+    },
     moment: {
       fund: 'Pay in {amount} USDC so {name} can start.',
       deliver: 'Send what you made when it is ready.',
@@ -188,6 +217,20 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     split: '{paid} USDC versés à {name} · {held} USDC gardés par Karwan',
     yourMove: 'À vous',
     waitingOn: 'En attente de {name}',
+    seal: { held: 'Bloqué', yourTurn: 'À vous' },
+    picture: {
+      carrier: 'Transporteur',
+      waitShip: "En attente de l'envoi par {name}",
+      addTracking: 'Ajoutez le numéro de suivi avant le {date}',
+      tapArrived: 'Une fois reçu, touchez C’est arrivé',
+      waitDelivery: 'Prévu le {date}',
+      deliverBy: 'À livrer avant le {date}',
+      check: 'Vérifiez, puis payez {name}',
+      waitCheck: '{name} vérifie votre livraison',
+      paidOn: 'Payé le {date} si {name} ne dit rien',
+      deliveredOn: 'Livré le {date}',
+      photos: '{count} photos',
+    },
     moment: {
       fund: 'Payez {amount} USDC pour que {name} commence.',
       deliver: 'Envoyez votre travail quand il est prêt.',
@@ -267,6 +310,20 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     split: 'صُرف {paid} USDC إلى {name} · تحتفظ كاروان بـ {held} USDC',
     yourMove: 'دورك',
     waitingOn: 'بانتظار {name}',
+    seal: { held: 'محجوز', yourTurn: 'دورك' },
+    picture: {
+      carrier: 'شركة الشحن',
+      waitShip: 'بانتظار أن يرسله {name}',
+      addTracking: 'أضف رقم التتبع قبل {date}',
+      tapArrived: 'عندما يصل إلى يدك، اضغط وصلت',
+      waitDelivery: 'الموعد {date}',
+      deliverBy: 'سلّم قبل {date}',
+      check: 'افحصه، ثم ادفع لـ {name}',
+      waitCheck: '{name} يفحص تسليمك',
+      paidOn: 'يُدفع في {date} إن لم يقل {name} شيئًا',
+      deliveredOn: 'سُلّم {date}',
+      photos: '{count} صور',
+    },
     moment: {
       fund: 'ادفع {amount} USDC ليبدأ {name}.',
       deliver: 'أرسل ما أنجزته عندما يكون جاهزًا.',
@@ -346,6 +403,20 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     split: '{paid} USDC {name} को दिए गए · {held} USDC Karwan के पास',
     yourMove: 'आपकी बारी',
     waitingOn: '{name} का इंतज़ार',
+    seal: { held: 'रोका गया', yourTurn: 'आपकी बारी' },
+    picture: {
+      carrier: 'कूरियर',
+      waitShip: '{name} के भेजने का इंतज़ार',
+      addTracking: '{date} तक ट्रैकिंग नंबर जोड़ें',
+      tapArrived: 'हाथ में आने पर, पहुँच गया दबाएँ',
+      waitDelivery: '{date} तक',
+      deliverBy: '{date} तक डिलीवर करें',
+      check: 'जाँचें, फिर {name} को भुगतान करें',
+      waitCheck: '{name} आपकी डिलीवरी जाँच रहे हैं',
+      paidOn: '{name} कुछ न कहें तो {date} को भुगतान',
+      deliveredOn: '{date} को डिलीवर हुआ',
+      photos: '{count} फ़ोटो',
+    },
     moment: {
       fund: '{amount} USDC का भुगतान करें ताकि {name} काम शुरू कर सकें।',
       deliver: 'तैयार होने पर अपना काम भेजें।',
@@ -425,6 +496,20 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     split: 'USDC {paid} zimelipwa kwa {name} · USDC {held} zinashikiliwa na Karwan',
     yourMove: 'Zamu yako',
     waitingOn: 'Inasubiri {name}',
+    seal: { held: 'Imeshikiliwa', yourTurn: 'Zamu yako' },
+    picture: {
+      carrier: 'Msafirishaji',
+      waitShip: 'Inasubiri {name} akitume',
+      addTracking: 'Ongeza namba ya ufuatiliaji kabla ya {date}',
+      tapArrived: 'Ikifika mikononi mwako, gusa Umefika',
+      waitDelivery: 'Inatarajiwa {date}',
+      deliverBy: 'Wasilisha kabla ya {date}',
+      check: 'Ikague, kisha mlipe {name}',
+      waitCheck: '{name} anakagua uwasilishaji wako',
+      paidOn: 'Utalipwa {date} kama {name} hatasema kitu',
+      deliveredOn: 'Imewasilishwa {date}',
+      photos: 'Picha {count}',
+    },
     moment: {
       fund: 'Lipa USDC {amount} ili {name} aanze.',
       deliver: 'Tuma ulichotengeneza kikiwa tayari.',

@@ -18,6 +18,9 @@ import { cn } from '@/shared/utils/cn';
 import { EditDealModal } from '../components/EditDealModal';
 import { dealReference } from '../dealReference';
 import { dealLayers, type LayerKey } from './dealLayers';
+import { DealSeal } from './DealSeal';
+import { KindPicture } from './KindPicture';
+import { sealFor } from './seal';
 import { GetPaidNow } from './GetPaidNow';
 import { financingVisible } from '@/shared/deals/financingEligibility';
 import { SettlementRecord, type SettlementRecordFetchState } from '../components/SettlementRecord';
@@ -432,6 +435,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
 
   const what = whatItIs(deal);
   const moneyLine = titleMoneyLine(deal, name, dp, locale, mt.fill) ?? copy.money[LINE_KEY[view.money.line]];
+  const seal = address ? sealFor(view) : null;
   const canProblem = !!address && problems.length > 0;
   const referenceButton = reference ? (
     <button
@@ -637,7 +641,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             ) : null}
             <div className="flex min-h-11 items-center justify-between gap-3">
               <p role="status" aria-live="polite" className="min-w-0 text-[13px] text-[var(--ink-secondary)]">{moneyLine}</p>
-              {referenceButton}
+              <span className="flex shrink-0 items-center gap-2">
+                {seal ? <DealSeal tone={seal} /> : null}
+                {referenceButton}
+              </span>
             </div>
             <h1 id="deal-amount" className="mt-1">
               <Price usdc={Number(deal.dealAmountUsdc)} agreed={figure} size="hero" figureClassName="text-[44px] font-semibold leading-none tracking-[-0.03em] text-[var(--ink)] lg:text-[52px]" />
@@ -650,7 +657,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               </div>
             ) : null}
             <div className="mt-5 border-t border-[var(--line)] pt-5">
-              <DealRoute deal={deal} vertical />
+              <KindPicture deal={deal} viewerIsBuyer={viewerIsBuyer} name={name} />
             </div>
             <GuaranteeTermRow deal={deal} viewerIsBuyer={viewerIsBuyer} />
             {moment ? <div data-deal-check className="mt-5 border-t border-[var(--line)] pt-5">{moment}</div> : null}

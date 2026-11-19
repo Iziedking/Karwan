@@ -2,7 +2,7 @@ import React, { type SVGProps } from 'react';
 import {
   Activity, ArrowDown, ArrowDownLeft, ArrowLeft, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
   ChartColumn, Check, ChevronLeft, Clock, Eye, EyeOff, ChevronRight, Clapperboard, Code, Coins, Copy, CornerDownLeft, FileText, Globe,
-  GraduationCap, ImagePlus, Info, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
+  GraduationCap, ImagePlus, Info, Languages, Link, List, LoaderCircle, Lock, Megaphone, MessagesSquare,
   Package, Paperclip, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
   BadgeCheck, KeyRound, Shield, ShieldCheck, Sofa, Sprout, Utensils, Wrench,
 } from 'lucide-react';
@@ -61,6 +61,7 @@ const icons = {
   trash: Trash2,
   'badge-check': BadgeCheck,
   'key-round': KeyRound,
+  lock: Lock,
   shield: Shield,
   'shield-check': ShieldCheck,
   sofa: Sofa,

@@ -101,4 +101,4 @@ Every picture is drawn from facts the assistant already reads (get_deal_status a
 
 ## Status
 
-Proposed, 18 Nov 2026. Sample: the drawn deal flow from 18 Nov.
+Approved by the owner on 18 Nov 2026. Phase 1 built on 19 Nov, not deployed: goods sent show the parcel tracker, one job shows the delivery, and the Held or Your turn seal sits beside the money line. Meeting in person, stages, starting a deal one question a screen, hourly, monthly, contests and the finished screen follow in that order. Sample: the drawn deal flow from 18 Nov.
