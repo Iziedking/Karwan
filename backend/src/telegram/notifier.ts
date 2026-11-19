@@ -971,7 +971,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.amountUsdc as string | undefined) ?? '0';
       const amount = trimUsdcLabel(raw);
       return withLink(
-        `*${amount} USDC is now your deal guarantee.* It can raise your standing over time.`,
+        `*${amount} USDC is now in your savings pocket.* It can raise your standing over time.`,
         stakeUrl(),
       );
     }
@@ -987,7 +987,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
       const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'the position';
       return withLink(
-        `*You kept ${amount} in your deal guarantee.*`,
+        `*You kept ${amount} in your savings pocket.*`,
         stakeUrl(),
       );
     }
@@ -995,7 +995,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
       const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your stake';
       return withLink(
-        `*${amount} is back in your balance* from your deal guarantee.`,
+        `*${amount} is back in your balance* from your savings pocket.`,
         stakeUrl(),
       );
     }
@@ -1003,7 +1003,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
       const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
       return withLink(
-        `*${amount} is ready to take back* from your deal guarantee.`,
+        `*${amount} is ready to take back* from your savings pocket.`,
         stakeUrl(),
       );
     }

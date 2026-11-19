@@ -14,8 +14,8 @@ export interface PresenceAction {
 
 const KIND_WORDS: Record<PresenceKind, string> = {
   record_setup: 'Set up your Karwan record',
-  deal_guarantee: 'Deposit to your deal guarantee',
-  deal_insurance: 'Deposit to your deal guarantee',
+  deal_guarantee: 'Add to your savings pocket',
+  deal_insurance: 'Add to your savings pocket',
   move_out: 'Send money out of Karwan',
   factor_change: 'Change how you confirm',
   agent_rule: 'Let your agent lock money',

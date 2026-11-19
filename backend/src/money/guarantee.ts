@@ -133,10 +133,10 @@ function proveReceipt(
 }
 
 const SUMMARY: Record<GuaranteeStep, (amount: string) => string> = {
-  put_up: (a) => `Deposited ${a} USDC to your deal guarantee`,
-  take_out: (a) => `Started withdrawing ${a} USDC from your deal guarantee`,
-  cancel: (a) => `Cancelled withdrawing ${a} USDC from your deal guarantee`,
-  collect: (a) => `Collected ${a} USDC from your deal guarantee`,
+  put_up: (a) => `Added ${a} USDC to your savings pocket`,
+  take_out: (a) => `Started withdrawing ${a} USDC from your savings pocket`,
+  cancel: (a) => `Kept ${a} USDC in your savings pocket`,
+  collect: (a) => `Collected ${a} USDC from your savings pocket`,
 };
 
 const LEG_KEY = 'guarantee';
@@ -168,7 +168,7 @@ function legPlan(input: { step: GuaranteeStep; walletAddress: string; vaultAddre
   const out = input.step === 'collect';
   return {
     key: LEG_KEY,
-    label: `Deal guarantee ${input.step.replace('_', ' ')}`,
+    label: `Savings pocket ${input.step.replace('_', ' ')}`,
     rail,
     ...(walletId ? { walletId } : {}),
     signerAddress: input.walletAddress,
@@ -248,7 +248,7 @@ export async function executeCircleGuarantee(input: {
   if (ensured.movement.state === 'needs_attention') throw new Error(`guarantee step needs attention (${reference})`);
   try {
     if (input.step === 'put_up') {
-      const approve = await prepareMoneyMovementContractLeg(reference, { ...legPlan(input, 'circle_wallets', input.walletId), key: 'approve', label: 'Deal guarantee USDC approval', contractAddress: input.usdcAddress });
+      const approve = await prepareMoneyMovementContractLeg(reference, { ...legPlan(input, 'circle_wallets', input.walletId), key: 'approve', label: 'Savings pocket USDC approval', contractAddress: input.usdcAddress });
       if (approve.leg.state !== 'verified') {
         const sent = await executeContractCall(
           {

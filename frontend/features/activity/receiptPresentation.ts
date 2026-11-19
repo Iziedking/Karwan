@@ -80,7 +80,11 @@ export function readableMovementText(value: string): string {
     .replace(/\bpolygonAmoy\b/g, 'Polygon Amoy')
     .replace(/\bavalancheFuji\b/g, 'Avalanche Fuji')
     .replace(/\bunichainSepolia\b/g, 'Unichain Sepolia')
-    .replace(/Escrow funded and protection activated/gi, 'Money secured and protection activated');
+    .replace(/Escrow funded and protection activated/gi, 'Money secured and protection activated')
+    // Older pocket lines were saved as a deal guarantee; only money held for one deal is called that now.
+    .replace(/\bDeposited (\S+) USDC to (?:your|the) deal guarantee\b/g, 'Added $1 USDC to your savings pocket')
+    .replace(/\bCancelled withdrawing (\S+) USDC from (?:your|the) deal guarantee\b/g, 'Kept $1 USDC in your savings pocket')
+    .replace(/\b(Started withdrawing|Collected) (\S+) USDC from (?:your|the) deal guarantee\b/g, '$1 $2 USDC from your savings pocket');
 }
 
 function escapeSvg(value: string): string {

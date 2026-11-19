@@ -19,10 +19,10 @@ const ACTIVE = 1;
 const COOLING = 2;
 
 const ACTIVITY: Record<GuaranteeStep, { kind: 'stake' | 'unstake'; t: string; summary: string }> = {
-  put_up: { kind: 'stake', t: 'guaranteePutUp', summary: 'Deposited {a} USDC to the deal guarantee' },
-  take_out: { kind: 'stake', t: 'guaranteeTakeOut', summary: 'Started withdrawing {a} USDC from the deal guarantee' },
-  cancel: { kind: 'stake', t: 'guaranteeCancel', summary: 'Cancelled withdrawing {a} USDC from the deal guarantee' },
-  collect: { kind: 'unstake', t: 'guaranteeCollect', summary: 'Collected {a} USDC from the deal guarantee' },
+  put_up: { kind: 'stake', t: 'guaranteePutUp', summary: 'Added {a} USDC to the savings pocket' },
+  take_out: { kind: 'stake', t: 'guaranteeTakeOut', summary: 'Started withdrawing {a} USDC from the savings pocket' },
+  cancel: { kind: 'stake', t: 'guaranteeCancel', summary: 'Kept {a} USDC in the savings pocket' },
+  collect: { kind: 'unstake', t: 'guaranteeCollect', summary: 'Collected {a} USDC from the savings pocket' },
 };
 
 function vaultOrThrow(): Hex {

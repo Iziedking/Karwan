@@ -126,7 +126,7 @@ export async function financierEligibility(address: string): Promise<FinancierEl
     );
   }
   if (!stakeOk) {
-    reasons.push('Put up a Deal guarantee first.');
+    reasons.push('Add to your savings pocket first.');
   }
   if (!repOk) {
     reasons.push('Reach at least the COLD reputation tier through settled deals.');

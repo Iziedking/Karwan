@@ -108,7 +108,7 @@ test('applying to finance deals says what is missing, or that it is done already
 test('taking an offer says what of the deal guarantee it holds', () => {
   const card = buildAcceptOfferConfirm({ offer: offer({ holdUsdc: '47' }), me: SELLER, nowMs: NOW });
   assert.ok(!('error' in card));
-  assert.ok(card.fields.some((f) => f.label === 'Held from your deal guarantee until it is repaid' && f.value === '47.00 USDC'));
+  assert.ok(card.fields.some((f) => f.label === 'Held from your savings pocket until it is repaid' && f.value === '47.00 USDC'));
   assert.equal(card.payload.putUpGap, undefined);
 });
 

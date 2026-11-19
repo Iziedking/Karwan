@@ -348,7 +348,7 @@ interface ConfirmDeps {
 }
 
 const GUARANTEE_STEP = {
-  guarantee_put_up: { step: 'put_up', done: 'Done. Your deal guarantee is in place.' },
+  guarantee_put_up: { step: 'put_up', done: 'Done. The money is in your savings pocket.' },
   guarantee_take_out: { step: 'take_out', done: 'Started. Ask me to collect it when it is ready.' },
   guarantee_cancel_take_out: { step: 'cancel', done: 'Kept. It protects your buyers again.' },
   guarantee_collect: { step: 'collect', done: 'Collected. It is back in your balance.' },
@@ -753,12 +753,12 @@ async function runConfirmIntent(
     const { step, done } = GUARANTEE_STEP[action.intent];
     const withAmount = step === 'put_up' || step === 'take_out';
     if (p.signer === 'wallet') {
-      if (!deps.runGuaranteeStep) throw new Error('Open your deal guarantee to sign this in your wallet.');
+      if (!deps.runGuaranteeStep) throw new Error('Open your savings pocket to sign this in your wallet.');
       const r = await deps.runGuaranteeStep(step, withAmount ? p.amountUsdc : undefined);
-      return { successText: withRecordLine(done, !!r.recordSetUp), viewHref: '/guarantee', viewLabel: 'Deal guarantee', txHash: r.txHash };
+      return { successText: withRecordLine(done, !!r.recordSetUp), viewHref: '/guarantee', viewLabel: 'Savings pocket', txHash: r.txHash };
     }
     const r = await GUARANTEE_CALL[step](p.amountUsdc);
-    return { successText: done, viewHref: '/guarantee', viewLabel: 'Deal guarantee', ...(r.txHash ? { txHash: r.txHash } : {}) };
+    return { successText: done, viewHref: '/guarantee', viewLabel: 'Savings pocket', ...(r.txHash ? { txHash: r.txHash } : {}) };
   }
   if (action.intent === 'legacy_step') {
     const p = action.payload as LegacyStepBody & { signer: 'karwan' | 'wallet' };
@@ -919,7 +919,7 @@ async function runConfirmIntent(
     return {
       successText: 'Yield claimed. It is in your wallet.',
       viewHref: '/guarantee',
-      viewLabel: 'Your deal guarantee',
+      viewLabel: 'Your savings pocket',
       ...(r.txHash ? { txHash: r.txHash } : {}),
     };
   }

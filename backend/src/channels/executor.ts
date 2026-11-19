@@ -371,7 +371,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   near_miss_proceed: 'Done. The deal starts at that price.',
   near_miss_pass: 'Passed. The request stays open for other offers.',
   reconsider_offer: 'Brought back. Say go ahead when you are ready.',
-  guarantee_put_up: 'Done. Your deal guarantee is in place.',
+  guarantee_put_up: 'Done. The money is in your savings pocket.',
   guarantee_take_out: 'Started. Ask me to collect it when it is ready.',
   guarantee_cancel_take_out: 'Kept. It protects your buyers again.',
   guarantee_collect: 'Collected. It is back in your balance.',

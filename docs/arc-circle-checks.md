@@ -924,3 +924,11 @@ Agree: yes.
 - Source, read 19 Nov 2026: `contracts/src/suite/dispute/DisputeLib.sol` struct `Dispute { opener, openedAt, proposed, escalated, proposedBps, proposedAt, escalatedAt }`; `APPEAL_WINDOW` 72 hours gives the time to object, `RULING_PERIOD` 5 days the date people decide by. The checked-in ABI `backend/src/chain/abis/agreementEscrow.ts` returns the same tuple. viem 2.55.11 as installed (backend/package.json `^2.21.0`).
 - Read-only test, 19 Nov 2026, `eth_call` on `https://rpc.testnet.arc.io` at block 73000422: Agreement escrow `0x55460D2b8b0D8067Ea33406b310224B5bd44F43C` `disputeOf(0x…01)` decodes into all seven fields (opener zero, openedAt 0, not proposed, not escalated, proposedBps 0, proposedAt 0, escalatedAt 0), so the struct the page reads matches the deployed escrow.
 - Agree: yes.
+
+## 2026-11-19 · The savings pocket named as such on receipts and money lines (T5, view 82)
+
+- Scope: wording only. `backend/src/money/guarantee.ts` changes the receipt sentence and the money-movement labels for adding to, withdrawing from, keeping and collecting from the savings pocket. No contract call, ABI, address, amount, wait or signing step changed.
+- Arc docs, read 19 Nov 2026: https://docs.arc.io/arc/concepts/batched-transactions ("How a batch call works") still describes the batch the pocket deposit uses for an own wallet; nothing in this change depends on it.
+- SDK: `@circle-fin/developer-controlled-wallets` 10.8.0, `viem` 2.55.11 (backend), unchanged.
+- Read-only test, 19 Nov 2026, `https://rpc.testnet.arc.network` at block 73031332: `KarwanStakeVault` `0xF5FD1fd6d790da42C022a5c5404676c048007ed5` `COOLDOWN()` = 604,800 s (7 days, as the pocket's words say), `hub()` = `0xB874C290B82c0689De75Eaf9434774f83da138a6`.
+- Agree: yes.

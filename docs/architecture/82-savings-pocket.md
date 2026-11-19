@@ -161,4 +161,4 @@ testnet, with the result written to `docs/arc-circle-checks.md`.
 | Start a deal: Ask for a deal guarantee (50, 75, 100%) with its (i); the deal page's Deal guarantee row; Back it from my pocket | Built 15 Nov 2026 |
 | Assistant and Telegram: the agree card names and backs the guarantee; the pocket tools and cards use the new words; guide and canon | Built 15 Nov 2026 |
 | Words in all five languages: the pocket pages, notifications, route titles, the trade record line, the confirm step | Built 15 Nov 2026 |
-| Still to rename: older activity log lines and a few admin labels that still say deal guarantee for the holding | Not built |
+| The rest renamed: the receipt for adding to the pocket, money history and activity lines, Telegram notices, trusted match, the finance desk and advances, the trade record, earnings, the docs, how it works, the terms and the assistant replies now say savings pocket in all five languages; deal guarantee is kept only for money held for one deal (owner, 19 Nov 2026) | Built 19 Nov 2026, not deployed |

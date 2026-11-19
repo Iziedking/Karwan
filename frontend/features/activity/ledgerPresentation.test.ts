@@ -187,3 +187,12 @@ test('a wrong token reads as a plain line with no amount and no sign, so nothing
   );
   assert.equal(en.activity.myMoney.kind.wrong_token, 'Token not added');
 });
+
+test('an older pocket line saved as a deal guarantee reads as the savings pocket (19 Nov 2026)', () => {
+  assert.equal(readableMovementText('Deposited 5000 USDC to your deal guarantee'), 'Added 5000 USDC to your savings pocket');
+  assert.equal(readableMovementText('Deposited 25 USDC to the deal guarantee'), 'Added 25 USDC to your savings pocket');
+  assert.equal(readableMovementText('Started withdrawing 10 USDC from your deal guarantee'), 'Started withdrawing 10 USDC from your savings pocket');
+  assert.equal(readableMovementText('Cancelled withdrawing 10 USDC from the deal guarantee'), 'Kept 10 USDC in your savings pocket');
+  assert.equal(readableMovementText('Collected 10 USDC from your deal guarantee'), 'Collected 10 USDC from your savings pocket');
+  assert.equal(readableMovementText("30 USDC came from the seller's deal guarantee"), "30 USDC came from the seller's deal guarantee");
+});

@@ -119,7 +119,7 @@ export function createGuaranteeRoutes(deps: GuaranteeDeps): Hono {
     const session = deps.session(c);
     if (!session) return c.json({ error: 'not authenticated' }, 401);
     const vault = deps.vault();
-    if (!vault) return c.json({ code: 'guarantee_off', error: 'The deal guarantee is not available right now.' }, 409);
+    if (!vault) return c.json({ code: 'guarantee_off', error: 'The savings pocket is not available right now.' }, 409);
     let body: { amountUsdc?: string; requestId: string };
     try {
       body = (step === 'put_up' || step === 'take_out' ? withAmount : noAmount).parse(await c.req.json());
@@ -167,7 +167,7 @@ export function createGuaranteeRoutes(deps: GuaranteeDeps): Hono {
     const session = deps.session(c);
     if (!session) return c.json({ error: 'not authenticated' }, 401);
     const vault = deps.vault();
-    if (!vault) return c.json({ code: 'guarantee_off', error: 'The deal guarantee is not available right now.' }, 409);
+    if (!vault) return c.json({ code: 'guarantee_off', error: 'The savings pocket is not available right now.' }, 409);
     let body: z.infer<typeof intentSchema>;
     try {
       body = intentSchema.parse(await c.req.json());
@@ -197,7 +197,7 @@ export function createGuaranteeRoutes(deps: GuaranteeDeps): Hono {
     const session = deps.session(c);
     if (!session) return c.json({ error: 'not authenticated' }, 401);
     const vault = deps.vault();
-    if (!vault) return c.json({ code: 'guarantee_off', error: 'The deal guarantee is not available right now.' }, 409);
+    if (!vault) return c.json({ code: 'guarantee_off', error: 'The savings pocket is not available right now.' }, 409);
     let body: z.infer<typeof completeSchema>;
     try {
       body = completeSchema.parse(await c.req.json());
