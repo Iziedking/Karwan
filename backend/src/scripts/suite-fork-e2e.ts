@@ -18,6 +18,7 @@ import {
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { fundAgentMatchSuite } from '../agents/fundAgentMatchSuite.js';
 import { runSuiteDispute, type SuiteWatcherDeps } from '../agents/suiteDisputeWatcher.js';
+import { confirmFinding } from '../deals/disputeConfirm.js';
 import { agreementEscrowAbi } from '../chain/abis/agreementEscrow.js';
 import { createAgreementEscrow } from '../chain/agreementEscrow.js';
 import { agreementEscrowPorts, createAgreementReads, readAgreementLimits } from '../chain/agreementEscrowReads.js';
@@ -51,6 +52,8 @@ import { holdUntil } from '../chain/tradeFinance.js';
 ///   parity   the backend's hashes, ids and digests against the contracts
 ///   full     parity, then record setup, a one-time deal, earnings, a checked
 ///            deal passed by two checkers, and a dispute carried out after 72 h
+///   hearing  view 90: a dispute heard from both sides and confirmed by a
+///            reviewer, proposed in full or ruled at 60% by the review Safe
 /// Reads FORK_RPC_URL. The full run also needs the hub configured (the owner's
 /// timelock batch executed before the fork block) and FORK_CHECKER_KEYS,
 /// FORK_ARBITER_KEY, FORK_ISSUER_KEY, the testnet role keys, piped in and
@@ -164,15 +167,19 @@ function coerceOne(p: AbiParameter, v: unknown): unknown {
   return v;
 }
 
-async function full(): Promise<void> {
+/// What every escrow family run with role keys needs on the fork: two people
+/// with their records and agents, the Agreement escrow adapter with key wallets
+/// in place of Circle, and Karwan's checker and arbiter keys. Null when the keys
+/// were not piped in or the hub does not open the family.
+async function suiteSetup() {
   const keyList = (process.env.FORK_CHECKER_KEYS ?? '').split(',').map((k) => k.trim()).filter(Boolean);
   if (keyList.length < 3 || !process.env.FORK_ARBITER_KEY || !process.env.FORK_ISSUER_KEY) {
     check('role keys were piped in', false, 'FORK_CHECKER_KEYS, FORK_ARBITER_KEY and FORK_ISSUER_KEY are needed');
-    return;
+    return null;
   }
   const limits = await readAgreementLimits(pub, D.hub!, D.agreement!, USDC);
   check('the hub opens the Agreement family for USDC', limits.perDealCapMicros > 0n, `cap ${limits.perDealCapMicros}, fee ${limits.feeBps} bps`);
-  if (limits.perDealCapMicros === 0n) return;
+  if (limits.perDealCapMicros === 0n) return null;
 
   // Fresh people and agents for every run, funded with test USDC on the fork.
   const accounts: Record<string, LocalAccount> = {};
@@ -289,9 +296,58 @@ async function full(): Promise<void> {
       tradeType: 'service',
       agreementHash: `0x${'cd'.repeat(32)}`,
     });
+  const signers = createPlatformSigners(
+    { checkerKeys: keyList, arbiterKey: process.env.FORK_ARBITER_KEY!, issuerKey: process.env.FORK_ISSUER_KEY! },
+    {
+      family: D.agreement!,
+      readReportDigest: ({ family, dealId, revision, pass, evidenceHash }) =>
+        pub.readContract({ address: D.verifier!, abi: verifierAbi, functionName: 'reportDigest', args: [family, dealId, revision, pass, evidenceHash] }),
+      send: async (_from, fn, args, { account, to }) => {
+        const targets: Record<PlatformTarget, { address: Hex; abi: readonly unknown[] }> = {
+          verifier: { address: D.verifier!, abi: verifierAbi },
+          escrow: { address: D.agreement!, abi: agreementEscrowAbi },
+          record: { address: D.record!, abi: [] },
+        };
+        const hash = await createWalletClient({ account, chain, transport: http(RPC) }).writeContract({
+          address: targets[to].address,
+          abi: targets[to].abi as never,
+          functionName: fn as never,
+          args: args as never,
+          account,
+          chain,
+        });
+        const receipt = await pub.waitForTransactionReceipt({ hash });
+        if (receipt.status !== 'success') throw new Error(`${to}.${fn} reverted (${hash})`);
+        return hash;
+      },
+      readView,
+      receiptReported: async (txHash, dealId, revision) =>
+        (await pub.getTransactionReceipt({ hash: txHash })).logs.some((log) => {
+          try {
+            const ev = decodeEventLog({ abi: verifierAbi, data: log.data, topics: log.topics });
+            return ev.eventName === 'Reported' && ev.args.dealId === dealId && ev.args.revision === revision;
+          } catch {
+            return false;
+          }
+        }),
+      log: (line) => console.log(`      ${line}`),
+    },
+  );
+  return {
+    accounts, sendAs, balance, events, escrow, readView, buyerUser, sellerUser, matched, limits, signers,
+    /// Moves the clock the identity and matching modules read to the fork's time.
+    tick: async () => (nowSecs = await chainNow()),
+  };
+}
+
+async function full(): Promise<void> {
+  const s = await suiteSetup();
+  if (!s) return;
+  const { accounts, sendAs, balance, events, escrow, readView, buyerUser, sellerUser, matched, limits, signers } = s;
+  let nowSecs = await s.tick();
 
   // 1. A one-time deal: funded, accepted, delivered, released, earnings moved home.
-  nowSecs = await chainNow();
+  nowSecs = await s.tick();
   const one = await matched(`0x${'01'.repeat(32)}`, 100_000_000n, nowSecs + 5 * DAY);
   check('one-time deal funded and accepted', one.ok && one.accepted, one.ok ? one.record.escrowDealId : one.reason);
   if (!one.ok) return;
@@ -335,44 +391,7 @@ async function full(): Promise<void> {
   check('earnings moved to the seller identity wallet, exactly', !!swept && 'txHash' in swept && (await balance(sellerUser)) - before === sellerMicros);
 
   // 2. A checked deal: two of the three checkers pass it.
-  const signers = createPlatformSigners(
-    { checkerKeys: keyList, arbiterKey: process.env.FORK_ARBITER_KEY!, issuerKey: process.env.FORK_ISSUER_KEY! },
-    {
-      family: D.agreement!,
-      readReportDigest: ({ family, dealId, revision, pass, evidenceHash }) =>
-        pub.readContract({ address: D.verifier!, abi: verifierAbi, functionName: 'reportDigest', args: [family, dealId, revision, pass, evidenceHash] }),
-      send: async (_from, fn, args, { account, to }) => {
-        const targets: Record<PlatformTarget, { address: Hex; abi: readonly unknown[] }> = {
-          verifier: { address: D.verifier!, abi: verifierAbi },
-          escrow: { address: D.agreement!, abi: agreementEscrowAbi },
-          record: { address: D.record!, abi: [] },
-        };
-        const hash = await createWalletClient({ account, chain, transport: http(RPC) }).writeContract({
-          address: targets[to].address,
-          abi: targets[to].abi as never,
-          functionName: fn as never,
-          args: args as never,
-          account,
-          chain,
-        });
-        const receipt = await pub.waitForTransactionReceipt({ hash });
-        if (receipt.status !== 'success') throw new Error(`${to}.${fn} reverted (${hash})`);
-        return hash;
-      },
-      readView,
-      receiptReported: async (txHash, dealId, revision) =>
-        (await pub.getTransactionReceipt({ hash: txHash })).logs.some((log) => {
-          try {
-            const ev = decodeEventLog({ abi: verifierAbi, data: log.data, topics: log.topics });
-            return ev.eventName === 'Reported' && ev.args.dealId === dealId && ev.args.revision === revision;
-          } catch {
-            return false;
-          }
-        }),
-      log: (line) => console.log(`      ${line}`),
-    },
-  );
-  nowSecs = await chainNow();
+  nowSecs = await s.tick();
   const checkedTerms = buildAgreementTerms(
     {
       kind: 'one_time',
@@ -404,7 +423,7 @@ async function full(): Promise<void> {
   // a dispute only about a delivery; with none the buyer reclaims after the deadline.)
   await escrow.dispute({ walletId: 'buyer-agent', jobId: checkedId, clauseHash: `0x${'c1'.repeat(32)}`, dealKey: 'deal-checked' });
   check('the buyer disputed the delivery', (await readView(checkedId)).state === DEAL_STATE.Disputed);
-  nowSecs = await chainNow();
+  nowSecs = await s.tick();
   const deal = {
     jobId: 'deal-checked',
     buyer: buyerUser,
@@ -434,7 +453,7 @@ async function full(): Promise<void> {
   const proposed = await readView(checkedId);
   check('the arbiter key proposed paying the seller, from the table', proposed.proposal && proposed.proposedBps === 10_000, deal.v3Ruling?.ruleId ?? '');
   await warp(72 * 3600 + 60);
-  nowSecs = await chainNow();
+  nowSecs = await s.tick();
   await runSuiteDispute(watcher, deal, nowSecs * 1000);
   const ended = await readView(checkedId);
   check('the ruling was carried out after the appeal window', ended.state !== DEAL_STATE.Disputed && deal.settledAt !== undefined, `state ${ended.state}`);
@@ -450,7 +469,7 @@ async function full(): Promise<void> {
 
   // 3. Review, then pay (owner, 25 Oct 2026): a silent buyer's review ends and
   // the seller is paid by a claim; asking for more time moves the end first.
-  nowSecs = await chainNow();
+  nowSecs = await s.tick();
   const quiet = await matched(`0x${'03'.repeat(32)}`, 20_000_000n, nowSecs + 5 * DAY);
   check('a deal for the silent-buyer run funded and accepted', quiet.ok && quiet.accepted, quiet.ok ? quiet.record.escrowDealId : quiet.reason);
   if (!quiet.ok) return;
@@ -486,6 +505,174 @@ async function full(): Promise<void> {
     claimed === 'claim' && quietView.state === DEAL_STATE.Settled && (await balance(accounts['seller-agent']!.address)) > agentBefore,
     `state ${quietView.state}`,
   );
+}
+
+const disputeEventsAbi = parseAbi([
+  'event RulingProposed(bytes32 indexed dealId, uint16 sellerBps, bytes32 rulingHash, uint64 appealEnds)',
+  'event DisputeResolved(bytes32 indexed dealId, uint16 sellerBps, bytes32 rulingHash, uint8 how)',
+  'event TrancheRuled(bytes32 indexed dealId, uint8 tranche, uint16 sellerBps, uint256 toSeller, uint256 toBuyer)',
+]);
+
+/// View 90, first slice: both sides are heard and a reviewer confirms the
+/// finding before anything reaches the chain. Two disputes on checked, on-time
+/// deliveries, which the old table would have paid to the seller an hour in:
+/// a confirmed full payment is proposed with the finding's hash and carried out
+/// after 72 hours; a confirmed 60% goes to the review Safe, which rules it with
+/// the same hash.
+async function hearingRun(): Promise<void> {
+  const s = await suiteSetup();
+  if (!s) return;
+  const { accounts, sendAs, balance, escrow, readView, buyerUser, sellerUser, limits, signers } = s;
+  const WINDOW_MS = 3 * DAY * 1000;
+  const answer = { received: 'The logo files', missing: 'Nothing', late: 'No', links: [], submittedAt: 1 };
+
+  for (const run of [
+    { label: 'full payment', share: 10_000, salt: `0x${'91'.repeat(32)}` as Hex },
+    { label: 'a 60% share', share: 6_000, salt: `0x${'92'.repeat(32)}` as Hex },
+  ]) {
+    let nowSecs = await s.tick();
+    const terms = buildAgreementTerms(
+      {
+        kind: 'one_time',
+        asset: USDC,
+        seller: accounts['seller-agent']!.address,
+        amountMicros: 40_000_000n,
+        acceptBy: BigInt(nowSecs + 3 * DAY),
+        deliveryDeadline: BigInt(nowSecs + 6 * DAY),
+        reviewWindowSecs: limits.minReview,
+        reclaimGraceSecs: DAY,
+        agreementHash: `0x${'cd'.repeat(32)}`,
+        checked: { verifier: D.verifier!, checkPolicy: CHECK_POLICY_V1 },
+        nowSecs,
+      },
+      limits,
+    );
+    const key = `deal-heard-${run.share}`;
+    await sendAs('buyer-agent', USDC, erc20Abi, 'approve', [D.agreement!, buyerPaysMicros(terms.amount, limits.feeBps)]);
+    const { jobId: id } = await escrow.fund({ walletId: 'buyer-agent', buyer: accounts['buyer-agent']!.address, salt: run.salt, terms, dealKey: key });
+    await escrow.accept({ walletId: 'seller-agent', jobId: id, termsHash: agreementTermsHash(terms), dealKey: key });
+    await escrow.markDelivered({ walletId: 'seller-agent', jobId: id, proofHash: `0x${'d9'.repeat(32)}`, dealKey: key });
+    await signers.submitCheck({ dealId: id, revision: (await readView(id)).revision, pass: true, evidenceHash: `0x${'ee'.repeat(32)}` });
+    await escrow.dispute({ walletId: 'buyer-agent', jobId: id, clauseHash: `0x${'c1'.repeat(32)}`, dealKey: key });
+
+    const sent: Hex[] = [];
+    const deal = {
+      jobId: key,
+      buyer: buyerUser,
+      seller: sellerUser,
+      escrowVersion: 'suite',
+      escrowDealId: id,
+      buyerAgentWalletId: 'buyer-agent',
+      disputed: true,
+      disputedBy: 'buyer',
+      disputedAt: nowSecs * 1000,
+      disputeStatements: { buyer: answer },
+      escrowTerms: storeAgreementTerms(terms),
+    } as unknown as DirectDeal;
+    const watcher: SuiteWatcherDeps = {
+      escrow: { executeRuling: (a) => escrow.executeRuling(a), applyFallback: (a) => escrow.applyFallback(a) },
+      arbiter: {
+        ...signers,
+        arbiterSend: async (fn, args) => {
+          const r = await signers.arbiterSend(fn, args);
+          sent.push(r.txHash);
+          return r;
+        },
+      },
+      readView: (d) => readView(d.escrowDealId as Hex),
+      readEscalatedAt: (d) => reads.escalatedAt(D.agreement!, d.escrowDealId as Hex),
+      readReceipt: async () => ({ agreementVersion: 1, state: 'not-recorded' }) as never,
+      coolOffSecs: 0,
+      patchDeal: async (_id, p) => {
+        Object.assign(deal, p);
+      },
+      emit: () => undefined,
+      alertOperator: async () => undefined,
+      warn: (_c, m) => console.log(`      ${m}`),
+      hearing: {
+        on: true,
+        windowSecs: 3 * DAY,
+        deadlineSecs: 4 * DAY + 12 * 3600,
+        // No model on the fork: the finding the judge would write, for the reviewer.
+        buildFinding: async (_d, now) => ({
+          sellerBps: run.share,
+          items: [{ item: 'Logo files', finding: run.share === 10_000 ? 'delivered' : 'partly-delivered', evidence: 'the delivery and its check' }],
+          confidence: 'clear',
+          summary: 'Read from both answers and the delivery.',
+          model: 'fork',
+          inputsHash: `0x${'a1'.repeat(32)}`,
+          proposedAt: now,
+          status: 'awaiting-review',
+        }),
+        findingReady: async () => undefined,
+      },
+    };
+
+    await runSuiteDispute(watcher, deal, (await chainNow()) * 1000);
+    check(`${run.label}: with one side still to answer, nothing reaches the chain`, sent.length === 0 && !(await readView(id)).proposal && !deal.judgeProposal);
+
+    deal.disputeStatements = { buyer: answer, seller: answer };
+    await runSuiteDispute(watcher, deal, (await chainNow()) * 1000);
+    check(`${run.label}: once both answered, a finding waits for a reviewer and nothing is sent`, sent.length === 0 && deal.judgeProposal?.status === 'awaiting-review');
+
+    const confirmed = confirmFinding(deal, { sellerBps: run.share, reason: 'Checked both answers against the delivery.' }, 'fork-reviewer', Date.now(), { windowMs: WINDOW_MS });
+    if (!confirmed.ok) {
+      check(`${run.label}: the reviewer confirms the finding`, false, confirmed.code);
+      continue;
+    }
+    deal.judgeProposal = confirmed.proposal;
+    const hash = confirmed.proposal.findingHash!;
+    await runSuiteDispute(watcher, deal, (await chainNow()) * 1000);
+    const logs = (await pub.getTransactionReceipt({ hash: sent[0]! })).logs.flatMap((log) => {
+      try {
+        return [decodeEventLog({ abi: disputeEventsAbi, data: log.data, topics: log.topics })];
+      } catch {
+        return [];
+      }
+    });
+
+    if (run.share === 10_000) {
+      const proposedEv = logs.find((e) => e.eventName === 'RulingProposed');
+      check('full payment: proposed on chain with the finding hash', proposedEv?.eventName === 'RulingProposed' && proposedEv.args.rulingHash === hash && proposedEv.args.sellerBps === 10_000, hash);
+      await warp(72 * 3600 + 60);
+      const sellerBefore = await balance(accounts['seller-agent']!.address);
+      await runSuiteDispute(watcher, deal, (await chainNow()) * 1000);
+      const v = await readView(id);
+      check('full payment: carried out after 72 hours, the seller paid', v.state !== DEAL_STATE.Disputed && (await balance(accounts['seller-agent']!.address)) > sellerBefore, `state ${v.state}`);
+    } else {
+      const v = await readView(id);
+      check('a 60% share: sent to the review Safe, never proposed', v.escalated && !v.proposal && sent.length === 1);
+      const { reviewer } = await pub.readContract({ address: D.agreement!, abi: agreementEscrowAbi, functionName: 'panelOf', args: [id] }) as { reviewer: Hex };
+      await anvil.impersonateAccount({ address: reviewer });
+      await anvil.setBalance({ address: reviewer, value: 10n ** 18n });
+      const ruled = await createWalletClient({ account: reviewer, chain, transport: http(RPC) }).writeContract({
+        address: D.agreement!, abi: agreementEscrowAbi, functionName: 'rule', args: [id, 6_000, hash], account: reviewer, chain,
+      });
+      await anvil.stopImpersonatingAccount({ address: reviewer });
+      const ruledLogs = (await pub.waitForTransactionReceipt({ hash: ruled })).logs.flatMap((log) => {
+        try {
+          return [decodeEventLog({ abi: disputeEventsAbi, data: log.data, topics: log.topics })];
+        } catch {
+          return [];
+        }
+      });
+      const resolved = ruledLogs.find((e) => e.eventName === 'DisputeResolved');
+      const tranche = ruledLogs.find((e) => e.eventName === 'TrancheRuled');
+      check('a 60% share: the review Safe rules it with the same finding hash', resolved?.eventName === 'DisputeResolved' && resolved.args.rulingHash === hash && resolved.args.sellerBps === 6_000);
+      if (tranche?.eventName === 'TrancheRuled') {
+        // The escrow's own split: 60% of the seller's net to the seller; the
+        // rest of the net and the fee on that 40% back to the buyer.
+        const net = v.sellerNet - v.released;
+        const fee = v.feeTotal - v.feeReleased;
+        const wantSeller = (net * 6_000n) / 10_000n;
+        const wantBuyer = net - wantSeller + (fee - (fee * 6_000n) / 10_000n);
+        const { toSeller, toBuyer } = tranche.args;
+        check('a 60% share: 60% of the net to the seller, the rest to the buyer, exactly', toSeller === wantSeller && toBuyer === wantBuyer, `${toSeller} and ${toBuyer}`);
+      } else {
+        check('a 60% share: the seller gets 60 and the buyer 40', false, 'no TrancheRuled event');
+      }
+    }
+  }
 }
 
 /// The Deal guarantee on the family vault (view 37), with no role keys: a fresh
@@ -1237,6 +1424,7 @@ async function main(): Promise<void> {
   console.log(`suite fork e2e, ${phase}, block ${await pub.getBlockNumber()}`);
   await parity();
   if (phase === 'full') await full();
+  if (phase === 'hearing') await hearingRun();
   if (phase === 'guarantee') await guaranteeRun();
   if (phase === 'financing') await financingRun();
   if (phase === 'dealguarantee') await dealGuaranteeRun();

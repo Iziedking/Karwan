@@ -55,7 +55,7 @@ case "${1:-}" in
     # The escrow-family path end to end against the fork (backend/src/scripts/suite-fork-e2e.ts).
     # A full run reads the role keys as NAME=value lines on stdin, never from a command line.
     PHASE=${2:-parity}
-    case "$PHASE" in parity|full|guarantee|dealguarantee|financing|contest|hourly|agentjob) ;; *) echo "usage: $0 e2e parity|full|guarantee|dealguarantee|financing|contest|hourly|agentjob" >&2; exit 2 ;; esac
+    case "$PHASE" in parity|full|hearing|guarantee|dealguarantee|financing|contest|hourly|agentjob) ;; *) echo "usage: $0 e2e parity|full|hearing|guarantee|dealguarantee|financing|contest|hourly|agentjob" >&2; exit 2 ;; esac
     ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
     ssh -o BatchMode=yes $H "rm -rf $W/repo && mkdir -p $W/repo /tmp/karwan-npm-cache" < /dev/null
     # Only what git tracks, plus new files it does not ignore. Env files, recovery
