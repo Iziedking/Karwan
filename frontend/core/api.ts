@@ -530,6 +530,8 @@ export interface FoundPerson {
   rating: string;
   stars: number | null;
   ratings: number;
+  /// Their rating on deals like this one, when at least one is close (view 93); absent on older finds.
+  likeThis?: { stars: number; count: number } | null;
   distance: DistanceLine;
   meet: Meet;
   priceUsdc: string | null;
@@ -937,6 +939,19 @@ export interface DealDisputeView {
   otherSubmitted: boolean;
   statements: Partial<Record<'buyer' | 'seller', DisputeStatementView>>;
   proposal?: DisputeProposalView;
+  /// View 90, escrow family: the step it is on and when each step ends. The
+  /// proposal is then only a finding a person at Karwan confirmed.
+  hearing?: DisputeHearingView;
+}
+
+/// Mirrors backend/src/deals/disputeHearingView.ts.
+export interface DisputeHearingView {
+  step: 'answers' | 'finding' | 'object' | 'people';
+  answersBy: number;
+  findingBy: number;
+  objectBy: number | null;
+  askedAt: number | null;
+  ruleBy: number | null;
 }
 
 export interface DealView {
