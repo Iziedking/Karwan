@@ -1,6 +1,6 @@
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { listAllBriefs } from '../db/briefs.js';
-import { GENERIC_TAG_WORDS, NAIVE_STOPWORDS } from '../llm/keywords.js';
+import { GENERIC_TAG_WORDS, NAIVE_STOPWORDS, textWords } from '../llm/keywords.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import type { Listing } from '../db/listings.js';
@@ -30,12 +30,13 @@ const FILLER = new Set([
   'available', 'reliable', 'new', 'used', 'condition', 'ready', 'fast', 'quick', 'now', 'today', 'week', 'usdc',
 ]);
 
-/// The words that carry meaning: three letters or more, never shop filler.
+/// The words that carry meaning, in any script: three letters or more (two in
+/// Chinese, Japanese and Korean), never shop filler.
 function topicWords(texts: readonly string[]): Set<string> {
   const out = new Set<string>();
   for (const t of texts) {
-    for (const w of t.toLowerCase().split(/[^a-z0-9]+/)) {
-      if (w.length < 3 || FILLER.has(w) || GENERIC_TAG_WORDS.has(w) || NAIVE_STOPWORDS.has(w)) continue;
+    for (const w of textWords(t)) {
+      if (FILLER.has(w) || GENERIC_TAG_WORDS.has(w) || NAIVE_STOPWORDS.has(w)) continue;
       out.add(w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w);
     }
   }

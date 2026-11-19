@@ -5,6 +5,7 @@ import { topicalMatchScore } from '../llm/keywords.js';
 import { isPublic } from '../market/visibility.js';
 import { requestsForSeller, sellerIndex } from '../matching/sellerIndex.js';
 import { liveDirectoryDeps } from './directoryLive.js';
+import { keywordsOf } from './keywords.js';
 import { openNeeds } from './needs.js';
 import type { LeadCandidate, LeadSeller } from './rankBuyers.js';
 import { contactFromOf, meetOf, reachableOf } from './settings.js';
@@ -16,7 +17,6 @@ import { contactFromOf, meetOf, reachableOf } from './settings.js';
 
 const READ_MAX = 20;
 const DAY_SECONDS = 86_400;
-const keywordsOf = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
 
 export async function customerLeads(user: string): Promise<{ seller: LeadSeller | null; leads: LeadCandidate[] }> {
   const me = user.toLowerCase();

@@ -113,6 +113,16 @@ function world(): World {
   return w;
 }
 
+test('a need in Hausa or Arabic is searched by its own words', async () => {
+  const w = world();
+  w.state.agree = true;
+  const seen: string[][] = [];
+  const people = w.deps.people;
+  w.deps.people = async (q) => { seen.push(q.keywords); return people(q); };
+  await runOrder(w.deps, order({ need: 'Ɗinkin babbar riga خياطة' }), NOW);
+  assert.deepEqual(seen[0], ['ɗinkin', 'babbar', 'riga', 'خياطة']);
+});
+
 test('past its date an order ends and sends nothing', async () => {
   const w = world();
   const r = await runOrder(w.deps, order({ until: NOW + DAY }), NOW + DAY);

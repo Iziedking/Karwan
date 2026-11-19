@@ -37,6 +37,15 @@ test('people who keep outside agents out, have no tag, work only in person or ca
   assert.deepEqual(rows.map((r) => r.tag), ['@ok']);
 });
 
+test('a need in Arabic reaches the search as its words', async () => {
+  const seen: string[][] = [];
+  await findForAgent(
+    { need: 'خياطة بدلة', budgetUsdc: 50, deadlineDays: 5, agentAddress: '0xoutside' },
+    { candidates: async (q) => { seen.push(q.keywords); return []; }, cleanRecordCounts: false, requireVerified: false },
+  );
+  assert.deepEqual(seen, [['خياطة', 'بدلة']]);
+});
+
 test('a seller with no price is offered at the budget, inside the deadline', async () => {
   const [row] = await find([seller('quote', { price: null, days: null })]);
   assert.equal(row!.priceUsdc, '50');

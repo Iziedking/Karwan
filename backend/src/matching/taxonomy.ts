@@ -1,3 +1,5 @@
+import { textWords } from '../llm/keywords.js';
+
 const STOPWORDS = new Set([
   'a', 'an', 'and', 'are', 'for', 'from', 'get', 'good', 'have', 'help', 'hire',
   'i', 'in', 'into', 'is', 'it', 'need', 'of', 'on', 'or', 'our', 'please',
@@ -9,9 +11,8 @@ const STOPWORDS = new Set([
 export function normalizeTerms(values: readonly string[]): string[] {
   return [...new Set(
     values
-      .flatMap((value) => value.toLowerCase().split(/[^a-z0-9]+/))
-      .map((value) => value.trim())
-      .filter((value) => value.length >= 3 && !STOPWORDS.has(value)),
+      .flatMap(textWords)
+      .filter((value) => !STOPWORDS.has(value)),
   )].sort();
 }
 

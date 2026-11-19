@@ -2,6 +2,7 @@ import type { PrivateLocation } from '../location/rules.js';
 import type { AlertOutcome } from './alerts.js';
 import type { Contact, PitchOffer } from './contacts.js';
 import { asOf, findEndsAt, type Find } from './finds.js';
+import { keywordsOf } from './keywords.js';
 import { LIMITS } from './limits.js';
 import { afterRequestEvent, rolled, type StandingOrder } from './orders.js';
 import type { PitchOutcome } from './pitches.js';
@@ -63,7 +64,6 @@ export interface RunResult {
   outcome: RunOutcome;
 }
 
-const keywordsOf = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
 const lower = (s: string) => s.toLowerCase();
 
 const nobody = (o: StandingOrder): RunResult => {

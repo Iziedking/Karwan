@@ -20,6 +20,12 @@ test('shop filler never makes a fit: delivery, quality and pricing are in every 
   assert.deepEqual(alertFor([{ briefText: 'Fast delivery, good quality, fair pricing please' }], parts), { kind: 'new' });
 });
 
+test('a request in Arabic or Hausa fits an offer in the same words (view 93)', () => {
+  const suits = { title: 'خياطة بدلة', description: 'Ɗinkin babbar riga da kwat' };
+  assert.deepEqual(alertFor([{ briefText: 'أريد خياطة بدلة' }], suits), { kind: 'fits', words: ['خياطة', 'بدلة'] });
+  assert.deepEqual(alertFor([{ briefText: 'Ina son ɗinkin riga' }], suits), { kind: 'fits', words: ['ɗinkin', 'riga'] });
+});
+
 test('a private offer is never news; it reaches a person only when it fits their request', () => {
   const hidden = { ...parts, visibility: 'agents' as const };
   assert.equal(alertFor([], hidden), null);

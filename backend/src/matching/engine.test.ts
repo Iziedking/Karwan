@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { classifyMatchLabel, dedupeCandidateInputs, evaluateCandidate, evaluateCandidates, rankCandidates } from './engine.js';
 import { parseUsdcMicro } from './money.js';
-import { skillCoverage } from './taxonomy.js';
+import { containsProhibitedCategory, skillCoverage } from './taxonomy.js';
 import type { MatchingCandidateSnapshot, MatchingEvaluationInput, MatchingMandateSnapshot } from './types.js';
 
 const mandate: MatchingMandateSnapshot = {
@@ -64,6 +64,17 @@ test('money parsing is exact to six decimal places', () => {
 test('taxonomy coverage is deterministic and ignores commerce filler', () => {
   assert.equal(skillCoverage(['API service', 'backend'], ['backend engineer', 'rest api']), 100);
   assert.equal(skillCoverage(['amazon account'], ['outlier account']), 0);
+});
+
+/// A skill or a blocked category written in Arabic, Hausa or Chinese is read
+/// the way an English one is (view 93).
+test('taxonomy coverage and blocked categories read every script', () => {
+  assert.equal(skillCoverage(['خياطة'], ['خياطة بدلة']), 100);
+  assert.equal(skillCoverage(['خياطة بدلة'], ['خياطة']), 50);
+  assert.equal(skillCoverage(['ɗinkin riga'], ['dinkin riga']), 50, 'Ɗ is its own letter, not d');
+  assert.equal(skillCoverage(['西装'], ['定制西装']), 100);
+  assert.equal(containsProhibitedCategory(['قمار'], ['قمار على الإنترنت']), true);
+  assert.equal(containsProhibitedCategory(['قمار'], ['خياطة']), false);
 });
 
 test('eligible candidates preserve declared and verified evidence separately', () => {

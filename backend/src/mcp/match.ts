@@ -1,4 +1,5 @@
 import type { DeliveryKind } from '../location/rules.js';
+import { keywordsOf } from '../find/keywords.js';
 import { FIND_MAX, rankForFind, type FindCandidate } from '../find/rank.js';
 
 /// find_counterparty for an agent outside Karwan (view 15): the same ranking
@@ -26,10 +27,9 @@ export interface FoundSeller {
   recommended: boolean;
 }
 
-const words = (need: string) => need.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
 
 export async function findForAgent(input: { need: string; budgetUsdc: number; deadlineDays: number; agentAddress: string }, deps: FindDeps): Promise<FoundSeller[]> {
-  const keywords = words(input.need);
+  const keywords = keywordsOf(input.need);
   // An outside agent names no place, so only work that can be done online.
   const kind: DeliveryKind = 'remote';
   const all = await deps.candidates({ keywords, text: input.need, kind });
