@@ -909,3 +909,11 @@ Agree: yes.
 - Wired 18 Nov 2026: the timelock batch ran (tx `0x1452bc06f45c5a7eb93b4dfd0c0d03508092daf2c9abe6e53db3ee31143ca7d4`). Read back: hub `yieldPoolOf(USDC)` is the pool, pool `teller()` is `0x9fdF…105A`, value and principal 0.
 - Allowlisted 18 Nov 2026: Circle Support confirmed by email. Read back on `https://rpc.testnet.arc.io`: Entitlements `doesUserHaveRole(pool, 0)` is true (the deployer and Treasury v4 also true, `0x…dEaD` false). The Teller's `maxDeposit(account)` equals the account's USDC balance (deployer 133.54 USDC and 133.54, Treasury v4 10 and 10), so the pool's 0 is its empty balance, not a limit. `previewDeposit(1 USDC)` is 0.874109 USYC.
 - Agree: yes.
+
+## 2026-11-19 · Disputes: both sides heard before anything is decided (T2, view 90 slice 1)
+
+- Scope: no new contract call and no contract change. The backend keeps using `proposeRuling`, `escalate`, `executeRuling`, `applyFallback` on the Agreement escrow and the review Safe's `rule`; only when the arbiter key sends them changes, behind `DISPUTE_HEARING_FAMILY`.
+- Source, read 19 Nov 2026: `contracts/src/suite/dispute/DisputeLib.sol`: `PROPOSAL_WINDOW` 5 days (after it anyone may escalate a dispute with no proposal), `APPEAL_WINDOW` 72 hours, `RULING_PERIOD` 5 days; `propose` accepts only 0, 10000 or the terms' `partialBps`. `AgreementDisputeLib.dispute` refuses a dispute before a delivery.
+- Read-only test, 19 Nov 2026, `eth_call` on `https://rpc.testnet.arc.io` at block 72976971: Agreement escrow `0x55460D2b8b0D8067Ea33406b310224B5bd44F43C` `disputeOf(0x…01)` returns the empty dispute (opener zero, not proposed, not escalated), matching the struct the backend reads in `chain/agreementEscrowReads.ts`.
+- Consequence for the design: the finding deadline must fall before day 5, or a party can escalate a dispute with no finding attached. Default 4 days 12 hours.
+- Agree: yes.
