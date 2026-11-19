@@ -5,6 +5,7 @@ import { Hint } from '@/shared/components/Hint';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatDealDate } from './presentation';
+import { HearingCard } from './HearingCard';
 import { problemSteps } from './problemSteps';
 import { StepsTrack } from './StepsTrack';
 import { linksFrom, proposalNote, splitShares } from './disputeShares';
@@ -58,6 +59,39 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
   // D13 as built: a silent seller's rule returns the money after a Karwan reviewer confirms it.
   const silent = viewerIsBuyer && asking && !dispute.otherSubmitted;
   const theyMissed = !proposal && track.answerPassed && !theirs;
+
+  if (dispute.hearing) {
+    const answering = dispute.hearing.step === 'answers' && dispute.open;
+    const form = !answering ? null : editing || !mine ? (
+      <StatementForm
+        jobId={jobId}
+        caller={caller}
+        viewerIsBuyer={viewerIsBuyer}
+        initial={mine}
+        onSent={() => { setEditing(false); onChanged(); }}
+      />
+    ) : (
+      <button type="button" onClick={() => setEditing(true)} className="min-h-11 text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+        {t.edit}
+      </button>
+    );
+    return (
+      <HearingCard
+        jobId={jobId}
+        dispute={dispute}
+        hearing={dispute.hearing}
+        viewerIsBuyer={viewerIsBuyer}
+        caller={caller}
+        name={name}
+        myName={myName}
+        openedBy={openedBy}
+        openedAt={openedAt}
+        heldUsdc={heldUsdc}
+        form={form}
+        onChanged={onChanged}
+      />
+    );
+  }
 
   return (
     <section aria-labelledby="dispute-title" data-problem-card className="mt-6 space-y-4 rounded-[20px] border border-[var(--line)] bg-[var(--lp-card)] p-5">

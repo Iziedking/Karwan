@@ -21,6 +21,7 @@ const reads = createAgreementReads(publicClient);
 export const readAgreementTerms = (address: Hex, dealId: Hex): Promise<AgreementTerms> => reads.terms(address, dealId);
 export const readAgreementView = (address: Hex, dealId: Hex): Promise<DealV3View> => reads.view(address, dealId);
 export const readAgreementEscalatedAt = (address: Hex, dealId: Hex): Promise<bigint> => reads.escalatedAt(address, dealId);
+export const readAgreementDispute = (address: Hex, dealId: Hex) => reads.dispute(address, dealId);
 export const readAgreementPanel = (address: Hex, dealId: Hex) => reads.panel(address, dealId);
 export const readAgreementReviewEnd = (address: Hex, dealId: Hex): Promise<bigint> => reads.reviewEnd(address, dealId);
 export const readAgreementTermsHash = (address: Hex, terms: AgreementTerms): Promise<Hex> => reads.termsHashOf(address, terms);

@@ -46,6 +46,49 @@ export interface DisputeJudgeCopy {
   nothingNow: string;
   decidedHere: string;
   settle: string;
+  /// View 90, escrow family: the heard dispute (Figma 375:570).
+  hearing: {
+    opened: string;
+    openedYou: string;
+    openedBy: string;
+    answer: string;
+    answered: string;
+    youAnswered: string;
+    youToAnswer: string;
+    theyCanAnswer: string;
+    youCanAnswer: string;
+    beforeBoth: string;
+    finding: string;
+    findingNext: string;
+    reading: string;
+    dueBy: string;
+    checked: string;
+    object: string;
+    objectNext: string;
+    found: string;
+    toYou: string;
+    toThem: string;
+    backToYou: string;
+    backToThem: string;
+    daysLeft: string;
+    dayLeft: string;
+    hoursLeft: string;
+    ask: string;
+    askTitle: string;
+    askConsequence: string;
+    askFailed: string;
+    paid: string;
+    paidAsDecided: string;
+    asked: string;
+    people: string;
+    peopleLine: string;
+    decidedBy: string;
+    held: string;
+    sides: string;
+    canAnswerUntil: string;
+    noAnswer: string;
+    wait: { answersLine: string; findingLine: string; objectTitle: string; objectLine: string; peopleLine: string; };
+  };
 }
 
 export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJudgeCopy> = {
@@ -97,6 +140,54 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
     nothingNow: "Nothing to do now",
     decidedHere: "Karwan shows the decision here once it is made.",
     settle: "Offer a settlement",
+    hearing: {
+      opened: "Problem opened",
+      openedYou: "You opened it · {date}",
+      openedBy: "By {name} · {date}",
+      answer: "Both sides answer",
+      answered: "Both sides answered",
+      youAnswered: "You answered on {date}.",
+      youToAnswer: "Your answer is still needed.",
+      theyCanAnswer: "{name} can answer until {date}",
+      youCanAnswer: "You can answer until {date}",
+      beforeBoth: "Nothing is decided before both of you have answered.",
+      finding: "Karwan's finding",
+      findingNext: "A person checks it before anything is decided",
+      reading: "Reading both sides, the delivery and the deal chat.",
+      dueBy: "Due by {date}",
+      checked: "Checked by a person at Karwan · {date}",
+      object: "Time to object",
+      objectNext: "72 hours for either of you to ask for a person",
+      found: "Karwan found",
+      toYou: "Paid to you in full",
+      toThem: "Paid to {name} in full",
+      backToYou: "Refunded to you in full",
+      backToThem: "Refunded to {name} in full",
+      daysLeft: "{n} days left to object, then it pays out",
+      dayLeft: "1 day left to object, then it pays out",
+      hoursLeft: "{n} hours left to object, then it pays out",
+      ask: "Ask for a person to decide",
+      askTitle: "Ask for a person to decide?",
+      askConsequence: "Two people at Karwan decide instead and write their reasons, within 5 days. The money stays held until then.",
+      askFailed: "It did not go through. Try again in a moment.",
+      paid: "Paid out",
+      paidAsDecided: "Paid out as decided",
+      asked: "Asked for a person",
+      people: "People decide",
+      peopleLine: "Two people at Karwan must agree, and they write their reasons.",
+      decidedBy: "Decided by {date}",
+      held: "{amount} USDC is held until it is decided",
+      sides: "What each side said",
+      canAnswerUntil: "Can answer until {date}",
+      noAnswer: "Did not answer",
+      wait: {
+        answersLine: "Karwan tells you here and in Telegram when there is a finding.",
+        findingLine: "A person at Karwan checks the finding before anything is decided.",
+        objectTitle: "Nothing to do unless you disagree",
+        objectLine: "It pays out on {date}, unless one of you asks for a person.",
+        peopleLine: "Karwan tells you here and in Telegram when people have decided.",
+      },
+    },
   },
   fr: {
     title: "Donnez votre version à Karwan",
@@ -146,6 +237,54 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
     nothingNow: "Rien à faire pour l'instant",
     decidedHere: "Karwan affiche la décision ici dès qu'elle est prise.",
     settle: "Proposer un arrangement",
+    hearing: {
+      opened: "Problème signalé",
+      openedYou: "Signalé par vous · {date}",
+      openedBy: "Par {name} · {date}",
+      answer: "Les deux parties répondent",
+      answered: "Les deux parties ont répondu",
+      youAnswered: "Vous avez répondu le {date}.",
+      youToAnswer: "Votre réponse est encore attendue.",
+      theyCanAnswer: "{name} peut répondre jusqu'au {date}",
+      youCanAnswer: "Vous pouvez répondre jusqu'au {date}",
+      beforeBoth: "Rien n'est décidé avant que vous ayez répondu tous les deux.",
+      finding: "Le constat de Karwan",
+      findingNext: "Une personne le vérifie avant toute décision",
+      reading: "Lecture des deux versions, de la livraison et de la discussion.",
+      dueBy: "Attendu le {date}",
+      checked: "Vérifié par une personne chez Karwan · {date}",
+      object: "Délai pour contester",
+      objectNext: "72 heures pour demander qu'une personne décide",
+      found: "Karwan a constaté",
+      toYou: "Payé en totalité à vous",
+      toThem: "Payé en totalité à {name}",
+      backToYou: "Remboursé en totalité à vous",
+      backToThem: "Remboursé en totalité à {name}",
+      daysLeft: "Encore {n} jours pour contester, puis le paiement part",
+      dayLeft: "Encore 1 jour pour contester, puis le paiement part",
+      hoursLeft: "Encore {n} heures pour contester, puis le paiement part",
+      ask: "Demander qu'une personne décide",
+      askTitle: "Demander qu'une personne décide ?",
+      askConsequence: "Deux personnes chez Karwan décident à la place et écrivent leurs raisons, sous 5 jours. L'argent reste bloqué jusque-là.",
+      askFailed: "La demande n'est pas passée. Réessayez dans un instant.",
+      paid: "Payé",
+      paidAsDecided: "Payé selon la décision",
+      asked: "Une personne a été demandée",
+      people: "Des personnes décident",
+      peopleLine: "Deux personnes chez Karwan doivent être d'accord, et elles écrivent leurs raisons.",
+      decidedBy: "Décision avant le {date}",
+      held: "{amount} USDC sont bloqués jusqu'à la décision",
+      sides: "Ce que chaque partie a dit",
+      canAnswerUntil: "Peut répondre jusqu'au {date}",
+      noAnswer: "N'a pas répondu",
+      wait: {
+        answersLine: "Karwan vous prévient ici et sur Telegram dès qu'il y a un constat.",
+        findingLine: "Une personne chez Karwan vérifie le constat avant toute décision.",
+        objectTitle: "Rien à faire, sauf si vous n'êtes pas d'accord",
+        objectLine: "Le paiement part le {date}, sauf si l'un de vous demande une personne.",
+        peopleLine: "Karwan vous prévient ici et sur Telegram dès que la décision est prise.",
+      },
+    },
   },
   ar: {
     title: "أخبر كاروان بروايتك",
@@ -195,6 +334,54 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
     nothingNow: "لا شيء عليك الآن",
     decidedHere: "تعرض كاروان القرار هنا عند اتخاذه.",
     settle: "اعرض تسوية",
+    hearing: {
+      opened: "فُتحت مشكلة",
+      openedYou: "فتحتَها أنت · {date}",
+      openedBy: "فتحها {name} · {date}",
+      answer: "يجيب الطرفان",
+      answered: "أجاب الطرفان",
+      youAnswered: "أجبتَ في {date}.",
+      youToAnswer: "ما زالت إجابتك مطلوبة.",
+      theyCanAnswer: "يمكن لـ {name} الإجابة حتى {date}",
+      youCanAnswer: "يمكنك الإجابة حتى {date}",
+      beforeBoth: "لا يُقرَّر شيء قبل أن تجيبا كلاكما.",
+      finding: "ما توصّلت إليه كاروان",
+      findingNext: "يراجعه شخص قبل اتخاذ أي قرار",
+      reading: "تقرأ كاروان رواية الطرفين والتسليم ومحادثة الصفقة.",
+      dueBy: "موعده {date}",
+      checked: "راجعه شخص في كاروان · {date}",
+      object: "وقت الاعتراض",
+      objectNext: "72 ساعة لأيٍّ منكما لطلب قرار من شخص",
+      found: "توصّلت كاروان إلى",
+      toYou: "يُدفع لك بالكامل",
+      toThem: "يُدفع لـ {name} بالكامل",
+      backToYou: "يُردّ إليك بالكامل",
+      backToThem: "يُردّ إلى {name} بالكامل",
+      daysLeft: "بقي {n} أيام للاعتراض، ثم يُدفع المبلغ",
+      dayLeft: "بقي يوم واحد للاعتراض، ثم يُدفع المبلغ",
+      hoursLeft: "بقيت {n} ساعات للاعتراض، ثم يُدفع المبلغ",
+      ask: "اطلب أن يقرر شخص",
+      askTitle: "هل تطلب أن يقرر شخص؟",
+      askConsequence: "يقرر شخصان في كاروان بدلًا من ذلك ويكتبان أسبابهما خلال 5 أيام. يبقى المال محتجزًا حتى ذلك الحين.",
+      askFailed: "لم يتم الطلب. حاول مرة أخرى بعد قليل.",
+      paid: "دُفع",
+      paidAsDecided: "دُفع حسب القرار",
+      asked: "طُلب قرار من شخص",
+      people: "يقرر أشخاص",
+      peopleLine: "يجب أن يتفق شخصان في كاروان، ويكتبان أسبابهما.",
+      decidedBy: "يُقرَّر قبل {date}",
+      held: "{amount} USDC محتجزة حتى يُتخذ القرار",
+      sides: "ما قاله كل طرف",
+      canAnswerUntil: "يمكنه الإجابة حتى {date}",
+      noAnswer: "لم يُجب",
+      wait: {
+        answersLine: "تخبرك كاروان هنا وفي تيليجرام عندما يصدر ما توصّلت إليه.",
+        findingLine: "يراجع شخص في كاروان ما توصّلت إليه قبل اتخاذ أي قرار.",
+        objectTitle: "لا شيء عليك إلا إذا لم توافق",
+        objectLine: "يُدفع المبلغ في {date}، إلا إذا طلب أحدكما قرارًا من شخص.",
+        peopleLine: "تخبرك كاروان هنا وفي تيليجرام عندما يُتخذ القرار.",
+      },
+    },
   },
   hi: {
     title: "Karwan को अपना पक्ष बताएँ",
@@ -244,6 +431,54 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
     nothingNow: "अभी कुछ करना नहीं है",
     decidedHere: "फ़ैसला होते ही Karwan उसे यहाँ दिखाएगा।",
     settle: "समझौता प्रस्तावित करें",
+    hearing: {
+      opened: "समस्या दर्ज हुई",
+      openedYou: "आपने दर्ज की · {date}",
+      openedBy: "{name} ने दर्ज की · {date}",
+      answer: "दोनों पक्ष जवाब दें",
+      answered: "दोनों पक्षों ने जवाब दिया",
+      youAnswered: "आपने {date} को जवाब दिया।",
+      youToAnswer: "आपका जवाब अभी बाकी है।",
+      theyCanAnswer: "{name} {date} तक जवाब दे सकते हैं",
+      youCanAnswer: "आप {date} तक जवाब दे सकते हैं",
+      beforeBoth: "जब तक आप दोनों जवाब न दें, कुछ तय नहीं होता।",
+      finding: "Karwan का निष्कर्ष",
+      findingNext: "कुछ भी तय होने से पहले एक व्यक्ति इसे जाँचता है",
+      reading: "दोनों पक्ष, डिलीवरी और डील चैट पढ़ी जा रही है।",
+      dueBy: "{date} तक",
+      checked: "Karwan के एक व्यक्ति ने जाँचा · {date}",
+      object: "आपत्ति का समय",
+      objectNext: "आप में से कोई भी 72 घंटे में व्यक्ति से फ़ैसला माँग सकता है",
+      found: "Karwan ने पाया",
+      toYou: "पूरा भुगतान आपको",
+      toThem: "पूरा भुगतान {name} को",
+      backToYou: "पूरी रक़म आपको वापस",
+      backToThem: "पूरी रक़म {name} को वापस",
+      daysLeft: "आपत्ति के लिए {n} दिन बाकी, फिर भुगतान होगा",
+      dayLeft: "आपत्ति के लिए 1 दिन बाकी, फिर भुगतान होगा",
+      hoursLeft: "आपत्ति के लिए {n} घंटे बाकी, फिर भुगतान होगा",
+      ask: "किसी व्यक्ति से फ़ैसला माँगें",
+      askTitle: "किसी व्यक्ति से फ़ैसला माँगें?",
+      askConsequence: "इसके बजाय Karwan के दो लोग 5 दिनों में फ़ैसला करेंगे और कारण लिखेंगे। तब तक पैसा रुका रहेगा।",
+      askFailed: "अनुरोध नहीं गया। थोड़ी देर में फिर कोशिश करें।",
+      paid: "भुगतान हुआ",
+      paidAsDecided: "फ़ैसले के अनुसार भुगतान",
+      asked: "व्यक्ति से फ़ैसला माँगा गया",
+      people: "लोग फ़ैसला करेंगे",
+      peopleLine: "Karwan के दो लोगों को सहमत होना होगा, और वे अपने कारण लिखते हैं।",
+      decidedBy: "{date} तक फ़ैसला",
+      held: "फ़ैसले तक {amount} USDC रुके हैं",
+      sides: "हर पक्ष ने क्या कहा",
+      canAnswerUntil: "{date} तक जवाब दे सकते हैं",
+      noAnswer: "जवाब नहीं दिया",
+      wait: {
+        answersLine: "निष्कर्ष आते ही Karwan आपको यहाँ और Telegram पर बताएगा।",
+        findingLine: "कुछ भी तय होने से पहले Karwan का एक व्यक्ति निष्कर्ष जाँचता है।",
+        objectTitle: "असहमत न हों तो कुछ करना नहीं है",
+        objectLine: "भुगतान {date} को होगा, जब तक आप में से कोई व्यक्ति से फ़ैसला न माँगे।",
+        peopleLine: "लोगों के फ़ैसला करते ही Karwan आपको यहाँ और Telegram पर बताएगा।",
+      },
+    },
   },
   sw: {
     title: "Mweleze Karwan upande wako",
@@ -293,5 +528,53 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
     nothingNow: "Hakuna cha kufanya sasa",
     decidedHere: "Karwan itaonyesha uamuzi hapa ukifanywa.",
     settle: "Pendekeza suluhu",
+    hearing: {
+      opened: "Tatizo limefunguliwa",
+      openedYou: "Umelifungua wewe · {date}",
+      openedBy: "Na {name} · {date}",
+      answer: "Pande zote zinajibu",
+      answered: "Pande zote zimejibu",
+      youAnswered: "Ulijibu tarehe {date}.",
+      youToAnswer: "Jibu lako bado linahitajika.",
+      theyCanAnswer: "{name} anaweza kujibu hadi {date}",
+      youCanAnswer: "Unaweza kujibu hadi {date}",
+      beforeBoth: "Hakuna kinachoamuliwa kabla ninyi wawili hamjajibu.",
+      finding: "Matokeo ya Karwan",
+      findingNext: "Mtu analikagua kabla ya uamuzi wowote",
+      reading: "Inasoma pande zote, uwasilishaji na mazungumzo ya mpango.",
+      dueBy: "Kufikia {date}",
+      checked: "Limekaguliwa na mtu wa Karwan · {date}",
+      object: "Muda wa kupinga",
+      objectNext: "Saa 72 kwa yeyote kati yenu kuomba mtu aamue",
+      found: "Karwan imeona",
+      toYou: "Unalipwa wewe kikamilifu",
+      toThem: "{name} analipwa kikamilifu",
+      backToYou: "Unarudishiwa wewe kikamilifu",
+      backToThem: "{name} anarudishiwa kikamilifu",
+      daysLeft: "Zimebaki siku {n} za kupinga, kisha malipo yanatoka",
+      dayLeft: "Imebaki siku 1 ya kupinga, kisha malipo yanatoka",
+      hoursLeft: "Zimebaki saa {n} za kupinga, kisha malipo yanatoka",
+      ask: "Omba mtu aamue",
+      askTitle: "Uombe mtu aamue?",
+      askConsequence: "Watu wawili wa Karwan wataamua badala yake na kuandika sababu zao, ndani ya siku 5. Pesa inabaki imeshikiliwa hadi hapo.",
+      askFailed: "Ombi halikupita. Jaribu tena baada ya muda mfupi.",
+      paid: "Imelipwa",
+      paidAsDecided: "Imelipwa kama ilivyoamuliwa",
+      asked: "Imeombwa mtu aamue",
+      people: "Watu wanaamua",
+      peopleLine: "Watu wawili wa Karwan lazima wakubaliane, na wanaandika sababu zao.",
+      decidedBy: "Kuamuliwa kufikia {date}",
+      held: "USDC {amount} zimeshikiliwa hadi uamuzi",
+      sides: "Kila upande ulisema nini",
+      canAnswerUntil: "Anaweza kujibu hadi {date}",
+      noAnswer: "Hakujibu",
+      wait: {
+        answersLine: "Karwan itakujulisha hapa na kwenye Telegram matokeo yakiwa tayari.",
+        findingLine: "Mtu wa Karwan anakagua matokeo kabla ya uamuzi wowote.",
+        objectTitle: "Hakuna cha kufanya usipopinga",
+        objectLine: "Malipo yanatoka {date}, isipokuwa mmoja wenu aombe mtu aamue.",
+        peopleLine: "Karwan itakujulisha hapa na kwenye Telegram watu wakishaamua.",
+      },
+    },
   },
 };

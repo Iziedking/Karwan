@@ -101,6 +101,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const s = copy.simple;
   const guaranteeCopy = useTranslations().dealGuarantee;
   const dj = useTranslations().disputeJudge;
+  /// View 90: a heard family dispute says what happens next at each step.
+  const heard = deal.dispute?.hearing;
   const dd = useTranslations().directDealDetail;
   const declineCopy = dd.actionPanel.awaitingAcceptance;
   const { locale } = useLocale();
@@ -499,8 +501,14 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     ) : view.stage === 'disputed' && view.next.actor !== 'you' ? (
       // While Karwan decides there is nothing to press: say so, and where the answer appears.
       <div data-problem-wait className="w-full text-center">
-        <p className="text-[16px] font-bold text-[var(--ink)]">{dj.nothingNow}</p>
-        <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{dj.decidedHere}</p>
+        <p className="text-[16px] font-bold text-[var(--ink)]">{heard?.step === 'object' ? dj.hearing.wait.objectTitle : dj.nothingNow}</p>
+        <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">
+          {!heard ? dj.decidedHere
+            : heard.step === 'answers' ? dj.hearing.wait.answersLine
+              : heard.step === 'finding' ? dj.hearing.wait.findingLine
+                : heard.step === 'object' ? fill(dj.hearing.wait.objectLine, { date: heard.objectBy ? formatDealDate(heard.objectBy, locale) : '' })
+                  : dj.hearing.wait.peopleLine}
+        </p>
       </div>
     ) : !momentNow && view.next.actor !== 'you' && view.stage !== 'cancelled' ? (
       // Whose move it is, as a plain line: a filled pill read as a button

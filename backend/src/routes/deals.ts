@@ -153,6 +153,9 @@ import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
 import { disputeViewFor, parseStatement, statementWindowOpen } from '../deals/disputeJudge.js';
+import { hearingView, partyFinding } from '../deals/disputeHearingView.js';
+import { isHeldLink } from '../deals/heldLinkOnChain.js';
+import { agreementEscrowAddress, readAgreementDispute } from '../chain/agreementEscrowLive.js';
 import { settleFactoringForDeal } from '../agents/factoringWatcher.js';
 import { settlePOFinancingForDeal } from '../agents/poWatcher.js';
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
@@ -231,6 +234,28 @@ import {
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
 
+
+/// View 90: where an escrow family dispute stands for the two sides, read from
+/// the escrow. Null while the hearing is off, off the family, or when the read
+/// fails, and the page then shows the plain problem card.
+async function familyHearing(deal: DirectDeal, now: number) {
+  if (!config.DISPUTE_HEARING_FAMILY || deal.escrowVersion !== 'suite' || !deal.escrowDealId || !agreementEscrowAddress) return null;
+  try {
+    const d = await readAgreementDispute(agreementEscrowAddress, deal.escrowDealId as `0x${string}`);
+    return hearingView({
+      dispute: { openedAt: BigInt(d.openedAt), proposed: d.proposed, escalated: d.escalated, proposedAt: BigInt(d.proposedAt), escalatedAt: BigInt(d.escalatedAt) },
+      nowMs: now,
+      statements: { buyer: !!deal.disputeStatements?.buyer, seller: !!deal.disputeStatements?.seller },
+      finding: deal.judgeProposal ?? null,
+      partialBps: (deal.escrowTerms as StoredAgreementTerms | undefined)?.partialBps ?? 0,
+      linkHeld: isHeldLink(deal),
+      windowMs: config.DISPUTE_STATEMENT_WINDOW_MS,
+      deadlineMs: config.DISPUTE_FINDING_DEADLINE_MS,
+    });
+  } catch {
+    return null;
+  }
+}
 
 /// What the deal page shows for a v3 dispute: the proposed ruling in USDC for
 /// each side and when it applies, and when either side may escalate or lapse.
@@ -1622,9 +1647,12 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   const trust = deal.trust ? trustForViewer(deal.trust, viewerIsBuyer ? 'buyer' : 'seller') : undefined;
   // Both parties see where the delivery check stands; only the buyer sees the review behind it.
   const deliveryCheck = deliveryCheckState(deal);
-  const dispute = deal.disputed
+  const hearing = deal.disputed ? await familyHearing(deal, Date.now()) : null;
+  const plainDispute = deal.disputed
     ? disputeViewFor(deal, viewerIsBuyer ? 'buyer' : 'seller', Date.now(), config.DISPUTE_STATEMENT_WINDOW_MS)
     : undefined;
+  // On a heard family dispute the sides see a finding only once a person confirmed it.
+  const dispute = plainDispute && hearing ? { ...plainDispute, proposal: partyFinding(deal.judgeProposal), hearing } : plainDispute;
   const deliveryHistory = deliveryHistoryFor(deal.deliveryHistory, viewerIsBuyer ? 'buyer' : 'seller', deal.deliveryReview);
   const postedPrice = await postedPriceFor(deal);
   const shaped = viewerIsBuyer

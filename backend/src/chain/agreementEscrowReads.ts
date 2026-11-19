@@ -101,6 +101,8 @@ export function createAgreementReads(client: Client) {
     async escalatedAt(address: Hex, dealId: Hex): Promise<bigint> {
       return BigInt((await read<Reads['dispute']>(address, 'disputeOf', [dealId])).escalatedAt);
     },
+    /// The open dispute as the escrow holds it: opened, proposed and escalated times.
+    dispute: (address: Hex, dealId: Hex) => read<Reads['dispute']>(address, 'disputeOf', [dealId]),
     /// The panel fixed at funding: the arbiter key and the review Safe.
     panel: (address: Hex, dealId: Hex) => read<Reads['panel']>(address, 'panelOf', [dealId]),
     /// When the seller may claim the current tranche on the review clock. 0 = not delivered.
