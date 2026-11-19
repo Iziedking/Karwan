@@ -113,7 +113,56 @@ test('a disputed, cancelled or refunded deal has no picture', () => {
   assert.deepEqual(pictureFor(deal({ cancelledAt: at + DAY, onChain: { state: 5 } } as Partial<DirectDeal>), false), { kind: 'steps' });
 });
 
-test('stages and in-person keep the steps for now', () => {
-  assert.deepEqual(pictureFor(deal({ milestonePcts: [50, 50] }), true), { kind: 'steps' });
-  assert.deepEqual(pictureFor(goods({ goodsWay: 'in_person' }), true), { kind: 'steps' });
+test('in person before the handover: the buyer gives the code, the seller asks for it', () => {
+  const buyer = pictureFor(goods({ goodsWay: 'in_person' }), true);
+  assert.deepEqual(buyer, { kind: 'handover', handedOverAt: null, hint: 'giveCode', payAt: null });
+  const seller = pictureFor(goods({ goodsWay: 'in_person' }), false);
+  assert.equal(seller.kind === 'handover' && seller.hint, 'askCode');
+});
+
+test('in person after the code: handed over, confirmed by the code', () => {
+  const handed = goods({ goodsWay: 'in_person', delivered: true, deliveryHistory: [{ submittedAt: at + DAY, handedOverAt: at + DAY }], releaseEligibleAtMs: at + 3 * DAY } as Partial<DirectDeal>);
+  assert.deepEqual(pictureFor(handed, true), { kind: 'handover', handedOverAt: at + DAY, hint: 'confirmed', payAt: at + 3 * DAY });
+  const work = deal({ deliveryMethod: 'in_person', delivered: true, deliveryHistory: [{ submittedAt: at + DAY, handedOverAt: at + DAY }] } as Partial<DirectDeal>);
+  assert.equal(pictureFor(work, false).kind === 'handover' && (pictureFor(work, false) as { hint: string }).hint, 'confirmed');
+});
+
+test('stages list each amount and where its money is', () => {
+  const p = pictureFor(deal({ milestonePcts: [30, 30, 40], onChain: { milestonesReleased: 1 } } as Partial<DirectDeal>), true);
+  assert.equal(p.kind, 'stages');
+  if (p.kind !== 'stages') return;
+  assert.deepEqual(p.stages, [
+    { n: 1, amountUsdc: '30', state: 'paid' },
+    { n: 2, amountUsdc: '30', state: 'due' },
+    { n: 3, amountUsdc: '40', state: 'held' },
+  ]);
+  assert.equal(p.paidOutUsdc, '30');
+  assert.equal(p.heldUsdc, '70');
+});
+
+test('stage amounts add up to the deal, the last stage taking the remainder', () => {
+  const p = pictureFor(deal({ dealAmountUsdc: '100', milestonePcts: [33, 33, 34] }), true);
+  assert.ok(p.kind === 'stages');
+  if (p.kind !== 'stages') return;
+  assert.deepEqual(p.stages.map((x) => x.amountUsdc), ['33', '33', '34']);
+  const odd = pictureFor(deal({ dealAmountUsdc: '10.000001', milestonePcts: [50, 50] }), true);
+  assert.ok(odd.kind === 'stages');
+  if (odd.kind !== 'stages') return;
+  assert.deepEqual(odd.stages.map((x) => x.amountUsdc), ['5', '5.000001']);
+});
+
+test('stages before the money is in hold nothing', () => {
+  const p = pictureFor(deal({ milestonePcts: [50, 50], acceptedAt: undefined, fundTxHash: undefined }), true);
+  assert.ok(p.kind === 'stages');
+  if (p.kind !== 'stages') return;
+  assert.deepEqual(p.stages.map((x) => x.state), ['later', 'later']);
+  assert.equal(p.heldUsdc, null);
+});
+
+test('a finished stages deal shows every stage paid', () => {
+  const p = pictureFor(deal({ milestonePcts: [50, 50], settledAt: at + 9 * DAY } as Partial<DirectDeal>), false);
+  assert.ok(p.kind === 'stages');
+  if (p.kind !== 'stages') return;
+  assert.deepEqual(p.stages.map((x) => x.state), ['paid', 'paid']);
+  assert.equal(p.heldUsdc, '0');
 });

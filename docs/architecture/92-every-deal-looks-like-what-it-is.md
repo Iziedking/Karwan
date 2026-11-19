@@ -6,7 +6,7 @@ Track T2 (protected deals), with T1.2 (choose the kind of deal) for how a deal s
 
 - Every deal shows the same row of steps. A suit sent from Lagos to Paris, a phone handed over at a shop, a video delivered as a file and a month of part-time work all read as "Agreed, Paid in, Delivered, Paid out". People have to translate that into what is actually happening.
 - Starting a deal is one long form. A person new to apps meets every field at once, and the kind of deal is a choice they have to understand before they can make it.
-- The page answers "what state is the deal in", not the questions people actually ask: where is my parcel, when do we meet, is the work any good, how many hours am I paying for, when is the next month paid.
+- The page answers "what state is the deal in", not the questions people actually ask: where is my parcel, did the handover happen, is the work any good, how many hours am I paying for, when is the next month paid.
 
 ## What people need, before anything is drawn
 
@@ -22,7 +22,7 @@ Then each kind of deal has its own questions:
 | Kind | The buyer asks | The seller asks |
 |---|---|---|
 | Goods sent | Where is it? When does it arrive? What do I do when it comes? | Where do I send it, by when? How do I show it shipped? When am I paid? |
-| Meeting in person | When and where do we meet? What do I check before I hand over the code? | Is the money there before I travel? When am I paid? |
+| Handed over in person | What do I check before I give the code? | Is the money there before I hand it over? When am I paid? |
 | One job | When is it due? Is the work what I asked for? Can I ask for a change? | What exactly must I deliver, by when? How long until I am paid if they say nothing? |
 | In stages | Which stage is it on? What have I paid, what is held, what is left? | Which stage is due next? Is the money for it already held? |
 | By the hour | How many hours this week? Is there a cap? What happens if I don't approve? | Have my hours been approved? When is the money out? |
@@ -38,14 +38,14 @@ The frame is the title block from view 43: who the deal is with, the deal refere
 | Kind | The picture | It answers |
 |---|---|---|
 | Goods sent | A parcel tracker: Paid, Shipped, On the way, Arrived, with the carrier, tracking number and expected day | Where it is and when it comes |
-| Meeting in person | A ticket: day, time and place, and the handover code shown large | When, where, and what to hand over |
+| Handed over in person | The buyer's code as the proof: shown from the deal, entered by the seller, then Handed over and confirmed with the code | That the handover happened, and what pays the seller |
 | One job | The delivery itself: the file, link or video, with what Karwan checked it against | Whether the work is right |
 | In stages | A checklist of stages, each with its amount and date, over one line showing paid, held and later | Where the job is and where the money is |
 | By the hour | The week as a timesheet, hours per day, the cap, and Approve | What the hours cost |
 | Monthly | The months in a row, paid, and this month with its pay day | When the next pay is |
 | Contest | The entries as a gallery, and the day to choose by | Which one wins |
 
-The seller sees the same picture from their side: the tracker asks them to add the tracking number, the ticket tells them to ask for the code, the delivery shows what they sent and when payment comes if the buyer says nothing.
+The seller sees the same picture from their side: the tracker asks them to add the tracking number, the handover tells them to ask for the buyer's code, the delivery shows what they sent and when payment comes if the buyer says nothing.
 
 ```mermaid
 flowchart TD
@@ -53,7 +53,7 @@ flowchart TD
   K --> F["The frame: who, money, this moment, one move"]
   K --> P["The picture for that kind"]
   P --> G[Parcel tracker]
-  P --> T[Ticket and code]
+  P --> T[The handover code as proof]
   P --> J[The delivery]
   P --> S[Stages and money line]
   P --> H[Timesheet]
@@ -76,7 +76,7 @@ flowchart LR
   H --> D[The deal page, with its picture]
 ```
 
-- **The kind is chosen by plain questions, not named.** "How should it reach you?" with Send it to me or We meet picks goods sent or meeting in person. "How do you want to pay?" with Once when it's done, In parts, By the hour or Each month picks the work kinds. Nobody has to learn the word escrow or the names of the kinds.
+- **The kind is chosen by plain questions, not named.** "How should it reach you?" with Send it to me or We meet picks goods sent or handed over in person. "How do you want to pay?" with Once when it's done, In parts, By the hour or Each month picks the work kinds. Nobody has to learn the word escrow or the names of the kinds.
 - **What is known is already filled in.** The listing's price, the seller, the way it ships, the buyer's last address. A regular taps Continue; a first-timer reads one question at a time.
 - **Check your deal reads like a receipt.** The item, each amount, the Karwan fee, a line, the total, the day it should arrive and what happens if it never does.
 - **The end is certain.** One screen with the lock, the amount and "Held by Karwan", then the deal page.
@@ -95,10 +95,11 @@ Every picture is drawn from facts the assistant already reads (get_deal_status a
 2. **The picture is the kind's own.** Never a generic step row where the kind has a better picture.
 3. **One question a screen when starting**, with known answers filled in.
 4. **One lock mark for held money**, everywhere.
-5. **Built in place, one kind at a time.** Goods sent and one job first, then meeting in person and stages, then starting a deal one question a screen, then by the hour, monthly and contests, then the finished screen for all. Each step ships on its own.
+5. **Built in place, one kind at a time.** Goods sent and one job first, then handed over in person and stages, then starting a deal one question a screen, then by the hour, monthly and contests, then the finished screen for all. Each step ships on its own.
 6. **Works for anyone, anywhere.** Plain words, amounts in the currency chosen in Settings, real photos from many places, nothing that assumes a country.
-7. **Later, not now.** Saved addresses and questions a listing asks of the buyer (such as measurements for a suit) are new data; they come after the pictures.
+7. **Karwan does not keep where or when people meet.** What matters is that the work was done or the goods handed over, and the money is released. The buyer's code proves it: the buyer gives it only once they have what they paid for, and entering it pays the seller. Owner, 19 Nov 2026.
+8. **Later, not now.** Saved addresses and questions a listing asks of the buyer (such as measurements for a suit) are new data; they come after the pictures.
 
 ## Status
 
-Approved by the owner on 18 Nov 2026. Phase 1 built on 19 Nov, not deployed: goods sent show the parcel tracker, one job shows the delivery, and the Held or Your turn seal sits beside the money line. Meeting in person, stages, starting a deal one question a screen, hourly, monthly, contests and the finished screen follow in that order. Sample: the drawn deal flow from 18 Nov.
+Approved by the owner on 18 Nov 2026. Phase 1 built on 19 Nov, not deployed: goods sent show the parcel tracker, one job shows the delivery, and the Held or Your turn seal sits beside the money line. Phase 2 built on 19 Nov, not deployed: anything handed over in person shows the buyer's code as the proof, and work in stages lists each stage with its amount and where its money is. Starting a deal one question a screen, hourly, monthly, contests and the finished screen follow in that order. Sample: the drawn deal flow from 18 Nov.

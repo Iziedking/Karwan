@@ -43,6 +43,15 @@ export interface DealPageCopy {
     paidOn: string;
     deliveredOn: string;
     photos: string;
+    /// In person (view 92 phase 2): the buyer's code is the proof of handover.
+    giveCode: string;
+    askCode: string;
+    confirmedYours: string;
+    confirmedTheirs: string;
+    /// Work in stages: each stage, its amount and where its money is.
+    stage: string;
+    stageState: { paid: string; due: string; held: string; later: string };
+    stagesMoney: string;
   };
   moment: {
     fund: string;
@@ -137,6 +146,13 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       paidOn: 'Paid on {date} if {name} says nothing',
       deliveredOn: 'Delivered {date}',
       photos: '{count} photos',
+      giveCode: 'Give {name} your code only once you have it. The code is what pays them',
+      askCode: 'Ask {name} for their code when you hand it over. Entering it pays you',
+      confirmedYours: 'Handed over {date}, confirmed with your code',
+      confirmedTheirs: "Handed over {date}, confirmed with {name}'s code",
+      stage: 'Stage {n}',
+      stageState: { paid: 'Paid out', due: 'Due now', held: 'Held', later: 'Not paid in yet' },
+      stagesMoney: '{paid} paid out · {held} held',
     },
     moment: {
       fund: 'Pay in {amount} USDC so {name} can start.',
@@ -230,6 +246,13 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       paidOn: 'Payé le {date} si {name} ne dit rien',
       deliveredOn: 'Livré le {date}',
       photos: '{count} photos',
+      giveCode: "Donnez votre code à {name} seulement une fois que vous l'avez. C'est le code qui le paie",
+      askCode: 'Demandez son code à {name} en le lui remettant. Le saisir vous paie',
+      confirmedYours: 'Remis le {date}, confirmé avec votre code',
+      confirmedTheirs: 'Remis le {date}, confirmé avec le code de {name}',
+      stage: 'Étape {n}',
+      stageState: { paid: 'Versé', due: 'À faire', held: 'Bloqué', later: 'Pas encore payé' },
+      stagesMoney: '{paid} versé · {held} bloqué',
     },
     moment: {
       fund: 'Payez {amount} USDC pour que {name} commence.',
@@ -323,6 +346,13 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       paidOn: 'يُدفع في {date} إن لم يقل {name} شيئًا',
       deliveredOn: 'سُلّم {date}',
       photos: '{count} صور',
+      giveCode: 'أعطِ {name} رمزك فقط بعد أن تستلم. الرمز هو ما يدفع له',
+      askCode: 'اطلب من {name} رمزه عند التسليم. إدخاله يدفع لك',
+      confirmedYours: 'تم التسليم في {date}، وتأكّد برمزك',
+      confirmedTheirs: 'تم التسليم في {date}، وتأكّد برمز {name}',
+      stage: 'المرحلة {n}',
+      stageState: { paid: 'دُفعت', due: 'مستحقة الآن', held: 'محجوزة', later: 'لم يُدفع بعد' },
+      stagesMoney: '{paid} دُفع · {held} محجوز',
     },
     moment: {
       fund: 'ادفع {amount} USDC ليبدأ {name}.',
@@ -416,6 +446,13 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       paidOn: '{name} कुछ न कहें तो {date} को भुगतान',
       deliveredOn: '{date} को डिलीवर हुआ',
       photos: '{count} फ़ोटो',
+      giveCode: 'सामान मिलने के बाद ही {name} को अपना कोड दें। कोड से ही उन्हें भुगतान होता है',
+      askCode: 'सौंपते समय {name} से उनका कोड लें। कोड डालने पर आपको भुगतान होता है',
+      confirmedYours: '{date} को सौंपा गया, आपके कोड से पुष्टि हुई',
+      confirmedTheirs: '{date} को सौंपा गया, {name} के कोड से पुष्टि हुई',
+      stage: 'चरण {n}',
+      stageState: { paid: 'भुगतान हुआ', due: 'अभी देय', held: 'रोका गया', later: 'अभी जमा नहीं' },
+      stagesMoney: '{paid} भुगतान हुआ · {held} रोका गया',
     },
     moment: {
       fund: '{amount} USDC का भुगतान करें ताकि {name} काम शुरू कर सकें।',
@@ -509,6 +546,13 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       paidOn: 'Utalipwa {date} kama {name} hatasema kitu',
       deliveredOn: 'Imewasilishwa {date}',
       photos: 'Picha {count}',
+      giveCode: 'Mpe {name} msimbo wako tu ukishapokea. Msimbo ndio unaomlipa',
+      askCode: 'Muombe {name} msimbo wake unapomkabidhi. Ukiuweka unalipwa',
+      confirmedYours: 'Imekabidhiwa {date}, imethibitishwa kwa msimbo wako',
+      confirmedTheirs: 'Imekabidhiwa {date}, imethibitishwa kwa msimbo wa {name}',
+      stage: 'Hatua {n}',
+      stageState: { paid: 'Imelipwa', due: 'Inadaiwa sasa', held: 'Imeshikiliwa', later: 'Bado haijalipwa' },
+      stagesMoney: '{paid} imelipwa · {held} imeshikiliwa',
     },
     moment: {
       fund: 'Lipa USDC {amount} ili {name} aanze.',

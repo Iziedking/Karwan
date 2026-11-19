@@ -4,14 +4,23 @@ import type { DirectDeal } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { DealRoute } from '../DealRoute';
+import { HandoverCode } from './HandoverCode';
 import { pictureFor } from './kindPictureModel';
 import { fill, formatDealDate } from './presentation';
 
 /// What sits under the title block for each kind of deal (view 92). Goods sent
-/// read like a parcel tracker and one job shows the delivery itself; every other
-/// kind keeps the plain steps until its own picture is built. The steps stay at
-/// the top of every picture, and moves stay in the move bar.
-export function KindPicture({ deal, viewerIsBuyer, name }: { deal: DirectDeal; viewerIsBuyer: boolean; name: string }) {
+/// read like a parcel tracker, one job shows the delivery itself, a handover in
+/// person shows the buyer's code as the proof, and work in stages lists each
+/// stage with its money. Other kinds keep the plain steps until their own
+/// picture is built. The steps stay at the top of every picture, and moves stay
+/// in the move bar.
+export function KindPicture({ deal, viewerIsBuyer, name, caller, price }: {
+  deal: DirectDeal;
+  viewerIsBuyer: boolean;
+  name: string;
+  caller: string | null;
+  price: (usdc: string) => string;
+}) {
   const messages = useTranslations();
   const t = messages.dealPage.picture;
   const dc = messages.deliveryCard;
@@ -65,6 +74,49 @@ export function KindPicture({ deal, viewerIsBuyer, name }: { deal: DirectDeal; v
           </dl>
         ) : null}
         {lines.length ? <div className="space-y-1">{lines}</div> : null}
+      </div>
+    );
+  }
+
+  if (picture.kind === 'handover') {
+    return (
+      <div data-picture="handover" className="space-y-4">
+        <DealRoute deal={deal} />
+        {picture.handedOverAt ? (
+          <p data-handed-over className="flex items-start gap-2 rounded-[14px] border border-[var(--line)] bg-[var(--raised)] p-4 text-[14px] text-[var(--ink)]">
+            <Icon name="shield-check" size={16} className="mt-0.5 shrink-0 text-[var(--ink-secondary)]" />
+            <span>{fill(viewerIsBuyer ? t.confirmedYours : t.confirmedTheirs, { date: date(picture.handedOverAt), name })}</span>
+          </p>
+        ) : (
+          <p className="text-[14px] text-[var(--ink-secondary)]">{fill(picture.hint === 'giveCode' ? t.giveCode : t.askCode, { name })}</p>
+        )}
+        {picture.hint === 'giveCode' && caller ? <HandoverCode jobId={deal.jobId} caller={caller} work={deal.tradeType !== 'goods' && deal.tradeType !== 'mixed'} /> : null}
+        {!viewerIsBuyer && picture.payAt ? <p className="text-[14px] text-[var(--ink-secondary)]">{fill(t.paidOn, { date: date(picture.payAt), name })}</p> : null}
+      </div>
+    );
+  }
+
+  if (picture.kind === 'stages') {
+    return (
+      <div data-picture="stages" className="space-y-4">
+        <DealRoute deal={deal} />
+        <ol className="divide-y divide-[var(--line)] rounded-[14px] border border-[var(--line)] bg-[var(--raised)] px-4">
+          {picture.stages.map((stage) => (
+            <li key={stage.n} data-stage={stage.state} className="flex min-h-12 items-center justify-between gap-3 text-[14px]">
+              <span className="flex items-center gap-2 font-medium text-[var(--ink)]">
+                {stage.state === 'paid' ? <Icon name="check" size={16} className="shrink-0 text-[var(--ink-secondary)]" /> : stage.state === 'held' || stage.state === 'due' ? <Icon name="lock" size={16} className="shrink-0 text-[var(--ink-secondary)]" /> : <span aria-hidden className="size-4 shrink-0" />}
+                {fill(t.stage, { n: stage.n })}
+              </span>
+              <span className="text-end">
+                <span className="block font-medium text-[var(--ink)]">{price(stage.amountUsdc)}</span>
+                <span className={`block text-[13px] ${stage.state === 'due' ? 'font-medium text-[var(--ink)]' : 'text-[var(--ink-muted)]'}`}>{t.stageState[stage.state]}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        {picture.paidOutUsdc !== null && picture.heldUsdc !== null ? (
+          <p data-stages-money className="text-[14px] text-[var(--ink-secondary)]">{fill(t.stagesMoney, { paid: price(picture.paidOutUsdc), held: price(picture.heldUsdc) })}</p>
+        ) : null}
       </div>
     );
   }

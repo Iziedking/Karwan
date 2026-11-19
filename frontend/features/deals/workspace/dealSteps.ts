@@ -125,3 +125,21 @@ export function moneySplit(deal: DirectDeal): { paidOutUsdc: string; heldUsdc: s
     : parts.slice(0, released).reduce((sum, pct) => sum + (total * BigInt(pct)) / 100n, 0n);
   return { paidOutUsdc: fromMicros(paid), heldUsdc: fromMicros(total - paid) };
 }
+
+/// Each stage's amount, cut the way moneySplit cuts it, the last stage taking
+/// what is left so the stages always add up to the deal.
+export function stageAmounts(deal: DirectDeal): string[] {
+  const parts = partsOf(deal);
+  const total = toMicros(deal.dealAmountUsdc);
+  let left = total;
+  return parts.map((pct, i) => {
+    const cut = i === parts.length - 1 ? left : (total * BigInt(pct)) / 100n;
+    left -= cut;
+    return fromMicros(cut);
+  });
+}
+
+/// How many stages are paid out, and whether the deal has paid out in full.
+export function stagesReleased(deal: DirectDeal): { released: number; settled: boolean; paidIn: boolean } {
+  return { ...releasedOf(deal, partsOf(deal).length), paidIn: paidInOf(deal) };
+}

@@ -117,3 +117,51 @@ test('at 360 wide in Arabic nothing scrolls sideways', async ({ page }) => {
   await expect(picture(page, 'parcel')).toBeVisible();
   await noSideways(page);
 });
+
+/// Phase 2: in person the buyer's code is the proof; stages list their money.
+const inPerson = (over: Partial<DirectDeal> = {}) => base({ tradeType: 'goods', goodsWay: 'in_person', ...over });
+
+test('in person, the buyer shows the code from the picture and no place or time is asked', async ({ page }) => {
+  await serveDeal(page, inPerson());
+  await page.goto(`/deals/${JOB}`);
+  const handover = picture(page, 'handover');
+  await expect(handover).toContainText('Give Chinedu your code only once you have it');
+  await expect(handover.getByRole('button', { name: dc.code.show })).toBeVisible();
+});
+
+test('in person, the seller is told to ask for the code, then sees it confirmed', async ({ page }) => {
+  await serveDeal(page, inPerson(), SELLER);
+  await page.goto(`/deals/${JOB}`);
+  await expect(picture(page, 'handover')).toContainText('for their code when you hand it over');
+  await serveDeal(page, inPerson({
+    delivered: true,
+    deliveryHistory: [{ submittedAt: at + 2 * DAY, handedOverAt: at + 2 * DAY }],
+    view: { ...base().view!, stage: 'awaiting-final-release', next: { action: 'release', actor: 'counterparty', amountUsdc: '120' } },
+  } as Partial<DirectDeal>), SELLER);
+  await page.goto(`/deals/${JOB}`);
+  await expect(picture(page, 'handover').locator('[data-handed-over]')).toContainText("code");
+});
+
+test('stages list each amount, the one due now, and what is held', async ({ page }) => {
+  await serveDeal(page, base({
+    terms: 'Shop fit-out in three stages',
+    milestonePcts: [30, 30, 40],
+    onChain: { ...base().onChain!, milestonePcts: [30, 30, 40], milestonesReleased: 1 },
+  }));
+  await page.goto(`/deals/${JOB}`);
+  const stages = picture(page, 'stages');
+  await expect(stages.locator('[data-stage]')).toHaveCount(3);
+  await expect(stages.locator('[data-stage="paid"]')).toContainText(t.picture.stageState.paid);
+  await expect(stages.locator('[data-stage="due"]')).toContainText(t.picture.stageState.due);
+  await expect(stages.locator('[data-stage="held"]')).toContainText(t.picture.stageState.held);
+  await expect(stages.locator('[data-stages-money]')).toBeVisible();
+});
+
+test('stages at 360 wide in Arabic do not scroll sideways', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.context().addCookies([{ name: 'karwan-locale', value: 'ar', domain: '127.0.0.1', path: '/' }]);
+  await serveDeal(page, base({ milestonePcts: [30, 30, 40], onChain: { ...base().onChain!, milestonePcts: [30, 30, 40], milestonesReleased: 1 } }));
+  await page.goto(`/deals/${JOB}`);
+  await expect(picture(page, 'stages')).toBeVisible();
+  await noSideways(page);
+});

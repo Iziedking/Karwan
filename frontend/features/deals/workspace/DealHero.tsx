@@ -287,7 +287,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const isSeller = !!address && deal.seller.toLowerCase() === address.toLowerCase();
   const layers = dealLayers({
     delivered: !!deal.delivered || !!deal.deliveredAt,
-    needsHandover: viewerIsBuyer && !!address && deliveryMethodOf(deal) !== 'online' && view.stage === 'awaiting-delivery' && !deal.shipment?.arrivedAt,
+    // An in-person handover shows the code in its picture (view 92); stages still take a code per stage here.
+    needsHandover: viewerIsBuyer && !!address && deliveryMethodOf(deal) !== 'online' && dealKindOf(deal) !== 'in_person' && view.stage === 'awaiting-delivery' && !deal.shipment?.arrivedAt,
     canGetPaid: financingVisible(deal, isSeller) && deal.escrowVersion === 'suite',
     funded: !!deal.acceptedAt || !!deal.fundTxHash,
     problems: problems.length,
@@ -665,7 +666,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               </div>
             ) : null}
             <div className="mt-5 border-t border-[var(--line)] pt-5">
-              <KindPicture deal={deal} viewerIsBuyer={viewerIsBuyer} name={name} />
+              <KindPicture deal={deal} viewerIsBuyer={viewerIsBuyer} name={name} caller={address ?? null} price={(usdc) => mt.price(usdc)} />
             </div>
             <GuaranteeTermRow deal={deal} viewerIsBuyer={viewerIsBuyer} />
             {moment ? <div data-deal-check className="mt-5 border-t border-[var(--line)] pt-5">{moment}</div> : null}
