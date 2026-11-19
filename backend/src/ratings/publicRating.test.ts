@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { __resetRatingsForTest, saveRating } from '../db/ratings.js';
-import { loadPublicRating, loadRatingForWork } from './publicRating.js';
+import { loadPublicRating, loadRatingForWork, termsOf } from './publicRating.js';
 import type { DealRating } from './rules.js';
 
 /// Loading someone's rating for the work asked about (view 93).
@@ -30,4 +30,9 @@ test('empty request equals loadPublicRating', async () => {
   __resetRatingsForTest();
   for (const id of ['s1', 's2', 's3']) await saveRating(rating(id, '0xbuyer', '0xtailor', 4));
   assert.deepEqual(await loadRatingForWork('0xtailor', [], now, terms), await loadPublicRating('0xtailor', now));
+});
+
+test('termsOf maps deals already read, so find reads them once', () => {
+  const deals = [{ jobId: 'S1', terms: 'Linen suit' }, { jobId: 's2', terms: undefined }];
+  assert.deepEqual(termsOf(deals as never), new Map([['s1', 'Linen suit'], ['s2', '']]));
 });

@@ -2,7 +2,7 @@ import { isVerified } from '../agents/shortlist.js';
 import { listDealsForAddress } from '../db/deals.js';
 import { getProfile } from '../db/profiles.js';
 import { rankSellers, sellerIndex } from '../matching/sellerIndex.js';
-import { loadRatingForWork } from '../ratings/publicRating.js';
+import { loadRatingForWork, termsOf } from '../ratings/publicRating.js';
 import { compute as computeReputation } from '../reputation/engine.js';
 import { countsFor } from '../reputation/recordRead.js';
 import { loadInputs } from '../reputation/signals.js';
@@ -22,11 +22,14 @@ export const liveDirectoryDeps: DirectoryDeps = {
   },
   profile: (user) => getProfile(user),
   async record(user, need) {
+    const read = listDealsForAddress(user).catch(() => []);
     const [level, inputs, deals, rating] = await Promise.all([
       levelOf(user),
       loadInputs(user),
-      listDealsForAddress(user).catch(() => []),
-      loadRatingForWork(user, need?.keywords ?? []).catch(() => ({ kind: 'new' as const, count: 0 })),
+      read,
+      loadRatingForWork(user, need?.keywords ?? [], Date.now(), async () => termsOf(await read)).catch(
+        () => ({ kind: 'new' as const, count: 0 }),
+      ),
     ]);
     const counts = countsFor(deals, user);
     return {

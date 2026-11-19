@@ -19,10 +19,15 @@ export async function loadPublicRating(address: string, now = Date.now()): Promi
   return revealed.length === 0 ? { kind: 'new', count: 0 } : publicRating(revealed);
 }
 
-/// What each of someone's deals was for, by deal id, lower-cased.
+type Deal = Awaited<ReturnType<typeof listDealsForAddress>>[number];
+
+/// What each deal was for, by deal id, lower-cased. Callers that have already
+/// read someone's deals pass them here instead of reading them again.
+export const termsOf = (deals: Pick<Deal, 'jobId' | 'terms'>[]): Map<string, string> =>
+  new Map(deals.map((d) => [d.jobId.toLowerCase(), d.terms ?? '']));
+
 async function dealTerms(address: string): Promise<Map<string, string>> {
-  const deals = await listDealsForAddress(address).catch(() => []);
-  return new Map(deals.map((d) => [d.jobId.toLowerCase(), d.terms ?? '']));
+  return termsOf(await listDealsForAddress(address).catch(() => []));
 }
 
 /// Someone's rating with their rating for the work asked about (view 93).

@@ -74,6 +74,21 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
   }
 }
 
+/// Scripts written without spaces between words, where two characters already
+/// make a word.
+const DENSE_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+
+/// The words of a text in any script, lower case: letters, their marks and
+/// digits, three characters or more (two in Chinese, Japanese and Korean).
+/// Hausa, Arabic and every other script match the same way English does.
+export function textWords(text: string): string[] {
+  return text
+    .normalize('NFC')
+    .toLowerCase()
+    .split(/[^\p{L}\p{M}\p{N}]+/u)
+    .filter((w) => [...w].length >= (DENSE_SCRIPT.test(w) ? 2 : 3));
+}
+
 /// Common request/filler words to drop from the naive fallback, on top of the
 /// generic commerce filler. Not exhaustive, just enough to keep the signal words.
 export const NAIVE_STOPWORDS = new Set([
@@ -85,10 +100,7 @@ export const NAIVE_STOPWORDS = new Set([
 /// Deterministic fallback: significant words from the text, generic commerce and
 /// request filler dropped, deduped, capped. "i need an amazon account" -> ["amazon"].
 function naiveKeywords(text: string): string[] {
-  const words = text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((w) => w.length >= 3 && !GENERIC_TAG_WORDS.has(w) && !NAIVE_STOPWORDS.has(w));
+  const words = textWords(text).filter((w) => !GENERIC_TAG_WORDS.has(w) && !NAIVE_STOPWORDS.has(w));
   return Array.from(new Set(words)).slice(0, 8);
 }
 
@@ -111,9 +123,7 @@ export const GENERIC_TAG_WORDS = new Set([
 ///   "amazon account" vs "amazon seller"     -> 1 ("amazon" is meaningful)
 export function topicalOverlap(a: string[], b: string[]): number {
   const meaningful = (tags: string[]): string[] =>
-    tags
-      .flatMap((t) => t.toLowerCase().split(/[^a-z0-9]+/))
-      .filter((w) => w.length >= 3 && !GENERIC_TAG_WORDS.has(w));
+    tags.flatMap(textWords).filter((w) => !GENERIC_TAG_WORDS.has(w));
   return keywordOverlap(meaningful(a), meaningful(b));
 }
 
@@ -129,9 +139,7 @@ export function topicalMatchScore(briefTags: string[], sellerTags: string[]): nu
   const meaningful = (tags: string[]): string[] =>
     Array.from(
       new Set(
-        tags
-          .flatMap((t) => t.toLowerCase().split(/[^a-z0-9]+/))
-          .filter((w) => w.length >= 3 && !GENERIC_TAG_WORDS.has(w)),
+        tags.flatMap(textWords).filter((w) => !GENERIC_TAG_WORDS.has(w)),
       ),
     );
   const brief = meaningful(briefTags);

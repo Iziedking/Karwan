@@ -77,3 +77,16 @@ test('new person gets no forWork', () => {
 test('empty request gives plain publicRating', () => {
   assert.deepEqual(ratingForWork(tailorAndLogos.ratings, tailorAndLogos.terms, [], now), publicRating(tailorAndLogos.ratings));
 });
+
+test('deal words in any script count as like this', () => {
+  const ratings = [r('h1', 5, 0), r('h2', 5, 0), r('a1', 5, 0), r('l1', 2, 0), r('l2', 2, 0)];
+  const terms = new Map([
+    ['h1', 'Ɗinkin babbar riga'], ['h2', 'Babbar riga ta aure'], ['a1', 'خياطة بدلة'],
+    ['l1', 'Logo design'], ['l2', 'Brand logo'],
+  ]);
+  const hausa = forWorkOf(ratingForWork(ratings, terms, ['babbar', 'riga'], now));
+  assert.equal(hausa.count, 2);
+  assert.ok(hausa.rank > 4, `hausa rank ${hausa.rank}`);
+  const arabic = forWorkOf(ratingForWork(ratings, terms, ['بدلة'], now));
+  assert.equal(arabic.count, 1);
+});

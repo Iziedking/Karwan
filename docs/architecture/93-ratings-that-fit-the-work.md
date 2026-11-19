@@ -34,7 +34,7 @@ Outside agents still never receive the score or counts of the record (view 15). 
 
 ## How a rating counts for a job
 
-1. **Each rating is weighed by the work it was for.** The words of the deal that earned it are matched against the words of the request, the same way Karwan matches a request to a person's skills. A close match counts fully; work that has nothing in common counts little.
+1. **Each rating is weighed by the work it was for.** The words of the deal that earned it are matched against the words of the request, the same way Karwan matches a request to a person's skills. A close match counts fully; work that has nothing in common counts little. Words count in any script, so a deal written in Hausa, Arabic or Chinese counts the same way an English one does.
 2. **Few close ratings lean on the overall rating.** A person with one suit rating and twenty logo ratings is judged for a suit mostly on their overall rating, and moves to their suit rating as suit deals build up. A new person still counts as 3.5 stars until they have three ratings.
 3. **Recent work counts more.** A rating loses half its weight after about a year. It never disappears.
 4. **Nothing is stored that can go stale.** The rating for work like this is worked out from the ratings each time someone is ranked.
@@ -70,4 +70,4 @@ The free rating read is one tool on the shared core. The website assistant, Tele
 
 ## Status
 
-Approved by the owner on 19 Nov 2026. Built on 19 Nov, not deployed: the free rating read (`rating_of` in every chat, `get_rating` for outside agents), the rating for work like this in find, the bargaining shortlist and the blended score, and the like-this line on the find page in five languages.
+Approved by the owner on 19 Nov 2026. Built on 19 Nov, not deployed: the free rating read (`rating_of` in every chat, `get_rating` for outside agents), the rating for work like this in find, the bargaining shortlist and the blended score, and the like-this line on the find page in five languages. On 19 Nov the rating for work like this was extended to deals written in any script, and find now reads each person's deals once instead of twice.
