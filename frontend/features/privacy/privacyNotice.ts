@@ -36,7 +36,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     title: 'What we record as you use Karwan',
     list: [
       { label: 'Deals', text: 'Every deal, its amounts, its steps and who did each one. This is what your record is made of.' },
-      { label: 'Your record', text: 'Settled deals, on-time deliveries, disputes and your deal guarantee. You see all of it. Others see your name, tag, tier and up to three plain reasons, never counts or amounts.' },
+      { label: 'Your record', text: 'Settled deals, on-time deliveries, disputes and your savings pocket. You see all of it. Others see your name, tag, tier and up to three plain reasons, never counts or amounts.' },
       { label: 'Conversations', text: 'What you say to the assistant and your agent, negotiation messages between agents, and support tickets, plus short notes the assistant keeps about what you discussed. You can delete those notes or switch them off in Settings.' },
       { label: 'Sign-in', text: 'A session cookie that keeps you signed in, and a cookie for your language. We use no advertising trackers.' },
     ],

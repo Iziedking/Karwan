@@ -152,7 +152,7 @@ test('the guide says how a person confirms and the three things that ask (view 2
   assert.match(entry.summary, /passkey/);
   assert.match(entry.summary, /6-digit Karwan PIN/);
   assert.match(entry.summary, /set up your Karwan record/);
-  assert.match(entry.summary, /deal guarantee/);
+  assert.match(entry.summary, /add to your savings pocket/);
   assert.match(entry.summary, /money leaves Karwan/);
   assert.match(entry.summary, /15 minutes/);
   assert.match(entry.summary, /never asked in a chat/i);
