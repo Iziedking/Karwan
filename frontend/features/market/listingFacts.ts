@@ -94,7 +94,7 @@ const KIND_WORDS: ReadonlyArray<readonly [(typeof SEED_PHOTOS)[number] | keyof t
   ['music-production', ['music', 'beats', 'mixing', 'mastering']],
   ['copywriting', ['writer', 'writers', 'writing', 'copywriter', 'copywriting', 'blog']],
   ['social-content', ['social media', 'content creator', 'instagram', 'tiktok']],
-  ['web-development', ['website', 'websites', 'frontend', 'backend', 'full stack', 'api', 'apis', 'web developer']],
+  ['web-development', ['website', 'websites', 'frontend', 'backend', 'full stack', 'fullstack', 'developer', 'developers', 'api', 'apis', 'web developer']],
   ['smart-contracts', ['smart contract', 'smart contracts', 'solidity', 'nft', 'web3', 'onchain']],
   ['sales', ['sales', 'salesperson', 'sales rep', 'business development']],
   ['software-ai', ['software', 'ai', 'automation', 'bot', 'machine learning', 'model building']],
@@ -105,9 +105,10 @@ const KIND_WORDS: ReadonlyArray<readonly [(typeof SEED_PHOTOS)[number] | keyof t
 ];
 const KIND_PATTERNS = KIND_WORDS.map(([kind, words]) => [kind, new RegExp(`(^|[^a-z0-9])(${words.join('|')})(?=$|[^a-z0-9])`)] as const);
 
-/// The photograph file a title names, without its folder or extension.
+/// The photograph file a title names, without its folder or extension. Any
+/// hyphen or dash reads as a space, so "Full‑stack" is "full stack".
 function photoFromTitle(title: string): string | null {
-  const lower = title.toLowerCase();
+  const lower = title.toLowerCase().replace(/[\u2010-\u2015\u2212-]+/g, ' ');
   const kind = KIND_PATTERNS.find(([, pattern]) => pattern.test(lower))?.[0];
   if (!kind) return null;
   return kind in TITLE_ONLY_PHOTOS ? TITLE_ONLY_PHOTOS[kind as keyof typeof TITLE_ONLY_PHOTOS] : `seed-${kind}`;

@@ -37,6 +37,17 @@ test('a title that names a trade or sales work picks the photograph for it', () 
   assert.equal(samplePhoto(null, 'lst_1', 'remote', null, 'AI chatbot for your shop'), '/market-samples/seed-software-ai.jpg');
 });
 
+/// Owner, 19 Nov 2026: "Full‑stack development" (a non-breaking hyphen) showed
+/// a basket weaver.
+test('a hyphen or dash in a title reads as a space, and developer work picks the web photograph', () => {
+  const web = '/market-samples/seed-web-development.jpg';
+  assert.equal(samplePhoto('home', 'job_1', 'remote', null, 'Full‑stack development – collaborating on a project'), web);
+  assert.equal(samplePhoto(null, 'job_1', 'remote', null, 'Full-stack developer needed'), web);
+  assert.equal(samplePhoto(null, 'job_1', 'remote', null, 'Fullstack engineer'), web);
+  assert.equal(samplePhoto(null, 'job_1', 'remote', null, 'Voice–over for an advert'), '/market-samples/seed-voice-audio.jpg');
+  assert.equal(samplePhoto('tech', 'lst_1', 'remote', null, 'Business development lead'), '/market-samples/seed-hr-recruiting.jpg', 'business development stays sales work');
+});
+
 test('every fitted photograph is a file with a credit, one per kind the seed has', () => {
   const credits = readFileSync('public/market-samples/CREDITS.md', 'utf8');
   const catalog = readFileSync('../backend/src/marketplace/marketSeed/catalog.ts', 'utf8');
