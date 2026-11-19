@@ -30,7 +30,7 @@ async function serve(page: Page) {
   return release;
 }
 
-const switches = ['Notifications', 'List me on the public Credit Passport board', 'Show the guide on pages', 'Remember our conversations'];
+const switches = ['Notifications', 'List me on the public Credit Passport board', 'Aman’s help on pages', 'Remember our conversations'];
 
 test('Settings never shows a switch at a value that is not yours while your choices load', async ({ page }) => {
   const release = await serve(page);
