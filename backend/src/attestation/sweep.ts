@@ -23,6 +23,7 @@ import { partyMayPublish } from './policy.js';
 import { config } from '../config.js';
 import { getProfile, type UserSettings } from '../db/profiles.js';
 import { leased } from '../ops/leasedLoop.js';
+import { writeDealRecords } from '../deals/dealRecordSweep.js';
 
 export interface SweepResult {
   /// Deals that reached settlement and are eligible to be attested.
@@ -258,6 +259,12 @@ export function startAttestationSweep(): () => void {
       }
     } catch (err) {
       logger.error({ err: (err as Error).message }, 'attestation sweep: tick threw');
+    }
+    try {
+      const records = await writeDealRecords();
+      if (records.written > 0 || records.skipped > 0) logger.info(records, 'deal records: tick complete');
+    } catch (err) {
+      logger.error({ err: (err as Error).message }, 'deal records: tick threw');
     } finally {
       inFlight = false;
     }
