@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { reviewedProposal } from '../deals/disputeJudge.js';
+import { confirmFinding, panelRuling } from '../deals/disputeConfirm.js';
 import { z } from 'zod';
-import { encodeFunctionData, keccak256, toBytes, recoverTypedDataAddress, type Address } from 'viem';
+import { encodeFunctionData, recoverTypedDataAddress, type Address } from 'viem';
 import { publicClient } from '../chain/client.js';
 import { arbiterSafeAbi, SAFE_TX_TYPES } from '../chain/abis/arbiterSafe.js';
 import { escrowV2Abi } from '../chain/abis/escrowV2.js';
@@ -20,7 +21,7 @@ import { suiteRuleCall } from '../agents/suiteDisputeWatcher.js';
 import type { DirectDeal } from '../db/deals.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
-import { requireAdmin } from '../middleware/adminAuth.js';
+import { deskPrincipal, requireAdmin } from '../middleware/adminAuth.js';
 
 /// Arbiter dispute desk.
 ///
@@ -157,6 +158,14 @@ adminDisputeRoutes.get('/', async (c) => {
       disputedBy: d.disputedBy ?? null,
       statements: d.disputeStatements ?? null,
       proposal: d.judgeProposal ?? null,
+      // View 90: when both sides' answers are due, and by when a reviewer
+      // must confirm the finding before the case goes to the review Safe.
+      ...(d.escrowVersion === 'suite' && d.disputedAt
+        ? {
+            answersBy: d.disputedAt + config.DISPUTE_STATEMENT_WINDOW_MS,
+            findingDueAt: d.disputedAt + config.DISPUTE_FINDING_DEADLINE_MS,
+          }
+        : {}),
     }));
 
   /// Which contract actually holds each disputed escrow, and whether a ruling
@@ -213,6 +222,35 @@ adminDisputeRoutes.get('/', async (c) => {
   });
 });
 
+const findingSchema = z.object({
+  sellerBps: z.number().int().min(0).max(10_000),
+  reason: z.string().trim().min(1).max(1000),
+});
+
+/// POST /api/admin/disputes/:jobId/finding: a reviewer confirms the finding on
+/// an escrow family dispute, or sets another share, with a reason (view 90).
+/// Stored only: the deal watcher proposes it on chain, or sends it to the
+/// review Safe, at its next tick.
+adminDisputeRoutes.post('/:jobId/finding', async (c) => {
+  const jobId = jobIdSchema.safeParse(c.req.param('jobId'));
+  if (!jobId.success) return c.json({ error: 'invalid job id' }, 400);
+  let body;
+  try {
+    body = findingSchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'give a share from 0 to 10000 and a reason', code: 'BAD_INPUT', detail: (e as Error).message }, 400);
+  }
+  const deal = await getDeal(jobId.data);
+  if (!deal) return c.json({ error: 'unknown deal' }, 404);
+  const who = deskPrincipal(c);
+  const reviewer = who?.email ?? who?.name ?? who?.memberId ?? 'admin';
+  const result = confirmFinding(deal, body, reviewer, Date.now(), { windowMs: config.DISPUTE_STATEMENT_WINDOW_MS });
+  if (!result.ok) return c.json({ error: result.error, code: result.code }, result.status);
+  await patchDeal(jobId.data, { judgeProposal: result.proposal });
+  logger.info({ jobId: jobId.data, reviewer, sellerBps: body.sellerBps, status: result.proposal.status }, 'dispute finding confirmed');
+  return c.json({ proposal: result.proposal });
+});
+
 const prepareSchema = z.object({
   sellerBps: z.number().int().min(0).max(10_000),
   rulingReason: z.string().min(1).max(2000),
@@ -227,7 +265,7 @@ adminDisputeRoutes.get('/:jobId/safe-call', async (c) => {
   if (!body.success) return c.json({ error: 'sellerBps and rulingReason are needed' }, 400);
   const deal = await getDeal(jobId.data);
   if (!deal) return c.json({ error: 'unknown deal' }, 404);
-  const target = await rulingTarget(deal, body.data.sellerBps, keccak256(toBytes(body.data.rulingReason)));
+  const target = await rulingTarget(deal, body.data.sellerBps, panelRuling(deal, body.data.sellerBps, body.data.rulingReason).rulingHash);
   if (!target.ok) return c.json({ error: target.error, code: target.code }, target.status);
   return c.json({ safe: target.safe, to: target.to, data: target.data });
 });
@@ -254,7 +292,7 @@ adminDisputeRoutes.post('/:jobId/prepare', async (c) => {
   if (!deal) return c.json({ error: 'unknown deal' }, 404);
   if (!deal.disputed) return c.json({ error: 'deal is not disputed', code: 'not-disputed' }, 409);
 
-  const rulingHash = keccak256(toBytes(body.rulingReason));
+  const { rulingHash } = panelRuling(deal, body.sellerBps, body.rulingReason);
   const target = await rulingTarget(deal, body.sellerBps, rulingHash);
   if (!target.ok) return c.json({ error: target.error, code: target.code }, target.status);
   const { safe, to: escrow, data } = target;
@@ -343,7 +381,7 @@ adminDisputeRoutes.post('/:jobId/sign', async (c) => {
 
   const signDeal = await getDeal(jobId.data);
   if (!signDeal) return c.json({ error: 'unknown deal' }, 404);
-  const rulingHash = keccak256(toBytes(body.rulingReason));
+  const { rulingHash } = panelRuling(signDeal, body.sellerBps, body.rulingReason);
   const target = await rulingTarget(signDeal, body.sellerBps, rulingHash);
   if (!target.ok) return c.json({ error: target.error, code: target.code }, target.status);
   const { safe, to: escrow, data } = target;
@@ -446,7 +484,7 @@ adminDisputeRoutes.post('/:jobId/execute', async (c) => {
 
   const execDeal = await getDeal(jobId.data);
   if (!execDeal) return c.json({ error: 'unknown deal' }, 404);
-  const rulingHash = keccak256(toBytes(body.rulingReason));
+  const { rulingHash } = panelRuling(execDeal, body.sellerBps, body.rulingReason);
   const target = await rulingTarget(execDeal, body.sellerBps, rulingHash);
   if (!target.ok) return c.json({ error: target.error, code: target.code }, target.status);
   const { safe, to: escrow, data } = target;

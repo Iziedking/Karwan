@@ -63,6 +63,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/admin/diagnose" },
   { method: "GET", path: "/api/admin/disputes" },
   { method: "POST", path: "/api/admin/disputes/:jobId/execute" },
+  { method: "POST", path: "/api/admin/disputes/:jobId/finding" },
   { method: "POST", path: "/api/admin/disputes/:jobId/prepare" },
   { method: "GET", path: "/api/admin/disputes/:jobId/safe-call" },
   { method: "POST", path: "/api/admin/disputes/:jobId/sign" },
