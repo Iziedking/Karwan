@@ -451,6 +451,12 @@ const envSchema = z.object({
   // window closes. Proposal only: a reviewer confirms every ruling, so it is
   // on by default; this switches it off.
   DISPUTE_JUDGE_DISABLED: envBool('DISPUTE_JUDGE_DISABLED'),
+  // View 90: on escrow family deals nothing is proposed on chain until both
+  // sides are heard and a reviewer confirms the finding. Off keeps today's
+  // automatic table.
+  DISPUTE_HEARING_FAMILY: envBool('DISPUTE_HEARING_FAMILY'),
+  // A finding not confirmed by then goes to the review Safe with what is on file.
+  DISPUTE_FINDING_DEADLINE_MS: z.coerce.number().int().positive().default(388_800_000),
 
   // Financier application eligibility. Anyone can apply to fund factoring / PO
   // lines in the SME rail, but must meet a real bar: minimum account tenure on
@@ -1077,6 +1083,8 @@ const safetyErrors = runtimeSafetyErrors({
   worldIdEnvironment: parsed.data.WORLD_ID_ENVIRONMENT,
   anthropicRuleId: parsed.data.ANTHROPIC_FEDERATION_RULE_ID,
   anthropicOrganizationId: parsed.data.ANTHROPIC_ORGANIZATION_ID,
+  statementWindowMs: parsed.data.DISPUTE_STATEMENT_WINDOW_MS,
+  findingDeadlineMs: parsed.data.DISPUTE_FINDING_DEADLINE_MS,
 });
 if (safetyErrors.length > 0) {
   console.error('Unsafe production configuration:', safetyErrors);

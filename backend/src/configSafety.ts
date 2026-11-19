@@ -9,6 +9,8 @@ export interface RuntimeSafetyInput {
   worldIdEnvironment?: 'staging' | 'production';
   anthropicRuleId?: string;
   anthropicOrganizationId?: string;
+  statementWindowMs?: number;
+  findingDeadlineMs?: number;
 }
 
 export const EXAMPLE_SESSION_SECRET = 'dev-secret-change-me-please-32-chars-min';
@@ -40,6 +42,13 @@ export function runtimeSafetyErrors(input: RuntimeSafetyInput): string[] {
   // Half of the pair would quietly fall back to the key (view 89).
   if (Boolean(input.anthropicRuleId) !== Boolean(input.anthropicOrganizationId)) {
     errors.push('ANTHROPIC_FEDERATION_RULE_ID and ANTHROPIC_ORGANIZATION_ID must be set together');
+  }
+  // After 5 days with no proposal anyone may escalate a dispute (DisputeLib's
+  // PROPOSAL_WINDOW), so a finding must be due before then (view 90).
+  if (input.statementWindowMs !== undefined && input.findingDeadlineMs !== undefined) {
+    if (input.findingDeadlineMs <= input.statementWindowMs || input.findingDeadlineMs >= 5 * 86_400_000) {
+      errors.push('DISPUTE_FINDING_DEADLINE_MS must be longer than DISPUTE_STATEMENT_WINDOW_MS and shorter than 5 days');
+    }
   }
   return errors;
 }

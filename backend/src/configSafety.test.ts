@@ -75,3 +75,15 @@ test('the pass settings for Claude at Anthropic come as a pair, in every environ
     assert.deepEqual(runtimeSafetyErrors(base), []);
   }
 });
+
+test('the dispute finding deadline sits after the hearing and before anyone may escalate a bare dispute', () => {
+  const DAY = 86_400_000;
+  const message = 'DISPUTE_FINDING_DEADLINE_MS must be longer than DISPUTE_STATEMENT_WINDOW_MS and shorter than 5 days';
+  const at = (statementWindowMs: number, findingDeadlineMs: number) =>
+    runtimeSafetyErrors({ nodeEnv: 'test', statementWindowMs, findingDeadlineMs });
+  assert.deepEqual(at(3 * DAY, 4.5 * DAY), []);
+  assert.ok(at(3 * DAY, 3 * DAY).includes(message));
+  assert.ok(at(3 * DAY, 2 * DAY).includes(message));
+  assert.ok(at(3 * DAY, 5 * DAY).includes(message));
+  assert.deepEqual(runtimeSafetyErrors({ nodeEnv: 'test' }), []);
+});
