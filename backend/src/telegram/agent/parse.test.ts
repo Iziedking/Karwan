@@ -71,3 +71,8 @@ test('a bare /start reaches the agent as text so sign-up can begin', () => {
   assert.equal(r?.inbound.kind, 'text');
   assert.equal(r?.inbound.text, '/start');
 });
+
+test('a shared location becomes a location message (view 39, 19 Nov)', () => {
+  const r = parseUpdate({ update_id: 3, message: { message_id: 11, from, chat, date: 1_760_000_000, location: { latitude: 6.5244, longitude: 3.3792 } } });
+  assert.deepEqual(r?.inbound, { id: 'tg-3', from: 'tg:4242', timestamp: 1_760_000_000_000, kind: 'location', location: { lat: 6.5244, lng: 3.3792 } });
+});

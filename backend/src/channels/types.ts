@@ -11,7 +11,9 @@ export interface InboundMessage {
   from: string;
   /// Epoch milliseconds.
   timestamp: number;
-  kind: 'text' | 'button' | 'list' | 'media' | 'other';
+  kind: 'text' | 'button' | 'list' | 'media' | 'location' | 'other';
+  /// A position the person shared, for kind 'location'.
+  location?: { lat: number; lng: number };
   /// Typed text, or a media caption.
   text?: string;
   /// The id of the button or list row the person tapped.
@@ -31,7 +33,9 @@ export type OnboardingStep =
   | SetupQuestion | 'confirm' | 'post' | 'done';
 
 /// The setup questions in chat, in the order /setup asks them.
-export type SetupQuestion = 'goals' | 'what' | 'price' | 'paid' | 'buy' | 'business' | 'places' | 'clients' | 'own' | 'reach' | 'where';
+/// 'goals', 'what', 'paid', 'business', 'places', 'clients' and 'own' are the
+/// earlier interview's, kept so a stored account left there starts again.
+export type SetupQuestion = 'brings' | 'sell' | 'price' | 'buy' | 'reach' | 'where' | 'goals' | 'what' | 'paid' | 'business' | 'places' | 'clients' | 'own';
 
 /// How long a confirm card waits for its tap.
 export const CARD_TTL_MS = 30 * 60_000;

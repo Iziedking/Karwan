@@ -140,6 +140,7 @@ import { suiteIdentity } from './identity/suiteIdentityLive.js';
 import { requirePresence } from './presence/live.js';
 import { confirmRouteDeps } from './presence/live.js';
 import { setupRoutes } from './routes/setup.js';
+import { placesRoutes } from './routes/places.js';
 import { moneyOutRouteDeps } from './moneyOut/live.js';
 import { adminVerificationRoutes } from './routes/adminVerification.js';
 import { createAdminAccountDeletionRoutes } from './routes/adminAccountDeletion.js';
@@ -538,6 +539,7 @@ app.route('/api/activation', activationRoutes);
 app.route('/api/deposit', depositRoutes);
 app.route('/api/money', moneyRoutes);
 app.route('/api/setup', setupRoutes);
+app.route('/api/places', placesRoutes);
 // Root-mounted on purpose: a verifier derives /.well-known and /schemas from the
 // issuer domain, so they cannot live under /api.
 app.route('/', attestationRoutes);

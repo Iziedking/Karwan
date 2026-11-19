@@ -1,17 +1,20 @@
 import { buildSaveSetupConfirm, type ConfirmAction } from '../assistant/actions.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import { firstPost } from '../agents/firstPost.js';
+import { splitSellLine } from '../agents/sellLine.js';
 import type { Goal } from '../db/profiles.js';
 import { parsePlace } from '../location/rules.js';
 import type { OnboardingResult } from './onboarding.js';
 import { renderConfirm, type OutMessage } from './render.js';
 import { CARD_TTL_MS, type ChatAccount, type InboundMessage, type OnboardingState, type SetupQuestion } from './types.js';
 
-/// The setup interview after the tag: the questions /start?step=about asks, in
-/// the same order, ending with Here's your Karwan as a confirm card. Looks right
-/// saves it through the setup route; a first offer or request is offered after
-/// that. The website's order is frontend/features/setup/setupSteps.ts, and its
-/// defaults for what is not asked are withDefaults there.
+/// The setup interview after the tag (view 39, "Set up in two minutes", 19
+/// Nov): what brings you, where you are, one line for what you sell or need,
+/// and how we reach you, ending with Here's your Karwan as a confirm card.
+/// Looks right saves it through the setup route; a first offer or request is
+/// offered after that. Where you are comes second in chat, because there it
+/// sets the currency amounts are read in. A shared location is answered with
+/// the nearest town from Karwan's own list.
 
 export interface InterviewDeps {
   /// Sent when the interview ends: the questions that follow sign-up.
@@ -21,109 +24,66 @@ export interface InterviewDeps {
   preview: (address: string, answers: BriefAnswers) => Promise<{ lines: string[]; needs: Array<'price'> }>;
   /// Runs the save_setup card, as a tap on any confirm card would.
   save: (address: string, card: ConfirmAction) => Promise<{ ok: true } | { ok: false; message: string }>;
+  /// The town nearest a shared location, or null when none is near.
+  near: (point: { lat: number; lng: number }) => Promise<{ country: string; city: string; admin: string } | null>;
   now?: () => number;
 }
 
-const GOALS: Array<[Goal, string]> = [
-  ['work', 'Get paid for work'],
-  ['sell', 'Sell my products'],
-  ['buy', 'Buy or hire'],
-  ['business', 'Business deals'],
-  ['record', 'Build a record'],
-];
-
-type TextQuestion = 'what' | 'price' | 'buy' | 'business' | 'places' | 'where';
-type ChoiceQuestion = 'paid' | 'clients' | 'own' | 'reach';
-
-const ASK: Record<TextQuestion, string> = {
-  what: 'What do you do? One line in your own words. Your agent uses it to find clients. For example: Logo and brand design.',
-  price: 'Your usual price, the lowest you would take, and how fast you deliver, however you say it. One price is both. For example: 20 to 40 USDC, 3 days.',
-  buy: 'What do you usually buy or hire for? And your usual budget, if you have one. For example: Phone repairs, up to 50 USDC.',
-  business: 'Your business name, and what it trades. We start your business profile with this. For example: Bello Foods, rice and grains to shops.',
-  places: 'Where do you already work or sell? Only accounts you prove are yours count toward your record. For example: Instagram, WhatsApp, Fiverr.',
-  where: 'Where are you? Only your country is ever shown. Your city helps find people near you. For example: Lagos, Nigeria.',
-};
-const SELL_WHAT = 'What do you sell? One line in your own words. Your agent uses it to find buyers. For example: Ankara fabric, 6 yards a piece.';
-const PRICE_AGAIN = "I couldn't read a price there. What do you usually charge, in USDC? One price, or your lowest to your usual. For example: 20 to 40 USDC.";
-
-const CHOICES: Record<ChoiceQuestion, { body: string; options: Array<[string, string]> }> = {
-  paid: {
-    body: 'How do clients usually pay you? Your agent offers deals this way. You can add other ways later.',
-    options: [['one_time', 'All at once'], ['milestones', 'In stages'], ['goods', 'I send goods']],
-  },
-  clients: {
-    body: 'Do you have clients already, or should Karwan find them?',
-    options: [['own', 'I have clients'], ['find', 'Find clients for me'], ['both', 'Both']],
-  },
-  own: {
-    body: 'How much should your agent do on its own? It can make offers within your price, or ask you first. Money never moves without your confirmation.',
-    options: [['offers', 'Offer for me'], ['ask', 'Ask me first'], ['agree', 'Agree for me']],
-  },
-  reach: {
-    body: 'How should we reach you? For new offers, payments and anything that needs you.',
-    options: [['telegram', 'Telegram'], ['email', 'Email'], ['both', 'Both']],
-  },
+/// What the chat collects: the reader's answers, plus the place picked, whose
+/// position the setup route keeps to about a kilometre.
+export type InterviewAnswers = BriefAnswers & {
+  place?: { country: string; city?: string; admin?: string; point?: { lat: number; lng: number } };
 };
 
-const isChoice = (q: SetupQuestion): q is ChoiceQuestion => q in CHOICES;
+type Brings = 'sell' | 'buy' | 'both';
+const BRINGS: Array<[Brings, string]> = [['sell', 'Sell'], ['buy', 'Buy or hire'], ['both', 'Both']];
+const GOALS_FOR: Record<Brings, Goal[]> = { sell: ['work'], buy: ['buy'], both: ['work', 'buy'] };
+
+const BRINGS_ASK = 'What brings you to Karwan?';
+const SELL_ASK = 'What do you sell, and your usual price? One line, the way you would tell a client. For example: Logo design, 20 to 40 USDC, 3 days.';
+const BUY_ASK = 'What do you need, and your budget? For example: A designer for my brand, up to 50 USDC.';
+const WHERE_ASK = 'Where are you? Tap Share my location, or type your city and country. Only your country is ever shown. Your city helps me find people near you.';
+const WHERE_AGAIN = "I didn't catch the country. Type your city and country, for example: Lagos, Nigeria. Or tap Share my location.";
+const NOT_PLACED = "I couldn't place that location. Type your city and country, for example: Lagos, Nigeria.";
+const PRICE_AGAIN = "I couldn't read a price there. What do you usually charge? One price, or your lowest to your usual. For example: 20 to 40 USDC.";
+const REACH: { body: string; options: Array<[string, string]> } = {
+  body: 'How should we reach you? For new offers, payments and anything that needs you.',
+  options: [['telegram', 'Telegram'], ['email', 'Email'], ['both', 'Both']],
+};
+/// Steps of the earlier interviews: someone left there starts again.
+const OLD_STEPS = new Set(['role', 'offer', 'goals', 'what', 'paid', 'business', 'places', 'clients', 'own']);
+
 const text = (body: string): OutMessage => ({ kind: 'text', body });
+const selling = (a: BriefAnswers) => a.goals.includes('work') || a.goals.includes('sell');
+const buying = (a: BriefAnswers) => a.goals.includes('buy');
 
-/// The questions these goals need, in the website's order. How someone is paid
-/// and how much their agent does alone are not asked (see withDefaults). Where
-/// they are comes last: a chat has no Profile page to add it later, and a goods
-/// seller ships from there.
-export function interviewQuestions(goals: readonly Goal[]): SetupQuestion[] {
-  const has = (g: Goal) => goals.includes(g);
-  const selling = has('work') || has('sell');
-  return [
-    'goals',
-    // Where you are comes first after the goals: it sets the currency amounts read in (view 54).
-    'where',
-    ...(selling ? (['what', 'price'] as const) : []),
-    ...(has('buy') ? (['buy'] as const) : []),
-    ...(has('business') ? (['business'] as const) : []),
-    ...(has('record') ? (['places'] as const) : []),
-    ...(selling || has('buy') ? (['clients'] as const) : []),
-    'reach',
-  ];
+/// The questions these answers need, in order.
+export function interviewQuestions(answers: BriefAnswers): SetupQuestion[] {
+  return ['brings', 'where', ...(selling(answers) ? (['sell'] as const) : []), ...(buying(answers) ? (['buy'] as const) : []), 'reach'];
 }
 
-/// What was not asked starts where the website starts it: paid all at once (on
-/// arrival for someone who only sells goods), and an agent that offers within
-/// the price but asks before any deal. Both change later from Profile.
-export function withDefaults(answers: BriefAnswers): BriefAnswers {
+/// What was not asked starts where the website starts it: one payment, and an
+/// agent that offers within the price but asks before any deal.
+export function withDefaults(answers: InterviewAnswers): InterviewAnswers {
   const out = { ...answers };
-  const goals = answers.goals;
-  if ((goals.includes('work') || goals.includes('sell')) && !out.paid) {
-    out.paid = goals.includes('sell') && !goals.includes('work') ? 'goods' : 'one_time';
-  }
+  if (selling(answers) && !out.paid) out.paid = 'one_time';
   if (!out.own) out.own = 'offers';
   return out;
 }
 
-function goalsMessage(picked: readonly Goal[], lead?: string): OutMessage {
-  const body = 'What do you want Karwan to do for you? Pick all that fit, then tap Done.';
-  return {
-    kind: 'buttons',
-    body: lead ? `${lead}\n\n${body}` : body,
-    buttons: [
-      ...GOALS.map(([goal, title]) => ({ id: `ws:goal:${goal}`, title: picked.includes(goal) ? `✓ ${title}` : title })),
-      { id: 'ws:goals:done', title: 'Done' },
-    ],
-  };
+function ask(q: SetupQuestion): OutMessage {
+  if (q === 'brings') return { kind: 'buttons', body: BRINGS_ASK, buttons: BRINGS.map(([v, title]) => ({ id: `ws:brings:${v}`, title })) };
+  if (q === 'reach') return { kind: 'buttons', body: REACH.body, buttons: REACH.options.map(([v, title]) => ({ id: `ws:reach:${v}`, title })) };
+  if (q === 'where') return { kind: 'ask_location', body: WHERE_ASK, label: 'Share my location' };
+  if (q === 'sell') return text(SELL_ASK);
+  if (q === 'buy') return text(BUY_ASK);
+  return text(PRICE_AGAIN);
 }
 
-function ask(q: SetupQuestion, answers: BriefAnswers): OutMessage {
-  if (q === 'goals') return goalsMessage(answers.goals);
-  if (isChoice(q)) {
-    const c = CHOICES[q];
-    return { kind: 'buttons', body: c.body, buttons: c.options.map(([value, title]) => ({ id: `ws:${q}:${value}`, title })) };
-  }
-  if (q === 'what' && answers.goals.includes('sell') && !answers.goals.includes('work')) return text(SELL_WHAT);
-  return text(ASK[q]);
-}
+const answered = (a: InterviewAnswers, q: SetupQuestion) =>
+  q === 'brings' ? a.goals.length > 0 : q === 'sell' ? a.what !== undefined : q === 'buy' ? a.buy !== undefined : q === 'where' ? a.where !== undefined : q === 'reach' ? a.reach !== undefined : true;
 
-const STEPS = new Set<string>(['role', 'offer', 'goals', 'what', 'price', 'paid', 'buy', 'business', 'places', 'clients', 'own', 'reach', 'where', 'confirm', 'post']);
+const STEPS = new Set<string>([...OLD_STEPS, 'brings', 'sell', 'price', 'buy', 'reach', 'where', 'confirm', 'post']);
 
 export function createInterview<A extends ChatAccount>(deps: InterviewDeps) {
   const now = deps.now ?? Date.now;
@@ -134,34 +94,33 @@ export function createInterview<A extends ChatAccount>(deps: InterviewDeps) {
     ...(handOff ? { handOff } : {}),
   });
 
-  async function enter(account: A): Promise<OnboardingResult<A>> {
-    const answers: BriefAnswers = { goals: [] };
-    return { account: at(account, { step: 'goals', answers }), out: [goalsMessage([], "Let's set up Karwan the way you want to use it.")] };
+  async function enter(account: A, lead = "Let's set up Karwan the way you want to use it."): Promise<OnboardingResult<A>> {
+    const first = ask('brings');
+    return {
+      account: at(account, { step: 'brings', answers: { goals: [] } }),
+      out: [first.kind === 'buttons' ? { ...first, body: `${lead}\n\n${first.body}` } : first],
+    };
   }
 
   /// The question after `q`, or the card when there are no more.
-  async function after(account: A, answers: BriefAnswers, q: SetupQuestion): Promise<OnboardingResult<A>> {
+  async function after(account: A, answers: InterviewAnswers, q: SetupQuestion, lead: OutMessage[] = []): Promise<OnboardingResult<A>> {
     // The price asked again after the card goes straight back to the card.
-    if (q === 'price' && answers.retried) return card(account, answers);
-    const order = interviewQuestions(answers.goals);
+    if (q === 'price') return card(account, answers);
+    const order = interviewQuestions(answers);
     const i = order.indexOf(q);
-    // Someone left at a question the chat no longer asks picks up at the first
-    // one they have not answered.
-    // A question already answered is not asked again.
-    const unanswered = (s: SetupQuestion) => s !== 'goals' && answers[s as keyof BriefAnswers] === undefined;
-    const next = i >= 0 ? order.slice(i + 1).find(unanswered) : order.find(unanswered);
-    if (next) return { account: at(account, { step: next, answers }), out: [ask(next, answers)] };
-    return card(account, answers);
+    const next = (i >= 0 ? order.slice(i + 1) : order).find((s) => !answered(answers, s));
+    if (next) return { account: at(account, { step: next, answers }), out: [...lead, ask(next)] };
+    const done = await card(account, answers);
+    return { ...done, out: [...lead, ...done.out] };
   }
 
-  async function card(account: A, asked: BriefAnswers): Promise<OnboardingResult<A>> {
+  async function card(account: A, asked: InterviewAnswers): Promise<OnboardingResult<A>> {
     const answers = withDefaults(asked);
     const read = await deps.preview(account.address!, answers).catch(() => null);
     // The account is returned as it came, so the same answer can be sent again.
     if (!read) return { account, out: [text("I couldn't read that just now. Send your last answer again in a minute.")] };
     if (read.needs.includes('price') && !answers.retried) {
-      const retried = { ...answers, retried: true };
-      return { account: at(account, { step: 'price', answers: retried }), out: [text(PRICE_AGAIN)] };
+      return { account: at(account, { step: 'price', answers: { ...answers, retried: true } }), out: [text(PRICE_AGAIN)] };
     }
     const action = buildSaveSetupConfirm(answers, read.lines);
     // One setup card at a time: showing it again replaces the earlier one.
@@ -174,10 +133,10 @@ export function createInterview<A extends ChatAccount>(deps: InterviewDeps) {
     const state = account.onboarding;
     if (!state || !STEPS.has(state.step)) return null;
     if (!account.address) return finish(account, []);
-    // Someone left at the old interview's questions starts the new ones.
-    if (state.step === 'role' || state.step === 'offer') return enter(account);
+    // Someone left at an earlier interview's questions starts these.
+    if (OLD_STEPS.has(state.step)) return enter(account);
 
-    const answers: BriefAnswers = state.answers ?? { goals: [] };
+    const answers: InterviewAnswers = state.answers ?? { goals: [] };
     const said = m.kind === 'text' ? (m.text ?? '').trim() : '';
     const tapped = m.kind === 'button' ? (m.replyId ?? '') : '';
 
@@ -190,35 +149,49 @@ export function createInterview<A extends ChatAccount>(deps: InterviewDeps) {
 
     const q = state.step as SetupQuestion;
     if (/^skip$/i.test(said)) {
-      if (q === 'goals') return finish(account, [text('No problem. Tell me any time what you sell or need.')]);
-      return after(account, answers, q);
+      if (q === 'brings') return finish(account, [text('No problem. Tell me any time what you sell or need.')]);
+      return after(account, q === 'where' ? { ...answers, where: '' } : answers, q);
     }
 
-    if (q === 'goals') {
-      const goal = /^ws:goal:(\w+)$/.exec(tapped)?.[1] as Goal | undefined;
-      if (goal && GOALS.some(([g]) => g === goal)) {
-        const goals = answers.goals.includes(goal) ? answers.goals.filter((g) => g !== goal) : [...answers.goals, goal];
-        const picked = { ...answers, goals };
-        return { account: at(account, { step: 'goals', answers: picked }), out: [goalsMessage(goals)] };
+    if (q === 'brings') {
+      const v = /^ws:brings:(\w+)$/.exec(tapped)?.[1] as Brings | undefined;
+      if (!v || !GOALS_FOR[v]) return { account, out: [ask('brings')] };
+      return after(account, { ...answers, goals: GOALS_FOR[v] }, 'brings');
+    }
+
+    if (q === 'reach') {
+      const v = /^ws:reach:(\w+)$/.exec(tapped)?.[1];
+      if (!v || !REACH.options.some(([o]) => o === v)) return { account, out: [ask('reach')] };
+      return after(account, { ...answers, reach: v as BriefAnswers['reach'] }, 'reach');
+    }
+
+    if (q === 'where') {
+      // The keyboard with Share my location closes once the place is known.
+      const placed = (where: string) => ({ kind: 'text' as const, body: `Got it: ${where}.` });
+      if (m.kind === 'location' && m.location) {
+        const town = await deps.near(m.location).catch(() => null);
+        if (!town) return { account, out: [text(NOT_PLACED)] };
+        const where = `${town.city}, ${town.country}`;
+        const place = { country: town.country, city: town.city, admin: town.admin, point: m.location };
+        return after(account, { ...answers, where, place }, 'where', [{ ...placed(where), closeKeyboard: true }]);
       }
-      if (tapped === 'ws:goals:done' && answers.goals.length) return after(account, answers, 'goals');
-      return { account, out: [goalsMessage(answers.goals)] };
+      if (!said) return { account, out: [ask('where')] };
+      const parsed = parsePlace(said);
+      if (!parsed.country) return { account, out: [text(WHERE_AGAIN)] };
+      const place = { country: parsed.country, ...(parsed.city ? { city: parsed.city } : {}) };
+      return after(account, { ...answers, where: said, place }, 'where', [{ ...placed(said), closeKeyboard: true }]);
     }
 
-    if (isChoice(q)) {
-      const value = new RegExp(`^ws:${q}:(\\w+)$`).exec(tapped)?.[1];
-      if (!value || !CHOICES[q].options.some(([v]) => v === value)) return { account, out: [ask(q, answers)] };
-      return after(account, { ...answers, [q]: value } as BriefAnswers, q);
+    if (!said) return { account, out: [ask(q)] };
+    if (q === 'sell') {
+      const { what, price } = splitSellLine(said);
+      return after(account, { ...answers, what, ...(price ? { price } : {}) }, 'sell');
     }
-
-    if (!said) return { account, out: [ask(q, answers)] };
-    if (q === 'where' && !parsePlace(said).country) {
-      return { account, out: [text("I didn't catch the country. Where are you? For example: Lagos, Nigeria. Or type skip.")] };
-    }
+    if (q === 'price') return after(account, { ...answers, price: said }, 'price');
     return after(account, { ...answers, [q]: said }, q);
   }
 
-  async function confirmStep(account: A, answers: BriefAnswers, tapped: string): Promise<OnboardingResult<A>> {
+  async function confirmStep(account: A, answers: InterviewAnswers, tapped: string): Promise<OnboardingResult<A>> {
     const tap = /^(confirm|cancel):(.+)$/.exec(tapped);
     const pending = tap ? account.pendingActions?.[tap[2]!] : undefined;
     // A typed message, an old card or one that ran out of time: show the card again.
@@ -228,8 +201,8 @@ export function createInterview<A extends ChatAccount>(deps: InterviewDeps) {
     const remaining = { ...(account.pendingActions ?? {}) };
     delete remaining[tap[2]!];
     if (tap[1] === 'cancel') {
-      const fresh: BriefAnswers = { goals: [] };
-      return { account: { ...at(account, { step: 'goals', answers: fresh }), pendingActions: remaining }, out: [goalsMessage([], "Let's go again.")] };
+      const again = await enter({ ...account, pendingActions: remaining } as A, "Let's go again.");
+      return again;
     }
     const saved = await deps.save(account.address!, pending.action);
     if (!saved.ok) return { account, out: [text(saved.message)] };

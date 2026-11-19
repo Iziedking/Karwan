@@ -74,3 +74,12 @@ test('text without bold carries no entities and a lone asterisk stays as typed',
   assert.equal(msg!.text, 'Price is 5 * 2 USDC');
   assert.equal(msg!.entities, undefined);
 });
+
+test('asking where shows a Share my location keyboard, and the answer closes it (view 39, 19 Nov)', () => {
+  const [ask] = toTelegram({ kind: 'ask_location', body: 'Where are you?', label: 'Share my location' })!;
+  assert.deepEqual(ask!.reply_markup, { keyboard: [[{ text: 'Share my location', request_location: true }]], one_time_keyboard: true, resize_keyboard: true });
+  const [got] = toTelegram({ kind: 'text', body: 'Got it: Lagos, NG.', closeKeyboard: true })!;
+  assert.deepEqual(got!.reply_markup, { remove_keyboard: true });
+  const [plain] = toTelegram({ kind: 'text', body: 'Hi' })!;
+  assert.equal(plain!.reply_markup, undefined);
+});

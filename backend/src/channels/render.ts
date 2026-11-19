@@ -3,7 +3,10 @@ import type { AssistantAction, ConfirmAction } from '../assistant/actions.js';
 export type TemplateName = 'match_found' | 'confirm_work' | 'deal_update' | 'verification_result';
 
 export type OutMessage =
-  | { kind: 'text'; body: string }
+  /// closeKeyboard: Telegram puts away the Share my location keyboard with this message.
+  | { kind: 'text'; body: string; closeKeyboard?: true }
+  /// Asks where the person is: a Share my location button where the channel has one.
+  | { kind: 'ask_location'; body: string; label: string }
   | { kind: 'buttons'; body: string; buttons: { id: string; title: string }[] }
   | { kind: 'template'; name: TemplateName; params: string[]; buttonIds?: string[] }
   /// A step finished on a Karwan page, opened from a button where the channel

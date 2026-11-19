@@ -1,33 +1,31 @@
-/// The setup conversation (docs/architecture/39-start-to-home.md). Only the
-/// questions a person's goals need are asked. The Telegram interview in
-/// backend/src/channels/interview.ts follows this order and these defaults.
+/// Set up in two minutes (docs/architecture/39-start-to-home.md, 19 Nov):
+/// sell, buy or both with one line each, then where you are and how we reach
+/// you, then the summary. The Telegram interview in
+/// backend/src/channels/interview.ts asks the same, in the same order.
 
 export type Goal = 'work' | 'sell' | 'buy' | 'business' | 'record';
+export type Role = 'sell' | 'buy' | 'both';
+export type Reach = 'telegram' | 'email' | 'both';
 
-export type SetupStep =
-  | 'goals'
-  | 'work'
-  | 'buy'
-  | 'business'
-  | 'places'
-  | 'contact'
-  | 'paid'
-  | 'own'
-  | 'reading'
-  | 'summary';
+export type SetupStep = 'role' | 'where' | 'reading' | 'summary';
+
+export interface SetupPlace {
+  /// ISO 3166-1 alpha-2.
+  country: string;
+  city?: string;
+  admin?: string;
+  /// From "Use my location"; the server keeps it to about a kilometre.
+  point?: { lat: number; lng: number };
+}
 
 export interface SetupAnswers {
-  goals: Goal[];
-  what?: string;
-  price?: string;
-  buy?: string;
-  business?: string;
-  places?: string;
-  clients?: 'own' | 'find' | 'both';
-  own?: 'offers' | 'ask' | 'agree';
-  reach?: 'telegram' | 'email' | 'both';
-  where?: string;
-  paid?: 'one_time' | 'milestones' | 'goods';
+  role?: Role;
+  sellLine?: string;
+  buyLine?: string;
+  place?: SetupPlace;
+  reach?: Reach;
+  /// When the questions opened, so the time setup takes can be watched.
+  startedAt?: number;
   retried?: boolean;
 }
 
@@ -35,52 +33,33 @@ export interface SetupAnswers {
 /// shows the card (backend/src/agents/firstPost.ts).
 export type SetupFirstPost = { kind: 'offer' | 'request'; handOff: string };
 
-export const TEXT_STEPS = ['buy', 'business', 'places'] as const;
-/// Asked only when the person changes them from the summary.
-export const CHOICE_STEPS = ['paid', 'own'] as const;
-export type TextStep = (typeof TEXT_STEPS)[number];
-export type ChoiceStep = (typeof CHOICE_STEPS)[number];
+const filled = (v: string | undefined) => (v?.trim().length ?? 0) >= 2;
+export const sells = (a: SetupAnswers) => a.role === 'sell' || a.role === 'both';
+export const buys = (a: SetupAnswers) => a.role === 'buy' || a.role === 'both';
 
-export const sells = (goals: readonly Goal[]) => goals.includes('work') || goals.includes('sell');
-/// Whether "Do you have clients already?" applies: someone who sells or buys.
-export const asksClients = (goals: readonly Goal[]) => sells(goals) || goals.includes('buy');
+export function setupSteps(): SetupStep[] {
+  return ['role', 'where', 'reading', 'summary'];
+}
 
-export function setupSteps(goals: readonly Goal[]): SetupStep[] {
-  const has = (g: Goal) => goals.includes(g);
-  return [
-    'goals',
-    ...(sells(goals) ? (['work'] as const) : []),
-    ...(has('buy') ? (['buy'] as const) : []),
-    ...(has('business') ? (['business'] as const) : []),
-    ...(has('record') ? (['places'] as const) : []),
-    'contact',
-    'reading',
-    'summary',
-  ];
+/// Whether Next can be pressed on a question.
+export function canGoOn(step: SetupStep, a: SetupAnswers): boolean {
+  if (step === 'role') return !!a.role && (!sells(a) || filled(a.sellLine)) && (!buys(a) || filled(a.buyLine));
+  if (step === 'where') return !!a.place?.country && filled(a.place.city) && !!a.reach;
+  return true;
+}
+
+export function firstPostKind(a: SetupAnswers): 'offer' | 'request' | null {
+  return sells(a) ? 'offer' : buys(a) ? 'request' : null;
 }
 
 /// A step with Back and Next under it.
 export const isQuestionStep = (step: SetupStep) => step !== 'reading' && step !== 'summary';
 
-/// How far through "About you" the person is, from 0 to 1, for the bar on
-/// /start. The goals question decides how many follow, so it counts as the
-/// first of however many there are now.
+/// How far through "About you" the person is, from 0 to 1, for the bar on /start.
 export function aboutProgress(steps: readonly SetupStep[], current: SetupStep): number {
   if (current === 'summary') return 1;
   const asked: SetupStep[] = steps.filter((s) => isQuestionStep(s));
   const at = asked.indexOf(current);
   if (current === 'reading') return asked.length / (asked.length + 1);
   return at < 0 ? 0 : at / (asked.length + 1);
-}
-
-/// What the person was not asked starts from a sensible answer they can change
-/// on the summary: paid all at once (or on arrival for goods), and an agent
-/// that offers within their price but asks before any deal.
-export function withDefaults(answers: SetupAnswers): SetupAnswers {
-  const out = { ...answers };
-  if (sells(answers.goals) && !out.paid) {
-    out.paid = answers.goals.includes('sell') && !answers.goals.includes('work') ? 'goods' : 'one_time';
-  }
-  if (!out.own) out.own = 'offers';
-  return out;
 }

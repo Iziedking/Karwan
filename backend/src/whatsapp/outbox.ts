@@ -80,6 +80,8 @@ function payload(m: OutMessage): Record<string, unknown> {
       return { type: 'text', text: { body: m.body, preview_url: true } };
     case 'link':
       return { type: 'text', text: { body: `${m.body}\n\n${m.label}: ${m.url}`, preview_url: false } };
+    case 'ask_location':
+      return { type: 'text', text: { body: m.body, preview_url: false } };
     case 'buttons':
       return {
         type: 'interactive',

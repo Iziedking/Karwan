@@ -1,34 +1,38 @@
 'use client';
 
-import { useEffect, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, m } from 'motion/react';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, type SetupCard } from '@/core/api';
 import { openHelp } from '@/shared/assistant/openHelp';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { AmanFace } from '@/shared/guide/AmanFace';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ease } from '@/shared/motion/tokens';
+import { deviceCountry } from '@/shared/places/guessCountry';
 import { PRIMARY } from '@/shared/ui/controls';
 import { safeNext } from '@/shared/auth/safeNext';
-import { ChoiceCard, SummaryLines } from './SetupParts';
-import { localExample } from './setupMoney';
 import { useDisplayCurrency } from '@/features/money/hooks/useDisplayCurrency';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { ChoiceCard } from './SetupParts';
+import { localExample } from './setupMoney';
 import { Nudge, StartBar } from './StartParts';
+import { WhereStep } from './WhereStep';
 import { answersFromProfile, initialSetup, setupReducer } from './setupMachine';
-import { TEXT_STEPS, aboutProgress, asksClients, isQuestionStep, sells, setupSteps, type Goal, type TextStep } from './setupSteps';
+import { aboutProgress, buys, canGoOn, firstPostKind, isQuestionStep, sells, setupSteps, type Role } from './setupSteps';
 
-const GOALS: Goal[] = ['work', 'sell', 'buy', 'business', 'record'];
+const ROLES: Role[] = ['sell', 'buy', 'both'];
 /// The reading never flashes: it shows for at least this long.
 const MIN_READING_MS = 600;
-/// The agent reads the work back once the person stops typing for this long.
+/// The agent reads the line back once the person stops typing for this long.
 const READ_BACK_MS = 900;
 
-/// The setup conversation. On /start it is "About you", the last of the three
-/// parts of sign-up (view 39); under Profile it is where the answers change.
+/// Setup. On /start it is "About you", the last of the three parts of sign-up
+/// (view 39, "Set up in two minutes", 19 Nov); under Profile it is where the
+/// answers change.
 export function SetupFlow({ embedded = false, next = null }: { embedded?: boolean; next?: string | null }) {
   const t = useTranslations().profile.signInGate;
   return (
@@ -41,29 +45,35 @@ export function SetupFlow({ embedded = false, next = null }: { embedded?: boolea
 function SetupConversation({ embedded, next }: { embedded: boolean; next: string | null }) {
   const messages = useTranslations();
   const t = messages.setup;
-  const f = messages.startFlow.about;
+  const q = t.quick;
+  const rowChange = q.change;
   const { locale } = useLocale();
   const router = useRouter();
   const reduce = useHydratedReducedMotion();
   const { profile, refresh } = useUserProfile();
-  const [state, dispatch] = useReducer(setupReducer, undefined, initialSetup);
+  const [state, dispatch] = useReducer(setupReducer, undefined, () => initialSetup(Date.now(), deviceCountry()));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const destination = safeNext(next);
   const [postNow, setPostNow] = useState(!destination);
-  const [readBack, setReadBack] = useState<{ lines: string[]; noPrice: boolean } | 'reading' | null>(null);
+  const [readBack, setReadBack] = useState<SetupCard | 'reading' | null>(null);
+  const [card, setCard] = useState<SetupCard | null>(null);
   const { answers, step } = state;
-  const steps = setupSteps(answers.goals);
+  const steps = setupSteps();
   const asking = isQuestionStep(step);
   const rtl = locale === 'ar';
   const offset = (reduce ? 0 : 24) * state.direction * (rtl ? -1 : 1);
   const tag = profile?.handle ? `@${profile.handle}` : '';
-  const sellOnly = answers.goals.includes('sell') && !answers.goals.includes('work');
-  // Prices are asked and read back in the currency the person reads (owner, 7 Nov 2026).
   const { currency, rate } = useDisplayCurrency();
   const money = useMoneyText({ compact: true });
   const ex = (example: string) => localExample(example, currency, rate, locale);
-  const said = (lines: string[]) => lines.map((line) => money.line(line));
+
+  // The country picked under the tag is where setup starts.
+  const savedCountry = profile?.location?.country ?? null;
+  const placeCity = answers.place?.city;
+  useEffect(() => {
+    if (savedCountry && !placeCity) dispatch({ type: 'country', country: savedCountry });
+  }, [savedCountry, placeCity]);
 
   // "Change" under Me opens here with the saved answers, on the summary.
   useEffect(() => {
@@ -71,7 +81,11 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
     if (new URLSearchParams(window.location.search).get('edit') !== '1') return;
     const saved = answersFromProfile(profile);
     let live = true;
-    api.setupPreview(saved).then((r) => { if (live) dispatch({ type: 'resume', answers: saved, lines: r.lines }); }).catch(() => {});
+    api.setupPreview(saved).then((r) => {
+      if (!live) return;
+      setCard(r.card ?? null);
+      dispatch({ type: 'resume', answers: saved, lines: r.lines });
+    }).catch(() => {});
     return () => { live = false; };
   }, [profile]);
 
@@ -81,29 +95,33 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
     let live = true;
     setError(null);
     Promise.all([api.setupPreview(answers), new Promise((r) => setTimeout(r, MIN_READING_MS))])
-      .then(([r]) => { if (live) dispatch({ type: 'read', lines: r.lines, needs: r.needs }); })
+      .then(([r]) => {
+        if (!live) return;
+        setCard(r.card ?? null);
+        dispatch({ type: 'read', lines: r.lines, needs: r.needs });
+      })
       .catch(() => { if (live) { setError(t.saveError); dispatch({ type: 'back' }); } });
     return () => { live = false; };
   }, [step, answers, t.saveError]);
 
-  // On the work question the agent says back what it understood, so a wrong
-  // price is caught before the summary.
-  const what = answers.what?.trim() ?? '';
-  const price = answers.price?.trim() ?? '';
+  // The agent says back what it read from the sell line, so a wrong price is
+  // caught before the summary.
+  const sellLine = answers.sellLine?.trim() ?? '';
+  const selling = sells(answers);
   useEffect(() => {
-    if (step !== 'work' || what.length < 2 || price.length < 2) {
+    if (step !== 'role' || !selling || sellLine.length < 2) {
       setReadBack(null);
       return;
     }
     let live = true;
     const id = window.setTimeout(() => {
       setReadBack('reading');
-      api.setupPreview({ goals: answers.goals, what, price, retried: true })
-        .then((r) => { if (live) setReadBack({ lines: r.lines.slice(0, 2), noPrice: r.needs.includes('price') }); })
+      api.setupPreview({ role: 'sell', sellLine, retried: true })
+        .then((r) => { if (live) setReadBack(r.card ?? null); })
         .catch(() => { if (live) setReadBack(null); });
     }, READ_BACK_MS);
     return () => { live = false; window.clearTimeout(id); };
-  }, [step, what, price, answers.goals]);
+  }, [step, selling, sellLine]);
 
   async function save() {
     setSaving(true);
@@ -120,17 +138,27 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
     }
   }
 
-  const text = (TEXT_STEPS as readonly string[]).includes(step) ? (step as TextStep) : null;
-  const choice = step === 'paid' || step === 'own' ? step : null;
-  const backable = asking && (step !== 'goals' || state.fromSummary);
-  const firstPostKind = sells(answers.goals) ? 'offer' : answers.goals.includes('buy') ? 'request' : null;
+  const onCountry = useCallback((country: string) => dispatch({ type: 'country', country }), []);
+  const onPlace = useCallback((place: NonNullable<typeof answers.place>) => dispatch({ type: 'place', place }), []);
+  const onReach = useCallback((reach: typeof answers.reach) => dispatch({ type: 'reach', reach }), []);
 
-  const choiceLabel = (key: 'clients' | 'own' | 'reach' | 'paid', value: string | undefined) => {
-    if (!value) return null;
-    if (key === 'clients') return messages.startFlow.about.summary.clients[value as 'own' | 'find' | 'both'];
-    const options = t.choices[key].options as Record<string, { label: string }>;
-    return options[value]?.label ?? null;
+  const backable = asking && (step !== 'role' || state.fromSummary);
+  const postKind = firstPostKind(answers);
+  const readWhat = (typeof readBack === 'object' && readBack?.what) || card?.what || sellLine.split(',')[0] || answers.buyLine || '';
+  const priceText = (c: SetupCard | null) =>
+    !c || c.priceMin === null ? null : c.priceMax === null || c.priceMax === c.priceMin ? money.text(c.priceMin) : q.range.replace('{min}', money.text(c.priceMin)).replace('{max}', money.text(c.priceMax));
+  const daysText = (c: SetupCard | null) =>
+    !c || c.daysMax === null ? null : c.daysMax === 0 ? q.sameDay : q.days.replace('{n}', String(c.daysMax));
+  const regionName = (code: string | undefined) => {
+    if (!code) return '';
+    try {
+      return new Intl.DisplayNames([locale], { type: 'region' }).of(code) ?? code;
+    } catch {
+      return code;
+    }
   };
+  const reachText = answers.reach === 'both' ? q.reachBoth : answers.reach === 'telegram' ? 'Telegram' : answers.reach === 'email' ? t.choices.reach.options.email.label : '';
+  const amanForRole = answers.role === 'sell' ? q.amanSell : answers.role === 'buy' ? q.amanBuy : answers.role === 'both' ? q.amanBoth : q.amanRole;
 
   return (
     <div className="min-h-[calc(100svh-68px)] text-[var(--ink)]">
@@ -148,8 +176,6 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
 
       {/* The layout already holds the page's main landmark. */}
       <div className="mx-auto max-w-[560px] px-5 pb-16 pt-6">
-        {/* The next question shows at once and slides in; the old one is not
-            waited out, so the screen never goes blank between questions. */}
         <AnimatePresence mode="popLayout" initial={false}>
           <m.section
             key={step}
@@ -158,118 +184,52 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
             exit={{ opacity: 0, transition: { duration: 0 } }}
             transition={{ duration: reduce ? 0 : 0.18, ease: ease.out }}
           >
-            {step === 'goals' ? (
+            {step === 'role' ? (
               <div>
-                {tag && !state.fromSummary ? <Nudge from="agent">{f.hello.replace('@{tag}', tag)}</Nudge> : null}
-                <h1 id="setup-q-goals" className="mt-6 text-[26px] font-semibold leading-tight tracking-[-0.03em]">{t.goals.title}</h1>
-                <p className="mt-2 text-[16px] font-medium text-[var(--ink-secondary)]">{f.goalsHelp}</p>
-                <div role="group" aria-labelledby="setup-q-goals" className="mt-5 flex flex-col gap-2.5">
-                  {GOALS.map((goal) => (
-                    <ChoiceCard key={goal} multi reduce={reduce} label={t.goals.options[goal].label} note={t.goals.options[goal].note} on={answers.goals.includes(goal)} onPick={() => dispatch({ type: 'toggleGoal', goal })} />
+                <h1 id="setup-q-role" className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{q.roleTitle}</h1>
+                <div role="radiogroup" aria-labelledby="setup-q-role" className="mt-5 flex flex-col gap-2">
+                  {ROLES.map((role) => (
+                    <ChoiceCard key={role} multi={false} reduce={reduce} label={q.roles[role].label} note={q.roles[role].note} on={answers.role === role} onPick={() => dispatch({ type: 'role', role })} />
                   ))}
                 </div>
-              </div>
-            ) : null}
-
-            {step === 'work' ? (
-              <div>
-                <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{sellOnly ? f.work.titleSell : f.work.title}</h1>
-                <Field
-                  id="setup-what"
-                  label={sellOnly ? f.work.whatLabelSell : f.work.whatLabel}
-                  value={answers.what ?? ''}
-                  placeholder={sellOnly ? t.questions.what.exampleSell : t.questions.what.example}
-                  examples={sellOnly ? t.questions.what.examplesSell : t.questions.what.examples}
-                  onChange={(value) => dispatch({ type: 'answer', step: 'what', value })}
-                />
-                <Field
-                  id="setup-price"
-                  label={f.work.priceLabel}
-                  value={answers.price ?? ''}
-                  placeholder={ex(t.questions.price.example)}
-                  examples={t.questions.price.examples.map(ex)}
-                  onChange={(value) => dispatch({ type: 'answer', step: 'price', value })}
-                />
-                <div className="mt-6">
-                  <Nudge from="agent" live inline>
-                    {readBack === null ? (answers.retried ? ex(f.work.noPrice) : f.work.waiting) : readBack === 'reading' ? f.work.reading : readBack.noPrice ? ex(f.work.noPrice) : (
-                      <>
-                        <p>{f.work.read}</p>
-                        <ul className="mt-2 space-y-1 font-semibold">
-                          {said(readBack.lines).map((line) => <li key={line} dir="auto">{line}</li>)}
-                        </ul>
-                        <p className="mt-2 text-[14px] text-[var(--ink-secondary)]">{f.work.again}</p>
-                      </>
-                    )}
-                  </Nudge>
-                </div>
-              </div>
-            ) : null}
-
-            {text ? (
-              <div>
-                <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{t.questions[text].title}</h1>
-                <p className="mt-2 text-[16px] font-medium text-[var(--ink-secondary)]">{t.questions[text].help}</p>
-                <Field
-                  id={`setup-${text}`}
-                  label={t.questions[text].title}
-                  hideLabel
-                  value={answers[text] ?? ''}
-                  placeholder={ex(t.questions[text].example)}
-                  examples={t.questions[text].examples.map(ex)}
-                  onChange={(value) => dispatch({ type: 'answer', step: text, value })}
-                />
-                <Nudge from="agent">{f.nudges[text]}</Nudge>
-              </div>
-            ) : null}
-
-            {step === 'contact' ? (
-              <div>
-                {asksClients(answers.goals) ? (
-                  <>
-                    <h1 id="setup-q-clients" className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{f.contact.title}</h1>
-                    <div role="radiogroup" aria-labelledby="setup-q-clients" className="mt-5 flex flex-col gap-2.5">
-                      {(['own', 'find', 'both'] as const).map((value) => (
-                        <ChoiceCard key={value} multi={false} reduce={reduce} label={t.choices.clients.options[value].label} note={t.choices.clients.options[value].note} on={answers.clients === value} onPick={() => dispatch({ type: 'pick', step: 'clients', value })} />
-                      ))}
-                    </div>
-                    {answers.clients ? <Nudge from="agent" live>{f.contact.clients[answers.clients]}</Nudge> : null}
-                  </>
+                {selling ? (
+                  <Line id="setup-sell" label={q.sellLabel} value={answers.sellLine ?? ''} placeholder={ex(q.sellExample)} examples={q.sellExamples.map(ex)} onChange={(value) => dispatch({ type: 'line', side: 'sell', value })} />
                 ) : null}
-                {asksClients(answers.goals)
-                  ? <h2 id="setup-q-reach" className="mt-8 text-[20px] font-semibold">{f.contact.reachTitle}</h2>
-                  : <h1 id="setup-q-reach" className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{f.contact.reachTitle}</h1>}
-                <div role="radiogroup" aria-labelledby="setup-q-reach" className="mt-4 grid grid-cols-3 gap-2">
-                  {(['telegram', 'email', 'both'] as const).map((value) => {
-                    const on = answers.reach === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        role="radio"
-                        aria-checked={on}
-                        onClick={() => dispatch({ type: 'pick', step: 'reach', value })}
-                        className={`min-h-[52px] rounded-[16px] border px-2 text-[15px] font-semibold transition-colors duration-[180ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${on ? 'border-[var(--ink)] bg-[var(--surface)] shadow-[inset_0_0_0_1px_var(--ink)]' : 'border-[var(--line-strong)] bg-[var(--surface)] hover:bg-[var(--raised)]'}`}
-                      >
-                        {t.choices.reach.options[value].label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="mt-2.5 text-[14px] font-medium text-[var(--ink-secondary)]">{f.contact.reachHelp}</p>
-                {answers.reach ? <Nudge from="agent" live>{f.contact.reach[answers.reach]}</Nudge> : null}
+                {selling && readBack ? (
+                  <div className="mt-4">
+                  <Nudge from="agent" live inline>
+                    <p className="text-[14px] text-[var(--ink-secondary)]">{readBack === 'reading' ? q.reading : q.readAs}</p>
+                    {readBack !== 'reading' ? (
+                      readBack.priceMin === null ? (
+                        <p className="mt-1.5 text-[14px] text-[var(--ink-secondary)]">{q.noPrice}</p>
+                      ) : (
+                        <ul className="mt-2 flex flex-wrap gap-1.5">
+                          {[
+                            readBack.what,
+                            q.lowest.replace('{money}', money.text(readBack.priceMin)),
+                            readBack.priceMax !== null ? q.usual.replace('{money}', money.text((readBack.priceMin + readBack.priceMax) / 2)) : null,
+                            daysText(readBack),
+                          ].filter((x): x is string => !!x).map((chip) => (
+                            <li key={chip} dir="auto" className="rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 text-[14px] font-medium tabular-nums">{chip}</li>
+                          ))}
+                        </ul>
+                      )
+                    ) : null}
+                  </Nudge>
+                  </div>
+                ) : null}
+                {buys(answers) ? (
+                  <Line id="setup-buy" label={q.buyLabel} value={answers.buyLine ?? ''} placeholder={ex(q.buyExample)} examples={q.buyExamples.map(ex)} onChange={(value) => dispatch({ type: 'line', side: 'buy', value })} />
+                ) : null}
+                <AmanLine>{answers.retried && selling && !(typeof readBack === 'object' && readBack?.priceMin) ? q.noPrice : amanForRole}</AmanLine>
               </div>
             ) : null}
 
-            {choice ? (
+            {step === 'where' ? (
               <div>
-                <h1 id={`setup-q-${choice}`} className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">{t.choices[choice].title}</h1>
-                <p className="mt-2 text-[16px] font-medium text-[var(--ink-secondary)]">{t.choices[choice].help}</p>
-                <div role="radiogroup" aria-labelledby={`setup-q-${choice}`} className="mt-5 flex flex-col gap-2.5">
-                  {(Object.entries(t.choices[choice].options) as Array<[string, { label: string; note: string }]>).map(([value, option]) => (
-                    <ChoiceCard key={value} multi={false} reduce={reduce} label={option.label} note={option.note} on={answers[choice] === value} onPick={() => dispatch({ type: 'pick', step: choice, value })} />
-                  ))}
-                </div>
+                <h1 className="mb-5 text-[26px] font-semibold leading-tight tracking-[-0.03em]">{q.whereTitle}</h1>
+                <WhereStep answers={answers} what={readWhat} email={profile?.email ?? null} onCountry={onCountry} onPlace={onPlace} onReach={onReach} />
+                <AmanLine>{q.amanWhere}</AmanLine>
               </div>
             ) : null}
 
@@ -282,30 +242,43 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
 
             {step === 'summary' ? (
               <div>
-                <h1 className="text-[26px] font-semibold tracking-[-0.03em]">{f.summary.title}</h1>
-                <dl className="mt-5 border-t border-[var(--line)]">
-                  {tag ? <SummaryRow label={f.summary.rows.tag} value={tag} /> : null}
-                  {asksClients(answers.goals) && answers.clients ? <SummaryRow label={f.summary.rows.clients} value={choiceLabel('clients', answers.clients)} change={f.summary.change} onChange={() => dispatch({ type: 'goto', step: 'contact' })} /> : null}
-                  {sells(answers.goals) ? <SummaryRow label={f.summary.rows.paid} value={choiceLabel('paid', answers.paid)} change={f.summary.change} onChange={() => dispatch({ type: 'goto', step: 'paid' })} /> : null}
-                  <SummaryRow label={f.summary.rows.agent} value={choiceLabel('own', answers.own)} change={f.summary.change} onChange={() => dispatch({ type: 'goto', step: 'own' })} />
-                  {answers.reach ? <SummaryRow label={f.summary.rows.reach} value={choiceLabel('reach', answers.reach)} change={f.summary.change} onChange={() => dispatch({ type: 'goto', step: 'contact' })} /> : null}
-                </dl>
+                <h1 className="text-[26px] font-semibold tracking-[-0.03em]">{t.summary.title}</h1>
+                <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">{q.summarySub}</p>
 
-                {state.lines.length > 0 ? (
-                  <section aria-labelledby="setup-first-post" className="mt-6 rounded-[22px] border border-[var(--line)] bg-[var(--surface)] p-5">
-                    <h2 id="setup-first-post" className="text-[14px] font-semibold text-[var(--ink-secondary)]">{firstPostKind === 'request' ? f.summary.firstRequest : f.summary.firstOffer}</h2>
-                    <SummaryLines lines={said(state.lines)} reduce={reduce} />
-                    {firstPostKind && !destination ? (
-                      <label className="mt-4 flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold">
+                {postKind && card ? (
+                  <section aria-label={postKind === 'offer' ? q.offer : q.request} data-first-post={postKind} className="mt-5 rounded-[20px] border border-[var(--line)] bg-[var(--surface)] p-4">
+                    <p className="flex items-center gap-2 text-[14px] text-[var(--ink-secondary)]">
+                      <span className="rounded-[8px] bg-[var(--raised)] px-2 py-1 font-medium">{postKind === 'offer' ? q.offer : q.request}</span>
+                      {tag ? <span>{tag} · {q.newOn}</span> : null}
+                    </p>
+                    <p dir="auto" className="mt-3 text-[20px] font-semibold">{(postKind === 'offer' ? card.what : card.buy) ?? ''}</p>
+                    {postKind === 'offer' && priceText(card) ? <p className="mt-1 text-[24px] font-semibold tabular-nums">{priceText(card)}</p> : null}
+                    {postKind === 'request' && card.buyMax ? <p className="mt-1 text-[24px] font-semibold tabular-nums">{q.upTo.replace('{money}', money.text(card.buyMax))}</p> : null}
+                    <p className="mt-1 text-[14px] text-[var(--ink-secondary)]">
+                      {[postKind === 'offer' && daysText(card) ? q.delivers.replace('{days}', daysText(card)!.toLocaleLowerCase(locale)) : null, regionName(answers.place?.country)].filter(Boolean).join(' · ')}
+                    </p>
+                    {!destination ? (
+                      <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-medium">
                         <input type="checkbox" checked={postNow} onChange={(e) => setPostNow(e.target.checked)} className="size-5 shrink-0 accent-[var(--ink)]" />
-                        {f.summary.postNow}
+                        {q.postNow}
                       </label>
                     ) : null}
                   </section>
                 ) : null}
 
-                <Nudge from="agent">{f.summary.body}</Nudge>
-                <button type="button" onClick={() => void save()} disabled={saving} aria-busy={saving} className={`${PRIMARY} mt-6 w-full`}>{saving ? f.summary.saving : f.summary.done}</button>
+                <dl className="mt-4 rounded-[20px] border border-[var(--line)] bg-[var(--surface)] px-4">
+                  {tag ? <SummaryRow label={q.rows.tag} value={tag} /> : null}
+                  <SummaryRow label={q.rows.where} value={[answers.place?.city, regionName(answers.place?.country)].filter(Boolean).join(', ')} change={rowChange} onChange={() => dispatch({ type: 'goto', step: 'where' })} />
+                  <SummaryRow label={q.rows.reach} value={reachText} change={rowChange} onChange={() => dispatch({ type: 'goto', step: 'where' })} />
+                  <SummaryRow label={q.rows.agent} value={selling && card?.priceMin === null ? q.agentAsks : q.agentOffers} last />
+                </dl>
+
+                <p className="mt-4 flex items-start gap-2.5 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="mt-0.5 shrink-0 text-[var(--ink)]"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                  <span>{q.held}</span>
+                </p>
+
+                <button type="button" onClick={() => void save()} disabled={saving} aria-busy={saving} className={`${PRIMARY} mt-6 w-full`}>{saving ? q.saving : q.done}</button>
                 <button type="button" onClick={() => dispatch({ type: 'edit' })} disabled={saving} className="mt-2 inline-flex min-h-11 w-full items-center justify-center text-[15px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)]">{t.summary.change}</button>
               </div>
             ) : null}
@@ -315,33 +288,43 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
         {error ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px]">{error}</p> : null}
 
         {asking ? (
-          <button type="button" onClick={() => dispatch({ type: 'next' })} className={`${PRIMARY} mt-8 w-full`}>{t.buttons.next}</button>
+          <button type="button" onClick={() => dispatch({ type: 'next' })} disabled={!canGoOn(step, answers)} className={`${PRIMARY} mt-8 w-full disabled:opacity-40`}>{t.buttons.next}</button>
         ) : null}
       </div>
     </div>
   );
 }
 
-/// A line answered in the person's own words, with examples to tap.
-function Field({ id, label, hideLabel = false, value, placeholder, examples, onChange }: {
+/// Aman's one line under a step: what the answer is used for.
+function AmanLine({ children }: { children: string }) {
+  return (
+    <p className="mt-6 flex items-start gap-2.5 text-[14px] leading-relaxed text-[var(--ink-secondary)]" aria-live="polite">
+      <span className="shrink-0"><AmanFace size={28} mood="talking" label={null} /></span>
+      <span className="pt-1">{children}</span>
+    </p>
+  );
+}
+
+/// One line in the person's own words, with examples to tap.
+function Line({ id, label, value, placeholder, examples, onChange }: {
   id: string;
   label: string;
-  hideLabel?: boolean;
   value: string;
   placeholder: string;
   examples: string[];
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="mt-5">
-      <label htmlFor={id} className={hideLabel ? 'sr-only' : 'block text-[15px] font-semibold text-[var(--ink)]'}>{label}</label>
-      <input
+    <div className="mt-6">
+      <label htmlFor={id} className="block text-[15px] font-semibold text-[var(--ink)]">{label}</label>
+      <textarea
         id={id}
         value={value}
+        rows={2}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         dir="auto"
-        className="mt-2 block min-h-14 w-full rounded-[14px] border border-[var(--line-strong)] bg-[var(--surface)] px-[18px] text-[17px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
+        className="mt-2 block w-full resize-none rounded-[14px] border border-[var(--line-strong)] bg-[var(--surface)] px-4 py-3.5 text-[17px] leading-snug text-[var(--ink)] focus-visible:border-[var(--ink)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ink)]"
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
         {examples.map((x) => (
@@ -354,12 +337,12 @@ function Field({ id, label, hideLabel = false, value, placeholder, examples, onC
   );
 }
 
-function SummaryRow({ label, value, change, onChange }: { label: string; value: string | null; change?: string; onChange?: () => void }) {
+function SummaryRow({ label, value, change, onChange, last = false }: { label: string; value: string; change?: string; onChange?: () => void; last?: boolean }) {
   return (
-    <div className="flex min-h-14 items-center gap-3 border-b border-[var(--line)] py-2">
-      <dt className="w-28 shrink-0 text-[14px] font-medium text-[var(--ink-secondary)]">{label}</dt>
-      <dd className="flex min-w-0 flex-1 items-center gap-3">
-        <span dir="auto" className="min-w-0 flex-1 text-[15px] font-semibold">{value}</span>
+    <div className={`flex min-h-14 items-center gap-3 py-2 ${last ? '' : 'border-b border-[var(--line)]'}`}>
+      <dt className="shrink-0 text-[16px]">{label}</dt>
+      <dd className="flex min-w-0 flex-1 items-center justify-end gap-2">
+        <span dir="auto" className="min-w-0 truncate text-[15px] text-[var(--ink-secondary)]">{value}</span>
         {change && onChange ? (
           <button type="button" onClick={onChange} className="inline-flex min-h-11 shrink-0 items-center px-1 text-[14px] font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">
             {change}

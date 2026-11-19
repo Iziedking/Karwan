@@ -35,6 +35,8 @@ export interface UserSettings {
   notifyVia?: 'telegram' | 'email' | 'both';
   /// When they finished the setup conversation after activation.
   setupDoneAt?: number;
+  /// Seconds from opening the setup questions to saving them (view 39, 19 Nov).
+  setupSeconds?: number;
   /// Deals from agents outside Karwan (view 15). Absent means on.
   acceptsOutsideAgents?: boolean;
   /// How amounts read on screen (view 51). Money stays in USDC; absent means USDC.

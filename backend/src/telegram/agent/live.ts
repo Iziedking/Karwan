@@ -164,6 +164,12 @@ export function startTelegramAgent(): boolean {
       const r = await executeConfirm({ address }, card);
       return r.ok ? { ok: true } : { ok: false, message: r.message };
     },
+    // Karwan's own town list; the position is not sent anywhere else.
+    near: async (point) => {
+      const { allTowns, nearestTown } = await import('../../location/places.js');
+      const town = nearestTown(await allTowns(), point);
+      return town ? { country: town.cc, city: town.name, admin: town.admin } : null;
+    },
   });
 
   const tagStep = createTagStep<TelegramAccount>({

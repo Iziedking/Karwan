@@ -4,7 +4,7 @@
 /// a store, a provider or a retention rule changes, this changes in the same
 /// batch, with docs/terms-and-conditions.md section 8.
 
-export const PRIVACY_UPDATED = '2026-10-29';
+export const PRIVACY_UPDATED = '2026-11-19';
 
 export interface PrivacySection {
   id: string;
@@ -23,7 +23,8 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     list: [
       { label: 'To sign in', text: 'Your email address, or the address of the wallet you connect. Nothing else is needed to open an account.' },
       { label: 'Your tag', text: 'The Karwan tag you pick. It is public: clients find you and pay you by it.' },
-      { label: 'What you tell your agent', text: 'What you do or sell, your usual price and delivery time, what you buy, your business name and the places you already work, whether you have clients, how we should reach you, and where you are. This sets up your agent and your public profile by itself. Only your country is ever shown to others.' },
+      { label: 'What you tell your agent', text: 'What you sell and your usual price and delivery time, what you need and your budget, how we should reach you, and where you are. This sets up your agent and your public profile by itself. Only your country is ever shown to others.' },
+      { label: 'Your position, if you tap Use my location', text: 'Your phone shares its position only when you tap Use my location (or Share my location in Telegram) and allow it. It goes to Karwan only, which finds the nearest town from its own town list; no map service sees it. We keep it to about a kilometre, use it only to find people near you, and never show it. Town names come from GeoNames (geonames.org), under the CC BY 4.0 licence.' },
       { label: 'What you add to deals', text: 'Requests, offers, messages, photos and files you add to listings, deliveries and disputes, and the ratings you give.' },
       { label: 'What you connect', text: 'Your Telegram account and your X handle, only if you connect them.' },
       { label: 'A business', text: 'The registration details you submit. A document you upload is hashed in your browser and only the hash reaches us.' },

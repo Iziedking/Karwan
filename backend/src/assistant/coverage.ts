@@ -219,6 +219,7 @@ export const COVERAGE: Record<string, Coverage> = {
   // The Your agent page changes this alone; the assistant changes the same answer through setup (view 45).
   'POST /api/setup/agent-mode': { by: 'assistant', via: 'save_setup' },
   'POST /api/setup/preview': { by: 'internal', why: 'Shows the setup form what its answers would do before saving.' },
+  'POST /api/places/near': { by: 'internal', why: 'Names the town nearest the position a phone shares at setup; in Telegram the interview does the same with Share my location (view 39, 19 Nov).' },
   'POST /api/activation/activate': { by: 'assistant', via: 'set_up_agents' },
   'POST /api/activation/agent-names': { by: 'assistant', via: 'rename_agents' },
   'POST /api/activation/agent-binding/register': { by: 'page', why: 'Binding an agent to a wallet is signed by the wallet at activation.' },

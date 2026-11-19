@@ -12,7 +12,11 @@ export interface TelegramSend {
   parse_mode?: never;
   entities?: { type: 'bold'; offset: number; length: number }[];
   link_preview_options: { is_disabled: true };
-  reply_markup?: { inline_keyboard: ({ text: string; callback_data: string } | { text: string; url: string })[][] };
+  reply_markup?:
+    | { inline_keyboard: ({ text: string; callback_data: string } | { text: string; url: string })[][] }
+    /// Share my location (view 39, 19 Nov): a keyboard button only Telegram has.
+    | { keyboard: { text: string; request_location: true }[][]; one_time_keyboard: true; resize_keyboard: true }
+    | { remove_keyboard: true };
 }
 
 export function tapData(buttonId: string): string {
@@ -51,7 +55,10 @@ export function boldEntities(body: string): Pick<TelegramSend, 'text' | 'entitie
 /// bold title WhatsApp shows is unwrapped.
 export function toTelegram(out: OutMessage): TelegramSend[] | null {
   const base = { link_preview_options: { is_disabled: true as const } };
-  if (out.kind === 'text') return [{ ...base, ...boldEntities(out.body) }];
+  if (out.kind === 'text') return [{ ...base, ...boldEntities(out.body), ...(out.closeKeyboard ? { reply_markup: { remove_keyboard: true as const } } : {}) }];
+  if (out.kind === 'ask_location') {
+    return [{ ...base, ...boldEntities(out.body), reply_markup: { keyboard: [[{ text: out.label, request_location: true as const }]], one_time_keyboard: true as const, resize_keyboard: true as const } }];
+  }
   // A plain URL button opens in Telegram's own browser on phones. It is not a
   // Mini App: Telegram requires Mini Apps with crypto features to use TON only.
   if (out.kind === 'link') return [{ ...base, ...boldEntities(out.body), reply_markup: { inline_keyboard: [[{ text: out.label, url: out.url }]] } }];

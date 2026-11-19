@@ -19,6 +19,8 @@ export interface BriefResult {
   /// A question to ask once more, because its answer could not be read.
   needs: Array<'price'>;
   place: BriefRead['place'];
+  /// The figures read, for the read-back chips and the market card (view 39, 19 Nov).
+  read?: BriefRead;
 }
 
 /// When a price cannot be read the schema still needs a range; the agent never
@@ -152,5 +154,5 @@ export async function readBrief(
   const parsed = a.where?.trim() ? parsePlace(a.where) : null;
   const place = parsed?.country ? { country: parsed.country, city: parsed.city } : null;
   const read: BriefRead = { price: selling ? price : null, pace: selling ? pace : null, buyMax, business, place };
-  return { patch, lines: briefLines(a, read, locale), needs, place };
+  return { patch, lines: briefLines(a, read, locale), needs, place, read };
 }

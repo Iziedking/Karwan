@@ -21,6 +21,7 @@ interface TgMessage {
   new_chat_members?: Array<{ id: number; is_bot?: boolean; first_name?: string; username?: string }>;
   photo?: Array<{ file_id: string; file_size?: number; width?: number; height?: number }>;
   document?: { file_id: string; mime_type?: string; file_size?: number };
+  location?: { latitude: number; longitude: number };
   [other: string]: unknown;
 }
 export interface TgUpdate {
@@ -69,6 +70,10 @@ export function parseUpdate(update: TgUpdate): ParsedUpdate | null {
   const inbound: Omit<InboundMessage, 'kind'> = { ...base, from: `tg:${m.from.id}`, timestamp: m.date * 1000 };
   const who = { username: usernameOf(m.from), messageId: m.message_id };
 
+  // A shared position, from the Share my location button at setup (view 39, 19 Nov).
+  if (m.location && Number.isFinite(m.location.latitude) && Number.isFinite(m.location.longitude)) {
+    return { chatId: m.chat.id, ...who, inbound: { ...inbound, kind: 'location', location: { lat: m.location.latitude, lng: m.location.longitude } } };
+  }
   if (typeof m.text === 'string') {
     // Commands are the bot's own, except a bare /start, which begins sign-up.
     if (m.text.startsWith('/') && m.text.trim() !== '/start') return null;

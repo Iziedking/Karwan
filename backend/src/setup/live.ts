@@ -22,7 +22,14 @@ export const liveSetupDeps: SetupRouteDeps = {
   saveLocation: (address, place) =>
     liveLocationToolDeps.update(address, (current) => {
       const base = current ?? { country: null, city: null, area: null, reach: {} };
-      return { ...base, country: place.country, city: place.city ?? base.city };
+      const next = { ...base, country: place.country, city: place.city ?? base.city };
+      // A position from the phone (view 39, 19 Nov); a new city without one drops the old position.
+      if (place.point) return { ...next, point: { ...place.point, precision: 'area' as const, source: 'device', at: Date.now() } };
+      if (place.city && place.city !== base.city) {
+        const { point: _old, ...rest } = next;
+        return rest;
+      }
+      return next;
     }),
   locale: async (address) => ((await getProfile(address))?.settings?.locale ?? 'en') as UserLocale,
   now: Date.now,

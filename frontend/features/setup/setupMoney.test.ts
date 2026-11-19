@@ -28,7 +28,8 @@ test('USDC, or no fresh rate, keeps the example as written', () => {
 
 test('the setup screen says its examples and read-back in the person\'s currency', () => {
   const flow = readFileSync(new URL('./SetupFlow.tsx', import.meta.url), 'utf8');
-  assert.match(flow, /examples=\{t\.questions\.price\.examples\.map\(ex\)\}/);
-  assert.match(flow, /said\(readBack\.lines\)/);
-  assert.match(flow, /<SummaryLines lines=\{said\(state\.lines\)\}/);
+  assert.match(flow, /examples=\{q\.sellExamples\.map\(ex\)\}/);
+  assert.match(flow, /examples=\{q\.buyExamples\.map\(ex\)\}/);
+  assert.match(flow, /money\.text\(readBack\.priceMin\)/);
+  assert.match(flow, /money\.text\(card\.buyMax\)/);
 });

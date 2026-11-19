@@ -1,4 +1,15 @@
 import type { Goal, SetupAnswers, SetupFirstPost } from '@/features/setup/setupSteps';
+
+/// The figures setup read from a person's line, in USDC (view 39, 19 Nov).
+export interface SetupCard {
+  what: string | null;
+  buy: string | null;
+  priceMin: number | null;
+  priceMax: number | null;
+  daysMin: number | null;
+  daysMax: number | null;
+  buyMax: number | null;
+}
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
@@ -6801,7 +6812,16 @@ export const api = {
   /// The setup conversation after activation: read the answers on the server
   /// (preview) or read and save them. The server never trusts a client result.
   setupPreview: (answers: SetupAnswers) =>
-    json<{ lines: string[]; needs: Array<'price'> }>('/api/setup/preview', { method: 'POST', body: JSON.stringify({ answers }) }),
+    json<{ lines: string[]; needs: Array<'price'>; card?: SetupCard }>('/api/setup/preview', { method: 'POST', body: JSON.stringify({ answers }) }),
+  /// How many people near them ask for what they sell, or sell what they need (view 39, 19 Nov).
+  setupNearby: (q: { role: 'sell' | 'buy'; line: string; country: string; city: string }) =>
+    json<{ count: number; rows: Array<{ what: string; budgetUsdc: number | null }> }>(`/api/setup/nearby?${new URLSearchParams(q)}`),
+  /// Towns in a country as typed, from Karwan's own list (view 39, 19 Nov).
+  placesSearch: (country: string, q: string) =>
+    json<{ towns: Array<{ name: string; admin: string }> }>(`/api/places/cities?${new URLSearchParams({ country, q })}`),
+  /// The town nearest the phone's position; nothing is sent to anyone else.
+  placesNear: (point: { lat: number; lng: number }) =>
+    json<{ country: string; city: string; admin: string } | { country: null }>('/api/places/near', { method: 'POST', body: JSON.stringify(point) }),
   setupSave: (answers: SetupAnswers) =>
     json<{ profile: UserProfile; firstPost: SetupFirstPost | null }>('/api/setup/save', { method: 'POST', body: JSON.stringify({ answers }) }),
   /// The ways the person deals, saved whole (view 26).

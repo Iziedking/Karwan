@@ -105,11 +105,16 @@ for(const [locale,m] of [['en',en],['ar',ar]] as const)test('optional setup skip
 });
 test('optional setup saves preferences without opening another task',async({page})=>{
  const w=await world(page,{signedIn:true});await page.goto('/start?step=about&next='+encodeURIComponent('/market?side=sell&q=logo'));
- await page.getByRole('checkbox',{name:new RegExp(en.setup.goals.options.work.label)}).click();
- for(let i=0;i<3;i++)await page.getByRole('button',{name:en.setup.buttons.next,exact:true}).click();
- await expect(page.getByRole('heading',{name:en.startFlow.about.summary.title})).toBeVisible();
- await expect(page.getByRole('checkbox',{name:en.startFlow.about.summary.postNow})).toHaveCount(0);
- await page.getByRole('button',{name:en.startFlow.about.summary.done,exact:true}).click();
+ const q=en.setup.quick;
+ await page.getByRole('radio',{name:new RegExp('^'+q.roles.buy.label)}).click();
+ await page.getByLabel(q.buyLabel).fill('A logo designer');
+ await page.getByRole('button',{name:en.setup.buttons.next,exact:true}).click();
+ await page.getByRole('combobox',{name:q.city}).fill('Lagos');
+ await page.getByRole('button',{name:q.keepTyped.replace('{city}','Lagos')}).click();
+ await page.getByRole('button',{name:en.setup.buttons.next,exact:true}).click();
+ await expect(page.getByRole('heading',{name:en.setup.summary.title})).toBeVisible();
+ await expect(page.getByRole('checkbox',{name:q.postNow})).toHaveCount(0);
+ await page.getByRole('button',{name:q.done,exact:true}).click();
  await expect(page).toHaveURL(/\/market\?side=sell&q=logo$/);expect(w.posts).toContain('/api/setup/save');expect(w.posts.some(p=>p.includes('assistant'))).toBe(false);
 });
 

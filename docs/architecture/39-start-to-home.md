@@ -73,7 +73,7 @@ The guide learns the new path ("sign-up is on /start: account, tag, a few questi
 
 ## Set up in two minutes (19 Nov 2026)
 
-Proposed. The owner chose this shape on 19 Nov 2026: anyone is set up in two minutes or less, the questions match the open market and how escrow works, and every check a deal needs is asked when that deal needs it, not at sign-up.
+Built 19 Nov 2026, not deployed. The owner chose this shape on 19 Nov 2026: anyone is set up in two minutes or less, the questions match the open market and how escrow works, and every check a deal needs is asked when that deal needs it, not at sign-up.
 
 ### Why it changes
 
@@ -146,6 +146,15 @@ Quiet chrome around those moments: one accent for the main button and the select
 
 The interview asks the same things in the same order, with buttons for the choices: sell, buy or both; the one line; country, city and reach. It keeps no extra question at the end, because where you are is now part of the setup everywhere.
 
+### As built
+
+- **Use my location** asks the phone only when tapped, rough and recent (8 seconds at most). Karwan's server answers with the nearest town within 50 km from its own town list, built from GeoNames (towns of 15,000 people or more, CC BY 4.0, credited on /privacy). No map service sees a position. The point is kept rounded to about a kilometre. The site's Permissions-Policy allows location for Karwan's own pages only (`geolocation=(self)`); camera and microphone stay off.
+- The nearby card counts requests **open now** in the city, so it reads "8 people in Lagos are asking for logo design" rather than "this month": requests carry no posted date to count by. The asks listed come from the whole country, with what was asked and the budget only.
+- The country chip is the country picked under the tag; with none, the phone's time zone, then its language, then Nigeria.
+- Setup still saves one payment as the way the agent starts from, so it has a selling way to offer with; each deal can use another.
+- How long setup took is kept on the account, so the two-minute target can be checked.
+- In Telegram, where you are comes second, because there it sets the currency amounts are read in. Share my location is Telegram's own button; WhatsApp asks for the city in words.
+
 ### What could go wrong
 
 | Case | What happens |
@@ -161,4 +170,4 @@ The interview asks the same things in the same order, with buttons for the choic
 
 Built, not deployed. Samples: the design canvas from 29 Oct 2026.
 
-Set up in two minutes (19 Nov 2026): proposed, not built.
+Set up in two minutes (19 Nov 2026): built, not deployed.
