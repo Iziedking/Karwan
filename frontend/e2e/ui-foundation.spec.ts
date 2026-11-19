@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { funded, API } from './moneyFixtures';
+import { funded, API, QUIET_GUIDE, guideBookkeeping } from './moneyFixtures';
 import { serveSearch } from './searchFixtures';
 
 const before = process.env.KARWAN_UI_PHASE === 'before';
@@ -145,8 +145,9 @@ test('the theme is dark until changed in Settings, which offers Dark and Light a
   await serveSearch(page, { balances: funded });
   const saved: unknown[] = [];
   await page.route(`${API}/api/settings**`, async request => {
-    if (request.request().method() === 'GET') return request.fulfill({ json: { settings: {} } });
+    if (request.request().method() === 'GET') return request.fulfill({ json: { settings: QUIET_GUIDE } });
     const patch = request.request().postDataJSON().settings;
+    if (guideBookkeeping(patch)) return request.fulfill({ json: { settings: QUIET_GUIDE } });
     saved.push(patch);
     return request.fulfill({ json: { settings: patch } });
   });

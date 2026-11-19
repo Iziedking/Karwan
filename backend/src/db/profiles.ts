@@ -62,6 +62,12 @@ export interface UserSettings {
   guideTourOffer?: 'off';
   /// Not now on New here (view 57, 17 Nov); an old guideTourOffer 'off' counts too.
   guideNewHere?: 'off';
+  /// Aman guides you (view 57, 19 Nov): visits per page key, parts explained,
+  /// the first hello shown, and when Aman last checked in.
+  guideVisits?: Record<string, number>;
+  guideHeard?: string[];
+  guideHi?: 'done';
+  guideCheckInAt?: number;
 }
 
 /// At my place, I come to you (how far), online (view 72).

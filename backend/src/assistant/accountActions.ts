@@ -21,8 +21,13 @@ export type SettingsPatch = {
   meet?: { atMyPlace: boolean; comeToYouKm: number | null; online: boolean };
   contactFrom?: 'anyone' | 'verified';
   reachable?: boolean;
-  /// How the guide shows (view 57).
+  /// How the guide shows (view 57): on is Aman's help on pages, face keeps
+  /// only the face in the header, off removes the face too.
   guide?: 'on' | 'face' | 'off';
+  /// Deals from agents outside Karwan (view 15).
+  acceptsOutsideAgents?: boolean;
+  /// What a trade starts as on the Money tab (view 17).
+  tradesAs?: 'self' | 'business';
 };
 
 export interface ChangeSettingsConfirm extends ConfirmActionBase {
@@ -159,7 +164,9 @@ function settingFields(s: SettingsPatch): Array<{ label: string; value: string }
   if (s.meet) rows.push({ label: 'How you meet people', value: meetLine(s.meet) });
   if (s.contactFrom) rows.push({ label: 'Who can send you deal alerts', value: s.contactFrom === 'verified' ? 'Verified people only' : 'Anyone on Karwan' });
   if (s.reachable !== undefined) rows.push({ label: 'Let sellers reach me', value: onOff(s.reachable) });
-  if (s.guide) rows.push({ label: 'The guide on pages', value: s.guide === 'face' ? 'A small face in the top bar' : onOff(s.guide === 'on') });
+  if (s.guide) rows.push({ label: 'Aman’s help on pages', value: s.guide === 'on' ? 'On' : s.guide === 'face' ? 'Off, Aman stays in the header' : 'Off, and no face in the header' });
+  if (s.acceptsOutsideAgents !== undefined) rows.push({ label: 'Agents outside Karwan', value: onOff(s.acceptsOutsideAgents) });
+  if (s.tradesAs) rows.push({ label: 'Start a trade as', value: s.tradesAs === 'business' ? 'Your business' : 'Yourself' });
   return rows;
 }
 

@@ -194,9 +194,10 @@ function SettingsBody() {
         {group === 'general' ? (
           <>
             <RowGroup title={groupCopy.groups.display}>
-              <Row label={t.settings.language} value={LOCALE_NAMES[locale]} onClick={() => setSheet('language')} />
-              <Row label={t.settings.theme} value={themeLabel} onClick={() => setSheet('theme')} />
+              <Row guide="settings-language" label={t.settings.language} value={LOCALE_NAMES[locale]} onClick={() => setSheet('language')} />
+              <Row guide="settings-theme" label={t.settings.theme} value={themeLabel} onClick={() => setSheet('theme')} />
               <ToggleRow
+                guide="settings-sound"
                 label={t.settings.sound}
                 note={t.money.settings.soundsSwitch}
                 checked={soundsOn}
@@ -210,14 +211,16 @@ function SettingsBody() {
 
             <RowGroup title={t.settings.groups.notificationsPrivacy}>
               <ToggleRow
+                guide="settings-alerts"
                 label={t.settings.notifications}
                 note={t.settings.notificationsNote}
                 checked={!settings.notificationsMuted}
                 pending={!loaded}
                 onChange={(on) => save({ notificationsMuted: !on })}
               />
-              <Row label={t.setup.reachSetting} value={loaded ? reach.options[reachNow].label : ''} onClick={() => setSheet('reach')} />
+              <Row guide="settings-reach" label={t.setup.reachSetting} value={loaded ? reach.options[reachNow].label : ''} onClick={() => setSheet('reach')} />
               <ToggleRow
+                guide="settings-passport"
                 label={t.settings.privacyPublicPassport}
                 checked={settings.publicPassport !== false}
                 pending={!loaded}
@@ -225,6 +228,7 @@ function SettingsBody() {
               />
               <PublishDealsRows settings={settings} save={save} pending={!loaded} />
               <ToggleRow
+                guide="settings-agent-jobs"
                 label={t.agentJobs.setting.label}
                 note={t.agentJobs.setting.hint}
                 checked={settings.acceptsOutsideAgents !== false}
@@ -248,6 +252,7 @@ function SettingsBody() {
           <RowGroup>
             <DisplayCurrencySection />
             <Row
+              guide="settings-trade-with"
               label={groupCopy.startTradeWith}
               value={settings.tradesAs === 'business' ? TRADE_ENTRY_COPY[locale].entry.business : TRADE_ENTRY_COPY[locale].entry.self}
               onClick={() => setSheet('trade')}

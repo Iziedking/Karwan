@@ -42,8 +42,6 @@ test('the English copy reads as the spec says', () => {
   assert.equal(en.menu.quietSub, 'Quiet here for this visit');
   assert.equal(en.menu.hide, 'Hide the guide');
   assert.equal(en.menu.hideSub, 'A small face in the top bar');
-  assert.equal(en.showGuide, 'Show the guide on pages');
-  assert.equal(en.showGuideInfo, 'Aman sits beside the page with your next move. Off: open Aman from the menu or Ctrl+K.');
   assert.equal(en.greeting, 'Hi {name}. What do you want to do?');
   assert.equal(en.from, 'From {page}');
   assert.equal(en.box, 'Ask or tell Aman anything');
@@ -65,14 +63,26 @@ test('the English copy reads as the spec says', () => {
   });
 });
 
-test('New here and Show me in every language, and no page tour copy left (view 57, 17 Nov)', () => {
-  assert.equal(guideCopy.en.newHere, 'New here? Ask me about this page.');
+test('Show me in every language, and no page tour or New here copy left (view 57, 17 and 19 Nov)', () => {
   assert.equal(guideCopy.en.showMe, 'Show me');
   for (const [locale, copy] of Object.entries(guideCopy)) {
-    assert.ok(copy.newHere.trim().length > 0, locale);
     assert.ok(copy.showMe.trim().length > 0, locale);
     assert.ok(!('tour' in copy), `${locale} still has tour copy`);
+    assert.ok(!('newHere' in copy), `${locale} still has New here copy`);
   }
+});
+
+test('Aman guides you reads as drawn (view 57, 19 Nov)', () => {
+  assert.deepEqual(guideCopy.en.guides, {
+    hello: "Hi, I'm Aman. I'll show you around Karwan a little at a time, as you use it. Ask me anything. If I get in your way, you can switch me off.",
+    askMe: 'Ask me something',
+    switchOff: 'Switch me off',
+    switchedOff: "Done. I'll stay up here. Tap me any time you need me.",
+    checkIn: "You know your way around Karwan now, so I'll come by less. Anything I can help with?",
+    askAman: 'Ask Aman',
+    helpRow: 'Aman’s help on pages',
+    helpOffNote: 'Off. Aman stays in the header. Tap it to ask anything.',
+  });
 });
 
 test('placeholders survive translation', () => {

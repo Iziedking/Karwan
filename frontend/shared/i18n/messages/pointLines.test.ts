@@ -19,3 +19,15 @@ test('every language has a line for every point, none empty, no dashes', () => {
 test('the five languages are there', () => {
   assert.deepEqual(Object.keys(pointLines).sort(), ['ar', 'en', 'fr', 'hi', 'sw']);
 });
+
+test('every setting has a plain line, short enough to read in a glance (view 57, 19 Nov)', () => {
+  const ids = ['settings-language', 'settings-theme', 'settings-sound', 'settings-alerts', 'settings-reach', 'settings-passport',
+    'settings-publish-deals', 'settings-publish-history', 'settings-agent-jobs', 'settings-memory', 'settings-guide',
+    'settings-currency', 'settings-trade-with', 'settings-agent-power',
+    ...['offers', 'bargain', 'agree', 'lock', 'find', 'data', 'brief'].map((n) => `settings-agent-${n}`)];
+  const en = pointLines.en as Record<string, string>;
+  for (const id of ids) {
+    assert.ok(en[id], `${id} has no line`);
+    assert.ok(en[id]!.length <= 140, `${id} is ${en[id]!.length} characters`);
+  }
+});

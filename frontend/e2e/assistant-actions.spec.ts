@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { API, funded, serveMoney } from './moneyFixtures';
+import { API, funded, guideBookkeeping, serveMoney } from './moneyFixtures';
 
 /// Cards the assistant prepares run the page's own routes when confirmed
 /// (view 31): the deal guarantee, getting paid early, deal steps.
@@ -161,6 +161,7 @@ test('a settings card from the assistant saves only what it names', async ({ pag
   await serveMoney(page, { balances: funded });
   await page.route(`${API}/api/settings`, (route) => {
     if (route.request().method() !== 'POST') return route.fallback();
+    if (guideBookkeeping(route.request().postDataJSON().settings)) return route.fallback();
     saved.push(route.request().postDataJSON());
     return route.fulfill({ json: { settings: { locale: 'en', notificationsMuted: true } } });
   });

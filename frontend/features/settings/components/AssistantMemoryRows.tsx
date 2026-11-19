@@ -43,6 +43,7 @@ export function AssistantMemoryRows() {
     <>
       <RowGroup title={t.group}>
         <ToggleRow
+          guide="settings-memory"
           label={t.toggle}
           note={t.toggleNote}
           checked={memory?.enabled ?? true}

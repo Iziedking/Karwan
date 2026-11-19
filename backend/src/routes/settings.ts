@@ -58,6 +58,15 @@ export const settingsSchema = z.object({
     guideTourOffer: z.literal('off').optional(),
     /// Not now on New here (view 57, 17 Nov). guideTourOffer is read for old rows only.
     guideNewHere: z.literal('off').optional(),
+    /// Aman guides you (view 57, 19 Nov): visits per page, parts explained,
+    /// the first hello and the last check-in.
+    guideVisits: z
+      .record(z.string().regex(/^[a-z0-9/*._-]{1,80}$/), z.number().int().min(0).max(10000))
+      .refine((o) => Object.keys(o).length <= 200, 'at most 200 pages')
+      .optional(),
+    guideHeard: z.array(z.string().regex(/^[a-z0-9-]{2,40}$/)).max(300).optional(),
+    guideHi: z.literal('done').optional(),
+    guideCheckInAt: z.number().int().nonnegative().optional(),
   }),
 });
 

@@ -45,6 +45,7 @@ export function PublishDealsRows({ settings, save, pending = false }: { settings
   return (
     <>
       <ToggleRow
+        guide="settings-publish-deals"
         label={copy.publishDeals}
         note={copy.publishDealsNote}
         checked={settings.publishDeals !== false}
@@ -52,6 +53,7 @@ export function PublishDealsRows({ settings, save, pending = false }: { settings
         onChange={(v) => save({ publishDeals: v })}
       />
       <ToggleRow
+        guide="settings-publish-history"
         label={copy.publishHistory}
         note={copy.publishHistoryNote}
         checked={settings.publishHistory === true}

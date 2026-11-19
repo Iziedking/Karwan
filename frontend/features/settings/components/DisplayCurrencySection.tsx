@@ -31,7 +31,7 @@ export function DisplayCurrencySection() {
 
   return (
     <>
-      <Row label={copy.title} value={currency === 'USDC' ? 'USDC' : `${copy.names[currency]} (${currency})`} onClick={() => setOpen(true)} />
+      <Row guide="settings-currency" label={copy.title} value={currency === 'USDC' ? 'USDC' : `${copy.names[currency]} (${currency})`} onClick={() => setOpen(true)} />
       <ConfirmSheetShell open={open} labelledBy={titleId} busy={saving !== null} onClose={() => setOpen(false)}>
         <h2 id={titleId} className="mb-4 flex items-center gap-2 text-[20px] font-semibold text-[var(--ink)]">
           {copy.title}

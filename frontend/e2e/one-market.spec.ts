@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import type { Listing, MarketplaceBrief, Workspace } from '../core/api';
 import { TRADE_ENTRY_COPY } from '../features/home/tradeEntry';
 import { MARKET_REDIRECTS } from '../shared/utils/marketRedirects.mjs';
-import { API, ME, SELLER_AGENT, funded, watchHydration } from './moneyFixtures';
+import { API, ME, SELLER_AGENT, funded, guideBookkeeping, watchHydration } from './moneyFixtures';
 import { PROFILE, serveSearch } from './searchFixtures';
 import { en } from '../shared/i18n/messages/en';
 import { ar } from '../shared/i18n/messages/ar';
@@ -70,6 +70,7 @@ async function open(page: Page, account: Account, { locale = 'en', theme = 'ligh
     if (url.pathname === '/api/settings' && method === 'POST') {
       if (failSave) return route.fulfill({ status: 503, json: { error: 'unavailable' } });
       const body = route.request().postDataJSON() as { settings: Record<string, unknown> };
+      if (guideBookkeeping(body.settings)) return route.fulfill({ json: { settings } });
       saved.push(body.settings);
       settings = { ...settings, ...body.settings };
       return route.fulfill({ json: { settings } });

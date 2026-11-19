@@ -68,3 +68,23 @@ test('what Aman remembers on the account saves, and nothing outside its shape (v
   assert.equal(settingsSchema.parse({ settings: { guideNewHere: 'off' } }).settings.guideNewHere, 'off');
   assert.equal(settingsSchema.safeParse({ settings: { guideNewHere: 'on' } }).success, false);
 });
+
+test('settings keep visits, heard parts, the hello and the check-in (view 57, 19 Nov)', () => {
+  const ok = settingsSchema.parse({ settings: { guideVisits: { '/app': 3, '/deals/*': 1 }, guideHeard: ['home-money'], guideHi: 'done', guideCheckInAt: 1 } });
+  assert.deepEqual(ok.settings.guideVisits, { '/app': 3, '/deals/*': 1 });
+  assert.deepEqual(ok.settings.guideHeard, ['home-money']);
+  assert.equal(ok.settings.guideHi, 'done');
+  assert.equal(ok.settings.guideCheckInAt, 1);
+});
+
+test('settings refuse junk in what Aman remembers (view 57, 19 Nov)', () => {
+  const bad = (settings: Record<string, unknown>) => assert.equal(settingsSchema.safeParse({ settings }).success, false, JSON.stringify(settings).slice(0, 80));
+  bad({ guideVisits: { '/App': 1 } });
+  bad({ guideVisits: { '/app': -1 } });
+  bad({ guideVisits: { '/app': 1.5 } });
+  bad({ guideVisits: Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`/p${i}`, 1])) });
+  bad({ guideHeard: ['Home Money'] });
+  bad({ guideHeard: Array.from({ length: 301 }, (_, i) => `part-${i}`) });
+  bad({ guideHi: 'yes' });
+  bad({ guideCheckInAt: -5 });
+});

@@ -105,7 +105,17 @@ test('the business workspace, what it trades and the company card', () => {
 test('the assistant can hide or show the guide with a card (view 57)', () => {
   const card = ok(buildChangeSettingsConfirm({ address: ME, settings: { guide: 'off' }, hasTelegram: false, hasEmail: false }));
   assert.deepEqual(card.payload.settings, { guide: 'off' });
-  assert.deepEqual(card.fields, [{ label: 'The guide on pages', value: 'Off' }]);
+  assert.deepEqual(card.fields, [{ label: 'Aman’s help on pages', value: 'Off, and no face in the header' }]);
   const face = ok(buildChangeSettingsConfirm({ address: ME, settings: { guide: 'face' }, hasTelegram: false, hasEmail: false }));
-  assert.deepEqual(face.fields, [{ label: 'The guide on pages', value: 'A small face in the top bar' }]);
+  assert.deepEqual(face.fields, [{ label: 'Aman’s help on pages', value: 'Off, Aman stays in the header' }]);
+  const on = ok(buildChangeSettingsConfirm({ address: ME, settings: { guide: 'on' }, hasTelegram: false, hasEmail: false }));
+  assert.deepEqual(on.fields, [{ label: 'Aman’s help on pages', value: 'On' }]);
+});
+
+test('the settings card names agents outside Karwan and how a trade starts (view 57, 19 Nov)', () => {
+  const card = ok(buildChangeSettingsConfirm({ address: ME, settings: { acceptsOutsideAgents: false, tradesAs: 'business' }, hasTelegram: false, hasEmail: false }));
+  assert.deepEqual(card.payload.settings, { acceptsOutsideAgents: false, tradesAs: 'business' });
+  assert.deepEqual(card.fields, [{ label: 'Agents outside Karwan', value: 'Off' }, { label: 'Start a trade as', value: 'Your business' }]);
+  const self = ok(buildChangeSettingsConfirm({ address: ME, settings: { tradesAs: 'self' }, hasTelegram: false, hasEmail: false }));
+  assert.deepEqual(self.fields, [{ label: 'Start a trade as', value: 'Yourself' }]);
 });

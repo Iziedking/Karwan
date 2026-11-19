@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { en } from '../shared/i18n/messages/en';
-import { API, funded, serveMoney } from './moneyFixtures';
+import { API, QUIET_GUIDE, funded, guideBookkeeping, serveMoney } from './moneyFixtures';
 
 /// The theme (view 48): Dark or Light, chosen in Settings beside the language
 /// (view 83), shown at once and saved on the account for the next device.
@@ -9,7 +9,8 @@ test('the old Theme link opens Settings, Light applies at once and is saved on t
   await serveMoney(page, { balances: funded });
   const saved: unknown[] = [];
   await page.route(`${API}/api/settings**`, async (route) => {
-    if (route.request().method() === 'GET') return route.fulfill({ json: { settings: {} } });
+    if (route.request().method() === 'GET') return route.fulfill({ json: { settings: QUIET_GUIDE } });
+    if (guideBookkeeping(route.request().postDataJSON().settings)) return route.fulfill({ json: { settings: QUIET_GUIDE } });
     saved.push(route.request().postDataJSON());
     return route.fulfill({ json: { settings: { theme: 'light' } } });
   });

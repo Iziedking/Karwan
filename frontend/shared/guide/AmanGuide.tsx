@@ -16,9 +16,6 @@ import { dur, ease } from '@/shared/motion/tokens';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { anchorFor, helloDue, moodFor, pickNudge, stepFinished, type Nudge, type SetupKey } from '@/features/guide/pickNudge';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { useNewcomer } from './useNewcomer';
-import { NEW_HERE_QUESTIONS, NEW_HERE_SEEN, newHereFits, newHereOff, newHerePage } from './newHere';
-import { carryAsk } from '@/features/assistant/carriedAsk';
 import { coversControl } from '@/features/guide/coversControl';
 import { FACE, placeAman, type Placement, type Rect } from '@/features/guide/placeAman';
 import { ENTER_S, FAST_SCROLL, PLEASED_MS, enterFrom, isMoneyFlow, mayMove, maySpeak } from '@/features/guide/amanMotion';
@@ -34,6 +31,8 @@ import { afterCame, afterNotNow as paceAfterNotNow, mayCome, readPace, writePace
 import { pointLines, type PointId } from '@/shared/i18n/messages/pointLines';
 import { POINT_MS, isPoint, pointFromUrl, withoutPoint } from './point';
 import { PointRing } from './PointRing';
+import { PartLine } from './PartLine';
+import { usePartGuide } from './usePartGuide';
 
 const SHOW_AFTER_MS = 1200;
 const HELLO_MS = 2400;
@@ -94,9 +93,6 @@ export function AmanGuide() {
   const reduce = useHydratedReducedMotion();
   const { guide, loaded, set: setGuide, settings, save: saveSettings } = useGuideSetting();
   const { profile } = useUserProfile();
-  const who = useNewcomer();
-  const [offerDone, setOfferDone] = useState(false);
-  const [seenHere, setSeenHere] = useState(false);
 
   const signedIn = !auth.isLoading && auth.isAuthenticated;
   const quiet = quietRoute(pathname);
@@ -264,27 +260,27 @@ export function AmanGuide() {
 
   const moneyFlow = isMoneyFlow(pathname);
   const urgent = !!nudge && (nudge.kind === 'moment' || moodFor(nudge) === 'waiting');
-  // New here? (view 57, 17 Nov): someone new is answered, not walked through.
-  const herePage = newHerePage(pathname);
-  // Asking one question on a page leaves the next page free to ask again.
-  useEffect(() => { setOfferDone(false); }, [pathname]);
-  useEffect(() => {
-    try { setSeenHere(herePage ? sessionStorage.getItem(NEW_HERE_SEEN(herePage)) === '1' : false); } catch { setSeenHere(false); }
-  }, [herePage]);
-  const offerFits = newHereFits({ newcomer: who === 'new', pathname, off: newHereOff(settings), urgent, seen: seenHere });
+  // Aman guides you (view 57, 19 Nov): a part at a time, the first hello, a
+  // check-in now and then. A deal waiting or a moment still comes first.
+  const partGuide = usePartGuide({
+    track: signedIn && !quiet && loaded,
+    enabled: active && ready && !pointing && !urgent && !typing && !dialog && !moneyFlow && !isQuiet(visit, pathname),
+    pathname,
+    settings,
+    save: saveSettings,
+    nudgeWaiting: nudge !== null,
+  });
   // One pace for the whole site: may Aman start something new here? Read
   // once per page, so a line already showing is never cut off.
   const [paceOpen, setPaceOpen] = useState(false);
-  const [offerStarted, setOfferStarted] = useState(false);
   useEffect(() => {
-    setOfferStarted(false);
     if (!ready) return;
     try { setPaceOpen(mayCome(readPace(window.localStorage), Date.now(), urgent)); } catch { setPaceOpen(true); }
   }, [pathname, ready, urgent]);
-  const offering = !pointing && active && ready && offerFits && !offerDone && !typing && !dialog && !moneyFlow && !isQuiet(visit, pathname) && (offerStarted || paceOpen);
   const speaking =
     !pointing &&
-    !offering &&
+    !partGuide.line &&
+    (urgent || !partGuide.wants) &&
     active &&
     ready &&
     nudge !== null &&
@@ -294,14 +290,6 @@ export function AmanGuide() {
   const moving = mayMove({ typing, fastScroll, dialogOpen: dialog, moneyFlow, reducedMotion: reduce });
   const anchorName = speaking && nudge && !reduce ? anchorFor(nudge) : null;
   const hold = typing || fastScroll || dialog;
-
-  useEffect(() => {
-    if (!offering || offerStarted) return;
-    setOfferStarted(true);
-    try { if (herePage) sessionStorage.setItem(NEW_HERE_SEEN(herePage), '1'); } catch { /* no storage */ }
-    setPaceOpen(false);
-    try { writePace(window.localStorage, afterCame(readPace(window.localStorage), Date.now())); } catch { /* no storage */ }
-  }, [offering, offerStarted]);
 
   useEffect(() => {
     if (!speaking || !nudge) return;
@@ -321,13 +309,13 @@ export function AmanGuide() {
   // The day's hello on Home, when there is nothing else to say (view 57, 15 Nov evening).
   const today = useMemo(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }, []);
   useEffect(() => {
-    if (!active || !ready || nudge || offerFits || !settings || reduce === undefined) return;
+    if (!active || !ready || nudge || partGuide.wants || partGuide.line || !settings || reduce === undefined) return;
     if (!helloDue(settings.guideHelloOn, today, pathname)) return;
     setHello(true);
     void saveSettings({ guideHelloOn: today });
     const t = window.setTimeout(() => setHello(false), HELLO_MS);
     return () => window.clearTimeout(t);
-  }, [active, ready, nudge, offerFits, settings, today, pathname, saveSettings, reduce]);
+  }, [active, ready, nudge, partGuide.wants, partGuide.line, settings, today, pathname, saveSettings, reduce]);
 
   // The step Aman named is done: pleased for a moment, then gone (view 57, 15 Nov).
   useEffect(() => {
@@ -339,8 +327,8 @@ export function AmanGuide() {
     return () => window.clearTimeout(t);
   }, [active, data, moneyFlow]);
 
-  const helloing = hello && !speaking && !offering && !pointing;
-  const present = speaking || pleased || menu || helloing || offering || !!pointing;
+  const helloing = hello && !speaking && !partGuide.line && !pointing;
+  const present = speaking || pleased || menu || helloing || !!pointing;
 
   // Where Aman sits, and whether it or its line would cover a button there.
   useLayoutEffect(() => {
@@ -360,8 +348,8 @@ export function AmanGuide() {
         if (line) sizes.observe(line);
         watched = line;
       }
-      const talking = speaking || helloing || offering || !!pointEl.current;
-      const lineSize = talking && line ? { width: Math.max(line.scrollWidth, 280), height: line.scrollHeight } : speaking || offering || pointEl.current ? { width: 300, height: 96 } : helloing ? { width: 240, height: 56 } : null;
+      const talking = speaking || helloing || !!pointEl.current;
+      const lineSize = talking && line ? { width: Math.max(line.scrollWidth, 280), height: line.scrollHeight } : speaking || pointEl.current ? { width: 300, height: 96 } : helloing ? { width: 240, height: 56 } : null;
       const next = placeAman({ viewport: { width: window.innerWidth, height: window.innerHeight }, anchor, bottomBar: bottomBarHeight(), rtl, lineSize });
       // Held still while typing, scrolling fast or reading a dialog; placed again after.
       setPlace((prev) => (prev && hold && Boolean(prev.line) === Boolean(next.line) ? prev : next));
@@ -383,7 +371,7 @@ export function AmanGuide() {
       window.removeEventListener('resize', later);
       observer.disconnect();
     };
-  }, [active, speaking, helloing, offering, anchorName, rtl, hold, pathname, pointing?.id]);
+  }, [active, speaking, helloing, anchorName, rtl, hold, pathname, pointing?.id]);
 
   const remember = useCallback((next: Visit) => {
     setVisit(next);
@@ -392,7 +380,30 @@ export function AmanGuide() {
 
   const open = useCallback(() => openAssistant(pathname, (href) => router.push(href)), [pathname, router]);
 
-  if (!(active || pointing) || !place) return null;
+  const said = partGuide.line?.el ? partGuide.line : null;
+  const saidText = !said ? '' : said.kind === 'part' ? (said.id ? (pointLines[locale] ?? pointLines.en)[said.id] : '')
+    : said.kind === 'hello' ? copy.guides.hello : said.kind === 'check-in' ? copy.guides.checkIn : copy.guides.switchedOff;
+  const saidButtons = said?.kind === 'hello'
+    ? [{ label: copy.guides.askMe, act: () => { partGuide.end('button'); open(); }, main: true }, { label: copy.guides.switchOff, act: partGuide.switchOff }]
+    : said?.kind === 'check-in'
+      ? [{ label: copy.guides.askAman, act: () => { partGuide.end('button'); open(); }, main: true }, { label: copy.notNow, act: partGuide.notNowCheckIn }]
+      : [];
+  const partNode = said && saidText ? (
+    <PartLine
+      key={`${said.kind}-${said.id ?? ''}`}
+      el={said.el!}
+      kind={said.kind}
+      id={said.id}
+      ms={said.ms}
+      text={saidText}
+      label={copy.label}
+      rtl={rtl}
+      reduce={reduce}
+      buttons={saidButtons}
+      onGone={() => partGuide.end('gone')}
+    />
+  ) : null;
+  if (!(active || pointing) || !place) return partNode;
   const from = enterFrom(rtl, reduce);
 
   const lineFor = (n: Nudge): string => {
@@ -425,18 +436,7 @@ export function AmanGuide() {
         ? moveCopy.firstDealOwnAction
         : n.step ? moveCopy.setup[n.step].action : ''
       : moveCopy.moves[n.kind].action;
-  const mood: AmanMood = pointing ? 'talking' : pleased && !speaking ? 'pleased' : speaking && nudge ? moodFor(nudge) : helloing || offering ? 'excited' : 'waiting';
-  const askHere = (question: string) => {
-    setOfferDone(true);
-    carryAsk(question);
-    openAssistant(pathname, (href) => router.push(href));
-  };
-  // Not now on New here turns it off on every page and every device.
-  const declineNewHere = () => {
-    setOfferDone(true);
-    void saveSettings({ guideNewHere: 'off' });
-    try { writePace(window.localStorage, paceAfterNotNow(readPace(window.localStorage), Date.now())); } catch { /* no storage */ }
-  };
+  const mood: AmanMood = pointing ? 'talking' : pleased && !speaking ? 'pleased' : speaking && nudge ? moodFor(nudge) : helloing ? 'excited' : 'waiting';
   const name = profile?.handle ? `@${profile.handle}` : (profile?.displayName ?? '').trim().split(/\s+/)[0] ?? '';
   const helloLine = name ? copy.hello.replace('{name}', name) : copy.hello.replace(/,?\s*\{name\}/, '');
   // Not now: a moment stays down for the visit; a setup step is held on the account for days.
@@ -456,6 +456,7 @@ export function AmanGuide() {
 
   return (
     <>
+      {partNode}
       {pointing ? <PointRing rect={pointing.rect} radius={pointing.radius} /> : null}
       <AnimatePresence>
         {pointing && place.line ? (
@@ -507,31 +508,6 @@ export function AmanGuide() {
               >
                 {copy.notNow}
               </button>
-            </div>
-          </m.div>
-        ) : offering && place.line ? (
-          <m.div
-            key="new-here"
-            ref={lineRef}
-            role="complementary"
-            aria-label={copy.label}
-            data-aman-line="new-here"
-            aria-hidden={lineCovering || faceCovering || undefined}
-            data-aside={lineCovering || faceCovering ? '' : undefined}
-            initial={{ opacity: 0, x: from.x }}
-            animate={{ opacity: 1, x: 0, left: place.line.x, top: place.line.y }}
-            exit={{ opacity: 0, x: from.x }}
-            transition={{ opacity: { duration: reduce ? dur.micro : ENTER_S, ease: ease.out }, x: { duration: ENTER_S, ease: ease.out } }}
-            style={{ maxWidth: place.line.maxWidth, maxHeight: place.line.maxHeight, overflowY: 'auto' }}
-            className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)] data-[aside]:invisible"
-          >
-            <p className="guide-voice text-[13px] font-bold leading-none opacity-70">{copy.label}</p>
-            <p role="status" className="guide-voice mt-1.5 text-[16px] font-semibold leading-[1.3]">{copy.newHere}</p>
-            <div className="mt-3 flex flex-col items-stretch gap-2">
-              {herePage ? NEW_HERE_QUESTIONS[herePage].map((key) => (
-                <button key={key} type="button" onClick={() => askHere(copy.questions[key])} className="inline-flex min-h-10 items-center rounded-full border border-[var(--soft-green-edge)] bg-[var(--surface)] px-4 text-start text-[15px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">{copy.questions[key]}</button>
-              )) : null}
-              <button type="button" onClick={declineNewHere} className="inline-flex min-h-10 items-center rounded-full px-3 text-[15px] font-semibold opacity-80 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]">{copy.notNow}</button>
             </div>
           </m.div>
         ) : helloing && place.line ? (

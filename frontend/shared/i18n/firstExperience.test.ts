@@ -38,7 +38,7 @@ for (const locale of Object.keys(MESSAGES) as Array<keyof typeof MESSAGES>) {
       'market.promiseNote': marketShopCopy[locale].promiseNote,
       'home.faucetLabel': MESSAGES[locale].accountHome.faucetLabel,
       'home.faucetBody': MESSAGES[locale].accountHome.faucetBody,
-      'aman.newHere': guideCopy[locale].newHere,
+      'aman.hello': guideCopy[locale].guides.hello,
     };
     assert.ok(marketShopCopy[locale].promise.length > 15);
     assert.doesNotMatch(marketShopCopy[locale].promise + marketShopCopy[locale].promiseNote, /—/);

@@ -64,7 +64,7 @@ export function SettingsAgent() {
     <div data-settings-agent className="space-y-7">
       {features.agentSwitch ? (
         <RowGroup>
-          <SwitchRow label={power.label} checked={mandate.on && !stopped} disabled={stopped || saving !== null} onChange={(on) => void send('power', { part: 'power', on })} />
+          <SwitchRow guide="settings-agent-power" label={power.label} checked={mandate.on && !stopped} disabled={stopped || saving !== null} onChange={(on) => void send('power', { part: 'power', on })} />
         </RowGroup>
       ) : null}
 
@@ -72,6 +72,7 @@ export function SettingsAgent() {
         {switchRows(mandate, data.lockOpen && features.autopilotLock === true).map((row) => (
           <SwitchRow
             key={row.name}
+            guide={`settings-agent-${row.name}`}
             label={copy.labels[row.name]}
             info={copy.notes[row.name]}
             checked={row.on}

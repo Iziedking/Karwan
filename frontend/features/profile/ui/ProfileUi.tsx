@@ -54,7 +54,12 @@ const interactive = 'transition-colors hover:bg-[var(--raised)] focus-visible:ou
 /// A fact or a way in: label on the left, its value (or a control) on the
 /// right. With `href` or `onClick` the whole row opens it. `soon` shows a row
 /// that is not built yet, never clickable.
-export function Row({ label, value, href, onClick, soon, full = false, inline = false, children }: {
+/// `guide` marks the row as a part Aman can explain (view 57, 19 Nov).
+export function Row({ guide, ...props }: Parameters<typeof RowBody>[0] & { guide?: string }) {
+  return guide ? <div data-guide={guide}><RowBody {...props} /></div> : <RowBody {...props} />;
+}
+
+function RowBody({ label, value, href, onClick, soon, full = false, inline = false, children }: {
   label: ReactNode;
   /// Label and a compact control on one line, never wrapped under each other.
   inline?: boolean;
@@ -126,7 +131,11 @@ export function Row({ label, value, href, onClick, soon, full = false, inline = 
 /// A switch whose explanation sits behind an (i) (view 87). The row itself is
 /// not the control, so opening the note never flips the switch. `pill` names a
 /// switch that is not open yet.
-export function SwitchRow({ label, info, checked, disabled = false, pill, onChange }: {
+export function SwitchRow({ guide, ...props }: Parameters<typeof SwitchBody>[0] & { guide?: string }) {
+  return guide ? <div data-guide={guide}><SwitchBody {...props} /></div> : <SwitchBody {...props} />;
+}
+
+function SwitchBody({ label, info, checked, disabled = false, pill, onChange }: {
   label: string;
   info?: string;
   checked: boolean;
@@ -171,7 +180,11 @@ export function SwitchTrack({ checked, pending = false }: { checked: boolean; pe
 /// A setting that is on or off: the label and one plain line under it on the
 /// left, the switch at the end. The whole row toggles it. While `pending` it
 /// is not a switch yet, only a quiet row that waits.
-export function ToggleRow({ label, note, checked, pending = false, onChange }: {
+export function ToggleRow({ guide, ...props }: Parameters<typeof ToggleBody>[0] & { guide?: string }) {
+  return guide ? <div data-guide={guide}><ToggleBody {...props} /></div> : <ToggleBody {...props} />;
+}
+
+function ToggleBody({ label, note, checked, pending = false, onChange }: {
   label: string;
   note?: string;
   checked: boolean;

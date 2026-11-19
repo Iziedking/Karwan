@@ -42,6 +42,9 @@ function marks(): { exact: Set<string>; prefixes: Set<string> } {
       for (const m of src.matchAll(/data-guide="([^"${}]+)"/g)) exact.add(m[1]!);
       for (const m of src.matchAll(/dataGuide="([^"${}]+)"/g)) exact.add(m[1]!);
       for (const m of src.matchAll(/data-guide=\{`([^`$]*)\$\{/g)) prefixes.add(m[1]!);
+      // A row that marks itself through its `guide` prop (view 57, 19 Nov).
+      for (const m of src.matchAll(/[\s{(]guide="([a-z0-9-]+)"/g)) exact.add(m[1]!);
+      for (const m of src.matchAll(/[\s{(]guide=\{`([^`$]*)\$\{/g)) prefixes.add(m[1]!);
     }
   }
   return { exact, prefixes };

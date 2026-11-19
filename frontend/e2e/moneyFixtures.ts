@@ -1,7 +1,16 @@
 import type { Page, Route } from '@playwright/test';
 import { decodeFunctionData, encodeFunctionResult, multicall3Abi, type Hex } from 'viem';
+import { pointLines } from '../shared/i18n/messages/pointLines';
 
 export const API = 'http://127.0.0.1:3199';
+
+/// Aman's part lines (view 57, 19 Nov) stay out of tests about other things:
+/// the hello is said and every part is heard. A guide test passes its own.
+export const QUIET_GUIDE: Record<string, unknown> = { guideHi: 'done', guideHeard: Object.keys(pointLines.en) };
+const GUIDE_BOOKKEEPING = new Set(['guideVisits', 'guideHeard', 'guideHi', 'guideCheckInAt', 'address']);
+/// A settings write that only keeps Aman's counts, not a change the person made.
+export const guideBookkeeping = (patch: Record<string, unknown> | null | undefined): boolean =>
+  !!patch && Object.keys(patch).length > 0 && Object.keys(patch).every((k) => GUIDE_BOOKKEEPING.has(k));
 export const RPC = 'http://127.0.0.1:3198';
 export const ME = '0x1111111111111111111111111111111111111111';
 export const BUYER_AGENT = '0x3333333333333333333333333333333333333333';
@@ -149,7 +158,7 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
         const body = route.request().postDataJSON() as { settings?: Record<string, unknown> };
         world.settings = { ...(world.settings ?? {}), ...(body.settings ?? {}) };
       }
-      return route.fulfill({ json: { settings: world.settings ?? {} } });
+      return route.fulfill({ json: { settings: { ...QUIET_GUIDE, ...(world.settings ?? {}) } } });
     }
     if (path === '/api/assistant/memory') return route.fulfill({ json: { enabled: true, notes: [] } });
     if (path === '/api/activity/me') return route.fulfill({ json: { items: world.activity ?? recentActivity } });

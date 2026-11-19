@@ -7,7 +7,7 @@ import { hi } from '../shared/i18n/messages/hi';
 import { sw } from '../shared/i18n/messages/sw';
 import { chatTermsCopy } from '../shared/i18n/messages/chatTerms';
 import { signupCopy } from '../shared/i18n/messages/signup';
-import { API, funded } from './moneyFixtures';
+import { API, funded, guideBookkeeping } from './moneyFixtures';
 import { serveSearch } from './searchFixtures';
 
 for (const locale of ['en','fr','ar','hi','sw'] as const) for (const theme of ['light','dark']) {
@@ -45,7 +45,7 @@ for (const locale of ['en','fr','ar','hi','sw'] as const) for (const theme of ['
 
 const homeCopies={en,fr,ar,hi,sw};
 // Aman's once-a-day hello on Home remembers the day; every other write still fails the test.
-function helloMark(path:string,body:string|null){if(path!=='/api/settings'||!body)return false;try{const patch=JSON.parse(body).settings??JSON.parse(body);return Object.keys(patch).every(k=>k==='guideHelloOn'||k==='address');}catch{return false;}}
+function helloMark(path:string,body:string|null){if(path!=='/api/settings'||!body)return false;try{const patch=JSON.parse(body).settings??JSON.parse(body);return guideBookkeeping(patch)||Object.keys(patch).every(k=>k==='guideHelloOn'||k==='address');}catch{return false;}}
 for(const locale of ['en','fr','ar','hi','sw'] as const)for(const theme of ['light','dark'])test('account status recovery '+locale+' '+theme,async({page},info)=>{
  const copy=homeCopies[locale];let unavailable=true;const writes:string[]=[];
  await page.context().addCookies([{name:'karwan-locale',value:locale,domain:'127.0.0.1',path:'/'}]);

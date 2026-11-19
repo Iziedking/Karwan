@@ -25,8 +25,6 @@ export interface GuideCopy {
   open: string;
   notNow: string;
   menu: { ask: string; askSub: string; quiet: string; quietSub: string; hide: string; hideSub: string };
-  showGuide: string;
-  showGuideInfo: string;
   greeting: string;
   from: string;
   box: string;
@@ -36,8 +34,9 @@ export interface GuideCopy {
   hello: string;
   /// One line and one button per moment; {amount} is money in the person's currency.
   moments: Record<MomentLineKey, { line: string; action: string }>;
-  /// The New here line for someone new (view 57, 17 Nov). Its questions are `questions`.
-  newHere: string;
+  /// Aman guides you (view 57, 19 Nov): the first hello, switching help off,
+  /// the check-in, and the Settings row.
+  guides: { hello: string; askMe: string; switchOff: string; switchedOff: string; checkIn: string; askAman: string; helpRow: string; helpOffNote: string };
   /// The button on an answer that lights a part of the page.
   showMe: string;
 }
@@ -54,8 +53,6 @@ const en: GuideCopy = {
     hide: 'Hide the guide',
     hideSub: 'A small face in the top bar',
   },
-  showGuide: 'Show the guide on pages',
-  showGuideInfo: 'Aman sits beside the page with your next move. Off: open Aman from the menu or Ctrl+K.',
   greeting: 'Hi {name}. What do you want to do?',
   from: 'From {page}',
   box: 'Ask or tell Aman anything',
@@ -86,7 +83,16 @@ const en: GuideCopy = {
     offer: { line: 'A new offer came in on your request.', action: 'See the offer' },
     entry: { line: 'Someone entered your contest.', action: 'See the entry' },
   },
-  newHere: 'New here? Ask me about this page.',
+  guides: {
+    hello: "Hi, I'm Aman. I'll show you around Karwan a little at a time, as you use it. Ask me anything. If I get in your way, you can switch me off.",
+    askMe: "Ask me something",
+    switchOff: "Switch me off",
+    switchedOff: "Done. I'll stay up here. Tap me any time you need me.",
+    checkIn: "You know your way around Karwan now, so I'll come by less. Anything I can help with?",
+    askAman: "Ask Aman",
+    helpRow: "Aman’s help on pages",
+    helpOffNote: "Off. Aman stays in the header. Tap it to ask anything.",
+  },
   showMe: 'Show me',
 };
 
@@ -102,8 +108,6 @@ const fr: GuideCopy = {
     hide: 'Masquer le guide',
     hideSub: 'Un petit visage dans la barre du haut',
   },
-  showGuide: 'Afficher le guide sur les pages',
-  showGuideInfo: "Aman se tient à côté de la page avec votre prochaine étape. Désactivé : ouvrez Aman depuis le menu ou avec Ctrl+K.",
   greeting: 'Bonjour {name}. Que voulez-vous faire ?',
   from: 'Depuis {page}',
   box: 'Demandez ou dites tout à Aman',
@@ -134,7 +138,16 @@ const fr: GuideCopy = {
     offer: { line: 'Une nouvelle offre est arrivée sur votre demande.', action: 'Voir l’offre' },
     entry: { line: 'Quelqu’un a participé à votre concours.', action: 'Voir la participation' },
   },
-  newHere: 'Nouveau ici ? Posez-moi une question sur cette page.',
+  guides: {
+    hello: "Bonjour, je suis Aman. Je vous fais découvrir Karwan petit à petit, au fil de votre usage. Demandez-moi ce que vous voulez. Si je vous gêne, vous pouvez me désactiver.",
+    askMe: "Me poser une question",
+    switchOff: "Me désactiver",
+    switchedOff: "C’est fait. Je reste ici, en haut. Touchez-moi quand vous avez besoin de moi.",
+    checkIn: "Vous connaissez bien Karwan maintenant, je passerai moins souvent. Puis-je vous aider ?",
+    askAman: "Demander à Aman",
+    helpRow: "L’aide d’Aman sur les pages",
+    helpOffNote: "Désactivée. Aman reste dans l’en-tête. Touchez-le pour poser une question.",
+  },
   showMe: 'Montrez-moi',
 };
 
@@ -150,8 +163,6 @@ const ar: GuideCopy = {
     hide: 'إخفاء الدليل',
     hideSub: 'وجه صغير في الشريط العلوي',
   },
-  showGuide: 'إظهار الدليل في الصفحات',
-  showGuideInfo: 'يجلس أمان بجانب الصفحة ومعه خطوتك التالية. عند الإيقاف: افتح أمان من القائمة أو بـ Ctrl+K.',
   greeting: 'مرحبًا {name}. ماذا تريد أن تفعل؟',
   from: 'من {page}',
   box: 'اسأل أمان أو أخبره بأي شيء',
@@ -182,7 +193,16 @@ const ar: GuideCopy = {
     offer: { line: 'وصل عرض جديد على طلبك.', action: 'اطّلع على العرض' },
     entry: { line: 'شارك أحدهم في مسابقتك.', action: 'اطّلع على المشاركة' },
   },
-  newHere: 'جديد هنا؟ اسألني عن هذه الصفحة.',
+  guides: {
+    hello: "مرحبا، أنا أمان. سأعرّفك على Karwan شيئا فشيئا وأنت تستخدمه. اسألني أي شيء. إن أزعجتك يمكنك إيقافي.",
+    askMe: "اسألني شيئا",
+    switchOff: "أوقفني",
+    switchedOff: "تم. سأبقى هنا في الأعلى. المسني متى احتجتني.",
+    checkIn: "صرت تعرف Karwan جيدا، لذا سآتي أقل. هل أساعدك في شيء؟",
+    askAman: "اسأل أمان",
+    helpRow: "مساعدة أمان في الصفحات",
+    helpOffNote: "متوقفة. يبقى أمان في أعلى الصفحة. المسه لتسأل أي شيء.",
+  },
   showMe: 'أرني',
 };
 
@@ -198,8 +218,6 @@ const hi: GuideCopy = {
     hide: 'गाइड छिपाएं',
     hideSub: 'ऊपर की पट्टी में एक छोटा चेहरा',
   },
-  showGuide: 'पेजों पर गाइड दिखाएं',
-  showGuideInfo: 'अमान आपके अगले कदम के साथ पेज के पास रहता है। बंद होने पर: मेनू से या Ctrl+K से अमान खोलें।',
   greeting: 'नमस्ते {name}। आप क्या करना चाहते हैं?',
   from: '{page} से',
   box: 'अमान से कुछ भी पूछें या कहें',
@@ -230,7 +248,16 @@ const hi: GuideCopy = {
     offer: { line: 'आपकी माँग पर एक नया ऑफ़र आया है।', action: 'ऑफ़र देखें' },
     entry: { line: 'किसी ने आपकी प्रतियोगिता में हिस्सा लिया।', action: 'प्रविष्टि देखें' },
   },
-  newHere: 'यहाँ नए हैं? इस पेज के बारे में मुझसे पूछें।',
+  guides: {
+    hello: "नमस्ते, मैं अमान हूँ। जैसे-जैसे आप Karwan इस्तेमाल करेंगे, मैं थोड़ा-थोड़ा करके सब दिखाऊँगा। मुझसे कुछ भी पूछें। अगर मैं बीच में आऊँ, तो आप मुझे बंद कर सकते हैं।",
+    askMe: "मुझसे कुछ पूछें",
+    switchOff: "मुझे बंद करें",
+    switchedOff: "हो गया। मैं ऊपर ही रहूँगा। जब ज़रूरत हो, मुझे टैप करें।",
+    checkIn: "अब आप Karwan अच्छी तरह जानते हैं, इसलिए मैं कम आऊँगा। क्या मैं किसी चीज़ में मदद करूँ?",
+    askAman: "अमान से पूछें",
+    helpRow: "पेजों पर अमान की मदद",
+    helpOffNote: "बंद। अमान ऊपर हेडर में रहता है। कुछ भी पूछने के लिए उसे टैप करें।",
+  },
   showMe: 'दिखाइए',
 };
 
@@ -246,8 +273,6 @@ const sw: GuideCopy = {
     hide: 'Ficha mwongozo',
     hideSub: 'Uso mdogo kwenye upau wa juu',
   },
-  showGuide: 'Onyesha mwongozo kwenye kurasa',
-  showGuideInfo: 'Aman hukaa kando ya ukurasa na hatua yako inayofuata. Ukizima: fungua Aman kutoka kwenye menyu au kwa Ctrl+K.',
   greeting: 'Habari {name}. Unataka kufanya nini?',
   from: 'Kutoka {page}',
   box: 'Uliza au mwambie Aman chochote',
@@ -278,7 +303,16 @@ const sw: GuideCopy = {
     offer: { line: 'Ofa mpya imefika kwenye ombi lako.', action: 'Angalia ofa' },
     entry: { line: 'Mtu ameingia kwenye shindano lako.', action: 'Angalia maingizo' },
   },
-  newHere: 'Mgeni hapa? Niulize kuhusu ukurasa huu.',
+  guides: {
+    hello: "Habari, mimi ni Aman. Nitakuonyesha Karwan kidogo kidogo, unapoitumia. Niulize chochote. Nikikusumbua, unaweza kunizima.",
+    askMe: "Niulize kitu",
+    switchOff: "Nizime",
+    switchedOff: "Imekamilika. Nitabaki hapa juu. Niguse wakati wowote unaponihitaji.",
+    checkIn: "Sasa unaifahamu Karwan vizuri, kwa hiyo nitakuja mara chache. Kuna kitu nikusaidie?",
+    askAman: "Muulize Aman",
+    helpRow: "Msaada wa Aman kwenye kurasa",
+    helpOffNote: "Imezimwa. Aman anabaki juu kwenye kichwa. Mguse ili kuuliza chochote.",
+  },
   showMe: 'Nionyeshe',
 };
 
