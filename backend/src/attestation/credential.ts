@@ -232,6 +232,21 @@ export const DEAL_SETTLED_EIP712_TYPES = {
   ],
 } as const;
 
+/// A deal record (view 94) is signed as its digest: the keccak of the record's
+/// canonical JSON (deals/dealRecord.ts dealRecordDigest). The record itself is
+/// served beside the proof, so a verifier rebuilds the digest from what it reads.
+export const DEAL_RECORD_EIP712_TYPES = {
+  KarwanDealRecord: [
+    { name: 'dealRef', type: 'bytes32' },
+    { name: 'recordDigest', type: 'bytes32' },
+    { name: 'writtenAt', type: 'uint64' },
+  ],
+} as const;
+
+export function dealRecordMessage(jobId: string, recordDigest: `0x${string}`, writtenAt: number) {
+  return { dealRef: dealRef(jobId), recordDigest, writtenAt: BigInt(writtenAt) } as const;
+}
+
 export function eip712Domain(chainId: number) {
   return { name: 'Karwan Attestation', version: '1', chainId } as const;
 }
@@ -367,6 +382,17 @@ export function issuerManifest(chainId: number, issuerAddress?: string | null) {
           domain: eip712Domain(chainId),
           primaryType: 'DealSettled',
           types: DEAL_SETTLED_EIP712_TYPES,
+        },
+      },
+      {
+        type: 'karwan.deal-record.v1',
+        schemaUrl: null,
+        issuedWhen: 'A deal ends: settled, refunded or cancelled. Written once from what the deal stored, and shown only to its two sides or to whoever a side shares it with.',
+        proof: {
+          type: 'eip712',
+          domain: eip712Domain(chainId),
+          primaryType: 'KarwanDealRecord',
+          types: DEAL_RECORD_EIP712_TYPES,
         },
       },
     ],

@@ -1717,6 +1717,29 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX standing_orders_v1_due_idx ON standing_orders_v1 (next_at) WHERE state = 'on';
     `,
   },
+  {
+    // Deal records (view 94): one signed record per ended deal, written once,
+    // and one live share link per side.
+    version: 71,
+    name: 'deal_records',
+    sql: `
+      CREATE TABLE deal_records_v1 (
+        job_id TEXT PRIMARY KEY,
+        record JSONB NOT NULL,
+        digest TEXT NOT NULL,
+        proof JSONB NOT NULL,
+        written_at BIGINT NOT NULL
+      );
+      CREATE TABLE deal_record_shares_v1 (
+        token TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL,
+        side TEXT NOT NULL CHECK (side IN ('buyer', 'seller')),
+        created_at BIGINT NOT NULL,
+        revoked_at BIGINT
+      );
+      CREATE UNIQUE INDEX deal_record_shares_v1_live_idx ON deal_record_shares_v1 (job_id, side) WHERE revoked_at IS NULL;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;
