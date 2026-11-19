@@ -418,6 +418,11 @@ export interface UserSettings {
   guideTourOffer?: 'off';
   guideNewHere?: 'off';
   guideMomentAt?: number;
+  /// Aman guides you (view 57, 19 Nov).
+  guideVisits?: Record<string, number>;
+  guideHeard?: string[];
+  guideHi?: 'done';
+  guideCheckInAt?: number;
 }
 
 /// How a seller meets people, for in-person work (view 72).
@@ -919,6 +924,11 @@ export interface DisputeProposalView {
   rule?: 'silent-seller' | 'silent-buyer' | 'both-silent' | 'judge-unavailable';
   proposedAt: number;
   status: 'awaiting-review' | 'confirmed' | 'overridden';
+  /// Set once a reviewer confirms the finding on the escrow family (view 90).
+  reviewedSellerBps?: number;
+  reviewReason?: string;
+  reviewedBy?: string;
+  reviewedAt?: number;
 }
 
 export interface DealDisputeView {
@@ -2970,6 +2980,13 @@ export interface AdminDisputeRow {
   dealAmountUsdc: string;
   disputedAt: number | null;
   disputedBy: 'buyer' | 'seller' | null;
+  escrowVersion?: string;
+  /// Escalated to the review Safe (escrow family and v3).
+  escalated?: boolean;
+  /// View 90, escrow family: when both sides' answers are due, and by when a
+  /// reviewer must confirm the finding before the case goes to the review Safe.
+  answersBy?: number;
+  findingDueAt?: number;
   /// Each side's account and the judge's proposal, for the reviewer.
   statements?: Partial<Record<'buyer' | 'seller', DisputeStatementView>> | null;
   proposal?: (DisputeProposalView & { model?: string; inputsHash?: string }) | null;
@@ -4155,6 +4172,12 @@ export const api = {
       safe: string | null;
       escrow: string | null;
     }>('/api/admin/disputes', { headers: adminHeaders() }),
+  adminConfirmFinding: (jobId: string, sellerBps: number, reason: string) =>
+    json<{ proposal: DisputeProposalView }>(`/api/admin/disputes/${jobId}/finding`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ sellerBps, reason }),
+    }),
   adminPrepareDispute: (jobId: string, sellerBps: number, rulingReason: string) =>
     json<AdminDisputePrepared>(`/api/admin/disputes/${jobId}/prepare`, {
       method: 'POST',

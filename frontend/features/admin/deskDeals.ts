@@ -74,6 +74,16 @@ export const DISPUTE_VIEWS: { key: DisputeView; label: string }[] = [
 
 /// Ready to rule once both sides have given their account or the judge has
 /// proposed a ruling; otherwise it waits on whoever has not spoken.
+/// What an escrow family dispute needs from a reviewer (view 90): nothing yet
+/// while a side can still answer, a confirmation once both were heard, and
+/// nothing more once confirmed. Older escrows have no finding to confirm.
+export function findingStage(d: AdminDisputeRow, now: number): 'none' | 'hearing' | 'confirm' | 'confirmed' {
+  if (d.escrowVersion !== 'suite' || !d.proposal) return 'none';
+  if (d.proposal.status !== 'awaiting-review') return 'confirmed';
+  const heard = Boolean(d.statements?.buyer && d.statements?.seller) || (d.answersBy !== undefined && now > d.answersBy);
+  return heard ? 'confirm' : 'hearing';
+}
+
 export function disputeList(rows: AdminDisputeRow[], view: DisputeView): AdminDisputeRow[] {
   const ready = (d: AdminDisputeRow) => Boolean(d.proposal) || Boolean(d.statements?.buyer && d.statements?.seller);
   return rows.filter((d) => (view === 'ruling' ? ready(d) : !ready(d)));

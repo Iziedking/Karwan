@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AdminDealRow, AdminDisputeRow } from '@/core/api';
-import { DEAL_VIEWS, dealLine, dealsShown, disputeList, DISPUTE_VIEWS } from './deskDeals';
+import { DEAL_VIEWS, dealLine, dealsShown, disputeList, DISPUTE_VIEWS, findingStage } from './deskDeals';
 
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 10, 12, 12);
@@ -56,4 +56,32 @@ test('a dispute needs a ruling once both sides spoke or the judge proposed; else
   ];
   assert.deepEqual(disputeList(rows, 'ruling').map((d) => d.jobId), ['both', 'judged']);
   assert.deepEqual(disputeList(rows, 'waiting').map((d) => d.jobId), ['one']);
+});
+
+// View 90: on the escrow family a reviewer confirms the finding before the
+// arbiter proposes anything, and only once both sides have been heard.
+
+const AT = 1_800_000_000_000;
+const H = 3_600_000;
+const answer = { received: 'r', missing: 'm', late: 'no', links: [], submittedAt: 1 };
+const familyRow = (over: Partial<AdminDisputeRow> = {}): AdminDisputeRow => ({
+  jobId: '0xjob', buyer: '0xb', seller: '0xs', dealAmountUsdc: '500', disputedAt: AT - 2 * H, disputedBy: 'buyer',
+  escrowVersion: 'suite', answersBy: AT + 70 * H, findingDueAt: AT + 106 * H,
+  statements: { buyer: answer, seller: answer },
+  proposal: { sellerBps: 10_000, items: [], confidence: 'clear', summary: 'Delivered.', proposedAt: AT - H, status: 'awaiting-review' },
+  ...over,
+});
+
+test('a family finding is confirmed on the desk only once both sides were heard', () => {
+  assert.equal(findingStage(familyRow(), AT), 'confirm');
+  assert.equal(findingStage(familyRow({ statements: { buyer: answer } }), AT), 'hearing');
+  assert.equal(findingStage(familyRow({ statements: { buyer: answer }, answersBy: AT - 1 }), AT), 'confirm');
+  assert.equal(findingStage(familyRow({ proposal: null }), AT), 'none');
+  const done = familyRow({ proposal: { ...familyRow().proposal!, status: 'overridden', reviewedSellerBps: 6_000 } });
+  assert.equal(findingStage(done, AT), 'confirmed');
+});
+
+test('older escrows rule as before, with no finding to confirm', () => {
+  assert.equal(findingStage(familyRow({ escrowVersion: 'v3' }), AT), 'none');
+  assert.equal(findingStage(familyRow({ escrowVersion: undefined }), AT), 'none');
 });

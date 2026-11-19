@@ -11,7 +11,7 @@ import { StatusPill } from '@/features/admin/desk/StatusPill';
 import { deskMe, useDesk } from '@/features/admin/desk/deskContext';
 import { deskTime } from '@/features/admin/desk/homeWords';
 import { useDeskMoney } from '@/features/admin/desk/useDeskCurrency';
-import { DISPUTE_VIEWS, disputeList, type DisputeView } from '@/features/admin/deskDeals';
+import { DISPUTE_VIEWS, disputeList, findingStage, type DisputeView } from '@/features/admin/deskDeals';
 
 /// Disputes (view 79, frame 276:1841).
 ///
@@ -146,10 +146,12 @@ function DisputeCard({ dispute, canSign, onResolved }: { dispute: AdminDisputeRo
   const mayRule = pageAccess(deskMe(me), ['disputes']) === 'fix';
 
   // The judge's proposal pre-fills the ruling; the reviewer confirms or changes it.
-  const [sellerBps, setSellerBps] = useState(dispute.proposal ? dispute.proposal.sellerBps : 5000);
-  const [reason, setReason] = useState(dispute.proposal?.summary ?? '');
+  // Once a reviewer confirmed a finding (view 90), the Safe rules that share and
+  // reason, so the signed ruling carries the finding's own hash.
+  const [sellerBps, setSellerBps] = useState(dispute.proposal?.reviewedSellerBps ?? dispute.proposal?.sellerBps ?? 5000);
+  const [reason, setReason] = useState(dispute.proposal?.reviewReason ?? dispute.proposal?.summary ?? '');
   const [prepared, setPrepared] = useState<AdminDisputePrepared | null>(null);
-  const [busy, setBusy] = useState<null | 'prepare' | 'sign' | 'exec'>(null);
+  const [busy, setBusy] = useState<null | 'prepare' | 'sign' | 'exec' | 'confirm'>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -204,6 +206,21 @@ function DisputeCard({ dispute, canSign, onResolved }: { dispute: AdminDisputeRo
     }
   }
 
+  async function confirm() {
+    setBusy('confirm');
+    setErr(null);
+    setMsg(null);
+    try {
+      await api.adminConfirmFinding(dispute.jobId, sellerBps, reason);
+      setMsg('Confirmed.');
+      onResolved();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'The finding was not confirmed.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function execute() {
     setBusy('exec');
     setErr(null);
@@ -220,8 +237,14 @@ function DisputeCard({ dispute, canSign, onResolved }: { dispute: AdminDisputeRo
   }
 
   /// Hide the controls only when the backend positively said the deal is held
-  /// elsewhere; an older backend omits the field.
-  const onRetiredEscrow = dispute.rulable === false;
+  /// elsewhere; an older backend omits the field. An escrow family dispute not
+  /// yet with the review Safe is also not rulable, but it is not elsewhere.
+  const onRetiredEscrow = dispute.rulable === false && !!dispute.venue;
+  const now = Date.now();
+  const stage = findingStage(dispute, now);
+  /// View 90: an escrow family dispute the review Safe does not hold yet. A
+  /// reviewer confirms the finding; the arbiter proposes it or sends it to the Safe.
+  const beforeTheSafe = dispute.escrowVersion === 'suite' && !dispute.escalated;
   const alreadySigned = !!address && !!prepared?.collected.some((s) => s.signer.toLowerCase() === address.toLowerCase());
   const preset = sellerBps === 0 ? 'buyer' : sellerBps === 10_000 ? 'seller' : 'split';
   const p = dispute.proposal;
@@ -250,11 +273,67 @@ function DisputeCard({ dispute, canSign, onResolved }: { dispute: AdminDisputeRo
               {p.items.map((it, i) => <li key={i}><span className="text-[var(--d-text-3)]">{it.finding}:</span> {it.item}{it.evidence ? ` (${it.evidence})` : ''}</li>)}
             </ul>
           )}
-          <p className="mt-2 text-[12px] text-[var(--d-text-3)]">It fills the ruling below. Confirm it or change it.</p>
+          {p.status !== 'awaiting-review' && p.reviewedSellerBps !== undefined ? (
+            <p data-finding-confirmed className="mt-2 text-[12px] text-[var(--d-text-2)]">
+              Confirmed by {p.reviewedBy ?? 'a reviewer'}{p.reviewedAt ? ` at ${deskTime(p.reviewedAt, now)}` : ''}: seller {Math.round(p.reviewedSellerBps / 100)}%, buyer {100 - Math.round(p.reviewedSellerBps / 100)}%. {p.reviewReason}
+            </p>
+          ) : (
+            <p className="mt-2 text-[12px] text-[var(--d-text-3)]">It fills the ruling below. Confirm it or change it.</p>
+          )}
         </div></DeskCard>
       )}
 
-      {onRetiredEscrow ? (
+      {beforeTheSafe ? (
+        stage === 'confirmed' ? (
+          <DeskCard title="Confirmed"><div className="px-4 pb-4">
+            <p className="text-[13px] text-[var(--d-text-2)]">
+              {p?.reviewedSellerBps === 0 || p?.reviewedSellerBps === 10_000
+                ? 'Karwan proposes it on chain at the next check. Either side then has 72 hours to ask for people to decide.'
+                : 'A part share is ruled by the review Safe. It moves there at the next check, and the ruling below opens then.'}
+            </p>
+          </div></DeskCard>
+        ) : stage === 'none' ? (
+          <DeskCard title="Being heard"><div className="px-4 pb-4">
+            <p className="text-[13px] text-[var(--d-text-2)]">
+              Both sides can answer{dispute.answersBy ? ` until ${deskTime(dispute.answersBy, now)}` : ''}. Karwan writes the finding then, for a reviewer to confirm.
+            </p>
+          </div></DeskCard>
+        ) : mayRule ? (
+          <DeskCard title="Confirm the finding"><div data-confirm-finding className="px-4 pb-4">
+            <div className="flex flex-wrap gap-2">
+              <DeskButton tone={preset === 'buyer' ? 'primary' : 'secondary'} onClick={() => choose(0)}>Refund the buyer</DeskButton>
+              <DeskButton tone={preset === 'seller' ? 'primary' : 'secondary'} onClick={() => choose(10_000)}>Pay the seller</DeskButton>
+              <DeskButton tone={preset === 'split' ? 'primary' : 'secondary'} onClick={() => choose(5000)}>Split it</DeskButton>
+            </div>
+            {preset === 'split' && (
+              <label className="mt-3 block max-w-[260px] text-[12px] text-[var(--d-text-2)]">
+                Seller's share, in hundredths of a percent
+                <input type="number" min={0} max={10_000} step={100} value={sellerBps} onChange={(e) => choose(Number(e.target.value))} className={`mt-1 ${INPUT}`} />
+              </label>
+            )}
+            <p className="mt-2 text-[12px] text-[var(--d-text-3)]">Seller gets {toSeller.toFixed(2)} USDC, buyer gets {(amount - toSeller).toFixed(2)} USDC.</p>
+            <label className="mt-3 block text-[12px] text-[var(--d-text-2)]">
+              The reason both people will read
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} className={`mt-1 ${INPUT}`} />
+            </label>
+            <p className="mt-2 text-[12px] text-[var(--d-text-3)]">
+              {stage === 'hearing'
+                ? `A side can still answer${dispute.answersBy ? ` until ${deskTime(dispute.answersBy, now)}` : ''}. Confirm after that.`
+                : 'Refund or pay in full is proposed on chain, and either side has 72 hours to object. A part share goes to the review Safe.'}
+              {dispute.findingDueAt ? ` Not confirmed by ${deskTime(dispute.findingDueAt, now)}, it goes to the review Safe as it is.` : ''}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <DeskButton tone="primary" onClick={() => void confirm()} disabled={stage !== 'confirm' || !reason.trim() || busy !== null}>
+                {busy === 'confirm' ? 'Confirming' : 'Confirm the finding'}
+              </DeskButton>
+            </div>
+            {msg && <p className="mt-2 text-[12px] text-[var(--d-text-2)]">{msg}</p>}
+            {err && <p role="alert" className="mt-2 text-[12px] text-[var(--d-red)]">{err}</p>}
+          </div></DeskCard>
+        ) : (
+          <p className="text-[12px] text-[var(--d-text-3)]">Confirming a finding needs fix on Disputes. Ask the owner.</p>
+        )
+      ) : onRetiredEscrow ? (
         <DeskCard title="Held by an older escrow"><div className="px-4 pb-4">
           <p className="text-[13px] text-[var(--d-text-2)]">
             This deal sits on an older escrow ({dispute.venue?.version}{dispute.venue?.escrow ? `, ${short(dispute.venue.escrow)}` : ''}) that has no arbiter and cannot split. A ruling here would collect signatures and then fail. Its only dispute action pays the seller in full: resolve it on that contract, or leave it for the legacy window to close.
