@@ -132,3 +132,27 @@ test('the rating goes out as a number and a count, so each language words it', (
   assert.equal(fresh!.stars, null);
   assert.equal(fresh!.ratings, 2);
 });
+
+test('the suit maker comes first for a suit (view 93)', () => {
+  const logos = seller('logos', { rating: { kind: 'rated', value: 4.9, count: 20, disputed: 0, forWork: { value: 3.1, count: 0, rank: 3.1 } } });
+  const suits = seller('suits', { rating: { kind: 'rated', value: 4.4, count: 9, disputed: 0, forWork: { value: 4.7, count: 3, rank: 4.7 } } });
+  assert.deepEqual(users(rank([logos, suits])), ['suits', 'logos']);
+});
+
+test('a rating without forWork ranks on its overall value (view 93)', () => {
+  const high = seller('high', { rating: { kind: 'rated', value: 4.9, count: 20, disputed: 0 } });
+  const low = seller('low', { rating: { kind: 'rated', value: 4.4, count: 9, disputed: 0 } });
+  assert.deepEqual(users(rank([low, high])), ['high', 'low']);
+});
+
+test('likeThis only for close deals (view 93)', () => {
+  const rows = rank([
+    seller('none', { rating: { kind: 'rated', value: 4.9, count: 20, disputed: 0, forWork: { value: 4.9, count: 0, rank: 4.9 } } }),
+    seller('close', { rating: { kind: 'rated', value: 4.4, count: 9, disputed: 0, forWork: { value: 4.7, count: 3, rank: 4.7 } } }),
+    seller('new', { rating: { kind: 'new', count: 1 } }),
+  ]);
+  const by = Object.fromEntries(rows.map((r) => [r.user, r.likeThis]));
+  assert.equal(by.none, null);
+  assert.deepEqual(by.close, { stars: 4.7, count: 3 });
+  assert.equal(by.new, null);
+});

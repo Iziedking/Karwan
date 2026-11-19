@@ -49,3 +49,9 @@ test('every language carries every line', () => {
     assert.equal(JSON.stringify(copy).includes('—'), false, `${locale} has an em dash`);
   }
 });
+
+test('a rating for work like this reads first, then the overall (view 93)', () => {
+  assert.equal(ratingText(person({ likeThis: { stars: 4.9, count: 3 } }), t), '4.9 from 3 deals like this · 4.8 overall from 12');
+  assert.equal(ratingText(person({ likeThis: null }), t), '4.8 from 12 deals');
+  assert.equal(ratingText(person({ stars: null, ratings: 2, likeThis: null }), t), 'New on Karwan');
+});

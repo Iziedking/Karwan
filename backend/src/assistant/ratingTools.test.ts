@@ -19,6 +19,7 @@ function setup() {
     waiting: async () => [{ dealId: 'd1', withTag: 'ada', settledAt: 1_760_000_000_000 }],
     hasRated: async (_caller, dealId) => dealId === 'done',
     receivedRating: async () => null,
+    readRating: async (handle, forWork) => ({ ok: true, tag: handle, rating: { kind: 'new', count: forWork ? 1 : 0 } }),
   };
   return { deps, calls };
 }
@@ -66,4 +67,11 @@ test('the agent can list the deals waiting for a rating, by tag', async () => {
   const s = setup();
   const out = await ratingTools('0xb', s.deps).my_ratings_to_give.execute!({}, call);
   assert.deepEqual(out, { waiting: [{ dealId: 'd1', with: '@ada', settled: new Date(1_760_000_000_000).toISOString().slice(0, 10) }] });
+});
+
+test('rating_of reads a rating free, the same answer as get_rating (view 93)', async () => {
+  const { deps } = setup();
+  const t = ratingTools('0xme', deps);
+  const out = await t.rating_of.execute!({ handle: 'ada', forWork: 'a suit' }, call);
+  assert.deepEqual(out, { ok: true, tag: 'ada', rating: { kind: 'new', count: 1 } });
 });

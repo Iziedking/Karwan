@@ -21,6 +21,10 @@ export interface FindPeopleCopy {
   askPrice: string;
   /// {stars} is the rating, {n} how many deals it is from.
   rated: string;
+  /// {stars} on {n} deals like the one asked for (view 93).
+  likeThis: string;
+  /// {stars} overall from {n} deals, after the like-this line.
+  overall: string;
   newOnKarwan: string;
   distance: { nearby: string; about: string; inCity: string; far: string; sameCountry: string };
   verified: string;
@@ -138,6 +142,8 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     ranks: ['Best match', '2nd', '3rd', '4th', '5th'],
     askPrice: 'Asks a price',
     rated: '{stars} from {n} deals',
+    likeThis: '{stars} from {n} deals like this',
+    overall: '{stars} overall from {n}',
     newOnKarwan: 'New on Karwan',
     distance: { nearby: 'Nearby', about: '{km} km', inCity: 'In {city}', far: '{km} km away', sameCountry: 'In your country' },
     verified: 'Verified',
@@ -233,6 +239,8 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     ranks: ['Meilleur choix', '2e', '3e', '4e', '5e'],
     askPrice: 'Demande un prix',
     rated: '{stars} sur {n} affaires',
+    likeThis: '{stars} sur {n} affaires de ce genre',
+    overall: '{stars} au total sur {n}',
     newOnKarwan: 'Nouveau sur Karwan',
     distance: { nearby: 'Tout près', about: '{km} km', inCity: 'À {city}', far: 'À {km} km', sameCountry: 'Dans votre pays' },
     verified: 'Vérifié',
@@ -328,6 +336,8 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     ranks: ['الأنسب', 'الثاني', 'الثالث', 'الرابع', 'الخامس'],
     askPrice: 'يطلب سعرًا',
     rated: '{stars} من {n} صفقات',
+    likeThis: '{stars} من {n} صفقات مماثلة',
+    overall: '{stars} إجمالًا من {n}',
     newOnKarwan: 'جديد على Karwan',
     distance: { nearby: 'قريب', about: '{km} كم', inCity: 'في {city}', far: 'على بعد {km} كم', sameCountry: 'في بلدك' },
     verified: 'موثّق',
@@ -423,6 +433,8 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     ranks: ['सबसे सही', 'दूसरा', 'तीसरा', 'चौथा', 'पाँचवाँ'],
     askPrice: 'कीमत पूछेंगे',
     rated: '{n} सौदों से {stars}',
+    likeThis: 'ऐसे {n} सौदों से {stars}',
+    overall: 'कुल {n} सौदों से {stars}',
     newOnKarwan: 'Karwan पर नए',
     distance: { nearby: 'पास में', about: '{km} किमी', inCity: '{city} में', far: '{km} किमी दूर', sameCountry: 'आपके देश में' },
     verified: 'सत्यापित',
@@ -518,6 +530,8 @@ export const findPeopleCopy: Record<Locale, FindPeopleCopy> = {
     ranks: ['Anayefaa zaidi', 'Wa 2', 'Wa 3', 'Wa 4', 'Wa 5'],
     askPrice: 'Atauliza bei',
     rated: '{stars} kutoka mikataba {n}',
+    likeThis: '{stars} kutoka mikataba {n} kama hii',
+    overall: '{stars} kwa jumla kutoka {n}',
     newOnKarwan: 'Mpya kwenye Karwan',
     distance: { nearby: 'Karibu', about: 'Km {km}', inCity: 'Ndani ya {city}', far: 'Km {km} mbali', sameCountry: 'Katika nchi yako' },
     verified: 'Amethibitishwa',

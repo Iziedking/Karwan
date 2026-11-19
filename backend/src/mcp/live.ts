@@ -10,11 +10,17 @@ import { loadPublicPassport } from '../sealed/passportLoader.js';
 import { levelOf } from '../verification/live.js';
 import { findForAgent } from './match.js';
 import { createPaidTools } from './payments.js';
+import { windowLimiter } from './rateLimit.js';
+import { loadRatingForWork } from '../ratings/publicRating.js';
+import { readRating } from '../ratings/readRating.js';
 import type { McpDeps } from './server.js';
 
 /// The Karwan MCP bound to the live cores. Null where outside-agent jobs are
 /// off. Paid tools stay off, and say so, when the treasury or Gateway is not
 /// reachable at boot.
+/// The free rating read: 60 a minute for each outside agent (view 93).
+const ratingAllowed = windowLimiter(60, 60_000);
+
 export async function liveMcpDeps(): Promise<McpDeps | null> {
   if (!agentJobs) return null;
   const paid = config.KARWAN_TREASURY_ADDR
@@ -32,6 +38,12 @@ export async function liveMcpDeps(): Promise<McpDeps | null> {
         cleanRecordCounts: config.ARC_NETWORK === 'testnet',
         requireVerified: false,
       }),
+    rating: (handle, forWork) =>
+      readRating(handle, forWork, {
+        byTag: async (tag) => (await findProfileByHandle(tag).catch(() => null))?.address ?? null,
+        load: (address, request) => loadRatingForWork(address, request),
+      }),
+    ratingAllowed,
     async check(handle) {
       const tag = handle.replace(/^@/, '').trim();
       const profile = await findProfileByHandle(tag).catch(() => null);

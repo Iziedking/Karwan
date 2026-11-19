@@ -23,7 +23,8 @@ export interface ShortlistDeps {
   engine: (user: string) => Promise<{ score: number; tier: string; counts: RecordCounts }>;
   profile: (user: string) => Promise<{ name: string | null; tag: string | null }>;
   location: (user: string) => Promise<PrivateLocation | null>;
-  rating: (user: string) => Promise<PublicRating>;
+  /// With the request's words, the rating carries the rating for work like it (view 93).
+  rating: (user: string, forWork: string[]) => Promise<PublicRating>;
   /// Whether the seller's agent is linked to its owner; absent counts as linked.
   linked?: (sellerAgent: string) => Promise<boolean>;
   timeoutMs: number;
@@ -64,6 +65,8 @@ export async function buildCandidates(
     buyerLocation?: PrivateLocation | null;
     /// The days the request gives, to measure an offer's extra days against.
     requestDays?: number;
+    /// The request's words, to weigh each seller's ratings by the work (view 93).
+    forWork?: string[];
   },
   deps: ShortlistDeps,
 ): Promise<ShortlistCandidate[]> {
@@ -76,7 +79,7 @@ export async function buildCandidates(
         deps.profile(user),
         i < SHORTLIST_MAX ? within(deps.readRecord(input.buyerAgent, user, input.jobId, input.buyerUser), deps.timeoutMs) : null,
         deps.location(user).catch(() => null),
-        deps.rating(user).catch((): PublicRating => ({ kind: 'new', count: 0 })),
+        deps.rating(user, input.forWork ?? []).catch((): PublicRating => ({ kind: 'new', count: 0 })),
         deps.linked ? deps.linked(b.seller).catch(() => false) : true,
       ]);
       return {

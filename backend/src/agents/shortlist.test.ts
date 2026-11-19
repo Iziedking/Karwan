@@ -370,3 +370,9 @@ test('people stay in their ranked order when nobody repeats', () => {
   const ranked = rankCandidates([c({ seller: 'a', sellerUser: '0xa' }), c({ seller: 'b', sellerUser: '0xb', matchBand: 4 })]);
   assert.deepEqual(onePerPerson(ranked).map((x) => x.seller), ['b', 'a']);
 });
+
+test('shortlist orders by the rating for the work (view 93)', () => {
+  const logos = c({ seller: 'logos', rating: { kind: 'rated', value: 4.9, count: 20, disputed: 0, forWork: { value: 3.1, count: 0, rank: 3.1 } } });
+  const suits = c({ seller: 'suits', rating: { kind: 'rated', value: 4.4, count: 9, disputed: 0, forWork: { value: 4.7, count: 3, rank: 4.7 } } });
+  assert.deepEqual(rankCandidates([logos, suits]).map((x) => x.seller), ['suits', 'logos']);
+});

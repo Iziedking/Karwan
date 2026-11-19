@@ -21,7 +21,11 @@ export interface DealRating {
 
 /// `disputed` is how many of the counted ratings came from a disputed deal,
 /// shown beside the number so a dispute is never hidden in the average.
-export type PublicRating = { kind: 'new'; count: number } | { kind: 'rated'; value: number; count: number; disputed: number };
+/// `forWork` is the rating for the work asked about (view 93): `value` to one
+/// decimal, `count` of deals like this, `rank` unrounded for ordering.
+export type PublicRating =
+  | { kind: 'new'; count: number }
+  | { kind: 'rated'; value: number; count: number; disputed: number; forWork?: { value: number; count: number; rank: number } };
 
 export const REVEAL_AFTER_MS = 14 * 24 * 60 * 60 * 1000;
 const RATED_FROM = 3;
@@ -40,7 +44,6 @@ export function mayRate(
   return { ok: true, ratee: me === buyer ? seller : buyer };
 }
 
-/// Blind until both sides rated, or 14 days after settlement.
 /// A rating shows as soon as it is given; it never waits for the other side.
 export function isRevealed(dealRatings: DealRating[], _settledAt: number, _now: number): boolean {
   return dealRatings.length > 0;
@@ -59,9 +62,14 @@ export function revealedAbout(about: DealRating[], byDeal: Map<string, DealRatin
   return about.filter((r) => isRevealed(byDeal.get(r.dealId) ?? [r], r.settledAt, now));
 }
 
-/// How a rating reads in plain English: "4.8 from 23 deals" or "New, 2 ratings so far".
+/// How a rating reads in plain English: "4.8 from 23 deals", "4.8 from 3 deals like
+/// this · 4.6 overall from 23" (view 93) or "New, 2 ratings so far".
 export function ratingLine(r: PublicRating): string {
-  if (r.kind === 'rated') return `${r.value.toFixed(1)} from ${r.count} deals${r.disputed > 0 ? `, ${r.disputed} disputed` : ''}`;
+  const disputed = r.kind === 'rated' && r.disputed > 0 ? `, ${r.disputed} disputed` : '';
+  if (r.kind === 'rated' && r.forWork && r.forWork.count >= 1) {
+    return `${r.forWork.value.toFixed(1)} from ${r.forWork.count} deals like this · ${r.value.toFixed(1)} overall from ${r.count}${disputed}`;
+  }
+  if (r.kind === 'rated') return `${r.value.toFixed(1)} from ${r.count} deals${disputed}`;
   return `New, ${r.count} rating${r.count === 1 ? '' : 's'} so far`;
 }
 

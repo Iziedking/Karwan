@@ -86,3 +86,10 @@ test('the clothes request orders as view 73 says', () => {
   assert.deepEqual(listed.map((s) => s.name), ['low']);
   assert.deepEqual(sellers.filter((s) => !s.listed).map((s) => s.name), ['a', 'b', 'c']);
 });
+
+test('ratings part reads the rating for the work (view 93)', () => {
+  const overall = blendedScore({ ...base, rating: { kind: 'rated', value: 5, count: 10, disputed: 0 } });
+  const forWork = blendedScore({ ...base, rating: { kind: 'rated', value: 5, count: 10, disputed: 0, forWork: { value: 2.5, count: 3, rank: 2.5 } } });
+  assert.equal(overall.parts.ratings, 100);
+  assert.equal(forWork.parts.ratings, 50);
+});

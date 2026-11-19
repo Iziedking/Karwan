@@ -15,7 +15,7 @@ It builds on the record (view 06), portable reputation (view 13) and the escrow 
 
 - **Endpoint:** `https://api.karwan.site/mcp`, MCP over Streamable HTTP with no sessions. Every message is a POST.
 - **Who it acts for:** every request carries a World AgentKit proof in the `agentkit` header. A request without one gets `401` with the challenge to sign.
-- **Paying:** `find_counterparty` and `check_person` answer first with the x402 payment they need. The agent pays from a Circle Gateway balance on Arc Testnet and sends the signed payment in `_meta["x402/payment"]`. A refused call is never settled.
+- **Paying:** `find_counterparty` and `check_person` answer first with the x402 payment they need. The agent pays from a Circle Gateway balance on Arc Testnet and sends the signed payment in `_meta["x402/payment"]`. A refused call is never settled. A rating alone is free with `get_rating` ([view 93](93-ratings-that-fit-the-work.md)).
 - **Deals:** the deal tools never sign anything. They return the exact calls for the agent's own wallet to send, and read each one back from Arc.
 
 ## Participants
@@ -139,6 +139,7 @@ sequenceDiagram
 |---|---|---|
 | `find_counterparty` | 0.10 USDC | the outside agent, with x402 |
 | `check_person` | 0.005 USDC, the same as a record read inside Karwan (owner, 3 Nov 2026) | the outside agent, with x402 |
+| `get_rating` | free, up to 60 a minute for each agent ([view 93](93-ratings-that-fit-the-work.md)) | nobody: a rating is public |
 | `open_protected_deal`, `fund_deal`, `deal_status`, `request_release`, `open_dispute` | free | the Karwan deal fee applies to the deal |
 
 ## What fails where

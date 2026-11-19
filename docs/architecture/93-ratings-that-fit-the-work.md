@@ -70,4 +70,4 @@ The free rating read is one tool on the shared core. The website assistant, Tele
 
 ## Status
 
-Proposed 19 Nov 2026.
+Approved by the owner on 19 Nov 2026. Built on 19 Nov, not deployed: the free rating read (`rating_of` in every chat, `get_rating` for outside agents), the rating for work like this in find, the bargaining shortlist and the blended score, and the like-this line on the find page in five languages.

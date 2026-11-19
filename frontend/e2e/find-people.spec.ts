@@ -217,3 +217,27 @@ test('not interested answers at once and says what it means', async ({ page }) =
   await expect.poll(() => answered).toBe('no');
   await expect(page.locator('[data-pitch-answered]')).toContainText('They will not offer for this need again.');
 });
+
+test('a fit shows its rating for work like this (view 93)', async ({ page }) => {
+  await serveMoney(page, { balances: funded });
+  const find = { ...FIND, rows: [row({ likeThis: { stars: 4.9, count: 3 } }), row({ tag: 'tunde', name: 'Tunde Bello', verified: false, stars: null, ratings: 2, likeThis: null, recommended: false, photo: null })] };
+  await page.route(`${API}/api/find/finds/${ID}`, (route) => route.fulfill({ json: { find } }));
+  await page.goto(`/find/${ID}`);
+  const rows = page.locator('[data-found-person]');
+  await expect(rows.nth(0)).toContainText('4.9 from 3 deals like this · 4.8 overall from 12');
+  await expect(rows.nth(1)).toContainText('New on Karwan');
+  await expect(rows.nth(1)).not.toContainText('like this');
+  await rows.nth(0).click();
+  await expect(page.locator('[data-found-sheet] [data-like-this]')).toHaveText('4.9 from 3 deals like this');
+});
+
+test('at 360 wide in Arabic the like-this line fits (view 93)', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.context().addCookies([{ name: 'karwan-locale', value: 'ar', domain: '127.0.0.1', path: '/' }]);
+  await serveMoney(page, { balances: funded });
+  const find = { ...FIND, rows: [row({ likeThis: { stars: 4.9, count: 3 } })] };
+  await page.route(`${API}/api/find/finds/${ID}`, (route) => route.fulfill({ json: { find } }));
+  await page.goto(`/find/${ID}`);
+  await expect(page.locator('[data-found-person]').first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});

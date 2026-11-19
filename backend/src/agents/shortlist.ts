@@ -96,7 +96,7 @@ export function isVerified(level: Ladder): boolean {
 /// A rated person by their rating; anyone still New (under three) sits at a
 /// neutral 3.5, above a poor record and below a good one.
 const NEW_RANK = 3.5;
-const ratingRank = (r: PublicRating) => (r.kind === 'rated' ? r.value : NEW_RANK);
+const ratingRank = (r: PublicRating) => (r.kind === 'rated' ? (r.forWork?.rank ?? r.value) : NEW_RANK);
 
 const linked = (c: ShortlistCandidate) => c.linked !== false;
 

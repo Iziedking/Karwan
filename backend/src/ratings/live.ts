@@ -3,7 +3,7 @@ import { rememberInChat } from '../channels/chatHistory.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getDeal, listAllDeals, listDealsForAddress, type DirectDeal } from '../db/deals.js';
 import { getRecord, putRecord } from '../db/evidence.js';
-import { getProfile } from '../db/profiles.js';
+import { findProfileByHandle, getProfile } from '../db/profiles.js';
 import { ratingsBy, ratingsForDeal, saveRating } from '../db/ratings.js';
 import { bus, type KarwanEventType } from '../events.js';
 import { logger } from '../logger.js';
@@ -11,6 +11,8 @@ import { createRatingAsker, type AskState } from './asker.js';
 import { rateableFrom } from './dealState.js';
 import { createRatings, type RatedDeal } from './service.js';
 import { leased } from '../ops/leasedLoop.js';
+import { loadRatingForWork } from './publicRating.js';
+import { readRating } from './readRating.js';
 
 const SETTLED_EVENTS = new Set<KarwanEventType>(['escrow.settled', 'deal.auto_released', 'escrow.resolved', 'escrow.split']);
 const SWEEP_MS = 60 * 60 * 1000;
@@ -58,6 +60,11 @@ export const liveRatingToolDeps: RatingToolDeps = {
   rateDeal: liveRatings.rateDeal,
   waiting: liveRatings.waiting,
   receivedRating: liveRatings.receivedRating,
+  readRating: (handle, forWork) =>
+    readRating(handle, forWork, {
+      byTag: async (tag) => (await findProfileByHandle(tag).catch(() => null))?.address ?? null,
+      load: (address, request) => loadRatingForWork(address, request),
+    }),
   hasRated: async (caller, dealId) => {
     const me = await identityOf(caller);
     return (await ratingsForDeal(dealId)).some((r) => r.rater === me);

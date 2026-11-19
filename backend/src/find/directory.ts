@@ -28,7 +28,8 @@ export interface DirectoryDeps {
   /// Sellers sharing a meaningful word with the need, best overlap first.
   byWords(need: { keywords: string[]; text: string; kind: DeliveryKind }): Promise<IndexedSeller[]>;
   profile(user: string): Promise<UserProfile | null>;
-  record(user: string): Promise<SellerRecord>;
+  /// With the need's words, the rating carries the rating for work like it (view 93).
+  record(user: string, need?: { keywords: string[] }): Promise<SellerRecord>;
 }
 
 function wayFor(profile: UserProfile, kind: DeliveryKind): PricedWay | null {
@@ -62,7 +63,7 @@ export async function directoryCandidates(need: { keywords: string[]; text: stri
     fits.map(async (entry) => {
       const profile = await deps.profile(entry.userAddress).catch(() => null);
       if (!profile || !beFoundOf(profile)) return null;
-      const record = await deps.record(entry.userAddress).catch(() => null);
+      const record = await deps.record(entry.userAddress, { keywords: need.keywords }).catch(() => null);
       return record ? candidateFrom(entry, profile, record, need.kind) : null;
     }),
   );

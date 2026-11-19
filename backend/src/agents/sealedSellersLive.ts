@@ -3,7 +3,7 @@ import { listDealsForAddress } from '../db/deals.js';
 import { getProfile } from '../db/profiles.js';
 import { locationOf } from '../location/live.js';
 import { sellerIndex } from '../matching/sellerIndex.js';
-import { loadPublicRating } from '../ratings/publicRating.js';
+import { loadRatingForWork } from '../ratings/publicRating.js';
 import { compute as computeReputation } from '../reputation/engine.js';
 import { countsFor } from '../reputation/recordRead.js';
 import { loadInputs } from '../reputation/signals.js';
@@ -26,7 +26,7 @@ export const sealedSellerDeps: SealedSellerDeps = {
     return { name: p?.displayName?.trim() || null, tag: p?.handle ?? null };
   },
   location: locationOf,
-  rating: (user) => loadPublicRating(user),
+  rating: (user, forWork) => loadRatingForWork(user, forWork),
   timeoutMs: 2_000,
   sellerWords: async (user) => {
     const indexed = sellerIndex.get(user);

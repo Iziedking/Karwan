@@ -9,13 +9,16 @@ import { CHECK_PRICE_USDC, FIND_PRICE_USDC, type PaidTools } from './payments.js
 /// for that agent and the one person behind it. Tools translate only; the
 /// outside-agent jobs core decides.
 
-export const MCP_TOOLS = ['find_counterparty', 'check_person', 'open_protected_deal', 'fund_deal', 'deal_status', 'request_release', 'open_dispute'] as const;
+export const MCP_TOOLS = ['find_counterparty', 'check_person', 'open_protected_deal', 'fund_deal', 'deal_status', 'request_release', 'open_dispute', 'get_rating'] as const;
 
 export interface McpDeps {
   core: AgentJobs;
   paid: PaidTools | null;
   find(input: { need: string; budgetUsdc: number; deadlineDays: number; agentAddress: string }): Promise<FoundSeller[]>;
   check(handle: string): Promise<Record<string, unknown>>;
+  /// The free rating read (view 93), and whether this caller is still under its limit.
+  rating(handle: string, forWork?: string): Promise<Record<string, unknown>>;
+  ratingAllowed(agentAddress: string): boolean;
 }
 
 type Result = { content: Array<{ type: 'text'; text: string }>; isError?: boolean; structuredContent?: Record<string, unknown> };
@@ -46,16 +49,28 @@ export function buildMcpServer(identity: AgentIdentity, deps: McpDeps): McpServe
       : { ok: true, sellers: [], next: 'No Karwan seller fits yet. Try other words, a larger budget or more days.' });
   };
   server.registerTool('find_counterparty', {
-    description: `Find Karwan sellers who fit a need. Karwan matches inside on their full records and answers with up to 5 people: tag, tier, reasons, rating, price and days. Costs ${FIND_PRICE_USDC} USDC with x402 on Arc Testnet.`,
+    description: `Find Karwan sellers who fit a need. Karwan matches inside on their full records and answers with up to 5 people: tag, tier, reasons, rating, price and days. The payment is for the match; a rating alone is free with get_rating. Costs ${FIND_PRICE_USDC} USDC with x402 on Arc Testnet.`,
     inputSchema: findArgs,
   }, deps.paid ? deps.paid.find(find as never) as never : (async () => unpaid()) as never);
 
   const checkArgs = { handle: z.string().min(2).max(64).describe('A Karwan tag, with or without @') };
   const check = async (a: { handle: string }) => answer(await deps.check(a.handle));
   server.registerTool('check_person', {
-    description: `A Karwan member's public record: name, tag, tier, fixed reasons and rating, never a score or counts. Costs ${CHECK_PRICE_USDC} USDC with x402 on Arc Testnet.`,
+    description: `A Karwan member's public record: name, tag, tier, fixed reasons and rating, never a score or counts. For the rating alone use get_rating, which is free. Costs ${CHECK_PRICE_USDC} USDC with x402 on Arc Testnet.`,
     inputSchema: checkArgs,
   }, deps.paid ? deps.paid.check(check as never) as never : (async () => unpaid()) as never);
+
+  const ratingArgs = {
+    handle: z.string().min(2).max(64).describe('A Karwan tag, with or without @'),
+    forWork: z.string().max(200).optional().describe('The work you are judging them for, in plain words, to get their rating on deals like it'),
+  };
+  server.registerTool('get_rating', {
+    description: "A Karwan member's rating: stars, how many deals it is from, how many of those were disputed, and with forWork their rating on deals like that work. Free, no payment. Never the record (no score or counts).",
+    inputSchema: ratingArgs,
+  }, (async (a: { handle: string; forWork?: string }) =>
+    deps.ratingAllowed(identity.agentAddress)
+      ? answer(await deps.rating(a.handle, a.forWork))
+      : answer({ ok: false, code: 'RATE_LIMITED', message: 'Too many rating reads this minute. Try again in a minute.' })) as never);
 
   server.registerTool('open_protected_deal', {
     description: 'Open a protected deal with a Karwan seller, funded later from your wallet on the job escrow. The first time, the person you act for must verify once with World ID: you get a link for them and nothing is opened. Returns the quote (work plus half the 1% fee) and the exact call to send.',

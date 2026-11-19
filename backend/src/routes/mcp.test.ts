@@ -48,7 +48,7 @@ const core = {
 } as unknown as AgentJobs;
 
 function app(over: Partial<McpDeps> = {}) {
-  configureMcp({ deps: { core, paid: null, find: async () => [], check: async () => ({ ok: true, found: false }), ...over }, verifier });
+  configureMcp({ deps: { core, paid: null, find: async () => [], check: async () => ({ ok: true, found: false }), rating: async () => ({ ok: true, tag: 'ada', rating: { kind: 'new', count: 0 } }), ratingAllowed: () => true, ...over }, verifier });
   return new Hono().route('/mcp', mcpRoutes);
 }
 
@@ -75,7 +75,7 @@ test('without an AgentKit proof nothing runs and the agent gets the challenge', 
   assert.equal(bad.status, 403);
 });
 
-test('the tools are exactly the agreed seven', async () => {
+test('the tools are exactly the agreed eight', async () => {
   const res = await post(app(), rpc('tools/list', {}), 'good-proof');
   assert.equal(res.status, 200);
   const names = ((await res.json()) as { result: { tools: Array<{ name: string }> } }).result.tools.map((t) => t.name).sort();
@@ -110,4 +110,32 @@ test('paid tools say so when payments are off, without charging', async () => {
   const r = await toolCall(app(), 'check_person', { handle: '@ada' });
   assert.equal(r.isError, true);
   assert.equal(r.structuredContent?.code, 'PAYMENTS_OFF');
+});
+
+test('get_rating answers without payment (view 93)', async () => {
+  const f = fakeFacilitator();
+  const paid = await createPaidTools('0x00000000000000000000000000000000000000aa', [f.client as never]);
+  const asked: Array<[string, string | undefined]> = [];
+  const a = app({
+    paid,
+    rating: async (handle, forWork) => {
+      asked.push([handle, forWork]);
+      return { ok: true, tag: 'ada', rating: { kind: 'rated', stars: 4.6, count: 31, disputed: 0, likeThis: { stars: 4.8, count: 6 } } };
+    },
+  });
+  const r = await toolCall(a, 'get_rating', { handle: '@ada', forWork: 'a suit' });
+  assert.notEqual(r.isError, true);
+  assert.equal((r.structuredContent as { ok?: boolean }).ok, true);
+  assert.deepEqual(asked, [['@ada', 'a suit']]);
+  assert.equal(f.settled.length, 0, 'nothing charged');
+});
+
+test('get_rating refuses a caller over the limit (view 93)', async () => {
+  let calls = 0;
+  const a = app({ ratingAllowed: () => ++calls <= 2 });
+  assert.notEqual((await toolCall(a, 'get_rating', { handle: 'ada' })).isError, true);
+  assert.notEqual((await toolCall(a, 'get_rating', { handle: 'ada' })).isError, true);
+  const third = await toolCall(a, 'get_rating', { handle: 'ada' });
+  assert.equal(third.isError, true);
+  assert.equal(third.structuredContent?.code, 'RATE_LIMITED');
 });

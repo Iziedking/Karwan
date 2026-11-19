@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { AGENT_OFF_ANSWER, agentIsOn } from '../agents/agentPower.js';
+import { keywordsOf } from '../find/keywords.js';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { isVerified } from '../agents/shortlist.js';
@@ -83,7 +84,6 @@ function meetWords(m: FoundRow['meet']): string {
   return ways.filter(Boolean).join(', ');
 }
 
-const keywordsOf = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
 
 function offer(actions: AssistantAction[], built: ConfirmAction | { error: string }) {
   if ('error' in built) return built;

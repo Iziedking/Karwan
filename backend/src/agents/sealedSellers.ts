@@ -61,7 +61,7 @@ export async function sealedSellers(
   const nowUnix = Math.floor(nowMs / 1000);
   const candidates: ShortlistCandidate[] = [];
   for (let i = 0; i < bids.length; i += SHORTLIST_MAX) {
-    candidates.push(...(await buildCandidates({ jobId: input.requestId, buyerAgent: input.buyer, buyerUser: input.buyer, bids: bids.slice(i, i + SHORTLIST_MAX), nowUnix }, deps)));
+    candidates.push(...(await buildCandidates({ jobId: input.requestId, buyerAgent: input.buyer, buyerUser: input.buyer, bids: bids.slice(i, i + SHORTLIST_MAX), nowUnix, forWork: [...input.keywords] }, deps)));
   }
   const ranked = onePerPerson(rankCandidates(candidates));
   const budget = Number(input.budgetUsdc);

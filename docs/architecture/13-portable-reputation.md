@@ -4,7 +4,7 @@ A buyer says what they need. Agents find sellers, pay a fraction of a cent in US
 
 The record an agent checks is not only Karwan's. Platforms where people already built a reputation can serve the same record read, at a price they set, paid agent to agent. The person connects the platform and consents. The platform is paid on every read and keeps its data: machines read the outcomes, people see a score.
 
-It builds on the record (view 06), the unified reputation (view 08) and the verified network (view 10).
+It builds on the record (view 06), the unified reputation (view 08) and the verified network (view 10). A person's rating is not part of the paid read: any agent reads it free ([view 93](93-ratings-that-fit-the-work.md)).
 
 ## Rules this view changes
 

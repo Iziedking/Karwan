@@ -68,3 +68,9 @@ test('the record shows every rating given', () => {
   const shown = revealedAbout([blind, both[0]!, old], byDeal, SETTLED + DAY);
   assert.deepEqual(shown.map((r) => r.dealId).sort(), ['d1', 'd2', 'd3']);
 });
+
+test('ratingLine says deals like this', () => {
+  const base = { kind: 'rated' as const, value: 4.6, count: 6, disputed: 0 };
+  assert.equal(ratingLine({ ...base, forWork: { value: 4.8, count: 3, rank: 4.83 } }), '4.8 from 3 deals like this · 4.6 overall from 6');
+  assert.equal(ratingLine({ ...base, forWork: { value: 4.6, count: 0, rank: 4.6 } }), '4.6 from 6 deals');
+});

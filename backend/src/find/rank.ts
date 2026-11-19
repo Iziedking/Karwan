@@ -64,6 +64,8 @@ export interface FoundRow {
   /// The rating and how many deals it is from, for each language to word; null while New.
   stars: number | null;
   ratings: number;
+  /// Their rating on deals like this one and how many, when at least one is close (view 93).
+  likeThis: { stars: number; count: number } | null;
   distance: DistanceLine;
   meet: Meet;
   /// What they would likely ask inside the budget, or null for a quote.
@@ -90,7 +92,8 @@ interface Scored {
 }
 
 const lower = (s: string) => s.toLowerCase();
-const ratingRank = (r: PublicRating) => (r.kind === 'rated' ? r.value : NEW_RATING);
+/// A rated person by their rating for the work asked about when there is one (view 93).
+const ratingRank = (r: PublicRating) => (r.kind === 'rated' ? (r.forWork?.rank ?? r.value) : NEW_RATING);
 
 export function kmBetween(a: PrivateLocation | null, b: PrivateLocation | null): number | null {
   return a?.point && b?.point ? distanceKm(a.point, b.point) : null;
@@ -172,6 +175,7 @@ export function rankForFind(candidates: readonly FindCandidate[], need: FindNeed
     rating: ratingLine(s.c.rating),
     stars: s.c.rating.kind === 'rated' ? s.c.rating.value : null,
     ratings: s.c.rating.count,
+    likeThis: s.c.rating.kind === 'rated' && s.c.rating.forWork && s.c.rating.forWork.count >= 1 ? { stars: s.c.rating.forWork.value, count: s.c.rating.forWork.count } : null,
     distance: need.kind === 'in_person' ? distanceLine(s.km, s.fit, city) : { key: 'unknown' },
     meet: s.c.meet,
     priceUsdc: s.c.price ? String(Math.min(s.c.price.usual, need.budgetUsdc)) : null,

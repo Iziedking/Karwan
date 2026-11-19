@@ -7,7 +7,7 @@ import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { buttonClasses } from '@/shared/components/Button';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import type { FindPeopleCopy } from '@/shared/i18n/messages/findPeople';
-import { daysText, distanceText, fillFind, firstName, meetText, personLine, rankText, reasonsText } from './foundModel';
+import { daysText, distanceText, fillFind, firstName, likeThisText, meetText, personLine, rankText, reasonsText } from './foundModel';
 
 /// The people an agent found (view 72): photo, name, record line, price and
 /// rank in one row; a tap opens the person. Never a score, an area or an address.
@@ -155,6 +155,7 @@ export function PersonSheet({ person, t, onClose, pick }: {
               </div>
             ))}
           </div>
+          {likeThisText(p, t) ? <p data-like-this className="w-full text-center text-[13px] text-[var(--ink-secondary)]">{likeThisText(p, t)}</p> : null}
           <dl className="w-full rounded-[16px] border border-[var(--line)] bg-[var(--surface)] px-1">
             {facts.map(([label, value], i) => (
               <div key={label} className={`flex items-center justify-between gap-4 px-3.5 py-3 ${i ? 'border-t border-[var(--line)]' : ''}`}>

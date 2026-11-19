@@ -25,8 +25,16 @@ export function distanceText(d: DistanceLine, t: FindPeopleCopy): string | null 
   }
 }
 
-export function ratingText(p: Pick<FoundPerson, 'stars' | 'ratings'>, t: FindPeopleCopy): string {
-  return p.stars !== null ? fill(t.rated, { stars: p.stars.toFixed(1), n: p.ratings }) : t.newOnKarwan;
+/// Their rating on deals like this one, or null (view 93).
+export function likeThisText(p: Pick<FoundPerson, 'likeThis'>, t: FindPeopleCopy): string | null {
+  return p.likeThis ? fill(t.likeThis, { stars: p.likeThis.stars.toFixed(1), n: p.likeThis.count }) : null;
+}
+
+/// The rating line: work like this first when there is some, then overall.
+export function ratingText(p: Pick<FoundPerson, 'stars' | 'ratings' | 'likeThis'>, t: FindPeopleCopy): string {
+  if (p.stars === null) return t.newOnKarwan;
+  const like = likeThisText(p, t);
+  return like ? `${like} · ${fill(t.overall, { stars: p.stars.toFixed(1), n: p.ratings })}` : fill(t.rated, { stars: p.stars.toFixed(1), n: p.ratings });
 }
 
 /// The line under a name: rating, then how far.

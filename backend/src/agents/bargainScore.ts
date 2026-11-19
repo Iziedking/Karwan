@@ -58,7 +58,7 @@ function pricePart(i: ScoreInput): number | null {
 }
 
 function ratingsPart(r: PublicRating): number {
-  return r.kind === 'rated' ? clamp((r.value / 5) * 100) : 50;
+  return r.kind === 'rated' ? clamp(((r.forWork?.rank ?? r.value) / 5) * 100) : 50;
 }
 
 function reputationPart(i: ScoreInput): number {

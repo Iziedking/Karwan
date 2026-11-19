@@ -1,22 +1,24 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import type { RatingRead } from '../ratings/readRating.js';
 import type { RateResult } from '../ratings/service.js';
 
-/// Rating a settled deal out of 5, from any chat. Ratings show once both
-/// people rated, or 14 days after the deal settled.
+/// Rating a settled deal out of 5, from any chat; a rating shows as soon as it
+/// is given. Reading anyone's rating is free (view 93).
 
 export interface RatingToolDeps {
   rateDeal: (caller: string, dealId: string, stars: number, note?: string) => Promise<RateResult>;
   waiting: (caller: string) => Promise<Array<{ dealId: string; withTag: string | null; settledAt: number }>>;
   hasRated: (caller: string, dealId: string) => Promise<boolean>;
   receivedRating: (caller: string, dealId: string) => Promise<{ stars: number; note: string | null } | null>;
+  readRating: (handle: string, forWork?: string) => Promise<RatingRead>;
 }
 
 export function ratingTools(address: string, deps: RatingToolDeps) {
   return {
     rate_deal: tool({
       description:
-        "Rate a settled deal from 1 to 5, with an optional short note, for the other person in it. Use when the user rates a deal or answers 'how did your deal go?'. Ask for the number if they did not give one. Each side rates once; ratings stay hidden until both rated or 14 days pass. A note with a phone number, an email or a link is kept private.",
+        "Rate a settled deal from 1 to 5, with an optional short note, for the other person in it. Use when the user rates a deal or answers 'how did your deal go?'. Ask for the number if they did not give one. Each side rates once, and a rating shows as soon as it is given. A note with a phone number, an email or a link is kept private.",
       inputSchema: z.object({
         dealId: z.string().min(1).max(100),
         stars: z.number().int().min(1).max(5),
@@ -26,6 +28,16 @@ export function ratingTools(address: string, deps: RatingToolDeps) {
         const r = await deps.rateDeal(address, dealId, stars, note);
         return r.ok ? { saved: true, revealed: r.revealed, message: r.message } : { saved: false, error: r.message };
       },
+    }),
+
+    rating_of: tool({
+      description:
+        "Read anyone's rating by their Karwan tag: stars, how many deals, how many disputed, and with forWork their rating on deals like that work (\"4.8 from 6 deals like this\"). Free. Use when the user asks how someone is rated, or to judge a person for a job. Never their score or counts.",
+      inputSchema: z.object({
+        handle: z.string().min(2).max(64),
+        forWork: z.string().max(200).optional(),
+      }),
+      execute: async ({ handle, forWork }) => deps.readRating(handle, forWork),
     }),
 
     my_ratings_to_give: tool({

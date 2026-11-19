@@ -1,5 +1,5 @@
 import { locationOf } from '../location/live.js';
-import { loadPublicRating } from '../ratings/publicRating.js';
+import { loadRatingForWork } from '../ratings/publicRating.js';
 import { kindOf } from '../location/rules.js';
 import { methodFromKind } from '../deals/deliveryProofRules.js';
 import { blocksOffer, SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerBindingRefusal, sellerLinkFor } from '../deals/sellerBinding.js';
@@ -2113,7 +2113,7 @@ function shortlistDeps(state: JobState): ShortlistDeps {
       return { name: p?.displayName?.trim() || null, tag: p?.handle ?? null };
     },
     location: locationOf,
-    rating: (user) => loadPublicRating(user),
+    rating: (user, forWork) => loadRatingForWork(user, forWork),
     // An agent not linked to its owner is listed but cannot be chosen (view 41,
     // decision 13), on the older escrows only: the escrow family needs no link.
     linked: async (agent) => {
@@ -2165,6 +2165,7 @@ async function publishShortlist(
         })),
       ),
       requestDays: Math.max(1, Math.ceil((state.context.deadlineUnix - nowUnix) / 86_400)),
+      forWork: state.context.keywords ?? [],
       nowUnix,
       where: brief?.where,
       deliveryKind: brief ? kindOf(brief) : undefined,
