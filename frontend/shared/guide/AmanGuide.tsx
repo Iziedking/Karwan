@@ -133,20 +133,36 @@ export function AmanGuide() {
   const [pointing, setPointing] = useState<{ id: PointId; rect: Rect; radius: number } | null>(null);
   const pointEl = useRef<HTMLElement | null>(null);
   const search = searchParams?.toString() ?? '';
+  // One light per link: until the point leaves the address, a re-render must
+  // not light it again after a tap has put it out.
+  const pointTaken = useRef<string | null>(null);
   useEffect(() => {
     const id = pointFromUrl(search);
-    if (!id) return;
+    if (!id) { pointTaken.current = null; return; }
     router.replace(`${pathname}${withoutPoint(search)}`, { scroll: false });
-    if (quiet || !isPoint(id)) return;
+    if (quiet || !isPoint(id) || pointTaken.current === search) return;
+    pointTaken.current = search;
     setPointId(id);
   }, [search, pathname, quiet, router]);
+  // Read, not watched: the motion setting settling after load must not restart
+  // the light and drop the tap that puts it out.
+  const reduceNow = useRef(reduce);
+  reduceNow.current = reduce;
   useEffect(() => {
     if (!pointId) return;
     const started = Date.now();
     let looking = 0;
     let lit = 0;
-    let listening = 0;
-    const clear = () => { pointEl.current = null; setPointing(null); setPointId(null); };
+    let since = Infinity;
+    const clear = () => {
+      document.removeEventListener('pointerdown', onTap, { capture: true });
+      pointEl.current = null;
+      setPointing(null);
+      setPointId(null);
+    };
+    // Listening from the moment the light is set, before it paints, so a quick
+    // tap is never lost; only the press that opened the link is too early.
+    function onTap(e: PointerEvent) { if (e.timeStamp >= since) clear(); }
     const find = () => {
       const el = shownPart(pointId);
       if (!el) {
@@ -154,20 +170,20 @@ export function AmanGuide() {
         else setPointId(null);
         return;
       }
-      el.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+      el.scrollIntoView({ block: 'center', behavior: reduceNow.current ? 'auto' : 'smooth' });
       pointEl.current = el;
       setPointing({ id: pointId, rect: rectOf(el)!, radius: parseFloat(getComputedStyle(el).borderTopLeftRadius) || 12 });
+      since = performance.now();
+      document.addEventListener('pointerdown', onTap, { capture: true });
       lit = window.setTimeout(clear, POINT_MS);
-      listening = window.setTimeout(() => document.addEventListener('pointerdown', clear, { capture: true, once: true }), 0);
     };
     find();
     return () => {
       window.clearTimeout(looking);
       window.clearTimeout(lit);
-      window.clearTimeout(listening);
-      document.removeEventListener('pointerdown', clear, { capture: true });
+      document.removeEventListener('pointerdown', onTap, { capture: true });
     };
-  }, [pointId, reduce]);
+  }, [pointId]);
 
   const { data, refetch } = useQuery({
     queryKey: ['guide-next'],
@@ -500,12 +516,14 @@ export function AmanGuide() {
             role="complementary"
             aria-label={copy.label}
             data-aman-line="new-here"
+            aria-hidden={lineCovering || faceCovering || undefined}
+            data-aside={lineCovering || faceCovering ? '' : undefined}
             initial={{ opacity: 0, x: from.x }}
             animate={{ opacity: 1, x: 0, left: place.line.x, top: place.line.y }}
             exit={{ opacity: 0, x: from.x }}
             transition={{ opacity: { duration: reduce ? dur.micro : ENTER_S, ease: ease.out }, x: { duration: ENTER_S, ease: ease.out } }}
             style={{ maxWidth: place.line.maxWidth, maxHeight: place.line.maxHeight, overflowY: 'auto' }}
-            className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)]"
+            className="fixed z-50 w-max rounded-[22px] border border-[var(--soft-green-edge)] bg-[var(--soft-green)] px-4 pb-3.5 pt-3 text-[var(--ink)] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.4)] data-[aside]:invisible"
           >
             <p className="guide-voice text-[13px] font-bold leading-none opacity-70">{copy.label}</p>
             <p role="status" className="guide-voice mt-1.5 text-[16px] font-semibold leading-[1.3]">{copy.newHere}</p>
