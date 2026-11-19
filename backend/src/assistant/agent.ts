@@ -30,6 +30,8 @@ import { readUsdcBalance } from '../chain/contracts.js';
 import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
 import { workMismatchOpen } from '../deals/workMismatch.js';
 import { deliveryForAssistant } from '../deals/deliveryHistoryView.js';
+import { familyHearing } from '../deals/disputeHearingLive.js';
+import { hearingForAssistant, partyFinding } from '../deals/disputeHearingView.js';
 import { recheckDelivery } from '../deals/deliveryRecheck.js';
 import { deliveryMethodOf, deliveryNeeds } from '../deals/deliveryProofRules.js';
 import { deliveryPhotos } from '../deals/deliveryPhotos.js';
@@ -501,7 +503,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     get_deal_status: tool({
       description:
-        "Get the full status of ONE of the signed-in user's own deals by its id (jobId, a 0x id of 64 hex characters): phase, amount, counterparty, deadline, whether a release is paused, and the delivery: what was delivered with its links, the shipment's carrier, tracking number, tracking page and whether it arrived, what Karwan checked, and earlier deliveries. Use it for 'where is my order', 'what did they deliver', 'has it shipped'. The same id may be a match still waiting for approval, or a request the user posted; the result says which (kind: deal, match or request). Only works when the user is a party.",
+        "Get the full status of ONE of the signed-in user's own deals by its id (jobId, a 0x id of 64 hex characters): phase, amount, counterparty, deadline, whether a release is paused, on a dispute being heard its step and dates, and the delivery: what was delivered with its links, the shipment's carrier, tracking number, tracking page and whether it arrived, what Karwan checked, and earlier deliveries. Use it for 'where is my order', 'what did they deliver', 'has it shipped'. The same id may be a match still waiting for approval, or a request the user posted; the result says which (kind: deal, match or request). Only works when the user is a party.",
       inputSchema: z.object({
         jobId: z.string().min(1).max(120).describe('The deal id (jobId) to look up.'),
       }),
@@ -514,9 +516,20 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             return { error: 'That deal is not one of yours, so I cannot show its details.' };
           }
           const viewer = deal.buyer.toLowerCase() === address.toLowerCase() ? 'buyer' : 'seller';
+          const now = Date.now();
+          const heard = deal.disputed && !deal.settledAt && !deal.cancelledAt ? await familyHearing(deal, now) : null;
           return {
             jobId: deal.jobId,
             kind: 'deal',
+            ...(heard
+              ? {
+                  dispute: hearingForAssistant(heard, partyFinding(deal.judgeProposal), viewer, {
+                    mine: !!deal.disputeStatements?.[viewer],
+                    theirs: !!deal.disputeStatements?.[viewer === 'buyer' ? 'seller' : 'buyer'],
+                  }, now),
+                  disputeNote: 'Say the step the way the deal page does. answers: both sides answer by answersBy; offer propose_dispute_statement if yourSideSent is false. finding: Karwan reads both sides, the delivery and the deal chat, and a person at Karwan confirms the finding by findingBy; nothing is decided before then. object: Karwan found finding (toYouPct to them); it pays out at objectBy unless either side asks for a person; if canAskForPeople and they disagree, offer propose_escalate_dispute. people: two people at Karwan must agree and write their reasons, by ruleBy. Never name a judge, a model or a reviewer.',
+                }
+              : {}),
             deal: summarizeDeal(deal, address),
             protection: dealProtectionContext(deal, address),
             delivery: deliveryForAssistant(deal, viewer),

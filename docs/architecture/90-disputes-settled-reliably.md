@@ -168,4 +168,5 @@ The owner's direction, to be designed in its own view before anything is built.
 | Step | Status |
 |---|---|
 | This view | Approved by the owner, 18 Nov 2026, with the five decisions above |
+| First part, on escrow family deals: both sides heard, a person confirms the finding, 72 hours to ask for people, the problem card | Built, not switched on. Proven on an Arc fork with a full payment and a 60% share |
 | The reviewers' body | To be designed in its own view |

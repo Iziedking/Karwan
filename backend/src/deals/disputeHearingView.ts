@@ -105,3 +105,30 @@ export function partyFinding(p: JudgeProposal | undefined): PartyFinding | undef
     reviewedAt: p.reviewedAt,
   };
 }
+
+/// The same dispute for the assistant, so Telegram and every channel say what
+/// the deal page says: the step, its dates, and once a person confirmed it,
+/// what was found and the share it gives the side asking.
+export function hearingForAssistant(
+  h: HearingView,
+  finding: PartyFinding | undefined,
+  viewer: 'buyer' | 'seller',
+  sent: { mine: boolean; theirs: boolean },
+  now: number,
+) {
+  const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
+  const decided = (h.step === 'object' || h.step === 'people') && finding;
+  const toSellerPct = decided ? Math.round(finding.sellerBps / 100) : 0;
+  return {
+    step: h.step,
+    yourSideSent: sent.mine,
+    theirSideSent: sent.theirs,
+    answersBy: iso(h.answersBy),
+    findingBy: iso(h.findingBy),
+    objectBy: iso(h.objectBy),
+    askedAt: iso(h.askedAt),
+    ruleBy: iso(h.ruleBy),
+    canAskForPeople: h.step === 'object' && h.objectBy !== null && now < h.objectBy,
+    finding: decided ? { toSellerPct, toYouPct: viewer === 'seller' ? toSellerPct : 100 - toSellerPct, reason: finding.summary } : null,
+  };
+}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { JudgeProposal } from './disputeJudge.js';
-import { hearingView, partyFinding, type ChainDispute, type HearingInput } from './disputeHearingView.js';
+import { hearingForAssistant, hearingView, partyFinding, type ChainDispute, type HearingInput } from './disputeHearingView.js';
 
 const H = 3_600_000;
 const OPENED = 1_800_000_000;
@@ -85,4 +85,30 @@ test('a confirmed finding shows the confirmed share and reason, never who confir
     proposedAt: 1, status: 'overridden', reviewedSellerBps: 10_000, reviewedAt: 9,
   });
   assert.equal(JSON.stringify(seen).includes('reviewer@karwan'), false);
+});
+
+test('the assistant reads the same step and dates, from the side it speaks for', () => {
+  const v = hearingView(input())!;
+  assert.deepEqual(hearingForAssistant(v, undefined, 'seller', { mine: false, theirs: true }, OPENED_MS + H), {
+    step: 'answers',
+    yourSideSent: false,
+    theirSideSent: true,
+    answersBy: new Date(OPENED_MS + WINDOW).toISOString(),
+    findingBy: new Date(OPENED_MS + DEADLINE).toISOString(),
+    objectBy: null,
+    askedAt: null,
+    ruleBy: null,
+    canAskForPeople: false,
+    finding: null,
+  });
+});
+
+test('in the time to object the assistant can say what was found, the share to the viewer and that a person may still decide', () => {
+  const proposedAt = OPENED + 80 * 3600;
+  const v = hearingView(input({ dispute: { ...open, proposed: true, proposedAt: BigInt(proposedAt) }, nowMs: proposedAt * 1000 }))!;
+  const found = partyFinding({ ...proposal, status: 'overridden', reviewedSellerBps: 6_000, reviewReason: 'Two of five files arrived late.' });
+  const a = hearingForAssistant(v, found, 'buyer', { mine: true, theirs: true }, proposedAt * 1000 + H);
+  assert.equal(a.canAskForPeople, true);
+  assert.deepEqual(a.finding, { toSellerPct: 60, toYouPct: 40, reason: 'Two of five files arrived late.' });
+  assert.equal(hearingForAssistant(v, found, 'buyer', { mine: true, theirs: true }, proposedAt * 1000 + 73 * H).canAskForPeople, false);
 });
