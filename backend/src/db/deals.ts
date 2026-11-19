@@ -363,6 +363,12 @@ export interface DirectDeal {
   /// the watcher alerted the arbiter instead of auto-resolving. Once, not
   /// every tick.
   disputeTimeoutAlertedAt?: number;
+  /// View 90: a finding has waited a day for a reviewer; operators were told, once.
+  disputeReviewAlertedAt?: number;
+  /// View 90: the finding deadline is 12 hours away; operators were told, once.
+  disputeDeadlineAlertedAt?: number;
+  /// View 90: Karwan sent the dispute to the review Safe.
+  disputeReferredAt?: number;
   // Buyer reclaimed funds because the seller never delivered by the deadline.
   // The escrow is moved Disputed then Refunded on chain.
   cancelledAt?: number;

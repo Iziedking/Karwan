@@ -6,7 +6,9 @@ import { DEAL_STATE, type DealV3View } from '../chain/dealEscrowV3.js';
 import type { EvidenceReceiptView } from '../chain/evidenceReceipt.js';
 import type { PlatformSigners } from '../chain/platformSigners.js';
 import type { DirectDeal } from '../db/deals.js';
-import { attestationFor, decideRuling, rulingRecord } from '../deals/arbiterV3.js';
+import { attestationFor, decideRuling, rulingRecord, type RulingRecord } from '../deals/arbiterV3.js';
+import { caseStep, type CaseStep } from '../deals/disputeCase.js';
+import type { JudgeProposal } from '../deals/disputeJudge.js';
 import { isHeldLink } from '../deals/heldLinkOnChain.js';
 
 /// The deal watcher's escrow-family half: delivery checks signed by two of
@@ -36,7 +38,23 @@ export interface SuiteWatcherDeps {
   emit(e: { type: string; jobId: string; actor: 'buyer' | 'seller' | 'platform'; payload: Record<string, unknown> }): void;
   alertOperator(deal: DirectDeal, message: string): Promise<void>;
   warn(context: Record<string, unknown>, message: string): void;
+  /// View 90: both sides heard and a reviewer's confirmation before anything is
+  /// proposed. Absent or off keeps the automatic table.
+  hearing?: HearingDeps;
 }
+
+export interface HearingDeps {
+  on: boolean;
+  windowSecs: number;
+  deadlineSecs: number;
+  /// The finding for a reviewer: by rule for a silent side, else by the judge.
+  buildFinding(deal: DirectDeal, nowMs: number): Promise<JudgeProposal>;
+  /// Tells both sides and the reviewer that a finding is waiting.
+  findingReady(deal: DirectDeal): Promise<void>;
+}
+
+const REVIEW_ALERT_AFTER_MS = 24 * 3_600_000;
+const DEADLINE_ALERT_BEFORE_MS = 12 * 3_600_000;
 
 export type SuiteDisputeStep = 'cooling-off' | 'decide' | 'appeal-open' | 'execute' | 'with-review' | 'fallback' | 'none';
 
@@ -107,6 +125,8 @@ export async function runSuiteDispute(deps: SuiteWatcherDeps, deal: DirectDeal, 
     return;
   }
 
+  if (deps.hearing?.on) return runHearing(deps, deps.hearing, deal, view, nowMs);
+
   const step = suiteDisputeStep(view, view.escalated ? await deps.readEscalatedAt(deal) : 0n, nowSecs, deps.coolOffSecs);
   switch (step) {
     case 'decide': {
@@ -137,6 +157,19 @@ export async function runSuiteDispute(deps: SuiteWatcherDeps, deal: DirectDeal, 
       await deps.patchDeal(deal.jobId, { v3Ruling: record });
       return;
     }
+    case 'execute':
+    case 'fallback':
+    case 'with-review':
+      return carryOn(deps, deal, view, step, nowMs);
+    default:
+      return;
+  }
+}
+
+/// The steps after a proposal or an escalation, the same with the hearing on or off.
+async function carryOn(deps: SuiteWatcherDeps, deal: DirectDeal, view: DealV3View, step: 'execute' | 'fallback' | 'with-review', nowMs: number) {
+  const id = idOf(deal);
+  switch (step) {
     case 'execute': {
       if (!deal.buyerAgentWalletId) return;
       await deps.escrow.executeRuling({ walletId: deal.buyerAgentWalletId, jobId: id, dealKey: deal.jobId });
@@ -156,9 +189,111 @@ export async function runSuiteDispute(deps: SuiteWatcherDeps, deal: DirectDeal, 
       await deps.alertOperator(deal, `Dispute on deal ${deal.jobId.slice(0, 10)}… was escalated and needs the review Safe.`);
       return;
     }
+  }
+}
+
+/// The share a reviewer settled on, or null while none is.
+function reviewedShare(p: JudgeProposal): number | null {
+  if (p.status === 'awaiting-review') return null;
+  return p.reviewedSellerBps ?? null;
+}
+
+/// View 90: one step of a disputed deal with both sides heard first.
+async function runHearing(deps: SuiteWatcherDeps, h: HearingDeps, deal: DirectDeal, view: DealV3View, nowMs: number): Promise<void> {
+  const id = idOf(deal);
+  const proposal = deal.judgeProposal;
+  const terms = deal.escrowTerms as StoredAgreementTerms | undefined;
+  const step: CaseStep = caseStep({
+    view,
+    escalatedAt: view.escalated ? await deps.readEscalatedAt(deal) : 0n,
+    nowSecs: Math.floor(nowMs / 1000),
+    statements: { buyer: !!deal.disputeStatements?.buyer, seller: !!deal.disputeStatements?.seller },
+    finding: proposal ? { status: proposal.status, sellerBps: reviewedShare(proposal) } : null,
+    partialBps: terms?.partialBps ?? 0,
+    linkHeld: isHeldLink(deal),
+    windowSecs: h.windowSecs,
+    deadlineSecs: h.deadlineSecs,
+  });
+
+  switch (step) {
+    case 'finding': {
+      const finding = await h.buildFinding(deal, nowMs);
+      await deps.patchDeal(deal.jobId, { judgeProposal: finding });
+      await h.findingReady(deal);
+      return;
+    }
+    case 'review': {
+      const deadlineMs = Number(view.disputedAt) * 1000 + h.deadlineSecs * 1000;
+      if (!deal.disputeDeadlineAlertedAt && nowMs >= deadlineMs - DEADLINE_ALERT_BEFORE_MS) {
+        await deps.patchDeal(deal.jobId, { disputeDeadlineAlertedAt: nowMs });
+        await deps.alertOperator(deal, `Dispute on deal ${deal.jobId.slice(0, 10)}… goes to the review Safe in 12 hours unless a reviewer confirms the finding.`);
+        return;
+      }
+      if (!deal.disputeReviewAlertedAt && proposal && nowMs >= proposal.proposedAt + REVIEW_ALERT_AFTER_MS) {
+        await deps.patchDeal(deal.jobId, { disputeReviewAlertedAt: nowMs });
+        await deps.alertOperator(deal, `Dispute on deal ${deal.jobId.slice(0, 10)}… has a finding waiting a day for a reviewer.`);
+      }
+      return;
+    }
+    case 'propose': {
+      if (!deps.arbiter || !proposal) return;
+      const sellerBps = reviewedShare(proposal);
+      if (sellerBps === null || !proposal.findingHash) {
+        deps.warn({ jobId: deal.jobId }, 'a confirmed finding has no hash or share; nothing sent');
+        return;
+      }
+      await deps.arbiter.arbiterSend('proposeRuling', [id, sellerBps, proposal.findingHash]);
+      await deps.patchDeal(deal.jobId, { v3Ruling: findingRuling(deal, view, proposal, sellerBps, nowMs) });
+      return;
+    }
+    case 'refer': {
+      if (!deps.arbiter) return;
+      const reason = isHeldLink(deal)
+        ? 'the delivery link is held by the safety check and no person has cleared it'
+        : proposal && reviewedShare(proposal) !== null
+          ? 'a reviewer settled on a share only the review Safe can rule'
+          : 'no finding was confirmed before the deadline';
+      await deps.arbiter.arbiterSend('escalate', [id]);
+      await deps.patchDeal(deal.jobId, { disputeReferredAt: nowMs });
+      await deps.alertOperator(deal, `Dispute on deal ${deal.jobId.slice(0, 10)}… needs the review Safe: ${reason}.`);
+      deps.emit({
+        type: 'deal.dispute.needs_arbiter',
+        jobId: deal.jobId,
+        actor: 'platform',
+        payload: { buyer: deal.buyer, seller: deal.seller, reason },
+      });
+      return;
+    }
+    case 'execute':
+    case 'fallback':
+    case 'with-review':
+      return carryOn(deps, deal, view, step, nowMs);
     default:
       return;
   }
+}
+
+/// The record of a reviewed finding, kept like the table's so the rest of the
+/// deal's history reads it the same way.
+function findingRuling(deal: DirectDeal, view: DealV3View, p: JudgeProposal, sellerBps: number, nowMs: number): RulingRecord {
+  return {
+    dealKey: deal.jobId,
+    ruleId: 'F1-reviewed-finding',
+    sellerBps,
+    reason: p.reviewReason ?? p.summary,
+    inputs: {
+      revision: view.revision,
+      deliveredAt: view.deliveredAt.toString(),
+      lateMark: view.lateMark,
+      checkPassed: view.checkPassed,
+      checkFailedRevision: deal.v3CheckFailedRevision ?? null,
+      deadline: view.deadline.toString(),
+      disputedAt: view.disputedAt.toString(),
+      disputedBy: deal.disputedBy ?? null,
+      decidedAt: Math.floor(nowMs / 1000),
+    },
+    rulingHash: p.findingHash!,
+  };
 }
 
 export type SuiteRuleCall =

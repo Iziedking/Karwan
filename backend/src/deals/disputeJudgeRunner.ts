@@ -5,6 +5,7 @@ import {
   silentProposal,
   type JudgeGenerate,
   type JudgeInput,
+  type JudgeProposal,
 } from './disputeJudge.js';
 
 export interface DisputeJudgeDeps {
@@ -41,6 +42,26 @@ export async function judgeInputFor(deal: DirectDeal, deps: Pick<DisputeJudgeDep
     statements: deal.disputeStatements ?? {},
     chat,
   };
+}
+
+/// The finding for a reviewer (view 90): by rule when a side stayed silent,
+/// else by the judge. Switched off, the judge is never asked and a person sets
+/// the share.
+export async function buildFinding(
+  deal: DirectDeal,
+  now: number,
+  deps: Pick<DisputeJudgeDeps, 'listMessages' | 'generate'>,
+  settings: { judgeOff: boolean },
+): Promise<JudgeProposal> {
+  const input = await judgeInputFor(deal, deps);
+  const silent = silentProposal(input, now);
+  if (silent) return silent;
+  const generate: JudgeGenerate = settings.judgeOff
+    ? async () => {
+        throw new Error('the judge is switched off');
+      }
+    : deps.generate;
+  return judgeDispute(input, generate, now);
 }
 
 /// One watcher pass for one disputed v2 deal. A silent side is decided by the

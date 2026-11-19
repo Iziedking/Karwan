@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DirectDeal } from '../db/deals.js';
-import { runDisputeJudge } from './disputeJudgeRunner.js';
+import { buildFinding, runDisputeJudge } from './disputeJudgeRunner.js';
 
 const H = 3_600_000;
 const st = { received: 'r', missing: 'm', late: 'no', links: [], submittedAt: 1 };
@@ -65,4 +65,31 @@ test('nothing happens while the window is open with one statement, or once a pro
   assert.equal(await runDisputeJudge({ ...base, disputeStatements: { buyer: st } } as DirectDeal, H, d, { windowMs: 48 * H }), 'none');
   assert.equal(await runDisputeJudge({ ...base, judgeProposal: { status: 'awaiting-review' } } as unknown as DirectDeal, 49 * H, d, { windowMs: 48 * H }), 'none');
   assert.equal(calls.patched.length, 0);
+});
+
+// View 90: the finding on an escrow family deal, built the same way, stored by
+// the suite watcher for a reviewer.
+
+test('a finding on both answers comes from the judge, with the check as one input among many', async () => {
+  const { deps: d, calls } = deps();
+  const f = await buildFinding({ ...base, disputeStatements: { buyer: st, seller: st } } as DirectDeal, 10 * H, d, { judgeOff: false });
+  assert.equal(calls.asked, 1);
+  assert.equal(f.sellerBps, 5000);
+  assert.equal(f.status, 'awaiting-review');
+});
+
+test('a silent side is decided by the rule, without asking the model', async () => {
+  const { deps: d, calls } = deps();
+  const f = await buildFinding({ ...base, disputeStatements: { buyer: st } } as DirectDeal, 80 * H, d, { judgeOff: false });
+  assert.equal(calls.asked, 0);
+  assert.equal(f.rule, 'silent-seller');
+  assert.equal(f.sellerBps, 0);
+});
+
+test('with the judge switched off, the finding waits for a person and names no share', async () => {
+  const { deps: d, calls } = deps();
+  const f = await buildFinding({ ...base, disputeStatements: { buyer: st, seller: st } } as DirectDeal, 10 * H, d, { judgeOff: true });
+  assert.equal(calls.asked, 0);
+  assert.equal(f.rule, 'judge-unavailable');
+  assert.equal(f.confidence, 'inconclusive');
 });

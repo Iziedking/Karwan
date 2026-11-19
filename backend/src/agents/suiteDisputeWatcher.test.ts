@@ -5,6 +5,7 @@ import { agreementEscrowAbi } from '../chain/abis/agreementEscrow.js';
 import { DEAL_STATE, type DealV3View } from '../chain/dealEscrowV3.js';
 import type { EvidenceReceiptView } from '../chain/evidenceReceipt.js';
 import type { DirectDeal } from '../db/deals.js';
+import type { JudgeProposal } from '../deals/disputeJudge.js';
 import { runSuiteCheck, runSuiteDispute, suiteRuleCall, type SuiteWatcherDeps } from './suiteDisputeWatcher.js';
 
 const DAY = 86_400;
@@ -169,4 +170,122 @@ test('admin_gets_the_rule_call_for_the_deals_reviewer', () => {
 
   const notYet = suiteRuleCall({ view: view(), reviewer: REVIEW_SAFE, agreement: AGREEMENT, dealId: ID, sellerBps: 2500, rulingHash: `0x${'dd'.repeat(32)}` });
   assert.deepEqual(notYet.ok ? null : notYet.code, 'not-escalated');
+});
+
+// View 90, first slice: with the hearing switch on, nothing is proposed until
+// both sides are heard and a reviewer has confirmed the finding.
+
+const HASH = `0x${'f1'.repeat(32)}` as Hex;
+const statement = { received: 'r', missing: 'm', late: 'no', links: [], submittedAt: 1 };
+const both = { buyer: statement, seller: statement };
+
+function finding(over: Partial<JudgeProposal> = {}): JudgeProposal {
+  return {
+    sellerBps: 10_000, items: [], confidence: 'clear', summary: 'Delivered as agreed.', model: 'test',
+    inputsHash: '0xinputs', proposedAt: NOW_MS - 3_600_000, status: 'awaiting-review', ...over,
+  };
+}
+
+function heard(v: DealV3View, opts: Parameters<typeof setup>[1] & { built?: JudgeProposal } = {}) {
+  const s = setup(v, opts);
+  const built: DirectDeal[] = [];
+  const ready: DirectDeal[] = [];
+  const warnings: string[] = [];
+  s.deps.warn = (_c, m) => {
+    warnings.push(m);
+  };
+  s.deps.hearing = {
+    on: true,
+    windowSecs: 3 * DAY,
+    deadlineSecs: 4 * DAY + 12 * 3600,
+    buildFinding: async (d) => {
+      built.push(d);
+      return opts.built ?? finding();
+    },
+    findingReady: async (d) => {
+      ready.push(d);
+    },
+  };
+  return { ...s, built, ready, warnings };
+}
+
+const delivered = { deliveredAt: BigInt(NOW - 2 * DAY), checkPassed: true };
+
+test('with_the_hearing_on_a_passed_check_one_hour_in_decides_nothing', async () => {
+  const s = heard(view({ ...delivered, disputedAt: BigInt(NOW - 3600) }));
+  await runSuiteDispute(s.deps, deal({ disputeStatements: { buyer: statement } }), NOW_MS);
+  assert.deepEqual(s.sent, [], 'no proposal while the seller has not answered');
+  assert.deepEqual(s.built, []);
+  assert.deepEqual(s.calls, []);
+});
+
+test('once_both_have_answered_a_finding_is_written_for_a_reviewer_and_nothing_is_sent', async () => {
+  const s = heard(view({ ...delivered, disputedAt: BigInt(NOW - 3600) }));
+  await runSuiteDispute(s.deps, deal({ disputeStatements: both }), NOW_MS);
+  assert.equal(s.built.length, 1);
+  assert.equal(s.patches[0]!.judgeProposal?.status, 'awaiting-review');
+  assert.equal(s.ready.length, 1);
+  assert.deepEqual(s.sent, []);
+});
+
+test('a_finding_waiting_a_day_for_a_reviewer_alerts_once', async () => {
+  const waiting = finding({ proposedAt: NOW_MS - 25 * 3_600_000 });
+  const s = heard(view({ ...delivered, disputedAt: BigInt(NOW - 2 * DAY) }));
+  await runSuiteDispute(s.deps, deal({ disputeStatements: both, judgeProposal: waiting }), NOW_MS);
+  assert.deepEqual(s.sent, []);
+  assert.equal(s.alerts.length, 1);
+  assert.equal(s.patches[0]!.disputeReviewAlertedAt, NOW_MS);
+
+  const again = heard(view({ ...delivered, disputedAt: BigInt(NOW - 2 * DAY) }));
+  await runSuiteDispute(again.deps, deal({ disputeStatements: both, judgeProposal: waiting, disputeReviewAlertedAt: NOW_MS - 60_000 }), NOW_MS);
+  assert.equal(again.alerts.length, 0);
+});
+
+test('a_confirmed_all_or_nothing_finding_is_proposed_once_with_its_hash', async () => {
+  const confirmed = finding({ status: 'confirmed', reviewedSellerBps: 10_000, findingHash: HASH, reviewReason: 'Delivered as agreed.' });
+  const s = heard(view({ ...delivered, disputedAt: BigInt(NOW - 2 * DAY) }));
+  await runSuiteDispute(s.deps, deal({ disputeStatements: both, judgeProposal: confirmed }), NOW_MS);
+  assert.deepEqual(s.sent.map((x) => x.fn), ['proposeRuling']);
+  assert.deepEqual(s.sent[0]!.args, [ID, 10_000, HASH]);
+  assert.equal(s.patches[0]!.v3Ruling?.rulingHash, HASH);
+
+  const next = heard(view({ ...delivered, proposal: true, proposedBps: 10_000, proposedAt: BigInt(NOW - 60) }));
+  await runSuiteDispute(next.deps, deal({ disputeStatements: both, judgeProposal: confirmed }), NOW_MS);
+  assert.deepEqual(next.sent, [], 'the proposal on chain is the one already sent');
+});
+
+test('a_confirmed_part_share_goes_to_the_review_safe_and_is_never_proposed', async () => {
+  const part = finding({ status: 'overridden', reviewedSellerBps: 6_000, findingHash: HASH, reviewReason: 'Two of three files.' });
+  const s = heard(view({ ...delivered, disputedAt: BigInt(NOW - 2 * DAY) }));
+  await runSuiteDispute(s.deps, deal({ disputeStatements: both, judgeProposal: part }), NOW_MS);
+  assert.deepEqual(s.sent.map((x) => x.fn), ['escalate']);
+  assert.equal(s.alerts.length, 1);
+  assert.ok(s.events.includes('deal.dispute.needs_arbiter'));
+});
+
+test('no_confirmation_by_the_deadline_goes_to_the_review_safe_before_day_five', async () => {
+  const s = heard(view({ ...delivered, disputedAt: BigInt(NOW - 4 * DAY - 13 * 3600) }));
+  await runSuiteDispute(s.deps, deal({ disputeStatements: both, judgeProposal: finding() }), NOW_MS);
+  assert.deepEqual(s.sent.map((x) => x.fn), ['escalate']);
+  assert.ok(s.patches.some((p) => p.disputeReferredAt === NOW_MS));
+});
+
+test('a_held_link_goes_to_people_during_the_hearing', async () => {
+  const s = heard(view({ ...delivered, disputedAt: BigInt(NOW - 3600) }));
+  await runSuiteDispute(s.deps, deal({ verificationStatus: 'suspicious' } as Partial<DirectDeal>), NOW_MS);
+  assert.deepEqual(s.sent.map((x) => x.fn), ['escalate']);
+});
+
+test('a_confirmed_finding_without_its_hash_is_never_sent', async () => {
+  const s = heard(view({ ...delivered, disputedAt: BigInt(NOW - 2 * DAY) }));
+  await runSuiteDispute(s.deps, deal({ disputeStatements: both, judgeProposal: finding({ status: 'confirmed', reviewedSellerBps: 0 }) }), NOW_MS);
+  assert.deepEqual(s.sent, []);
+  assert.equal(s.warnings.length, 1);
+});
+
+test('with_the_hearing_off_the_table_runs_as_before', async () => {
+  const s = setup(view({ ...delivered, disputedAt: BigInt(NOW - 2 * 3600) }));
+  await runSuiteDispute(s.deps, deal({ disputeStatements: { buyer: statement } }), NOW_MS);
+  assert.deepEqual(s.sent.map((x) => x.fn), ['proposeRuling']);
+  assert.deepEqual(s.sent[0]!.args.slice(0, 2), [ID, 10_000]);
 });

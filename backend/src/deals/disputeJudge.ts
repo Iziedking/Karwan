@@ -32,6 +32,13 @@ export interface JudgeProposal {
   inputsHash: string;
   proposedAt: number;
   status: 'awaiting-review' | 'confirmed' | 'overridden';
+  /// Set when a reviewer confirms the finding (view 90): the share they
+  /// settled on, why, who and when, and the hash that goes on chain.
+  reviewedSellerBps?: number;
+  reviewReason?: string;
+  reviewedBy?: string;
+  reviewedAt?: number;
+  findingHash?: `0x${string}`;
 }
 
 interface DisputeDeal {

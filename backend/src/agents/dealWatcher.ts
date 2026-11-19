@@ -1,6 +1,6 @@
 import { checkSourceFor } from '../deals/checkSource.js';
 import { deliveryCheckDetail, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
-import { runDisputeJudge, type DisputeJudgeDeps } from '../deals/disputeJudgeRunner.js';
+import { buildFinding, runDisputeJudge, type DisputeJudgeDeps } from '../deals/disputeJudgeRunner.js';
 import { rulingSchema, statementRemindersDue } from '../deals/disputeJudge.js';
 import { listMessages } from '../db/messages.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
@@ -29,7 +29,7 @@ import { settlePOFinancingForDeal } from './poWatcher.js';
 import { dealEscrowOps, escrowAddressOf } from '../deals/dealEscrowOpsLive.js';
 import { runV3Attestation, runV3Dispute } from './v3DisputeWatcher.js';
 import { v3WatcherDeps } from './v3DisputeWatcherLive.js';
-import { runSuiteCheck, runSuiteDispute } from './suiteDisputeWatcher.js';
+import { runSuiteCheck, runSuiteDispute, type SuiteWatcherDeps } from './suiteDisputeWatcher.js';
 import { suiteWatcherDeps } from './suiteDisputeWatcherLive.js';
 import { runSuiteReviewEnd } from '../deals/suiteReviewEnd.js';
 import { suiteReviewEndDeps } from '../deals/suiteReviewEndLive.js';
@@ -247,8 +247,9 @@ async function runV3DisputeSafely(deal: DirectDeal, now: number) {
 /// Escrow-family disputes: the 25 Sep table by Karwan's arbiter key, the
 /// proposal carried out after the appeal window, the review Safe for the rest.
 async function runSuiteDisputeSafely(deal: DirectDeal, now: number) {
-  const deps = suiteWatcherDeps();
-  if (!deps || processing.has(deal.jobId)) return;
+  const base = suiteWatcherDeps();
+  if (!base || processing.has(deal.jobId)) return;
+  const deps = config.DISPUTE_HEARING_FAMILY ? { ...base, hearing: hearingDeps() } : base;
   processing.add(deal.jobId);
   try {
     await runSuiteDispute(deps, deal, now);
@@ -815,6 +816,21 @@ const disputeJudgeDeps: DisputeJudgeDeps = {
   },
 };
 
+/// View 90: both sides heard and a reviewer's confirmation before an escrow
+/// family dispute is proposed on chain.
+function hearingDeps(): NonNullable<SuiteWatcherDeps['hearing']> {
+  return {
+    on: true,
+    windowSecs: Math.floor(config.DISPUTE_STATEMENT_WINDOW_MS / 1000),
+    deadlineSecs: Math.floor(config.DISPUTE_FINDING_DEADLINE_MS / 1000),
+    buildFinding: (deal, now) => buildFinding(deal, now, disputeJudgeDeps, { judgeOff: config.DISPUTE_JUDGE_DISABLED }),
+    findingReady: async (deal) => {
+      await disputeJudgeDeps.postSystem('deal.dispute.proposed', deal, Date.now());
+      disputeJudgeDeps.notifyReviewer(deal);
+    },
+  };
+}
+
 const STATEMENT_REMINDER_LEAD_MS = 12 * 3_600_000;
 
 /// Reminds a side whose dispute statement is still missing, once, when the
@@ -915,6 +931,7 @@ async function watchDeal(deal: DirectDeal, now: number, pairHistory: ReturnType<
   // then skip the release ladder, which does not apply to a disputed escrow.
   if (deal.disputed) {
     if (dealEscrowOps.isV3(deal)) {
+      if (config.DISPUTE_HEARING_FAMILY && dealEscrowOps.isSuite(deal)) await maybeRemindStatements(deal, now);
       await runV3DisputeSafely(deal, now);
     } else if (!(await maybeApplyDeadlineRule(deal, now))) {
       await maybeRemindStatements(deal, now);
