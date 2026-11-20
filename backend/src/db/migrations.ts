@@ -1758,6 +1758,14 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX word_map_suggestions_v1_open_idx ON word_map_suggestions_v1 (count DESC, last_seen DESC) WHERE status = 'open';
     `,
   },
+  {
+    version: 73,
+    name: 'entries_and_offers_by_seller',
+    sql: `
+      CREATE INDEX contest_entries_seller ON contest_entries (lower(data->>'seller'));
+      CREATE INDEX work_offers_seller ON work_offers (lower(data->>'seller'));
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

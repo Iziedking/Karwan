@@ -57,7 +57,7 @@ import { isSessionSelf, readSession, sessionAddress } from '../auth/session.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { publicListing } from '../marketplace/publicListing.js';
-import { marketPage } from '../marketplace/marketPage.js';
+import { MARKET_ORDERS, marketPage } from '../marketplace/marketPage.js';
 import type { MatchingShadowObserver } from '../matching/shadow.js';
 import type { MatchingAuditTelemetry } from '../matching/audit.js';
 import { buildListingMatchingShadowObservation } from '../matching/listingProjection.js';
@@ -73,6 +73,8 @@ const marketPageQuery = z.object({
   scope: z.enum(['all', 'business']).optional(),
   limit: z.coerce.number().int().min(1).optional(),
   offset: z.coerce.number().int().min(0).optional(),
+  since: z.coerce.number().int().min(0).optional(),
+  order: z.enum(MARKET_ORDERS).optional(),
 });
 
 const termLine = z.string().trim().max(160);

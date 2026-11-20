@@ -57,7 +57,9 @@ export function createWorkRequestRoutes(deps: WorkRequestRouteDeps) {
   app.get('/mine', async (c) => {
     const me = who(c);
     if (!me) return c.json({ error: 'not authenticated' }, 401);
-    return c.json({ requests: await deps.core.mine(me) });
+    const [posted, offered] = await Promise.all([deps.core.mine(me), deps.core.offered(me)]);
+    // `requests` is the old name for `posted`, kept until the website reads `posted` (view 96).
+    return c.json({ posted, offered, requests: posted });
   });
 
   app.post('/', async (c) => {

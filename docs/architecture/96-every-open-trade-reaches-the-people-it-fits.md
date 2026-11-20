@@ -80,13 +80,13 @@ Finding who an open trade fits, writing the note, and the market filter are one 
 
 ## Decisions
 
-1. **One path for every kind of open trade**: find who it fits, then the agent tells them. Proposed.
-2. **Contests are told, never entered, by an agent.** Proposed.
-3. **One reminder before a contest closes**, only to people told who have not entered. Proposed.
-4. **News of an offer that fits nothing you asked for stops being an alert** and moves to the brief and the market. Proposed.
-5. **A pass on something that fits you is said, once**, and rolled into the brief past a few a day. Proposed.
-6. **The market filter is by time listed, with three orders**, and lives in the address. Proposed.
+1. **One path for every kind of open trade**: find who it fits, then the agent tells them. Owner, 20 Nov 2026.
+2. **Contests are told, never entered, by an agent.** Owner, 20 Nov 2026.
+3. **One reminder before a contest closes**, only to people told who have not entered. Owner, 20 Nov 2026.
+4. **News of an offer that fits nothing you asked for stops being an alert** and moves to the brief and the market. Owner, 20 Nov 2026.
+5. **A pass on something that fits you is said, once**, and rolled into the brief past a few a day. Owner, 20 Nov 2026.
+6. **The market filter is by time listed, with three orders**, and lives in the address. Owner, 20 Nov 2026.
 
 ## Status
 
-Proposed on 20 Nov 2026, waiting for the owner.
+Approved by the owner on 20 Nov 2026. Spec next.

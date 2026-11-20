@@ -84,8 +84,10 @@ export function createContestRoutes(deps: ContestRouteDeps) {
   app.get('/mine', async (c) => {
     const s = deps.session(c);
     if (!s) return c.json({ error: 'not authenticated' }, 401);
-    const posted = await deps.store.list({ buyer: s.address });
-    return c.json({ contests: await Promise.all(posted.map(async (x) => publicView(x, await deps.store.entries(x.id)))) });
+    const view = (list: Contest[]) => Promise.all(list.map(async (x) => publicView(x, await deps.store.entries(x.id))));
+    const [posted, entered] = await Promise.all([deps.store.list({ buyer: s.address }).then(view), deps.store.enteredBy(s.address).then(view)]);
+    // `contests` is the old name for `posted`, kept until the website reads `posted` (view 96).
+    return c.json({ posted, entered, contests: posted });
   });
 
   app.post('/draft', async (c) => {

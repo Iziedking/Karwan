@@ -12,6 +12,7 @@ export interface OfferRow {
   description: string;
   askingPriceUsdc: number;
   postedAt: number;
+  expiresAt?: number;
   readyInDays?: number;
   deliveryKind?: DeliveryKind;
   sellerLocation?: PrivateLocation | null;
@@ -40,6 +41,10 @@ export interface MarketQuery {
   near?: PrivateLocation | null;
   /// Where the caller wants offers from. Missing means anywhere.
   where?: Where;
+  /// Only what was listed at or after this time (view 96).
+  since?: number;
+  /// An order the person asked for; without one, best fit comes first.
+  order?: 'newest' | 'oldest' | 'closing';
 }
 
 export type MarketHit =
@@ -88,6 +93,7 @@ export function searchMarket(q: MarketQuery, offers: OfferRow[], requests: Reque
     for (const o of offers) {
       if (exclude && o.sellerUser.toLowerCase() === exclude) continue;
       if (q.maxPriceUsdc !== undefined && o.askingPriceUsdc > q.maxPriceUsdc) continue;
+      if (q.since !== undefined && o.postedAt < q.since) continue;
       const kind = kindOf(o);
       if (q.near && servesCountry(o.sellerLocation ?? null, q.near.country, kind) === 'no') continue;
       const s = score(terms, o.title, o.description);
@@ -99,6 +105,7 @@ export function searchMarket(q: MarketQuery, offers: OfferRow[], requests: Reque
     for (const r of requests) {
       const budget = Number(r.budgetUsdc);
       if (q.maxPriceUsdc !== undefined && budget > q.maxPriceUsdc) continue;
+      if (q.since !== undefined && r.postedAt < q.since) continue;
       const kind = kindOf(r);
       if (q.near && servesCountry(q.near, r.buyerLocation?.country ?? null, kind) === 'no') continue;
       const s = score(terms, firstLine(r.briefText), r.briefText);
@@ -107,6 +114,10 @@ export function searchMarket(q: MarketQuery, offers: OfferRow[], requests: Reque
     }
   }
   const posted = (h: MarketHit) => (h.kind === 'offer' ? offers.find((o) => o.id === h.id)?.postedAt : requests.find((r) => r.jobId === h.jobId)?.postedAt) ?? 0;
+  const closes = (h: MarketHit) => (h.kind === 'offer' ? offers.find((o) => o.id === h.id)?.expiresAt : h.dueUnix * 1000) ?? Number.MAX_SAFE_INTEGER;
+  if (q.order === 'oldest') return hits.sort((a, b) => posted(a) - posted(b)).slice(0, limit);
+  if (q.order === 'newest') return hits.sort((a, b) => posted(b) - posted(a)).slice(0, limit);
+  if (q.order === 'closing') return hits.sort((a, b) => closes(a) - closes(b) || posted(b) - posted(a)).slice(0, limit);
   // Skill fit first, then location fit, then the newest.
   return hits.sort((a, b) => b.score - a.score || b.fit - a.fit || posted(b) - posted(a)).slice(0, limit);
 }

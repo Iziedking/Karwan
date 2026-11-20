@@ -61,6 +61,8 @@ export interface WorkRequestsStore {
   offers(requestId: string): Promise<WorkOffer[]>;
   offer(id: string): Promise<WorkOffer | null>;
   liveOfferBy(requestId: string, seller: string): Promise<WorkOffer | null>;
+  /// Open work this person has a live offer on, newest first (view 96).
+  offeredBy(seller: string): Promise<WorkRequest[]>;
   createOffer(o: WorkOffer): Promise<void>;
   patchOffer(id: string, patch: Partial<WorkOffer>): Promise<WorkOffer | null>;
 }
@@ -108,6 +110,10 @@ export function memoryWorkRequestsStore(): WorkRequestsStore {
     async liveOfferBy(requestId, seller) {
       const o = [...offers.values()].find((x) => x.requestId === requestId && lower(x.seller) === lower(seller) && x.status === 'live');
       return o ? copy(o) : null;
+    },
+    async offeredBy(seller) {
+      const ids = new Set([...offers.values()].filter((o) => lower(o.seller) === lower(seller) && o.status === 'live').map((o) => o.requestId));
+      return newest([...reqs.values()].filter((r) => ids.has(r.id) && r.status === 'open')).map(copy);
     },
     async createOffer(o) {
       offers.set(o.id, copy(o));
@@ -162,6 +168,18 @@ export function postgresWorkRequestsStore(): WorkRequestsStore {
     },
     async offer(id) {
       return one<WorkOffer>((await q().query('SELECT data FROM work_offers WHERE id = $1', [id])).rows as never);
+    },
+    async offeredBy(seller) {
+      const res = await q().query(
+        `SELECT r.data FROM work_requests r
+         WHERE r.data->>'status' = 'open' AND EXISTS (
+           SELECT 1 FROM work_offers o
+           WHERE o.request_id = r.id AND lower(o.data->>'seller') = lower($1) AND o.data->>'status' = 'live'
+         )
+         ORDER BY (r.data->>'createdAt')::bigint DESC LIMIT 100`,
+        [seller],
+      );
+      return res.rows.map((x) => x.data as WorkRequest);
     },
     async liveOfferBy(requestId, seller) {
       const res = await q().query(

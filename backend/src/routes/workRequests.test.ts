@@ -67,3 +67,22 @@ test('a refusal is worded, and an unknown id is a 404', async () => {
   assert.match(((await bad.json()) as { error: string }).error, /what the work is/);
   assert.equal((await call('GET', '/wr_nope')).status, 404);
 });
+
+test('your work: what you posted and what you offered on; a withdrawn offer drops it (view 96)', async () => {
+  const { call, as } = setup();
+  const r = (await (await call('POST', '/', post)).json()) as { request: { id: string } };
+  as(ADA);
+  assert.equal((await call('POST', `/${r.request.id}/offers`, { rateUsdc: '9' })).status, 200);
+  const seller = (await (await call('GET', '/mine')).json()) as { posted: unknown[]; offered: Array<{ id: string }> };
+  assert.deepEqual(seller.posted, []);
+  assert.deepEqual(seller.offered.map((x) => x.id), [r.request.id]);
+  as(HIRER);
+  const hirer = (await (await call('GET', '/mine')).json()) as { posted: Array<{ id: string }>; offered: unknown[]; requests: Array<{ id: string }> };
+  assert.deepEqual(hirer.posted.map((x) => x.id), [r.request.id]);
+  assert.deepEqual(hirer.requests.map((x) => x.id), [r.request.id], 'the old field stays until the website moves');
+  assert.deepEqual(hirer.offered, []);
+  as(ADA);
+  assert.equal((await call('POST', `/${r.request.id}/offers/withdraw`)).status, 200);
+  const after = (await (await call('GET', '/mine')).json()) as { offered: unknown[] };
+  assert.deepEqual(after.offered, []);
+});

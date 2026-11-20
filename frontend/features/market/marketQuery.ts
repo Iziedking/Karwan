@@ -1,5 +1,6 @@
 import type { DiscoveryScope } from '../discovery/model';
 import { CATEGORY_IDS, type CategoryId } from './marketModel';
+import { LISTED, MARKET_ORDERS, type Listed, type MarketOrder } from './listedWindow';
 
 /// The one market (view 17) has two views, Find and Your trades, and keeps
 /// both in the address so a shared or redirected link opens the right one.
@@ -25,6 +26,8 @@ export function parseMarketQuery(params: URLSearchParams): {
   side: MarketSide;
   category: CategoryId | 'all';
   q: string;
+  listed: Listed;
+  order: MarketOrder;
 } {
   return {
     view: pick(params.get('view'), VIEWS, 'find'),
@@ -33,16 +36,20 @@ export function parseMarketQuery(params: URLSearchParams): {
     side: pick(params.get('side'), SIDES, 'buy'),
     category: pick<CategoryId | 'all'>(params.get('category'), CATEGORY_IDS, 'all'),
     q: (params.get('q') ?? '').trim().slice(0, SEARCH_LIMIT),
+    listed: pick(params.get('listed'), LISTED, 'any'),
+    order: pick(params.get('order'), MARKET_ORDERS, 'newest'),
   };
 }
 
 /// The address of one Find view, leaving defaults out.
-export function marketHref({ side, category, q, scope = 'all' }: { side: MarketSide; category: CategoryId | 'all'; q: string; scope?: DiscoveryScope }): string {
+export function marketHref({ side, category, q, scope = 'all', listed = 'any', order = 'newest' }: { side: MarketSide; category: CategoryId | 'all'; q: string; scope?: DiscoveryScope; listed?: Listed; order?: MarketOrder }): string {
   const params = new URLSearchParams();
   if (scope !== 'all') params.set('scope', scope);
   if (side === 'sell') params.set('side', 'sell');
   if (category !== 'all') params.set('category', category);
   if (q.trim()) params.set('q', q.trim());
+  if (listed !== 'any') params.set('listed', listed);
+  if (order !== 'newest') params.set('order', order);
   const query = params.toString();
   return query ? `/market?${query}` : '/market';
 }

@@ -78,3 +78,20 @@ test('without a location the order is as before', () => {
   const withNear = searchMarket({ query: 'logo', kind: 'offers', near: buyer, limit: 10 }, offers, []);
   assert.deepEqual(withNear.map((h) => (h.kind === 'offer' ? h.id : '')), plain.map((h) => (h.kind === 'offer' ? h.id : '')));
 });
+
+test('since leaves out what was listed before it, on both sides (view 96)', () => {
+  const hits = searchMarket({ query: '', kind: 'both', since: 3 }, offers, requests);
+  assert.deepEqual(hits.map((h) => (h.kind === 'offer' ? h.id : h.jobId)).sort(), ['0xj1', '0xj2', 'l3']);
+});
+
+test('oldest first and closing soonest change the order once the words match', () => {
+  const oldest = searchMarket({ query: '', kind: 'offers', order: 'oldest' }, offers, requests);
+  assert.deepEqual(oldest.map((h) => (h.kind === 'offer' ? h.id : '')), ['l1', 'l2', 'l3']);
+  const dated = [
+    { ...offers[0]!, expiresAt: 9_000 },
+    { ...offers[1]!, expiresAt: 5_000 },
+    { ...offers[2]! },
+  ];
+  const closing = searchMarket({ query: '', kind: 'offers', order: 'closing' }, dated, requests);
+  assert.deepEqual(closing.map((h) => (h.kind === 'offer' ? h.id : '')), ['l2', 'l1', 'l3']);
+});

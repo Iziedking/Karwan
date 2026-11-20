@@ -1010,6 +1010,46 @@ export type AmountBand = 'under_100' | '100_500' | '500_2000' | '2000_10000' | '
 export type AttestationBand = 'under-100' | '100-1k' | '1k-10k' | '10k-100k' | 'over-100k';
 
 /// How a settled deal's work was confirmed (statement version 2, view 94).
+/// How one stage of a finished deal was confirmed, in its signed record (view 94).
+export type DealRecordWay =
+  | 'buyer_confirmed' | 'handover_code' | 'buyer_silent' | 'dispute'
+  | 'review_window' | 'cancelled_by_both' | 'refunded' | 'not_recorded';
+
+export interface DealRecordStageView {
+  index: number;
+  confirmed: { way: DealRecordWay; at: number | null; decidedBy?: 'finding' | 'panel' | 'agreed' | 'arbiter' };
+  released: { sellerUsdc: string | null; refundUsdc: string; feeUsdc: string | null; at: number; tx: string | null; reference: string | null } | null;
+}
+
+/// The record as either side and a shared link read it. The shared copy has no
+/// addresses and no deal id.
+export interface DealRecordView {
+  reference: string;
+  kind: string;
+  agreed: { digest: string | null; buyerAt: number | null; sellerAt: number | null; title: string; priceUsdc: string };
+  held: { usdc: string; at: number | null; tx: string | null; reference: string | null } | null;
+  stages: DealRecordStageView[];
+  ended: 'settled' | 'refunded' | 'cancelled' | 'resolved';
+  endedAt: number;
+}
+
+export interface OwnDealRecord {
+  side: 'buyer' | 'seller';
+  record: DealRecordView;
+  writtenAt: number;
+  /// This side's live share token, if any.
+  share: string | null;
+}
+
+export interface SharedDealRecord {
+  sharedBy: 'buyer' | 'seller';
+  buyer: { name: string | null; tag: string | null };
+  seller: { name: string | null; tag: string | null };
+  record: DealRecordView;
+  writtenAt: number;
+  signedByKarwan: boolean;
+}
+
 export type AttestationConfirmedBy = 'buyer_confirmed' | 'handover_code' | 'buyer_silent' | 'dispute' | 'review_window' | 'not_recorded';
 
 export interface AttestedDeal {
@@ -4000,8 +4040,10 @@ export const api = {
     ),
   listings: () => json<{ listings: Listing[] }>('/api/listings'),
   /// One page of the market's Buy side, narrowed and searched on the server.
-  marketOffers: (f: { q: string; category: string; scope: string; limit: number }) => {
+  marketOffers: (f: { q: string; category: string; scope: string; limit: number; since?: number | null; order?: string }) => {
     const query = new URLSearchParams({ limit: String(f.limit) });
+    if (f.since) query.set('since', String(f.since));
+    if (f.order && f.order !== 'newest') query.set('order', f.order);
     if (f.q.trim()) query.set('q', f.q.trim());
     if (f.category !== 'all') query.set('category', f.category);
     if (f.scope === 'business') query.set('scope', 'business');
@@ -4025,6 +4067,13 @@ export const api = {
   /// Makes or returns this side's link to a finished deal's record (view 94).
   shareDealRecord: (jobId: string) =>
     json<{ token: string; link: string }>(`/api/deals/${jobId}/record/share`, { method: 'POST', body: '{}' }),
+  /// A finished deal's signed record, for either side (404 until it is written).
+  dealRecord: (jobId: string) => json<OwnDealRecord>(`/api/deals/${jobId}/record`),
+  /// Takes this side's share link back.
+  stopSharingDealRecord: (jobId: string) =>
+    json<{ stopped: boolean }>(`/api/deals/${jobId}/record/share`, { method: 'DELETE' }),
+  /// The record a shared link opens, for anyone, signed in or not.
+  sharedDealRecord: (token: string) => json<SharedDealRecord>(`/api/deal-records/shared/${encodeURIComponent(token)}`),
   cancelListing: (id: string, caller: string) =>
     json<{ listing: Listing }>(`/api/listings/${id}/cancel`, {
       method: 'POST',

@@ -157,3 +157,21 @@ test('a contest on the first escrow cannot have entries marked', async () => {
   assert.equal(r.status, 409);
   assert.equal(((await r.json()) as { code: string }).code, 'OLD_RULE');
 });
+
+test('your contests: what you posted and what you entered, nobody else sees either (view 96)', async () => {
+  const { call, as, id } = await contestWithEntry();
+  as(BUYER);
+  const buyer = (await (await call('GET', '/mine')).json()) as { posted: Array<{ id: string }>; entered: unknown[]; contests: Array<{ id: string }> };
+  assert.deepEqual(buyer.posted.map((c) => c.id), [id]);
+  assert.deepEqual(buyer.contests.map((c) => c.id), [id], 'the old field stays until the website moves');
+  assert.deepEqual(buyer.entered, []);
+  as(S1);
+  const entrant = (await (await call('GET', '/mine')).json()) as { posted: unknown[]; entered: Array<{ id: string }> };
+  assert.deepEqual(entrant.posted, []);
+  assert.deepEqual(entrant.entered.map((c) => c.id), [id]);
+  as('0x9999999999999999999999999999999999999999');
+  const stranger = (await (await call('GET', '/mine')).json()) as { posted: unknown[]; entered: unknown[] };
+  assert.deepEqual([stranger.posted, stranger.entered], [[], []]);
+  as(null);
+  assert.equal((await call('GET', '/mine')).status, 401);
+});

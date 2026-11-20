@@ -7,7 +7,7 @@ import { marketHref, marketViewHref, parseMarketQuery, YOUR_TRADES_HREF } from '
 ///
 ///   npx tsx --test features/market/marketQuery.test.ts
 
-const OPEN = { side: 'buy', category: 'all', q: '' } as const;
+const OPEN = { side: 'buy', category: 'all', q: '', listed: 'any', order: 'newest' } as const;
 
 test('the market opens on Find with no filter', () => {
   assert.deepEqual(parseMarketQuery(new URLSearchParams('')), { view: 'find', scope: 'all', list: 'all', ...OPEN });
@@ -45,5 +45,13 @@ test('not-found states send people to their own trades', () => {
   const query={side:'buy' as const,category:'all' as const,q:'logo',scope:'services' as const};
   const href=marketHref(query);
   assert.equal(href,'/market?scope=services&q=logo');
-  assert.deepEqual(parseMarketQuery(new URLSearchParams(href.split('?')[1])),{...query,view:'find',list:'all'});
+  assert.deepEqual(parseMarketQuery(new URLSearchParams(href.split('?')[1])),{...query,view:'find',list:'all',listed:'any',order:'newest'});
  });
+
+test('when it was listed and the order live in the address, defaults left out (view 96)', () => {
+  const q = parseMarketQuery(new URLSearchParams('side=sell&listed=today&order=closing'));
+  assert.deepEqual({ listed: q.listed, order: q.order }, { listed: 'today', order: 'closing' });
+  assert.deepEqual(parseMarketQuery(new URLSearchParams('listed=yesterday&order=random')), { view: 'find', scope: 'all', list: 'all', ...OPEN });
+  assert.equal(marketHref({ side: 'sell', category: 'all', q: '', listed: 'today', order: 'closing' }), '/market?side=sell&listed=today&order=closing');
+  assert.equal(marketHref({ side: 'buy', category: 'all', q: '', listed: 'any', order: 'newest' }), '/market');
+});

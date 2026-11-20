@@ -265,7 +265,12 @@ export function createWorkRequests(p: WorkRequestPorts) {
     return (await p.store.listBy(hirer)).map(publicOf);
   }
 
-  return { post, offer, withdraw, hireCard, hire, close, expireDue, listOpen, view, mine };
+  /// Open work the person has a live offer on (view 96).
+  async function offered(seller: Address) {
+    return (await p.store.offeredBy(seller)).map(publicOf);
+  }
+
+  return { post, offer, withdraw, hireCard, hire, close, expireDue, listOpen, view, mine, offered };
 }
 
 export type WorkRequests = ReturnType<typeof createWorkRequests>;

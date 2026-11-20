@@ -6,6 +6,7 @@ import { api, type MarketplaceBrief } from '@/core/api';
 import { buildDiscoveryCards, type DiscoveryCard, type DiscoveryScope } from '@/features/discovery/model';
 import { useAuth } from '@/shared/hooks/useAuth';
 import type { CategoryId } from './marketModel';
+import { sinceFor, viewerTimeZone, type Listed, type MarketOrder } from './listedWindow';
 
 export type MarketSource = 'offers' | 'requests';
 
@@ -16,7 +17,7 @@ const SEARCH_PAUSE_MS = 250;
 /// page shows, narrowed and searched there, every 30 seconds. While a new page
 /// loads the last one stays on screen, and a page saved from the last visit
 /// paints at once. `total` is how many matched in all.
-export function useMarketOffers(f: { q: string; category: CategoryId | 'all'; scope: DiscoveryScope; limit: number }): {
+export function useMarketOffers(f: { q: string; category: CategoryId | 'all'; scope: DiscoveryScope; limit: number; listed?: Listed; order?: MarketOrder }): {
   cards: DiscoveryCard[];
   total: number | null;
   loading: boolean;
@@ -26,9 +27,13 @@ export function useMarketOffers(f: { q: string; category: CategoryId | 'all'; sc
 } {
   const { address } = useAuth();
   const q = useSettled(f.q.trim(), SEARCH_PAUSE_MS);
+  // Counted to the minute, so the page asks again at most once a minute for "last hour".
+  const minute = Math.floor(Date.now() / 60_000) * 60_000;
+  const since = f.listed ? sinceFor(f.listed, minute, viewerTimeZone()) : null;
+  const order = f.order ?? 'newest';
   const query = useQuery({
-    queryKey: ['market', 'offers', { q, category: f.category, scope: f.scope, limit: f.limit }],
-    queryFn: () => api.marketOffers({ q, category: f.category, scope: f.scope, limit: f.limit }),
+    queryKey: ['market', 'offers', { q, category: f.category, scope: f.scope, limit: f.limit, since, order }],
+    queryFn: () => api.marketOffers({ q, category: f.category, scope: f.scope, limit: f.limit, since, order }),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
     refetchInterval: REFRESH_MS,

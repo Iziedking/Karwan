@@ -76,6 +76,8 @@ export interface ContestsStore {
   entries(contestId: string): Promise<ContestEntry[]>;
   entry(id: string): Promise<ContestEntry | null>;
   liveEntryBy(contestId: string, seller: string): Promise<ContestEntry | null>;
+  /// Contests this person entered and whose entry still stands, newest first (view 96).
+  enteredBy(seller: string): Promise<Contest[]>;
   createEntry(e: ContestEntry): Promise<void>;
   patchEntry(id: string, patch: Partial<ContestEntry>): Promise<ContestEntry | null>;
 }
@@ -122,6 +124,10 @@ export function memoryContestsStore(): ContestsStore {
     async liveEntryBy(contestId, seller) {
       const e = [...entries.values()].find((x) => x.contestId === contestId && lower(x.seller) === lower(seller) && LIVE.includes(x.status));
       return e ? copy(e) : null;
+    },
+    async enteredBy(seller) {
+      const ids = new Set([...entries.values()].filter((e) => lower(e.seller) === lower(seller) && LIVE.includes(e.status)).map((e) => e.contestId));
+      return [...contests.values()].filter((c) => ids.has(c.id)).sort((a, b) => b.createdAt - a.createdAt).map(copy);
     },
     async createEntry(e) {
       entries.set(e.id, copy(e));
@@ -177,6 +183,18 @@ export function postgresContestsStore(): ContestsStore {
     },
     async entry(id) {
       return one<ContestEntry>((await q().query('SELECT data FROM contest_entries WHERE id = $1', [id])).rows as never);
+    },
+    async enteredBy(seller) {
+      const res = await q().query(
+        `SELECT c.data FROM contests c
+         WHERE EXISTS (
+           SELECT 1 FROM contest_entries e
+           WHERE e.contest_id = c.id AND lower(e.data->>'seller') = lower($1) AND e.data->>'status' = ANY($2)
+         )
+         ORDER BY (c.data->>'createdAt')::bigint DESC LIMIT 100`,
+        [seller, LIVE],
+      );
+      return res.rows.map((r) => r.data as Contest);
     },
     async liveEntryBy(contestId, seller) {
       const res = await q().query(

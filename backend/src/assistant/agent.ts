@@ -187,6 +187,11 @@ import { logger } from '../logger.js';
 import { bridgeSourceHolders } from './bridgeInventory.js';
 import { readDepositAddresses } from '../money/depositAddresses.js';
 import { searchMarket } from './marketSearch.js';
+import { LISTED, sinceFor } from '../marketplace/listedWindow.js';
+import { contestsStore } from '../db/contests.js';
+import { workRequestsStore } from '../db/workRequests.js';
+import { engagementsStore } from '../db/engagements.js';
+import { contestLines, workLines } from './openTrades.js';
 import { publicRequests } from '../market/publicRequests.js';
 import { listOpenListings } from '../db/listings.js';
 import { getMarketplaceBriefs } from '../agents/buyer.js';
@@ -818,7 +823,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     get_my_market_activity: tool({
       description:
-        "Everything the signed-in user has live on the market: their posted OFFERS (listings they sell, with status), their posted REQUESTS (buyer-desk auctions, with how many bids came in), and the bids their seller agent is actively negotiating on other people's requests. Use for 'what have I posted', 'any bids on my request', 'what is my agent bidding on', 'is my offer still live'.",
+        "Everything the signed-in user has live on the market: their posted OFFERS (listings they sell, with status), their posted REQUESTS (buyer-desk auctions, with how many bids came in), the bids their seller agent is actively negotiating on other people's requests, their CONTESTS (open ones they posted and ones they entered, with whether each is decided) and their hourly or monthly WORK (posted, offered on, and under way as hirer or worker). The same five things Your trades counts. Use for 'what do I have open', 'what have I posted', 'any bids on my request', 'what is my agent bidding on', 'is my offer still live', 'my contests', 'my work'.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
@@ -855,12 +860,24 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
                 finalized: b.finalized,
               }))
             : [];
+          const [postedContests, enteredContests, postedWork, offeredWork, engagements] = await Promise.all([
+            contestsStore.list({ buyer: address }).catch(() => []),
+            contestsStore.enteredBy(address).catch(() => []),
+            workRequestsStore.listBy(address).catch(() => []),
+            workRequestsStore.offeredBy(address).catch(() => []),
+            engagementsStore.listFor(address).catch(() => []),
+          ]);
+          const contests = contestLines(postedContests, enteredContests);
+          const work = workLines(postedWork, offeredWork, engagements, address);
+          const more = contests.posted.length + contests.entered.length + work.posted.length + work.offered.length + work.underWay.length;
           return {
             offers,
             requests,
             sellerAgentActiveBids: activeBids,
+            contests,
+            work,
             note:
-              offers.length + requests.length + activeBids.length === 0
+              offers.length + requests.length + activeBids.length + more === 0
                 ? 'Nothing live on the market right now. They can post an offer or a request — you can prepare either with the propose tools.'
                 : 'Offers are what they sell; requests are buyer-desk auctions their buyer agent runs; active bids are negotiations their seller agent is in on other buyers’ requests.',
           };
@@ -2005,8 +2022,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         query: z.string().max(200).optional().describe('What they are looking for, in their words.'),
         kind: z.enum(['offers', 'requests', 'both']).describe('offers = sellers to buy from; requests = buyers to sell to.'),
         maxPriceUsdc: z.number().positive().max(10_000_000).optional(),
+        listed: z.enum(LISTED).optional().describe('When it was listed: 1h (last hour), today, week (last 7 days) or month (last 30 days). "Posted today" is today.'),
+        order: z.enum(['newest', 'oldest', 'closing']).optional().describe('Only when they ask for an order: newest first, oldest first, or closing soonest. Without it, best fit comes first.'),
       }),
-      execute: async ({ query, kind, maxPriceUsdc }) => {
+      execute: async ({ query, kind, maxPriceUsdc, listed, order }) => {
         // A trade Karwan does not support is refused, not searched for.
         const refused = prohibitedReason(query);
         if (refused) return { refused: true, category: refused.category, message: refused.message, next: 'Tell the user this plainly in one or two sentences and do not suggest other places to get it.' };
@@ -2018,7 +2037,9 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           const stateOf = new Map(placed.map((r) => [r.jobId, r.state]));
           const requests = await withBuyerLocations(placed.map(({ bids: _b, chosenSeller: _c, ...r }) => r));
           const near = await locationOf(address);
-          const ranked = searchMarket({ query, kind, maxPriceUsdc, excludeSeller: address, limit: 10, near }, offers, requests);
+          const timeZone = await getAgentRecord(address).then((r) => r.brief?.timeZone).catch(() => undefined) ?? 'Africa/Lagos';
+          const since = listed ? sinceFor(listed, now, timeZone) ?? undefined : undefined;
+          const ranked = searchMarket({ query, kind, maxPriceUsdc, excludeSeller: address, limit: 10, near, since, order }, offers, requests);
           const results: Array<Record<string, unknown>> = [];
           for (const hit of ranked) {
             if (results.length >= 5) break;
