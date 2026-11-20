@@ -170,5 +170,5 @@ The owner's direction, to be designed in its own view before anything is built.
 |---|---|
 | This view | Approved by the owner, 18 Nov 2026, with the five decisions above |
 | First part, on escrow family deals: both sides heard, a person confirms the finding, 72 hours to ask for people, the problem card | Built, not switched on. Proven on an Arc fork with a full payment and a 60% share |
-| Two signatures on every ruling, no server key among them | Found 20 Nov 2026 on Arc Testnet: the review Safe needed one signature and the operator key owned it and the senior Safe. Change prepared and dry-run; the owner signs it |
+| Two signatures on every ruling, no server key among them | Done on Arc Testnet, 20 Nov 2026. The review Safe had needed one signature, and the operator key owned it and the senior Safe. Both are now 2 of 3, owned by people's own wallets |
 | The reviewers' body | To be designed in its own view |
