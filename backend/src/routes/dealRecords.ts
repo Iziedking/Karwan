@@ -5,6 +5,8 @@ import { getDealRecord, makeShare, recordByToken, revokeShare, shareFor, type Si
 import { getDeal } from '../db/deals.js';
 import { getProfile } from '../db/profiles.js';
 import { rateLimit } from '../middleware/rateLimit.js';
+import { ARC } from '../chain/client.js';
+import { config } from '../config.js';
 
 /// Your deal record (view 94). The two sides read it and the signature; either
 /// side shares it by a link it can take back. Someone who is not a side, or a
@@ -37,7 +39,9 @@ dealRecordRoutes.post('/:jobId/record/share', async (c) => {
   c.header('Cache-Control', 'no-store');
   const who = await sideOf(c);
   if (!who || !(await getDealRecord(who.jobId))) return notFound(c);
-  return c.json({ token: await makeShare(who.jobId, who.side) });
+  const token = await makeShare(who.jobId, who.side);
+  const base = (config.FRONTEND_BASE_URL ?? (ARC.testnet ? 'https://testnet.karwan.site' : 'https://karwan.site')).replace(/\/$/, '');
+  return c.json({ token, link: `${base}/deal-record/${token}` });
 });
 
 dealRecordRoutes.delete('/:jobId/record/share', async (c) => {

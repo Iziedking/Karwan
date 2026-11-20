@@ -2261,6 +2261,7 @@ export interface AssistantConfirmAction {
     | 'mark_delivered'
     | 'cancel_request'
     | 'cancel_listing'
+    | 'share_deal_record'
     | 'save_setup'
     | 'save_ways'
     | 'change_mandate'
@@ -4011,6 +4012,9 @@ export const api = {
       status: ListingStatus;
     }>(`/api/listings/${id}${q}`);
   },
+  /// Makes or returns this side's link to a finished deal's record (view 94).
+  shareDealRecord: (jobId: string) =>
+    json<{ token: string; link: string }>(`/api/deals/${jobId}/record/share`, { method: 'POST', body: '{}' }),
   cancelListing: (id: string, caller: string) =>
     json<{ listing: Listing }>(`/api/listings/${id}/cancel`, {
       method: 'POST',

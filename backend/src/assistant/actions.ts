@@ -180,6 +180,11 @@ export interface CancelListingPayload {
   caller: string;
 }
 
+export interface ShareDealRecordPayload {
+  jobId: string;
+  caller: string;
+}
+
 /// Claiming yield moves the user's identity wallet, which web3 users hold
 /// themselves, so the tool gates on `method` before building the card.
 export interface ClaimYieldPayload {
@@ -329,6 +334,10 @@ export interface CancelListingConfirm extends ConfirmActionBase {
   intent: 'cancel_listing';
   payload: CancelListingPayload;
 }
+export interface ShareDealRecordConfirm extends ConfirmActionBase {
+  intent: 'share_deal_record';
+  payload: ShareDealRecordPayload;
+}
 export interface ClaimYieldConfirm extends ConfirmActionBase {
   intent: 'claim_yield';
   payload: ClaimYieldPayload;
@@ -424,6 +433,7 @@ export type ConfirmAction =
   | MarkDeliveredConfirm
   | CancelRequestConfirm
   | CancelListingConfirm
+  | ShareDealRecordConfirm
   | GuaranteePutUpConfirm
   | ClaimYieldConfirm
   | FundAgentConfirm
@@ -1277,6 +1287,22 @@ export function buildCancelListingConfirm(i: {
     payload: { listingId: i.listingId, caller: i.caller },
     confirmLabel: 'Take it down',
     cancelLabel: 'Leave it up',
+  };
+}
+
+/// Share a finished deal's signed record by a link (view 94). Whoever gets the
+/// link reads it with names and Karwan tags, never wallet addresses.
+export function buildShareDealRecordConfirm(i: { caller: string; jobId: string; reference: string }): ShareDealRecordConfirm {
+  return {
+    kind: 'confirm',
+    id: `share_deal_record:${i.jobId}:${confirmNonce()}`,
+    intent: 'share_deal_record',
+    title: 'Share this deal record',
+    summary: 'Anyone you send the link to can read the record, by name and Karwan tag, never your wallet address. Stop sharing any time.',
+    fields: [{ label: 'Deal', value: i.reference }],
+    payload: { jobId: i.jobId, caller: i.caller },
+    confirmLabel: 'Make the link',
+    cancelLabel: 'Not now',
   };
 }
 

@@ -711,6 +711,15 @@ async function runConfirmIntent(
       viewLabel: 'Your requests',
     };
   }
+  if (action.intent === 'share_deal_record') {
+    const p = action.payload as { jobId: string };
+    const r = await api.shareDealRecord(p.jobId);
+    return {
+      successText: `Here is the link to send: ${r.link}`,
+      viewHref: `/deal-record/${r.token}`,
+      viewLabel: 'Open the shared record',
+    };
+  }
   if (action.intent === 'cancel_listing') {
     const p = action.payload as { listingId: string; caller: string };
     await api.cancelListing(p.listingId, p.caller);

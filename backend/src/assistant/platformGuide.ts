@@ -254,6 +254,16 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['backend/src/routes/deals.ts', 'frontend/app/deals/[id]/page.tsx'],
   },
   {
+    id: 'deal-record', title: 'Your deal record', status: 'gated', mainnet: 'off', route: '/deals/[id]',
+    pages: ['/deals/[id]'],
+    api: ['GET /api/deals/:jobId/record', 'POST /api/deals/:jobId/record/share', 'DELETE /api/deals/:jobId/record/share', 'GET /api/deal-records/shared/:token'],
+    tools: ['deal_record', 'share_deal_record', 'stop_sharing_deal_record'],
+    keywords: 'deal record proof of the deal what happened signed record share record link evidence history of a deal how was it confirmed handover code buyer silent review time dispute refunded cancelled stop sharing',
+    summary: 'When a deal ends (paid out, refunded or cancelled), Karwan writes one record of it from what the deal already stored, signs it with the same key as its public deal statements, and never changes it. It says what was agreed and when each side agreed, the money held and when, and for each stage how the work was confirmed and what was released: the buyer confirmed it, the handover code was entered at delivery, the buyer did not respond after being asked, a dispute decided it (by the two sides agreeing, by Karwan’s finding, or by a panel of people at Karwan), the review time ended with no release and no problem raised, both sides cancelled, the money went back to the buyer, or not recorded when the deal did not store it. Say "not recorded" plainly; never guess. A record appears within the hour after a deal ends, older deals included. Only the two sides see it. Either side can share it by a link (share_deal_record shows a confirm card first); whoever opens the link sees the record by name and Karwan tag, never a wallet address, with the transactions so they can check the money moved, and whether Karwan’s signature still holds. One live link per side per deal; asking again gives the same link. Stop sharing (stop_sharing_deal_record) ends it at once, and a later share makes a new link. Read it with deal_record by the deal reference, in the person’s own words.',
+    steps: ['Ask the assistant for the record of a deal by its reference, such as D68F-E7D8.', 'To show it to someone, ask to share it, confirm the card and send the link.', 'Ask to stop sharing when they no longer need it.'],
+    sources: ['backend/src/deals/dealRecord.ts', 'backend/src/routes/dealRecords.ts', 'backend/src/assistant/dealRecordTools.ts'],
+  },
+  {
     id: 'recovery', title: 'Disputes and recovery', status: 'testnet', mainnet: 'off', route: '/docs/disputes',
     pages: ['/docs/disputes', '/deals/[id]', '/legacy'],
     api: ['POST /api/deals/direct/:jobId/dispute/escalate', 'POST /api/deals/direct/:jobId/cancel/propose', 'POST /api/deals/direct/:jobId/cancel/accept', 'POST /api/deals/direct/:jobId/cancel/decline', 'POST /api/deals/direct/:jobId/dispute/statement', 'POST /api/deals/direct/:jobId/appeal'],

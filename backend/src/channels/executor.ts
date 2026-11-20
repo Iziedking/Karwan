@@ -88,6 +88,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   }),
   cancel_request: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/cancel`, body: { caller: p.caller } }),
   cancel_listing: (p) => ({ method: 'POST', path: `/api/listings/${p.listingId}/cancel`, body: { caller: p.caller } }),
+  share_deal_record: (p) => ({ method: 'POST', path: `/api/deals/${p.jobId}/record/share`, body: {} }),
   claim_yield: (p) => ({ method: 'POST', path: '/api/yield/claim', body: { address: p.address } }),
   // Deal guarantee on the family vault (view 37).
   guarantee_put_up: (p) => ({ method: 'POST', path: '/api/guarantee/put-up', body: { amountUsdc: p.amountUsdc, requestId: randomUUID() } }),
@@ -521,6 +522,10 @@ function finish(action: ConfirmAction, res: { status: number; json: Record<strin
   if (action.intent === 'change_mandate') {
     const line = (res.json.replan as { line?: unknown } | undefined)?.line;
     return { ok: true, summary: typeof line === 'string' ? line : DONE.change_mandate! };
+  }
+  if (action.intent === 'share_deal_record' && typeof res.json.link === 'string') {
+    return { ok: true, summary: `Here is the link to send: ${res.json.link}
+Whoever opens it sees the record by name and Karwan tag, never your wallet address. Ask me to stop sharing any time.` };
   }
   if (action.intent === 'create_direct_deal' && res.json.agentAccepted === true) {
     return { ok: true, summary: "Ordered. The seller's agent accepted it. Ask me to pay it in when you are ready." };

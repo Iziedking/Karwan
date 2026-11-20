@@ -49,6 +49,14 @@ test('accept_deal without a verifiable agreement does not accept', async () => {
   assert.equal(r.ok, false);
 });
 
+test('share_deal_record makes the link and the reply carries it', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: { token: 'tok', link: 'https://karwan.site/deal-record/tok' } }));
+  const r = await execute({ address: ME }, action('share_deal_record', { jobId: '0xdeal', caller: ME }));
+  assert.deepEqual(calls, [{ method: 'POST', path: '/api/deals/0xdeal/record/share', body: {} }]);
+  assert.equal(r.ok, true);
+  assert.match((r as { summary: string }).summary, /https:\/\/karwan\.site\/deal-record\/tok/);
+});
+
 test('executor rejects a reused nonce', async () => {
   const { execute, calls } = setup(() => ({ status: 200, json: {} }));
   const a = action('cancel_request', { jobId: '0xj', caller: ME }, 'same-id');

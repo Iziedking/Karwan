@@ -84,7 +84,8 @@ test('a side gets the record, its signature and no link yet', async () => {
 });
 
 test('sharing makes one link per side, and the shared copy names people, never addresses', async () => {
-  const made = (await (await dealRecordRoutes.request(`/${JOB}/record/share`, as(SELLER, 'POST'))).json()) as { token: string };
+  const made = (await (await dealRecordRoutes.request(`/${JOB}/record/share`, as(SELLER, 'POST'))).json()) as { token: string; link: string };
+  assert.ok(made.link.endsWith(`/deal-record/${made.token}`));
   const again = (await (await dealRecordRoutes.request(`/${JOB}/record/share`, as(SELLER, 'POST'))).json()) as { token: string };
   assert.equal(again.token, made.token);
   const mine = (await (await dealRecordRoutes.request(`/${JOB}/record`, as(SELLER))).json()) as { share: string | null };

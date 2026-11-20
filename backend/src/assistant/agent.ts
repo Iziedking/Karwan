@@ -115,6 +115,8 @@ import { liveLocationToolDeps, locationTools } from './locationTools.js';
 import { messageTools } from './messageTools.js';
 import { liveMessageToolDeps } from '../messages/live.js';
 import { passportShareTools } from './passportShareTools.js';
+import { dealRecordTools } from './dealRecordTools.js';
+import { getDealRecord, revokeShare, shareFor } from '../db/dealRecords.js';
 import { liveShareDeps } from '../sealed/passportShareLive.js';
 import { stopShare } from '../db/passportShares.js';
 import { ratingTools } from './ratingTools.js';
@@ -3165,6 +3167,13 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
     ...locationTools(address, liveLocationToolDeps),
     ...messageTools(address, liveMessageToolDeps),
     ...passportShareTools(address, { ...liveShareDeps, stop: stopShare }),
+    ...dealRecordTools(address, actions, {
+      deal: getDeal,
+      record: getDealRecord,
+      share: shareFor,
+      stop: (jobId, side) => revokeShare(jobId, side),
+      base: config.FRONTEND_BASE_URL ?? (ARC.testnet ? 'https://testnet.karwan.site' : 'https://karwan.site'),
+    }),
     ...ratingTools(address, liveRatingToolDeps),
     ...counterpartyTools(address, { deals: listDealsForAddress, profile: getProfile }),
     ...dealLinkTools(address, { base: (config.FRONTEND_BASE_URL ?? (ARC.testnet ? 'https://testnet.karwan.site' : 'https://karwan.site')), profile: getProfile }),
