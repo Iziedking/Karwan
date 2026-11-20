@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi';
 import { api, ApiError, type AdminDisputePrepared, type AdminDisputeRow, type DisputeStatementView } from '@/core/api';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '@/features/profile/config';
+import { AdminWalletControl } from '@/features/admin/AdminWalletControl';
 import { pageAccess } from '@/features/admin/adminNavigation';
 import { SavedViews } from '@/features/admin/desk/Chips';
 import { DeskCard, DetailRow } from '@/features/admin/desk/DeskCard';
@@ -160,6 +161,8 @@ function DisputeCard({ dispute, canSign, onResolved }: { dispute: AdminDisputeRo
   /// A Safe verifies owners with ecrecover, so signing here needs a browser
   /// wallet holding a private key. Name the reason rather than grey a button.
   const canSignHere = !!address && !!walletClient;
+  /// Once prepared, the Safe's own owner list says whether this wallet can sign.
+  const notAnOwner = !!prepared && !!address && !prepared.owners.some((o) => o.toLowerCase() === address.toLowerCase());
   const amount = Number(dispute.dealAmountUsdc);
   const toSeller = (amount * sellerBps) / 10_000;
   const held = money(dispute.dealAmountUsdc);
@@ -357,7 +360,7 @@ function DisputeCard({ dispute, canSign, onResolved }: { dispute: AdminDisputeRo
             The reason both people will read
             <textarea value={reason} onChange={(e) => { setReason(e.target.value); setPrepared(null); }} rows={3} className={`mt-1 ${INPUT}`} />
           </label>
-          <p className="mt-2 text-[12px] text-[var(--d-text-3)]">Two arbiter owners sign the same split and reason. Different words make a different ruling, and the signatures will not combine.</p>
+          <p className="mt-2 text-[12px] text-[var(--d-text-3)]">Owners of the Safe that rules this deal each sign the same split and reason. Different words make a different ruling, and the signatures will not combine.</p>
           {prepared && (
             <p className="mt-2 text-[12px] text-[var(--d-text-3)]">
               Signed by {prepared.collected.length === 0 ? 'nobody yet' : prepared.collected.map((s) => short(s.signer)).join(', ')} · Safe nonce {prepared.nonce}
@@ -368,14 +371,20 @@ function DisputeCard({ dispute, canSign, onResolved }: { dispute: AdminDisputeRo
             {onWrongChain ? (
               <DeskButton onClick={() => switchChain?.({ chainId: ARC_CHAIN_ID })}>Switch to Arc</DeskButton>
             ) : (
-              <DeskButton tone="primary" onClick={() => void sign()} disabled={!prepared || busy !== null || alreadySigned || !canSignHere}>
+              <DeskButton tone="primary" onClick={() => void sign()} disabled={!prepared || busy !== null || alreadySigned || !canSignHere || notAnOwner}>
                 {busy === 'sign' ? 'Signing' : alreadySigned ? 'You signed' : 'Sign as an owner'}
               </DeskButton>
             )}
             <DeskButton tone="primary" onClick={() => void execute()} disabled={!prepared?.ready || busy !== null}>{busy === 'exec' ? 'Running' : 'Run the ruling'}</DeskButton>
           </div>
           {!canSignHere && !alreadySigned && (
-            <p className="mt-2 max-w-[62ch] text-[12px] text-[var(--d-text-3)]">Connect a browser wallet that owns the arbiter Safe. An account that signs through Karwan has no key of its own, so it cannot sign a ruling.</p>
+            <div data-connect-signer className="mt-3 space-y-1.5">
+              <AdminWalletControl />
+              <p className="max-w-[62ch] text-[12px] text-[var(--d-text-3)]">Sign with your own wallet that owns this Safe. A sign-in by email has no key, so it cannot sign a ruling.</p>
+            </div>
+          )}
+          {canSignHere && notAnOwner && !alreadySigned && (
+            <p role="alert" className="mt-2 max-w-[62ch] text-[12px] text-[var(--d-amber)]">This wallet does not own the Safe that rules this deal. Switch to an owner wallet in your wallet app.</p>
           )}
           {msg && <p className="mt-2 text-[12px] text-[var(--d-text-2)]">{msg}</p>}
           {err && <p role="alert" className="mt-2 text-[12px] text-[var(--d-red)]">{err}</p>}
