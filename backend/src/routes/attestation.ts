@@ -2,10 +2,13 @@ import { Hono } from 'hono';
 import { arcChain } from '../chain/client.js';
 import {
   dealSettledSchema,
+  dealSettledSchemaV2,
   issuerManifest,
   subjectUrl,
   DEAL_SETTLED_TYPE,
+  DEAL_SETTLED_V2_TYPE,
   dealSettledContext,
+  dealSettledContextV2,
   toVerifiableCredential,
 } from '../attestation/credential.js';
 import { issuerAddress } from '../attestation/issuer.js';
@@ -56,6 +59,17 @@ attestationRoutes.get('/schemas/deal-settled/v1.json', (c) => {
   return c.json(dealSettledSchema());
 });
 
+attestationRoutes.get('/schemas/deal-settled/v2.context.jsonld', (c) => {
+  c.header('cache-control', CACHE);
+  c.header('content-type', 'application/ld+json');
+  return c.body(JSON.stringify(dealSettledContextV2()));
+});
+
+attestationRoutes.get('/schemas/deal-settled/v2.json', (c) => {
+  c.header('cache-control', CACHE);
+  return c.json(dealSettledSchemaV2());
+});
+
 /// Revocation list.
 ///
 /// A flat list of attestation ids rather than a bitstring status list. Bitstrings
@@ -73,6 +87,7 @@ attestationRoutes.get('/attestations/revocations.json', async (c) => {
     schemaVersion: 1,
     issuer: issuerManifest(arcChain.id, issuerAddress()).issuer.domain,
     type: DEAL_SETTLED_TYPE,
+    types: [DEAL_SETTLED_TYPE, DEAL_SETTLED_V2_TYPE],
     revoked: rows.map((r) => ({
       id: r.id,
       revokedAt: new Date(r.revokedAt ?? 0).toISOString(),

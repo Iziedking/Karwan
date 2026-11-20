@@ -4,15 +4,23 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import {
   DEAL_SETTLED_TYPE,
+  DEAL_SETTLED_V2_TYPE,
   DEAL_SETTLED_EIP712_TYPES,
+  DEAL_SETTLED_V2_EIP712_TYPES,
   amountBand,
   attestationId,
+  attestationIdV2,
   dealRef,
   dealSettledMessage,
+  dealSettledMessageV2,
   eip712Domain,
+  isV2,
   schemaUrl,
+  schemaUrlV2,
   statusListUrl,
+  type AnyDealSettled,
   type DealSettledAttestation,
+  type ConfirmedBy,
   type DealSettledClaim,
 } from './credential.js';
 
@@ -102,12 +110,14 @@ export interface IssueInput {
   amountUsdc: number;
   viaDispute: boolean;
   chainId: number;
+  /// How the work was confirmed. Given, the statement is version 2.
+  confirmedBy?: ConfirmedBy;
 }
 
 export interface IssuedDocument {
   id: string;
   dealRef: `0x${string}`;
-  document: DealSettledAttestation;
+  document: AnyDealSettled;
 }
 
 /// Build and sign one attestation. Returns null when no key is configured, which
@@ -118,7 +128,8 @@ export async function issueDealSettled(input: IssueInput): Promise<IssuedDocumen
   if (!acct) return null;
 
   const ref = dealRef(input.jobId);
-  const id = attestationId(ref, input.role);
+  const v2 = input.confirmedBy !== undefined;
+  const id = v2 ? attestationIdV2(ref, input.role) : attestationId(ref, input.role);
 
   const claim: DealSettledClaim = {
     dealRef: ref,
@@ -131,16 +142,21 @@ export async function issueDealSettled(input: IssueInput): Promise<IssuedDocumen
   };
 
   const domain = eip712Domain(input.chainId);
-  const signature = await acct.signTypedData({
-    domain,
-    types: DEAL_SETTLED_EIP712_TYPES,
-    primaryType: 'DealSettled',
-    message: dealSettledMessage(input.subject, claim),
-  });
+  const signature = v2
+    ? await acct.signTypedData({
+        domain,
+        types: DEAL_SETTLED_V2_EIP712_TYPES,
+        primaryType: 'DealSettledV2',
+        message: dealSettledMessageV2(input.subject, { ...claim, confirmedBy: input.confirmedBy! }),
+      })
+    : await acct.signTypedData({
+        domain,
+        types: DEAL_SETTLED_EIP712_TYPES,
+        primaryType: 'DealSettled',
+        message: dealSettledMessage(input.subject, claim),
+      });
 
-  const document: DealSettledAttestation = {
-    type: DEAL_SETTLED_TYPE,
-    schema: schemaUrl(),
+  const common: Omit<DealSettledAttestation, 'type' | 'schema' | 'claim' | 'proof'> = {
     id,
     issuer: {
       name: 'Karwan',
@@ -148,19 +164,27 @@ export async function issueDealSettled(input: IssueInput): Promise<IssuedDocumen
       address: acct.address,
     },
     subject: { address: input.subject },
-    claim,
     // The moment we said it, distinct from settledAt, which is the moment it
     // happened. A consumer needs both to reason about a backfill: an attestation
     // issued long after settlement is a sweep catching up, not a late deal.
     issuedAt: new Date().toISOString(),
     status: { listUrl: statusListUrl() },
-    proof: {
-      type: 'eip712',
-      domain,
-      primaryType: 'DealSettled',
-      signature,
-    },
   };
+  const document: AnyDealSettled = v2
+    ? {
+        type: DEAL_SETTLED_V2_TYPE,
+        schema: schemaUrlV2(),
+        ...common,
+        claim: { ...claim, confirmedBy: input.confirmedBy! },
+        proof: { type: 'eip712', domain, primaryType: 'DealSettledV2', signature },
+      }
+    : {
+        type: DEAL_SETTLED_TYPE,
+        schema: schemaUrl(),
+        ...common,
+        claim,
+        proof: { type: 'eip712', domain, primaryType: 'DealSettled', signature },
+      };
 
   return { id, dealRef: ref, document };
 }
@@ -168,9 +192,19 @@ export async function issueDealSettled(input: IssueInput): Promise<IssuedDocumen
 /// Verify a document against its own proof. Used by the tests, and exported
 /// because an issuer that cannot demonstrate its own verification path is asking
 /// consumers to write it for us.
-export async function verifyDealSettled(doc: DealSettledAttestation): Promise<boolean> {
+export async function verifyDealSettled(doc: AnyDealSettled): Promise<boolean> {
   if (!doc.proof) return false;
   try {
+    if (isV2(doc)) {
+      return await verifyTypedData({
+        address: doc.issuer.address as `0x${string}`,
+        domain: doc.proof.domain,
+        types: DEAL_SETTLED_V2_EIP712_TYPES,
+        primaryType: 'DealSettledV2',
+        message: dealSettledMessageV2(doc.subject.address, doc.claim),
+        signature: doc.proof.signature,
+      });
+    }
     return await verifyTypedData({
       address: doc.issuer.address as `0x${string}`,
       domain: doc.proof.domain,

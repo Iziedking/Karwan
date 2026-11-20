@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { eq, desc, isNotNull } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { attestations } from './schema.js';
-import type { DealSettledAttestation } from '../attestation/credential.js';
+import type { AnyDealSettled } from '../attestation/credential.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'attestations.json');
 
@@ -27,7 +27,7 @@ export interface IssuedAttestation {
   /// Paytag's issuer profile, so this stays null in normal operation.
   revokedAt?: number;
   revokedReason?: string;
-  document: DealSettledAttestation;
+  document: AnyDealSettled;
 }
 
 export async function getAttestation(id: string): Promise<IssuedAttestation | null> {

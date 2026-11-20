@@ -24,6 +24,9 @@ import { config } from '../config.js';
 import { getProfile, type UserSettings } from '../db/profiles.js';
 import { leased } from '../ops/leasedLoop.js';
 import { writeDealRecords } from '../deals/dealRecordSweep.js';
+import { getDealRecord } from '../db/dealRecords.js';
+import type { DealRecord } from '../deals/dealRecord.js';
+import { CONFIRMED_BY, type ConfirmedBy } from './credential.js';
 
 export interface SweepResult {
   /// Deals that reached settlement and are eligible to be attested.
@@ -50,6 +53,28 @@ export interface SweepOptions {
   settingsFor?: (address: string) => Promise<UserSettings | undefined>;
   /// Switch-on day, epoch ms. Defaults to ATTESTATION_START_AT.
   startAt?: number;
+  /// Deals settled from this day get version 2. Defaults to DEAL_SETTLED_V2_FROM.
+  v2From?: number;
+  /// How a deal's work was confirmed, from its stored record. Null while the
+  /// deal has no record yet.
+  confirmedFor?: (deal: DirectDeal) => Promise<ConfirmedBy | null>;
+}
+
+/// The way the last stage was confirmed. A cancel or a refund is not how a
+/// settlement's work was confirmed, so either reads as not recorded.
+export function confirmedByOf(record: Pick<DealRecord, 'stages'>): ConfirmedBy {
+  const way = record.stages.at(-1)?.confirmed.way;
+  return way && (CONFIRMED_BY as readonly string[]).includes(way) ? (way as ConfirmedBy) : 'not_recorded';
+}
+
+/// Version 2 from its switch-on day; version 1 before it and while it is unset.
+export function statementVersion(settledAt: number, v2From: number | undefined): 1 | 2 {
+  return v2From !== undefined && settledAt >= v2From ? 2 : 1;
+}
+
+async function storedConfirmedBy(deal: DirectDeal): Promise<ConfirmedBy | null> {
+  const stored = await getDealRecord(deal.jobId);
+  return stored ? confirmedByOf(stored.record) : null;
 }
 
 /// The roles whose statements may be published for one settled deal.
@@ -120,7 +145,15 @@ export function settledViaDispute(deal: DirectDeal): boolean {
 /// One pass. Walks settled deals and issues the two attestations each one owes,
 /// one to the buyer and one to the seller, skipping any that already exist.
 export async function issueSettledOnce(opts: SweepOptions = {}): Promise<SweepResult> {
-  const { addressFilter = null, dryRun = false, limit, settingsFor = profileSettings, startAt = config.ATTESTATION_START_AT } = opts;
+  const {
+    addressFilter = null,
+    dryRun = false,
+    limit,
+    settingsFor = profileSettings,
+    startAt = config.ATTESTATION_START_AT,
+    v2From = config.DEAL_SETTLED_V2_FROM,
+    confirmedFor = storedConfirmedBy,
+  } = opts;
 
   const result: SweepResult = {
     candidates: 0,
@@ -171,6 +204,16 @@ export async function issueSettledOnce(opts: SweepOptions = {}): Promise<SweepRe
       continue;
     }
     const allowed = partiesToAttest(deal, startAt, buyerSettings, sellerSettings);
+    let confirmedBy: ConfirmedBy | undefined;
+    if (allowed.length > 0 && statementVersion(deal.settledAt!, v2From) === 2) {
+      // Version 2 waits for the deal record, which the same tick writes first.
+      const way = await confirmedFor(deal).catch(() => null);
+      if (!way) {
+        result.skipped.push({ jobId: deal.jobId, reason: 'no deal record yet' });
+        continue;
+      }
+      confirmedBy = way;
+    }
     for (const role of ['buyer', 'seller'] as const) {
       if (!allowed.includes(role)) {
         const reason = partyMayPublish({ settledAt: deal.settledAt!, startAt, settings: role === 'buyer' ? buyerSettings : sellerSettings });
@@ -194,6 +237,7 @@ export async function issueSettledOnce(opts: SweepOptions = {}): Promise<SweepRe
           amountUsdc: amount,
           viaDispute,
           chainId,
+          ...(confirmedBy ? { confirmedBy } : {}),
         });
         if (!issued) {
           result.failed.push({ jobId: deal.jobId, reason: 'issuer key went away mid-sweep' });
@@ -244,6 +288,14 @@ export function startAttestationSweep(): () => void {
     }
     inFlight = true;
     try {
+      // Records first: a version 2 statement reads how the work was confirmed
+      // from the deal's record.
+      try {
+        const records = await writeDealRecords();
+        if (records.written > 0 || records.skipped > 0) logger.info(records, 'deal records: tick complete');
+      } catch (err) {
+        logger.error({ err: (err as Error).message }, 'deal records: tick threw');
+      }
       const result = await issueSettledOnce();
       if (result.issued.length > 0 || result.failed.length > 0) {
         logger.info(
@@ -259,12 +311,6 @@ export function startAttestationSweep(): () => void {
       }
     } catch (err) {
       logger.error({ err: (err as Error).message }, 'attestation sweep: tick threw');
-    }
-    try {
-      const records = await writeDealRecords();
-      if (records.written > 0 || records.skipped > 0) logger.info(records, 'deal records: tick complete');
-    } catch (err) {
-      logger.error({ err: (err as Error).message }, 'deal records: tick threw');
     } finally {
       inFlight = false;
     }

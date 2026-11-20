@@ -27,6 +27,18 @@ test('statements about a person are revalidated on every read, so a removal show
   }
 });
 
+test('the v2 schema and its context are served beside v1', async () => {
+  const schema = await attestationRoutes.request('/schemas/deal-settled/v2.json');
+  assert.equal(schema.status, 200);
+  assert.match(((await schema.json()) as { $id: string }).$id, /\/schemas\/deal-settled\/v2\.json$/);
+  const ctx = await attestationRoutes.request('/schemas/deal-settled/v2.context.jsonld');
+  assert.equal(ctx.status, 200);
+  const terms = ((await ctx.json()) as { '@context': Record<string, unknown> })['@context'];
+  assert.ok('confirmedBy' in terms);
+  assert.ok('KarwanDealSettled' in terms);
+  assert.equal((await attestationRoutes.request('/schemas/deal-settled/v1.json')).status, 200);
+});
+
 test('the Karwan context defines every term the W3C copy uses', async () => {
   const res = await attestationRoutes.request('/schemas/deal-settled/v1.context.jsonld');
   assert.equal(res.status, 200);

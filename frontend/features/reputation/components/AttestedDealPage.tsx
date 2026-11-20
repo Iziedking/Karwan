@@ -33,6 +33,7 @@ export function AttestedDealPage({ id }: { id: string }) {
         [copy.roleLabel, doc.claim.role === 'buyer' ? copy.buyer : copy.seller],
         [copy.valueLabel, bandLine(copy.bands[doc.claim.amountBand] ?? doc.claim.amountBand, inMoney)],
         ...(doc.claim.viaDispute ? [[copy.disputeLabel, copy.yes]] : []),
+        ...(doc.claim.confirmedBy ? [[copy.confirmedLabel, copy.ways[doc.claim.confirmedBy] ?? copy.ways.not_recorded]] : []),
         [copy.signedOn, date.format(new Date(doc.issuedAt))],
       ]
     : [];

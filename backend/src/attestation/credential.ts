@@ -41,6 +41,15 @@ import { config } from '../config.js';
 /// inside the payload.
 export const DEAL_SETTLED_TYPE = 'karwan.deal-settled.v1' as const;
 
+/// Version 2 (view 94) adds how the work was confirmed. A new type, schema, id
+/// prefix and EIP-712 struct; version 1 documents keep validating unchanged.
+export const DEAL_SETTLED_V2_TYPE = 'karwan.deal-settled.v2' as const;
+
+/// How the last stage of a settled deal was confirmed, as the deal record reads
+/// it. A cancel or a refund is not a settlement, so neither is listed.
+export const CONFIRMED_BY = ['buyer_confirmed', 'handover_code', 'buyer_silent', 'dispute', 'review_window', 'not_recorded'] as const;
+export type ConfirmedBy = (typeof CONFIRMED_BY)[number];
+
 /// The issuer's own domain. Identity is the domain plus the signing address, which
 /// are the two things Paytag's issuer profile verifies.
 function issuerDomain(): string {
@@ -60,16 +69,31 @@ export function schemaUrl(): string {
   return `${docBase()}/schemas/deal-settled/v1.json`;
 }
 
+export function schemaUrlV2(): string {
+  return `${docBase()}/schemas/deal-settled/v2.json`;
+}
+
 /// The JSON-LD context for the W3C copy, so every Karwan term maps to a
 /// Karwan IRI instead of an issuer-dependent default.
 export function contextUrl(): string {
   return `${docBase()}/schemas/deal-settled/v1.context.jsonld`;
 }
 
+export function contextUrlV2(): string {
+  return `${docBase()}/schemas/deal-settled/v2.context.jsonld`;
+}
+
+/// Version 2's context: version 1's terms, under the v2 schema URL, plus the
+/// confirmation way.
+export function dealSettledContextV2(): Record<string, unknown> {
+  const base = dealSettledContext(schemaUrlV2())['@context'] as Record<string, unknown>;
+  return { '@context': { ...base, confirmedBy: `${schemaUrlV2()}#confirmedBy` } };
+}
+
 /// The context document behind contextUrl. Terms resolve under the schema URL,
 /// which is Karwan's own and stable.
-export function dealSettledContext(): Record<string, unknown> {
-  const vocab = `${schemaUrl()}#`;
+export function dealSettledContext(schema = schemaUrl()): Record<string, unknown> {
+  const vocab = `${schema}#`;
   const term = (name: string) => `${vocab}${name}`;
   return {
     '@context': {
@@ -172,6 +196,10 @@ export function attestationId(dealRef: string, role: 'buyer' | 'seller'): string
   return `deal-settled-v1-${dealRef.replace(/^0x/, '').toLowerCase()}-${role}`;
 }
 
+export function attestationIdV2(dealRef: string, role: 'buyer' | 'seller'): string {
+  return `deal-settled-v2-${dealRef.replace(/^0x/, '').toLowerCase()}-${role}`;
+}
+
 export interface DealSettledClaim {
   /// keccak of the deal, never the deal id itself.
   dealRef: `0x${string}`;
@@ -216,6 +244,21 @@ export interface AttestationProof {
   signature: `0x${string}`;
 }
 
+export interface DealSettledClaimV2 extends DealSettledClaim {
+  confirmedBy: ConfirmedBy;
+}
+
+export interface DealSettledAttestationV2 extends Omit<DealSettledAttestation, 'type' | 'claim' | 'proof'> {
+  type: typeof DEAL_SETTLED_V2_TYPE;
+  claim: DealSettledClaimV2;
+  proof?: Omit<AttestationProof, 'primaryType'> & { primaryType: 'DealSettledV2' };
+}
+
+/// Either version, as stored and served.
+export type AnyDealSettled = DealSettledAttestation | DealSettledAttestationV2;
+
+export const isV2 = (doc: AnyDealSettled): doc is DealSettledAttestationV2 => doc.type === DEAL_SETTLED_V2_TYPE;
+
 /// The EIP-712 type definition, published so a verifier can rebuild the digest
 /// without reading our source. Field ORDER is part of the hash, so this array is
 /// the contract: appending to it is a breaking change and belongs in a v2 schema.
@@ -230,6 +273,11 @@ export const DEAL_SETTLED_EIP712_TYPES = {
     { name: 'chainId', type: 'uint256' },
     { name: 'viaDispute', type: 'bool' },
   ],
+} as const;
+
+/// Version 2's struct: version 1's fields in the same order, then the way.
+export const DEAL_SETTLED_V2_EIP712_TYPES = {
+  DealSettledV2: [...DEAL_SETTLED_EIP712_TYPES.DealSettled, { name: 'confirmedBy', type: 'string' }],
 } as const;
 
 /// A deal record (view 94) is signed as its digest: the keccak of the record's
@@ -268,6 +316,10 @@ export function dealSettledMessage(subject: string, claim: DealSettledClaim) {
     chainId: BigInt(claim.chainId),
     viaDispute: claim.viaDispute,
   } as const;
+}
+
+export function dealSettledMessageV2(subject: string, claim: DealSettledClaimV2) {
+  return { ...dealSettledMessage(subject, claim), confirmedBy: claim.confirmedBy } as const;
 }
 
 /// The JSON Schema the credential points at.
@@ -350,6 +402,30 @@ export function dealSettledSchema() {
   } as const;
 }
 
+/// Version 2's schema: version 1's, with the v2 type, struct and the way.
+export function dealSettledSchemaV2() {
+  const v1 = dealSettledSchema();
+  return {
+    ...v1,
+    $id: schemaUrlV2(),
+    title: 'Karwan deal-settled attestation, version 2',
+    description: `${v1.description} Version 2 adds how the work was confirmed.`,
+    properties: {
+      ...v1.properties,
+      type: { const: DEAL_SETTLED_V2_TYPE },
+      claim: {
+        ...v1.properties.claim,
+        required: [...v1.properties.claim.required, 'confirmedBy'],
+        properties: { ...v1.properties.claim.properties, confirmedBy: { enum: [...CONFIRMED_BY] } },
+      },
+      proof: {
+        ...v1.properties.proof,
+        properties: { ...v1.properties.proof.properties, primaryType: { const: 'DealSettledV2' } },
+      },
+    },
+  } as const;
+}
+
 /// The issuer manifest. Everything a counterparty needs to decide whether to
 /// consume us, in one document they can fetch rather than a conversation.
 ///
@@ -382,6 +458,17 @@ export function issuerManifest(chainId: number, issuerAddress?: string | null) {
           domain: eip712Domain(chainId),
           primaryType: 'DealSettled',
           types: DEAL_SETTLED_EIP712_TYPES,
+        },
+      },
+      {
+        type: DEAL_SETTLED_V2_TYPE,
+        schemaUrl: schemaUrlV2(),
+        issuedWhen: 'As version 1, for deals settled from the day version 2 was switched on, and it adds how the work was confirmed. Version 1 statements stay valid.',
+        proof: {
+          type: 'eip712',
+          domain: eip712Domain(chainId),
+          primaryType: 'DealSettledV2',
+          types: DEAL_SETTLED_V2_EIP712_TYPES,
         },
       },
       {
@@ -419,9 +506,11 @@ export function issuerManifest(chainId: number, issuerAddress?: string | null) {
 /// credential, so the proof is named as Karwan's own type and carries the exact
 /// signed message: rebuild the EIP-712 digest from `proof.eip712` and recover
 /// the issuer address.
-export function toVerifiableCredential(doc: DealSettledAttestation, revokedAt?: number): Record<string, unknown> {
+export function toVerifiableCredential(doc: AnyDealSettled, revokedAt?: number): Record<string, unknown> {
+  const v2 = isV2(doc);
+  const message = v2 ? dealSettledMessageV2(doc.subject.address, doc.claim) : dealSettledMessage(doc.subject.address, doc.claim);
   return {
-    '@context': ['https://www.w3.org/ns/credentials/v2', contextUrl()],
+    '@context': ['https://www.w3.org/ns/credentials/v2', v2 ? contextUrlV2() : contextUrl()],
     type: ['VerifiableCredential', 'KarwanDealSettled'],
     id: `${docBase()}/attestations/${doc.id}/vc`,
     issuer: { id: `did:web:${doc.issuer.domain}`, name: doc.issuer.name, address: doc.issuer.address },
@@ -437,9 +526,9 @@ export function toVerifiableCredential(doc: DealSettledAttestation, revokedAt?: 
             eip712: {
               domain: doc.proof.domain,
               primaryType: doc.proof.primaryType,
-              types: DEAL_SETTLED_EIP712_TYPES,
+              types: v2 ? DEAL_SETTLED_V2_EIP712_TYPES : DEAL_SETTLED_EIP712_TYPES,
               // chainId as a number so the copy is plain JSON; it is the same uint256.
-              message: { ...dealSettledMessage(doc.subject.address, doc.claim), chainId: doc.claim.chainId },
+              message: { ...message, chainId: doc.claim.chainId },
             },
             proofValue: doc.proof.signature,
           },

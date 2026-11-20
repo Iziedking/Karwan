@@ -1009,9 +1009,13 @@ export type AmountBand = 'under_100' | '100_500' | '500_2000' | '2000_10000' | '
 /// not the market's AmountBand.
 export type AttestationBand = 'under-100' | '100-1k' | '1k-10k' | '10k-100k' | 'over-100k';
 
+/// How a settled deal's work was confirmed (statement version 2, view 94).
+export type AttestationConfirmedBy = 'buyer_confirmed' | 'handover_code' | 'buyer_silent' | 'dispute' | 'review_window' | 'not_recorded';
+
 export interface AttestedDeal {
   id: string;
-  claim: { role: 'buyer' | 'seller'; settledAt: string; amountBand: AttestationBand; viaDispute: boolean };
+  /// Version 2 statements carry confirmedBy; version 1 statements do not.
+  claim: { role: 'buyer' | 'seller'; settledAt: string; amountBand: AttestationBand; viaDispute: boolean; confirmedBy?: AttestationConfirmedBy };
   revokedAt?: string;
 }
 

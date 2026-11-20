@@ -974,6 +974,10 @@ const envSchema = z.object({
   /// Switch-on day for public deal statements, epoch ms. Deals settled before it
   /// are published only for people who ask. Unset: nothing is published.
   ATTESTATION_START_AT: startAtSchema,
+  /// Switch-on day for version 2 of the public deal statement (view 94), epoch
+  /// ms. Deals settled from it get version 2, which says how the work was
+  /// confirmed. Unset: version 1 as before.
+  DEAL_SETTLED_V2_FROM: startAtSchema,
 
   // Stand-in admin callers for tests and local work only. In production no
   // route accepts them: members sign in to the desk or use their own keys

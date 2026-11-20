@@ -1,4 +1,4 @@
-import type { AttestationBand } from '../../../core/api';
+import type { AttestationBand, AttestationConfirmedBy } from '../../../core/api';
 
 /// The settled deals Karwan has signed a public statement about, on a
 /// person's passport. Bands are the attestation bands, not the market's.
@@ -27,6 +27,9 @@ export interface AttestedDealsCopy {
   openCredential: string;
   notFound: string;
   yes: string;
+  /// Version 2 statements say how the work was confirmed.
+  confirmedLabel: string;
+  ways: Record<AttestationConfirmedBy, string>;
   /// "6 to 10 of 29".
   range: string;
   newer: string;
@@ -60,6 +63,15 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "Open the signed credential",
     notFound: "This statement could not be found.",
     yes: "Yes",
+    confirmedLabel: "How the work was confirmed",
+    ways: {
+      buyer_confirmed: "The buyer confirmed it",
+      handover_code: "Handover code at delivery",
+      buyer_silent: "The buyer did not respond in time",
+      dispute: "Decided in a dispute",
+      review_window: "Released when the review time ended",
+      not_recorded: "Not recorded",
+    },
     range: "{from} to {to} of {total}",
     newer: "Newer",
     older: "Older",
@@ -94,6 +106,15 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "Ouvrir l’attestation signée",
     notFound: "Cette déclaration est introuvable.",
     yes: "Oui",
+    confirmedLabel: "Comment le travail a été confirmé",
+    ways: {
+      buyer_confirmed: "L’acheteur l’a confirmé",
+      handover_code: "Code de remise à la livraison",
+      buyer_silent: "L’acheteur n’a pas répondu à temps",
+      dispute: "Tranché lors d’un litige",
+      review_window: "Libéré à la fin du délai de vérification",
+      not_recorded: "Non enregistré",
+    },
     range: "{from} à {to} sur {total}",
     newer: "Plus récentes",
     older: "Plus anciennes",
@@ -128,6 +149,15 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "افتح الشهادة الموقعة",
     notFound: "تعذر العثور على هذا البيان.",
     yes: "نعم",
+    confirmedLabel: "كيف تم تأكيد العمل",
+    ways: {
+      buyer_confirmed: "أكّده المشتري",
+      handover_code: "رمز التسليم عند الاستلام",
+      buyer_silent: "لم يردّ المشتري في الوقت المحدد",
+      dispute: "حُسم في نزاع",
+      review_window: "صُرف عند انتهاء مدة المراجعة",
+      not_recorded: "غير مسجّل",
+    },
     range: "{from} إلى {to} من {total}",
     newer: "الأحدث",
     older: "الأقدم",
@@ -162,6 +192,15 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "हस्ताक्षरित प्रमाणपत्र खोलें",
     notFound: "यह कथन नहीं मिला।",
     yes: "हाँ",
+    confirmedLabel: "काम की पुष्टि कैसे हुई",
+    ways: {
+      buyer_confirmed: "खरीदार ने पुष्टि की",
+      handover_code: "डिलीवरी पर हैंडओवर कोड",
+      buyer_silent: "खरीदार ने समय पर जवाब नहीं दिया",
+      dispute: "विवाद में तय हुआ",
+      review_window: "समीक्षा का समय खत्म होने पर जारी हुआ",
+      not_recorded: "दर्ज नहीं",
+    },
     range: "{total} में से {from} से {to}",
     newer: "नई",
     older: "पुरानी",
@@ -196,6 +235,15 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "Fungua cheti kilichosainiwa",
     notFound: "Taarifa hii haikupatikana.",
     yes: "Ndiyo",
+    confirmedLabel: "Jinsi kazi ilivyothibitishwa",
+    ways: {
+      buyer_confirmed: "Mnunuzi alithibitisha",
+      handover_code: "Msimbo wa makabidhiano wakati wa kupokea",
+      buyer_silent: "Mnunuzi hakujibu kwa wakati",
+      dispute: "Iliamuliwa katika mzozo",
+      review_window: "Ilitolewa muda wa ukaguzi ulipoisha",
+      not_recorded: "Haijarekodiwa",
+    },
     range: "{from} hadi {to} kati ya {total}",
     newer: "Mpya zaidi",
     older: "Za zamani",
