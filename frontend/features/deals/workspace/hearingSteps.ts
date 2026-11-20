@@ -64,3 +64,21 @@ export function outcome(sellerBps: number, viewerIsBuyer: boolean): 'toYou' | 't
   if (sellerBps === 0) return viewerIsBuyer ? 'backToYou' : 'backToThem';
   return 'split';
 }
+
+export type SignalKey = 'youAnswer' | 'theyAnswer' | 'finding' | 'object' | 'people';
+
+/// The one line a closed problem card shows (owner, pattern A, 20 Nov 2026,
+/// Figma 380:570): the step now and its date. The card opens itself only when
+/// the person has something to do: answer, or read a finding they can object to.
+export function hearingSignal(h: DisputeHearingView, youAnswered: boolean, now: number): { key: SignalKey; at: number | null; needsYou: boolean } {
+  switch (h.step) {
+    case 'answers':
+      return { key: youAnswered ? 'theyAnswer' : 'youAnswer', at: h.answersBy, needsYou: !youAnswered };
+    case 'finding':
+      return { key: 'finding', at: h.findingBy, needsYou: false };
+    case 'object':
+      return { key: 'object', at: h.objectBy, needsYou: h.objectBy !== null && now < h.objectBy };
+    case 'people':
+      return { key: 'people', at: h.ruleBy, needsYou: false };
+  }
+}

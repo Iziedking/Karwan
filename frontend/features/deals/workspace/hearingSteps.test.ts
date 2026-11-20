@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import type { DisputeHearingView } from '@/core/api';
-import { elapsed, hearingSteps, outcome, timeLeft } from './hearingSteps';
+import { elapsed, hearingSignal, hearingSteps, outcome, timeLeft } from './hearingSteps';
 
 const H = 3_600_000;
 const OPENED = Date.UTC(2026, 9, 23, 12);
@@ -53,4 +53,16 @@ test('who the finding pays reads from the viewer side', () => {
   assert.equal(outcome(0, true), 'backToYou');
   assert.equal(outcome(0, false), 'backToThem');
   assert.equal(outcome(6_000, true), 'split');
+});
+
+test('the closed card names the step now and its date, and opens itself only when the person has something to do', () => {
+  assert.deepEqual(hearingSignal(base, false, OPENED), { key: 'youAnswer', at: base.answersBy, needsYou: true });
+  assert.deepEqual(hearingSignal(base, true, OPENED), { key: 'theyAnswer', at: base.answersBy, needsYou: false });
+  assert.deepEqual(hearingSignal({ ...base, step: 'finding' }, true, OPENED), { key: 'finding', at: base.findingBy, needsYou: false });
+  const objectBy = OPENED + 200 * H;
+  assert.deepEqual(hearingSignal({ ...base, step: 'object', objectBy }, true, objectBy - H), { key: 'object', at: objectBy, needsYou: true });
+  assert.equal(hearingSignal({ ...base, step: 'object', objectBy }, true, objectBy + H).needsYou, false);
+  const people = { ...base, step: 'people' as const, askedAt: OPENED + 120 * H, ruleBy: OPENED + 240 * H };
+  assert.deepEqual(hearingSignal(people, true, OPENED), { key: 'people', at: people.ruleBy, needsYou: false });
+  assert.equal(hearingSignal({ ...people, ruleBy: null }, true, OPENED).at, null);
 });

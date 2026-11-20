@@ -87,6 +87,7 @@ export interface DisputeJudgeCopy {
     sides: string;
     canAnswerUntil: string;
     noAnswer: string;
+    signal: { youAnswer: string; theyAnswer: string; finding: string; object: string; people: string; held: string; };
     wait: { answersLine: string; findingLine: string; objectTitle: string; objectLine: string; peopleLine: string; };
   };
 }
@@ -180,6 +181,7 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       sides: "What each side said",
       canAnswerUntil: "Can answer until {date}",
       noAnswer: "Did not answer",
+      signal: { youAnswer: "Your answer is due by {date}", theyAnswer: "{name} answers by {date}", finding: "Karwan’s finding is due by {date}", object: "Pays out on {date} unless one of you objects", people: "People decide by {date}", held: "{amount} USDC held" },
       wait: {
         answersLine: "Karwan tells you here and in Telegram when there is a finding.",
         findingLine: "A person at Karwan checks the finding before anything is decided.",
@@ -277,6 +279,7 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       sides: "Ce que chaque partie a dit",
       canAnswerUntil: "Peut répondre jusqu'au {date}",
       noAnswer: "N'a pas répondu",
+      signal: { youAnswer: "Votre réponse est attendue avant le {date}", theyAnswer: "{name} répond avant le {date}", finding: "Le constat de Karwan est attendu avant le {date}", object: "Versé le {date} sauf si l’un de vous conteste", people: "Des personnes décident avant le {date}", held: "{amount} USDC bloqués" },
       wait: {
         answersLine: "Karwan vous prévient ici et sur Telegram dès qu'il y a un constat.",
         findingLine: "Une personne chez Karwan vérifie le constat avant toute décision.",
@@ -374,6 +377,7 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       sides: "ما قاله كل طرف",
       canAnswerUntil: "يمكنه الإجابة حتى {date}",
       noAnswer: "لم يُجب",
+      signal: { youAnswer: "ردّك مطلوب قبل {date}", theyAnswer: "يرد {name} قبل {date}", finding: "نتيجة Karwan مستحقة قبل {date}", object: "يُدفع في {date} ما لم يعترض أحدكما", people: "يقرر أشخاص قبل {date}", held: "{amount} USDC محتجزة" },
       wait: {
         answersLine: "تخبرك كاروان هنا وفي تيليجرام عندما يصدر ما توصّلت إليه.",
         findingLine: "يراجع شخص في كاروان ما توصّلت إليه قبل اتخاذ أي قرار.",
@@ -471,6 +475,7 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       sides: "हर पक्ष ने क्या कहा",
       canAnswerUntil: "{date} तक जवाब दे सकते हैं",
       noAnswer: "जवाब नहीं दिया",
+      signal: { youAnswer: "आपका जवाब {date} तक चाहिए", theyAnswer: "{name} {date} तक जवाब देंगे", finding: "Karwan का नतीजा {date} तक आएगा", object: "{date} को भुगतान होगा, जब तक आप में से कोई आपत्ति न करे", people: "लोग {date} तक फ़ैसला करेंगे", held: "{amount} USDC रुके हैं" },
       wait: {
         answersLine: "निष्कर्ष आते ही Karwan आपको यहाँ और Telegram पर बताएगा।",
         findingLine: "कुछ भी तय होने से पहले Karwan का एक व्यक्ति निष्कर्ष जाँचता है।",
@@ -568,6 +573,7 @@ export const disputeJudgeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DisputeJ
       sides: "Kila upande ulisema nini",
       canAnswerUntil: "Anaweza kujibu hadi {date}",
       noAnswer: "Hakujibu",
+      signal: { youAnswer: "Jibu lako linahitajika kabla ya {date}", theyAnswer: "{name} anajibu kabla ya {date}", finding: "Matokeo ya Karwan yanatarajiwa kabla ya {date}", object: "Inalipwa {date} isipokuwa mmoja wenu apinge", people: "Watu wanaamua kabla ya {date}", held: "USDC {amount} zimeshikiliwa" },
       wait: {
         answersLine: "Karwan itakujulisha hapa na kwenye Telegram matokeo yakiwa tayari.",
         findingLine: "Mtu wa Karwan anakagua matokeo kabla ya uamuzi wowote.",

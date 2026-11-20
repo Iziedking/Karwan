@@ -1,5 +1,5 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { api, type DealDisputeView, type DisputeHearingView, type DisputeStatementView } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { Icon } from '@/shared/components/Icon';
@@ -8,13 +8,15 @@ import { cn } from '@/shared/utils/cn';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 import { ConfirmSheet } from './ConfirmSheet';
 import { splitShares } from './disputeShares';
-import { elapsed, hearingSteps, outcome, timeLeft, type HearingRow } from './hearingSteps';
+import { elapsed, hearingSignal, hearingSteps, outcome, timeLeft, type HearingRow } from './hearingSteps';
 import { fill, formatDealDate } from './presentation';
 
 /// The problem card while an escrow family dispute is heard (view 90, owner
 /// 19 Nov 2026, Figma 375:570), in the deal page's own style: the money held,
 /// the steps down a rail with the current one lifted into a panel that shows
-/// how long it has, then what each side said, folded.
+/// how long it has, then what each side said, folded. Closed, it is one signal
+/// row with the step now and its date (pattern A, owner 20 Nov 2026, Figma
+/// 380:570); it opens itself when the person has something to do.
 export function HearingCard({ jobId, dispute, hearing, viewerIsBuyer, caller, name, myName, openedBy, openedAt, heldUsdc, form, onChanged }: {
   jobId: string;
   dispute: DealDisputeView;
@@ -42,6 +44,16 @@ export function HearingCard({ jobId, dispute, hearing, viewerIsBuyer, caller, na
   const theirs = dispute.statements[them];
   const finding = dispute.proposal;
   const { rows, countdown } = hearingSteps(hearing, openedAt);
+  const signal = hearingSignal(hearing, Boolean(mine), now);
+  const [open, setOpen] = useState(signal.needsYou);
+  useEffect(() => {
+    if (signal.needsYou) setOpen(true);
+  }, [signal.needsYou]);
+  const bodyId = useId();
+  const status = [
+    signal.at ? fill(h.signal[signal.key], { name, date: date(signal.at) }) : null,
+    heldUsdc ? mt.fill(h.signal.held, { amount: heldUsdc }) : null,
+  ].filter(Boolean).join(' · ');
   const bothAnsweredAt = mine?.submittedAt && theirs?.submittedAt ? Math.max(mine.submittedAt, theirs.submittedAt) : null;
 
   const found = finding ? foundLine(finding.sellerBps) : null;
@@ -133,11 +145,29 @@ export function HearingCard({ jobId, dispute, hearing, viewerIsBuyer, caller, na
     );
 
   return (
-    <section aria-labelledby="dispute-title" data-problem-card data-hearing={hearing.step} className="mt-6 space-y-5 rounded-[24px] bg-[var(--lp-card)] p-5">
-      <div className="flex items-center gap-2">
-        <h2 id="dispute-title" className="text-[18px] font-bold text-[var(--lp-dark)]">{t.openTitle}</h2>
-        <Hint side="bottom">{t.intro}</Hint>
+    <section aria-labelledby="dispute-title" data-problem-card data-hearing={hearing.step} data-open={open ? 'true' : 'false'} className="mt-6 rounded-[24px] bg-[var(--lp-card)] p-5">
+      <div data-problem-signal className="relative flex items-start gap-3">
+        <span aria-hidden className="mt-0.5"><Node state="current" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 id="dispute-title" className="text-[18px] font-bold leading-snug text-[var(--lp-dark)]">
+              <button
+                type="button"
+                aria-expanded={open}
+                aria-controls={bodyId}
+                onClick={() => setOpen((v) => !v)}
+                className="text-start after:absolute after:inset-0 after:rounded-[16px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-[var(--lp-accent)]"
+              >
+                {t.openTitle}
+              </button>
+            </h2>
+            <span className="relative z-10"><Hint side="bottom">{t.intro}</Hint></span>
+          </div>
+          {status ? <p data-problem-status className="mt-0.5 text-[14px] font-medium text-[var(--lp-text-sub)]">{status}</p> : null}
+        </div>
+        <Icon name="chevron-right" size={16} className={cn('mt-1.5 shrink-0 text-[var(--lp-text-sub)] transition-transform', open ? '-rotate-90' : 'rotate-90')} />
       </div>
+      <div id={bodyId} hidden={!open} className="mt-5 space-y-5">
       {heldUsdc ? (
         <p data-problem-held className="flex items-center gap-2.5 rounded-[14px] bg-[color-mix(in_srgb,var(--lp-accent)_24%,transparent)] px-3.5 py-3 text-[14px] font-semibold text-[var(--lp-dark)]">
           <Icon name="lock" size={16} className="shrink-0" />
@@ -197,6 +227,7 @@ export function HearingCard({ jobId, dispute, hearing, viewerIsBuyer, caller, na
         <Icon name="shield-check" size={16} className="mt-px shrink-0" />
         <span>{t.safety}</span>
       </p>
+      </div>
     </section>
   );
 }

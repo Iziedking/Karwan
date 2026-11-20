@@ -26,10 +26,32 @@ const heard = (hearing: DisputeHearingView, dispute: Partial<NonNullable<DirectD
 });
 
 const card = (page: Page) => page.locator('[data-problem-card]');
+const toggle = (page: Page) => card(page).getByRole('button', { name: t.openTitle });
+
+test('closed, the card is one row: the step now, its date and the money held; a tap opens it', async ({ page }) => {
+  await serveDeal(page, heard(base, { statements: { seller: statement } }), SELLER);
+  await page.goto(`/deals/${JOB}`);
+  const c = card(page);
+  await expect(toggle(page)).toHaveAttribute('aria-expanded', 'false');
+  await expect(c.locator('[data-problem-status]')).toHaveText(/^.+ answers by .+ · .+ USDC held$/);
+  await expect(c.locator('[data-problem-steps]')).toBeHidden();
+  await toggle(page).click();
+  await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
+  await expect(c.locator('[data-problem-steps]')).toBeVisible();
+  await expect(c.locator('[data-problem-status]')).toBeVisible();
+});
+
+test('it opens by itself when the person has something to do', async ({ page }) => {
+  await serveDeal(page, heard(base));
+  await page.goto(`/deals/${JOB}`);
+  await expect(toggle(page)).toHaveAttribute('aria-expanded', 'true');
+  await expect(card(page).locator('[data-problem-status]')).toHaveText(/^Your answer is due by /);
+});
 
 test('while both sides answer: the money held, where it stands, the date the other side has, and nothing decided yet', async ({ page }) => {
   await serveDeal(page, heard(base, { statements: { seller: statement } }), SELLER);
   await page.goto(`/deals/${JOB}`);
+  await toggle(page).click();
   const c = card(page);
   await expect(c).toHaveAttribute('data-hearing', 'answers');
   await expect(c.getByRole('heading', { name: t.openTitle })).toBeVisible();
@@ -52,6 +74,7 @@ test('while both sides answer: the money held, where it stands, the date the oth
 test('what each side said is folded, and opens on a tap', async ({ page }) => {
   await serveDeal(page, heard(base, { statements: { seller: statement } }), SELLER);
   await page.goto(`/deals/${JOB}`);
+  await toggle(page).click();
   const c = card(page);
   await expect(c.getByRole('heading', { name: h.sides })).toBeVisible();
   const mine = c.locator('[data-statement]');
@@ -73,6 +96,8 @@ test('a side that has not answered yet answers in the card', async ({ page }) =>
 test('while Karwan writes the finding, the sides see when it is due and no finding before a person confirms it', async ({ page }) => {
   await serveDeal(page, heard({ ...base, step: 'finding' }, { otherSubmitted: true, statements: { buyer: statement, seller: statement } }));
   await page.goto(`/deals/${JOB}`);
+  await expect(card(page).locator('[data-problem-status]')).toHaveText(/^Karwan’s finding is due by /);
+  await toggle(page).click();
   const c = card(page);
   await expect(c).toHaveAttribute('data-hearing', 'finding');
   await expect(c.locator('[data-problem-steps] [aria-current="step"]')).toContainText(h.finding);
@@ -136,6 +161,8 @@ test('once asked, people decide by the escrow date and nothing is left to press'
     proposal: { sellerBps: 10_000, items: [], confidence: 'clear', summary: 'Delivered.', proposedAt: 1, status: 'confirmed', reviewedSellerBps: 10_000, reviewedAt: NOW - 50 * HOUR },
   }), SELLER);
   await page.goto(`/deals/${JOB}`);
+  await expect(card(page).locator('[data-problem-status]')).toHaveText(/^People decide by /);
+  await toggle(page).click();
   const c = card(page);
   await expect(c).toHaveAttribute('data-hearing', 'people');
   const steps = c.locator('[data-problem-steps]');
