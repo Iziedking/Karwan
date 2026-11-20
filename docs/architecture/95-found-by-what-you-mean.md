@@ -37,7 +37,7 @@ flowchart TD
 
 ## Phase 2: meaning vectors
 
-Each profile and request is turned once into a meaning vector when it is saved, by an embedding model in Karwan's own AWS account. Matching then compares vectors with plain arithmetic, in any language, with no model call at match time. It finds close work the map has never seen. It needs pgvector added to the Karwan database, so it is planned separately once the map is live.
+Each profile and request is turned once into a meaning vector when it is saved, by Cohere Embed on Amazon Bedrock in Karwan's own AWS account, a model built to match across languages. The vectors are kept beside the sellers Karwan already holds in memory and saved in an ordinary table, so no database change is needed. Matching then compares vectors with plain arithmetic, with no model call at match time; a free-text find is turned into a vector once when it is asked. A match by meaning alone always ranks after a match by words, the model judge still checks it, and when the model is unreachable matching runs on words and the map as before. Owner, 20 Nov 2026: in memory, not pgvector; Cohere, not Titan, because Titan is weaker across languages.
 
 ```mermaid
 flowchart LR
@@ -66,4 +66,4 @@ The map lives on the shared core. The website, Telegram, the assistant and outsi
 
 ## Status
 
-Agreed by the owner on 20 Nov 2026, with blocks kept to the words a seller wrote. Phase 1, the word map, built on 20 Nov 2026, not deployed: 35 groups, used by telling sellers about a request, find in every channel, standing orders, offers that fit, skill coverage and the rating for work like this, with suggestions from the model judge on the team's Word map page. Phase 2, meaning vectors, follows once the map is live.
+Agreed by the owner on 20 Nov 2026, with blocks kept to the words a seller wrote. Phase 1, the word map, built on 20 Nov 2026, not deployed: 35 groups, used by telling sellers about a request, find in every channel, standing orders, offers that fit, skill coverage and the rating for work like this, with suggestions from the model judge on the team's Word map page. Phase 2, meaning vectors: where vectors live and which model chosen by the owner on 20 Nov 2026; the design is under review, and building starts with a read-only test of the model on the server and a priced estimate.
