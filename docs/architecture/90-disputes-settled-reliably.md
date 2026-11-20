@@ -64,6 +64,7 @@ Starts when both sides have answered, or when the 3 days end.
 - The panel is the review Safe fixed when the deal opened: two signers must agree, and for a large deal the senior Safe. It rules any share within 5 days and writes its reasons.
 - **A deal Karwan has money in is not judged by Karwan alone.** A reviewer from the reviewers' body, described below, is one of the panel's signers, and where Karwan's own financier paid the seller early, theirs must be one of the two signatures. The panel is fixed when a deal opens, before anyone knows who will fund it, so this is a rule Karwan follows and publishes; the contract cannot enforce it today.
 - The ruling is final on Karwan. The terms say so before any money moves, and say what each side may still do outside Karwan.
+- **No key on a Karwan server signs a ruling.** The review and senior Safes are owned by people's own wallets only, and each needs two of them. The keys Karwan's servers hold can propose, refer and carry out a ruling the escrow already allows, never rule one (owner, 20 Nov 2026).
 
 ## Who does what
 
@@ -169,4 +170,5 @@ The owner's direction, to be designed in its own view before anything is built.
 |---|---|
 | This view | Approved by the owner, 18 Nov 2026, with the five decisions above |
 | First part, on escrow family deals: both sides heard, a person confirms the finding, 72 hours to ask for people, the problem card | Built, not switched on. Proven on an Arc fork with a full payment and a 60% share |
+| Two signatures on every ruling, no server key among them | Found 20 Nov 2026 on Arc Testnet: the review Safe needed one signature and the operator key owned it and the senior Safe. Change prepared and dry-run; the owner signs it |
 | The reviewers' body | To be designed in its own view |
