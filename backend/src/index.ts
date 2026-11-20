@@ -42,6 +42,7 @@ import { startFindContactSweep } from './find/alertsLive.js';
 import { startOrderSweep } from './find/orderLive.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
+import { dealRecordRoutes, sharedDealRecordRoutes } from './routes/dealRecords.js';
 import { creDeliveryRequestRoutes } from './routes/creDeliveryRequest.js';
 import { creRoutesFromEnv, x402CreRoutesFromEnv } from './cre/wiring.js';
 import { paytagRoutes } from './routes/paytag.js';
@@ -523,6 +524,8 @@ app.route('/api/gateway', gatewayRoutes);
 app.route('/api/reputation', reputationRoutes);
 app.route('/api/deals', dealDraftRoutes);
 app.route('/api/deals', dealsRoutes);
+app.route('/api/deals', dealRecordRoutes);
+app.route('/api/deal-records', sharedDealRecordRoutes);
 app.route('/api/cre/delivery-request', creDeliveryRequestRoutes);
 // The suite CRE workflows (view 12). Each is null, and so not served, until
 // CRE_SUITE_ENABLED and its addresses and keys are set.
