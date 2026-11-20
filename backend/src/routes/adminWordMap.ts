@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { meaningKeeper } from '../matching/meaningKeeper.js';
+import { sellerIndex } from '../matching/sellerIndex.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { dismissSuggestion, listOpenSuggestions } from '../db/wordMapSuggestions.js';
 
@@ -7,7 +9,15 @@ import { dismissSuggestion, listOpenSuggestions } from '../db/wordMapSuggestions
 /// backend/src/matching/wordMap.ts or put away. Words only.
 export const adminWordMapRoutes = new Hono();
 
-adminWordMapRoutes.get('/word-map', requireAdmin, async (c) => c.json({ suggestions: await listOpenSuggestions() }));
+/// Whether matching by meaning is on (view 95 phase 2) and how many sellers on
+/// the market hold a vector for the current model.
+function meaningCounts() {
+  const { model, sellers: withVector } = meaningKeeper.counts();
+  const sellers = sellerIndex.entries().filter((s) => s.onMarket && !s.example).length;
+  return { on: model !== null, model, sellers, withVector };
+}
+
+adminWordMapRoutes.get('/word-map', requireAdmin, async (c) => c.json({ suggestions: await listOpenSuggestions(), meaning: meaningCounts() }));
 
 adminWordMapRoutes.post('/word-map/:id/dismiss', requireAdmin, async (c) => {
   const done = await dismissSuggestion(c.req.param('id') ?? '');

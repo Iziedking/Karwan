@@ -9,6 +9,8 @@ import { keywordsOf } from './keywords.js';
 import { openNeeds } from './needs.js';
 import type { LeadCandidate, LeadSeller } from './rankBuyers.js';
 import { contactFromOf, meetOf, reachableOf } from './settings.js';
+import { meaningKeeper } from '../matching/meaningKeeper.js';
+import { sellerMeaning } from '../matching/meaningLive.js';
 
 /// What a seller's agent reads to find buyers (view 72, Phase 4): open
 /// requests on the market that share words with what they sell, and the
@@ -43,6 +45,7 @@ export async function customerLeads(user: string): Promise<{ seller: LeadSeller 
       return { jobId: j.jobId, keywords: j.keywords, briefText: j.briefText, sourcingSector: j.sourcingSector ?? null, tradeType: brief?.tradeType ?? null, where: brief?.where ?? null };
     }),
     READ_MAX,
+    sellerMeaning(meaningKeeper, me),
   );
   const needs = (await openNeeds())
     .filter((n) => n.owner !== me && topicalMatchScore(keywordsOf(n.what), entry.words) > 0)

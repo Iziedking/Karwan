@@ -4,7 +4,7 @@
 /// a store, a provider or a retention rule changes, this changes in the same
 /// batch, with docs/terms-and-conditions.md section 8.
 
-export const PRIVACY_UPDATED = '2026-11-19';
+export const PRIVACY_UPDATED = '2026-11-20';
 
 export interface PrivacySection {
   id: string;
@@ -82,7 +82,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     body: ['These providers process data for us, only to do their part:'],
     list: [
       { label: 'Circle', text: 'Runs the wallet Karwan operates for you when you sign in with email.' },
-      { label: 'Amazon Web Services', text: 'Our servers, the database and its encrypted backups, and some of the AI models.' },
+      { label: 'Amazon Web Services', text: 'Our servers, the database and its encrypted backups, and some of the AI models. When matching by meaning is on, what you say you sell, and what you ask for, is also turned into a meaning vector on our own Amazon Web Services account, so people find you by what you mean.' },
       { label: 'Anthropic and OpenRouter', text: 'AI models that do your agent’s work, such as reading requests, writing offers and negotiating. What you say to the assistant goes only to Anthropic or to models on our own Amazon Web Services account.' },
       { label: 'Resend', text: 'Sends our emails.' },
       { label: 'Vercel', text: 'Serves the website.' },

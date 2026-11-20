@@ -25,6 +25,7 @@ const entry = (n: string, words: string[], over: Partial<IndexedSeller> = {}): I
   userAddress: `0x${n.repeat(40)}`,
   sellerAddress: `0x${n.repeat(39)}5`,
   words,
+  text: words.join('. '),
   sector: null,
   shapes: ['one_time'],
   country: null,
@@ -96,4 +97,68 @@ test('the live index is built from the wallets and profiles once, and one save r
   assert.equal(await sellerIndex.refresh(agents('a').userAddress, deps), null);
   assert.equal(sellerIndex.entries().length, 1);
   sellerIndex.reset();
+});
+
+/// Matching by meaning (view 95 phase 2): a scorer joins sellers and requests
+/// that share no word, always after the ones that do.
+
+test('an entry carries the text its meaning vector is made from: the words, then the bio', () => {
+  assert.equal(indexEntry(agents('a'), profile({}))?.text, 'shoes. footwear. Clark shoes');
+});
+
+test('a meaning-only seller joins after the word matches, best meaning first, and leaves the judge list', () => {
+  const index = [entry('1', ['shoes']), entry('2', ['tailor']), entry('3', ['dressmaker']), entry('4', ['photography'])];
+  const request = { jobId: '0xj', keywords: ['shoes'] };
+  const meaning = (user: string) => ({ [entry('2', []).userAddress]: 40, [entry('3', []).userAddress]: 70 })[user] ?? 0;
+  const { byWords, toJudge } = rankSellers(index, request, undefined, meaning);
+  assert.deepEqual(byWords.map((s) => s.userAddress[2]), ['1', '3', '2']);
+  assert.deepEqual(toJudge.map((s) => s.userAddress[2]), ['4']);
+});
+
+test('without a scorer, or with one that scores nobody, the result is the same as today', () => {
+  const index = [entry('1', ['shoes', 'sandals']), entry('2', ['logo']), entry('4', ['leather'], { sector: 'textiles' })];
+  const request = { jobId: '0xj', keywords: ['shoes'], sourcingSector: 'textiles' };
+  assert.deepEqual(rankSellers(index, request, 2, () => 0), rankSellers(index, request, 2));
+  assert.deepEqual(rankSellers(index, request, 2, undefined), rankSellers(index, request, 2));
+});
+
+test('a meaning-only request joins after the word matches', () => {
+  const open = [
+    { jobId: '0xshoes', keywords: ['shoes'] },
+    { jobId: '0xwedding', keywords: ['aso ebi', 'wedding'] },
+    { jobId: '0xlogo', keywords: ['logo'] },
+  ];
+  const shoes = entry('1', ['shoes', 'tailor']);
+  assert.deepEqual(requestsForSeller(shoes, open, undefined, (id) => (id === '0xwedding' ? 55 : 0)).map((r) => r.jobId), ['0xshoes', '0xwedding']);
+  assert.deepEqual(requestsForSeller(shoes, open, undefined, () => 0), requestsForSeller(shoes, open));
+});
+
+test('listeners hear a rebuild with every entry and a refresh with the one entry', async () => {
+  sellerIndex.reset();
+  const heard: string[] = [];
+  const stop = sellerIndex.listen((entries, how) => heard.push(`${how}:${entries.length}`));
+  const deps = {
+    listWallets: async () => [agents('a'), agents('b')],
+    wallets: async (a: string) => [agents('a'), agents('b')].find((w) => w.userAddress === a) ?? null,
+    profile: async () => profile({}),
+  };
+  await sellerIndex.rebuild(deps);
+  await sellerIndex.refresh(agents('a').userAddress, deps);
+  stop();
+  await sellerIndex.refresh(agents('a').userAddress, deps);
+  assert.deepEqual(heard, ['rebuild:2', 'refresh:1']);
+  sellerIndex.reset();
+});
+
+test('sellers close only in meaning share the judge limit, so a request never costs more model calls than today', () => {
+  const index = [entry('1', ['shoes']), entry('2', ['tailor']), entry('3', ['dressmaker']), entry('4', ['seamstress']), entry('5', ['photography']), entry('6', ['plumbing'])];
+  const close: Record<string, number> = { [entry('2', []).userAddress]: 50, [entry('3', []).userAddress]: 70, [entry('4', []).userAddress]: 60 };
+  const got = rankSellers(index, { jobId: '0xj', keywords: ['shoes'] }, 2, (u) => close[u] ?? 0);
+  assert.deepEqual(got.byWords.map((s) => s.userAddress[2]), ['1', '3', '4']);
+  assert.deepEqual(got.toJudge, []);
+  assert.equal(got.skipped, 3);
+  const roomy = rankSellers(index, { jobId: '0xj', keywords: ['shoes'] }, 4, (u) => close[u] ?? 0);
+  assert.deepEqual(roomy.byWords.map((s) => s.userAddress[2]), ['1', '3', '4', '2']);
+  assert.equal(roomy.toJudge.length, 1);
+  assert.equal(roomy.skipped, 1);
 });

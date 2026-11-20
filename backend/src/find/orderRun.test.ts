@@ -342,3 +342,15 @@ test('a find that is a draft is never saved for a run that could not post', asyn
   await runOrder(deps, order(), NOW);
   assert.equal(saved.length, 0);
 });
+
+
+test('a standing order asks for its people with its own id, so its meaning vector is kept', async () => {
+  const w = world();
+  w.state.agree = true;
+  const refs: unknown[] = [];
+  const people = w.deps.people;
+  w.deps.people = async (q) => { refs.push(q.ref); return people(q); };
+  const o = order({});
+  await runOrder(w.deps, o, NOW);
+  assert.deepEqual(refs[0], { id: o.id, owner: o.owner });
+});

@@ -64,6 +64,8 @@ import { keccak256, toHex } from 'viem';
 import { listListingsForSeller } from '../db/listings.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { getSellerBidFlags } from '../agents/seller.js';
+import { meaningKeeper } from '../matching/meaningKeeper.js';
+import { sellerMeaning } from '../matching/meaningLive.js';
 import { agreementEscrowAddress, readAgreementReviewEnd } from '../chain/agreementEscrowLive.js';
 
 /// Tools for every step after a request or deal is posted. Each one reads the
@@ -571,6 +573,7 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
               return { jobId: j.jobId, keywords: j.keywords, briefText: j.briefText, sourcingSector: j.sourcingSector ?? null, tradeType: brief?.tradeType ?? null, where: brief?.where ?? null };
             }),
             10,
+            sellerMeaning(meaningKeeper, address),
           );
           const requests = fits.map((fit) => {
             const j = open.find((x) => x.jobId === fit.jobId)!;

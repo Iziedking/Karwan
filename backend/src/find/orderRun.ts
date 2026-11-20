@@ -36,7 +36,8 @@ export interface RunDeps {
   /// The person's own day ("2026-11-16") at an instant.
   day(owner: string, now: number): Promise<string>;
   buyer(owner: string): Promise<{ location: PrivateLocation | null; verified: boolean }>;
-  people(need: { keywords: string[]; text: string; kind: Find['kind'] }): Promise<FindCandidate[]>;
+  /// The order names itself, so its meaning vector is kept under its id (view 95 phase 2).
+  people(need: { keywords: string[]; text: string; kind: Find['kind']; ref?: { id: string; owner: string } }): Promise<FindCandidate[]>;
   blocked(owner: string): Promise<Set<string>>;
   cleanRecordCounts: boolean;
   saveFind(f: Find): Promise<Find>;
@@ -85,7 +86,7 @@ function held(o: StandingOrder, what: 'location' | 'money'): RunResult {
 async function ranked(deps: RunDeps, o: StandingOrder, asked: ReadonlySet<string>) {
   const [buyer, candidates, blocked] = await Promise.all([
     deps.buyer(o.owner),
-    deps.people({ keywords: keywordsOf(o.need), text: o.need, kind: o.kind }),
+    deps.people({ keywords: keywordsOf(o.need), text: o.need, kind: o.kind, ref: { id: o.id, owner: o.owner } }),
     deps.blocked(o.owner),
   ]);
   return rankForFind(

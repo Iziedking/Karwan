@@ -25,6 +25,7 @@ import { deleteBlocksOf } from '../find/blocks.js';
 import { deleteContactsOf } from '../find/contacts.js';
 import { deleteFindsOf } from '../find/finds.js';
 import { deleteNeedsOf } from '../find/needs.js';
+import { meaningKeeper } from '../matching/meaningKeeper.js';
 import { deleteOrdersOf } from '../find/orders.js';
 import { deleteListingsBySeller, listListingsForSeller, listingStatus } from '../db/listings.js';
 import { deleteProfile } from '../db/profiles.js';
@@ -176,6 +177,8 @@ const eraser: Eraser = {
         await deleteBlocksOf(address);
       },
     },
+    // Meaning vectors (view 95 phase 2), and any still on the way are dropped.
+    { name: 'meaning vectors', run: (address) => meaningKeeper.forget(address) },
     {
       name: 'offers and requests',
       run: async (address) => {

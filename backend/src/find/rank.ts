@@ -13,6 +13,9 @@ export const FIND_MAX = 5;
 /// How far a buyer is expected to go to a seller's own place.
 export const AT_MY_PLACE_KM = 25;
 const MATCH_BAND = 25;
+/// The most a fit by meaning alone counts (view 95 phase 2), so a full word
+/// match always ranks first.
+export const MEANING_FIND_CAP = 60;
 const ON_TIME_REASON_MIN = 80;
 const MAX_REASONS = 3;
 const NEW_RATING = 3.5;
@@ -38,6 +41,8 @@ export interface FindCandidate {
   contactFrom: 'anyone' | 'verified';
   /// They let agents outside Karwan find them (view 15).
   outsideAgents: boolean;
+  /// How close what they sell is in meaning to the need, 0 to 100 (view 95 phase 2).
+  meaning?: number;
 }
 
 export interface FindNeed {
@@ -149,7 +154,8 @@ export function rankForFind(candidates: readonly FindCandidate[], need: FindNeed
     if (user === buyer || seen.has(user) || opts.blocked.has(user)) continue;
     if (opts.requireVerified && !c.verified) continue;
     if (c.contactFrom === 'verified' && !need.buyerVerified) continue;
-    const match = topicalMatchScore(tags, c.words);
+    const words = topicalMatchScore(tags, c.words);
+    const match = words > 0 ? words : Math.min(c.meaning ?? 0, MEANING_FIND_CAP);
     if (match === 0) continue;
     if (c.price && c.price.min > need.budgetUsdc) continue;
     const km = kmBetween(need.buyerLocation, c.location);

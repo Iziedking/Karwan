@@ -91,3 +91,10 @@ test('a teammate without Matching is refused', async () => {
 test('signed out is refused', async () => {
   assert.equal((await call('GET', '/api/admin/word-map')).status, 401);
 });
+
+
+test('the word map says whether matching by meaning is on and how many sellers have a vector', async () => {
+  const r = await call('GET', '/api/admin/word-map', await tokenOf('pat@karwan.site'));
+  const body = (await r.json()) as { meaning: { on: boolean; model: string | null; sellers: number; withVector: number } };
+  assert.deepEqual(body.meaning, { on: false, model: null, sellers: 0, withVector: 0 });
+});

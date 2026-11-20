@@ -91,6 +91,8 @@ import type { EvidenceAcquisitionShadowObserver } from './evidenceAcquisitionSha
 import { buildMarketEvidenceAcquisitionObservation } from './evidenceAcquisitionProjection.js';
 import { requestTitle, settleBid, type BidOutcomeRecord, type DealParties } from './bidOutcome.js';
 import { recordBidOutcomes } from '../db/bidOutcomes.js';
+import { meaningKeeper } from '../matching/meaningKeeper.js';
+import { requestMeaning, sellerMeaning, startMeaning } from '../matching/meaningLive.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -593,7 +595,9 @@ export function startSellerAgents() {
   logger.info({ board: marketBoard().kind }, 'seller agent starting (multi-tenant)');
 
   // Who sells what, in memory (view 41): the match for a new request reads it
-  // instead of every profile; a save refreshes one entry.
+  // instead of every profile; a save refreshes one entry. Meaning vectors
+  // (view 95 phase 2) follow the index when switched on.
+  startMeaning();
   void sellerIndex
     .rebuild()
     .then((n) => logger.info({ sellers: n }, 'seller index built'))
@@ -739,16 +743,23 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
   if (!sellerIndex.isBuilt()) await sellerIndex.rebuild();
   // A private request from a find goes to the agents of the people asked, and only them.
   const invited = brief?.visibility === 'invited' ? new Set((brief.invited ?? []).map((a) => a.toLowerCase())) : null;
+  // Close by meaning too (view 95 phase 2): the request's vector, waited for 1.5 s at most.
+  const meaning = invited ? undefined : await requestMeaning(meaningKeeper, jobId, args.buyer, brief?.briefText ?? briefKeywords.join(', '));
   const candidates = invited
     ? { byWords: sellerIndex.entries().filter((s) => invited.has(s.userAddress)), toJudge: [], skipped: 0 }
-    : rankSellers(sellerIndex.entries(), {
-        jobId,
-        keywords: briefKeywords,
-        briefText: brief?.briefText,
-        sourcingSector: brief?.counterpartyCompany?.sector ?? null,
-        tradeType: brief?.tradeType ?? null,
-        where: brief?.where ?? null,
-      });
+    : rankSellers(
+        sellerIndex.entries(),
+        {
+          jobId,
+          keywords: briefKeywords,
+          briefText: brief?.briefText,
+          sourcingSector: brief?.counterpartyCompany?.sector ?? null,
+          tradeType: brief?.tradeType ?? null,
+          where: brief?.where ?? null,
+        },
+        undefined,
+        meaning,
+      );
   if (!opts?.rescan) recordPosted(jobId, brief?.createdAt ?? Date.now());
   const sellers = await resolveSellerProfilesForUsers([...candidates.byWords, ...candidates.toJudge].map((s) => s.userAddress));
   logger.info(
@@ -2253,6 +2264,8 @@ export async function matchSellerNow(userAddress: string): Promise<number> {
       const brief = getBrief(j.jobId);
       return { jobId: j.jobId, keywords: j.keywords, briefText: j.briefText, sourcingSector: j.sourcingSector ?? null, tradeType: brief?.tradeType ?? null, where: brief?.where ?? null };
     }),
+    undefined,
+    sellerMeaning(meaningKeeper, userAddress),
   );
   if (fits.length === 0) return 0;
   const [seller] = await resolveSellerProfilesForUsers([userAddress]);

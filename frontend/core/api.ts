@@ -2873,6 +2873,14 @@ export interface AdminMoneyMove {
 }
 
 /// A pair the model judge matched that shares no word, even through the word map (view 95).
+/// Matching by meaning (view 95 phase 2): on or off, and sellers holding a vector.
+export interface AdminMeaningCounts {
+  on: boolean;
+  model: string | null;
+  sellers: number;
+  withVector: number;
+}
+
 export interface AdminWordMapSuggestion {
   id: string;
   briefWords: string[];
@@ -4482,7 +4490,8 @@ export const api = {
   adminSession: () => json<{ me: AdminDeskMe | null; network?: AdminDeskNetwork }>('/api/admin/session', { headers: adminHeaders() }),
   adminHome: () => json<AdminHomeView>('/api/admin/home', { headers: adminHeaders() }),
   adminMoneyMoves: () => json<AdminMoneyMoves>('/api/admin/money-moves', { headers: adminHeaders() }),
-  adminWordMapSuggestions: () => json<{ suggestions: AdminWordMapSuggestion[] }>('/api/admin/word-map', { headers: adminHeaders() }),
+  adminWordMapSuggestions: () =>
+    json<{ suggestions: AdminWordMapSuggestion[]; meaning?: AdminMeaningCounts }>('/api/admin/word-map', { headers: adminHeaders() }),
   adminDismissWordMapSuggestion: (id: string) =>
     json<{ ok: true }>(`/api/admin/word-map/${encodeURIComponent(id)}/dismiss`, { method: 'POST', headers: adminHeaders() }),
   adminAccounts: (email?: string) =>

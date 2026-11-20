@@ -7,7 +7,7 @@ import { DIRECTORY_READ_MAX, directoryCandidates, type DirectoryDeps, type Selle
 /// Who an agent may find (view 72): only people who chose to be found.
 
 const entry = (n: string, over: Partial<IndexedSeller> = {}): IndexedSeller => ({
-  userAddress: `0x${n}`, sellerAddress: `0x${n}a`, words: ['tailor', 'dress'], sector: null, shapes: ['one_time'], country: 'NG', example: false, onMarket: true, updatedAt: 0, ...over,
+  userAddress: `0x${n}`, sellerAddress: `0x${n}a`, words: ['tailor', 'dress'], text: 'tailor. dress', sector: null, shapes: ['one_time'], country: 'NG', example: false, onMarket: true, updatedAt: 0, ...over,
 });
 
 const profile = (n: string, over: Partial<UserProfile> = {}): UserProfile =>
@@ -60,4 +60,20 @@ test('at most a fixed number of fits are read', async () => {
   const reads: string[] = [];
   await directoryCandidates(need, deps(many, profiles, reads));
   assert.equal(reads.length, DIRECTORY_READ_MAX);
+});
+
+
+test('with a meaning scorer, close sellers are read and carry their meaning score', async () => {
+  let passed: ((u: string) => number) | undefined;
+  const d: DirectoryDeps = {
+    ...deps([], { '0xon': profile('on'), '0xclose': profile('close') }),
+    meaning: async () => (u: string) => (u === '0xclose' ? 80 : 0),
+    byWords: async (_need, meaning) => {
+      passed = meaning;
+      return [entry('on'), entry('close', { words: ['aso ebi'] })];
+    },
+  };
+  const rows = await directoryCandidates(need, d);
+  assert.ok(passed, 'the scorer reaches the index');
+  assert.deepEqual(rows.map((r) => [r.user, r.meaning ?? 0]), [['0xon', 0], ['0xclose', 80]]);
 });

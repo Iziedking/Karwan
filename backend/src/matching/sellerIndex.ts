@@ -17,6 +17,9 @@ export interface IndexedSeller {
   sellerAddress: string;
   /// Keywords and skills, the words matching runs on.
   words: string[];
+  /// What the meaning vector is made from (view 95 phase 2): the words, then
+  /// the seller's own line about their work. Never stored, only its hash.
+  text: string;
   sector: string | null;
   shapes: SellShape[];
   country: string | null;
@@ -54,6 +57,7 @@ export function indexEntry(agents: Pick<AgentWallets, 'userAddress' | 'sellerAdd
     userAddress: agents.userAddress.toLowerCase(),
     sellerAddress: agents.sellerAddress.toLowerCase(),
     words: uniq([...(s.keywords ?? []), ...(s.skills ?? [])]),
+    text: [...uniq([...(s.keywords ?? []), ...(s.skills ?? [])]), s.bio?.trim()].filter(Boolean).join('. '),
     sector: profile.smeProfile?.sector ?? null,
     shapes: waysOf(profile).sell.map((w) => w.shape),
     country: profile.location?.country ?? null,
@@ -76,32 +80,59 @@ export function hintScore(s: IndexedSeller, r: RequestForIndex): number {
   return score;
 }
 
-export function rankSellers(index: readonly IndexedSeller[], request: RequestForIndex, limit = MATCH_CANDIDATE_LIMIT): Candidates {
+/// With a meaning scorer (view 95 phase 2), sellers who share no word but are
+/// close in meaning join byWords after every word match, best meaning first.
+/// The model judge still checks them, as it does any seller with no shared word.
+export function rankSellers(
+  index: readonly IndexedSeller[],
+  request: RequestForIndex,
+  limit = MATCH_CANDIDATE_LIMIT,
+  meaning?: (userAddress: string) => number,
+): Candidates {
   const tags = requestTags(request);
   const scored = index
     .filter((s) => s.onMarket && !s.example)
-    .map((s) => ({ s, overlap: tags.length && s.words.length ? topicalOverlap(tags, s.words) : 0, hint: hintScore(s, request) }));
+    .map((s) => {
+      const overlap = tags.length && s.words.length ? topicalOverlap(tags, s.words) : 0;
+      return { s, overlap, close: overlap === 0 && meaning ? meaning(s.userAddress) : 0, hint: hintScore(s, request) };
+    });
   const byWords = scored
     .filter((x) => x.overlap > 0)
     .sort((a, b) => b.overlap - a.overlap || b.hint - a.hint)
     .map((x) => x.s);
-  const rest = scored.filter((x) => x.overlap === 0).sort((a, b) => b.hint - a.hint || b.s.updatedAt - a.s.updatedAt);
-  const toJudge = rest.slice(0, Math.max(0, limit)).map((x) => x.s);
+  // Each seller with no shared word costs one judge call, so the closest in
+  // meaning take the judge's places first and the total stays within the limit.
+  const byMeaning = scored
+    .filter((x) => x.close > 0)
+    .sort((a, b) => b.close - a.close || b.hint - a.hint)
+    .slice(0, Math.max(0, limit))
+    .map((x) => x.s);
+  byWords.push(...byMeaning);
+  const chosen = new Set(byMeaning);
+  const rest = scored.filter((x) => x.overlap === 0 && !chosen.has(x.s)).sort((a, b) => b.hint - a.hint || b.s.updatedAt - a.s.updatedAt);
+  const toJudge = rest.slice(0, Math.max(0, limit - byMeaning.length)).map((x) => x.s);
   return { byWords, toJudge, skipped: rest.length - toJudge.length };
 }
 
-/// The open requests a seller fits, by shared words or sector, best first.
-export function requestsForSeller<R extends RequestForIndex>(entry: IndexedSeller, requests: readonly R[], limit = MATCH_CANDIDATE_LIMIT): R[] {
+/// The open requests a seller fits, by shared words or sector, best first, then
+/// those close only in meaning (view 95 phase 2), best meaning first.
+export function requestsForSeller<R extends RequestForIndex>(
+  entry: IndexedSeller,
+  requests: readonly R[],
+  limit = MATCH_CANDIDATE_LIMIT,
+  meaning?: (jobId: string) => number,
+): R[] {
   if (!entry.onMarket || entry.example) return [];
   return requests
     .map((r) => {
       const tags = requestTags(r);
       const overlap = tags.length && entry.words.length ? topicalOverlap(tags, entry.words) : 0;
       const sector = r.sourcingSector && entry.sector && entry.sector.toLowerCase() === r.sourcingSector.toLowerCase() ? 1 : 0;
-      return { r, score: overlap * 10 + sector * 5 + (overlap || sector ? hintScore(entry, r) : 0) };
+      const score = overlap * 10 + sector * 5 + (overlap || sector ? hintScore(entry, r) : 0);
+      return { r, score, close: score === 0 && meaning ? meaning(r.jobId) : 0 };
     })
-    .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score)
+    .filter((x) => x.score > 0 || x.close > 0)
+    .sort((a, b) => b.score - a.score || b.close - a.close)
     .slice(0, limit)
     .map((x) => x.r);
 }
@@ -119,6 +150,17 @@ const liveDeps: IndexDeps = {
 };
 
 const entries = new Map<string, IndexedSeller>();
+type Listener = (changed: IndexedSeller[], how: 'rebuild' | 'refresh') => void;
+const listeners = new Set<Listener>();
+const tell = (changed: IndexedSeller[], how: 'rebuild' | 'refresh') => {
+  for (const fn of listeners) {
+    try {
+      fn(changed, how);
+    } catch {
+      // A listener never breaks the index.
+    }
+  }
+};
 let built = false;
 let building: Promise<number> | null = null;
 
@@ -140,6 +182,7 @@ export const sellerIndex = {
       entries.clear();
       for (const [k, v] of next) entries.set(k, v);
       built = true;
+      tell([...entries.values()], 'rebuild');
       return entries.size;
     })().finally(() => {
       building = null;
@@ -151,9 +194,16 @@ export const sellerIndex = {
     const key = userAddress.toLowerCase();
     const [agents, profile] = await Promise.all([deps.wallets(key).catch(() => null), deps.profile(key).catch(() => null)]);
     const entry = agents && profile ? indexEntry(agents, profile) : null;
-    if (entry) entries.set(key, entry);
-    else entries.delete(key);
+    if (entry) {
+      entries.set(key, entry);
+      tell([entry], 'refresh');
+    } else entries.delete(key);
     return entry;
+  },
+  /// Hear every rebuild and every refreshed entry. Returns the way to stop.
+  listen(fn: Listener): () => void {
+    listeners.add(fn);
+    return () => void listeners.delete(fn);
   },
   /// Tests only.
   reset(): void {

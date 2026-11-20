@@ -1766,6 +1766,25 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX work_offers_seller ON work_offers (lower(data->>'seller'));
     `,
   },
+  {
+    // Meaning vectors (view 95 phase 2): one vector per seller, request or
+    // standing order and model. Only a hash of the text is kept, never the text.
+    version: 74,
+    name: 'meaning_vectors',
+    sql: `
+      CREATE TABLE meaning_vectors_v1 (
+        kind TEXT NOT NULL CHECK (kind IN ('seller', 'request', 'need')),
+        ref TEXT NOT NULL,
+        model TEXT NOT NULL,
+        owner TEXT NOT NULL,
+        text_hash TEXT NOT NULL,
+        vector REAL[] NOT NULL,
+        updated_at BIGINT NOT NULL,
+        PRIMARY KEY (kind, ref, model)
+      );
+      CREATE INDEX meaning_vectors_v1_owner_idx ON meaning_vectors_v1 (owner);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

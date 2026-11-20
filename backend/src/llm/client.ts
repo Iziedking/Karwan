@@ -54,6 +54,8 @@ export const bedrockLightModel: LM | null = config.BEDROCK_LIGHT_MODEL ? onBedro
 /// an empty Anthropic balance never leaves Karwan without a model (view 81).
 /// It has no prompt caching, so the assistant's cache points are taken out
 /// before a call reaches it (view 84).
+/// An embedding model on Bedrock for meaning vectors (view 95 phase 2), null unless Bedrock is on.
+export const bedrockEmbeddingModel = (id: string) => (bedrock ? bedrock.embedding(id) : null);
 export const bedrockFallbackModel: LM | null = config.BEDROCK_FALLBACK_MODEL && bedrock
   ? (withoutCachePoints(bedrock(config.BEDROCK_FALLBACK_MODEL)) as LM)
   : null;

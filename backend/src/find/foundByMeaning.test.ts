@@ -14,6 +14,7 @@ const entry = (n: string, words: string[]): IndexedSeller => ({
   userAddress: `0x${n.repeat(40)}`,
   sellerAddress: `0x${n.repeat(39)}5`,
   words,
+  text: words.join('. '),
   sector: null,
   shapes: ['one_time'],
   country: null,
@@ -63,4 +64,42 @@ test('a tailoring offer fits a request for a fashion designer', () => {
   };
   const fit = offersThatFit({ brief: 'Fashion designer for my clothes', budgetUsdc: 70, buyer: '0x' + 'b'.repeat(40), now: NOW }, [offer]);
   assert.equal(fit.count, 1);
+});
+
+
+/// Phase 2 (meaning vectors): a need in other words, with no shared word and no
+/// word-map group, finds the tailor through stub vectors.
+test('someone to sew aso ebi for a wedding finds the tailor by meaning', async () => {
+  const store = await import('../db/meaningVectors.js');
+  const { createMeaningKeeper } = await import('../matching/meaningKeeper.js');
+  const { directoryCandidates } = await import('./directory.js');
+  store.resetMeaningVectorsForTests();
+  const keeper = createMeaningKeeper({
+    on: () => true, model: () => 'm@2', threshold: () => 0.4,
+    embed: async (texts) => texts.map((t) => Float32Array.from(/tailor|aso ebi/.test(t) ? [1, 0] : [0, 1])),
+    store, now: () => 1, gapMs: 0, sleep: async () => undefined,
+  });
+  const tailor = entry('a', ['tailor', 'native wears']);
+  const baker = entry('b', ['bakery', 'cakes']);
+  await keeper.ensure({ kind: 'seller', ref: tailor.userAddress, owner: tailor.userAddress, text: tailor.text });
+  await keeper.ensure({ kind: 'seller', ref: baker.userAddress, owner: baker.userAddress, text: baker.text });
+  const text = 'someone to sew aso ebi for my wedding';
+  const keywords = ['sew', 'aso ebi', 'wedding'];
+  const profile = (handle: string) => ({
+    address: '', role: 'seller', handle, displayName: handle, createdAt: 0, updatedAt: 0,
+    seller: { skills: [], bio: '', keywords: [], minBudgetUsdc: 1, maxBudgetUsdc: 100, minDeadlineDays: 1, maxDeadlineDays: 9 },
+    settings: { beFound: true, meet: { atMyPlace: false, comeToYouKm: null, online: true } },
+  }) as never;
+  const candidates = await directoryCandidates({ keywords, text, kind: 'remote' }, {
+    meaning: async () => keeper.scorer(await keeper.query(text, { timeoutMs: 100 }), 'seller'),
+    byWords: async (n, meaning) => rankSellers([tailor, baker], { jobId: 'find', keywords: n.keywords, briefText: n.text }, undefined, meaning).byWords,
+    profile: async (u) => profile(u === tailor.userAddress ? 'tailor' : 'baker'),
+    record: async () => ({ verified: false, tier: 'NEW', rating: { kind: 'new', count: 0 }, onTimeRate: null, completed: 0, disputesLost: 0 }),
+  });
+  const rows = rankForFind(
+    candidates,
+    { text, keywords, budgetUsdc: 100, kind: 'remote', where: { scope: 'anywhere' }, buyer: '0xbuyer', buyerLocation: null, buyerVerified: false },
+    { requireVerified: false, blocked: new Set(), cleanRecordCounts: false },
+  );
+  assert.deepEqual(rows.map((r) => r.tag), ['tailor']);
 });

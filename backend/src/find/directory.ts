@@ -24,9 +24,20 @@ export interface SellerRecord {
   disputesLost: number;
 }
 
+/// What is looked for. A standing order names itself so its meaning vector is kept.
+export interface DirectoryNeed {
+  keywords: string[];
+  text: string;
+  kind: DeliveryKind;
+  ref?: { id: string; owner: string };
+}
+
 export interface DirectoryDeps {
-  /// Sellers sharing a meaningful word with the need, best overlap first.
-  byWords(need: { keywords: string[]; text: string; kind: DeliveryKind }): Promise<IndexedSeller[]>;
+  /// Sellers sharing a meaningful word with the need, best overlap first, then
+  /// those close in meaning when a scorer is given (view 95 phase 2).
+  byWords(need: DirectoryNeed, meaning?: (user: string) => number): Promise<IndexedSeller[]>;
+  /// How close each seller is in meaning to the need; undefined when switched off.
+  meaning?(need: DirectoryNeed): Promise<((user: string) => number) | undefined>;
   profile(user: string): Promise<UserProfile | null>;
   /// With the need's words, the rating carries the rating for work like it (view 93).
   record(user: string, need?: { keywords: string[] }): Promise<SellerRecord>;
@@ -37,7 +48,7 @@ function wayFor(profile: UserProfile, kind: DeliveryKind): PricedWay | null {
   return priced.find((w) => (kind === 'goods' ? w.shape === 'goods' : w.shape !== 'goods')) ?? null;
 }
 
-export function candidateFrom(entry: IndexedSeller, profile: UserProfile, record: SellerRecord, kind: DeliveryKind): FindCandidate | null {
+export function candidateFrom(entry: IndexedSeller, profile: UserProfile, record: SellerRecord, kind: DeliveryKind, meaning = 0): FindCandidate | null {
   if (!beFoundOf(profile) || !profile.seller) return null;
   const way = wayFor(profile, kind);
   return {
@@ -54,17 +65,19 @@ export function candidateFrom(entry: IndexedSeller, profile: UserProfile, record
     days: way ? (way.shape === 'goods' ? { min: way.arriveDaysMin, max: way.arriveDaysMax } : { min: way.daysMin, max: way.daysMax }) : null,
     contactFrom: contactFromOf(profile),
     outsideAgents: profile.settings?.acceptsOutsideAgents !== false,
+    ...(meaning > 0 ? { meaning } : {}),
   };
 }
 
-export async function directoryCandidates(need: { keywords: string[]; text: string; kind: DeliveryKind }, deps: DirectoryDeps): Promise<FindCandidate[]> {
-  const fits = (await deps.byWords(need)).filter((s) => s.onMarket && !s.example).slice(0, DIRECTORY_READ_MAX);
+export async function directoryCandidates(need: DirectoryNeed, deps: DirectoryDeps): Promise<FindCandidate[]> {
+  const meaning = deps.meaning ? await deps.meaning(need).catch(() => undefined) : undefined;
+  const fits = (await deps.byWords(need, meaning)).filter((s) => s.onMarket && !s.example).slice(0, DIRECTORY_READ_MAX);
   const rows = await Promise.all(
     fits.map(async (entry) => {
       const profile = await deps.profile(entry.userAddress).catch(() => null);
       if (!profile || !beFoundOf(profile)) return null;
       const record = await deps.record(entry.userAddress, { keywords: need.keywords }).catch(() => null);
-      return record ? candidateFrom(entry, profile, record, need.kind) : null;
+      return record ? candidateFrom(entry, profile, record, need.kind, meaning?.(entry.userAddress) ?? 0) : null;
     }),
   );
   return rows.filter((r): r is FindCandidate => r !== null);

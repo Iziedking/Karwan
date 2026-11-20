@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { api, ApiError, type AdminWordMapSuggestion } from '@/core/api';
+import { api, ApiError, type AdminMeaningCounts, type AdminWordMapSuggestion } from '@/core/api';
 import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
 
 const labelClass = 'text-[10px] text-[var(--d-text-2)]';
@@ -15,12 +15,15 @@ function when(ts: number): string {
 /// the rest are dismissed.
 export default function WordMapPage() {
   const [list, setList] = useState<AdminWordMapSuggestion[] | null>(null);
+  const [meaning, setMeaning] = useState<AdminMeaningCounts | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setList((await api.adminWordMapSuggestions()).suggestions);
+      const got = await api.adminWordMapSuggestions();
+      setList(got.suggestions);
+      setMeaning(got.meaning ?? null);
       setErr(null);
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : 'Could not load suggestions');
@@ -51,6 +54,12 @@ export default function WordMapPage() {
         description="Pairs the model matched that share no word. Add the good ones to backend/src/matching/wordMap.ts."
         meta={list ? `${list.length} open` : undefined}
       />
+
+      {meaning && (
+        <p data-meaning={meaning.on ? 'on' : 'off'} className="mt-4 text-[12px] text-[var(--d-text-2)] tabular-nums">
+          {meaning.on ? `Meaning vectors: ${meaning.withVector} of ${meaning.sellers} sellers` : 'Meaning matching is off'}
+        </p>
+      )}
 
       {err && <p role="alert" className="mt-5 border-l-2 border-[#5A2A2E] px-3 py-2 text-[12px] text-[var(--d-red)]">{err}</p>}
 

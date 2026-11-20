@@ -156,3 +156,26 @@ test('likeThis only for close deals (view 93)', () => {
   assert.deepEqual(by.close, { stars: 4.7, count: 3 });
   assert.equal(by.new, null);
 });
+
+
+/// Matching by meaning (view 95 phase 2): a person who shares no word but is
+/// close in meaning is kept, never ahead of a full word match.
+
+test('a meaning-only person is kept, after a full word match even with a better record', () => {
+  const rows = rank([
+    seller('sews', { words: ['aso ebi', 'native wears'], meaning: 100, verified: true, tier: 'TRUSTED' }),
+    seller('tailor'),
+    seller('cook', { words: ['catering'], meaning: 0 }),
+  ]);
+  assert.deepEqual(users(rows), ['tailor', 'sews']);
+});
+
+test('a meaning-only fit counts at most 60, below a full word match', () => {
+  const rows = rank([seller('sews', { words: ['aso ebi'], meaning: 100, verified: true, tier: 'TRUSTED' }), seller('tailor', { verified: false, tier: 'NEW' })]);
+  assert.deepEqual(users(rows), ['tailor', 'sews']);
+});
+
+test('with no meaning given the ranking is the same as before', () => {
+  const cands = [seller('cook', { words: ['catering'] }), seller('partial', { words: ['dress', 'shoes'] }), seller('tailor')];
+  assert.deepEqual(rank(cands), rank(cands.map((c) => ({ ...c, meaning: 0 }))));
+});
