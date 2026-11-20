@@ -229,6 +229,9 @@ export interface BuyerJob {
   bids: BuyerBid[];
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;
+  /// The buyer's only: how the agent's talks stand (view 73). Every one ended
+  /// with offers still standing means the buyer chooses.
+  talks?: { open: number; asking: number; ended: number };
   /// Privacy gate. The backend returns the full job only to the buyer who
   /// posted it (and, once matched, the matched seller). For everyone else it
   /// returns a status-only stub with `isParty: false` and no bids/amounts.

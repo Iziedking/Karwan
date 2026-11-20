@@ -114,7 +114,7 @@ import {
   setLowestOtherOfferReader,
 } from './seller.js';
 import { getRecord, putRecord } from '../db/evidence.js';
-import { resumeBook, stepBook, yourCalls, type Book, type BookContext, type BookEvent } from './negotiationBook.js';
+import { resumeBook, stepBook, talksOf, yourCalls, type Book, type BookContext, type BookEvent } from './negotiationBook.js';
 import { runBook, type BookDeps } from './bookRunner.js';
 import { budgetRange } from './budgetRange.js';
 import { requestTitle } from './bidOutcome.js';
@@ -5214,6 +5214,9 @@ export interface BuyerJobSnapshot {
   }>;
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;
+  /// How the agent's talks stand (view 73): the request page stops saying
+  /// "Negotiating" once every one has ended.
+  talks: { open: number; asking: number; ended: number };
   /// B2B lane + trade type so a business can tell trade-finance deals from
   /// service ones at a glance in its managed-deals list. Absent reads as service.
   tradeLane?: 'service' | 'finance';
@@ -5331,6 +5334,7 @@ export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobS
       })),
       lastCounterPriceBySeller: Object.fromEntries(s.lastCounterPriceBySeller),
       counterRoundsBySeller: Object.fromEntries(s.counterRoundsBySeller),
+      talks: talksOf(s.negotiations),
       tradeLane: s.context.tradeLane ?? 'service',
       tradeType: getBrief(s.jobId)?.tradeType ?? null,
     })),

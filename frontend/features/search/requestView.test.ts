@@ -185,3 +185,18 @@ test('the page refreshes on any new match, near-miss or escrow event, and only t
   assert.equal(refreshKey([ev('c', 'bid.submitted'), ev('b', 'negotiation.near_miss')]), 'b');
   assert.equal(refreshKey([ev('d', 'escrow.funded')]), 'd');
 });
+
+test('every talk ended with offers still standing: the buyer chooses, never a spinner', () => {
+  const talks = { open: 0, asking: 0, ended: 4 };
+  const v = view({ job: job({ bids: [bid], talks }), live: { ...live, active: 'counter' } });
+  assert.equal(v.state, 'talksEnded');
+  assert.equal(v.whoseMove, 'you');
+  assert.equal(v.primary, null, 'the offers are the choice');
+  assert.deepEqual(v.secondary, ['editRequest', 'cancelRequest']);
+  assert.equal(v.showOffers, true);
+  // One talk still open, or one waiting on the person, is still negotiating.
+  assert.equal(view({ job: job({ bids: [bid], talks: { ...talks, open: 1 } }), live: { ...live, active: 'counter' } }).state, 'negotiating');
+  assert.equal(view({ job: job({ bids: [bid], talks: { ...talks, asking: 1 } }), live: { ...live, active: 'counter' } }).state, 'negotiating');
+  // No offers left to choose from is not this state.
+  assert.equal(view({ job: job({ talks }), live: { ...live, active: 'counter' } }).state, 'negotiating');
+});

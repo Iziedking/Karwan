@@ -256,3 +256,11 @@ export function counterSent(book: Book, seller: string, counterKey: string): voi
   const n = book.get(key(seller));
   if (n?.pending?.key === counterKey) n.pending = null;
 }
+
+/// How the request's talks stand, for the request page: still open, waiting on
+/// the person, or ended. Agreed talks become a match and are not counted.
+export function talksOf(book: Book | undefined): { open: number; asking: number; ended: number } {
+  const out = { open: 0, asking: 0, ended: 0 };
+  for (const n of book?.values() ?? []) if (n.state !== 'agreed') out[n.state] += 1;
+  return out;
+}

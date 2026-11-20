@@ -93,6 +93,7 @@ import { requestTitle, settleBid, type BidOutcomeRecord, type DealParties } from
 import { recordBidOutcomes } from '../db/bidOutcomes.js';
 import { meaningKeeper } from '../matching/meaningKeeper.js';
 import { requestMeaning, sellerMeaning, startMeaning } from '../matching/meaningLive.js';
+import { counterTurns } from './counterTurns.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -1710,13 +1711,21 @@ async function handleCounterOffer(log: Log) {
   const seller = await resolveSellerProfile(args.seller);
   if (!seller) return;
 
-  const active = activeBids.get(bidKey(args.jobId, seller.address));
+  const key = bidKey(args.jobId, seller.address);
+  const active = activeBids.get(key);
   if (!active || active.finalized) return;
-  // Per-(jobId,seller) mutex. If a redelivered event reaches us while we're already
-  // running the LLM or broadcasting a respondToCounter tx, drop it.
-  if (active.responding) return;
+  // One reply at a time per offer. A counter that lands while the agent is
+  // still finishing its last reply waits and is answered next, never dropped:
+  // the buyer's agent answers within a second (bug B-10).
+  await sellerCounterTurns.turn(key, log, () => activeBids.get(key)?.responding === true, (next) => answerCounter(seller, key, next));
+}
+
+async function answerCounter(seller: SellerProfile, key: string, log: Log) {
+  const args = (log as unknown as { args: CounterOfferIssuedArgs }).args;
+  const active = activeBids.get(key);
+  if (!active || active.finalized) return;
   active.responding = true;
-  active.lastCounterRef = String((log as { transactionHash?: string }).transactionHash ?? dedupeKey);
+  active.lastCounterRef = String((log as { transactionHash?: string }).transactionHash ?? logDedupeKey('CounterOfferIssued', log));
 
   try {
     await runCounterEvaluation(seller, active, args);
@@ -1727,6 +1736,8 @@ async function handleCounterOffer(log: Log) {
     scheduleActiveBidsPersist();
   }
 }
+
+const sellerCounterTurns = counterTurns<Log>();
 
 async function runCounterEvaluation(
   seller: SellerProfile,

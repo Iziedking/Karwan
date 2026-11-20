@@ -20,6 +20,8 @@ import { fitLevel, offersPage, OFFERS_PER_PAGE, priceRange, rankOffers, type Fit
 import { Shortlist, useShortlist } from './Shortlist';
 import { AgentWorldCheck } from './AgentWorldCheck';
 import { worldStepFrom } from '../agentWorldStep';
+import { shortlistCostLine } from '../shortlistPresentation';
+import { Hint } from '@/shared/components/Hint';
 
 const nameOf = (bid: BuyerBid) => bid.sellerDisplayName?.trim() || shortAddress(bid.seller);
 
@@ -64,6 +66,10 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   if (ranked.length === 0) return null;
 
   const shown = offersPage(ranked, page);
+  // What the agent paid to check records on this request, here too when no
+  // offer made the shortlist (bug B-10): money spent is never hidden.
+  const costLine = shortlistCostLine(shortlist?.recordChecks, t.shortlist);
+  const checkedCost = costLine ? money.line(costLine, { compact: false }) : null;
   const range = priceRange(ranked);
   const folded = pickSeller
     ? (others.length === 1 ? copy.othersOne : fill(copy.othersMany, { n: others.length }))
@@ -211,6 +217,12 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
           />
         ) : null}
       </ConfirmSheet>
+      {checkedCost ? (
+        <p className="mt-2 flex items-center gap-1.5 px-4 text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">
+          <span>{checkedCost}</span>
+          <Hint>{t.shortlist.checkedTip}</Hint>
+        </p>
+      ) : null}
     </section>
   );
 }

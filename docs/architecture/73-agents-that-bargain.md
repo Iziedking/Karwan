@@ -109,6 +109,24 @@ flowchart LR
 | Market price | Yes, when Karwan has one | Yes, the same reading |
 | Records | The seller's ratings and reputation | The buyer's reputation |
 
+## Found in testing (20 Nov 2026)
+
+A request on testnet stopped with four offers and the page still said
+"Negotiating". Every seller's agent had answered the buyer's first counter
+within half a second, and the buyer's agent countered back at once. The
+sellers' agents were still writing their reason lines, so they dropped the
+second counter, and after three minutes the buyer's agent ended each talk as
+no reply. Three changes:
+
+- A seller's agent answers one counter at a time for each offer. A counter
+  that arrives while it is still finishing a reply waits and is answered next.
+  If several arrive, it answers the newest.
+- Once every talk has ended and offers still stand, the request says the
+  agent stopped short of the budget. The buyer then chooses an offer or
+  changes the request.
+- What the agent paid for record checks shows under the offers, even when no
+  offer made the shortlist.
+
 ## Where it lives
 
 | Layer | Change |

@@ -413,6 +413,7 @@ jobsRoutes.get('/:jobId', async (c) => {
     // route) but never the list of who else bid or at what price, so strip it
     // server-side rather than trusting the client to hide it.
     bids: viewerIsBuyer ? job.bids : [],
+    talks: viewerIsBuyer ? job.talks : undefined,
     briefText: brief?.briefText ?? null,
     quantity: brief?.quantity ?? null,
     keywords: brief?.keywords ?? null,

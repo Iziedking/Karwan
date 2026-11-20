@@ -13,6 +13,7 @@ export type RequestState =
   | 'nearMiss'
   | 'outOfReach'
   | 'closing'
+  | 'talksEnded'
   | 'negotiating'
   | 'offersArriving'
   | 'looking';
@@ -173,6 +174,12 @@ export function requestView(input: {
   }
 
   if (job.deadlineUnix * 1000 < now) return { ...base, state: 'closing', secondary: [] };
+  // Every talk ended and offers still stand: the agent has stopped, so the
+  // buyer chooses one or changes the request (bug B-10).
+  const talks = job.talks;
+  if (buyer && talks && talks.ended > 0 && talks.open === 0 && talks.asking === 0 && job.bids.length > 0) {
+    return { ...base, state: 'talksEnded', whoseMove: 'you' };
+  }
   if (live.active === 'counter' || live.recoverable != null) return { ...base, state: 'negotiating' };
   if (job.bids.length > 0 || live.active === 'bidding') return { ...base, state: 'offersArriving' };
   return base;

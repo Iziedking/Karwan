@@ -54,6 +54,7 @@ export interface SearchCopy {
       looking: StateCopy;
       offersArriving: StateCopy;
       negotiating: StateCopy;
+      talksEnded: StateCopy;
       closing: StateCopy;
       nearMissYou: StateCopy;
       nearMissThem: StateCopy;
@@ -184,6 +185,7 @@ const en: SearchCopy = {
       looking: { headline: 'Looking for sellers.', detail: 'Offers close shortly after the last one arrives.' },
       offersArriving: { headline: '{count} offers so far.', detail: 'Your agent is comparing them.' },
       negotiating: { headline: 'Negotiating.', detail: 'Your agent is working toward your budget.' },
+      talksEnded: { headline: 'Your agent stopped short of your budget.', detail: 'No seller came down far enough. Choose one of the offers, or change your request.' },
       closing: { headline: 'Closing.', detail: 'The deadline passed. Finishing up.' },
       nearMissYou: { headline: 'A match is close.', detail: 'They ask {price} USDC, outside your range.' },
       nearMissThem: { headline: 'A match is close.', detail: 'Waiting on the other side.' },
@@ -319,6 +321,7 @@ const fr: SearchCopy = {
       looking: { headline: 'Recherche de vendeurs.', detail: 'Les offres se clôturent peu après la dernière reçue.' },
       offersArriving: { headline: '{count} offres pour l’instant.', detail: 'Votre agent les compare.' },
       negotiating: { headline: 'Négociation en cours.', detail: 'Votre agent vise votre budget.' },
+      talksEnded: { headline: 'Votre agent n’a pas atteint votre budget.', detail: 'Aucun vendeur n’est descendu assez bas. Choisissez une des offres ou modifiez votre demande.' },
       closing: { headline: 'Clôture.', detail: 'Le délai est passé. Finalisation en cours.' },
       nearMissYou: { headline: 'Un accord est proche.', detail: 'Ils demandent {price} USDC, hors de votre fourchette.' },
       nearMissThem: { headline: 'Un accord est proche.', detail: 'En attente de l’autre partie.' },
@@ -454,6 +457,7 @@ const ar: SearchCopy = {
       looking: { headline: 'جارٍ البحث عن بائعين.', detail: 'تُغلق العروض بعد وقت قصير من وصول آخرها.' },
       offersArriving: { headline: '{count} عروض حتى الآن.', detail: 'وكيلك يقارن بينها.' },
       negotiating: { headline: 'جارٍ التفاوض.', detail: 'وكيلك يعمل للوصول إلى ميزانيتك.' },
+      talksEnded: { headline: 'لم يصل وكيلك إلى ميزانيتك.', detail: 'لم يخفّض أي بائع سعره بما يكفي. اختر أحد العروض أو عدّل طلبك.' },
       closing: { headline: 'جارٍ الإغلاق.', detail: 'انتهت المهلة. جارٍ الإنهاء.' },
       nearMissYou: { headline: 'الاتفاق قريب.', detail: 'يطلبون {price} USDC، خارج نطاقك.' },
       nearMissThem: { headline: 'الاتفاق قريب.', detail: 'في انتظار الطرف الآخر.' },
@@ -589,6 +593,7 @@ const hi: SearchCopy = {
       looking: { headline: 'विक्रेता खोजे जा रहे हैं।', detail: 'आखिरी ऑफ़र आने के कुछ देर बाद ऑफ़र बंद हो जाते हैं।' },
       offersArriving: { headline: 'अब तक {count} ऑफ़र।', detail: 'आपका एजेंट उनकी तुलना कर रहा है।' },
       negotiating: { headline: 'मोलभाव जारी है।', detail: 'आपका एजेंट आपके बजट की ओर काम कर रहा है।' },
+      talksEnded: { headline: 'आपका एजेंट आपके बजट तक नहीं पहुँच सका।', detail: 'कोई विक्रेता काफ़ी नीचे नहीं आया। कोई ऑफ़र चुनें या अपना अनुरोध बदलें।' },
       closing: { headline: 'बंद हो रहा है।', detail: 'समय सीमा बीत गई। काम पूरा हो रहा है।' },
       nearMissYou: { headline: 'सौदा करीब है।', detail: 'वे {price} USDC मांग रहे हैं, जो आपकी सीमा से बाहर है।' },
       nearMissThem: { headline: 'सौदा करीब है।', detail: 'दूसरे पक्ष की प्रतीक्षा है।' },
@@ -724,6 +729,7 @@ const sw: SearchCopy = {
       looking: { headline: 'Inatafuta wauzaji.', detail: 'Ofa hufungwa muda mfupi baada ya ya mwisho kufika.' },
       offersArriving: { headline: 'Ofa {count} hadi sasa.', detail: 'Wakala wako anazilinganisha.' },
       negotiating: { headline: 'Majadiliano yanaendelea.', detail: 'Wakala wako anafanya kazi kufikia bajeti yako.' },
+      talksEnded: { headline: 'Wakala wako hakufikia bajeti yako.', detail: 'Hakuna muuzaji aliyeshuka vya kutosha. Chagua mojawapo ya ofa, au badilisha ombi lako.' },
       closing: { headline: 'Inafunga.', detail: 'Muda umepita. Inamalizia.' },
       nearMissYou: { headline: 'Makubaliano yako karibu.', detail: 'Wanaomba {price} USDC, nje ya kiwango chako.' },
       nearMissThem: { headline: 'Makubaliano yako karibu.', detail: 'Inasubiri upande mwingine.' },
