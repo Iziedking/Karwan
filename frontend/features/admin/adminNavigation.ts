@@ -75,7 +75,6 @@ export const DESK_GROUPS: DeskGroup[] = [
     label: 'Market',
     items: [
       { href: '/admin/matching', label: 'Matching', icon: 'shuffle', keys: ['matching'] },
-      { href: '/admin/word-map', label: 'Word map', icon: 'shuffle', keys: ['matching'] },
       { href: '/admin/agents', label: 'Agents', icon: 'bot', keys: ['runtime', 'signals'] },
     ],
   },
@@ -111,6 +110,10 @@ const DESK_TABS: Record<string, DeskTab[]> = {
   '/admin/waitlist': [
     { key: 'waitlist', label: 'Waitlist', keys: ['waitlist'] },
     { key: 'survey', label: 'Survey', keys: ['survey'] },
+  ],
+  '/admin/matching': [
+    { key: 'review', label: 'Review', keys: ['matching'] },
+    { key: 'word-map', label: 'Word map', keys: ['matching'] },
   ],
   '/admin/agents': [
     { key: 'runtime', label: 'Agent runtime', keys: ['runtime'] },

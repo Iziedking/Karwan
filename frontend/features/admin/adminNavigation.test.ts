@@ -121,3 +121,9 @@ test('the phone tab bar is Support, Team room and Waiting for you, for support t
   assert.deepEqual(phoneTabs(member({ support: 'read' })).map((t) => t.label), ['Support', 'Team room', 'Waiting for you']);
   assert.deepEqual(phoneTabs(member({ deals: 'fix' })), []);
 });
+
+test('Matching has the review and the word map suggestions of view 95 as parts', () => {
+  assert.deepEqual(tabsFor(owner, '/admin/matching').map((t) => t.key), ['review', 'word-map']);
+  assert.deepEqual(jumpTo(owner, 'word map'), [{ label: 'Matching · Word map', group: 'Market', href: '/admin/matching?tab=word-map' }]);
+  assert.deepEqual(tabsFor(member({ support: 'read' }), '/admin/matching'), []);
+});
