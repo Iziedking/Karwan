@@ -60,7 +60,7 @@ const SHOWN: ContestEntry['status'][] = ['in', 'won', 'lost'];
 function publicView(c: Contest, entries: ContestEntry[]) {
   return {
     id: c.id, title: c.title, brief: c.brief, tags: c.tags, prizeMicros: c.prizeMicros, feeBps: c.feeBps, shares: c.shares,
-    entriesBy: c.entriesBy, awardBy: c.awardBy, status: c.status,
+    entriesBy: c.entriesBy, awardBy: c.awardBy, status: c.status, createdAt: c.createdAt,
     // View 88: on the second escrow, the date the earliest entries are paid
     // if nobody is picked, and whether that is how it ended.
     ...(c.protects ? { protects: true, kind: c.kind ?? 'design', payoutFrom: c.awardBy + PAYOUT_WAIT_MS } : {}),

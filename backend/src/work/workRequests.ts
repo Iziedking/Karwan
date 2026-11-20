@@ -235,7 +235,7 @@ export function createWorkRequests(p: WorkRequestPorts) {
 
   const publicOf = (r: WorkRequest) => ({
     id: r.id, kind: r.kind, title: r.title, brief: r.brief, maxRateMicros: r.maxRateMicros, maxHours: r.maxHours,
-    periods: r.periods, startsAt: r.startsAt, status: r.status, offersCloseAt: r.startsAt - DAY, ...(r.sessions ? { sessions: r.sessions } : {}),
+    periods: r.periods, startsAt: r.startsAt, status: r.status, offersCloseAt: r.startsAt - DAY, createdAt: r.createdAt, ...(r.sessions ? { sessions: r.sessions } : {}),
     ...(r.maxRateLocal ? { maxRateLocal: r.maxRateLocal } : {}),
   });
 

@@ -26,6 +26,8 @@ import { parseMarketQuery, marketHref, marketViewHref, type MarketSide, type Mar
 import { useMarketOffers, useMarketRequests, useRequestFits, type MarketSource } from '../useMarketData';
 import { BuySellSwitch } from './BuySellSwitch';
 import { CategoryChips } from './CategoryChips';
+import { ListedFilter } from './ListedFilter';
+import { listedWithin, viewerTimeZone, type Listed, type MarketOrder } from '../listedWindow';
 import { EntryQuestion } from './EntryQuestion';
 import { ListingCard } from './ListingCard';
 import { RequestCard, YourOffersStrip } from './SellCards';
@@ -53,7 +55,7 @@ export function MarketPage(_initialQuery: {
 
 function Shop() {
   const query = parseMarketQuery(useSearchParams());
-  const {side,category,scope} = query;
+  const {side,category,scope,listed,order} = query;
   const { t: messages } = useLocale();
   const t = messages.marketShop;
   const { isAuthenticated, address } = useAuth();
@@ -84,6 +86,7 @@ function Shop() {
   const setSide = (next: MarketSide) => updateFilters({ side: next });
   const setCategory = (next: CategoryId | 'all') => updateFilters({ category: next });
   const setQ = (next: string) => { setSearchDraft(next); updateFilters({ q: next }); };
+  const setListed = (next: { listed: Listed; order: MarketOrder }) => updateFilters(next);
 
   return (
     <div className="product-surface" data-testid="market">
@@ -104,9 +107,9 @@ function Shop() {
             <BuySellSwitch value={side} onChange={setSide} />
           </div>
           {side === 'buy' ? (
-            <BuySide scope={scope} category={category} setCategory={setCategory} q={q} setQ={setQ} />
+            <BuySide scope={scope} category={category} setCategory={setCategory} q={q} setQ={setQ} listed={listed} order={order} setListed={setListed} />
           ) : (
-            <SellSide />
+            <SellSide listed={listed} order={order} setListed={setListed} />
           )}
         </Band>
       </FullBleed>
@@ -129,12 +132,18 @@ function BuySide({
   setCategory,
   q,
   setQ,
+  listed,
+  order,
+  setListed,
 }: {
   scope: DiscoveryScope;
   category: CategoryId | 'all';
   setCategory: (next: CategoryId | 'all') => void;
   q: string;
   setQ: (next: string) => void;
+  listed: Listed;
+  order: MarketOrder;
+  setListed: (next: { listed: Listed; order: MarketOrder }) => void;
 }) {
   const { t: messages } = useLocale();
   const t = messages.marketShop;
@@ -143,13 +152,18 @@ function BuySide({
   const [page, setPage] = useState(1);
   const sectionRef = useRef<HTMLElement>(null);
   const [startOpen, setStartOpen] = useState(false);
-  const narrowed = category !== 'all' || q.trim() !== '' || scope === 'business';
+  const narrowed = category !== 'all' || q.trim() !== '' || scope === 'business' || listed !== 'any' || order !== 'newest';
   const full = narrowed || seeAll;
   const upTo = Math.min(page * PAGE_SIZE, MARKET_PAGE_MAX);
-  const offers = useMarketOffers({ q, category, scope, limit: full ? upTo : FRESH });
-  // The server already narrowed the page; narrowing again costs nothing and
-  // keeps the page right against a server that sends every offer.
-  const { fresh, all } = useMemo(() => buyCards(offers.cards, { q, category, scope }), [offers.cards, q, category, scope]);
+  const offers = useMarketOffers({ q, category, scope, limit: full ? upTo : FRESH, listed, order });
+  // The server already narrowed and ordered the page; narrowing again costs
+  // nothing and keeps the page right against a server that sends every offer.
+  const { fresh, all } = useMemo(() => {
+    const narrowedCards = buyCards(offers.cards, { q, category, scope });
+    if (listed === 'any' && order === 'newest') return narrowedCards;
+    const keep = (cards: typeof narrowedCards.all) => listedWithin(cards, (c) => c.postedAt, (c) => c.availableUntil ?? null, listed, order, Date.now(), viewerTimeZone());
+    return { fresh: keep(narrowedCards.fresh), all: keep(narrowedCards.all) };
+  }, [offers.cards, q, category, scope, listed, order]);
   const matched = offers.total ?? all.length;
   const visible = full ? all.slice((page - 1) * PAGE_SIZE, upTo) : fresh;
   const hasNext = full && matched > upTo && upTo < MARKET_PAGE_MAX;
@@ -161,7 +175,7 @@ function BuySide({
   const loading = offers.loading;
   const title = category !== 'all' ? t.categories[category] : q.trim() ? t.results : t.newOnKarwan;
 
-  useEffect(() => setPage(1), [q, category, scope, seeAll]);
+  useEffect(() => setPage(1), [q, category, scope, seeAll, listed, order]);
 
   return (
     <>
@@ -178,8 +192,12 @@ function BuySide({
           />
         </label>
       </div>
-      <div className="mt-4" data-guide="market-categories">
-        <CategoryChips value={category} onChange={setCategory} />
+      <div className="mt-4 flex items-start gap-2" data-guide="market-categories">
+        <ListedFilter listed={listed} order={order} onChange={setListed} />
+        <span aria-hidden className="mt-2.5 h-6 w-px shrink-0 bg-[var(--line)]" />
+        <div className="min-w-0 flex-1">
+          <CategoryChips value={category} onChange={setCategory} inline />
+        </div>
       </div>
 
       {offers.failed ? <Notice failed={['offers']} retry={offers.retry} t={t} /> : null}
@@ -221,7 +239,7 @@ function BuySide({
             <p className="text-[16px] font-semibold text-[var(--ink)]">{t.nothingMatches}</p>
             <p className="mt-1.5 text-[15px] text-[var(--ink-secondary)]">{t.nothingBody}</p>
             {narrowed ? (
-              <button type="button" onClick={() => { setQ(''); setCategory('all'); }} className={cn(buttonClasses({ variant: 'outline', size: 'sm' }), 'mt-4')}>
+              <button type="button" onClick={() => { setQ(''); setCategory('all'); setListed({ listed: 'any', order: 'newest' }); }} className={cn(buttonClasses({ variant: 'outline', size: 'sm' }), 'mt-4')}>
                 {t.clear}
               </button>
             ) : null}
@@ -249,12 +267,20 @@ function BuySide({
   );
 }
 
-function SellSide() {
+function SellSide({ listed, order, setListed }: { listed: Listed; order: MarketOrder; setListed: (next: { listed: Listed; order: MarketOrder }) => void }) {
   const { t: messages } = useLocale();
   const t = messages.marketShop;
   const { cards, loading, failed, retry } = useMarketRequests();
   const fits = useRequestFits(true);
-  const requests = useMemo(() => sellRequests(cards, fits), [cards, fits]);
+  // Newest first keeps the open ones you fit at the top; any other order is
+  // the one the person asked for (view 96).
+  const requests = useMemo(() => {
+    const all = sellRequests(cards, fits);
+    const kept = listedWithin(all, (c) => c.postedAt, (c) => c.availableUntil ?? null, listed, order, Date.now(), viewerTimeZone());
+    if (order !== 'newest') return kept;
+    const inWindow = new Set(kept.map((c) => c.id));
+    return all.filter((c) => inWindow.has(c.id));
+  }, [cards, fits, listed, order]);
   const anyFit = requests.some((request) => request.fits);
 
   return (
@@ -272,6 +298,10 @@ function SellSide() {
         <Icon name="chevron-right" size={20} directional className="shrink-0 text-[var(--ink-secondary)]" />
       </Link>
       <YourOffersStrip />
+
+      <div className="mt-5">
+        <ListedFilter listed={listed} order={order} onChange={setListed} />
+      </div>
 
       {failed.includes('requests') ? <Notice failed={failed} retry={retry} t={t} /> : null}
 
@@ -293,8 +323,8 @@ function SellSide() {
         )}
       </section>
       <div className="mt-6 space-y-6">
-        <OpenContests />
-        <OpenWorkRequests />
+        <OpenContests listed={listed} order={order} />
+        <OpenWorkRequests listed={listed} order={order} />
       </div>
     </>
   );

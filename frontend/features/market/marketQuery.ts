@@ -7,12 +7,12 @@ import { LISTED, MARKET_ORDERS, type Listed, type MarketOrder } from './listedWi
 /// Find has a Buy and a Sell side, a category and a search (view 44).
 
 export type MarketView = 'find' | 'yours';
-export type YoursList = 'all' | 'requests' | 'offers';
+export type YoursList = 'all' | 'requests' | 'offers' | 'contests' | 'work';
 export type MarketSide = 'buy' | 'sell';
 
 const VIEWS: readonly MarketView[] = ['find', 'yours'];
 const SCOPES: readonly DiscoveryScope[] = ['all', 'services', 'business'];
-const LISTS: readonly YoursList[] = ['all', 'requests', 'offers'];
+const LISTS: readonly YoursList[] = ['all', 'requests', 'offers', 'contests', 'work'];
 const SIDES: readonly MarketSide[] = ['buy', 'sell'];
 const SEARCH_LIMIT = 120;
 

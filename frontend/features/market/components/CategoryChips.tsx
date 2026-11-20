@@ -10,15 +10,19 @@ export function CategoryChips({
   value,
   onChange,
   withAll = true,
+  inline = false,
 }: {
   value: CategoryId | 'all' | null;
   onChange: (next: CategoryId | 'all') => void;
   withAll?: boolean;
+  /// Beside another control (view 96): the row scrolls inside its own box
+  /// instead of running to the screen edge.
+  inline?: boolean;
 }) {
   const t = useLocale().t.marketShop;
   const ids: Array<CategoryId | 'all'> = withAll ? ['all', ...CATEGORY_IDS] : [...CATEGORY_IDS];
   return (
-    <div role="group" aria-label={t.categoriesLabel} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
+    <div role="group" aria-label={t.categoriesLabel} className={cn('flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden', inline ? '' : '-mx-4 px-4 sm:mx-0 sm:px-0')}>
       {ids.map((id) => {
         const pressed = value === id;
         return (

@@ -8,16 +8,19 @@ import { Chevron } from '@/features/market/components/YourTrades';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { microsToUsdc } from '../contestModel';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { listedWithin, viewerTimeZone, type Listed, type MarketOrder } from '@/features/market/listedWindow';
 
-/// Open contests in the market (view 40). Nothing shows when there are none.
-export function OpenContests() {
+/// Open contests in the market (view 40), narrowed by when they were listed
+/// (view 96). Nothing shows when there are none.
+export function OpenContests({ listed = 'any', order = 'newest' }: { listed?: Listed; order?: MarketOrder } = {}) {
   const mt = useMoneyText({ compact: true });
   const t = useTranslations().contests;
   const { locale } = useLocale();
-  const [list, setList] = useState<ContestView[]>([]);
+  const [all, setList] = useState<ContestView[]>([]);
   useEffect(() => {
     api.listContests().then((r) => setList(Array.isArray(r.contests) ? r.contests : [])).catch(() => {});
   }, []);
+  const list = listed === 'any' && order === 'newest' ? all : listedWithin(all, (c) => c.createdAt ?? 0, (c) => c.entriesBy, listed, order, Date.now(), viewerTimeZone());
   if (list.length === 0) return null;
   const date = (ms: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(ms);
   return (

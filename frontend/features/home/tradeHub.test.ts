@@ -81,3 +81,35 @@ test('each card in Your trades opens its own list, never a form or the whole act
   assert.match(yours, /marketViewHref\('yours', 'offers'\)/);
   assert.doesNotMatch(yours, /\/p2p/);
 });
+
+const contest = (status: string, entries = 0) => ({ status, entries }) as never;
+const request = (status: string) => ({ status }) as never;
+const engagement = (status: string, role: 'hirer' | 'worker') => ({ status, role }) as never;
+
+test('contests count what you posted that is open and what you entered that is not decided (view 96)', () => {
+  const summary = tradeHubSummary({
+    me, trades: [], requests: [], listings: [], now,
+    contests: {
+      posted: [contest('open', 4), contest('awarding', 0), contest('awarded', 6)],
+      entered: [contest('open'), contest('awarded'), contest('returned')],
+    },
+  });
+  assert.deepEqual(summary.contests, { open: 3, entriesIn: 1, decided: 2 });
+});
+
+test('work counts open work you posted or offered on, and work under way; offered to you waits on you (view 96)', () => {
+  const summary = tradeHubSummary({
+    me, trades: [], requests: [], listings: [], now,
+    work: {
+      posted: [request('open'), request('hired')],
+      offered: [request('open')],
+      work: [engagement('active', 'hirer'), engagement('offered', 'worker'), engagement('offered', 'hirer'), engagement('closed', 'worker')],
+    },
+  });
+  assert.deepEqual(summary.work, { open: 5, waiting: 1 });
+});
+
+test('without contests or work the counts are zero, so older callers still read', () => {
+  const summary = tradeHubSummary({ me, trades: [], requests: [], listings: [], now });
+  assert.deepEqual([summary.contests, summary.work], [{ open: 0, entriesIn: 0, decided: 0 }, { open: 0, waiting: 0 }]);
+});

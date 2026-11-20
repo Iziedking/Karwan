@@ -25,6 +25,8 @@ type Copy = { startHere: string; find: string;
       yours: string; trades: string; yourMove: string; noMove: string;
       requests: string; noneOpen: string; offersIn: string; offersInOne: string; noOffers: string;
       offers: string; live: string; noneLive: string; postRequest: string; postOffer: string;
+      /// Contests and work in Your trades (view 96).
+      contests: string; entriesIn: string; resultIn: string; open: string; work: string; posted: string; entered: string; offered: string; underWay: string; nothingYet: string;
     };
   } };
 
@@ -54,7 +56,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'I already agreed with someone', bringAgreementBody: 'Start with someone you already know.',
       active: 'Active agreements', emptyTitle: 'Nothing active yet',
       emptyBody: 'Choose a path above and your agreement will stay here.', open: 'Open agreement',
-      hub: { yours: 'Your trades', trades: 'Active trades', yourMove: '{n} waiting on you', noMove: 'Nothing waiting on you', requests: 'Your requests', noneOpen: 'Nothing open', offersIn: '{n} offers in', offersInOne: '1 offer in', noOffers: 'No offers yet', offers: 'Your offers', live: 'Live on the market', noneLive: 'Nothing live', postRequest: 'Post a request', postOffer: 'Post an offer' },
+      hub: { yours: 'Your trades', trades: 'Active trades', yourMove: '{n} waiting on you', noMove: 'Nothing waiting on you', requests: 'Your requests', noneOpen: 'Nothing open', offersIn: '{n} offers in', offersInOne: '1 offer in', noOffers: 'No offers yet', offers: 'Your offers', live: 'Live on the market', noneLive: 'Nothing live', postRequest: 'Post a request', postOffer: 'Post an offer', contests: 'Your contests', entriesIn: 'Entries in', resultIn: 'A result is in', open: 'Open', work: 'Your work', posted: 'You posted', entered: 'You entered', offered: 'You offered', underWay: 'Under way', nothingYet: 'Nothing here yet' },
     },
   },
   fr: {
@@ -82,7 +84,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'J’ai déjà un accord avec quelqu’un', bringAgreementBody: 'Commencez avec une personne que vous connaissez déjà.',
       active: 'Accords actifs', emptyTitle: 'Aucun accord actif',
       emptyBody: 'Choisissez une voie ci-dessus et votre accord restera ici.', open: 'Ouvrir l’accord',
-      hub: { yours: 'Vos échanges', trades: 'Échanges en cours', yourMove: '{n} attendent votre action', noMove: 'Rien n’attend votre action', requests: 'Vos demandes', noneOpen: 'Rien en cours', offersIn: '{n} offres reçues', offersInOne: '1 offre reçue', noOffers: 'Aucune offre pour l’instant', offers: 'Vos offres', live: 'En ligne sur le marché', noneLive: 'Rien en ligne', postRequest: 'Publier une demande', postOffer: 'Publier une offre' },
+      hub: { yours: 'Vos échanges', trades: 'Échanges en cours', yourMove: '{n} attendent votre action', noMove: 'Rien n’attend votre action', requests: 'Vos demandes', noneOpen: 'Rien en cours', offersIn: '{n} offres reçues', offersInOne: '1 offre reçue', noOffers: 'Aucune offre pour l’instant', offers: 'Vos offres', live: 'En ligne sur le marché', noneLive: 'Rien en ligne', postRequest: 'Publier une demande', postOffer: 'Publier une offre', contests: 'Vos concours', entriesIn: 'Des participations sont arrivées', resultIn: 'Un résultat est arrivé', open: 'En cours', work: 'Votre travail', posted: 'Publiés par vous', entered: 'Vos participations', offered: 'Vos offres', underWay: 'En cours', nothingYet: 'Rien ici pour l’instant' },
     },
   },
   ar: {
@@ -110,7 +112,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'اتفقت مع شخص بالفعل', bringAgreementBody: 'ابدأ مع شخص تعرفه بالفعل.',
       active: 'الاتفاقات النشطة', emptyTitle: 'لا توجد اتفاقات نشطة',
       emptyBody: 'اختر مساراً أعلاه وسيبقى اتفاقك هنا.', open: 'افتح الاتفاق',
-      hub: { yours: 'تداولاتك', trades: 'صفقات نشطة', yourMove: '{n} بانتظارك', noMove: 'لا شيء بانتظارك', requests: 'طلباتك', noneOpen: 'لا شيء مفتوح', offersIn: 'وصلت {n} عروض', offersInOne: 'وصل عرض واحد', noOffers: 'لا عروض بعد', offers: 'عروضك', live: 'معروضة في السوق', noneLive: 'لا شيء معروض', postRequest: 'انشر طلبًا', postOffer: 'انشر عرضًا' },
+      hub: { yours: 'تداولاتك', trades: 'صفقات نشطة', yourMove: '{n} بانتظارك', noMove: 'لا شيء بانتظارك', requests: 'طلباتك', noneOpen: 'لا شيء مفتوح', offersIn: 'وصلت {n} عروض', offersInOne: 'وصل عرض واحد', noOffers: 'لا عروض بعد', offers: 'عروضك', live: 'معروضة في السوق', noneLive: 'لا شيء معروض', postRequest: 'انشر طلبًا', postOffer: 'انشر عرضًا', contests: 'مسابقاتك', entriesIn: 'وصلت مشاركات', resultIn: 'صدرت نتيجة', open: 'مفتوحة', work: 'عملك', posted: 'نشرتها', entered: 'شاركت فيها', offered: 'قدّمت عرضًا عليها', underWay: 'جارٍ', nothingYet: 'لا شيء هنا بعد' },
     },
   },
   hi: {
@@ -138,7 +140,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'मेरा किसी से पहले से समझौता है', bringAgreementBody: 'किसी ऐसे व्यक्ति से शुरू करें जिसे आप पहले से जानते हैं।',
       active: 'सक्रिय समझौते', emptyTitle: 'अभी कुछ सक्रिय नहीं',
       emptyBody: 'ऊपर से कोई रास्ता चुनें और आपका समझौता यहाँ रहेगा।', open: 'समझौता खोलें',
-      hub: { yours: 'आपका व्यापार', trades: 'सक्रिय सौदे', yourMove: '{n} आपकी प्रतीक्षा में', noMove: 'कुछ भी आपकी प्रतीक्षा में नहीं', requests: 'आपके अनुरोध', noneOpen: 'कुछ भी खुला नहीं', offersIn: '{n} ऑफ़र मिले', offersInOne: '1 ऑफ़र मिला', noOffers: 'अभी कोई ऑफ़र नहीं', offers: 'आपके ऑफ़र', live: 'बाज़ार में उपलब्ध', noneLive: 'कुछ भी उपलब्ध नहीं', postRequest: 'अनुरोध पोस्ट करें', postOffer: 'ऑफ़र पोस्ट करें' },
+      hub: { yours: 'आपका व्यापार', trades: 'सक्रिय सौदे', yourMove: '{n} आपकी प्रतीक्षा में', noMove: 'कुछ भी आपकी प्रतीक्षा में नहीं', requests: 'आपके अनुरोध', noneOpen: 'कुछ भी खुला नहीं', offersIn: '{n} ऑफ़र मिले', offersInOne: '1 ऑफ़र मिला', noOffers: 'अभी कोई ऑफ़र नहीं', offers: 'आपके ऑफ़र', live: 'बाज़ार में उपलब्ध', noneLive: 'कुछ भी उपलब्ध नहीं', postRequest: 'अनुरोध पोस्ट करें', postOffer: 'ऑफ़र पोस्ट करें', contests: 'आपकी प्रतियोगिताएँ', entriesIn: 'प्रविष्टियाँ आई हैं', resultIn: 'नतीजा आ गया है', open: 'खुली', work: 'आपका काम', posted: 'आपने पोस्ट किया', entered: 'आपने भाग लिया', offered: 'आपने ऑफ़र दिया', underWay: 'जारी', nothingYet: 'अभी यहाँ कुछ नहीं' },
     },
   },
   sw: {
@@ -166,7 +168,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'Tayari nimekubaliana na mtu', bringAgreementBody: 'Anza na mtu unayemjua tayari.',
       active: 'Makubaliano yanayoendelea', emptyTitle: 'Hakuna yanayoendelea bado',
       emptyBody: 'Chagua njia hapo juu na makubaliano yako yatabaki hapa.', open: 'Fungua makubaliano',
-      hub: { yours: 'Biashara yako', trades: 'Biashara zinazoendelea', yourMove: '{n} zinakusubiri', noMove: 'Hakuna kinachokusubiri', requests: 'Maombi yako', noneOpen: 'Hakuna lililo wazi', offersIn: 'Ofa {n} zimefika', offersInOne: 'Ofa 1 imefika', noOffers: 'Bado hakuna ofa', offers: 'Ofa zako', live: 'Ziko sokoni', noneLive: 'Hakuna iliyo sokoni', postRequest: 'Chapisha ombi', postOffer: 'Chapisha ofa' },
+      hub: { yours: 'Biashara yako', trades: 'Biashara zinazoendelea', yourMove: '{n} zinakusubiri', noMove: 'Hakuna kinachokusubiri', requests: 'Maombi yako', noneOpen: 'Hakuna lililo wazi', offersIn: 'Ofa {n} zimefika', offersInOne: 'Ofa 1 imefika', noOffers: 'Bado hakuna ofa', offers: 'Ofa zako', live: 'Ziko sokoni', noneLive: 'Hakuna iliyo sokoni', postRequest: 'Chapisha ombi', postOffer: 'Chapisha ofa', contests: 'Mashindano yako', entriesIn: 'Washiriki wamefika', resultIn: 'Matokeo yamefika', open: 'Yaliyo wazi', work: 'Kazi yako', posted: 'Ulizochapisha', entered: 'Uliyoshiriki', offered: 'Ulizotoa ofa', underWay: 'Zinaendelea', nothingYet: 'Bado hakuna kitu hapa' },
     },
   },
 };

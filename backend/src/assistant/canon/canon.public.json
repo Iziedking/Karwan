@@ -46,7 +46,7 @@
       "id": "an-open-market",
       "title": "An open market, where every offer is public unless you post privately",
       "status": "shipping",
-      "updated": "2026-11-15",
+      "updated": "2026-11-20",
       "tags": [
         "market",
         "offers",
@@ -60,7 +60,7 @@
           "date": "2026-11-05"
         }
       ],
-      "body": "Everything on the Karwan market can be read by anyone, signed in or not:\nrequests, offers for sale, and every offer made on a request. Each offer on a\nrequest shows the seller by name, with their verified mark and rating, the\nprice, the delivery date, the note, and whether the seller or their agent made\nit. Offers you make on a request are public in the same way. Sellers are shown\nby name, never by wallet address.\n\nBefore you sign in, prices read in the money of the country you are in, with\nthe dollar figure small beside them. Once you sign in they read in the\ncurrency you chose, which you can change in Settings.\n\nA request stays on the market while it is open. Once a seller is matched it is\nmarked In negotiation, and once the deal is made it is marked Agreed for 7\ndays, with its offers still listed and the chosen one marked. It leaves the\nmarket when it is cancelled, expires or ends with no deal. New offers close\nonce a seller is matched.\n\nSome things stay private: the buyer's agent's ranking of the offers and its\nreasons, how far above the budget the buyer would go, the counter-offers in a\nnegotiation, and the deal itself, with its money, delivery, files and messages.\n\nAgents read what people post as information, never as orders. A request,\nan offer for sale or a profile that tells agents how to decide, such as telling\nevery seller to bid, is judged on the work it describes, not on what it asks.\n\nOpen is the default, not the only choice. When you post a request or an offer\nfor sale, you pick who can see it: everyone on the market, private so only\nagents see it, or just one person. A private request never appears on the\nmarket or in search; seller agents still find it and offer on it, you see\nevery offer, and each seller sees only their own. A private offer for sale\nnever appears on the market or in search; buyer agents still find it, and\nanyone you send its link can open it. Just one person posts nothing: a buyer\nstarts a deal with the person they agreed with, and a seller sends their deal\nlink. You choose when you post; to change it, cancel and post again.\n\nReading needs no account. Making, lowering, withdrawing or accepting an offer\nneeds you to sign in. Your assistant can read the same list: ask it what offers\na request has.\n\nWhen a new offer goes up, each person with a Karwan agent hears of it once.\nIf it fits a request they posted in the last 30 days, the alert says so and\nnames the words it fits. Otherwise it reads New on the market. An offer posted\nprivately is never sent as news."
+      "body": "Everything on the Karwan market can be read by anyone, signed in or not:\nrequests, offers for sale, and every offer made on a request. Each offer on a\nrequest shows the seller by name, with their verified mark and rating, the\nprice, the delivery date, the note, and whether the seller or their agent made\nit. Offers you make on a request are public in the same way. Sellers are shown\nby name, never by wallet address.\n\nBefore you sign in, prices read in the money of the country you are in, with\nthe dollar figure small beside them. Once you sign in they read in the\ncurrency you chose, which you can change in Settings.\n\nA request stays on the market while it is open. Once a seller is matched it is\nmarked In negotiation, and once the deal is made it is marked Agreed for 7\ndays, with its offers still listed and the chosen one marked. It leaves the\nmarket when it is cancelled, expires or ends with no deal. New offers close\nonce a seller is matched.\n\nSome things stay private: the buyer's agent's ranking of the offers and its\nreasons, how far above the budget the buyer would go, the counter-offers in a\nnegotiation, and the deal itself, with its money, delivery, files and messages.\n\nAgents read what people post as information, never as orders. A request,\nan offer for sale or a profile that tells agents how to decide, such as telling\nevery seller to bid, is judged on the work it describes, not on what it asks.\n\nOpen is the default, not the only choice. When you post a request or an offer\nfor sale, you pick who can see it: everyone on the market, private so only\nagents see it, or just one person. A private request never appears on the\nmarket or in search; seller agents still find it and offer on it, you see\nevery offer, and each seller sees only their own. A private offer for sale\nnever appears on the market or in search; buyer agents still find it, and\nanyone you send its link can open it. Just one person posts nothing: a buyer\nstarts a deal with the person they agreed with, and a seller sends their deal\nlink. You choose when you post; to change it, cancel and post again.\n\nReading needs no account. Making, lowering, withdrawing or accepting an offer\nneeds you to sign in. Your assistant can read the same list: ask it what offers\na request has.\n\nYou can narrow the market to what was listed in the last hour, today, this\nweek or this month, and see it newest first, oldest first or closing soonest.\nThe same filter works for requests, contests and hourly work, and your\nassistant takes it too: ask for requests for tailoring posted today. Your\ntrades counts your deals, requests, offers for sale, contests and hourly or\nmonthly work in one place, and your assistant lists the same when you ask\nwhat you have open. This is built, not deployed yet (view 96, 20 Nov 2026).\n\nWhen a new offer goes up, each person with a Karwan agent hears of it once.\nIf it fits a request they posted in the last 30 days, the alert says so and\nnames the words it fits. Otherwise it reads New on the market. An offer posted\nprivately is never sent as news."
     },
     {
       "id": "assistant-mode-and-help",
@@ -1070,6 +1070,25 @@
       "body": "Each person has one agent, and what it may do reads as one thing. Ask your\nassistant and it tells you: what your agent sells and from what lowest and usual\nprice, the most it spends on a new request, whether it makes offers on its own\nand asks you before any deal, asks you first about every request that fits, or\nagrees to a buyer's price inside your limits, how much it may spend a week on\npaid checks, the markets it watches, your goals, when your brief comes and your\nquiet hours.\n\nYou change one part at a time, and only through a card you confirm. The card\nshows the line before and after, and what the change does next: lowering your\nlowest price says how many requests you passed on this week it opens again.\nOnce you confirm, your agent acts at once. A lower price looks again at those\nrequests; moving away from asking first closes those questions and looks at the\nrequests again. A request's budget is fixed once it is posted, so a new buying\nlimit applies to new requests, and the card says which open ones ask for more.\nChanging limits moves no money; paying still needs you.\n\nWhat your agent does alone is one switch each: make offers, bargain, agree a\nprice, lock money, find people, pay for checks and research, and the morning\nbrief. The switches are in Settings under Agent, and your assistant can turn\nany of them on or off with a card you confirm. The budgets and rules for what\nis on are on the Your agent page.\n\nLock money for me is built and switched off on every network until Karwan\nopens it, on the test network first. While it is off the switch says Not open\nyet, and no agent locks money without you. When it is open you type your own\nlimits, and turning it on or raising a limit is confirmed with your passkey on\nKarwan, never in a chat. Then, on a request where you turned on Agree for me,\nyour agent may lock the money for the price it agreed, in a Karwan escrow and\nnowhere else. Before it does, code checks your limit for one deal, your limit\nfor the week, how many locks you allow in a day, who the seller is, and\nwhether the price is far above the market. If a check fails, if the deal needs\nWorld ID, or if the seller is not verified, it locks nothing and tells you why,\nand you can lock it yourself. Where a seller has to say yes first, it waits for\nthem and checks your limits again when they answer. You are told at once each\ntime it locks, and releasing the money is always yours. When a day's locks are\nused up, or locking fails three times in a row, it stops itself until you turn\nit back on.\n\nYou can give your agent up to five goals in your own words, such as finding a\nlogo designer this week or selling 20 bags of rice this month. On the test\nnetwork goals are matched on their words, with no model.\n\nA standing order is a goal your agent works every day. You say once what to\nfind or sell, the most you pay for one when buying, until when, and how many\npeople to ask a day, from one to five. You can keep up to five. Starting an\norder lets your agent post that need privately, never on the market, and ask\npeople for it without a card each time. It moves no money. A buying order\nkeeps one private request open and each day asks the best people it has not\nasked yet, inside the same limits as finding people by hand. Their offers come\nto you as on any request, and whether your agent bargains, agrees a price or\nlocks the money follows the switches you set. A selling order offers your\nwork, at your usual price, to buyers who listed a regular need and let sellers\nreach them. An order ends on its date, when you stop it, or when a deal on its\nrequest is locked. You get one note on a day it did something, and you are\ntold once after three days with nobody new. Pause keeps the order; Stop\nremoves it. Orders rest while your agent is off or Find people is switched\noff. You find them on Your agent, and you can start, pause or stop one from\nthe assistant or Telegram.\n\nOnce a day, at 8:00 Lagos time unless you change it, your agent sends a short\nbrief built from your own data, with no model: new offers on your requests,\nquestions waiting on you and when the first decides itself, deals waiting on\nyou, up to three things it sees about how you trade, and a line for each goal.\nThere is no brief on a day with nothing to say. It goes to Telegram when you\nhave linked it, and otherwise to Karwan and by email. From 21:00 to 7:00 your\nagent sends nothing but a question's own reminder; a note it would have sent\nwaits for the brief. You can change the hours or turn them off.\n\nYour agent keeps a record of everything it told you for 30 days, so it never\nsends the same brief twice. Ask your assistant what your agent did today.\n\nSwitching your agent off is built and switched off until it is tested. With it\nopen, one switch on the agent page, or \"turn my agent off\" to your assistant,\nstops your agent altogether. It makes no offers, does not bargain, recommend or\nagree on your requests, finds nobody, rests its market watches and paid\nresearch, and sends no brief. Offers still arrive on your requests and you\nchoose by hand. Offers it already made stand until their date. You are\nasked if a buyer chooses one, and a buyer's counter on one comes to you as a\nquestion: take their price, hold at yours, or walk away. Deals already running, your money, direct deals,\npayment links and your assistant are unchanged. Turning it back on starts from\nnow; it does not act on what it missed."
     },
     {
+      "id": "your-deal-record",
+      "title": "Your deal record",
+      "status": "shipping",
+      "updated": "2026-11-20",
+      "tags": [
+        "escrow",
+        "reputation",
+        "testnet"
+      ],
+      "path": "public/product/your-deal-record.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/94-every-deal-leaves-proof.md",
+          "date": "2026-11-20"
+        }
+      ],
+      "body": "When a deal ends, paid out, refunded or cancelled, Karwan writes one record of\nit from what the deal already stored and signs it. The record never changes\nafter that. Deals that finished earlier get one too.\n\nIt has five parts. What was agreed and when each side agreed. The money held\nand when. How the work on each stage was confirmed. What was released, to whom,\nand the fee. When Karwan signed it. The two money moves link to the Arc\nexplorer, so anyone can check the money moved.\n\nHow the work was confirmed is always one of these: the buyer confirmed it, the\nhandover code was entered at delivery, the buyer did not respond in time after\nbeing asked, a dispute decided it, the review time ended with no problem raised,\nboth sides cancelled, or the money went back to the buyer. Where the deal did\nnot store something, the record says Not recorded instead of guessing.\n\nOnly the two sides see it, under the finished deal as Deal record, and from\ntheir assistant on the website or in Telegram by the deal reference, such as\nD68F-E7D8. The receipt for the last payout links to it. Until it is written the\ndeal page says it comes within the hour.\n\nEither side can share it. Share the record gives a link to copy. Whoever opens\nthe link, signed in or not, sees the record with names and Karwan tags, never a\nwallet address, and whether Karwan's signature checks out. Stop sharing ends the\nlink at once, and a later share makes a new one. Each side has one live link per\ndeal; sharing again gives the same link. In chat the assistant shows a confirm\ncard before it makes a link.\n\nThe public statement Karwan signs for a settled deal also says how the work was\nconfirmed, once Karwan switches on the new statement. Statements already signed\nstay valid.\n\nThis is built for testnet and not live yet."
+    },
+    {
       "id": "your-karwan-record",
       "title": "Your Karwan record, set up on the way",
       "status": "roadmap",
@@ -1175,7 +1194,7 @@
         "note": "Built, not deployed yet. The request states, the public offer list and the request page read against their tests, which passed on 5 November 2026.",
         "lastVerified": "2026-11-05"
       },
-      "updated": "2026-11-15",
+      "updated": "2026-11-20",
       "path": "public/product/an-open-market.md"
     },
     {
@@ -2480,6 +2499,30 @@
       },
       "updated": "2026-11-16",
       "path": "public/product/your-agents-mandate-and-brief.md"
+    },
+    {
+      "id": "your-deal-record",
+      "title": "Your deal record",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "escrow",
+        "reputation",
+        "testnet"
+      ],
+      "summary": "When a deal ends, paid out, refunded or cancelled, Karwan writes one record of it from what the deal already stored and signs it. The record never changes after that. Deals that finished earlier get one too.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/94-every-deal-leaves-proof.md",
+          "date": "2026-11-20"
+        }
+      ],
+      "check": null,
+      "updated": "2026-11-20",
+      "path": "public/product/your-deal-record.md"
     },
     {
       "id": "your-karwan-record",

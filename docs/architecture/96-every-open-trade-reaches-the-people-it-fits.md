@@ -89,4 +89,4 @@ Finding who an open trade fits, writing the note, and the market filter are one 
 
 ## Status
 
-Approved by the owner on 20 Nov 2026. Spec next.
+Approved by the owner on 20 Nov 2026. Phase 1 (parts 1 and 2: the Listed filter on both sides and in chat, contests and work in Your trades and in chat) built on 20 Nov 2026, not deployed. Phase 2 (parts 3 and 4) next.

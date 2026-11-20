@@ -11,13 +11,16 @@ import { tradeHubSummary } from '@/features/home/tradeHub';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { marketViewHref, type YoursList } from '../marketQuery';
+import { YourContests, YourWork } from './YourContestsAndWork';
 
-/// Your trades, inside the market: open deals, your requests and your offers,
-/// each opening its own list. The same place you start trades from is the
+/// Your trades, inside the market: open deals, your requests, your offers,
+/// your contests and your work (view 96), each opening its own list. The same place you start trades from is the
 /// place you come back to.
 export function YourTrades({ list }: { list: YoursList }) {
   if (list === 'requests') return <YourRequests />;
   if (list === 'offers') return <YourOffers />;
+  if (list === 'contests') return <YourContests />;
+  if (list === 'work') return <YourWork />;
   return <Summary />;
 }
 
@@ -29,12 +32,17 @@ function Summary() {
   const { deals, fetchState } = useDirectDeals();
   const requests = useQuery({ queryKey: ['search', 'myRequests', me], queryFn: () => api.buyer(me).then((r) => r.jobs), enabled: !!me, staleTime: 15_000 });
   const listings = useQuery({ queryKey: ['trade-hub', 'listings', me], queryFn: () => api.listingsForSeller(me).then((r) => r.listings), enabled: !!me, staleTime: 15_000 });
+  const contests = useQuery({ queryKey: ['contests', 'mine', me], queryFn: () => api.myContests(), enabled: !!me, staleTime: 15_000 });
+  const workRequests = useQuery({ queryKey: ['work-requests', 'mine', me], queryFn: () => api.myWorkRequests(), enabled: !!me, staleTime: 15_000 });
+  const work = useQuery({ queryKey: ['work', 'mine', me], queryFn: () => api.myWork(), enabled: !!me, staleTime: 15_000 });
 
   const summary = tradeHubSummary({
     me,
     trades: deals.map((deal) => ({ stage: stageOf(deal), isBuyer: deal.buyer.toLowerCase() === me })),
     requests: requests.data ?? [],
     listings: listings.data ?? [],
+    contests: { posted: contests.data?.posted ?? [], entered: contests.data?.entered ?? [] },
+    work: { posted: workRequests.data?.posted ?? [], offered: workRequests.data?.offered ?? [], work: work.data?.work ?? [] },
     now: Date.now(),
   });
   const fill = (template: string, n: number) => template.replace('{n}', String(n));
@@ -50,7 +58,7 @@ function Summary() {
           <Chevron small />
         </Link>
       </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-3 sm:gap-3">
+      <div className="mt-3 grid gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-5">
         <Tile
           href="/deals"
           label={hub.trades}
@@ -70,6 +78,20 @@ function Summary() {
           label={hub.offers}
           value={listings.isSuccess ? summary.offers.live : null}
           note={summary.offers.live > 0 ? hub.live : hub.noneLive}
+        />
+        <Tile
+          href={marketViewHref('yours', 'contests')}
+          label={hub.contests}
+          value={contests.isSuccess ? summary.contests.open : null}
+          note={summary.contests.entriesIn > 0 ? hub.entriesIn : summary.contests.decided > 0 ? hub.resultIn : summary.contests.open > 0 ? hub.open : hub.noneOpen}
+          flag={summary.contests.entriesIn > 0 || summary.contests.decided > 0}
+        />
+        <Tile
+          href={marketViewHref('yours', 'work')}
+          label={hub.work}
+          value={workRequests.isSuccess && work.isSuccess ? summary.work.open : null}
+          note={summary.work.waiting > 0 ? fill(hub.yourMove, summary.work.waiting) : summary.work.open > 0 ? hub.underWay : hub.noneOpen}
+          flag={summary.work.waiting > 0}
         />
       </div>
       {earlier > 0 ? (

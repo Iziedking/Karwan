@@ -53,6 +53,8 @@ export interface MarketShopCopy {
   nothingMatches: string;
   nothingBody: string;
   clear: string;
+  /// The Listed button and its sheet (view 96).
+  listed: { button: string; title: string; any: string; hour: string; today: string; week: string; month: string; order: string; newest: string; oldest: string; closing: string; reset: string; show: string };
   listWhatYouSell: string;
   listBody: string;
   buyersNeed: string;
@@ -139,6 +141,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     nothingMatches: 'Nothing matches yet',
     nothingBody: 'Try other words, or say what you need and sellers send you offers.',
     clear: 'Clear search',
+    listed: { button: 'Listed', title: 'Listed', any: 'Any time', hour: 'Last hour', today: 'Today', week: 'This week', month: 'This month', order: 'Order', newest: 'Newest first', oldest: 'Oldest first', closing: 'Closing soonest', reset: 'Clear', show: 'Show results' },
     listWhatYouSell: 'List what you sell',
     listBody: 'Photos, a price, and how fast you deliver. Takes a minute.',
     buyersNeed: 'What buyers need',
@@ -221,6 +224,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     nothingMatches: 'Rien ne correspond pour l’instant',
     nothingBody: 'Essayez d’autres mots, ou dites ce qu’il vous faut et les vendeurs vous font des offres.',
     clear: 'Effacer la recherche',
+    listed: { button: 'Publié', title: 'Publié', any: 'À tout moment', hour: 'Dernière heure', today: 'Aujourd’hui', week: 'Cette semaine', month: 'Ce mois-ci', order: 'Ordre', newest: 'Plus récents d’abord', oldest: 'Plus anciens d’abord', closing: 'Fin la plus proche', reset: 'Effacer', show: 'Voir les résultats' },
     listWhatYouSell: 'Proposer ce que vous vendez',
     listBody: 'Des photos, un prix et votre délai de livraison. Une minute suffit.',
     buyersNeed: 'Ce que cherchent les acheteurs',
@@ -303,6 +307,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     nothingMatches: 'لا شيء يطابق بعد',
     nothingBody: 'جرّب كلمات أخرى، أو قل ما تحتاجه وسيرسل لك البائعون عروضهم.',
     clear: 'مسح البحث',
+    listed: { button: 'تاريخ النشر', title: 'تاريخ النشر', any: 'أي وقت', hour: 'آخر ساعة', today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', order: 'الترتيب', newest: 'الأحدث أولًا', oldest: 'الأقدم أولًا', closing: 'الأقرب انتهاءً', reset: 'مسح', show: 'عرض النتائج' },
     listWhatYouSell: 'اعرض ما تبيعه',
     listBody: 'صور وسعر ومدة التسليم. يستغرق دقيقة.',
     buyersNeed: 'ما يحتاجه المشترون',
@@ -385,6 +390,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     nothingMatches: 'अभी कुछ मेल नहीं खाता',
     nothingBody: 'दूसरे शब्द आज़माएँ, या बताइए आपको क्या चाहिए और विक्रेता आपको ऑफ़र भेजेंगे।',
     clear: 'खोज साफ़ करें',
+    listed: { button: 'सूचीबद्ध', title: 'कब सूचीबद्ध हुआ', any: 'कभी भी', hour: 'पिछला घंटा', today: 'आज', week: 'इस सप्ताह', month: 'इस महीने', order: 'क्रम', newest: 'नए पहले', oldest: 'पुराने पहले', closing: 'जल्द बंद होने वाले पहले', reset: 'साफ़ करें', show: 'नतीजे दिखाएँ' },
     listWhatYouSell: 'जो बेचते हैं उसे लिस्ट करें',
     listBody: 'फ़ोटो, कीमत, और आप कितनी जल्दी देते हैं। बस एक मिनट।',
     buyersNeed: 'खरीदारों को क्या चाहिए',
@@ -467,6 +473,7 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     nothingMatches: 'Hakuna kinacholingana bado',
     nothingBody: 'Jaribu maneno mengine, au sema unachohitaji na wauzaji watakutumia ofa.',
     clear: 'Futa utafutaji',
+    listed: { button: 'Iliwekwa', title: 'Iliwekwa lini', any: 'Wakati wowote', hour: 'Saa iliyopita', today: 'Leo', week: 'Wiki hii', month: 'Mwezi huu', order: 'Mpangilio', newest: 'Mpya kwanza', oldest: 'Za zamani kwanza', closing: 'Zinazofungwa karibuni', reset: 'Futa', show: 'Onyesha matokeo' },
     listWhatYouSell: 'Weka unachouza',
     listBody: 'Picha, bei, na muda wa kufikisha. Inachukua dakika moja.',
     buyersNeed: 'Wanunuzi wanahitaji nini',

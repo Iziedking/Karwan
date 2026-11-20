@@ -189,6 +189,46 @@ test('a category narrows the offers and the address keeps it', async ({ page }) 
   await expect(page.getByRole('group', { name: en.marketShop.categoriesLabel }).getByRole('button', { name: en.marketShop.categories.phones })).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('Listed narrows both sides to what went up today, and the address keeps it (view 96)', async ({ page }, testInfo) => {
+  await open(page);
+  const t = en.marketShop.listed;
+  const asked: string[] = [];
+  page.on('request', (r) => { const u = new URL(r.url()); if (u.pathname === '/api/listings' && u.searchParams.has('limit')) asked.push(u.search); });
+  // A request from two days ago, which today leaves out.
+  const now = Date.now();
+  const old = { jobId: `0x${'9'.padStart(64, '0')}`, briefText: 'Old request for tiling.', budgetUsdc: '40', postedAt: now - 2 * 86_400_000,
+    deadlineUnix: Math.floor((now + 7 * 86_400_000) / 1000), buyer: '0x7777…7777', bidsCount: 0, offerCount: 0 };
+  const fresh = { ...old, jobId: `0x${'8'.padStart(64, '0')}`, briefText: 'New request for a logo.', postedAt: now - 60_000 };
+  await page.route(`${API}/api/jobs/marketplace`, (route) => route.fulfill({ json: { briefs: [old, fresh] } }));
+
+  const button = page.locator('[data-listed-filter]');
+  await expect(button).toHaveText(t.button);
+  await button.click();
+  const sheet = page.locator('[data-listed-sheet]');
+  await expect(sheet.getByRole('radio', { name: t.any })).toBeChecked();
+  await expect(sheet.getByRole('radio', { name: t.newest })).toBeChecked();
+  await sound(page, testInfo, 'listed-sheet');
+  await sheet.getByText(t.today, { exact: true }).click();
+  await sheet.getByRole('button', { name: t.show }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(button).toHaveText(t.today);
+  await expect(page).toHaveURL(/\/market\?listed=today$/);
+  await expect.poll(() => asked.some((q) => q.includes('since='))).toBe(true);
+  // A set filter lists every match, like a category: all ten went up today.
+  await expect(cards(page)).toHaveCount(10);
+
+  await page.goto('/market?side=sell&listed=today');
+  const rows = page.locator('[data-request-row]');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('New request for a logo');
+  await page.reload();
+  await expect(page.locator('[data-listed-filter]')).toHaveText(t.today);
+  await page.locator('[data-listed-filter]').click();
+  await page.locator('[data-listed-sheet]').getByRole('button', { name: t.reset }).click();
+  await expect(rows).toHaveCount(2);
+  await expect(page).toHaveURL(/\/market\?side=sell$/);
+});
+
 test('a search with no match says so and offers the way to ask', async ({ page }) => {
   await open(page);
   await page.getByRole('searchbox', { name: en.marketShop.search }).fill('tractor');

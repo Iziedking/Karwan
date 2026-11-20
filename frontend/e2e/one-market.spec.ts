@@ -140,6 +140,42 @@ test.describe('one market', () => {
     await expect(page.getByText(TRADE_ENTRY_COPY.en.desk.hub.requests).first()).toBeVisible();
     await expect(page.getByTestId('market')).toHaveCount(0);
   });
+
+  test('Your trades counts contests and work, and each opens its own list (view 96)', async ({ page }) => {
+    await open(page, 'person');
+    const hub = TRADE_ENTRY_COPY.en.desk.hub;
+    const day = 86_400_000;
+    const contest = (id: string, title: string, status: string, entries: number) => ({
+      id, title, brief: '', tags: [], prizeMicros: '300000000', feeBps: 100, shares: [10_000], entriesBy: Date.now() + 5 * day,
+      awardBy: Date.now() + 9 * day, status, entries, createdAt: Date.now() - day,
+    });
+    const posted = [contest('c_1', 'Best logo for a bakery', 'open', 4)];
+    const entered = [contest('c_2', 'Flyer for a church harvest', 'open', 7)];
+    await page.route(`${API}/api/contests/mine`, (route) => route.fulfill({ json: { posted, entered, contests: posted } }));
+    const work = { id: 'wr_1', kind: 'hourly', title: 'Bookkeeping, 10 hours a week', brief: '', maxRateMicros: '10000000', maxHours: 10, periods: 4,
+      startsAt: Date.now() + 9 * day, offersCloseAt: Date.now() + 8 * day, status: 'open', createdAt: Date.now() - day };
+    await page.route(`${API}/api/work-requests/mine`, (route) => route.fulfill({ json: { posted: [], offered: [work], requests: [] } }));
+    await page.route(`${API}/api/work/mine`, (route) => route.fulfill({ json: { work: [] } }));
+
+    await page.goto('/market?view=yours');
+    const contests = page.getByRole('link', { name: new RegExp(hub.contests) });
+    await expect(contests).toContainText('2');
+    await expect(contests).toContainText(hub.entriesIn);
+    await expect(page.getByRole('link', { name: new RegExp(hub.work) })).toContainText('1');
+    await fitsTheScreen(page);
+
+    await contests.click();
+    await expect(page).toHaveURL(/list=contests/);
+    const list = page.locator('[data-yours-list]');
+    await expect(list.getByRole('heading', { name: hub.posted })).toBeVisible();
+    await expect(list.getByRole('link', { name: /Best logo for a bakery/ })).toHaveAttribute('href', '/contests/c_1');
+    await expect(list.getByRole('heading', { name: hub.entered })).toBeVisible();
+    await expect(list.getByRole('link', { name: /Flyer for a church harvest/ })).toHaveAttribute('href', '/contests/c_2');
+
+    await page.goto('/market?view=yours&list=work');
+    await expect(page.locator('[data-yours-list]').getByRole('heading', { name: hub.offered })).toBeVisible();
+    await expect(page.locator('[data-yours-list]').getByRole('link', { name: /Bookkeeping/ })).toHaveAttribute('href', '/work/requests/wr_1');
+  });
 });
 
 test('every old trade route lands in the one market', async ({ request }) => {

@@ -9,17 +9,20 @@ import { Chevron } from '@/features/market/components/YourTrades';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { localDay, microsToUsdc, runsText } from '../workModel';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
+import { listedWithin, viewerTimeZone, type Listed, type MarketOrder } from '@/features/market/listedWindow';
 
-/// Hourly work taking offers, in the market (view 32). Nothing shows when there is none.
-export function OpenWorkRequests() {
+/// Hourly work taking offers, in the market (view 32), narrowed by when it was
+/// listed (view 96). Nothing shows when there is none.
+export function OpenWorkRequests({ listed = 'any', order = 'newest' }: { listed?: Listed; order?: MarketOrder } = {}) {
   const all = useTranslations().work;
   const mt = useMoneyText({ compact: true });
   const t = all.requests;
   const { locale } = useLocale();
-  const [list, setList] = useState<WorkRequestView[]>([]);
+  const [openWork, setList] = useState<WorkRequestView[]>([]);
   useEffect(() => {
     api.listWorkRequests().then((r) => setList(Array.isArray(r.requests) ? r.requests : [])).catch(() => {});
   }, []);
+  const list = listed === 'any' && order === 'newest' ? openWork : listedWithin(openWork, (r) => r.createdAt ?? 0, (r) => r.offersCloseAt, listed, order, Date.now(), viewerTimeZone());
   if (list.length === 0) return null;
   return (
     <section aria-labelledby="hourly-title" className="mb-8">

@@ -3678,6 +3678,8 @@ export interface ContestView {
   entriesBy: number;
   awardBy: number;
   status: ContestStatus;
+  /// When it was posted, for the market's Listed filter (view 96).
+  createdAt?: number;
   entries: number;
   winners?: { place: number; netMicros: string }[];
   /// View 88: on the second escrow the earliest valid entries are paid from
@@ -3821,6 +3823,8 @@ export interface WorkRequestView {
   sessions?: number;
   startsAt: number;
   offersCloseAt: number;
+  /// When it was posted, for the market's Listed filter (view 96).
+  createdAt?: number;
   status: 'open' | 'hired' | 'closed' | 'expired';
   mine?: boolean;
   workId?: string;
@@ -6606,7 +6610,8 @@ export const api = {
   factoringOpenCalls: (offerId: string) =>
     json<{ calls: Array<{ to: `0x${string}`; data: `0x${string}` }> }>(`/api/factoring/offers/${offerId}/open`, { method: 'POST' }),
   listContests: () => json<{ contests: ContestView[] }>('/api/contests'),
-  myContests: () => json<{ contests: ContestView[] }>('/api/contests/mine'),
+  /// What you posted and what you entered (view 96); `contests` is the old name for `posted`.
+  myContests: () => json<{ posted: ContestView[]; entered: ContestView[]; contests: ContestView[] }>('/api/contests/mine'),
   getContest: (id: string) => json<ContestView>(`/api/contests/${encodeURIComponent(id)}`),
   draftContest: (body: ContestInput) =>
     json<{ card: ContestCard }>('/api/contests/draft', { method: 'POST', body: JSON.stringify(body) }),
@@ -6627,7 +6632,8 @@ export const api = {
     ),
   features: () => json<LiveFeatures>('/api/features'),
   listWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests'),
-  myWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests/mine'),
+  /// What you posted and what you offered on (view 96); `requests` is the old name for `posted`.
+  myWorkRequests: () => json<{ posted: WorkRequestView[]; offered: WorkRequestView[]; requests: WorkRequestView[] }>('/api/work-requests/mine'),
   getWorkRequest: (id: string) => json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}`),
   postWorkRequest: (body: WorkRequestInput) => json<{ request: WorkRequestView }>('/api/work-requests', { method: 'POST', body: JSON.stringify(body) }),
   offerOnWorkRequest: (id: string, body: { rateUsdc: string; note?: string; quote?: string }) =>
