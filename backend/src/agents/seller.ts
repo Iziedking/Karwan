@@ -1,4 +1,5 @@
 import { sellerMayBid } from '../verification/networkGate.js';
+import { recordSuggestion } from '../db/wordMapSuggestions.js';
 import { levelOf } from '../verification/live.js';
 import { blocksOffer, sellerLinkFor, SELLER_LINK_DETAIL } from '../deals/sellerBinding.js';
 import { generateObject } from 'ai';
@@ -1244,6 +1245,8 @@ async function judgeAndOffer(profile: SellerProfile, job: JobContext) {
     }
     // Bridge said yes. Surface the agent's reasoning so the timeline reflects
     // why a brief and seller with no shared tokens are now being matched.
+    // The pair also goes to the team as a word map suggestion (view 95), words only.
+    void recordSuggestion(briefTags, sellerTags).catch(() => undefined);
     logger.info(
       { jobId: job.jobId, seller: seller.address, judgement },
       'topical overlap zero but LLM relevance bridge confirmed; proceeding',

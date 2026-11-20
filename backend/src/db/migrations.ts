@@ -1740,6 +1740,24 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE UNIQUE INDEX deal_record_shares_v1_live_idx ON deal_record_shares_v1 (job_id, side) WHERE revoked_at IS NULL;
     `,
   },
+  {
+    // Word map suggestions (view 95): pairs the model judge matched that share
+    // no word, kept as words only for the team to review.
+    version: 72,
+    name: 'word_map_suggestions',
+    sql: `
+      CREATE TABLE word_map_suggestions_v1 (
+        id TEXT PRIMARY KEY,
+        brief_words JSONB NOT NULL,
+        seller_words JSONB NOT NULL,
+        count INTEGER NOT NULL,
+        first_seen BIGINT NOT NULL,
+        last_seen BIGINT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('open', 'dismissed'))
+      );
+      CREATE INDEX word_map_suggestions_v1_open_idx ON word_map_suggestions_v1 (count DESC, last_seen DESC) WHERE status = 'open';
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

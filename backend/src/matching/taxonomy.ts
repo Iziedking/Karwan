@@ -1,4 +1,4 @@
-import { textWords } from '../llm/keywords.js';
+import { bridgedWords, textWords } from '../llm/keywords.js';
 
 const STOPWORDS = new Set([
   'a', 'an', 'and', 'are', 'for', 'from', 'get', 'good', 'have', 'help', 'hire',
@@ -19,14 +19,18 @@ export function normalizeTerms(values: readonly string[]): string[] {
 export function skillCoverage(required: readonly string[], offered: readonly string[]): number {
   const wanted = normalizeTerms(required);
   const available = normalizeTerms(offered);
-  if (wanted.length === 0 || available.length === 0) return 0;
-  let covered = 0;
+  // A wanted word that reaches a word-map group the offer also hits is covered
+  // (view 95); a short or filler word of that name joins both sides of the sum.
+  const bridged = bridgedWords(required, offered);
+  const extra = [...bridged].filter((w) => !wanted.includes(w)).length;
+  if (wanted.length + extra === 0 || (available.length === 0 && bridged.size === 0)) return 0;
+  let covered = extra;
   for (const term of wanted) {
-    if (available.some((other) => other === term || other.includes(term) || term.includes(other))) {
+    if (bridged.has(term) || available.some((other) => other === term || other.includes(term) || term.includes(other))) {
       covered += 1;
     }
   }
-  return Math.round((covered / wanted.length) * 100);
+  return Math.round((covered / (wanted.length + extra)) * 100);
 }
 
 export function containsProhibitedCategory(

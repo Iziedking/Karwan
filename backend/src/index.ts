@@ -339,6 +339,7 @@ import { cspReportRoutes, pagePolicyAdminRoutes } from './routes/cspReport.js';
 import { adminRequestRoutes } from './routes/adminRequests.js';
 import { adminHomeRoutes } from './routes/adminHome.js';
 import { adminMovesRoutes } from './routes/adminMoves.js';
+import { adminWordMapRoutes } from './routes/adminWordMap.js';
 import { adminAccountsRoutes } from './routes/adminAccounts.js';
 import { adminSettingsRoutes } from './routes/adminSettings.js';
 import { buildOperatorRouteCatalog } from './ops/routeCatalog.js';
@@ -568,6 +569,7 @@ app.route('/api/admin', adminDeskRoutes);
 app.route('/api/admin', adminRequestRoutes);
 app.route('/api/admin', adminHomeRoutes);
 app.route('/api/admin', adminMovesRoutes);
+app.route('/api/admin', adminWordMapRoutes);
 app.route('/api/admin', adminAccountsRoutes);
 app.route('/api/admin', adminSettingsRoutes);
 // An approved money move runs as a request into this same app, as the approver.

@@ -185,6 +185,8 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/admin/waitlist/approve" },
   { method: "POST", path: "/api/admin/waitlist/invites" },
   { method: "DELETE", path: "/api/admin/waitlist/invites/:email" },
+  { method: "GET", path: "/api/admin/word-map" },
+  { method: "POST", path: "/api/admin/word-map/:id/dismiss" },
   { method: "GET", path: "/api/admin/x402/research" },
   { method: "GET", path: "/api/agent-jobs/:ref" },
   { method: "POST", path: "/api/agent-jobs/:ref/delivered" },

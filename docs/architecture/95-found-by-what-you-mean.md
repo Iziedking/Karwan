@@ -66,4 +66,4 @@ The map lives on the shared core. The website, Telegram, the assistant and outsi
 
 ## Status
 
-Proposed 20 Nov 2026. Phase 1, the word map, is next after the owner agrees this view; phase 2, meaning vectors, follows once the map is live.
+Agreed by the owner on 20 Nov 2026, with blocks kept to the words a seller wrote. Phase 1, the word map, built on 20 Nov 2026, not deployed: 35 groups, used by telling sellers about a request, find in every channel, standing orders, offers that fit, skill coverage and the rating for work like this, with suggestions from the model judge on the team's Word map page. Phase 2, meaning vectors, follows once the map is live.

@@ -55,7 +55,7 @@ export const ADMIN_PAGES: AdminPage[] = [
   { key: 'errors', label: 'Errors', routes: [r('\\w+ /api/admin/errors(/.*)?'), r('\\w+ /api/admin/diagnose(/.*)?')] },
   { key: 'events', label: 'Events', routes: [r('\\w+ /api/admin/events(/.*)?'), r('\\w+ /api/admin/agent-wallets(/.*)?')] },
   { key: 'payments', label: 'Payments', routes: [r('GET /api/admin/events(/.*)?'), r('GET /api/admin/money-moves')] },
-  { key: 'matching', label: 'Matching', routes: [r('\\w+ /api/admin/agent-runtime/matching-shadow(/.*)?')] },
+  { key: 'matching', label: 'Matching', routes: [r('\\w+ /api/admin/agent-runtime/matching-shadow(/.*)?'), r('\\w+ /api/admin/word-map(/.*)?')] },
   {
     key: 'runtime',
     label: 'Agent runtime',

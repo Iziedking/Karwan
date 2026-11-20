@@ -2832,6 +2832,16 @@ export interface AdminMoneyMove {
   txHashes: string[];
 }
 
+/// A pair the model judge matched that shares no word, even through the word map (view 95).
+export interface AdminWordMapSuggestion {
+  id: string;
+  briefWords: string[];
+  sellerWords: string[];
+  count: number;
+  firstSeen: number;
+  lastSeen: number;
+}
+
 export interface AdminMoneyMoves {
   rows: AdminMoneyMove[];
   counts: { stuck: number; moving: number; failed: number; done: number };
@@ -4419,6 +4429,9 @@ export const api = {
   adminSession: () => json<{ me: AdminDeskMe | null; network?: AdminDeskNetwork }>('/api/admin/session', { headers: adminHeaders() }),
   adminHome: () => json<AdminHomeView>('/api/admin/home', { headers: adminHeaders() }),
   adminMoneyMoves: () => json<AdminMoneyMoves>('/api/admin/money-moves', { headers: adminHeaders() }),
+  adminWordMapSuggestions: () => json<{ suggestions: AdminWordMapSuggestion[] }>('/api/admin/word-map', { headers: adminHeaders() }),
+  adminDismissWordMapSuggestion: (id: string) =>
+    json<{ ok: true }>(`/api/admin/word-map/${encodeURIComponent(id)}/dismiss`, { method: 'POST', headers: adminHeaders() }),
   adminAccounts: (email?: string) =>
     json<{ count: number; accounts: AdminAccountRow[] }>(`/api/admin/accounts${email ? `?email=${encodeURIComponent(email)}` : ''}`, { headers: adminHeaders() }),
   adminAccount: (address: string) => json<AdminAccountView>(`/api/admin/accounts/${encodeURIComponent(address)}`, { headers: adminHeaders() }),

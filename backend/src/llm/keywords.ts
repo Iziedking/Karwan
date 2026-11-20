@@ -4,6 +4,7 @@ import { singleFlight } from './singleFlight.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
 import { PARTY_TEXT_RULE, fencedParty } from '../security/partyText.js';
+import { mapHits } from '../matching/wordMap.js';
 
 const keywordSchema = z.object({
   keywords: z
@@ -124,7 +125,30 @@ export const GENERIC_TAG_WORDS = new Set([
 export function topicalOverlap(a: string[], b: string[]): number {
   const meaningful = (tags: string[]): string[] =>
     tags.flatMap(textWords).filter((w) => !GENERIC_TAG_WORDS.has(w));
-  return keywordOverlap(meaningful(a), meaningful(b));
+  const ma = meaningful(a);
+  const mb = meaningful(b);
+  // A word that only meets through a word-map group adds to the overlap
+  // (view 95); a word that already met as written is not counted twice, so
+  // rankings among exact matches stay as they were.
+  const meets = (w: string) => ma.includes(w) && mb.some((y) => y === w || y.includes(w) || w.includes(y));
+  const bridgedOnly = [...bridgedWords(a, b)].filter((w) => !meets(w)).length;
+  return keywordOverlap(ma, mb) + bridgedOnly;
+}
+
+/// The word-map groups both sides hit (view 95): a fashion designer and a tailor share tailoring.
+function sharedGroups(a: readonly string[], b: readonly string[]): Set<string> {
+  const ha = mapHits(a);
+  if (ha.groups.size === 0) return new Set();
+  const hb = mapHits(b);
+  return new Set([...ha.groups].filter((g) => hb.groups.has(g)));
+}
+
+/// The words of `a` that reach a group `b` also hits, so they count as met.
+export function bridgedWords(a: readonly string[], b: readonly string[]): Set<string> {
+  const ha = mapHits(a);
+  const out = new Set<string>();
+  for (const g of sharedGroups(a, b)) for (const w of ha.words.get(g) ?? []) out.add(w);
+  return out;
 }
 
 /// Coverage-based 0-100 match score: of the meaningful terms the brief asks
@@ -144,12 +168,17 @@ export function topicalMatchScore(briefTags: string[], sellerTags: string[]): nu
     );
   const brief = meaningful(briefTags);
   const seller = meaningful(sellerTags);
-  if (brief.length === 0 || seller.length === 0) return 0;
-  let matched = 0;
+  // Words that reach a group the seller also hits count as met (view 95). A
+  // short or filler word of such a name ("dj", "work") joins both sides of the
+  // sum, so a score can only rise.
+  const bridged = bridgedWords(briefTags, sellerTags);
+  const extra = [...bridged].filter((w) => !brief.includes(w)).length;
+  if (brief.length + extra === 0 || (seller.length === 0 && bridged.size === 0)) return 0;
+  let matched = extra;
   for (const term of brief) {
-    if (seller.some((s) => s === term || s.includes(term) || term.includes(s))) matched += 1;
+    if (bridged.has(term) || seller.some((s) => s === term || s.includes(term) || term.includes(s))) matched += 1;
   }
-  return Math.round((matched / brief.length) * 100);
+  return Math.round((matched / (brief.length + extra)) * 100);
 }
 
 /// LLM relevance bridge for the topical-zero case. When the deterministic

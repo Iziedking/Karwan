@@ -75,6 +75,7 @@ export const DESK_GROUPS: DeskGroup[] = [
     label: 'Market',
     items: [
       { href: '/admin/matching', label: 'Matching', icon: 'shuffle', keys: ['matching'] },
+      { href: '/admin/word-map', label: 'Word map', icon: 'shuffle', keys: ['matching'] },
       { href: '/admin/agents', label: 'Agents', icon: 'bot', keys: ['runtime', 'signals'] },
     ],
   },
