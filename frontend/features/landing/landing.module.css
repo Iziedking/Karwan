@@ -313,28 +313,31 @@ video.clip:not([data-ready]) { opacity: 0; }
 .facts dd { margin: 8px 0 0; font-size: 17px; font-weight: 600; }
 .facts dd a { text-decoration: underline; text-underline-offset: 4px; }
 
-/* The orbit (view 49, 18 Nov): partners and channels turning around the mark. */
+/* The orbit (view 49, 18 Nov; two rings since 20 Nov): partners inside, channels outside. */
 .orbit { position: relative; z-index: 1; max-width: 1100px; margin: 88px auto 0; }
 .dome { position: relative; aspect-ratio: 2 / 1; overflow: hidden; container-type: inline-size; }
-.dome::after { content: ''; position: absolute; inset: auto 0 0; height: 24%; background: linear-gradient(to bottom, transparent, var(--bg)); z-index: 1; pointer-events: none; }
-.ring { --r: 22cqw; --dur: 60s; position: absolute; left: 50%; top: 100%; width: calc(var(--r) * 2); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; border: 1px solid var(--line); scale: 0.86; opacity: 0; animation: orbitSpin var(--dur) linear infinite var(--dir, normal); transition: scale 1.4s var(--ease), opacity 1.2s var(--ease); transition-delay: var(--d, 0ms); }
-.ring[data-ring='2'] { --r: 34cqw; --dur: 90s; --dir: reverse; --back: normal; --d: 120ms; }
-.ring[data-ring='3'] { --r: 46cqw; --dur: 120s; --d: 240ms; }
+.dome::after { content: ''; position: absolute; inset: auto 0 0; height: 30%; background: linear-gradient(to bottom, transparent, var(--bg)); z-index: 1; pointer-events: none; }
+/* Two soft glows under the rings, no visible step between them. */
+.band { position: absolute; left: 50%; top: 100%; translate: -50% -50%; aspect-ratio: 1; border-radius: 50%; pointer-events: none; }
+.band[data-ring='1'] { width: 62cqw; background: radial-gradient(closest-side, rgb(255 255 255 / 0.014), rgb(255 255 255 / 0.01) 80%, transparent); }
+.band[data-ring='2'] { width: 96cqw; background: radial-gradient(closest-side, rgb(255 255 255 / 0.018), rgb(255 255 255 / 0.014) 82%, transparent); }
+.ring { --r: 29cqw; --dur: 80s; position: absolute; z-index: 2; left: 50%; top: 100%; width: calc(var(--r) * 2); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; border: 1px solid rgb(236 238 231 / 0.045); scale: 0.86; opacity: 0; animation: orbitSpin var(--dur) linear infinite var(--dir, normal); transition: scale 1.4s var(--ease), opacity 1.2s var(--ease); transition-delay: var(--d, 0ms); }
+.ring[data-ring='2'] { --r: 43cqw; --dur: 120s; --dir: reverse; --back: normal; --d: 120ms; }
 .orbit[data-seen] .ring { scale: 1; opacity: 1; }
 .slot { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform: rotate(var(--a)) translateX(var(--r)) rotate(calc(-1 * var(--a))); }
-.badge { position: absolute; left: 0; top: 0; translate: -50% -50%; width: clamp(44px, 6.4cqw, 68px); height: clamp(44px, 6.4cqw, 68px); border-radius: 50%; display: grid; place-items: center; background: var(--raised); border: 1px solid var(--line-strong); box-shadow: 0 10px 30px rgb(0 0 0 / 0.35); animation: orbitSpin var(--dur) linear infinite var(--back, reverse); transition: border-color 0.3s var(--ease), background-color 0.3s var(--ease); }
+.badge { position: absolute; left: 0; top: 0; translate: -50% -50%; width: clamp(44px, 6.2cqw, 68px); height: clamp(44px, 6.2cqw, 68px); border-radius: 50%; display: grid; place-items: center; background: #23262b; border: 0; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 12px 28px rgb(0 0 0 / 0.35); animation: orbitSpin var(--dur) linear infinite var(--back, reverse); transition: border-color 0.3s var(--ease), background-color 0.3s var(--ease); }
 .badge > svg { width: 54%; height: 54%; }
 .badge > img { width: 100%; height: 100%; border-radius: 50%; }
 .badge::after { content: attr(data-name); position: absolute; left: 50%; bottom: calc(100% + 8px); translate: -50% 4px; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--bg); background: var(--ink); padding: 5px 10px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity 0.2s var(--ease), translate 0.2s var(--ease); }
 .badge:hover::after, .badge:focus-visible::after { opacity: 1; translate: -50% 0; }
 a.badge:hover, a.badge:focus-visible { border-color: var(--green); background: #2d3136; }
-.badgeWide { width: clamp(96px, 12cqw, 136px); border-radius: 999px; background: #fffef4; border-color: rgb(10 10 10 / 0.12); }
+.badgeWide { width: clamp(96px, 12cqw, 132px); border-radius: 999px; background: #f3f2ea; }
 .badgeWide > svg { width: 72%; height: auto; }
 a.badgeWide:hover, a.badgeWide:focus-visible { background: #fef27f; }
-.badgeSoon { opacity: 0.55; filter: grayscale(0.6); border-style: dashed; cursor: default; }
+.badgeSoon { opacity: 0.5; cursor: default; }
 .badgeSoon:hover, .badgeSoon:focus-visible { opacity: 0.85; filter: none; }
 .dome:hover .ring, .dome:hover .badge, .dome:focus-within .ring, .dome:focus-within .badge { animation-play-state: paused; }
-.core { position: absolute; z-index: 2; left: 50%; bottom: 0; translate: -50% 28%; width: clamp(96px, 16cqw, 176px); aspect-ratio: 1; opacity: 0; transform: translateY(24px); transition: opacity 1s var(--ease) 0.35s, transform 1.2s var(--ease) 0.35s; }
+.core { position: absolute; z-index: 3; left: 50%; bottom: 0; translate: -50% 28%; width: clamp(96px, 16cqw, 176px); aspect-ratio: 1; opacity: 0; transform: translateY(24px); transition: opacity 1s var(--ease) 0.35s, transform 1.2s var(--ease) 0.35s; }
 .orbit[data-seen] .core { opacity: 1; transform: none; }
 .core::before { content: ''; position: absolute; inset: -60%; border-radius: 50%; background: radial-gradient(closest-side, rgb(175 201 91 / 0.22), transparent); }
 .core svg { position: relative; display: block; width: 100%; height: 100%; filter: drop-shadow(0 18px 40px rgb(0 0 0 / 0.45)); }
@@ -404,9 +407,10 @@ a.badgeWide:hover, a.badgeWide:focus-visible { background: #fef27f; }
   /* Edge to edge on a phone, and the outer ring keeps a whole badge on screen. */
   .orbit { margin-inline: calc(var(--gutter) * -1); }
   .dome { aspect-ratio: 1 / 0.6; }
-  .ring { --r: 19cqw; }
-  .ring[data-ring='2'] { --r: 31cqw; }
-  .ring[data-ring='3'] { --r: 43cqw; }
+  .ring { --r: 26cqw; }
+  .ring[data-ring='2'] { --r: 42cqw; }
+  .band[data-ring='1'] { width: 56cqw; }
+  .band[data-ring='2'] { width: 92cqw; }
   .badge { width: 38px; height: 38px; }
   .badgeWide { width: 80px; }
   .core { width: 80px; }

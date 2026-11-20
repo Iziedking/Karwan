@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { orbitRings } from './orbit';
 
-test('three rings, each going all the way round with every badge at least twice', () => {
+test('two rings, partners inside and channels outside, each going all the way round with every badge twice', () => {
   const rings = orbitRings('KarwanBot');
-  assert.equal(rings.length, 3);
+  assert.equal(rings.length, 2);
   for (const ring of rings) {
     const step = 360 / ring.slots.length;
     ring.slots.forEach((slot, i) => assert.equal(slot.angle, -180 + step / 2 + i * step));
@@ -12,10 +12,11 @@ test('three rings, each going all the way round with every badge at least twice'
     assert.equal(ring.slots.length, ids.size * 2);
   }
   assert.deepEqual(rings.map((r) => [...new Set(r.slots.map((s) => s.item.id))]), [
-    ['arc', 'circle'],
-    ['ignyte', 'paytag', 'telegram', 'whatsapp'],
-    ['x', 'linkedin', 'tiktok', 'email'],
+    ['arc', 'circle', 'ignyte', 'paytag'],
+    ['telegram', 'whatsapp', 'x', 'linkedin', 'tiktok', 'email'],
   ]);
+  assert.ok(rings[0]!.slots.every((s) => s.item.kind === 'partner'));
+  assert.ok(rings[1]!.slots.every((s) => s.item.kind === 'channel'));
 });
 
 test('only the first copy of a badge takes focus, so a keyboard meets each once', () => {

@@ -30,6 +30,8 @@ export function Orbit({ t }: { t: LandingCopy['closing'] }) {
   return (
     <div ref={ref} className={s.orbit} data-seen={seen ? '' : undefined}>
       <div className={s.dome}>
+        <span className={s.band} data-ring="2" aria-hidden="true" />
+        <span className={s.band} data-ring="1" aria-hidden="true" />
         {orbitRings(TELEGRAM_BOT).map((ring, r) => (
           <div key={r} className={s.ring} data-ring={r + 1}>
             {ring.slots.map((slot, i) => (
