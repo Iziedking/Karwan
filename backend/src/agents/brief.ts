@@ -26,6 +26,9 @@ export interface BriefFacts {
   goals: Array<{ goal: Goal; line: GoalLine; numbers: Record<string, number> }>;
   /// Goal lines already told: an expired goal is said once, "nothing fits" once a week.
   told: readonly string[];
+  /// Things that fit the person but waited for the brief (view 96): quiet hours
+  /// or past the day's cap. Newest first.
+  fits?: Array<{ title: string }>;
 }
 
 export interface Brief {
@@ -98,6 +101,10 @@ export function composeBrief(f: BriefFacts, locale: UserLocale = 'en'): Brief | 
     out.push({ line: tg(key, locale, { count: String(f.questions.count), time: at === null ? '' : clock(at, f.timeZone) }) });
   }
   if (f.dealsWaiting > 0) out.push({ line: tg(f.dealsWaiting === 1 ? 'brief.dealsWaitingOne' : 'brief.dealsWaiting', locale, { count: String(f.dealsWaiting) }) });
+  const fits = f.fits ?? [];
+  if (fits.length > 0) {
+    out.push({ line: tg('brief.fitsMore', locale, { count: String(fits.length), titles: fits.slice(0, 5).map((x) => x.title).join(', ') }) });
+  }
   for (const i of f.insights.slice(0, Math.max(0, f.insightsAllowed))) {
     const line = insightLine(i, locale);
     if (line) out.push({ line: plain(line), insightKey: i.key });

@@ -3,6 +3,7 @@ import { contestPayouts, withHalfFee } from '../chain/jobEscrow.js';
 import type { Contest, ContestEntry, ContestKind, ContestsStore } from '../db/contests.js';
 import type { Photo } from '../listings/photos.js';
 import { entryFingerprint, type EntryFile } from './entryFiles.js';
+import type { FitInput } from '../agents/fitAlert.js';
 
 /// Contests on the job escrow (view 40). The buying agent puts up the prize
 /// and is the one who awards it; each entrant's selling agent enters with the
@@ -110,11 +111,19 @@ export interface ContestPorts {
   chain: ContestChain;
   legacyChain?: ContestChain;
   tell(kind: string, payload: Record<string, unknown>): void;
+  /// View 96: the sellers a contest fits, by the words of its title, brief and
+  /// tags, and the one fit path that tells them. Both set, or neither.
+  reach?(c: Contest): Promise<Address[]>;
+  tellFit?(input: FitInput): Promise<unknown>;
   now(): number;
   newId(prefix: string): string;
 }
 
+const DAY_MS = 86_400_000;
+
 const lower = (a: string) => a.toLowerCase();
+/// Everyone with an entry that was in, once each (view 96).
+const entrantsOf = (entries: ContestEntry[]) => [...new Set(entries.filter((e) => e.status !== 'replaced' && e.status !== 'failed').map((e) => lower(e.seller)))];
 const usdc = (micros: bigint) => formatUnits(micros, USDC);
 const refuse = (code: string, message: string, extra: { needMicros?: string } = {}): Refusal => ({ ok: false, code, message, ...extra });
 
@@ -216,7 +225,7 @@ export function createContests(p: ContestPorts) {
         });
         const live = (await p.store.patch(id, { status: 'open', chainId: opened.jobId.toString(), openTx: opened.txHash }))!;
         p.tell('contest.opened', { contestId: id, buyer, prizeMicros: live.prizeMicros, tags: live.tags, title: live.title });
-        return { ok: true, contest: live };
+        return { ok: true, contest: (await tellFits(live)) ?? live };
       } catch (err) {
         await p.store.patch(id, { status: 'failed' });
         return refuse('OPEN_FAILED', `The contest did not open: ${(err as Error).message}`);
@@ -267,7 +276,7 @@ export function createContests(p: ContestPorts) {
         const tx = await chainOf(c).enter(agent.walletId, BigInt(c.chainId!), fingerprint, agent.address);
         const live = (await p.store.patchEntry(id, { status: 'in', enterTx: tx }))!;
         if (before) await p.store.patchEntry(before.id, { status: 'replaced' });
-        p.tell('contest.entered', { contestId, entryId: id, buyer: c.buyer, seller, replaced: !!before });
+        p.tell('contest.entered', { contestId, entryId: id, buyer: c.buyer, seller, replaced: !!before, title: c.title });
         return { ok: true, entry: live };
       } catch (err) {
         await p.store.patchEntry(id, { status: 'failed' });
@@ -310,7 +319,7 @@ export function createContests(p: ContestPorts) {
         if (entryIds.includes(e.id)) await p.store.patchEntry(e.id, { status: 'won' });
         else if (e.status === 'in') await p.store.patchEntry(e.id, { status: 'lost' });
       }
-      p.tell('contest.awarded', { contestId, buyer: c.buyer, winners: picked.map((e, i) => ({ seller: e.seller, netMicros: winners[i]!.netMicros })) });
+      p.tell('contest.awarded', { contestId, buyer: c.buyer, title: c.title, winners: picked.map((e, i) => ({ seller: e.seller, netMicros: winners[i]!.netMicros })) });
       return { ok: true, contest: done };
     } catch (err) {
       await p.store.patch(contestId, { status: 'open' });
@@ -331,7 +340,7 @@ export function createContests(p: ContestPorts) {
     try {
       const r = await chainOf(c).cancel(agent.walletId, BigInt(c.chainId!), c.buyerAgent);
       const done = (await p.store.patch(contestId, { status: 'cancelled', refundTx: r.txHash, backMicros: r.back.toString() }))!;
-      p.tell('contest.cancelled', { contestId, buyer: c.buyer });
+      p.tell('contest.cancelled', { contestId, buyer: c.buyer, title: c.title, entrants: entrantsOf(await p.store.entries(contestId)) });
       return { ok: true, contest: done };
     } catch (err) {
       await p.store.patch(contestId, { status: 'open' });
@@ -360,7 +369,7 @@ export function createContests(p: ContestPorts) {
     try {
       const tx = await chainOf(c).markNotValid(agent.walletId, BigInt(c.chainId!), e.sellerAgent, keccak256(toBytes(why)));
       const live = (await p.store.patchEntry(entryId, { notValid: { reason: why, at: p.now(), tx } }))!;
-      p.tell('contest.entry_marked', { contestId, entryId, buyer: c.buyer, seller: e.seller });
+      p.tell('contest.entry_marked', { contestId, entryId, buyer: c.buyer, seller: e.seller, title: c.title });
       return { ok: true, entry: live };
     } catch (err) {
       return refuse('MARK_FAILED', `The entry was not marked: ${(err as Error).message}`);
@@ -377,7 +386,7 @@ export function createContests(p: ContestPorts) {
     if (r.paid.length === 0) {
       await p.store.patch(c.id, { status: 'returned', refundTx: r.txHash, backMicros: r.back.toString() });
       for (const e of entries) if (e.status === 'in') await p.store.patchEntry(e.id, { status: 'lost' });
-      p.tell('contest.returned', { contestId: c.id, buyer: c.buyer });
+      p.tell('contest.returned', { contestId: c.id, buyer: c.buyer, title: c.title, entrants: entrantsOf(entries) });
       return;
     }
     const winners: NonNullable<Contest['winners']> = [];
@@ -394,7 +403,41 @@ export function createContests(p: ContestPorts) {
       else if (e.status === 'in') await p.store.patchEntry(e.id, { status: 'lost' });
     }
     const sellerOf = new Map(entries.map((e) => [e.id, e.seller]));
-    p.tell('contest.awarded', { contestId: c.id, buyer: c.buyer, auto: true, winners: winners.map((w) => ({ seller: sellerOf.get(w.entryId), netMicros: w.netMicros })) });
+    p.tell('contest.awarded', { contestId: c.id, buyer: c.buyer, title: c.title, auto: true, winners: winners.map((w) => ({ seller: sellerOf.get(w.entryId), netMicros: w.netMicros })) });
+  }
+
+  const fitFacts = (c: Contest) => ({ title: c.title, amountUsdc: Number(usdc(BigInt(c.prizeMicros))), winners: c.shares.length, closesAt: c.entriesBy });
+
+  /// Tells the sellers a new contest fits (view 96). A failure never stops the
+  /// contest: it is open either way.
+  async function tellFits(c: Contest): Promise<Contest | null> {
+    if (!p.reach || !p.tellFit) return null;
+    try {
+      const fits = (await p.reach(c)).filter((s) => lower(s) !== lower(c.buyer));
+      for (const s of fits) await p.tellFit({ to: s, kind: 'contest', ref: c.id, what: 'fits', facts: fitFacts(c), path: `/contests/${c.id}` }).catch(() => {});
+      return await p.store.patch(c.id, { told: fits.length, toldTo: fits });
+    } catch {
+      return null;
+    }
+  }
+
+  /// One reminder a day before entries close, to the sellers told who have not
+  /// entered (view 96). The count of contests reminded this pass.
+  async function remindDue(): Promise<number> {
+    if (!p.tellFit) return 0;
+    let reminded = 0;
+    const now = p.now();
+    for (const c of await p.store.list({ status: ['open'] })) {
+      if (c.reminded || !c.toldTo?.length || now >= c.entriesBy || c.entriesBy - now > DAY_MS) continue;
+      if (!(await p.store.patchIfStatus(c.id, ['open'], { reminded: true }))) continue;
+      const entered = new Set((await p.store.entries(c.id)).map((e) => lower(e.seller)));
+      for (const s of c.toldTo) {
+        if (entered.has(lower(s))) continue;
+        await p.tellFit({ to: s, kind: 'contest', ref: c.id, what: 'reminder', facts: fitFacts(c), path: `/contests/${c.id}` }).catch(() => {});
+      }
+      reminded += 1;
+    }
+    return reminded;
   }
 
   /// Settles every contest past its date: on the first escrow the prize goes
@@ -417,8 +460,9 @@ export function createContests(p: ContestPorts) {
       try {
         const r = await chainOf(c).giveBack(BigInt(c.chainId), c.buyerAgent);
         await p.store.patch(c.id, { status: 'returned', refundTx: r.txHash, backMicros: r.back.toString() });
-        for (const e of await p.store.entries(c.id)) if (e.status === 'in') await p.store.patchEntry(e.id, { status: 'lost' });
-        p.tell('contest.returned', { contestId: c.id, buyer: c.buyer });
+        const all = await p.store.entries(c.id);
+        for (const e of all) if (e.status === 'in') await p.store.patchEntry(e.id, { status: 'lost' });
+        p.tell('contest.returned', { contestId: c.id, buyer: c.buyer, title: c.title, entrants: entrantsOf(all) });
         returned += 1;
       } catch {
         await p.store.patch(c.id, { status: 'open' });
@@ -452,7 +496,7 @@ export function createContests(p: ContestPorts) {
     return { netMicros: pay.net.map(String), backMicros: pay.back.toString(), totalMicros: withHalfFee(BigInt(c.prizeMicros), c.feeBps).toString() };
   }
 
-  return { draft, post, enter, award, cancel, markNotValid, returnDue, mayReadFiles, mayReadPreview, awardCard };
+  return { draft, post, enter, award, cancel, markNotValid, returnDue, mayReadFiles, mayReadPreview, awardCard, remindDue };
 }
 
 export type Contests = ReturnType<typeof createContests>;

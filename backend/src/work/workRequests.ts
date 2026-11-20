@@ -4,6 +4,7 @@ import type { WorkOffer, WorkRequest, WorkRequestsStore } from '../db/workReques
 import type { Engagement } from '../db/engagements.js';
 import type { WorkInput } from './engagements.js';
 import type { LocalAmount } from '../rates/quote.js';
+import type { FitInput } from '../agents/fitAlert.js';
 
 /// Hourly work posted to the market (view 32). The hirer posts the most they
 /// pay an hour; sellers who fit are told and offer a rate; the hirer's agent
@@ -60,6 +61,9 @@ export interface WorkRequestPorts {
   /// The live offers, best fit first, sealed.
   rank(r: WorkRequest, offers: WorkOffer[]): Promise<RankedOffer[]>;
   tellPerson(address: Address, text: string, link: string): void;
+  /// View 96: when set, a seller the work fits hears through the one fit path,
+  /// in their language and money, once; tellPerson stays for everything else.
+  tellFit?(input: FitInput): Promise<unknown>;
   /// The rate a reached seller's agent offers from their hourly or monthly
   /// way, or null when they have none that fits (view 32).
   timeOfferFor?(seller: Address, work: { kind: 'hourly' | 'monthly'; mostUsdc: number; maxHours: number }): Promise<number | null>;
@@ -114,6 +118,14 @@ export function createWorkRequests(p: WorkRequestPorts) {
         ? await p.timeOfferFor(s, { kind: request.kind, mostUsdc: Number(usdc(rate)), maxHours: request.maxHours }).catch(() => null)
         : null;
       const made = auto !== null ? await offer(s, request.id, { rateUsdc: auto.toFixed(2) }) : null;
+      if (p.tellFit) {
+        const offered = !!made?.ok;
+        await p.tellFit({
+          to: s, kind: 'work', ref: request.id, what: offered ? 'offered' : 'fits', path: `/work/requests/${request.id}`,
+          facts: { title, amountUsdc: Number(usdc(offered && made?.ok ? BigInt(made.offer.rateMicros) : rate)), per: hourly ? 'hour' : 'month' },
+        }).catch(() => {});
+        continue;
+      }
       if (made?.ok) {
         p.tellPerson(s, `Your agent offered ${usdc(made.offer.rateMicros)} USDC ${per(request)} on ${title}. You can change or withdraw it.`, `/work/requests/${request.id}`);
         continue;

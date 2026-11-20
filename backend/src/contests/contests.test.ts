@@ -210,3 +210,50 @@ test('one to eight winners, shared the suggested way, equally, or as the buyer s
   assert.equal(own.ok, true);
   if (own.ok) assert.deepEqual(own.card.shares, [3334, 2222, 1778, 1555, 1111]);
 });
+
+test('a new contest tells the sellers it fits, never the buyer; who was told stays private (view 96)', async () => {
+  const fits: Array<{ to: string; what: string; amount?: number; winners?: number; path?: string }> = [];
+  const { core, store } = setup({
+    reach: async () => [S1, BUYER, S2],
+    tellFit: async (i) => { fits.push({ to: i.to, what: i.what, amount: i.facts.amountUsdc, winners: i.facts.winners, path: i.path }); },
+  });
+  const r = await core.post(BUYER, input);
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.deepEqual(fits, [
+    { to: S1, what: 'fits', amount: 300, winners: 3, path: `/contests/${r.contest.id}` },
+    { to: S2, what: 'fits', amount: 300, winners: 3, path: `/contests/${r.contest.id}` },
+  ]);
+  const saved = await store.get(r.contest.id);
+  assert.equal(saved?.told, 2);
+  assert.deepEqual(saved?.toldTo, [S1, S2]);
+});
+
+test('a day before entries close, sellers told who have not entered get one reminder (view 96)', async () => {
+  const fits: Array<{ to: string; what: string }> = [];
+  const { core, advance } = setup({
+    reach: async () => [S1, S2],
+    tellFit: async (i) => { fits.push({ to: i.to, what: i.what }); },
+  });
+  const r = await core.post(BUYER, input);
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.ok((await core.enter(S1, r.contest.id, file())).ok);
+  fits.length = 0;
+  assert.equal(await core.remindDue(), 0, 'not yet: entries close in seven days');
+  advance(6 * DAY + 3_600_000);
+  assert.equal(await core.remindDue(), 1);
+  assert.deepEqual(fits, [{ to: S2, what: 'reminder' }], 'only the seller who has not entered');
+  assert.equal(await core.remindDue(), 0, 'once');
+  advance(DAY);
+  assert.equal(await core.remindDue(), 0, 'never after entries close');
+});
+
+test('without the fit path a contest opens exactly as before', async () => {
+  const { core, store } = setup();
+  const r = await core.post(BUYER, input);
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.equal((await store.get(r.contest.id))?.toldTo, undefined);
+  assert.equal(await core.remindDue(), 0);
+});

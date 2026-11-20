@@ -16,6 +16,9 @@ export function startContestRunner(core: Contests | null): () => void {
     try {
       const n = await core.returnDue();
       if (n) logger.info({ returned: n }, 'contest prizes returned');
+      // View 96: one reminder a day before entries close.
+      const r = await core.remindDue();
+      if (r) logger.info({ reminded: r }, 'contest reminders sent');
     } catch (err) {
       logger.warn({ err: (err as Error).message }, 'contest runner pass failed');
     } finally {

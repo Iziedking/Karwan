@@ -107,6 +107,9 @@ const envSchema = z.object({
   /// blended score and sellers see the budget as a range. Read once per
   /// request, when it is posted (`Brief.bargainV73`).
   BARGAIN_V73: envBool('BARGAIN_V73'),
+  /// View 96: every open trade tells the people it fits through one path,
+  /// once each, within a daily cap. Off, today's alerts run unchanged.
+  FIT_ALERTS: envBool('FIT_ALERTS'),
   /// View 87: an agent may lock the money for a deal it agreed, inside its
   /// person's limits. Off, every lock waits for the person's tap.
   AUTOPILOT_LOCK_ENABLED: envBool('AUTOPILOT_LOCK_ENABLED'),
@@ -643,6 +646,19 @@ const envSchema = z.object({
   // assistant without a model. Needs BEDROCK_ENABLED and the model allowed in
   // the server's AWS role. Check with node dist/scripts/probe-models.js
   BEDROCK_FALLBACK_MODEL: z.preprocess(blankToUndefined, z.string().default('deepseek.v3.2')),
+  // Matching by meaning (view 95 phase 2): sellers, requests and finds carry a
+  // vector from an embedding model on Bedrock. Counts as off unless the model
+  // and the threshold are both set, and those come from the probe
+  // (node dist/scripts/probe-embeddings.js), never from a guess.
+  MEANING_VECTORS_ENABLED: envBool('MEANING_VECTORS_ENABLED'),
+  MEANING_MODEL: optionalString,
+  MEANING_THRESHOLD: z.preprocess(blankToUndefined, z.coerce.number().gt(0).lt(1).optional()),
+  MEANING_DIMENSION: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().refine((d) => [256, 512, 1024, 1536].includes(d), 'MEANING_DIMENSION must be 256, 512, 1024 or 1536').default(1024),
+  ),
+  // Pause between backfill batches, to stay under the model's requests-per-minute quota.
+  MEANING_BATCH_GAP_MS: z.preprocess(blankToUndefined, z.coerce.number().int().min(0).default(2000)),
   ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // The AUTHENTICATED assistant runs a tool-calling loop that can read the
   // signed-in user's OWN data (balance, deals). Because that data is private, it

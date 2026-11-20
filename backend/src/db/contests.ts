@@ -43,6 +43,11 @@ export interface Contest {
   backMicros?: string;
   /// The assistant conversation it was posted from, for the follow-ups.
   conversationId?: string;
+  /// View 96: how many sellers it fits were told, who they were (never shown to
+  /// anyone), and whether they had their one reminder before entries close.
+  told?: number;
+  toldTo?: Address[];
+  reminded?: boolean;
   createdAt: number;
   updatedAt: number;
 }

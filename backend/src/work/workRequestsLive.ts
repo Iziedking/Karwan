@@ -11,6 +11,7 @@ import { rankSellers, sellerIndex } from '../matching/sellerIndex.js';
 import { rankWorkOffers } from './workRank.js';
 import { createWorkRequests } from './workRequests.js';
 import { work } from './workLive.js';
+import { fitAlertsOn, tellFitLive } from '../agents/fitAlertLive.js';
 
 /// Hourly work posted to the market, bound to the seller index, the record
 /// and the hourly work core. Null where hourly work is off.
@@ -35,6 +36,7 @@ export const workRequests = work
     },
     rank: (r, offers) => rankWorkOffers(r, offers, sealedSellerDeps, Date.now()),
     tellPerson: (address, text, path) => bus.emitEvent({ type: 'work.update', actor: 'platform', payload: { address, text, path } }),
+    ...(fitAlertsOn() ? { tellFit: tellFitLive } : {}),
     timeOfferFor: async (seller, work) => {
       const profile = await getProfile(seller).catch(() => null);
       return profile?.agentWays ? timeOffer(waysOf(profile).sell, work) : null;

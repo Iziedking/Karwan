@@ -33,6 +33,7 @@ import { logger } from '../logger.js';
 import { closesLabel } from '../deals/disputeJudge.js';
 import { outOfRangeLine, rangeOf } from '../agents/outOfRange.js';
 import { decidedLine, defaultLine, questionLine } from '../agents/agentQuestion.js';
+import { contestRecipients, contestSummary } from '../telegram/notifier.js';
 
 function base(): string | null {
   return config.FRONTEND_BASE_URL ? config.FRONTEND_BASE_URL.replace(/\/$/, '') : null;
@@ -65,6 +66,12 @@ function financierUrl(): string | undefined {
 const EMAIL_RELEVANT = new Set([
   // The morning brief, only for someone without Telegram (view 52, step 4).
   'agent.brief',
+  // Contest news to the people it concerns (view 96), routed as on Telegram.
+  'contest.entered',
+  'contest.entry_marked',
+  'contest.awarded',
+  'contest.cancelled',
+  'contest.returned',
   'agent.suggestion',
   'agent.question.decided',
   'offer.request-changed',
@@ -139,12 +146,14 @@ const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> 
 
 export interface Recipient {
   address: string;
-  role: 'buyer' | 'seller' | 'self' | 'financier';
+  /// `winner:<net micros>` for a contest winner (view 96).
+  role: 'buyer' | 'seller' | 'self' | 'financier' | `winner:${string}`;
   /// A financier's own position page, which their alert links to.
   href?: string;
 }
 
 export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
+  if (e.type.startsWith('contest.')) return contestRecipients(e) as Recipient[];
   if (e.type === 'reputation.tier-up' || e.type.startsWith('rating.')) {
     const a = (e.payload?.address as string | undefined)?.toLowerCase();
     return a ? [{ address: a, role: 'self' }] : [];
@@ -538,6 +547,15 @@ export function contentFor(
         ctaLabel: 'Open the request',
         ctaUrl: jobUrl(e.payload?.jobId as string | undefined),
       };
+    }
+    case 'contest.entered':
+    case 'contest.entry_marked':
+    case 'contest.awarded':
+    case 'contest.cancelled':
+    case 'contest.returned': {
+      const said = contestSummary(e, role, 'en');
+      if (!said) return null;
+      return { kicker: 'Contest', subject: said.text, heading: said.text, body: '', ctaLabel: 'Open the contest', ...(said.url ? { ctaUrl: said.url } : {}) };
     }
     case 'agent.brief': {
       // Built in the person's language by the person agent (view 52, step 4).

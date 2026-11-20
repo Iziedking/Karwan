@@ -1,3 +1,4 @@
+import { formatUnits } from 'viem';
 import { bus, type KarwanEvent } from '../events.js';
 import { localiseUsdcText } from '../rates/localAmounts.js';
 import { keptFiguresFor } from '../rates/keptFigures.js';
@@ -113,6 +114,13 @@ function withLink(text: string, url: string | null): NotifySummary {
 
 export const RELEVANT = new Set([
   'work.update',
+  // Contest news to the people it concerns (view 96). A new contest reaches
+  // the sellers it fits through the fit path, never as a broadcast.
+  'contest.entered',
+  'contest.entry_marked',
+  'contest.awarded',
+  'contest.cancelled',
+  'contest.returned',
   'agent.suggestion',
   'agent.question.decided',
   'agent.decision',
@@ -234,6 +242,66 @@ const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> 
   'po.defaulted': ['seller', 'financier'],
 };
 
+const addr = (v: unknown) => (typeof v === 'string' && /^0x[0-9a-fA-F]{40}$/.test(v) ? v.toLowerCase() : null);
+
+/// Who hears each piece of contest news (view 96). Roles: buyer is the person
+/// who posted it, seller an entrant, winner a seller who won.
+export function contestRecipients(e: KarwanEvent): Recipient[] {
+  const p = e.payload ?? {};
+  const buyer = addr(p.buyer);
+  const out: Recipient[] = [];
+  const add = (a: string | null, role: string) => { if (a && !out.some((r) => r.address === a)) out.push({ address: a, role }); };
+  switch (e.type) {
+    case 'contest.entered':
+      if (p.replaced !== true) add(buyer, 'buyer');
+      break;
+    case 'contest.entry_marked':
+      add(addr(p.seller), 'seller');
+      break;
+    case 'contest.awarded':
+      for (const w of Array.isArray(p.winners) ? p.winners : []) {
+        const net = (w as { netMicros?: unknown }).netMicros;
+        add(addr((w as { seller?: unknown }).seller), `winner:${typeof net === 'string' && /^\d+$/.test(net) ? net : '0'}`);
+      }
+      add(buyer, 'buyer');
+      break;
+    case 'contest.cancelled':
+    case 'contest.returned':
+      add(buyer, 'buyer');
+      for (const s of Array.isArray(p.entrants) ? p.entrants : []) add(addr(s), 'seller');
+      break;
+  }
+  return out;
+}
+
+function contestUrl(id: unknown): string | null {
+  if (typeof id !== 'string' || !/^c_[A-Za-z0-9_-]{1,40}$/.test(id) || !config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/contests/${id}`;
+}
+
+export function contestSummary(e: KarwanEvent, role: string, locale: UserLocale): NotifySummary | null {
+  const p = e.payload ?? {};
+  const title = typeof p.title === 'string' && p.title ? p.title : 'Contest';
+  const url = contestUrl(p.contestId);
+  switch (e.type) {
+    case 'contest.entered':
+      return withLink(tg('contest.entryIn', locale, { title }), url);
+    case 'contest.entry_marked':
+      return withLink(tg('contest.entryNotValid', locale, { title }), url);
+    case 'contest.awarded': {
+      if (!role.startsWith('winner:')) return withLink(tg('contest.awarded', locale, { title }), url);
+      // Written in USDC; the sender reads it in the person's own money.
+      return withLink(tg('contest.won', locale, { title, amount: `${formatUnits(BigInt(role.slice('winner:'.length)), 6)} USDC` }), url);
+    }
+    case 'contest.cancelled':
+      return withLink(tg('contest.cancelled', locale, { title }), url);
+    case 'contest.returned':
+      return withLink(tg('contest.returned', locale, { title }), url);
+    default:
+      return null;
+  }
+}
+
 export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   // Bridge events fan out only to the address that owns the burn/relay; we
   // surface them via the mintRecipient in the payload when present.
@@ -331,6 +399,8 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const waiting = e.payload?.waitingOn === 'seller' && e.payload?.buyerConfirmed === true;
     return seller && waiting ? [{ address: seller, role: 'seller' }] : [];
   }
+  // Contest news (view 96): the poster, the entrant, the winners, everyone who entered.
+  if (e.type.startsWith('contest.')) return contestRecipients(e);
   // An update on hourly work names the one person it is for.
   if (e.type === 'work.update') {
     const owner = (e.payload?.address as string | undefined)?.toLowerCase();
@@ -630,6 +700,10 @@ ${defaultLine(e.payload) ?? 'Nothing is sent until you answer.'}`, jobUrl(e.payl
       const heading = typeof p.heading === 'string' ? `*${p.heading}*\n` : '';
       const text = `${heading}${lines.map((l) => `• ${l}`).join('\n')}`;
       if (e.type === 'agent.note' && typeof p.pitchId === 'string') return withLink(text, pitchUrl(p.pitchId));
+      // View 96: a fit on a contest, work or an offer opens its own page.
+      if (e.type === 'agent.note' && typeof p.path === 'string' && p.path.startsWith('/') && config.FRONTEND_BASE_URL) {
+        return withLink(text, `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}${p.path}`);
+      }
       return withLink(text, e.type === 'agent.note' ? jobUrl(p.jobId as string | undefined) : yourAgentUrl());
     }
     case 'agent.decision': {
@@ -1139,6 +1213,12 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const url = dealUrl(e.payload?.dealId as string | undefined);
       return withLink(String(e.payload?.text ?? ''), url ? `${url}#rate` : null);
     }
+    case 'contest.entered':
+    case 'contest.entry_marked':
+    case 'contest.awarded':
+    case 'contest.cancelled':
+    case 'contest.returned':
+      return contestSummary(e, role, locale);
     case 'work.update': {
       // Hourly work names its own page; posted work names the request's.
       const path = e.payload?.path as string | undefined;

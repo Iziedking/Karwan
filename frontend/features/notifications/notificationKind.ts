@@ -43,6 +43,9 @@ export function sellerNudge(type: string, payload: Record<string, unknown> | und
     // A seller's pitch has no request yet; it opens the pitch (view 72).
     const pitchId = typeof payload?.pitchId === 'string' && /^[\w-]{1,80}$/.test(payload.pitchId) ? payload.pitchId : '';
     if (pitchId) return { id: `agent.note-pitch-${pitchId}-${ts}`, href: `/find/pitch/${pitchId}` };
+    // A fit on a contest, work or an offer opens its own page (view 96).
+    const path = typeof payload?.path === 'string' && /^\/(contests|work\/requests|listings)\/[\w-]{1,80}$/.test(payload.path) ? payload.path : '';
+    if (path) return { id: `agent.note-${path}-${ts}`, href: path };
     const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
     return { id: `agent.note-${jobId}-${ts}`, href: jobId ? `/jobs/${jobId}` : '/profile/setup' };
   }

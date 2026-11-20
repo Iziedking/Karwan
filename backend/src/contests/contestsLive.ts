@@ -18,6 +18,11 @@ import { moneyOutGuard } from '../moneyOut/live.js';
 import { refusalBody } from '../moneyOut/refusal.js';
 import { createContests, type ContestChain, type ContestPorts } from './contests.js';
 import { entryFiles, entryPreviews } from './entryFiles.js';
+import { fitAlertsOn, tellFitLive } from '../agents/fitAlertLive.js';
+import { rankSellers, sellerIndex } from '../matching/sellerIndex.js';
+
+/// The most sellers one new contest is told about (view 96), as for hourly work.
+const CONTEST_REACH_LIMIT = 25;
 
 /// The contests core bound to Arc, Circle and the contests tables. Null where
 /// the job escrow is not set up on this network.
@@ -137,6 +142,15 @@ function bind(): ContestPorts | null {
     chain: chainFor(jobs, asset),
     ...(second && legacy ? { legacyChain: chainFor(legacy, asset) } : {}),
     tell: (kind, payload) => bus.emitEvent({ type: kind as KarwanEventType, actor: 'platform', payload }),
+    // View 96: the sellers a contest fits hear of it, like hourly work.
+    ...(fitAlertsOn() ? {
+      reach: async (c) => {
+        if (!sellerIndex.isBuilt()) await sellerIndex.rebuild();
+        const fits = rankSellers(sellerIndex.entries(), { jobId: c.id, keywords: c.tags, briefText: `${c.title}. ${c.brief}`, tradeType: 'service' });
+        return fits.byWords.slice(0, CONTEST_REACH_LIMIT).map((s) => s.userAddress as Address);
+      },
+      tellFit: tellFitLive,
+    } : {}),
     now: () => Date.now(),
     newId: (prefix) => `${prefix}_${randomBytes(9).toString('base64url')}`,
   };

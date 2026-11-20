@@ -6,6 +6,7 @@ import type { Engagement } from '../db/engagements.js';
 import type { WorkInput } from './engagements.js';
 import { rankWorkOffers, type WorkRankDeps } from './workRank.js';
 import { createWorkRequests, type WorkRequestInput } from './workRequests.js';
+import type { FitInput } from '../agents/fitAlert.js';
 
 /// Hourly work posted to the market (view 32): who is told, who can offer,
 /// how the hirer's agent ranks them, and hiring.
@@ -16,7 +17,7 @@ const TUNDE: Address = '0x3333333333333333333333333333333333333333';
 const DAY = 86_400_000;
 const T0 = Date.UTC(2026, 10, 2, 9);
 
-function world(over: { offerFails?: boolean; timeOfferFor?: (s: Address) => number | null } = {}) {
+function world(over: { offerFails?: boolean; timeOfferFor?: (s: Address) => number | null; fits?: FitInput[] } = {}) {
   let now = T0;
   let n = 0;
   const told: Array<{ to: string; text: string }> = [];
@@ -37,6 +38,7 @@ function world(over: { offerFails?: boolean; timeOfferFor?: (s: Address) => numb
       reasons: [], recommended: i === 0, rateMicros: o.rateMicros, note: o.note, overMost: false,
     })),
     tellPerson: (to, text) => told.push({ to, text }),
+    ...(over.fits ? { tellFit: async (i: FitInput) => { over.fits!.push(i); return 'sent'; } } : {}),
     ...(over.timeOfferFor ? { timeOfferFor: async (seller: Address) => over.timeOfferFor!(seller) } : {}),
     now: () => now,
     newId: (prefix) => `${prefix}_${++n}`,
@@ -238,4 +240,17 @@ test('an agent offer at exactly the most reads as the hirer said it, and the hir
   const out = await core.hire(HIRER, r.request.id, seen.offers[0]!.offerId);
   assert.ok(out.ok);
   assert.deepEqual(hired[0]!.input.rateLocal, SAID);
+});
+
+test('with fit alerts on, each seller it fits hears once through the fit path, and the agent offer is said as made (view 96)', async () => {
+  const fits: FitInput[] = [];
+  const { core, told } = world({ fits, timeOfferFor: (s) => (s === ADA ? 9 : null) });
+  const r = await core.post(HIRER, books);
+  assert.ok(r.ok);
+  assert.deepEqual(told.filter((t) => t.to !== HIRER), [], 'sellers get no old English text alongside; the hirer still hears of the new offer');
+  assert.deepEqual(fits.map((f) => [f.to, f.what, f.facts.amountUsdc, f.facts.per, f.path]), [
+    [ADA, 'offered', 9, 'hour', `/work/requests/${r.request.id}`],
+    [TUNDE, 'fits', 10, 'hour', `/work/requests/${r.request.id}`],
+  ]);
+  assert.ok(fits.every((f) => f.kind === 'work' && f.ref === r.request.id && f.facts.title === 'Bookkeeping'));
 });

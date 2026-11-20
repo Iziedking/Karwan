@@ -1,6 +1,7 @@
 import { proposalPendingLines, dealPendingLines } from '../assistant/pendingLines.js';
 import { openQuestionsFor } from '../db/agentQuestions.js';
 import { progressStore } from '../db/agentProgress.js';
+import { heldFits } from './fitAlert.js';
 import { getAgentRecord, listAgentRecords, updateAgentRecord } from '../db/agentRecords.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { getBrief } from '../db/briefs.js';
@@ -99,12 +100,15 @@ async function gather(owner: string, ctx: { since: number; now: number; record: 
     goals.push(fresh.length ? { goal, line: 'watch', numbers: { count: fresh.length } } : { goal, line: 'nothing', numbers: {} });
   }
 
+  // View 96: fits that waited for the brief since the last one.
+  const fits = heldFits(await progressStore().toldSince(owner, since).catch(() => []), since);
   return {
     newOffers,
     questions: { count: questions.length, firstDecideAt: decideAts.length ? Math.min(...decideAts) : null },
     dealsWaiting,
     insights,
     goals,
+    fits,
   };
 }
 

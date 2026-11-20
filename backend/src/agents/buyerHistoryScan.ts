@@ -5,6 +5,8 @@ import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import type { Listing } from '../db/listings.js';
 import { isPublic } from '../market/visibility.js';
+import type { FitInput } from './fitAlert.js';
+import { fitAlertsOn, tellFitLive } from './fitAlertLive.js';
 
 /// When a new offer is posted, every activated account hears about it once, in
 /// one of two ways:
@@ -13,6 +15,11 @@ import { isPublic } from '../market/visibility.js';
 /// - `listing.new`: everyone else, as news from the market.
 /// A private offer (visibility 'agents') is never news; it reaches a person only
 /// when it fits their own request. No money moves without their own click.
+///
+/// View 96, with FIT_ALERTS on: a fit goes through the one fit path (once, in
+/// the person's language and money, inside the day's cap) and news of an offer
+/// that fits nothing they asked for is no longer sent to each person; it waits
+/// in the market and the brief.
 
 const HISTORY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const RECENT_NOTIFY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -56,7 +63,12 @@ export function alertFor(
   return isPublic(listing) ? { kind: 'new' } : null;
 }
 
-export async function scanBuyersForListing(listing: Listing): Promise<{ fits: number; news: number }> {
+export interface ScanOptions {
+  /// The fit path; when set, fits go through it and news is not sent.
+  tellFit?: (input: FitInput) => Promise<unknown>;
+}
+
+export async function scanBuyersForListing(listing: Listing, opts: ScanOptions = fitAlertsOn() ? { tellFit: tellFitLive } : {}): Promise<{ fits: number; news: number }> {
   const now = Date.now();
   pruneDedupe(now);
   const briefs = listAllBriefs();
@@ -71,6 +83,16 @@ export async function scanBuyersForListing(listing: Listing): Promise<{ fits: nu
     const own = briefs.filter((b) => b.postedBy === w.userAddress.toLowerCase() && now - b.createdAt < HISTORY_WINDOW_MS);
     const alert = alertFor(own, listing);
     if (!alert) continue;
+    if (opts.tellFit) {
+      if (alert.kind !== 'fits') continue;
+      recentlyNotified.set(key, now);
+      fits += 1;
+      await opts.tellFit({
+        to: w.userAddress.toLowerCase(), kind: 'offer', ref: listing.id, what: 'fits', path: `/listings/${listing.id}`,
+        facts: { title: listing.title, amountUsdc: listing.askingPriceUsdc },
+      }).catch(() => {});
+      continue;
+    }
     recentlyNotified.set(key, now);
     const payload = {
       listingId: listing.id,

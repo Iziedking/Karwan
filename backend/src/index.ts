@@ -228,6 +228,7 @@ import { startTrendScout } from './agents/trendScout.js';
 import { startMarketWatcher } from './agents/marketWatcher.js';
 import { startAgentReporter } from './agents/agentReporter.js';
 import { startPersonAgent } from './agents/personAgentLive.js';
+import { startFitListener } from './agents/fitListenerLive.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startDepositWatcher } from './circle/depositWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
@@ -924,6 +925,8 @@ function bootAgents() {
       stopFns.push(startAgentReporter());
       // Each person's morning brief and live notes (view 52, step 4).
       stopFns.push(startPersonAgent());
+      // Every open trade tells the people it fits, once (view 96, FIT_ALERTS).
+      stopFns.push(startFitListener());
     } else {
       appLogger.info('trend scout disabled via TREND_NUDGES_ENABLED');
     }
