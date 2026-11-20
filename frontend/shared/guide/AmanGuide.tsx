@@ -313,9 +313,14 @@ export function AmanGuide() {
     if (!helloDue(settings.guideHelloOn, today, pathname)) return;
     setHello(true);
     void saveSettings({ guideHelloOn: today });
+  }, [active, ready, nudge, partGuide.wants, partGuide.line, settings, today, pathname, saveSettings, reduce]);
+
+  // Its own clock: saving the day changes settings, and that must not stop the hello going.
+  useEffect(() => {
+    if (!hello) return;
     const t = window.setTimeout(() => setHello(false), HELLO_MS);
     return () => window.clearTimeout(t);
-  }, [active, ready, nudge, partGuide.wants, partGuide.line, settings, today, pathname, saveSettings, reduce]);
+  }, [hello]);
 
   // The step Aman named is done: pleased for a moment, then gone (view 57, 15 Nov).
   useEffect(() => {

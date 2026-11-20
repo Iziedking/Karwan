@@ -24,8 +24,8 @@ function today(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-async function serve(page: Page, opts: { moves?: unknown[]; moment?: () => unknown; balances?: Record<string, number> } = {}) {
-  await serveMoney(page, { balances: opts.balances ?? funded, settings: { setupDoneAt: 1, guideHelloOn: today() } });
+async function serve(page: Page, opts: { moves?: unknown[]; moment?: () => unknown; balances?: Record<string, number>; helloOn?: string } = {}) {
+  await serveMoney(page, { balances: opts.balances ?? funded, settings: { setupDoneAt: 1, guideHelloOn: opts.helloOn ?? today() } });
   await page.route(`${API}/api/profile**`, (route) =>
     route.fulfill({ json: { profile: { address: ME, displayName: 'Bola Ade', handle: 'bola', settings: { setupDoneAt: 1 } } } }));
   await page.route(`${API}/api/agents/status`, (route) =>
@@ -89,4 +89,14 @@ test('Not now on linking Telegram is kept on the account', async ({ page }) => {
   await line(page).getByRole('button', { name: copy.notNow }).click();
   await snoozed;
   await expect(line(page)).toHaveCount(0);
+});
+
+test("the day's hello on Home says it once and then goes, even after the day is saved", async ({ page }) => {
+  await serve(page, { helloOn: '2000-01-01' });
+  const marked = page.waitForRequest((r) => r.url().endsWith('/api/settings') && r.method() !== 'GET' && (r.postData() ?? '').includes('guideHelloOn'));
+  await openHome(page);
+  const hello = page.locator('[data-aman-line="hello"]');
+  await expect(hello).toContainText(copy.hello.split(',')[0], { timeout: 15000 });
+  await marked;
+  await expect(hello).toHaveCount(0, { timeout: 6000 });
 });
