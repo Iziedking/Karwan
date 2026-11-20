@@ -66,4 +66,15 @@ The owner approved all three on 19 Nov 2026:
 
 ## Status
 
-Approved by the owner on 19 Nov 2026. Nothing built.
+Approved by the owner on 19 Nov 2026. Built 20 Nov 2026, for testnet at the next deploy:
+
+| Part | State |
+|---|---|
+| The record, written and signed once when a deal ends, older deals included | Built |
+| Deal record on the finished deal page, five rows with Arc links, and the receipt for the last payout linking to it | Built |
+| Share the record: a link per side, Copy link, Stop sharing, and the page the link opens, signed out, names and Karwan tags only | Built |
+| The assistant: `deal_record`, `share_deal_record` (confirm card), `stop_sharing_deal_record`, on the website and Telegram | Built |
+| The public statement says how the work was confirmed (`karwan.deal-settled.v2`) | Built, switched off until `DEAL_SETTLED_V2_FROM` is set; v1 statements stay valid |
+| Outside agents through MCP | Not in this build |
+
+The timer ladder finding above is still the owner's call; the record shows it as "Released when the review time ended".

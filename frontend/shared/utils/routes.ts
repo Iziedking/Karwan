@@ -40,7 +40,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
  */
 export function isPublicDiscoveryRoute(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
-  return ['/market', '/listings', '/credit-passport', '/attested'].some((route) => matchesRoute(pathname, route));
+  return ['/market', '/listings', '/credit-passport', '/attested', '/deal-record'].some((route) => matchesRoute(pathname, route));
 }
 
 /**
@@ -91,7 +91,7 @@ export function getProductBackHref(
   if (matchesRoute(pathname, '/developers') && pathname !== '/developers') return '/developers';
   if (matchesRoute(pathname, '/newsletter') && pathname !== '/newsletter') return '/newsletter';
   if (matchesRoute(pathname, '/terms') && pathname !== '/terms') return '/terms';
-  if (matchesRoute(pathname, '/r') || matchesRoute(pathname, '/attested') || matchesRoute(pathname, '/credit-passport')) return dealsAvailable ? '/market' : '/';
+  if (matchesRoute(pathname, '/r') || matchesRoute(pathname, '/attested') || matchesRoute(pathname, '/deal-record') || matchesRoute(pathname, '/credit-passport')) return dealsAvailable ? '/market' : '/';
   if (matchesRoute(pathname, '/admin')) return pathname === '/admin' ? home : '/admin';
   if (matchesRoute(pathname, '/connect') || matchesRoute(pathname, '/verify')) return isAuthenticated ? '/profile' : '/start';
   if (matchesRoute(pathname, '/recover')) return isAuthenticated ? home : '/start';
@@ -204,6 +204,7 @@ const DEAL_ROUTES = [
   '/business',
   '/credit-passport',
   '/attested',
+  '/deal-record',
   '/x402',
   '/profile/open-deals',
   '/profile/agent-funds',

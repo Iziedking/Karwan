@@ -1,4 +1,5 @@
 'use client';
+import { dealRecordCopy } from '@/shared/i18n/messages/dealRecord';
 import { Price } from '@/features/money/components/Price';
 import { useMoneyText } from '@/features/money/hooks/useMoneyText';
 
@@ -91,7 +92,10 @@ export function SettlementRecord({
   dealAmountUsdc,
   milestonePcts = [],
   bare = false,
+  onOpenRecord,
 }: {
+  /// View 94: once the deal has ended, the last payout leads to its signed record.
+  onOpenRecord?: () => void;
   /// Inside the Receipts sheet, which already names the section.
   bare?: boolean;
   dealAmountUsdc?: string;
@@ -185,7 +189,9 @@ export function SettlementRecord({
       {fetchState !== 'loading' && fetchState !== 'error' && movements.length > 0 && (
         <div className="mt-5 space-y-3">
           {/* Oldest first: the buyer's funding, then each payout. */}
-          {[...movements].sort((a, b) => a.createdAt - b.createdAt).map((movement, index) => {
+          {[...movements].sort((a, b) => a.createdAt - b.createdAt).map((movement, index, sorted) => {
+            const lastPayout = movement.kind !== 'escrow_funding' && movement.state === 'completed' &&
+              !sorted.slice(index + 1).some((m) => m.kind !== 'escrow_funding' && m.state === 'completed');
             const breakdown = paymentBreakdown(movement, dealAmountUsdc, milestonePcts);
             const expanded = openReference === movement.reference;
             const stateLabel = copy.states[movement.state];
@@ -285,6 +291,17 @@ export function SettlementRecord({
                     </button>
                   ) : null}
                 </div>
+
+                {lastPayout && onOpenRecord ? (
+                  <button
+                    type="button"
+                    data-open-record
+                    onClick={onOpenRecord}
+                    className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-workspace-ink)] underline underline-offset-4"
+                  >
+                    {dealRecordCopy[locale].seeRecord}
+                  </button>
+                ) : null}
 
                 {expanded && (
                   <ol id={`proof-${movement.reference}`} className="mt-3">

@@ -144,6 +144,7 @@ export const GUIDE_PAGES: GuidePage[] = [
   { path: '/financier/po/[lineId]', purpose: 'One purchase finance line.', can: ['see its terms'], points: {} },
   { path: '/credit-passport/[address]', purpose: 'A business’s trade record.', can: ['read the record'], points: {} },
   { path: '/attested/[id]', purpose: 'A deal recorded with proof on Arc.', can: ['check the proof'], points: {} },
+  { path: '/deal-record/[token]', purpose: 'A finished deal’s signed record, shared by one of its sides.', can: ['read the record', 'check the money moved on Arc'], points: {} },
 
   // Profile, settings and help.
   {

@@ -3,7 +3,7 @@ import { routeTitlesCopy, type RouteTitleKey } from '@/shared/i18n/messages/rout
 export const SITE_TITLE = 'Karwan · online and cross-border trade';
 
 /// Pages whose title is set on the server, with the record or offer it shows.
-export const SERVER_TITLED = [/^\/r\/[^/]+$/, /^\/credit-passport\/[^/]+$/, /^\/attested\/[^/]+$/, /^\/feedback$/];
+export const SERVER_TITLED = [/^\/r\/[^/]+$/, /^\/credit-passport\/[^/]+$/, /^\/attested\/[^/]+$/, /^\/deal-record\/[^/]+$/, /^\/feedback$/];
 
 export const EXACT: Record<string, RouteTitleKey> = {
   '/connect/telegram': 'connectTelegram',

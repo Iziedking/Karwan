@@ -23,6 +23,7 @@ import { KindPicture } from './KindPicture';
 import { sealFor } from './seal';
 import { GetPaidNow } from './GetPaidNow';
 import { financingVisible } from '@/shared/deals/financingEligibility';
+import { DealRecord } from '../record/DealRecord';
 import { SettlementRecord, type SettlementRecordFetchState } from '../components/SettlementRecord';
 import { AgreementSection } from './AgreementSection';
 import { AnswerCancelSheet, AnswerTimeSheet, DeliverSheet, ProblemSheet, TurnDownSheet } from './DealSheets';
@@ -285,6 +286,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   }
 
   const isSeller = !!address && deal.seller.toLowerCase() === address.toLowerCase();
+  // View 94: a finished deal shows both its sides the signed record.
+  const hasRecord = !!(deal.settledAt || deal.cancelledAt) && (isSeller || (!!address && deal.buyer.toLowerCase() === address.toLowerCase()));
   const layers = dealLayers({
     delivered: !!deal.delivered || !!deal.deliveredAt,
     // An in-person handover shows the code in its picture (view 92); stages still take a code per stage here.
@@ -349,6 +352,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             onRetry={onRetryRecord}
             canShareReceipts={viewerIsBuyer}
             dealAmountUsdc={deal.dealAmountUsdc}
+            onOpenRecord={hasRecord ? () => { close(); requestAnimationFrame(() => document.getElementById('deal-record')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); } : undefined}
             milestonePcts={deal.onChain?.milestonePcts?.length ? deal.onChain.milestonePcts : deal.milestonePcts?.length ? deal.milestonePcts : deal.firstReleasePct >= 100 ? [100] : [deal.firstReleasePct, 100 - deal.firstReleasePct]}
           />
         );
@@ -683,6 +687,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       </div>
 
       {settled ? rowsList : null}
+
+      {hasRecord ? <DealRecord jobId={deal.jobId} /> : null}
 
       {/* Room for the move bar, so it never covers the last row on a phone. */}
       <div aria-hidden className="h-44 lg:hidden" />
